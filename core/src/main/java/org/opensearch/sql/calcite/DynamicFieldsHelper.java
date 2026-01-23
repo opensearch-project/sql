@@ -30,6 +30,21 @@ class DynamicFieldsHelper {
     return DYNAMIC_FIELDS_MAP.equals(field);
   }
 
+  /** Check if dynamic fields map exists in current relation. */
+  static boolean isDynamicFieldsExists(CalcitePlanContext context) {
+    return context.relBuilder.peek().getRowType().getFieldNames().contains(DYNAMIC_FIELDS_MAP);
+  }
+
+  /** Check if a RelNode has dynamic fields. */
+  private static boolean hasDynamicFields(RelNode node) {
+    return node.getRowType().getFieldNames().contains(DYNAMIC_FIELDS_MAP);
+  }
+
+  /** Check if a field name is a metadata field. */
+  private static boolean isMetadataField(String fieldName) {
+    return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
+  }
+
   /** Get static fields from the left side of a join (excludes dynamic fields map). */
   static List<String> getLeftStaticFields(CalcitePlanContext context) {
     return excludeDynamicFields(context.relBuilder.peek(1).getRowType().getFieldNames());
@@ -50,7 +65,7 @@ class DynamicFieldsHelper {
     return getStaticFields(context);
   }
 
-  /** Filter out dynamic fields map from field names list. */
+  /** Filter out dynamic fields map from field names collection. */
   private static List<String> excludeDynamicFields(Collection<String> fields) {
     return fields.stream().filter(field -> !isDynamicFieldMap(field)).collect(Collectors.toList());
   }
@@ -60,6 +75,7 @@ class DynamicFieldsHelper {
     return fields.stream().filter(field -> !isMetadataField(field)).collect(Collectors.toList());
   }
 
+  /** Filter out dynamic fields and metadata fields from field names collection */
   private static List<String> excludeSpecialFields(Collection<String> fields) {
     return fields.stream()
         .filter(field -> !isMetadataField(field) && !isDynamicFieldMap(field))
@@ -73,16 +89,6 @@ class DynamicFieldsHelper {
     keys.removeAll(excluded);
     Collections.sort(keys);
     return keys;
-  }
-
-  /** Check if dynamic fields map exists in current relation. */
-  static boolean isDynamicFieldsExists(CalcitePlanContext context) {
-    return context.relBuilder.peek().getRowType().getFieldNames().contains(DYNAMIC_FIELDS_MAP);
-  }
-
-  /** Check if a RelNode has dynamic fields. */
-  private static boolean hasDynamicFields(RelNode node) {
-    return node.getRowType().getFieldNames().contains(DYNAMIC_FIELDS_MAP);
   }
 
   /** Adjust fields to align the static/dynamic fields for join. */
@@ -103,76 +109,6 @@ class DynamicFieldsHelper {
     }
   }
 
-  /** Create string literal array from collection of strings */
-  private static RexNode getStringLiteralArray(
-      Collection<String> keys, CalcitePlanContext context) {
-    List<RexNode> stringLiteralList = getStringLiteralList(keys, context);
-
-    return context.rexBuilder.makeCall(
-        getStringArrayType(context),
-        SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
-        stringLiteralList);
-  }
-
-  private static List<RexNode> getStringLiteralList(
-      Collection<String> strings, CalcitePlanContext context) {
-    return strings.stream()
-        .sorted()
-        .map(name -> context.rexBuilder.makeLiteral(name))
-        .collect(Collectors.toList());
-  }
-
-  /** Get RelDataType for string arrays */
-  private static RelDataType getStringArrayType(CalcitePlanContext context) {
-    return context
-        .rexBuilder
-        .getTypeFactory()
-        .createArrayType(
-            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), -1);
-  }
-
-  /** Create an array from list of RexNodes */
-  private static RexNode makeArray(List<RexNode> items, CalcitePlanContext context) {
-    return context.rexBuilder.makeCall(
-        getStringArrayType(context), SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, items);
-  }
-
-  /** Convert fields to map representation */
-  private static RexNode getFieldsAsMap(
-      Collection<String> existingFields, Collection<String> excluded, CalcitePlanContext context) {
-    List<String> keys = excludeMetaFields(existingFields);
-    keys.removeAll(excluded);
-    Collections.sort(keys);
-    RexNode keysArray = getStringLiteralArray(keys, context);
-    List<RexNode> values =
-        keys.stream().map(key -> context.relBuilder.field(key)).collect(Collectors.toList());
-    RexNode valuesArray = makeArray(values, context);
-    return context.rexBuilder.makeCall(BuiltinFunctionName.MAP_FROM_ARRAYS, keysArray, valuesArray);
-  }
-
-  /** Create dynamic map field by removing regular fields from full map */
-  private static RexNode createDynamicMapField(
-      RexNode fullMap, List<String> sortedRegularFields, CalcitePlanContext context) {
-    if (sortedRegularFields.isEmpty()) {
-      return fullMap;
-    }
-
-    List<RexNode> stringLiteralList = getStringLiteralList(sortedRegularFields, context);
-
-    RelDataType stringArrayType =
-        context
-            .rexBuilder
-            .getTypeFactory()
-            .createArrayType(
-                context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), -1);
-    RexNode keyArray =
-        context.rexBuilder.makeCall(
-            stringArrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, stringLiteralList);
-
-    // MAP_REMOVE(fullMap, keyArray) → filtered map with only unmapped fields
-    return context.rexBuilder.makeCall(BuiltinFunctionName.MAP_REMOVE, fullMap, keyArray);
-  }
-
   /** Adjust fields to align the static/dynamic fields in `target` to `theOtherInput` */
   static RelNode adjustFieldsForDynamicFields(
       RelNode target, RelNode theOtherInput, CalcitePlanContext context) {
@@ -185,6 +121,28 @@ class DynamicFieldsHelper {
       }
     }
     return target;
+  }
+
+  /**
+   * Project node's fields in `requiredFieldNames` as static field, and put other fields into `_MAP`
+   * (dynamic fields) This projection is needed when merging an input with dynamic fields and an
+   * input without dynamic fields. This process can be eliminated once we fully integrate
+   * schema-on-read (https://github.com/opensearch-project/sql/issues/4984)
+   */
+  static RelNode adjustFieldsForDynamicFields(
+      RelNode node, List<String> staticFieldNames, CalcitePlanContext context) {
+    context.relBuilder.push(node);
+    List<String> existingFields = node.getRowType().getFieldNames();
+    List<RexNode> project = new ArrayList<>();
+    for (String existingField : existingFields) {
+      if (staticFieldNames.contains(existingField)) {
+        project.add(context.rexBuilder.makeInputRef(node, existingFields.indexOf(existingField)));
+      }
+    }
+    project.add(
+        context.relBuilder.alias(
+            getFieldsAsMap(existingFields, staticFieldNames, context), DYNAMIC_FIELDS_MAP));
+    return context.relBuilder.project(project).build();
   }
 
   /** Promote all the fields in requiredStaticFieldNames to static fields to prepare for join. */
@@ -219,42 +177,6 @@ class DynamicFieldsHelper {
     projectList.add(context.relBuilder.alias(newDynamicFieldsMap, DYNAMIC_FIELDS_MAP));
 
     return context.relBuilder.project(projectList).build();
-  }
-
-  /**
-   * Project node's fields in `requiredFieldNames` as static field, and put other fields into `_MAP`
-   * (dynamic fields) This projection is needed when merging an input with dynamic fields and an
-   * input without dynamic fields. This process can be eliminated once we fully integrate
-   * schema-on-read (https://github.com/opensearch-project/sql/issues/4984)
-   */
-  static RelNode adjustFieldsForDynamicFields(
-      RelNode node, List<String> staticFieldNames, CalcitePlanContext context) {
-    context.relBuilder.push(node);
-    List<String> existingFields = node.getRowType().getFieldNames();
-    List<RexNode> project = new ArrayList<>();
-    for (String existingField : existingFields) {
-      if (staticFieldNames.contains(existingField)) {
-        project.add(context.rexBuilder.makeInputRef(node, existingFields.indexOf(existingField)));
-      }
-    }
-    project.add(
-        context.relBuilder.alias(
-            getFieldsAsMap(existingFields, staticFieldNames, context), DYNAMIC_FIELDS_MAP));
-    return context.relBuilder.project(project).build();
-  }
-
-  /** Get map item as string with type casting. */
-  private static RexNode getItemAsString(
-      RexNode map, String fieldName, CalcitePlanContext context) {
-    RexNode item = context.rexBuilder.itemCall(map, fieldName);
-    // Cast to string for type consistency. (This cast will be removed once functions are adopted
-    // to ANY type)
-    return context.relBuilder.cast(item, SqlTypeName.VARCHAR);
-  }
-
-  /** Cast a RexNode to string type. */
-  private static RexNode castToString(RexNode node, CalcitePlanContext context) {
-    return context.relBuilder.cast(node, SqlTypeName.VARCHAR);
   }
 
   /**
@@ -320,8 +242,88 @@ class DynamicFieldsHelper {
     return dynamicMapField;
   }
 
-  /** Check if a field name is a metadata field. */
-  private static boolean isMetadataField(String fieldName) {
-    return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
+  /** Get map item as string with type casting. */
+  private static RexNode getItemAsString(
+      RexNode map, String fieldName, CalcitePlanContext context) {
+    RexNode item = context.rexBuilder.itemCall(map, fieldName);
+    // Cast to string for type consistency. (This cast will be removed once functions are adopted
+    // to ANY type)
+    return context.relBuilder.cast(item, SqlTypeName.VARCHAR);
+  }
+
+  /** Cast a RexNode to string type. */
+  private static RexNode castToString(RexNode node, CalcitePlanContext context) {
+    return context.relBuilder.cast(node, SqlTypeName.VARCHAR);
+  }
+
+  /** Create dynamic map field by removing regular fields from full map */
+  private static RexNode createDynamicMapField(
+      RexNode fullMap, List<String> sortedRegularFields, CalcitePlanContext context) {
+    if (sortedRegularFields.isEmpty()) {
+      return fullMap;
+    }
+
+    List<RexNode> stringLiteralList = getStringLiteralList(sortedRegularFields, context);
+
+    RelDataType stringArrayType =
+        context
+            .rexBuilder
+            .getTypeFactory()
+            .createArrayType(
+                context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), -1);
+    RexNode keyArray =
+        context.rexBuilder.makeCall(
+            stringArrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, stringLiteralList);
+
+    // MAP_REMOVE(fullMap, keyArray) → filtered map with only unmapped fields
+    return context.rexBuilder.makeCall(BuiltinFunctionName.MAP_REMOVE, fullMap, keyArray);
+  }
+
+  /** Convert fields to map representation */
+  private static RexNode getFieldsAsMap(
+      Collection<String> existingFields, Collection<String> excluded, CalcitePlanContext context) {
+    List<String> keys = excludeMetaFields(existingFields);
+    keys.removeAll(excluded);
+    Collections.sort(keys);
+    RexNode keysArray = getStringLiteralArray(keys, context);
+    List<RexNode> values =
+        keys.stream().map(key -> context.relBuilder.field(key)).collect(Collectors.toList());
+    RexNode valuesArray = makeArray(values, context);
+    return context.rexBuilder.makeCall(BuiltinFunctionName.MAP_FROM_ARRAYS, keysArray, valuesArray);
+  }
+
+  /** Create string literal array from collection of strings */
+  private static RexNode getStringLiteralArray(
+      Collection<String> keys, CalcitePlanContext context) {
+    List<RexNode> stringLiteralList = getStringLiteralList(keys, context);
+
+    return context.rexBuilder.makeCall(
+        getStringArrayType(context),
+        SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+        stringLiteralList);
+  }
+
+  /** Create list of string literals from list of strings */
+  private static List<RexNode> getStringLiteralList(
+      Collection<String> strings, CalcitePlanContext context) {
+    return strings.stream()
+        .sorted()
+        .map(name -> context.rexBuilder.makeLiteral(name))
+        .collect(Collectors.toList());
+  }
+
+  /** Create an array from list of RexNodes */
+  private static RexNode makeArray(List<RexNode> items, CalcitePlanContext context) {
+    return context.rexBuilder.makeCall(
+        getStringArrayType(context), SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, items);
+  }
+
+  /** Get RelDataType for string arrays */
+  private static RelDataType getStringArrayType(CalcitePlanContext context) {
+    return context
+        .rexBuilder
+        .getTypeFactory()
+        .createArrayType(
+            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), -1);
   }
 }
