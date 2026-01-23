@@ -44,22 +44,10 @@ reviews:
         - Validate command follows PPL naming and structure patterns
         - Check if command should be alias vs separate implementation
 
-    # Java Files - Code Organization and Quality
+    # Java Files - Apply general guidelines from REVIEW_GUIDELINES.md
     - path: "**/*.java"
       instructions: |
-        - Flag methods >50 lines as potentially too complex - suggest refactoring
-        - Flag classes >500 lines as needing organization review
-        - Check for dead code, unused imports, and unused variables
-        - Identify code reuse opportunities across similar implementations
-        - Assess holistic maintainability - is code easy to understand and modify?
-        - Verify Java naming conventions (PascalCase for classes, camelCase for methods/variables)
-        - Check for proper JavaDoc on public classes and methods ONLY (not test helpers or private methods)
-        - Flag redundant comments that restate obvious code
-        - Ensure proper error handling with specific exception types
-        - Check for Optional<T> usage instead of null returns
-        - Validate proper use of try-with-resources for resource management
-        - Do NOT suggest extracting helper methods unless the method exceeds 100 lines
-        - Do NOT comment on test data being "hard-coded" if it's intentionally inline for clarity
+        Apply all Java Standards from REVIEW_GUIDELINES.md
     
     # Core Java - Project-Specific Patterns
     - path: "core/src/main/java/**/*.java"
@@ -83,22 +71,10 @@ reviews:
         - Follow visitor pattern for AST traversal
         - Ensure proper toString() implementation for debugging
     
-    # Test Files - Enhanced Coverage Validation
+    # Test Files - Apply testing guidelines from REVIEW_GUIDELINES.md
     - path: "**/test/**/*.java"
       instructions: |
-        - Verify NULL input tests for all new functions
-        - Check boundary condition tests (min/max values, empty inputs)
-        - Validate error condition tests (invalid inputs, exceptions)
-        - Ensure multi-document tests for per-document operations
-        - Flag smoke tests without meaningful assertions ONLY if they provide no value
-        - Check test naming follows pattern: test<Functionality><Condition>
-        - Verify test data is realistic and covers edge cases
-        - Verify test coverage for new business logic
-        - Ensure tests are independent and don't rely on execution order
-        - Validate meaningful test data that reflects real-world scenarios
-        - Check for proper cleanup of test resources
-        - Do NOT require JavaDoc on test methods or test helper methods
-        - Do NOT suggest loading test data from files if inline data improves readability
+        Apply all Testing Requirements from REVIEW_GUIDELINES.md
     
     # Integration Tests
     - path: "integ-test/**/*IT.java"
@@ -157,18 +133,6 @@ reviews:
         - Ensure code examples are tested and working
         - Check for consistent formatting and style
         - Do NOT flag missing language identifiers in code blocks as critical issues
-
-  # Tone instructions to reduce noise
-  tone_instructions:
-    - "Be concise and focus on functional issues, not cosmetic ones"
-    - "Do NOT suggest minor refactorings unless the code is clearly problematic (>100 lines, deeply nested, etc.)"
-    - "Do NOT flag missing JavaDoc on test methods, test helpers, or private methods"
-    - "Do NOT suggest loading test data from files if inline data is clearer"
-    - "Do NOT flag NDJSON format as invalid JSON"
-    - "Do NOT suggest adding language identifiers to markdown code blocks unless it's a documentation file"
-    - "Prioritize: correctness > performance > maintainability > style"
-    - "When suggesting improvements, explain WHY, not just WHAT"
-    - "Do NOT repeat the same suggestion multiple times in a review"
 
 chat:
   auto_reply: false # require explicit tagging 
