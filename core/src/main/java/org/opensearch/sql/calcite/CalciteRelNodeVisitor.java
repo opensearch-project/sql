@@ -972,6 +972,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     seenFields.add(fieldName);
 
     RexNode field = context.relBuilder.field(fieldName);
+
+    if ("none".equalsIgnoreCase(functionName)) {
+      if (asField != null) {
+        additions.add(Pair.of(asField, context.relBuilder.alias(field, asField)));
+      } else {
+        replacements.put(fieldName, context.relBuilder.alias(field, fieldName));
+      }
+      return;
+    }
+
     RexNode convertCall = PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, field);
 
     if (asField != null) {

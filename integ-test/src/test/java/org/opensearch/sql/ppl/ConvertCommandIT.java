@@ -72,7 +72,6 @@ public class ConvertCommandIT extends PPLIntegTestCase {
   private void verifyQueryThrowsCalciteError(String query) {
     Exception e =
         assertThrows(Exception.class, () -> executeQuery(String.format(query, TEST_INDEX_BANK)));
-    verifyErrorMessageContains(
-        e, "Convert command is supported only when plugins.calcite.enabled=true");
+    verifyErrorMessageContains(e, "convert is supported only when plugins.calcite.enabled=true");
   }
 }

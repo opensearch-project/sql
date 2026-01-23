@@ -169,16 +169,10 @@ public class CalcitePPLConvertTest extends CalcitePPLAbstractTest {
   public void testConvertNoneFunction() {
     String ppl = "source=EMP | convert none(ENAME)";
     RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalProject(EMPNO=[$0], ENAME=[NONE($1)], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical = "LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql =
-        "SELECT `EMPNO`, NONE(`ENAME`) `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`,"
-            + " `DEPTNO`\n"
-            + "FROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT *\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -247,14 +241,14 @@ public class CalcitePPLConvertTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
             + " COMM=[$6], DEPTNO=[$7], sal_auto=[AUTO($5)], comm_num=[NUM($6)],"
-            + " name_clean=[RMCOMMA($1)], job_clean=[RMUNIT($2)], empno_same=[NONE($0)])\n"
+            + " name_clean=[RMCOMMA($1)], job_clean=[RMUNIT($2)], empno_same=[$0])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, AUTO(`SAL`)"
             + " `sal_auto`, NUM(`COMM`) `comm_num`, RMCOMMA(`ENAME`) `name_clean`, RMUNIT(`JOB`)"
-            + " `job_clean`, NONE(`EMPNO`) `empno_same`\n"
+            + " `job_clean`, `EMPNO` `empno_same`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
