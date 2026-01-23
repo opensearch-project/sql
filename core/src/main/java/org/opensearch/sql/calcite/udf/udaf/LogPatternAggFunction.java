@@ -40,8 +40,8 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
     if (acc.isEmpty()) {
       return null;
     }
-    return PatternAggregationHelpers.producePatternResult(
-        acc.state, maxSampleCount, variableCountThreshold, thresholdPercentage, showNumberedToken);
+    return acc.value(
+        maxSampleCount, variableCountThreshold, thresholdPercentage, showNumberedToken);
   }
 
   @Override
@@ -169,9 +169,27 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
 
     @Override
     public Object value(Object... argList) {
-      // This method is not used directly - result() in LogPatternAggFunction handles this
-      throw new UnsupportedOperationException(
-          "Use LogPatternAggFunction.result() instead of direct value() call");
+      // Return the current state for use by LogPatternAggFunction.result()
+      // The argList contains [maxSampleCount, variableCountThreshold, thresholdPercentage,
+      // showNumberedToken]
+      if (isEmpty()) {
+        return null;
+      }
+      int maxSampleCount =
+          argList.length > 0 && argList[0] != null ? ((Number) argList[0]).intValue() : 10;
+      int variableCountThreshold =
+          argList.length > 1 && argList[1] != null
+              ? ((Number) argList[1]).intValue()
+              : BrainLogParser.DEFAULT_VARIABLE_COUNT_THRESHOLD;
+      double thresholdPercentage =
+          argList.length > 2 && argList[2] != null
+              ? ((Number) argList[2]).doubleValue()
+              : BrainLogParser.DEFAULT_FREQUENCY_THRESHOLD_PERCENTAGE;
+      boolean showNumberedToken =
+          argList.length > 3 && argList[3] != null && Boolean.TRUE.equals(argList[3]);
+
+      return PatternAggregationHelpers.producePatternResult(
+          state, maxSampleCount, variableCountThreshold, thresholdPercentage, showNumberedToken);
     }
   }
 }
