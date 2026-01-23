@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.request;
+package org.opensearch.sql.opensearch.storage.script.scriptedmetric;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.opensearch.storage.script.scriptedmetric.udaf.PatternScriptedMetricUDAF;
 
 /**
  * Registry for ScriptedMetricUDAF implementations.

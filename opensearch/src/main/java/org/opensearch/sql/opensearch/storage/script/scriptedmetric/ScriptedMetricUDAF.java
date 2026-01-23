@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.request;
+package org.opensearch.sql.opensearch.storage.script.scriptedmetric;
 
 import java.util.List;
 import java.util.Map;
@@ -136,8 +136,7 @@ public interface ScriptedMetricUDAF {
      * @param type The SQL type for the parameter
      * @return RexNode representing the dynamic parameter reference
      */
-    public RexNode addSpecialVariableRef(
-        String varName, SqlTypeName type) {
+    public RexNode addSpecialVariableRef(String varName, SqlTypeName type) {
       int index = paramHelper.addSpecialVariable(varName);
       return rexBuilder.makeDynamicParam(rexBuilder.getTypeFactory().createSqlType(type), index);
     }

@@ -98,6 +98,7 @@ import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
 import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.CompositeAggregationBuilder;
+import org.opensearch.sql.opensearch.storage.script.scriptedmetric.ScriptedMetricUDAFRegistry;
 import org.opensearch.sql.utils.Utils;
 
 /**

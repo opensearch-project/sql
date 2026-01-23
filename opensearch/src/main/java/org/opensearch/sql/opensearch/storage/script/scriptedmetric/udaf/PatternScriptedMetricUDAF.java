@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.request;
+package org.opensearch.sql.opensearch.storage.script.scriptedmetric.udaf;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -13,6 +13,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.opensearch.storage.script.scriptedmetric.ScriptedMetricUDAF;
 
 /**
  * Scripted metric UDAF implementation for the Pattern (BRAIN) aggregation function.

@@ -92,12 +92,7 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
 
     // Delegate to shared helper logic
     PatternAggregationHelpers.addLogToPattern(
-        acc.state,
-        field,
-        maxSampleCount,
-        bufferLimit,
-        variableCountThreshold,
-        thresholdPercentage);
+        acc.state, field, maxSampleCount, bufferLimit, variableCountThreshold, thresholdPercentage);
     return acc;
   }
 

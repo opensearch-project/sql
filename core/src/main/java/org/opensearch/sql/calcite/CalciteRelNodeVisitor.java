@@ -3322,7 +3322,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // 2. Add pattern_count when in aggregation mode (from original parsedNode)
     if (flattenPatternAggResult) {
-      RelDataType bigintType = context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+      RelDataType bigintType =
+          context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
       RexNode patternCountExpr =
           context.rexBuilder.makeCast(
               bigintType,
@@ -3340,8 +3341,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 3. Add tokens when showNumberedToken is enabled
     if (showNumberedToken) {
       RelDataType tokensType =
-          context.rexBuilder.getTypeFactory().createMapType(
-              varcharType, context.rexBuilder.getTypeFactory().createArrayType(varcharType, -1));
+          context
+              .rexBuilder
+              .getTypeFactory()
+              .createMapType(
+                  varcharType,
+                  context.rexBuilder.getTypeFactory().createArrayType(varcharType, -1));
       RexNode tokensExpr =
           context.rexBuilder.makeCast(
               tokensType,
