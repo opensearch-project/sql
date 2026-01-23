@@ -67,7 +67,7 @@ The `brain` method accepts the following parameters.
 
 By default, the Apache Calcite engine labels variables using the `<*>` placeholder. If the `show_numbered_token` option is enabled, the Calcite engine's `label` mode not only labels the text pattern but also assigns numbered placeholders to variable tokens. In `aggregation` mode, it outputs both the labeled pattern and the variable tokens for each pattern. In this case, variable placeholders use the format `<token%d>` instead of `<*>`.
 
-## Changing the default pattern method  
+## Changing the default pattern method
 
 To override default pattern parameters, run the following command:
 
@@ -83,7 +83,26 @@ PUT _cluster/settings
   }
 }
 ```
-  
+
+## Enabling UDAF pushdown for patterns aggregation
+
+When using the `patterns` command with `mode=aggregation` and `method=brain`, the aggregation can optionally be pushed down to OpenSearch as a scripted metric aggregation for parallel execution across data nodes. This can improve performance for large datasets but uses scripted metric aggregations which lack circuit breaker protection.
+
+By default, UDAF pushdown is **disabled**. To enable it, run the following command:
+
+```bash ignore
+PUT _cluster/settings
+{
+  "persistent": {
+    "plugins.calcite.udaf_pushdown.enabled": true
+  }
+}
+```
+
+> **Warning**: Enabling UDAF pushdown executes user-defined aggregation functions as scripted metric aggregations on OpenSearch data nodes. This bypasses certain memory circuit breakers and may cause out-of-memory errors on nodes when processing very large datasets. Use with caution and monitor cluster resource usage.
+
+When UDAF pushdown is disabled (the default), the pattern aggregation runs locally on the coordinator node after fetching the data from OpenSearch.
+
 ## Simple pattern examples
 
 The following are examples of using the `simple_pattern` method.
