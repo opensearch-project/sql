@@ -463,15 +463,30 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitConvert(Convert node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     String conversions =
-        node.getConvertFunctions().stream()
+        node.getConversions().stream()
             .map(
-                convertFunc -> {
-                  String functionName = convertFunc.getFunctionName().toLowerCase(Locale.ROOT);
-                  String fields =
-                      convertFunc.getFieldList().stream()
-                          .map(f -> MASK_COLUMN)
-                          .collect(Collectors.joining(","));
-                  String asClause = convertFunc.getAsField() != null ? " AS " + MASK_COLUMN : "";
+                conversion -> {
+                  String functionName = "";
+                  String fields = MASK_COLUMN;
+                  String actualSourceField = "";
+
+                  if (conversion.getExpression() instanceof Function) {
+                    Function func = (Function) conversion.getExpression();
+                    functionName = func.getFuncName().toLowerCase(Locale.ROOT);
+                    if (!func.getFuncArgs().isEmpty()
+                        && func.getFuncArgs().get(0) instanceof Field) {
+                      actualSourceField = ((Field) func.getFuncArgs().get(0)).getField().toString();
+                    }
+                    fields =
+                        func.getFuncArgs().stream()
+                            .map(arg -> MASK_COLUMN)
+                            .collect(Collectors.joining(","));
+                  }
+
+                  String targetField = conversion.getVar().getField().toString();
+
+                  String asClause =
+                      !targetField.equals(actualSourceField) ? " AS " + MASK_COLUMN : "";
                   return StringUtils.format("%s(%s)%s", functionName, fields, asClause);
                 })
             .collect(Collectors.joining(","));
