@@ -2507,15 +2507,15 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testAggFilterOnNestedFields() throws IOException {
-      enabledOnlyWhenPushdownIsEnabled();
-      assertYamlEqualsIgnoreId(
-              loadExpectedPlan("agg_filter_nested.yaml"),
-              explainQueryYaml(
-                      StringUtils.format(
-                              "source=%s | stats count(eval(author.name < 'K')) as george_and_jk",
-                              TEST_INDEX_CASCADED_NESTED)));
-
+    enabledOnlyWhenPushdownIsEnabled();
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_filter_nested.yaml"),
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | stats count(eval(author.name < 'K')) as george_and_jk",
+                TEST_INDEX_CASCADED_NESTED)));
   }
+
   @Test
   public void testFieldFormatExplain() throws Exception {
     // test for issue https://github.com/opensearch-project/sql/issues/4903
