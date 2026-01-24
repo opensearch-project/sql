@@ -115,7 +115,6 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
-import org.opensearch.sql.ast.tree.FieldFormat;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
@@ -975,38 +974,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         .forEach(
             expr -> {
               boolean containsSubqueryExpression = AstNodeUtils.containsSubqueryExpression(expr);
-              final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-              if (containsSubqueryExpression) {
-                context.relBuilder.variable(v::set);
-                context.pushCorrelVar(v.get());
-              }
-              RexNode eval = rexVisitor.analyze(expr, context);
-              if (containsSubqueryExpression) {
-                // RelBuilder.projectPlus doesn't have a parameter with variablesSet:
-                // projectPlus(Iterable<CorrelationId> variablesSet, RexNode... nodes)
-                context.relBuilder.project(
-                    Iterables.concat(context.relBuilder.fields(), ImmutableList.of(eval)),
-                    ImmutableList.of(),
-                    false,
-                    ImmutableList.of(v.get().id));
-                context.popCorrelVar();
-              } else {
-                // Overriding the existing field if the alias has the same name with original field.
-                String alias =
-                    ((RexLiteral) ((RexCall) eval).getOperands().get(1)).getValueAs(String.class);
-                projectPlusOverriding(List.of(eval), List.of(alias), context);
-              }
-            });
-    return context.relBuilder.peek();
-  }
-
-  @Override
-  public RelNode visitFieldFormat(FieldFormat node, CalcitePlanContext context) {
-    visitChildren(node, context);
-    node.getExpressionList()
-        .forEach(
-            expr -> {
-              boolean containsSubqueryExpression = containsSubqueryExpression(expr);
               final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
               if (containsSubqueryExpression) {
                 context.relBuilder.variable(v::set);

@@ -47,7 +47,6 @@ ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
-TRANSPOSE:                          'TRANSPOSE';
 CHART:                              'CHART';
 TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';

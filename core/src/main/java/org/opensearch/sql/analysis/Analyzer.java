@@ -70,7 +70,6 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
-import org.opensearch.sql.ast.tree.FieldFormat;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
