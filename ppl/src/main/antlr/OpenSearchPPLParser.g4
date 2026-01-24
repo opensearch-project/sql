@@ -107,6 +107,7 @@ commandName
    | DEDUP
    | SORT
    | EVAL
+   | FIELDFORMAT
    | HEAD
    | BIN
    | TOP
@@ -359,6 +360,10 @@ spanLiteral
 
 evalCommand
    : EVAL evalClause (COMMA evalClause)*
+   ;
+
+fieldformatCommand
+   : FIELDFORMAT fieldFormatEvalClause (COMMA fieldFormatEvalClause)*
    ;
 
 headCommand
@@ -734,6 +739,10 @@ evalClause
    : fieldExpression EQUAL logicalExpression
    ;
 
+fieldFormatEvalClause
+   : fieldExpression EQUAL ffLogicalExpression
+   ;
+
 eventstatsAggTerm
    : windowFunction (AS alias = wcFieldExpression)?
    ;
@@ -826,6 +835,13 @@ numericLiteral
     | doubleLiteral
     | floatLiteral
     ;
+
+ffLogicalExpression
+   : stringLiteral DOT logicalExpression   # stringDotlogicalExpression
+   | stringLiteral DOT logicalExpression  DOT stringLiteral # stringDotlogicalExpressionDotString
+   | logicalExpression DOT stringLiteral   # logicalExpressionDotString
+   | logicalExpression                     # ffStandardLogicalExpression
+   ;
 
 // predicates
 logicalExpression
@@ -1671,6 +1687,5 @@ searchableKeyWord
    | FIELDNAME
    | ROW
    | COL
-   | COLUMN_NAME
    ;
 

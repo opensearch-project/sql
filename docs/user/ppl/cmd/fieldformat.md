@@ -1,26 +1,30 @@
 
 # fieldformat
 
-The `fieldformat` command fieldformatuates the specified expression and appends the result of the fieldformatuation to the search results.
+The `fieldformat` command sets the value to a field with the specified expression and appends the field with evaluated result to the search results. The command is a alias of eval command.
+Additionally, it also provides string concatenation dot operator followed by and/or follows a string that will be concatenated to the expression.
 
-> **Note**: The `fieldformat` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
 
 ## Syntax
 
 The `fieldformat` command has the following syntax:
 
 ```syntax
-fieldformat <field>=<expression> ["," <field>=<expression> ]...
+Following are possible syntaxes:
+ fieldformat <field>=[(prefix).]<expression>[.(suffix)] ["," <field>=[(prefix).]<expression>[.(suffix)] ]...
+
 ```
 
 ## Parameters
 
 The `fieldformat` command supports the following parameters.
 
-| Parameter | Required/Optional | Description |
-| --- | --- | --- |
-| `<field>` | Required | The name of the field to create or update. If the field does not exist, a new field is added. If it already exists, its value is overwritten. |
-| `<expression>` | Required | The expression to fieldformatuate. |  
+| Parameter      | Required/Optional | Description                                                                                                                                   |
+|----------------|  |-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `<field>`      | Required | The name of the field to create or update. If the field does not exist, a new field is added. If it already exists, its value is overwritten. |
+| `<expression>` | Required | The expression to evaluate.  The expression can have a prefix and/or suffix string part that will be concatenated to the expression. |
+| `prefix`       | Optional | A string before the expression followed by dot operator which will be concatenated as prefix to the evaluated expression value. |
+| `suffix`       | Optional | A string that follows  the expression and dot operator which will be concatenated as suffix to the evaluated expression value. |
   
 
 ## Example 1: Create a new field  
@@ -73,38 +77,15 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 3: Create a new field using a field defined in fieldformat
-
-The following query creates a new field based on another field defined in the same `fieldformat` expression. In this example, the new `ddAge` field is calculated by multiplying the `doubleAge` field by `2`. The `doubleAge` field itself is defined earlier in the `fieldformat` command:
-  
-```ppl
-source=accounts
-| fieldformat doubleAge = age * 2, ddAge = doubleAge * 2
-| fields age, doubleAge, ddAge
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+-----+-----------+-------+
-| age | doubleAge | ddAge |
-|-----+-----------+-------|
-| 32  | 64        | 128   |
-| 36  | 72        | 144   |
-| 28  | 56        | 112   |
-| 33  | 66        | 132   |
-+-----+-----------+-------+
-```
   
 
-## Example 4: String concatenation  
+## Example 3: String concatenation with prefix 
 
-The following query uses the `+` operator for string concatenation. You can concatenate string literals and field values as follows:
+The following query uses the `.` (dot) operator for string concatenation. You can concatenate string literals and field values as follows:
   
 ```ppl
 source=accounts 
-| fieldformat greeting = 'Hello ' + firstname 
+| fieldformat greeting = 'Hello '.tostring( firstname) 
 | fields firstname, greeting
 ```
   
@@ -123,26 +104,25 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 5: Multiple string concatenation with type casting  
+## Example 5: string concatenation with dot operator , prefix and suffix
 
-The following query performs multiple concatenation operations, including type casting from numeric values to strings:
-  
+The following query performs prefix and suffix string concatenation operations using dot operator:
+
 ```ppl
-source=accounts | fieldformat full_info = 'Name: ' + firstname + ', Age: ' + CAST(age AS STRING) | fields firstname, age, full_info
+source=accounts | fieldformat age_info =  'Age: '.CAST(age AS STRING).' years.' | fields firstname, age, age_info
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 4/4
-+-----------+-----+------------------------+
-| firstname | age | full_info              |
-|-----------+-----+------------------------|
-| Amber     | 32  | Name: Amber, Age: 32   |
-| Hattie    | 36  | Name: Hattie, Age: 36  |
-| Nanette   | 28  | Name: Nanette, Age: 28 |
-| Dale      | 33  | Name: Dale, Age: 33    |
-+-----------+-----+------------------------+
-```
++-----------+-----+----------------+
+| firstname | age | age_info       |
+|-----------+-----+----------------|
+| Amber     | 32  | Age: 32 years. |
+| Hattie    | 36  | Age: 36 years. |
+| Nanette   | 28  | Age: 28 years. |
+| Dale      | 33  | Age: 33 years. |
++-----------+-----+----------------+
   
 
