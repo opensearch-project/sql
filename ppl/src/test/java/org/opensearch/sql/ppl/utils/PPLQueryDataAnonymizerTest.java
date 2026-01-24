@@ -1022,7 +1022,10 @@ public class PPLQueryDataAnonymizerTest {
         "source=table | convert auto(identifier),num(identifier)",
         anonymize("source=t | convert auto(salary), num(commission)"));
     assertEquals(
-        "source=table | convert rmcomma(identifier),rmunit(identifier),none(identifier)",
+        "source=table | convert rmcomma(identifier),rmunit(identifier),(identifier) AS identifier",
         anonymize("source=t | convert rmcomma(name), rmunit(revenue), none(id)"));
+    assertEquals(
+        "source=table | convert (identifier) AS identifier",
+        anonymize("source=t | convert none(empno) AS empno_same"));
   }
 }

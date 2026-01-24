@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.Let;
 
 /** AST node representing the Convert command. */
 @Getter
@@ -21,8 +22,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 public class Convert extends UnresolvedPlan {
-  private final String timeformat;
-  private final List<ConvertFunction> convertFunctions;
+  private final List<Let> conversions;
   private UnresolvedPlan child;
 
   @Override

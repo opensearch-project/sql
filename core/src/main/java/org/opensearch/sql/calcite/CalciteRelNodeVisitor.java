@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -87,6 +88,7 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
@@ -108,7 +110,6 @@ import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Convert;
-import org.opensearch.sql.ast.tree.ConvertFunction;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -934,89 +935,106 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitConvert(Convert node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    if (node.getConvertFunctions() == null || node.getConvertFunctions().isEmpty()) {
+    if (node.getConversions() == null || node.getConversions().isEmpty()) {
       return context.relBuilder.peek();
     }
 
-    java.util.Map<String, RexNode> replacements = new java.util.HashMap<>();
-    List<Pair<String, RexNode>> additions = new ArrayList<>();
-    Set<String> seenFields = new HashSet<>();
+    ConversionState state = new ConversionState();
 
-    for (ConvertFunction convertFunc : node.getConvertFunctions()) {
-      processConversionFunction(convertFunc, replacements, additions, seenFields, context);
+    for (Let conversion : node.getConversions()) {
+      processConversion(conversion, state, context);
     }
 
-    return buildProjectionWithConversions(replacements, additions, context);
+    return buildConversionProjection(state, context);
   }
 
-  private void processConversionFunction(
-      ConvertFunction convertFunc,
-      java.util.Map<String, RexNode> replacements,
-      List<Pair<String, RexNode>> additions,
-      Set<String> seenFields,
-      CalcitePlanContext context) {
-    String functionName = convertFunc.getFunctionName();
-    List<String> fieldList = convertFunc.getFieldList();
-    String asField = convertFunc.getAsField();
+  private static class ConversionState {
+    final Map<String, RexNode> replacements = new HashMap<>();
+    final List<Pair<String, RexNode>> additions = new ArrayList<>();
+    final Set<String> seenFields = new HashSet<>();
+  }
 
-    if (fieldList.size() != 1) {
-      throw new SemanticCheckException("Convert function must operate on exactly one field");
-    }
+  private void processConversion(
+      Let conversion, ConversionState state, CalcitePlanContext context) {
+    String target = conversion.getVar().getField().toString();
+    UnresolvedExpression expression = conversion.getExpression();
 
-    String fieldName = fieldList.get(0);
-
-    if (seenFields.contains(fieldName)) {
-      throw new SemanticCheckException(
-          String.format("Field '%s' cannot be converted more than once", fieldName));
-    }
-    seenFields.add(fieldName);
-
-    RexNode field = context.relBuilder.field(fieldName);
-
-    if ("none".equalsIgnoreCase(functionName)) {
-      if (asField != null) {
-        additions.add(Pair.of(asField, context.relBuilder.alias(field, asField)));
-      } else {
-        replacements.put(fieldName, context.relBuilder.alias(field, fieldName));
-      }
-      return;
-    }
-
-    RexNode convertCall = PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, field);
-
-    if (asField != null) {
-      additions.add(Pair.of(asField, context.relBuilder.alias(convertCall, asField)));
+    if (expression instanceof Field) {
+      processFieldCopyConversion(target, (Field) expression, state, context);
+    } else if (expression instanceof Function) {
+      processFunctionConversion(target, (Function) expression, state, context);
     } else {
-      replacements.put(fieldName, context.relBuilder.alias(convertCall, fieldName));
+      throw new SemanticCheckException("Convert command requires function call expressions");
     }
   }
 
-  private RelNode buildProjectionWithConversions(
-      java.util.Map<String, RexNode> replacements,
-      List<Pair<String, RexNode>> additions,
-      CalcitePlanContext context) {
+  private void processFieldCopyConversion(
+      String target, Field field, ConversionState state, CalcitePlanContext context) {
+    String source = field.getField().toString();
+
+    if (state.seenFields.contains(source)) {
+      throw new SemanticCheckException(
+          String.format("Field '%s' cannot be converted more than once", source));
+    }
+    state.seenFields.add(source);
+
+    if (!target.equals(source)) {
+      RexNode sourceField = context.relBuilder.field(source);
+      state.additions.add(Pair.of(target, context.relBuilder.alias(sourceField, target)));
+    }
+  }
+
+  private void processFunctionConversion(
+      String target, Function function, ConversionState state, CalcitePlanContext context) {
+    String functionName = function.getFuncName();
+    List<UnresolvedExpression> args = function.getFuncArgs();
+
+    if (args.size() != 1 || !(args.get(0) instanceof Field)) {
+      throw new SemanticCheckException("Convert function must have exactly one field argument");
+    }
+
+    String source = ((Field) args.get(0)).getField().toString();
+
+    if (state.seenFields.contains(source)) {
+      throw new SemanticCheckException(
+          String.format("Field '%s' cannot be converted more than once", source));
+    }
+    state.seenFields.add(source);
+
+    RexNode sourceField = context.relBuilder.field(source);
+    RexNode convertCall =
+        PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, sourceField);
+
+    if (!target.equals(source)) {
+      state.additions.add(Pair.of(target, context.relBuilder.alias(convertCall, target)));
+    } else {
+      state.replacements.put(source, context.relBuilder.alias(convertCall, source));
+    }
+  }
+
+  private RelNode buildConversionProjection(ConversionState state, CalcitePlanContext context) {
     List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> projectList = new ArrayList<>();
 
     for (String fieldName : originalFields) {
-      projectList.add(replacements.getOrDefault(fieldName, context.relBuilder.field(fieldName)));
+      projectList.add(
+          state.replacements.getOrDefault(fieldName, context.relBuilder.field(fieldName)));
     }
 
     Set<String> addedAsNames = new HashSet<>();
-
-    for (Pair<String, RexNode> addition : additions) {
+    for (Pair<String, RexNode> addition : state.additions) {
       String asName = addition.getLeft();
 
       if (originalFields.contains(asName)) {
         throw new SemanticCheckException(
             String.format("AS name '%s' conflicts with existing field", asName));
       }
-
-      if (!addedAsNames.add(asName)) {
+      if (addedAsNames.contains(asName)) {
         throw new SemanticCheckException(
             String.format("AS name '%s' is used multiple times in convert", asName));
       }
 
+      addedAsNames.add(asName);
       projectList.add(addition.getRight());
     }
 

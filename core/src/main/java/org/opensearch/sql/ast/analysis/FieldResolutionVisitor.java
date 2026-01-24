@@ -35,7 +35,6 @@ import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.Convert;
-import org.opensearch.sql.ast.tree.ConvertFunction;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -612,15 +611,9 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
     Set<String> inputFields = new HashSet<>();
     Set<String> outputFields = new HashSet<>();
 
-    for (ConvertFunction convertFunc : node.getConvertFunctions()) {
-      List<String> fieldList = convertFunc.getFieldList();
-      inputFields.addAll(fieldList);
-
-      if (convertFunc.getAsField() != null) {
-        outputFields.add(convertFunc.getAsField());
-      } else {
-        outputFields.addAll(fieldList);
-      }
+    for (Let conversion : node.getConversions()) {
+      outputFields.add(conversion.getVar().getField().toString());
+      inputFields.addAll(extractFieldsFromExpression(conversion.getExpression()));
     }
 
     FieldResolutionResult currentReq = context.getCurrentRequirements();
