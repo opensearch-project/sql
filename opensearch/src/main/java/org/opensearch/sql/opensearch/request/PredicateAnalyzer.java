@@ -225,7 +225,13 @@ public class PredicateAnalyzer {
     requireNonNull(expression, "expression");
     try {
       // visits expression tree
-      QueryExpression queryExpression = (QueryExpression) expression.accept(visitor);
+      Expression result = expression.accept(visitor);
+      // When a boolean field is used directly as a filter condition (e.g., `where male` after
+      // Calcite simplifies `where male = true`), convert NamedFieldExpression to a term query.
+      if (result instanceof TerminalExpression) {
+        return QueryExpression.create((TerminalExpression) result).isTrue();
+      }
+      QueryExpression queryExpression = (QueryExpression) result;
       return queryExpression;
     } catch (Throwable e) {
       if (e instanceof UnsupportedScriptException) {
@@ -582,6 +588,12 @@ public class PredicateAnalyzer {
 
       if (call.getKind() == SqlKind.IS_TRUE) {
         Expression qe = call.getOperands().get(0).accept(this);
+        // When IS_TRUE is applied to a field reference (e.g., IS_TRUE(boolean_field)),
+        // create a QueryExpression from the NamedFieldExpression and call isTrue().
+        // When IS_TRUE is applied to a predicate (already evaluated), qe is a QueryExpression.
+        if (qe instanceof TerminalExpression) {
+          return QueryExpression.create((TerminalExpression) qe).isTrue();
+        }
         return ((QueryExpression) qe).isTrue();
       }
 
@@ -1393,8 +1405,13 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression isTrue() {
-      // Ignore istrue if ISTRUE(predicate) and will support ISTRUE(field) later.
-      // builder = termQuery(getFieldReferenceForTermQuery(), true);
+      // When IS_TRUE is called on a boolean field directly (e.g., IS_TRUE(field)),
+      // generate a term query with value true.
+      // When called on an already-evaluated predicate (builder already set),
+      // return as-is.
+      if (builder == null) {
+        builder = termQuery(getFieldReferenceForTermQuery(), true);
+      }
       return this;
     }
 

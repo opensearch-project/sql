@@ -59,7 +59,7 @@ public class PredicateAnalyzerTest {
   final OpenSearchTypeFactory typeFactory = OpenSearchTypeFactory.TYPE_FACTORY;
   final RexBuilder builder = new RexBuilder(typeFactory);
   final RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), builder);
-  final List<String> schema = List.of("a", "b", "c", "d");
+  final List<String> schema = List.of("a", "b", "c", "d", "e");
   final Map<String, ExprType> fieldTypes =
       Map.of(
           "a", OpenSearchDataType.of(MappingType.Integer),
@@ -67,12 +67,14 @@ public class PredicateAnalyzerTest {
               OpenSearchDataType.of(
                   MappingType.Text, Map.of("fields", Map.of("keyword", Map.of("type", "keyword")))),
           "c", OpenSearchDataType.of(MappingType.Text), // Text without keyword cannot be push down
-          "d", OpenSearchDataType.of(MappingType.Date));
+          "d", OpenSearchDataType.of(MappingType.Date),
+          "e", OpenSearchDataType.of(MappingType.Boolean));
   final RexInputRef field1 =
       builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.INTEGER), 0);
   final RexInputRef field2 =
       builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 1);
   final RexInputRef field4 = builder.makeInputRef(typeFactory.createUDT(ExprUDT.EXPR_TIMESTAMP), 3);
+  final RexInputRef field5 = builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.BOOLEAN), 4);
   final RexLiteral numericLiteral = builder.makeExactLiteral(new BigDecimal(12));
   final RexLiteral stringLiteral = builder.makeLiteral("Hi");
   final RexNode dateTimeLiteral =
@@ -1116,6 +1118,67 @@ public class PredicateAnalyzerTest {
               "format" : "date_time",
               "boost" : 1.0
             }
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void isTrue_booleanField_generatesTermQuery() throws ExpressionNotAnalyzableException {
+    // IS_TRUE(boolean_field) should generate a term query with value true
+    RexNode call = builder.makeCall(SqlStdOperatorTable.IS_TRUE, field5);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(TermQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "term" : {
+            "e" : {
+              "value" : true,
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void isTrue_booleanFieldCombinedWithOtherCondition_generatesCompoundQuery()
+      throws ExpressionNotAnalyzableException {
+    // IS_TRUE(boolean_field) AND other_condition
+    RexNode isTrueCall = builder.makeCall(SqlStdOperatorTable.IS_TRUE, field5);
+    RexNode equalsCall = builder.makeCall(SqlStdOperatorTable.EQUALS, field1, numericLiteral);
+    RexNode andCall = builder.makeCall(SqlStdOperatorTable.AND, isTrueCall, equalsCall);
+    QueryBuilder result = PredicateAnalyzer.analyze(andCall, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must" : [
+              {
+                "term" : {
+                  "e" : {
+                    "value" : true,
+                    "boost" : 1.0
+                  }
+                }
+              },
+              {
+                "term" : {
+                  "a" : {
+                    "value" : 12,
+                    "boost" : 1.0
+                  }
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
           }
         }\
         """,

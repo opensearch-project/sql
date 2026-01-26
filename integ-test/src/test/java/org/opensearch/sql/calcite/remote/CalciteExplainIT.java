@@ -2444,4 +2444,45 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | stats count(eval(author.name < 'K')) as george_and_jk",
                 TEST_INDEX_CASCADED_NESTED)));
   }
+
+  // Only for Calcite - Test for issue #5054: Boolean field comparison pushdown
+  @Test
+  public void testFilterBooleanFieldPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Verifies that `male = true` is pushed down as a term query, not a script query.
+    // Calcite simplifies `boolean_field = true` to just the field reference.
+    String query =
+        StringUtils.format(
+            "source=%s | where male = true | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_boolean_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite - Test for issue #5054: Boolean field comparison with explicit TRUE
+  @Test
+  public void testFilterBooleanFieldWithExplicitTruePushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Verifies that `male = TRUE` (uppercase) is also pushed down as a term query.
+    String query =
+        StringUtils.format(
+            "source=%s | where male = TRUE | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_boolean_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite - Test for issue #5054: Boolean field comparison with string 'TRUE'
+  @Test
+  public void testFilterBooleanFieldWithStringTruePushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Verifies that `male = 'TRUE'` (string literal) is pushed down as a term query.
+    // Calcite implicitly casts the string 'TRUE' to boolean true during semantic analysis.
+    String query =
+        StringUtils.format(
+            "source=%s | where male = 'TRUE' | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_boolean_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
 }
