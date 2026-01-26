@@ -53,7 +53,6 @@ import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
@@ -62,6 +61,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
@@ -3089,15 +3089,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /**
-   * mvcombine command visitor to collapse rows that are identical on all fields except the target
-   * field, and combine the target field values into a multivalue (array) field.
+   * mvcombine command visitor to collapse rows that are identical on all non-target, non-metadata
+   * fields, and combine the target field values into a multivalue (array) field.
    *
-   * <p>Implementation notes:Groups by all input fields except the target field. Aggregates target
-   * values using {@code COLLECT} (MULTISET). Casts the aggregation result from MULTISET to ARRAY
-   * for a stable multivalue output type. Preserves the original output column order.
+   * <p>Implementation notes: Groups by all non-target, non-metadata fields. Aggregates target
+   * values using {@code ARRAY_AGG}, producing a multivalue {@code ARRAY<T>} directly. Preserves the
+   * original output column order.
    *
    * @param node mvcombine command to be visited
-   * @param context CalcitePlanContext containing the RelBuilder, RexBuilder, and resolution context
+   * @param context CalcitePlanContext containing the RelBuilder and resolution context
    * @return RelNode representing collapsed records with the target combined into a multivalue array
    * @throws SemanticCheckException if the mvcombine target is not a direct field reference
    */
@@ -3107,7 +3107,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
 
     final RelBuilder relBuilder = context.relBuilder;
-    final RexBuilder rexBuilder = context.rexBuilder;
 
     final RelNode input = relBuilder.peek();
     final List<String> inputFieldNames = input.getRowType().getFieldNames();
@@ -3117,16 +3116,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     final int targetIndex = resolveTargetIndex(targetField, context);
     final String targetName = inputFieldNames.get(targetIndex);
 
-    // 3) Group by all fields except the target.
+    // 3) Group by all non-target, non-metadata fields.
     final List<RexNode> groupExprs =
         buildGroupExpressionsExcludingTarget(targetIndex, inputFieldNames, relBuilder);
 
-    // 4) Aggregate target values using COLLECT, filtering out NULLs.
-    performCollectAggregation(relBuilder, targetIndex, targetName, groupExprs);
+    // If all remaining fields are metadata or the target itself, mvcombine degenerates to a global
+    // combine. This is intentional: result collapses to a single row with aggregated target values.
 
-    // 5) Restore original output column order, and cast COLLECT's MULTISET output to ARRAY<T>.
-    restoreColumnOrderWithArrayCast(
-        relBuilder, rexBuilder, input, inputFieldNames, targetIndex, groupExprs);
+    // 4) Aggregate target values using ARRAY_AGG, filtering out NULLs.
+    performArrayAggAggregation(relBuilder, targetIndex, targetName, groupExprs);
+
+    // 5) Restore original output column order (ARRAY_AGG already returns ARRAY<T>).
+    restoreColumnOrderAfterArrayAgg(relBuilder, inputFieldNames, targetIndex, groupExprs);
 
     return relBuilder.peek();
   }
@@ -3168,7 +3169,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /**
-   * Builds group-by expressions for mvcombine: all input fields except the target field.
+   * Builds group-by expressions for mvcombine: all non-target, non-metadata input fields.
    *
    * @param targetIndex Input index of the mvcombine target field
    * @param inputFieldNames Input schema field names (for sizing/ordering)
@@ -3182,6 +3183,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (i == targetIndex) {
         continue;
       }
+      final String fieldName = inputFieldNames.get(i);
+
+      if (isMetadataField(fieldName)) {
+        continue;
+      }
+
       groupExprs.add(relBuilder.field(i));
     }
     return groupExprs;
@@ -3190,19 +3197,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   /**
    * Applies mvcombine aggregation:
    *
-   * <p>GROUP BY all non-target fields, and aggregate target values using {@code COLLECT}. {@code
-   * COLLECT} produces a MULTISET in Calcite, which we later cast to ARRAY for output.
+   * <p>GROUP BY all non-target fields (excluding metadata fields), and aggregate target values
+   * using {@code ARRAY_AGG}. {@code ARRAY_AGG} produces an {@code ARRAY<T>} in Calcite, which we
+   * keep as-is for output.
    *
-   * <p>NULL target values are excluded from the collected multivalue list by applying an aggregate
-   * filter. This matches typical "combine values" semantics and avoids polluting the result with
-   * NULL elements.
+   * <p>NULL target values are excluded from the aggregated array by applying an aggregate filter.
    *
    * @param relBuilder RelBuilder positioned on the input
    * @param targetIndex Target field input index
    * @param targetName Target field output name (preserved)
-   * @param groupExprs Group-by expressions (all fields except target)
+   * @param groupExprs Group-by expressions (non-target, non-metadata fields)
    */
-  private void performCollectAggregation(
+  private void performArrayAggAggregation(
       RelBuilder relBuilder, int targetIndex, String targetName, List<RexNode> groupExprs) {
 
     final RexNode targetRef = relBuilder.field(targetIndex);
@@ -3210,7 +3216,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     final RelBuilder.AggCall aggCall =
         relBuilder
-            .aggregateCall(SqlStdOperatorTable.COLLECT, targetRef)
+            .aggregateCall(SqlLibraryOperators.ARRAY_AGG, targetRef)
             .filter(notNullTarget)
             .as(targetName);
 
@@ -3218,51 +3224,49 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /**
-   * Restores the original output column order after the aggregate step and converts the collected
-   * target from MULTISET to ARRAY&lt;T&gt;.
+   * Restores the original output column order after the aggregate step.
    *
    * <p>After aggregation, the schema is:
    *
    * <pre>
-   *   [groupField0, groupField1, ..., groupFieldN, targetAggMultiset]
+   *   [groupField0, groupField1, ..., groupFieldN, targetAggArray]
    * </pre>
    *
    * <p>This method projects fields back to the original input order, replacing the original target
-   * slot with {@code CAST(targetAggMultiset AS ARRAY&lt;T&gt;)}.
+   * slot with the aggregated target value. Metadata fields that were excluded from the group key
+   * are preserved in the output schema but projected as {@code NULL}, since they do not exist in
+   * the post-aggregate row.
+   *
+   * <p>Since {@code ARRAY_AGG} already returns {@code ARRAY<T>}, no cast is needed.
    *
    * @param relBuilder RelBuilder positioned on the post-aggregate node
-   * @param rexBuilder RexBuilder for explicit casts
-   * @param input Original input RelNode (used to derive the target element type)
    * @param inputFieldNames Original input field names (also output field names)
    * @param targetIndex Target field index in the original input
    * @param groupExprs Group-by expressions used during aggregation
    */
-  private void restoreColumnOrderWithArrayCast(
+  private void restoreColumnOrderAfterArrayAgg(
       RelBuilder relBuilder,
-      RexBuilder rexBuilder,
-      RelNode input,
       List<String> inputFieldNames,
       int targetIndex,
       List<RexNode> groupExprs) {
 
-    // Post-aggregate: group fields come first, and the collected target is appended at the end.
-    final int collectedTargetPos = groupExprs.size();
-
-    final RelDataType targetElemType = input.getRowType().getFieldList().get(targetIndex).getType();
-    final RelDataType targetArrayType =
-        relBuilder.getTypeFactory().createArrayType(targetElemType, -1);
+    // Post-aggregate: group fields come first, and the aggregated target is appended at the end.
+    final int aggregatedTargetPos = groupExprs.size();
 
     final List<RexNode> projections = new ArrayList<>(inputFieldNames.size());
     final List<String> projectionNames = new ArrayList<>(inputFieldNames.size());
 
     int groupPos = 0;
     for (int i = 0; i < inputFieldNames.size(); i++) {
-      projectionNames.add(inputFieldNames.get(i));
+      final String fieldName = inputFieldNames.get(i);
+
+      projectionNames.add(fieldName);
 
       if (i == targetIndex) {
-        // COLLECT returns MULTISET; normalize output to ARRAY<T>.
-        final RexNode multisetRef = relBuilder.field(collectedTargetPos);
-        projections.add(rexBuilder.makeCast(targetArrayType, multisetRef));
+        // ARRAY_AGG already returns ARRAY<T>
+        projections.add(relBuilder.field(aggregatedTargetPos));
+      } else if (isMetadataField(fieldName)) {
+        projections.add(relBuilder.literal(null));
       } else {
         projections.add(relBuilder.field(groupPos));
         groupPos++;
