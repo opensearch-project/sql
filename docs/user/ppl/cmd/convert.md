@@ -1,6 +1,6 @@
 # convert
 
-The `convert` command applies conversion functions to transform field values into different data types and formats.
+The `convert` command uses conversion functions to transform field values into numeric values. Original field values are overwritten unless the AS clause is used to create new fields with the converted values.
 
 ## Syntax
 
