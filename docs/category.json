@@ -29,6 +29,7 @@
     "user/ppl/cmd/regex.md",
     "user/ppl/cmd/rename.md",
     "user/ppl/cmd/multisearch.md",
+    "user/ppl/cmd/mvexpand.md",
     "user/ppl/cmd/replace.md",
     "user/ppl/cmd/rex.md",
     "user/ppl/cmd/search.md",
