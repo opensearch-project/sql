@@ -13,16 +13,12 @@ public class RmunitConvertFunction extends BaseConversionUDF {
   }
 
   public static Object convert(Object value) {
-    if (value instanceof Number) {
-      return ((Number) value).doubleValue();
-    }
+    return new RmunitConvertFunction().convertValue(value);
+  }
 
-    String str = ConversionUtils.preprocessValue(value);
-    if (str == null) {
-      return null;
-    }
-
-    String numberStr = ConversionUtils.extractLeadingNumber(str);
-    return numberStr != null ? ConversionUtils.tryParseDouble(numberStr) : null;
+  @Override
+  protected Object applyConversion(String preprocessedValue) {
+    String numberStr = extractLeadingNumber(preprocessedValue);
+    return numberStr != null ? tryParseDouble(numberStr) : null;
   }
 }

@@ -13,19 +13,14 @@ public class RmcommaConvertFunction extends BaseConversionUDF {
   }
 
   public static Object convert(Object value) {
-    if (value instanceof Number) {
-      return ((Number) value).doubleValue();
-    }
+    return new RmcommaConvertFunction().convertValue(value);
+  }
 
-    String str = ConversionUtils.preprocessValue(value);
-    if (str == null) {
+  @Override
+  protected Object applyConversion(String preprocessedValue) {
+    if (containsLetter(preprocessedValue)) {
       return null;
     }
-
-    if (ConversionUtils.CONTAINS_LETTER_PATTERN.matcher(str).matches()) {
-      return null;
-    }
-
-    return ConversionUtils.tryConvertWithCommaRemoval(str);
+    return tryConvertWithCommaRemoval(preprocessedValue);
   }
 }
