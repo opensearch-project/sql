@@ -17,6 +17,7 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 @ToString
@@ -88,6 +89,14 @@ public class Join extends UnresolvedPlan {
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
     return nodeVisitor.visitJoin(this, context);
+  }
+
+  /**
+   * @return `overwrite` option value in argumentMap
+   */
+  public boolean isOverwrite() {
+    return getArgumentMap().get("overwrite") == null // 'overwrite' default value is true
+        || getArgumentMap().get("overwrite").equals(Literal.TRUE);
   }
 
   public enum JoinType {

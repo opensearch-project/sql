@@ -14,6 +14,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.calcite.plan.DynamicFieldsConstants.DYNAMIC_FIELDS_MAP;
 import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupNotNull;
 import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupOrNull;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_MAIN;
@@ -151,6 +152,7 @@ import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
+import org.opensearch.sql.calcite.utils.JoinAndLookupUtils.OverwriteMode;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -374,6 +376,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return handleAllFieldsProject(node, context);
     }
 
+    if (DynamicFieldsHelper.isDynamicFieldsExists(context)) {
+      rejectWildcardNotAtTheEnd(node);
+    }
+
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> expandedFields =
         expandProjectFields(node.getProjectList(), currentFields, context);
@@ -388,6 +394,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.project(expandedFields);
     }
     return context.relBuilder.peek();
+  }
+
+  /**
+   * Reject if wildcard(`*`) is specified other than at the end, this is a limitation until field
+   * ordering for dynamic field is implemented.
+   */
+  private void rejectWildcardNotAtTheEnd(Project node) {
+    List<UnresolvedExpression> list = node.getProjectList();
+    for (int i = 0; i < list.size() - 1; i++) {
+      if (list.get(i) instanceof AllFields) {
+        throw new IllegalArgumentException(
+            "Wildcard can be placed only at the end of the fields list (limit of spath command).");
+      }
+    }
   }
 
   private boolean isSingleAllFieldsProject(Project node) {
@@ -423,7 +443,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         if (WildcardUtils.containsWildcard(fieldName)) {
           List<String> matchingFields =
               WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
-                  .filter(f -> !isMetadataField(f))
+                  .filter(f -> !isMetadataField(f) && !f.equals(DYNAMIC_FIELDS_MAP))
                   .filter(addedFields::add)
                   .collect(Collectors.toList());
           if (matchingFields.isEmpty()) {
@@ -478,7 +498,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
-  private boolean isMetadataField(String fieldName) {
+  private static boolean isMetadataField(String fieldName) {
     return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
   }
 
@@ -712,52 +732,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
 
     FieldResolutionResult resolutionResult = context.resolveFields(node);
-    if (resolutionResult.hasWildcards()) {
-      // Logic for handling wildcards (dynamic fields) will be implemented later.
-      throw new IllegalArgumentException(
-          "spath command failed to identify fields to extract. Use fields/stats command to specify"
-              + " output fields.");
-    }
 
     // 1. Extract all fields from JSON in `inField`
     RexNode inField = rexVisitor.analyze(AstDSL.field(node.getInField()), context);
-    RexNode map = makeCall(context, BuiltinFunctionName.JSON_EXTRACT_ALL, inField);
+    RexNode map = context.rexBuilder.makeCall(BuiltinFunctionName.JSON_EXTRACT_ALL, inField);
 
     // 2. Project items from FieldResolutionResult
-    Set<String> existingFields =
-        new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
-    List<String> fieldNames =
+    Set<String> existingFields = new HashSet<>(DynamicFieldsHelper.getStaticFields(context));
+    List<String> sortedRegularFieldNames =
         resolutionResult.getRegularFields().stream().sorted().collect(Collectors.toList());
-    List<RexNode> fields = new ArrayList<>();
-    for (String fieldName : fieldNames) {
-      RexNode item = itemCall(map, fieldName, context);
-      // Cast to string for type consistency. (This cast will be removed once functions are adopted
-      // to ANY type)
-      item = context.relBuilder.cast(item, SqlTypeName.VARCHAR);
-      // Append if field already exist
-      if (existingFields.contains(fieldName)) {
-        item =
-            makeCall(
-                context,
-                BuiltinFunctionName.INTERNAL_APPEND,
-                context.relBuilder.field(fieldName),
-                item);
-      }
-      fields.add(context.relBuilder.alias(item, fieldName));
+    List<RexNode> fields =
+        DynamicFieldsHelper.buildRegularFieldProjections(
+            map, sortedRegularFieldNames, existingFields, context);
+
+    // 3. Add _MAP field for dynamic fields when wildcards present
+    if (resolutionResult.hasWildcards()) {
+      RexNode dynamicMapField =
+          DynamicFieldsHelper.buildDynamicMapFieldProjection(
+              map, sortedRegularFieldNames, existingFields, context);
+      fields.add(context.relBuilder.alias(dynamicMapField, DYNAMIC_FIELDS_MAP));
     }
 
     context.relBuilder.project(fields);
     return context.relBuilder.peek();
-  }
-
-  private RexNode itemCall(RexNode node, String key, CalcitePlanContext context) {
-    return makeCall(
-        context, BuiltinFunctionName.INTERNAL_ITEM, node, context.rexBuilder.makeLiteral(key));
-  }
-
-  private RexNode makeCall(
-      CalcitePlanContext context, BuiltinFunctionName functionName, RexNode... args) {
-    return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, args);
   }
 
   @Override
@@ -1319,12 +1316,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
+    DynamicFieldsHelper.adjustJoinInputsForDynamicFields(
+        node.getLeftAlias(), node.getRightAlias(), context);
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
-      List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
-      List<String> rightColumns = context.relBuilder.peek().getRowType().getFieldNames();
+      List<String> leftColumns = DynamicFieldsHelper.getLeftStaticFields(context);
+      List<String> rightColumns = DynamicFieldsHelper.getRightStaticFields(context);
       List<String> duplicatedFieldNames =
-          leftColumns.stream().filter(rightColumns::contains).collect(Collectors.toList());
+          leftColumns.stream()
+              .filter(
+                  column ->
+                      !DynamicFieldsHelper.isDynamicFieldMap(column)
+                          && rightColumns.contains(column))
+              .collect(Collectors.toList());
       RexNode joinCondition;
       if (node.getJoinFields().isPresent()) {
         joinCondition =
@@ -1346,8 +1350,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         return context.relBuilder.peek();
       }
       List<RexNode> toBeRemovedFields;
-      if (node.getArgumentMap().get("overwrite") == null // 'overwrite' default value is true
-          || (node.getArgumentMap().get("overwrite").equals(Literal.TRUE))) {
+      if (node.isOverwrite()) {
         toBeRemovedFields =
             duplicatedFieldNames.stream()
                 .map(field -> JoinAndLookupUtils.analyzeFieldsForLookUp(field, true, context))
@@ -1382,6 +1385,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (!toBeRemovedFields.isEmpty()) {
         context.relBuilder.projectExcept(toBeRemovedFields);
       }
+      JoinAndLookupUtils.mergeDynamicFieldsAsNeeded(
+          context, node.isOverwrite() ? OverwriteMode.RIGHT_WINS : OverwriteMode.LEFT_WINS);
     } else {
       // The join-with-criteria grammar doesn't allow empty join condition
       RexNode joinCondition =
@@ -1398,8 +1403,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // column name with numeric suffix, e.g. ON t1.id = t2.id, the output contains `id` and `id0`
       // when a new project add to stack. To avoid `id0`, we will rename the `id0` to `alias.id`
       // or `tableIdentifier.id`:
-      List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
-      List<String> rightColumns = context.relBuilder.peek().getRowType().getFieldNames();
+      List<String> leftColumns = DynamicFieldsHelper.getLeftStaticFields(context);
+      List<String> rightColumns = DynamicFieldsHelper.getRightStaticFields(context);
       List<String> rightTableName =
           PlanUtils.findTable(context.relBuilder.peek()).getQualifiedName();
       // Using `table.column` instead of `catalog.database.table.column` as column prefix because
@@ -1414,7 +1419,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           rightColumns.stream()
               .map(
                   col ->
-                      leftColumns.contains(col)
+                      !DynamicFieldsHelper.isDynamicFieldMap(col) && leftColumns.contains(col)
                           ? node.getRightAlias()
                               .map(a -> a + "." + col)
                               .orElse(rightTableQualifiedName + "." + col)
@@ -1437,6 +1442,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       addSysLimitForJoinSubsearch(context);
       context.relBuilder.join(
           JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
+      JoinAndLookupUtils.mergeDynamicFieldsAsNeeded(context, OverwriteMode.LEFT_WINS);
       JoinAndLookupUtils.renameToExpectedFields(
           rightColumnsWithAliasIfConflict, leftColumns.size(), context);
     }
@@ -2213,6 +2219,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private RelNode mergeTableAndResolveColumnConflict(
       RelNode mainNode, RelNode subqueryNode, CalcitePlanContext context) {
+    mainNode = DynamicFieldsHelper.adjustFieldsForDynamicFields(mainNode, subqueryNode, context);
+    subqueryNode =
+        DynamicFieldsHelper.adjustFieldsForDynamicFields(subqueryNode, mainNode, context);
+
     // Use shared schema merging logic that handles type conflicts via field renaming
     List<RelNode> nodesToMerge = Arrays.asList(mainNode, subqueryNode);
     List<RelNode> projectedNodes =
