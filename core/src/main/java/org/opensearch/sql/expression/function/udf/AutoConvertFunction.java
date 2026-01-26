@@ -13,20 +13,16 @@ public class AutoConvertFunction extends BaseConversionUDF {
   }
 
   public static Object convert(Object value) {
-    if (value instanceof Number) {
-      return ((Number) value).doubleValue();
-    }
+    return new AutoConvertFunction().convertValue(value);
+  }
 
-    String str = ConversionUtils.preprocessValue(value);
-    if (str == null) {
-      return null;
-    }
-
-    Double result = ConversionUtils.tryConvertMemoryUnit(str);
+  @Override
+  protected Object applyConversion(String preprocessedValue) {
+    Double result = tryConvertMemoryUnit(preprocessedValue);
     if (result != null) {
       return result;
     }
 
-    return NumConvertFunction.convert(value);
+    return new NumConvertFunction().applyConversion(preprocessedValue);
   }
 }

@@ -13,30 +13,30 @@ public class NumConvertFunction extends BaseConversionUDF {
   }
 
   public static Object convert(Object value) {
-    if (value instanceof Number) {
-      return ((Number) value).doubleValue();
-    }
+    return new NumConvertFunction().convertValue(value);
+  }
 
-    String str = ConversionUtils.preprocessValue(value);
-    if (str == null || !ConversionUtils.isPotentiallyConvertible(str)) {
+  @Override
+  protected Object applyConversion(String preprocessedValue) {
+    if (!isPotentiallyConvertible(preprocessedValue)) {
       return null;
     }
 
-    Double result = ConversionUtils.tryParseDouble(str);
+    Double result = tryParseDouble(preprocessedValue);
     if (result != null) {
       return result;
     }
 
-    if (str.contains(",")) {
-      result = ConversionUtils.tryConvertWithCommaRemoval(str);
+    if (preprocessedValue.contains(",")) {
+      result = tryConvertWithCommaRemoval(preprocessedValue);
       if (result != null) {
         return result;
       }
     }
 
-    String leadingNumber = ConversionUtils.extractLeadingNumber(str);
-    if (ConversionUtils.hasValidUnitSuffix(str, leadingNumber)) {
-      return ConversionUtils.tryParseDouble(leadingNumber);
+    String leadingNumber = extractLeadingNumber(preprocessedValue);
+    if (hasValidUnitSuffix(preprocessedValue, leadingNumber)) {
+      return tryParseDouble(leadingNumber);
     }
 
     return null;

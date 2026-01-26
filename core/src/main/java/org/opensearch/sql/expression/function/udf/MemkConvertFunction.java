@@ -13,15 +13,11 @@ public class MemkConvertFunction extends BaseConversionUDF {
   }
 
   public static Object convert(Object value) {
-    if (value instanceof Number) {
-      return ((Number) value).doubleValue();
-    }
+    return new MemkConvertFunction().convertValue(value);
+  }
 
-    String str = ConversionUtils.preprocessValue(value);
-    if (str == null) {
-      return null;
-    }
-
-    return ConversionUtils.tryConvertMemoryUnit(str);
+  @Override
+  protected Object applyConversion(String preprocessedValue) {
+    return tryConvertMemoryUnit(preprocessedValue);
   }
 }
