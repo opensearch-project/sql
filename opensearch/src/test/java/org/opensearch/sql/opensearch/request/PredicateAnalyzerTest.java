@@ -74,7 +74,8 @@ public class PredicateAnalyzerTest {
   final RexInputRef field2 =
       builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 1);
   final RexInputRef field4 = builder.makeInputRef(typeFactory.createUDT(ExprUDT.EXPR_TIMESTAMP), 3);
-  final RexInputRef field5 = builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.BOOLEAN), 4);
+  final RexInputRef field5 =
+      builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.BOOLEAN), 4);
   final RexLiteral numericLiteral = builder.makeExactLiteral(new BigDecimal(12));
   final RexLiteral stringLiteral = builder.makeLiteral("Hi");
   final RexNode dateTimeLiteral =

@@ -1,8 +1,0 @@
-calcite:
-  logical: |
-    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(firstname=[$1])
-        LogicalFilter(condition=[$12])
-          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
-  physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[PROJECT->[firstname, male], FILTER->$1, PROJECT->[firstname], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"term":{"male":{"value":true,"boost":1.0}}},"_source":{"includes":["firstname"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

@@ -2445,44 +2445,56 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_CASCADED_NESTED)));
   }
 
-  // Only for Calcite - Test for issue #5054: Boolean field comparison pushdown
+  // Only for Calcite - Test for issue #5054: query_string combined with boolean comparison
+  // This mimics the query pattern: "source=test url=http | where is_internal=true"
+  // where query_string search is combined with boolean field comparison.
   @Test
-  public void testFilterBooleanFieldPushDown() throws IOException {
+  public void testFilterQueryStringWithBooleanFieldPushDown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    // Verifies that `male = true` is pushed down as a term query, not a script query.
-    // Calcite simplifies `boolean_field = true` to just the field reference.
+    // Verifies that query_string combined with boolean field comparison produces pure DSL query
+    // without embedded script. The boolean comparison should be pushed down as a term query.
     String query =
         StringUtils.format(
-            "source=%s | where male = true | fields firstname", TEST_INDEX_BANK);
+            "source=%s firstname=Amber | where male = true | fields firstname", TEST_INDEX_BANK);
     var result = explainQueryYaml(query);
-    String expected = loadExpectedPlan("explain_filter_boolean_push.yaml");
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 
-  // Only for Calcite - Test for issue #5054: Boolean field comparison with explicit TRUE
   @Test
-  public void testFilterBooleanFieldWithExplicitTruePushDown() throws IOException {
+  public void testFilterBooleanFieldWithTRUE() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    // Verifies that `male = TRUE` (uppercase) is also pushed down as a term query.
+    // Test boolean literal with uppercase TRUE
     String query =
         StringUtils.format(
-            "source=%s | where male = TRUE | fields firstname", TEST_INDEX_BANK);
+            "source=%s firstname=Amber | where male = TRUE | fields firstname", TEST_INDEX_BANK);
     var result = explainQueryYaml(query);
-    String expected = loadExpectedPlan("explain_filter_boolean_push.yaml");
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 
-  // Only for Calcite - Test for issue #5054: Boolean field comparison with string 'TRUE'
   @Test
-  public void testFilterBooleanFieldWithStringTruePushDown() throws IOException {
+  public void testFilterBooleanFieldWithStringLiteral() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    // Verifies that `male = 'TRUE'` (string literal) is pushed down as a term query.
-    // Calcite implicitly casts the string 'TRUE' to boolean true during semantic analysis.
+    // Test boolean field with string literal 'TRUE' - Calcite converts to boolean true
+    // and generates same term query as boolean literal
     String query =
         StringUtils.format(
-            "source=%s | where male = 'TRUE' | fields firstname", TEST_INDEX_BANK);
+            "source=%s firstname=Amber | where male = 'TRUE' | fields firstname", TEST_INDEX_BANK);
     var result = explainQueryYaml(query);
-    String expected = loadExpectedPlan("explain_filter_boolean_push.yaml");
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldFalse() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test boolean field with false - generates term query with false value
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where male = false | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean_false.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 }

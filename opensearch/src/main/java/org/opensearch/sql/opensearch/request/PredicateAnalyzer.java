@@ -228,8 +228,8 @@ public class PredicateAnalyzer {
       Expression result = expression.accept(visitor);
       // When a boolean field is used directly as a filter condition (e.g., `where male` after
       // Calcite simplifies `where male = true`), convert NamedFieldExpression to a term query.
-      if (result instanceof TerminalExpression) {
-        return QueryExpression.create((TerminalExpression) result).isTrue();
+      if (result instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+        return QueryExpression.create(namedField).isTrue();
       }
       QueryExpression queryExpression = (QueryExpression) result;
       return queryExpression;
@@ -572,7 +572,18 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
 
-      QueryExpression expr = (QueryExpression) call.getOperands().get(0).accept(this);
+      Expression operandExpr = call.getOperands().get(0).accept(this);
+      // Handle NOT(boolean_field) - generate term query with false value
+      // This covers cases like: male = false -> NOT($12)
+      if (operandExpr instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+        return QueryExpression.create(namedField).isFalse();
+      }
+      QueryExpression expr = (QueryExpression) operandExpr;
+      // Handle NOT(IS_TRUE(boolean_field)) - convert to term query with false value
+      // This covers cases where IS_TRUE was explicitly applied
+      if (expr instanceof SimpleQueryExpression simpleExpr && simpleExpr.isBooleanFieldIsTrue()) {
+        return QueryExpression.create(simpleExpr.rel).isFalse();
+      }
       return expr.not();
     }
 
@@ -588,11 +599,11 @@ public class PredicateAnalyzer {
 
       if (call.getKind() == SqlKind.IS_TRUE) {
         Expression qe = call.getOperands().get(0).accept(this);
-        // When IS_TRUE is applied to a field reference (e.g., IS_TRUE(boolean_field)),
+        // When IS_TRUE is applied to a boolean field reference (e.g., IS_TRUE(boolean_field)),
         // create a QueryExpression from the NamedFieldExpression and call isTrue().
         // When IS_TRUE is applied to a predicate (already evaluated), qe is a QueryExpression.
-        if (qe instanceof TerminalExpression) {
-          return QueryExpression.create((TerminalExpression) qe).isTrue();
+        if (qe instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+          return QueryExpression.create(namedField).isTrue();
         }
         return ((QueryExpression) qe).isTrue();
       }
@@ -809,8 +820,12 @@ public class PredicateAnalyzer {
     public Expression tryAnalyzeOperand(RexNode node) {
       try {
         Expression expr = node.accept(this);
-        if (expr instanceof NamedFieldExpression) {
-          return expr;
+        // When a boolean field is used directly as a filter condition (e.g., `where male` after
+        // Calcite simplifies `where male = true`), convert NamedFieldExpression to a term query.
+        if (expr instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+          QueryExpression qe = QueryExpression.create(namedField).isTrue();
+          qe.updateAnalyzedNodes(node);
+          return qe;
         }
         QueryExpression qe = (QueryExpression) expr;
         if (!qe.isPartial()) {
@@ -1069,6 +1084,10 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException("isTrue cannot be applied to " + this.getClass());
     }
 
+    QueryExpression isFalse() {
+      throw new PredicateAnalyzerException("isFalse cannot be applied to " + this.getClass());
+    }
+
     QueryExpression in(LiteralExpression literal) {
       throw new PredicateAnalyzerException("in cannot be applied to " + this.getClass());
     }
@@ -1194,6 +1213,8 @@ public class PredicateAnalyzer {
     private RexNode analyzedRexNode;
     private final NamedFieldExpression rel;
     private QueryBuilder builder;
+    // Flag indicating this expression represents IS_TRUE on a boolean field
+    private boolean isBooleanFieldIsTrue = false;
 
     private String getFieldReference() {
       return rel.getReference();
@@ -1411,8 +1432,21 @@ public class PredicateAnalyzer {
       // return as-is.
       if (builder == null) {
         builder = termQuery(getFieldReferenceForTermQuery(), true);
+        isBooleanFieldIsTrue = true;
       }
       return this;
+    }
+
+    @Override
+    public QueryExpression isFalse() {
+      // When IS_FALSE or NOT(IS_TRUE) is called on a boolean field,
+      // generate a term query with value false.
+      builder = termQuery(getFieldReferenceForTermQuery(), false);
+      return this;
+    }
+
+    boolean isBooleanFieldIsTrue() {
+      return isBooleanFieldIsTrue;
     }
 
     @Override
@@ -1674,6 +1708,17 @@ public class PredicateAnalyzer {
 
     boolean isTextType() {
       return type != null && type.getOriginalExprType() instanceof OpenSearchTextType;
+    }
+
+    boolean isBooleanType() {
+      if (type == null) {
+        return false;
+      }
+      // Check if the type is a boolean type. For OpenSearchDataType, check exprCoreType.
+      if (type instanceof OpenSearchDataType osType) {
+        return ExprCoreType.BOOLEAN.equals(osType.getExprCoreType());
+      }
+      return ExprCoreType.BOOLEAN.equals(type);
     }
 
     boolean isMetaField() {
