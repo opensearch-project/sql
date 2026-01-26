@@ -61,6 +61,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
@@ -3084,6 +3085,191 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);
 
     return context.relBuilder.peek();
+  }
+
+  /**
+   * mvcombine command visitor to collapse rows that are identical on all fields except the target
+   * field, and combine the target field values into a multivalue (array) field.
+   *
+   * <p>Implementation notes:Groups by all input fields except the target field. Aggregates target
+   * values using {@code COLLECT} (MULTISET). Casts the aggregation result from MULTISET to ARRAY
+   * for a stable multivalue output type. Preserves the original output column order.
+   *
+   * @param node mvcombine command to be visited
+   * @param context CalcitePlanContext containing the RelBuilder, RexBuilder, and resolution context
+   * @return RelNode representing collapsed records with the target combined into a multivalue array
+   * @throws SemanticCheckException if the mvcombine target is not a direct field reference
+   */
+  @Override
+  public RelNode visitMvCombine(MvCombine node, CalcitePlanContext context) {
+    // 1) Lower the child plan first so the RelBuilder has the input schema on the stack.
+    visitChildren(node, context);
+
+    final RelBuilder relBuilder = context.relBuilder;
+    final RexBuilder rexBuilder = context.rexBuilder;
+
+    final RelNode input = relBuilder.peek();
+    final List<String> inputFieldNames = input.getRowType().getFieldNames();
+
+    // 2) Resolve the mvcombine target to an input column index (must be a direct field reference).
+    final Field targetField = node.getField();
+    final int targetIndex = resolveTargetIndex(targetField, context);
+    final String targetName = inputFieldNames.get(targetIndex);
+
+    // 3) Group by all fields except the target.
+    final List<RexNode> groupExprs =
+        buildGroupExpressionsExcludingTarget(targetIndex, inputFieldNames, relBuilder);
+
+    // 4) Aggregate target values using COLLECT, filtering out NULLs.
+    performCollectAggregation(relBuilder, targetIndex, targetName, groupExprs);
+
+    // 5) Restore original output column order, and cast COLLECT's MULTISET output to ARRAY<T>.
+    restoreColumnOrderWithArrayCast(
+        relBuilder, rexBuilder, input, inputFieldNames, targetIndex, groupExprs);
+
+    return relBuilder.peek();
+  }
+
+  /**
+   * Resolves the mvcombine target expression to an input field index.
+   *
+   * <p>mvcombine requires the target to be a direct field reference (RexInputRef). This keeps the
+   * command semantics predictable and avoids accidental grouping on computed expressions.
+   *
+   * <p>The target must also be a scalar-ish field. mvcombine outputs ARRAY&lt;T&gt;, so the input
+   * target cannot already be an ARRAY or MULTISET.
+   *
+   * @param targetField Target field expression from the AST
+   * @param context Planning context
+   * @return 0-based input field index for the target
+   * @throws SemanticCheckException if the target is not a direct field reference or has an array
+   *     type
+   */
+  private int resolveTargetIndex(Field targetField, CalcitePlanContext context) {
+    final RexNode targetRex = rexVisitor.analyze(targetField, context);
+    if (!(targetRex instanceof RexInputRef)) {
+      throw new SemanticCheckException(
+          "mvcombine target must be a direct field reference, but got: " + targetField);
+    }
+
+    final int index = ((RexInputRef) targetRex).getIndex();
+
+    final RelDataType fieldType =
+        context.relBuilder.peek().getRowType().getFieldList().get(index).getType();
+
+    if (fieldType.getSqlTypeName() == org.apache.calcite.sql.type.SqlTypeName.ARRAY
+        || fieldType.getSqlTypeName() == org.apache.calcite.sql.type.SqlTypeName.MULTISET) {
+      throw new SemanticCheckException(
+          "mvcombine target cannot be an array/multivalue type, but got: " + fieldType);
+    }
+
+    return index;
+  }
+
+  /**
+   * Builds group-by expressions for mvcombine: all input fields except the target field.
+   *
+   * @param targetIndex Input index of the mvcombine target field
+   * @param inputFieldNames Input schema field names (for sizing/ordering)
+   * @param relBuilder RelBuilder positioned on the input
+   * @return Group-by expressions in input order excluding the target
+   */
+  private List<RexNode> buildGroupExpressionsExcludingTarget(
+      int targetIndex, List<String> inputFieldNames, RelBuilder relBuilder) {
+    final List<RexNode> groupExprs = new ArrayList<>(Math.max(0, inputFieldNames.size() - 1));
+    for (int i = 0; i < inputFieldNames.size(); i++) {
+      if (i == targetIndex) {
+        continue;
+      }
+      groupExprs.add(relBuilder.field(i));
+    }
+    return groupExprs;
+  }
+
+  /**
+   * Applies mvcombine aggregation:
+   *
+   * <p>GROUP BY all non-target fields, and aggregate target values using {@code COLLECT}. {@code
+   * COLLECT} produces a MULTISET in Calcite, which we later cast to ARRAY for output.
+   *
+   * <p>NULL target values are excluded from the collected multivalue list by applying an aggregate
+   * filter. This matches typical "combine values" semantics and avoids polluting the result with
+   * NULL elements.
+   *
+   * @param relBuilder RelBuilder positioned on the input
+   * @param targetIndex Target field input index
+   * @param targetName Target field output name (preserved)
+   * @param groupExprs Group-by expressions (all fields except target)
+   */
+  private void performCollectAggregation(
+      RelBuilder relBuilder, int targetIndex, String targetName, List<RexNode> groupExprs) {
+
+    final RexNode targetRef = relBuilder.field(targetIndex);
+    final RexNode notNullTarget = relBuilder.isNotNull(targetRef);
+
+    final RelBuilder.AggCall aggCall =
+        relBuilder
+            .aggregateCall(SqlLibraryOperators.ARRAY_AGG, targetRef)
+            .filter(notNullTarget)
+            .as(targetName);
+
+    relBuilder.aggregate(relBuilder.groupKey(groupExprs), aggCall);
+  }
+
+  /**
+   * Restores the original output column order after the aggregate step and converts the collected
+   * target from MULTISET to ARRAY&lt;T&gt;.
+   *
+   * <p>After aggregation, the schema is:
+   *
+   * <pre>
+   *   [groupField0, groupField1, ..., groupFieldN, targetAggMultiset]
+   * </pre>
+   *
+   * <p>This method projects fields back to the original input order, replacing the original target
+   * slot with {@code CAST(targetAggMultiset AS ARRAY&lt;T&gt;)}.
+   *
+   * @param relBuilder RelBuilder positioned on the post-aggregate node
+   * @param rexBuilder RexBuilder for explicit casts
+   * @param input Original input RelNode (used to derive the target element type)
+   * @param inputFieldNames Original input field names (also output field names)
+   * @param targetIndex Target field index in the original input
+   * @param groupExprs Group-by expressions used during aggregation
+   */
+  private void restoreColumnOrderWithArrayCast(
+      RelBuilder relBuilder,
+      RexBuilder rexBuilder,
+      RelNode input,
+      List<String> inputFieldNames,
+      int targetIndex,
+      List<RexNode> groupExprs) {
+
+    // Post-aggregate: group fields come first, and the collected target is appended at the end.
+    final int collectedTargetPos = groupExprs.size();
+
+    final RelDataType targetElemType = input.getRowType().getFieldList().get(targetIndex).getType();
+    final RelDataType targetArrayType =
+        relBuilder.getTypeFactory().createArrayType(targetElemType, -1);
+
+    final List<RexNode> projections = new ArrayList<>(inputFieldNames.size());
+    final List<String> projectionNames = new ArrayList<>(inputFieldNames.size());
+
+    int groupPos = 0;
+    for (int i = 0; i < inputFieldNames.size(); i++) {
+      projectionNames.add(inputFieldNames.get(i));
+
+      if (i == targetIndex) {
+        // COLLECT returns MULTISET; normalize output to ARRAY<T>.
+        final RexNode multisetRef = relBuilder.field(collectedTargetPos);
+        projections.add(multisetRef);
+      } else {
+        projections.add(relBuilder.field(groupPos));
+        groupPos++;
+      }
+    }
+
+    // Force projection to avoid Calcite "identity" short-circuit when only names/types change.
+    relBuilder.project(projections, projectionNames, /* force= */ true);
   }
 
   @Override

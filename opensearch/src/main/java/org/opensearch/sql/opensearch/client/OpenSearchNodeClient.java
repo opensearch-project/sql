@@ -25,6 +25,7 @@ import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.action.search.*;
+import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
@@ -134,6 +135,21 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       throw new IllegalStateException(
           "Failed to read setting for index pattern [" + indexExpression + "]", e);
     }
+  }
+
+  @Override
+  public boolean updateIndexSettings(Map<String, Object> settings, String... indexExpression) {
+    AcknowledgedResponse response =
+        client
+            .admin()
+            .indices()
+            .prepareUpdateSettings(indexExpression)
+            .setSettings(
+                settings.entrySet().stream()
+                    .filter(e -> e.getKey().startsWith("index."))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+            .get();
+    return response.isAcknowledged();
   }
 
   /** TODO: Scroll doesn't work for aggregation. Support aggregation later. */
