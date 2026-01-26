@@ -13,6 +13,8 @@ import static org.opensearch.sql.calcite.plan.DynamicFieldsConstants.DYNAMIC_FIE
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
@@ -244,7 +246,7 @@ class DynamicFieldsResultProcessorTest {
       List<Map<String, ExprValue>> rows, Cursor cursor) {
     Schema schema = createSchemaWithDynamicFields();
     List<ExprValue> results =
-        rows.stream().map(this::createTuple).map(tuple -> (ExprValue) tuple).toList();
+        rows.stream().map(this::createTuple).map(tuple -> (ExprValue) tuple).collect(Collectors.toList());
     return new QueryResponse(schema, results, cursor);
   }
 

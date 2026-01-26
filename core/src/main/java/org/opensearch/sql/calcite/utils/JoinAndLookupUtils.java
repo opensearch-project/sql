@@ -144,12 +144,12 @@ public interface JoinAndLookupUtils {
           (overwriteMode == OverwriteMode.RIGHT_WINS
               ? context.relBuilder.call(
                   SqlLibraryOperators.MAP_CONCAT,
-                  dynamicFieldMaps.getFirst(),
-                  dynamicFieldMaps.getLast())
+                  dynamicFieldMaps.get(0),
+                  dynamicFieldMaps.get(dynamicFieldMaps.size()-1))
               : context.relBuilder.call(
                   SqlLibraryOperators.MAP_CONCAT,
-                  dynamicFieldMaps.getLast(),
-                  dynamicFieldMaps.getFirst()));
+                  dynamicFieldMaps.get(dynamicFieldMaps.size()-1),
+                  dynamicFieldMaps.get(0)));
       result.add(context.relBuilder.alias(concat, DYNAMIC_FIELDS_MAP));
     } else if (dynamicFieldMaps.size() > 2) {
       throw new IllegalStateException("More than two _MAP exist while joining dynamic fields.");
