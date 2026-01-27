@@ -2489,12 +2489,16 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testFieldFormatExplain() throws Exception {
-    // test for issue https://github.com/opensearch-project/sql/issues/4903
+
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_field_format.yaml");
     assertYamlEqualsIgnoreId(
         expected,
-        explainQueryYaml("source=opensearch-sql_test_index_account | head 5| fieldformat  "));
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | head 5| fieldformat formatted_balance ="
+                    + " \"$\".tostring(balance,\"commas\") ",
+                TEST_INDEX_ACCOUNT)));
   }
     @Test
     public void testExplainMvCombine() throws IOException {
