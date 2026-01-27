@@ -2489,12 +2489,40 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testFilterBooleanFieldFalse() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    // Test boolean field with false - generates term query with false value
+    // male = false is converted to IS_FALSE(male) which generates term query {value: false}.
+    // This only matches documents where male is explicitly false (not null or missing).
     String query =
         StringUtils.format(
             "source=%s firstname=Amber | where male = false | fields firstname", TEST_INDEX_BANK);
     var result = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_filter_query_string_with_boolean_false.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldNotTrue() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // NOT(male = true) generates IS_NOT_TRUE which produces mustNot(term query {value: true})
+    // This matches documents where male is false, null, or missing
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where NOT male = true | fields firstname",
+            TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean_not_true.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldNotEquals() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // male != true generates IS_NOT_TRUE which produces mustNot(term query {value: true})
+    // This matches documents where male is false, null, or missing
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where male != true | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean_not_true.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 }

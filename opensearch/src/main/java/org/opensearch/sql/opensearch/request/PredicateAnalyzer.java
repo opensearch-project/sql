@@ -312,6 +312,9 @@ public class PredicateAnalyzer {
         case POSTFIX:
           switch (call.getKind()) {
             case IS_TRUE:
+            case IS_FALSE:
+            case IS_NOT_TRUE:
+            case IS_NOT_FALSE:
             case IS_NOT_NULL:
             case IS_NULL:
               return true;
@@ -359,7 +362,6 @@ public class PredicateAnalyzer {
 
     @Override
     public Expression visitCall(RexCall call) {
-
       SqlSyntax syntax = call.getOperator().getSyntax();
       if (!supportedRexCall(call)) {
         String message = format(Locale.ROOT, "Unsupported call: [%s]", call);
@@ -573,23 +575,23 @@ public class PredicateAnalyzer {
       }
 
       Expression operandExpr = call.getOperands().get(0).accept(this);
-      // Handle NOT(boolean_field) - generate term query with false value
-      // This covers cases like: male = false -> NOT($12)
+      // Handle NOT(boolean_field) - Calcite simplifies "field = false" to NOT($field).
+      // In PPL semantics, "field = false" should only match documents where the field is
+      // explicitly false (not null or missing). This is achieved via term query {value: false}.
+      // Note: This differs from SQL semantics where NOT(field) would match null/missing values.
       if (operandExpr instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
         return QueryExpression.create(namedField).isFalse();
       }
       QueryExpression expr = (QueryExpression) operandExpr;
-      // Handle NOT(IS_TRUE(boolean_field)) - convert to term query with false value
-      // This covers cases where IS_TRUE was explicitly applied
-      if (expr instanceof SimpleQueryExpression simpleExpr && simpleExpr.isBooleanFieldIsTrue()) {
-        return QueryExpression.create(simpleExpr.rel).isFalse();
-      }
       return expr.not();
     }
 
     private QueryExpression postfix(RexCall call) {
       checkArgument(
           call.getKind() == SqlKind.IS_TRUE
+              || call.getKind() == SqlKind.IS_FALSE
+              || call.getKind() == SqlKind.IS_NOT_TRUE
+              || call.getKind() == SqlKind.IS_NOT_FALSE
               || call.getKind() == SqlKind.IS_NULL
               || call.getKind() == SqlKind.IS_NOT_NULL);
       if (call.getOperands().size() != 1) {
@@ -606,6 +608,40 @@ public class PredicateAnalyzer {
           return QueryExpression.create(namedField).isTrue();
         }
         return ((QueryExpression) qe).isTrue();
+      }
+
+      if (call.getKind() == SqlKind.IS_FALSE) {
+        Expression qe = call.getOperands().get(0).accept(this);
+        // When IS_FALSE is applied to a boolean field reference (e.g., IS_FALSE(boolean_field)),
+        // create a QueryExpression from the NamedFieldExpression and call isFalse().
+        // This generates a term query with value false, which only matches documents where
+        // the field is explicitly false (not null or missing).
+        if (qe instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+          return QueryExpression.create(namedField).isFalse();
+        }
+        throw new PredicateAnalyzerException("IS_FALSE can only be applied to boolean fields");
+      }
+
+      if (call.getKind() == SqlKind.IS_NOT_TRUE) {
+        Expression qe = call.getOperands().get(0).accept(this);
+        // IS_NOT_TRUE(boolean_field) -> mustNot(term query {value: true})
+        // This returns documents where field is false, null, or missing.
+        // Used for NOT(field = true) semantics.
+        if (qe instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+          return QueryExpression.create(namedField).isNotTrue();
+        }
+        throw new PredicateAnalyzerException("IS_NOT_TRUE can only be applied to boolean fields");
+      }
+
+      if (call.getKind() == SqlKind.IS_NOT_FALSE) {
+        Expression qe = call.getOperands().get(0).accept(this);
+        // IS_NOT_FALSE(boolean_field) -> mustNot(term query {value: false})
+        // This returns documents where field is true, null, or missing.
+        // Used for NOT(field = false) semantics.
+        if (qe instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+          return QueryExpression.create(namedField).isNotFalse();
+        }
+        throw new PredicateAnalyzerException("IS_NOT_FALSE can only be applied to boolean fields");
       }
 
       // OpenSearch DSL does not handle IS_NULL / IS_NOT_NULL on nested fields correctly
@@ -1088,6 +1124,14 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException("isFalse cannot be applied to " + this.getClass());
     }
 
+    QueryExpression isNotFalse() {
+      throw new PredicateAnalyzerException("isNotFalse cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression isNotTrue() {
+      throw new PredicateAnalyzerException("isNotTrue cannot be applied to " + this.getClass());
+    }
+
     QueryExpression in(LiteralExpression literal) {
       throw new PredicateAnalyzerException("in cannot be applied to " + this.getClass());
     }
@@ -1213,8 +1257,6 @@ public class PredicateAnalyzer {
     private RexNode analyzedRexNode;
     private final NamedFieldExpression rel;
     private QueryBuilder builder;
-    // Flag indicating this expression represents IS_TRUE on a boolean field
-    private boolean isBooleanFieldIsTrue = false;
 
     private String getFieldReference() {
       return rel.getReference();
@@ -1432,21 +1474,32 @@ public class PredicateAnalyzer {
       // return as-is.
       if (builder == null) {
         builder = termQuery(getFieldReferenceForTermQuery(), true);
-        isBooleanFieldIsTrue = true;
       }
       return this;
     }
 
     @Override
     public QueryExpression isFalse() {
-      // When IS_FALSE or NOT(IS_TRUE) is called on a boolean field,
-      // generate a term query with value false.
+      // Generate a term query with value false. This only matches documents where
+      // the field is explicitly false (not null or missing).
       builder = termQuery(getFieldReferenceForTermQuery(), false);
       return this;
     }
 
-    boolean isBooleanFieldIsTrue() {
-      return isBooleanFieldIsTrue;
+    @Override
+    public QueryExpression isNotFalse() {
+      // Generate mustNot(term query {value: false}). This matches documents where
+      // the field is true, null, or missing. Used for NOT(field = false) semantics.
+      builder = boolQuery().mustNot(termQuery(getFieldReferenceForTermQuery(), false));
+      return this;
+    }
+
+    @Override
+    public QueryExpression isNotTrue() {
+      // Generate mustNot(term query {value: true}). This matches documents where
+      // the field is false, null, or missing. Used for NOT(field = true) semantics.
+      builder = boolQuery().mustNot(termQuery(getFieldReferenceForTermQuery(), true));
+      return this;
     }
 
     @Override

@@ -21,27 +21,31 @@ teardown:
         - allowed_warnings
   - do:
       indices.create:
-        index: test-boolean
+        index: test
         body:
           mappings:
             properties:
+              "@timestamp":
+                type: date
+              url:
+                type: text
               is_internal:
                 type: boolean
-              name:
-                type: keyword
+
 
   - do:
       bulk:
-        index: test-boolean
+        index: test
         refresh: true
         body:
           - '{"index": {}}'
-          - '{ "is_internal": true, "name": "doc1" }'
+          - '{ "@timestamp":"2025-08-19T04:51:24Z", "url": "http" }'
           - '{"index": {}}'
-          - '{ "is_internal": false, "name": "doc2" }'
+          - '{ "@timestamp":"2025-08-19T04:51:24Z", "url": "http", "is_internal": true }'
           - '{"index": {}}'
-          - '{ "is_internal": true, "name": "doc3" }'
+          - '{ "@timestamp":"2025-08-19T04:51:24Z", "url": "http", "is_internal": false }'
 
+  # Test is_internal=true: should return only documents where is_internal is explicitly true
   - do:
       allowed_warnings:
         - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
@@ -49,7 +53,49 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: source=test-boolean | where is_internal=true | fields name
+          query: source=test url=http | where is_internal=true
+
+  - match: { total: 1 }
+  - length: { datarows: 1 }
+
+  # Test is_internal=false: should return only documents where is_internal is explicitly false
+  # NOT documents where is_internal is null or missing
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test url=http | where is_internal=false
+
+  - match: { total: 1 }
+  - length: { datarows: 1 }
+
+  # Test NOT(is_internal=false): should return documents where is_internal is true OR null/missing
+  # This is the negation of "is_internal=false", so it should return 2 documents
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test url=http | where not is_internal=false
+
+  - match: { total: 2 }
+  - length: { datarows: 2 }
+
+  # Test NOT(is_internal=true): should return documents where is_internal is false OR null/missing
+  # This is the negation of "is_internal=true", so it should return 2 documents
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test url=http | where not is_internal=true
 
   - match: { total: 2 }
   - length: { datarows: 2 }
