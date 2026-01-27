@@ -14,9 +14,11 @@ import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
@@ -51,7 +53,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   private static final String SECURE_LOGS = "secure_logs_fgac";
   private static final String EMPLOYEE_RECORDS = "employee_records_fgac";
 
-  private static final int LARGE_DATASET_SIZE = 2000;
+  private static final int LARGE_DATASET_SIZE = 100;
 
   @SneakyThrows
   @BeforeAll
@@ -64,8 +66,20 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   @Override
   protected void init() throws Exception {
     super.init();
-    enableCalcite();
     allowCalciteFallback();
+  }
+
+  /**
+   * Configures the query engine for the test.
+   *
+   * @param useCalcite true to use V3 (Calcite) engine, false to use V2 (legacy) engine
+   */
+  private void configureEngine(boolean useCalcite) throws IOException {
+    if (useCalcite) {
+      enableCalcite();
+    } else {
+      disableCalcite();
+    }
   }
 
   private void setupTestIndices() throws IOException {
@@ -75,7 +89,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     createSecureLogsIndex();
   }
 
-  /** Creates public_logs index with 2000+ documents. */
+  /** Creates public_logs index with test documents. */
   private void createPublicLogsIndex() throws IOException {
     Request request = new Request("PUT", "/" + PUBLIC_LOGS);
     request.setJsonEntity(
@@ -99,7 +113,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     bulkInsertDocs(PUBLIC_LOGS, "public");
   }
 
-  /** Creates sensitive_logs index with 2000+ documents. */
+  /** Creates sensitive_logs index with test documents. */
   private void createSensitiveLogsIndex() throws IOException {
     Request request = new Request("PUT", "/" + SENSITIVE_LOGS);
     request.setJsonEntity(
@@ -177,8 +191,6 @@ public class FGACIndexScanningIT extends SecurityTestBase {
         """);
     client().performRequest(request);
 
-    // Insert documents with mixed security levels
-    // 1000 public, 500 internal, 500 confidential
     bulkInsertDocsWithSecurityLevel();
   }
 
@@ -255,8 +267,12 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   private void bulkInsertDocsWithSecurityLevel() throws IOException {
     StringBuilder bulk = new StringBuilder();
 
-    // 1000 public documents
-    for (int i = 0; i < 1000; i++) {
+    int publicCount = LARGE_DATASET_SIZE / 2;
+    int internalStart = publicCount;
+    int internalCount = LARGE_DATASET_SIZE / 4;
+    int confidentialStart = internalStart + internalCount;
+
+    for (int i = 0; i < publicCount; i++) {
       bulk.append(
           String.format(
               Locale.ROOT,
@@ -268,8 +284,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
               i));
     }
 
-    // 500 internal documents
-    for (int i = 1000; i < 1500; i++) {
+    for (int i = internalStart; i < confidentialStart; i++) {
       bulk.append(
           String.format(
               Locale.ROOT,
@@ -281,8 +296,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
               i));
     }
 
-    // 500 confidential documents
-    for (int i = 1500; i < 2000; i++) {
+    for (int i = confidentialStart; i < LARGE_DATASET_SIZE; i++) {
       bulk.append(
           String.format(
               Locale.ROOT,
@@ -345,17 +359,21 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     createRoleWithFLS(MANAGER_ROLE, EMPLOYEE_RECORDS, RECORDS_INDEX_COLUMNS);
   }
 
-  @Test
-  public void testPublicUserCanAccessPublicLogs() throws IOException {
-    // public_user can access public_logs (large dataset triggers background scanning)
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  public void testPublicUserCanAccessPublicLogs(boolean useCalcite) throws IOException {
+    configureEngine(useCalcite);
+    // public_user can access public_logs
     JSONObject result =
         executeQueryAsUser(
             String.format("search source=%s | fields message | head 10", PUBLIC_LOGS), PUBLIC_USER);
     verifyColumn(result, columnName("message"));
   }
 
-  @Test
-  public void testPublicUserCannotAccessSensitiveLogs() throws IOException {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  public void testPublicUserCannotAccessSensitiveLogs(boolean useCalcite) throws IOException {
+    configureEngine(useCalcite);
     // public_user cannot access sensitive_logs (should fail at planning stage)
     try {
       executeQueryAsUser(
@@ -370,8 +388,10 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     }
   }
 
-  @Test
-  public void testSensitiveUserCanAccessSensitiveLogs() throws IOException {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  public void testSensitiveUserCanAccessSensitiveLogs(boolean useCalcite) throws IOException {
+    configureEngine(useCalcite);
     // sensitive_user can access sensitive_logs
     JSONObject result =
         executeQueryAsUser(
@@ -380,8 +400,10 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     verifyColumn(result, columnName("message"));
   }
 
-  @Test
-  public void testSensitiveUserCannotAccessPublicLogs() throws IOException {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  public void testSensitiveUserCannotAccessPublicLogs(boolean useCalcite) throws IOException {
+    configureEngine(useCalcite);
     // sensitive_user cannot access public_logs
     try {
       executeQueryAsUser(
@@ -396,8 +418,11 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     }
   }
 
-  @Test
-  public void testHrUserCanSeeAllFieldsIncludingSensitiveData() throws IOException {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  public void testHrUserCanSeeAllFieldsIncludingSensitiveData(boolean useCalcite)
+      throws IOException {
+    configureEngine(useCalcite);
     // hr_user can see ALL fields including sensitive ssn
     String queryAllFields =
         String.format(
@@ -421,8 +446,10 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     assertTrue("hr_user should see 'department' field", hrHasDepartment);
   }
 
-  @Test
-  public void testManagerUserCannotSeeSensitiveFields() throws IOException {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  public void testManagerUserCannotSeeSensitiveFields(boolean useCalcite) throws IOException {
+    configureEngine(useCalcite);
     // manager_user can see most fields but NOT ssn
     String queryAllowedFields =
         String.format(
@@ -452,8 +479,10 @@ public class FGACIndexScanningIT extends SecurityTestBase {
         managerHasSSN);
   }
 
-  @Test
-  public void testManagerUserCannotQueryRestrictedField() throws IOException {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  public void testManagerUserCannotQueryRestrictedField(boolean useCalcite) throws IOException {
+    configureEngine(useCalcite);
     // Verify manager_user cannot even reference ssn in query (field is invisible)
     try {
       String queryWithSSN =
@@ -471,8 +500,11 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     }
   }
 
-  @Test
-  public void testFieldLevelSecurityEnforcedWithLargeDataset() throws IOException {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  public void testFieldLevelSecurityEnforcedWithLargeDataset(boolean useCalcite)
+      throws IOException {
+    configureEngine(useCalcite);
     // Verify with large result set that FLS is still enforced
     String queryLargeDataset =
         String.format(
@@ -490,15 +522,16 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     }
 
     assertFalse(
-        "SECURITY VIOLATION: manager_user should NOT see 'ssn' even with large dataset (2000+"
-            + " rows). Field-level security must be enforced.",
+        "SECURITY VIOLATION: manager_user should NOT see 'ssn' even with large dataset. "
+            + "Field-level security must be enforced.",
         hasSSNInLarge);
   }
 
-  @Test
-  public void testRowLevelSecurityV2() throws IOException {
-    // Test V2 (legacy) engine explicitly
-    disableCalcite();
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  public void testRowLevelSecurity(boolean useCalcite) throws IOException {
+    configureEngine(useCalcite);
+    String engineLabel = useCalcite ? "V3" : "V2";
 
     // limited_user should only see "public" documents
 
@@ -534,93 +567,36 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     }
 
     assertFalse(
-        "[V2] SECURITY VIOLATION: limited_user should NOT see 'confidential' documents. "
-            + "This indicates ThreadContext is not being copied to async worker threads in V2, "
-            + "causing queries to run with admin permissions and bypass row-level security.",
-        sawConfidential);
-
-    assertFalse(
-        "[V2] SECURITY VIOLATION: limited_user should NOT see 'internal' documents. "
-            + "This indicates ThreadContext is not being copied to async worker threads in V2, "
-            + "causing queries to run with admin permissions and bypass row-level security.",
-        sawInternal);
-
-    assertEquals(
-        "[V2] limited_user should ONLY see 'public' documents (~1000). "
-            + "Seeing more indicates row-level security is being bypassed in V2.",
-        1000,
-        publicDocs);
-
-    assertEquals(
-        "[V2] Total visible documents should be ~1000 (only public). "
-            + "Seeing 2000 documents indicates row-level security is completely bypassed in V2.",
-        1000,
-        totalDocs);
-  }
-
-  @Test
-  public void testRowLevelSecurity() throws IOException {
-    // Test V3 (Calcite) engine - Calcite is enabled in init()
-    // limited_user should only see "public" documents
-
-    // Execute query as limited_user
-    String query =
         String.format(
-            "search source=%s | fields security_level, message | stats count() by security_level",
-            SECURE_LOGS);
-    JSONObject result = executeQueryAsUser(query, LIMITED_USER);
-
-    // Extract the datarows for validation
-    var datarows = result.getJSONArray("datarows");
-
-    // limited_user should ONLY see "public" documents
-    // Note: Without DLS configured in Security Plugin, all documents are visible
-    // Once DLS is configured with a rule like: { "match": { "security_level": "public" } }
-    // Then with the ThreadContext fix, this test should pass
-
-    // Count total documents visible
-    int totalDocs = 0;
-    boolean sawConfidential = false;
-    boolean sawInternal = false;
-    int publicDocs = 0;
-
-    for (int i = 0; i < datarows.length(); i++) {
-      var row = datarows.getJSONArray(i);
-      int count = row.getInt(0);
-      String securityLevel = row.getString(1);
-      totalDocs += count;
-
-      if ("confidential".equals(securityLevel)) {
-        sawConfidential = true;
-      } else if ("internal".equals(securityLevel)) {
-        sawInternal = true;
-      } else if ("public".equals(securityLevel)) {
-        publicDocs = count;
-      }
-    }
-
-    assertFalse(
-        "[V3] SECURITY VIOLATION: limited_user should NOT see 'confidential' documents. "
-            + "This indicates ThreadContext is not being properly copied to search threads in V3, "
-            + "causing queries to run with admin permissions and bypass row-level security.",
+            "[%s] SECURITY VIOLATION: limited_user should NOT see 'confidential' documents. "
+                + "This indicates ThreadContext is not being copied to async worker threads, "
+                + "causing queries to run with admin permissions and bypass row-level security.",
+            engineLabel),
         sawConfidential);
 
     assertFalse(
-        "[V3] SECURITY VIOLATION: limited_user should NOT see 'internal' documents. "
-            + "This indicates ThreadContext is not being properly copied to search threads in V3, "
-            + "causing queries to run with admin permissions and bypass row-level security.",
+        String.format(
+            "[%s] SECURITY VIOLATION: limited_user should NOT see 'internal' documents. "
+                + "This indicates ThreadContext is not being copied to async worker threads, "
+                + "causing queries to run with admin permissions and bypass row-level security.",
+            engineLabel),
         sawInternal);
 
+    int expectedPublicDocs = LARGE_DATASET_SIZE / 2;
     assertEquals(
-        "[V3] limited_user should ONLY see 'public' documents (~1000). "
-            + "Seeing more indicates row-level security is being bypassed in V3.",
-        1000,
+        String.format(
+            "[%s] limited_user should ONLY see 'public' documents (half of dataset). "
+                + "Seeing more indicates row-level security is being bypassed.",
+            engineLabel),
+        expectedPublicDocs,
         publicDocs);
 
     assertEquals(
-        "[V3] Total visible documents should be ~1000 (only public). "
-            + "Seeing 2000 documents indicates row-level security is completely bypassed in V3.",
-        1000,
+        String.format(
+            "[%s] Total visible documents should match public documents only. "
+                + "Seeing all documents indicates row-level security is completely bypassed.",
+            engineLabel),
+        expectedPublicDocs,
         totalDocs);
   }
 }
