@@ -55,7 +55,7 @@ fetched rows / total rows = 1/1
 +----------+-------+------+-------------+
 ```
 
-Example 2: Multiple groups
+## Example 2: Multiple groups
 
 Given a dataset mvcombine with the following data:
 ```text
@@ -85,7 +85,7 @@ fetched rows / total rows = 2/2
 +----------+-------+------+-------------+
 ```
 
-Example 3: Missing target field in some rows
+## Example 3: Missing target field in some rows
 
 Rows missing the target field do not contribute a value to the combined output.
 
@@ -114,7 +114,7 @@ fetched rows / total rows = 1/1
 +----------+-------+------+-------------+
 ```
 
-Example 5: Error when field does not exist
+## Example 4: Error when field does not exist
 
 If the specified field does not exist in the current schema, mvcombine returns an error.
 ```ppl
