@@ -258,4 +258,82 @@ public class ConversionFunctionsTest {
     assertEquals(1234.0, NumConvertFunction.convert("1,,234"));
     assertEquals(1234.0, AutoConvertFunction.convert("1,,234"));
   }
+
+  @Test
+  public void testNumConvertZeroBoundaries() {
+    assertEquals(0.0, NumConvertFunction.convert("0"));
+    assertEquals(0.0, NumConvertFunction.convert("+0"));
+    assertEquals(-0.0, NumConvertFunction.convert("-0"));
+    assertEquals(0.0, NumConvertFunction.convert("0.0"));
+  }
+
+  @Test
+  public void testAutoConvertZeroBoundaries() {
+    assertEquals(0.0, AutoConvertFunction.convert("0"));
+    assertEquals(0.0, AutoConvertFunction.convert("+0"));
+    assertEquals(-0.0, AutoConvertFunction.convert("-0"));
+    assertEquals(0.0, AutoConvertFunction.convert("0.0"));
+  }
+
+  @Test
+  public void testRmcommaConvertZeroBoundaries() {
+    assertEquals(0.0, RmcommaConvertFunction.convert("0"));
+    assertEquals(0.0, RmcommaConvertFunction.convert("+0"));
+    assertEquals(-0.0, RmcommaConvertFunction.convert("-0"));
+    assertEquals(0.0, RmcommaConvertFunction.convert("0.0"));
+  }
+
+  @Test
+  public void testRmunitConvertZeroBoundaries() {
+    assertEquals(0.0, RmunitConvertFunction.convert("0"));
+    assertEquals(0.0, RmunitConvertFunction.convert("+0"));
+    assertEquals(-0.0, RmunitConvertFunction.convert("-0"));
+    assertEquals(0.0, RmunitConvertFunction.convert("0.0"));
+  }
+
+  @Test
+  public void testNumConvertNumericExtremes() {
+    assertEquals(Double.MAX_VALUE, NumConvertFunction.convert(String.valueOf(Double.MAX_VALUE)));
+    assertEquals(-Double.MAX_VALUE, NumConvertFunction.convert("-" + Double.MAX_VALUE));
+    assertEquals(Double.MIN_VALUE, NumConvertFunction.convert(String.valueOf(Double.MIN_VALUE)));
+    assertEquals(Double.POSITIVE_INFINITY, NumConvertFunction.convert("1e309"));
+    assertEquals(Double.NEGATIVE_INFINITY, NumConvertFunction.convert("-1e309"));
+    assertEquals(1.7e308, NumConvertFunction.convert("1.7e308"));
+    assertEquals(-1.7e308, NumConvertFunction.convert("-1.7e308"));
+  }
+
+  @Test
+  public void testAutoConvertNumericExtremes() {
+    assertEquals(Double.MAX_VALUE, AutoConvertFunction.convert(String.valueOf(Double.MAX_VALUE)));
+    assertEquals(-Double.MAX_VALUE, AutoConvertFunction.convert("-" + Double.MAX_VALUE));
+    assertEquals(Double.MIN_VALUE, AutoConvertFunction.convert(String.valueOf(Double.MIN_VALUE)));
+    assertEquals(Double.POSITIVE_INFINITY, AutoConvertFunction.convert("1e309"));
+    assertEquals(Double.NEGATIVE_INFINITY, AutoConvertFunction.convert("-1e309"));
+    assertEquals(1.7e308, AutoConvertFunction.convert("1.7e308"));
+    assertEquals(-1.7e308, AutoConvertFunction.convert("-1.7e308"));
+  }
+
+  @Test
+  public void testRmcommaConvertNumericExtremes() {
+    assertNull(RmcommaConvertFunction.convert(String.valueOf(Double.MAX_VALUE)));
+    assertNull(RmcommaConvertFunction.convert("-" + Double.MAX_VALUE));
+    assertNull(RmcommaConvertFunction.convert(String.valueOf(Double.MIN_VALUE)));
+    assertNull(RmcommaConvertFunction.convert("1e309"));
+    assertNull(RmcommaConvertFunction.convert("-1e309"));
+    assertNull(RmcommaConvertFunction.convert("1.7e308"));
+    assertNull(RmcommaConvertFunction.convert("-1.7e308"));
+
+    assertEquals(999999999999999.9, RmcommaConvertFunction.convert("999,999,999,999,999.9"));
+  }
+
+  @Test
+  public void testRmunitConvertNumericExtremes() {
+    assertEquals(Double.MAX_VALUE, RmunitConvertFunction.convert(String.valueOf(Double.MAX_VALUE)));
+    assertEquals(-Double.MAX_VALUE, RmunitConvertFunction.convert("-" + Double.MAX_VALUE));
+    assertEquals(Double.MIN_VALUE, RmunitConvertFunction.convert(String.valueOf(Double.MIN_VALUE)));
+    assertEquals(Double.POSITIVE_INFINITY, RmunitConvertFunction.convert("1e309"));
+    assertEquals(Double.NEGATIVE_INFINITY, RmunitConvertFunction.convert("-1e309"));
+    assertEquals(1.7e308, RmunitConvertFunction.convert("1.7e308"));
+    assertEquals(-1.7e308, RmunitConvertFunction.convert("-1.7e308"));
+  }
 }
