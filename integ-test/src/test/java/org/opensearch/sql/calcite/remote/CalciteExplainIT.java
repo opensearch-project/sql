@@ -28,6 +28,7 @@ import java.util.Locale;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.ExplainIT;
@@ -111,6 +112,26 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_join_with_fields_max_option.yaml");
     assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testJoinWhenLegacyNotPreferred() throws IOException {
+    withSettings(
+        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        "false",
+        () -> {
+          String query =
+              "source=opensearch-sql_test_index_bank | join type=inner account_number"
+                  + " opensearch-sql_test_index_bank";
+          String result = null;
+          try {
+            result = explainQueryYaml(query);
+            String expected = loadExpectedPlan("explain_join_with_fields_max_option.yaml");
+            assertYamlEqualsIgnoreId(expected, result);
+          } catch (IOException e) {
+            fail();
+          }
+        });
   }
 
   // Only for Calcite
@@ -2029,6 +2050,18 @@ public class CalciteExplainIT extends ExplainIT {
                 + "|  addcoltotals balance age label='GrandTotal'"));
   }
 
+  @Test
+  public void testTransposeExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_transpose.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "|  transpose 4 column_name='column_names'"));
+  }
+
   public void testComplexDedup() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_dedup_complex1.yaml");
@@ -2360,6 +2393,14 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_spath_without_path.yaml");
     assertYamlEqualsIgnoreId(
         expected, explainQueryYaml(source(TEST_INDEX_LOGS, "spath input=message | fields test")));
+  }
+
+  @Test
+  public void testSpathWithDynamicFieldsExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_spath_with_dynamic_fields.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(source(TEST_INDEX_LOGS, "spath input=message | where status = '200'")));
   }
 
   @Test

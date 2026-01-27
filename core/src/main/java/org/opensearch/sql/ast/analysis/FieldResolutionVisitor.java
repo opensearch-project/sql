@@ -60,6 +60,7 @@ import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
@@ -75,6 +76,8 @@ import org.opensearch.sql.expression.parse.RegexCommonUtils;
  * support in the future.
  */
 public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResolutionContext> {
+
+  private static final String ALL_FIELDS = "*";
 
   /**
    * Analyzes PPL query plan to determine required fields at each node.
@@ -111,10 +114,10 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
   @Override
   public Node visitProject(Project node, FieldResolutionContext context) {
-    boolean isSelectAll =
-        node.getProjectList().stream().anyMatch(expr -> expr instanceof AllFields);
+    boolean isSingleSelectAll =
+        node.getProjectList().size() == 1 && node.getProjectList().get(0) instanceof AllFields;
 
-    if (isSelectAll) {
+    if (isSingleSelectAll) {
       visitChildren(node, context);
     } else {
       Set<String> projectFields = new HashSet<>();
@@ -180,15 +183,14 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
       return visitEval(node.rewriteAsEval(), context);
     } else {
       // set requirements for spath command;
-      context.setResult(node, context.getCurrentRequirements());
       FieldResolutionResult requirements = context.getCurrentRequirements();
-      if (requirements.hasWildcards()) {
+      context.setResult(node, requirements);
+      if (requirements.hasPartialWildcards()) {
         throw new IllegalArgumentException(
-            "Spath command cannot extract arbitrary fields. Please project fields explicitly by"
-                + " fields command without wildcard or stats command.");
+            "Spath command cannot be used with partial wildcard such as `prefix*`.");
       }
 
-      context.pushRequirements(context.getCurrentRequirements().or(Set.of(node.getInField())));
+      context.pushRequirements(requirements.or(Set.of(node.getInField())));
       visitChildren(node, context);
       context.popRequirements();
       return node;
@@ -238,6 +240,8 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
     if (expr instanceof Field field) {
       fields.add(field.getField().toString());
+    } else if (expr instanceof AllFields) {
+      fields.add(ALL_FIELDS);
     } else if (expr instanceof QualifiedName name) {
       fields.add(name.toString());
     } else if (expr instanceof Alias alias) {
@@ -491,43 +495,56 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
   @Override
   public Node visitFillNull(FillNull node, FieldResolutionContext context) {
+    if (node.isAgainstAllFields()) {
+      throw new IllegalArgumentException("Fields need to be specified with fillnull command");
+    }
+    Set<String> fields = new HashSet<>();
+    node.getFields().forEach(field -> fields.addAll(extractFieldsFromExpression(field)));
+
+    context.pushRequirements(context.getCurrentRequirements().or(fields));
     visitChildren(node, context);
+    context.popRequirements();
     return node;
   }
 
   @Override
   public Node visitAppendCol(AppendCol node, FieldResolutionContext context) {
-    visitChildren(node, context);
-    return node;
+    throw new IllegalArgumentException(
+        "AppendCol command cannot be used together with spath command");
   }
 
   @Override
   public Node visitAppend(Append node, FieldResolutionContext context) {
+    // dispatch requirements to subsearch and main
+    acceptAndVerifyNodeVisited(node.getSubSearch(), context);
     visitChildren(node, context);
     return node;
   }
 
   @Override
   public Node visitMultisearch(Multisearch node, FieldResolutionContext context) {
-    visitChildren(node, context);
-    return node;
+    throw new IllegalArgumentException(
+        "Multisearch command cannot be used together with spath command");
   }
 
   @Override
   public Node visitLookup(Lookup node, FieldResolutionContext context) {
-    visitChildren(node, context);
-    return node;
+    throw new IllegalArgumentException("Lookup command cannot be used together with spath command");
   }
 
   @Override
   public Node visitValues(Values node, FieldResolutionContext context) {
-    visitChildren(node, context);
-    return node;
+    throw new IllegalArgumentException("Values command cannot be used together with spath command");
   }
 
   @Override
   public Node visitReplace(Replace node, FieldResolutionContext context) {
+    Set<String> fields = new HashSet<>();
+    node.getFieldList().forEach(field -> fields.addAll(extractFieldsFromExpression(field)));
+
+    context.pushRequirements(context.getCurrentRequirements().or(fields));
     visitChildren(node, context);
+    context.popRequirements();
     return node;
   }
 
@@ -552,6 +569,12 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
     context.pushRequirements(context.getCurrentRequirements().or(trendlineFields));
     visitChildren(node, context);
     context.popRequirements();
+    return node;
+  }
+
+  @Override
+  public Node visitTranspose(Transpose node, FieldResolutionContext context) {
+    visitChildren(node, context);
     return node;
   }
 
@@ -642,6 +665,10 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
         }
       }
     }
-    return fields;
+    return excludeAllFieldsWildcard(fields);
+  }
+
+  private Set<String> excludeAllFieldsWildcard(Set<String> fields) {
+    return fields.stream().filter(f -> !f.equals(ALL_FIELDS)).collect(Collectors.toSet());
   }
 }
