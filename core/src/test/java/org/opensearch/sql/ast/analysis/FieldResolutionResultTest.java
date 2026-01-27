@@ -344,6 +344,28 @@ class FieldResolutionResultTest {
   }
 
   @Test
+  void testWildcardAnyAndAny() {
+    FieldResolutionResult result1 = new FieldResolutionResult(Set.of("a"), "*");
+    FieldResolutionResult result2 = new FieldResolutionResult(Set.of("b"), "*");
+
+    FieldResolutionResult combined = result1.and(result2);
+
+    assertEquals(Set.of("a", "b"), combined.getRegularFields());
+    assertEquals("*", combined.getWildcard().toString());
+  }
+
+  @Test
+  void testWildcardAnyAndNull() {
+    FieldResolutionResult result1 = new FieldResolutionResult(Set.of("a"), "*");
+    FieldResolutionResult result2 = new FieldResolutionResult(Set.of("b"));
+
+    FieldResolutionResult combined = result1.and(result2);
+
+    assertEquals(Set.of("b"), combined.getRegularFields());
+    assertEquals("", combined.getWildcard().toString());
+  }
+
+  @Test
   void testFieldResolutionResultOrOperation() {
     FieldResolutionResult result = new FieldResolutionResult(Set.of("field1"), "user*");
     FieldResolutionResult updated = result.or(Set.of("field2", "field3"));
@@ -513,5 +535,23 @@ class FieldResolutionResultTest {
     Wildcard result = and.and(FieldResolutionResult.ANY_WILDCARD);
     assertEquals(and, result);
     assertTrue(result.matches("username"));
+  }
+
+  @Test
+  void testHasPartialWildcardsWithNoWildcard() {
+    FieldResolutionResult result = new FieldResolutionResult(Set.of("field1", "field2"));
+    assertFalse(result.hasPartialWildcards());
+  }
+
+  @Test
+  void testHasPartialWildcardsWithAnyWildcard() {
+    FieldResolutionResult result = new FieldResolutionResult(Set.of("field1"), "*");
+    assertFalse(result.hasPartialWildcards());
+  }
+
+  @Test
+  void testHasPartialWildcardsWithSingleWildcard() {
+    FieldResolutionResult result = new FieldResolutionResult(Set.of("field1"), "user*");
+    assertTrue(result.hasPartialWildcards());
   }
 }

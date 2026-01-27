@@ -273,6 +273,24 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testCrossClusterTranspose() throws IOException {
+    // Test query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where  firstname='Hattie' or firstname ='Nanette' or"
+                    + " firstname='Dale'|sort firstname desc |fields firstname,age,balance |"
+                    + " transpose 3 column_name='column_names'",
+                TEST_INDEX_BANK_REMOTE));
+
+    verifyDataRows(
+        result,
+        rows("firstname", "Nanette", "Hattie", "Dale"),
+        rows("balance", "32838", "5686", "4180"),
+        rows("age", "28", "36", "33"));
+  }
+
+  @Test
   public void testCrossClusterAppend() throws IOException {
     // TODO: We should enable calcite by default in CrossClusterSearchIT?
     enableCalcite();

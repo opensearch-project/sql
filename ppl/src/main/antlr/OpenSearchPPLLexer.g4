@@ -46,6 +46,7 @@ ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
+TRANSPOSE:                          'TRANSPOSE';
 CHART:                              'CHART';
 TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
@@ -70,6 +71,7 @@ LABEL:                              'LABEL';
 SHOW_NUMBERED_TOKEN:                'SHOW_NUMBERED_TOKEN';
 AGGREGATION:                        'AGGREGATION';
 APPENDPIPE:                         'APPENDPIPE';
+COLUMN_NAME:                        'COLUMN_NAME';
 MVCOMBINE:                          'MVCOMBINE';
 
 

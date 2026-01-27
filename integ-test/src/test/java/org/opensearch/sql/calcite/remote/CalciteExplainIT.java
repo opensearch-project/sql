@@ -2050,6 +2050,18 @@ public class CalciteExplainIT extends ExplainIT {
                 + "|  addcoltotals balance age label='GrandTotal'"));
   }
 
+  @Test
+  public void testTransposeExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_transpose.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "|  transpose 4 column_name='column_names'"));
+  }
+
   public void testComplexDedup() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_dedup_complex1.yaml");
@@ -2352,6 +2364,14 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_spath_without_path.yaml");
     assertYamlEqualsIgnoreId(
         expected, explainQueryYaml(source(TEST_INDEX_LOGS, "spath input=message | fields test")));
+  }
+
+  @Test
+  public void testSpathWithDynamicFieldsExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_spath_with_dynamic_fields.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(source(TEST_INDEX_LOGS, "spath input=message | where status = '200'")));
   }
 
   @Test
