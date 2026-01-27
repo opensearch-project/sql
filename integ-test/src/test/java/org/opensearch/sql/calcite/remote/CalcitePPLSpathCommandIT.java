@@ -264,6 +264,102 @@ public class CalcitePPLSpathCommandIT extends CalcitePPLSpathTestBase {
   }
 
   @Test
+  public void testAppendColWithSpathInMain() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_json | where category='simple' | spath input=userData | appendcol [where"
+                + " category='simple'] | fields a, c, *");
+    verifySchema(
+        result,
+        schema("a", "string"),
+        schema("c", "string"),
+        schema("category", "string"),
+        schema("userData", "string"),
+        schema("b", "string"));
+    verifyDataRows(
+        result,
+        rows("1", "3", "simple", sj("{'a': 1, 'b': 2, 'c': 3}"), "2"),
+        rows("1", "3", "simple", sj("{'a': 1, 'b': 2, 'c': 3}"), "2"));
+  }
+
+  @Test
+  public void testAppendColWithSpathInSubsearch() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_json | where category='simple' | appendcol [where category='simple' |"
+                + " spath input=userData] | fields a, c, *");
+    verifySchema(
+        result,
+        schema("a", "string"),
+        schema("c", "string"),
+        schema("category", "string"),
+        schema("userData", "string"),
+        schema("b", "string"));
+    verifyDataRows(
+        result,
+        rows("1", "3", "simple", sj("{'a': 1, 'b': 2, 'c': 3}"), "2"),
+        rows("1", "3", "simple", sj("{'a': 1, 'b': 2, 'c': 3}"), "2"));
+  }
+
+  @Test
+  public void testAppendColWithSpathInBothInputs() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_json | where category='simple' | spath input=userData | appendcol [where"
+                + " category='simple' | spath input=userData ] | fields a, c, *");
+    verifySchema(
+        result,
+        schema("a", "string"),
+        schema("c", "string"),
+        schema("b", "string"),
+        schema("category", "string"),
+        schema("userData", "string"));
+    verifyDataRows(
+        result,
+        rows("1", "3", "2", "simple", sj("{'a': 1, 'b': 2, 'c': 3}")),
+        rows("1", "3", "2", "simple", sj("{'a': 1, 'b': 2, 'c': 3}")));
+  }
+
+  @Test
+  public void testAppendPipeWithSpathInMain() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_json | where category='simple' | spath input=userData | stats sum(a) as"
+                + " total by b | appendpipe [stats sum(total) as total] | head 5");
+    verifySchema(result, schema("total", "double"), schema("b", "string"));
+    verifyDataRows(result, rows(2, "2"), rows(2, null));
+  }
+
+  @Test
+  public void testMultisearchWithSpath() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [source=test_json | where category='simple' | spath input=userData |"
+                + " head 1] [source=test_json | where category='nested' | spath input=userData] |"
+                + " fields a, c, *");
+    verifySchema(
+        result,
+        schema("a", "string"),
+        schema("c", "string"),
+        schema("b", "string"),
+        schema("category", "string"),
+        schema("nested.d{}", "string"),
+        schema("nested.e", "string"),
+        schema("userData", "string"));
+    verifyDataRows(
+        result,
+        rows("1", "3", "2", "simple", null, null, sj("{'a': 1, 'b': 2, 'c': 3}")),
+        rows(
+            null,
+            null,
+            null,
+            "nested",
+            "[1, 2, 3]",
+            "str",
+            sj("{'nested': {'d': [1, 2, 3], 'e': 'str'}}")));
+  }
+  
+  @Test
   public void testSpathWithMvCombine() throws IOException {
     JSONObject result =
         executeQuery(
