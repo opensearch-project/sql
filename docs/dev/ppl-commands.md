@@ -27,7 +27,7 @@ If you are working on contributing a new PPL command, please read this guide and
 - [ ] **Visitor Pattern:**
   - Add `visit*` in `AbstractNodeVisitor`
   - Overriding `visit*` in `Analyzer`, `CalciteRelNodeVisitor` and `PPLQueryDataAnonymizer`
-  - Override `visit*` in `FieldResolutionVisitor` for `spath` command support.
+  - Override `visit*` in `FieldResolutionVisitor` for `spath` command support (see [dynamic-fields.md](./dynamic-fields.md) for details)
 
 - [ ] **Unit Tests:**
   - Extend `CalcitePPLAbstractTest`
