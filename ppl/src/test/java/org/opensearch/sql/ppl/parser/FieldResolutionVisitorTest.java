@@ -352,6 +352,11 @@ public class FieldResolutionVisitorTest {
   }
 
   @Test
+  public void testConvertCommand() {
+    assertSingleRelationFields("source=logs | convert auto(balance)", Set.of("balance"), "*");
+  }
+
+  @Test
   public void testUnimplementedVisitDetected() {
     assertThrows(
         "Unsupported command for field resolution: Kmeans",
