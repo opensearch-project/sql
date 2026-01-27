@@ -526,7 +526,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalEval(child, expressionsBuilder.build());
   }
 
-
   /** Build {@link LogicalEval}. */
   @Override
   public LogicalPlan visitFieldFormat(Eval node, AnalysisContext context) {
