@@ -694,7 +694,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> fieldNames =
         context.relBuilder.peek().getRowType().getFieldNames().stream()
             .filter(fieldName -> !isMetadataField(fieldName))
-            .toList();
+            .collect(Collectors.toList());
 
     RelBuilder b = context.relBuilder;
     RexBuilder rx = context.rexBuilder;
