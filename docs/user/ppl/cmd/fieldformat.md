@@ -19,12 +19,12 @@ Following are possible syntaxes:
 
 The `fieldformat` command supports the following parameters.
 
-| Parameter      | Required/Optional | Description                                                                                                                                   |
-|----------------|  |-----------------------------------------------------------------------------------------------------------------------------------------------|
-| `<field>`      | Required | The name of the field to create or update. If the field does not exist, a new field is added. If it already exists, its value is overwritten. |
-| `<expression>` | Required | The expression to evaluate.  The expression can have a prefix and/or suffix string part that will be concatenated to the expression. |
-| `prefix`       | Optional | A string before the expression followed by dot operator which will be concatenated as prefix to the evaluated expression value. |
-| `suffix`       | Optional | A string that follows  the expression and dot operator which will be concatenated as suffix to the evaluated expression value. |
+| Parameter| Required/Optional | Description                                                                                                                                   |
+|----------------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `<field>`      | Required          | The name of the field to create or update. If the field does not exist, a new field is added. If it already exists, its value is overwritten. |
+| `<expression>` | Required          | The expression to evaluate.  The expression can have a prefix and/or suffix string part that will be concatenated to the expression.          |
+| `prefix`       | Optional          | A string before the expression followed by dot operator which will be concatenated as prefix to the evaluated expression value.               |
+| `suffix`       | Optional          | A string that follows  the expression and dot operator which will be concatenated as suffix to the evaluated expression value.                |
   
 
 ## Example 1: Create a new field  
@@ -104,7 +104,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 5: string concatenation with dot operator , prefix and suffix
+## Example 4: String concatenation with dot operator , prefix and suffix
 
 The following query performs prefix and suffix string concatenation operations using dot operator:
 
