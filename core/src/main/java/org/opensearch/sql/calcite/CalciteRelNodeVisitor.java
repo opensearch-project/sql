@@ -3192,6 +3192,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     final RelNode input = relBuilder.peek();
     final List<String> inputFieldNames = input.getRowType().getFieldNames();
+    final List<RelDataType> inputFieldTypes =
+        input.getRowType().getFieldList().stream().map(RelDataTypeField::getType).toList();
 
     // 2) Resolve the mvcombine target to an input column index (must be a direct field reference).
     final Field targetField = node.getField();
@@ -3212,7 +3214,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // 5) Restore original output column order (ARRAY_AGG already returns ARRAY<T>).
     restoreColumnOrderAfterArrayAgg(
-        relBuilder, inputFieldNames, targetIndex, groupExprs, includeMetaFields);
+        relBuilder, inputFieldNames, inputFieldTypes, targetIndex, groupExprs, includeMetaFields);
 
     return relBuilder.peek();
   }
@@ -3332,6 +3334,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private void restoreColumnOrderAfterArrayAgg(
       RelBuilder relBuilder,
       List<String> inputFieldNames,
+      List<RelDataType> inputFieldTypes,
       int targetIndex,
       List<RexNode> groupExprs,
       boolean includeMetaFields) {
@@ -3350,14 +3353,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (i == targetIndex) {
         // ARRAY_AGG already returns ARRAY<T>
         projections.add(relBuilder.field(aggregatedTargetPos));
-      } else if (isMetadataField(fieldName)) {
+      } else if (isMetadataField(fieldName) && !includeMetaFields) {
         // Metadata fields are intentionally not grouped by mvcombine.
-        // Preserve schema correctness by projecting a TYPED NULL
-        // (prevents "undefined type" for fields like _id when explicitly selected).
-        projections.add(
-            relBuilder
-                .getRexBuilder()
-                .makeNullLiteral(relBuilder.peek().getRowType().getFieldList().get(i).getType()));
+        // Preserve schema correctness by projecting a TYPED NULL based on ORIGINAL input schema.
+        projections.add(relBuilder.getRexBuilder().makeNullLiteral(inputFieldTypes.get(i)));
       } else {
         projections.add(relBuilder.field(groupPos));
         groupPos++;

@@ -145,8 +145,12 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
     List<String> mv0 = toStringListDropNulls(r0.get(3));
     List<String> mv1 = toStringListDropNulls(r1.get(3));
 
-    Assertions.assertTrue((mv0.contains("1") && mv0.contains("2")) || mv0.contains("9"));
-    Assertions.assertTrue((mv1.contains("1") && mv1.contains("2")) || mv1.contains("9"));
+    Assertions.assertEquals("10.0.0.7", r0.getString(0));
+    Assertions.assertEquals("10.0.0.8", r1.getString(0));
+
+    Assertions.assertTrue(mv0.containsAll(List.of("1", "2")));
+    Assertions.assertEquals(2, mv0.size());
+    Assertions.assertEquals(List.of("9"), mv1);
   }
 
   // ---------------------------
@@ -194,13 +198,21 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMvCombine_missingField_shouldReturn4xx() throws IOException {
-    try {
-      executeQuery("source=" + INDEX + " | mvcombine does_not_exist");
-      Assertions.fail("Expected ResponseException was not thrown");
-    } catch (ResponseException e) {
-      int status = e.getResponse().getStatusLine().getStatusCode();
-      Assertions.assertTrue(status >= 400 && status < 500);
-    }
+    ResponseException ex =
+        Assertions.assertThrows(
+            ResponseException.class,
+            () -> executeQuery("source=" + INDEX + " | mvcombine does_not_exist"));
+
+    Assertions.assertEquals(400, ex.getResponse().getStatusLine().getStatusCode());
+
+    String msg = ex.getMessage();
+    // Keep these checks tight enough to catch regressions but not brittle on formatting.
+    Assertions.assertTrue(
+        msg.contains("\"type\":\"IllegalArgumentException\"")
+            || msg.contains("IllegalArgumentException"),
+        msg);
+    Assertions.assertTrue(msg.contains("Field [does_not_exist] not found"), msg);
+    Assertions.assertTrue(msg.contains("Invalid Query"), msg);
   }
 
   // ---------------------------
