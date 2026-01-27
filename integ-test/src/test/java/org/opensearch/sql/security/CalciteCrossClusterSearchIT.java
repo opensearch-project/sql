@@ -13,6 +13,8 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+
+import org.apache.commons.text.StringEscapeUtils;
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -401,4 +403,20 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
         rows("Hattie", new org.json.JSONArray().put(36)),
         rows("Nanette", new org.json.JSONArray().put(28)));
   }
+    /** CrossClusterSearchIT Test for fieldformat. */
+    @Test
+    public void testCrossClusterFieldFormat() throws IOException {
+        // Test fieldformat command with tostring
+        JSONObject result =
+                executeQuery(
+                        StringEscapeUtils.escapeJson(
+                                String.format(
+                                        "search source=%s | where  firstname='Hattie' or firstname ='Nanette'|fields"
+                                                + " firstname,age,balance | fieldformat formatted_balance ="
+                                                + " \"$\".tostring(balance,\"commas\")",
+                                        TEST_INDEX_BANK_REMOTE)));
+        verifyDataRows(
+                result, rows("Hattie", 36, 5686, "$5,686"), rows("Nanette", 28, 32838, "$32,838"));
+    }
+
 }
