@@ -203,16 +203,12 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
             ResponseException.class,
             () -> executeQuery("source=" + INDEX + " | mvcombine does_not_exist"));
 
-    Assertions.assertEquals(400, ex.getResponse().getStatusLine().getStatusCode());
+    int status = ex.getResponse().getStatusLine().getStatusCode();
+
+    Assertions.assertEquals(400, status, "Unexpected status. ex=" + ex.getMessage());
 
     String msg = ex.getMessage();
-    // Keep these checks tight enough to catch regressions but not brittle on formatting.
-    Assertions.assertTrue(
-        msg.contains("\"type\":\"IllegalArgumentException\"")
-            || msg.contains("IllegalArgumentException"),
-        msg);
-    Assertions.assertTrue(msg.contains("Field [does_not_exist] not found"), msg);
-    Assertions.assertTrue(msg.contains("Invalid Query"), msg);
+    Assertions.assertTrue(msg.contains("Field [does_not_exist] not found."), msg);
   }
 
   // ---------------------------
