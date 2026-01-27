@@ -165,6 +165,13 @@ public class ConversionFunctionsTest {
     assertEquals(50.5, RmunitConvertFunction.convert("50.5 m"));
   }
 
+  @Test
+  public void testRmunitConvertNullAndEmpty() {
+    assertNull(RmunitConvertFunction.convert(null));
+    assertNull(RmunitConvertFunction.convert(""));
+    assertNull(RmunitConvertFunction.convert("   "));
+  }
+
   // memk() Function Tests
   @Test
   public void testMemkConvert() {
