@@ -237,6 +237,17 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     }
   }
 
+  @Test
+  public void testTransposeCommand() throws IOException {
+    JSONObject result;
+    try {
+      executeQuery(String.format("search source=%s  | transpose ", TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      verifyQuery(result);
+    }
+  }
+
   private void verifyQuery(JSONObject result) throws IOException {
     if (isCalciteEnabled()) {
       assertFalse(result.getJSONArray("datarows").isEmpty());
