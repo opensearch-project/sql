@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import static org.opensearch.sql.calcite.plan.DynamicFieldsConstants.DYNAMIC_FIELDS_MAP;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -12,12 +14,17 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.util.Pair;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 
 public interface JoinAndLookupUtils {
+  public enum OverwriteMode {
+    LEFT_WINS,
+    RIGHT_WINS
+  }
 
   static JoinRelType translateJoinType(Join.JoinType joinType) {
     switch (joinType) {
@@ -96,12 +103,57 @@ public interface JoinAndLookupUtils {
       int sourceFieldsCountLeft,
       CalcitePlanContext context) {
     List<String> oldFields = context.relBuilder.peek().getRowType().getFieldNames();
-    assert sourceFieldsCountLeft + expectedProvidedFieldNames.size() == oldFields.size()
+    boolean hasDynamicFields = oldFields.contains(DYNAMIC_FIELDS_MAP);
+    int dynamicFieldsCount = hasDynamicFields ? 1 : 0;
+    assert sourceFieldsCountLeft + expectedProvidedFieldNames.size() + dynamicFieldsCount
+            == oldFields.size()
         : "The source fields count left plus new provided fields count must equal to the output"
             + " fields count of current plan(i.e project-join).";
     List<String> newFields = new ArrayList<>(oldFields.size());
     newFields.addAll(oldFields.subList(0, sourceFieldsCountLeft));
     newFields.addAll(expectedProvidedFieldNames);
+    if (hasDynamicFields) {
+      newFields.add(DYNAMIC_FIELDS_MAP);
+    }
     context.relBuilder.rename(newFields);
+  }
+
+  /**
+   * Merge _MAP (dynamic fields map) if there are two. This method should be called after join when
+   * both inputs could contain _MAP
+   */
+  static void mergeDynamicFieldsAsNeeded(CalcitePlanContext context, OverwriteMode overwriteMode) {
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> fields = context.relBuilder.fields();
+    List<RexNode> dynamicFieldMaps = new ArrayList<>();
+    List<RexNode> result = new ArrayList<>();
+    for (int i = 0; i < fieldNames.size(); i++) {
+      String fieldName = fieldNames.get(i);
+      RexNode field = fields.get(i);
+      if (fieldName.startsWith(DYNAMIC_FIELDS_MAP)) {
+        dynamicFieldMaps.add(field);
+      } else {
+        result.add(field);
+      }
+    }
+
+    if (dynamicFieldMaps.size() <= 1) {
+      return;
+    } else if (dynamicFieldMaps.size() == 2) {
+      RexNode concat =
+          (overwriteMode == OverwriteMode.RIGHT_WINS
+              ? context.relBuilder.call(
+                  SqlLibraryOperators.MAP_CONCAT,
+                  dynamicFieldMaps.get(0),
+                  dynamicFieldMaps.get(dynamicFieldMaps.size()-1))
+              : context.relBuilder.call(
+                  SqlLibraryOperators.MAP_CONCAT,
+                  dynamicFieldMaps.get(dynamicFieldMaps.size()-1),
+                  dynamicFieldMaps.get(0)));
+      result.add(context.relBuilder.alias(concat, DYNAMIC_FIELDS_MAP));
+    } else if (dynamicFieldMaps.size() > 2) {
+      throw new IllegalStateException("More than two _MAP exist while joining dynamic fields.");
+    }
+    context.relBuilder.project(result);
   }
 }
