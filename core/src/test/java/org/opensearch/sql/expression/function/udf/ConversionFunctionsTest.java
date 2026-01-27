@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
 
 /** Unit tests for conversion functions. */
-public class ConversionUtilsTest {
+public class ConversionFunctionsTest {
 
   // auto() Function Tests
   @Test
