@@ -358,7 +358,7 @@ public class CalcitePPLSpathCommandIT extends CalcitePPLSpathTestBase {
             "str",
             sj("{'nested': {'d': [1, 2, 3], 'e': 'str'}}")));
   }
-  
+
   @Test
   public void testSpathWithMvCombine() throws IOException {
     JSONObject result =
