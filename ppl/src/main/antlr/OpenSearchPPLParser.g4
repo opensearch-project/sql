@@ -133,8 +133,8 @@ commandName
    | REX
    | APPENDPIPE
    | REPLACE
-   | TRANSPOSE
    | MVCOMBINE
+   | TRANSPOSE
    ;
 
 searchCommand
