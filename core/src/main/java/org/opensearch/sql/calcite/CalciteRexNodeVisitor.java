@@ -282,16 +282,19 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   // - "NOT(field = false)" -> IS_NOT_FALSE(field): matches true, null, missing
 
   /**
-   * Try to convert boolean field equality to IS_TRUE when comparing with true literal. For false
-   * literal, return null to let normal EQUALS handling proceed (PredicateAnalyzer will handle the
-   * NOT(field) pattern that Calcite generates).
+   * Try to convert boolean field equality to IS_TRUE/IS_FALSE. This prevents Calcite's RexSimplify
+   * from transforming these expressions and losing the exact match semantics.
    */
   private RexNode tryMakeBooleanEquals(RexNode left, RexNode right, CalcitePlanContext context) {
     BooleanFieldComparison cmp = extractBooleanFieldComparison(left, right);
-    if (cmp != null && Boolean.TRUE.equals(cmp.literalValue)) {
-      return context.rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, cmp.field);
+    if (cmp == null) {
+      return null;
     }
-    return null;
+    SqlOperator op =
+        Boolean.TRUE.equals(cmp.literalValue)
+            ? SqlStdOperatorTable.IS_TRUE
+            : SqlStdOperatorTable.IS_FALSE;
+    return context.rexBuilder.makeCall(op, cmp.field);
   }
 
   /**
