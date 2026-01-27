@@ -213,6 +213,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     }
   }
 
+
   @Test
   public void testFieldFormatCommand() throws IOException {
     JSONObject result;
