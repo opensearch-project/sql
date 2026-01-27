@@ -110,6 +110,13 @@ public class ConversionFunctionsTest {
     assertEquals(50.5, NumConvertFunction.convert("50.5 m"));
   }
 
+  @Test
+  public void testNumConvertNullAndEmpty() {
+    assertNull(NumConvertFunction.convert(null));
+    assertNull(NumConvertFunction.convert(""));
+    assertNull(NumConvertFunction.convert("   "));
+  }
+
   // rmcomma() Function Tests
   @Test
   public void testRmcommaConvert() {
