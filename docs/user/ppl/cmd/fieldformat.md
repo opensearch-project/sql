@@ -1,7 +1,7 @@
 
 # fieldformat
 
-The `fieldformat` command sets the value to a field with the specified expression and appends the field with evaluated result to the search results. The command is a alias of eval command.
+The `fieldformat` command sets the value to a field with the specified expression and appends the field with evaluated result to the search results. The command is an alias of eval command.
 Additionally, it also provides string concatenation dot operator followed by and/or follows a string that will be concatenated to the expression.
 
 
