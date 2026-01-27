@@ -10,37 +10,20 @@ The `mvcombine` command groups rows that are identical across all fields except 
 
 - Rows are grouped by **all fields currently in the pipeline except the target field**.
 - One output row is produced per group.
-- The target field becomes a **multivalue field** containing the combined values from all rows in the group.
+- The target field is **replaced** with a multivalue (array) field that contains all non-null values of the target field from the grouped rows.
 - Rows where the target field is missing or null do **not** contribute a value to the combined multivalue output.
 - The default output is a multivalue representation (array).
-
-Delimiter handling (`delim`) is parsed but has **no effect on the output** unless the `nomv` command is used. Since `nomv` is not yet implemented in OpenSearch, `delim` is currently inert and does not affect execution.
 
 ---
 
 ## Syntax
 
-mvcombine [delim=<string>] <field>
+mvcombine <field>
 
 ### Arguments
 
 - **field** (required)  
   The name of the field whose values are combined into a multivalue field.
-
-- **delim** (optional)  
-  A string delimiter for rendering a single-value representation of the combined field.  
-  This option has no observable effect unless `nomv` is used.
-
----
-
-## Semantics
-
-Given a set of input rows:
-
-- All rows that have identical values for every field **except** the target field are grouped together.
-- The target field must be a single-valued (scalar) field.
-- The output schema preserves the original field order.
-- The target field is returned as a multivalue (array) field.
 
 ---
 

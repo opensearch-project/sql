@@ -58,22 +58,21 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
             + " | mvcombine packets_str";
 
     JSONObject result = executeQuery(q);
+
     verifyNumOfRows(result, 1);
 
-    JSONArray row = result.getJSONArray("datarows").getJSONArray(0);
-    Assertions.assertEquals("10.0.0.1", row.getString(0));
-    Assertions.assertEquals("100", String.valueOf(row.get(1)));
-    Assertions.assertEquals("t1", row.getString(2));
+    verifySchema(
+        result,
+        schema("ip", null, "string"),
+        schema("bytes", null, "bigint"),
+        schema("tags", null, "string"),
+        schema("packets_str", null, "array"));
 
-    List<String> mv = toStringListDropNulls(row.get(3));
-    Assertions.assertTrue(mv.contains("10"), "Expected packets_str to include 10, got " + mv);
-    Assertions.assertTrue(mv.contains("20"), "Expected packets_str to include 20, got " + mv);
-    Assertions.assertTrue(mv.contains("30"), "Expected packets_str to include 30, got " + mv);
+    verifyDataRows(result, rows("10.0.0.1", 100, "t1", List.of("10", "20", "30")));
   }
 
   @Test
   public void testMvCombine_singleRowGroupStaysSingleRow() throws IOException {
-    // NOTE: Keep output minimal + deterministic to safely verify schema + datarows
     String q =
         "source="
             + INDEX
@@ -103,12 +102,17 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
             + " | mvcombine packets_str";
 
     JSONObject result = executeQuery(q);
+
     verifyNumOfRows(result, 1);
 
-    JSONArray row = result.getJSONArray("datarows").getJSONArray(0);
-    List<String> mv = toStringListKeepNulls(row.get(3));
+    verifySchema(
+        result,
+        schema("ip", null, "string"),
+        schema("bytes", null, "bigint"),
+        schema("tags", null, "string"),
+        schema("packets_str", null, "array"));
 
-    Assertions.assertTrue(mv.contains("5"), "Expected packets_str to include 5, got " + mv);
+    verifyDataRows(result, rows("10.0.0.3", 300, "t3", List.of("5")));
   }
 
   // ---------------------------
@@ -123,38 +127,26 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
             + " | where (ip='10.0.0.7' or ip='10.0.0.8') and bytes=700 and tags='t7'"
             + " | fields ip, bytes, tags, packets_str";
 
-    JSONObject before = executeQuery(base);
-    int beforeRows = before.getJSONArray("datarows").length();
-    Assertions.assertTrue(beforeRows >= 1, "Expected dataset rows for multi-group test, got 0");
-
     JSONObject result = executeQuery(base + " | mvcombine packets_str | sort ip");
-    int outRows = result.getJSONArray("datarows").length();
-    Assertions.assertEquals(
-        2, outRows, "Expected 2 groups (10.0.0.7 and 10.0.0.8), got " + outRows);
 
+    verifyNumOfRows(result, 2);
+
+    verifySchema(
+        result,
+        schema("ip", null, "string"),
+        schema("bytes", null, "bigint"),
+        schema("tags", null, "string"),
+        schema("packets_str", null, "array"));
+
+    // MV contents differ per group → helper cannot express membership safely
     JSONArray r0 = result.getJSONArray("datarows").getJSONArray(0);
     JSONArray r1 = result.getJSONArray("datarows").getJSONArray(1);
 
-    String ip0 = r0.getString(0);
-    String ip1 = r1.getString(0);
+    List<String> mv0 = toStringListDropNulls(r0.get(3));
+    List<String> mv1 = toStringListDropNulls(r1.get(3));
 
-    if ("10.0.0.7".equals(ip0)) {
-      List<String> mv0 = toStringListDropNulls(r0.get(3));
-      Assertions.assertTrue(
-          mv0.contains("1") && mv0.contains("2"),
-          "Expected 10.0.0.7 to include 1 and 2, got " + mv0);
-
-      List<String> mv1 = toStringListDropNulls(r1.get(3));
-      Assertions.assertTrue(mv1.contains("9"), "Expected 10.0.0.8 to include 9, got " + mv1);
-    } else {
-      List<String> mv0 = toStringListDropNulls(r0.get(3));
-      Assertions.assertTrue(mv0.contains("9"), "Expected 10.0.0.8 to include 9, got " + mv0);
-
-      List<String> mv1 = toStringListDropNulls(r1.get(3));
-      Assertions.assertTrue(
-          mv1.contains("1") && mv1.contains("2"),
-          "Expected 10.0.0.7 to include 1 and 2, got " + mv1);
-    }
+    Assertions.assertTrue((mv0.contains("1") && mv0.contains("2")) || mv0.contains("9"));
+    Assertions.assertTrue((mv1.contains("1") && mv1.contains("2")) || mv1.contains("9"));
   }
 
   // ---------------------------
@@ -170,27 +162,29 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
             + " | where ip='10.0.0.9' and bytes=900 and tags='t9'"
             + " | fields ip, bytes, tags, packets_str";
 
-    // Splunk-style: options before the field
     String q = base + " | mvcombine delim='|' packets_str";
 
     try {
       JSONObject result = executeQuery(q);
+
       verifyNumOfRows(result, 1);
 
-      Object cell = result.getJSONArray("datarows").getJSONArray(0).get(3);
-      Assertions.assertTrue(
-          cell instanceof JSONArray,
-          "Expected multivalue array (delim should not coerce to string), got: " + cell);
+      verifySchema(
+          result,
+          schema("ip", null, "string"),
+          schema("bytes", null, "bigint"),
+          schema("tags", null, "string"),
+          schema("packets_str", null, "array"));
 
-      // Optional sanity: values exist (order not guaranteed)
+      Object cell = result.getJSONArray("datarows").getJSONArray(0).get(3);
+      Assertions.assertTrue(cell instanceof JSONArray);
+
       List<String> mv = toStringListDropNulls(cell);
-      Assertions.assertTrue(mv.contains("1"), "Expected MV to include 1, got: " + mv);
-      Assertions.assertTrue(mv.contains("2"), "Expected MV to include 2, got: " + mv);
-      Assertions.assertTrue(mv.contains("3"), "Expected MV to include 3, got: " + mv);
+      Assertions.assertTrue(mv.contains("1"));
+      Assertions.assertTrue(mv.contains("2"));
+      Assertions.assertTrue(mv.contains("3"));
     } catch (ResponseException e) {
-      Assertions.assertTrue(
-          isSyntaxBadRequest(e),
-          "Expected syntax rejection if delim unsupported, got: " + e.getMessage());
+      Assertions.assertTrue(isSyntaxBadRequest(e));
     }
   }
 
@@ -205,9 +199,7 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
       Assertions.fail("Expected ResponseException was not thrown");
     } catch (ResponseException e) {
       int status = e.getResponse().getStatusLine().getStatusCode();
-      Assertions.assertTrue(
-          status >= 400 && status < 500,
-          "Expected 4xx for missing field, got " + status + " msg=" + e.getMessage());
+      Assertions.assertTrue(status >= 400 && status < 500);
     }
   }
 
@@ -228,7 +220,6 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
         || msg.contains("ParseException");
   }
 
-  /** JSONArray -> list (nulls preserved), scalar -> singleton list, null -> empty list. */
   private static List<String> toStringListKeepNulls(Object cell) {
     if (cell == null || cell == JSONObject.NULL) {
       return Collections.emptyList();
@@ -244,7 +235,6 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
     return List.of(String.valueOf(cell));
   }
 
-  /** Same as above but drops null entries. */
   private static List<String> toStringListDropNulls(Object cell) {
     List<String> all = toStringListKeepNulls(cell);
     if (all.isEmpty()) return all;
