@@ -629,7 +629,6 @@ fromClause
    | INPUTLOOKUP tableFunction
    | SOURCE EQUAL dynamicSourceClause
    | INDEX EQUAL dynamicSourceClause
-   | INPUTLOOKUP dynamicSourceClause
    ;
 
 tableOrSubqueryClause
