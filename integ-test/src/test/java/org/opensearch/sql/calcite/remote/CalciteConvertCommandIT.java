@@ -219,10 +219,10 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | convert auto(balance) | stats avg(balance) by gender",
+                "search source=%s | convert auto(age) | stats sum(age) by gender",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("avg(balance)", null, "double"), schema("gender", "string"));
-    verifyNumOfRows(result, 2);
+    verifySchema(result, schema("sum(age)", null, "bigint"), schema("gender", "string"));
+    verifyDataRows(result, rows(15224L, "M"), rows(14947L, "F"));
   }
 
   @Test

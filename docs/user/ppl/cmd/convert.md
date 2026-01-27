@@ -175,20 +175,20 @@ The following query converts values and uses them in aggregations:
 
 ```ppl
 source=accounts
-| convert auto(balance)
-| stats avg(balance) by gender
+| convert auto(age)
+| stats sum(age) by gender
 ```
 
 The query returns the following results:
 
 ```text
 fetched rows / total rows = 2/2
-+--------------+--------+
-| avg(balance) | gender |
-|--------------+--------|
-| 25208.15     | M      |
-| 27992.571... | F      |
-+--------------+--------+
++----------+--------+
+| sum(age) | gender |
+|----------+--------|
+| 15224    | M      |
+| 14947    | F      |
++----------+--------+
 ```
 
 ## Example 8: Using none() to preserve field values
