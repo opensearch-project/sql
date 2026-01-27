@@ -134,9 +134,7 @@ commandName
    | REX
    | APPENDPIPE
    | REPLACE
-   | FIELDFORMAT
    | TRANSPOSE
-   | FIELDFORMAT
    ;
 
 searchCommand
