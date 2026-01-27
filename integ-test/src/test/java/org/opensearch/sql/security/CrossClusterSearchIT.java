@@ -272,6 +272,21 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
         result, rows("Hattie", 36, 5686), rows("Nanette", 28, 32838), rows(null, 64, 38524));
   }
 
+  /** CrossClusterSearchIT Test for fieldformat. */
+  @Test
+  public void testCrossClusterFieldFormat() throws IOException {
+    // Test query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where  firstname='Hattie' or firstname ='Nanette'|fields"
+                    + " firstname,age,balance | fieldformat formatted_balance ="
+                    + " \"$\".tostring(balance,\"commas\")",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result, rows("Hattie", 36, 5686, "$5,686"), rows("Nanette", 28, 32838, "$32,838"));
+  }
+
   @Test
   public void testCrossClusterTranspose() throws IOException {
     // Test query_string without fields parameter on remote cluster
