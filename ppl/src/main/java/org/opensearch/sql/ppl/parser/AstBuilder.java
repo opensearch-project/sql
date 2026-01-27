@@ -1163,83 +1163,38 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitConvertCommand(OpenSearchPPLParser.ConvertCommandContext ctx) {
-    List<Let> conversions = new ArrayList<>();
-
-    for (OpenSearchPPLParser.ConvertFunctionContext funcCtx : ctx.convertFunction()) {
-      Let conversion = buildConversion(funcCtx);
-      if (conversion != null) {
-        conversions.add(conversion);
-      }
-    }
-
+    List<Let> conversions =
+        ctx.convertFunction().stream()
+            .map(this::buildConversion)
+            .filter(conversion -> conversion != null)
+            .collect(Collectors.toList());
     return new Convert(conversions);
   }
 
   private Let buildConversion(OpenSearchPPLParser.ConvertFunctionContext funcCtx) {
+    if (funcCtx.fieldExpression().isEmpty()) {
+      throw new IllegalArgumentException("Convert function requires a field argument");
+    }
+
     String functionName = funcCtx.functionName.getText();
-    List<UnresolvedExpression> fieldArgs = extractFieldArguments(funcCtx);
-    Field targetField = determineTargetField(funcCtx, fieldArgs);
+    UnresolvedExpression fieldArg = internalVisitExpression(funcCtx.fieldExpression(0));
+    Field targetField = determineTargetField(funcCtx, fieldArg);
 
     if ("none".equalsIgnoreCase(functionName)) {
-      return handleNoneConversion(fieldArgs, targetField);
+      return fieldArg.toString().equals(targetField.getField().toString())
+          ? null
+          : new Let(targetField, fieldArg);
     }
 
-    return buildFunctionConversion(functionName, fieldArgs, targetField);
-  }
-
-  private List<UnresolvedExpression> extractFieldArguments(
-      OpenSearchPPLParser.ConvertFunctionContext funcCtx) {
-    if (funcCtx.fieldList() == null) {
-      return new ArrayList<>();
-    }
-
-    List<UnresolvedExpression> fieldArgs = new ArrayList<>();
-    for (OpenSearchPPLParser.FieldExpressionContext fieldExpr :
-        funcCtx.fieldList().fieldExpression()) {
-      fieldArgs.add(internalVisitExpression(fieldExpr));
-    }
-    return fieldArgs;
-  }
-
-  private Let handleNoneConversion(List<UnresolvedExpression> fieldArgs, Field targetField) {
-    if (fieldArgs.isEmpty()) {
-      return null;
-    }
-
-    String sourceFieldName = fieldArgs.get(0).toString();
-    String targetFieldName = targetField.getField().toString();
-
-    if (sourceFieldName.equals(targetFieldName)) {
-      return null;
-    }
-
-    return new Let(targetField, fieldArgs.get(0));
-  }
-
-  private Let buildFunctionConversion(
-      String functionName, List<UnresolvedExpression> fieldArgs, Field targetField) {
-    UnresolvedExpression functionCall =
-        AstDSL.function(functionName, fieldArgs.toArray(new UnresolvedExpression[0]));
-    return new Let(targetField, functionCall);
+    return new Let(targetField, AstDSL.function(functionName, fieldArg));
   }
 
   private Field determineTargetField(
-      OpenSearchPPLParser.ConvertFunctionContext funcCtx, List<UnresolvedExpression> fieldArgs) {
+      OpenSearchPPLParser.ConvertFunctionContext funcCtx, UnresolvedExpression fieldArg) {
     if (funcCtx.alias != null) {
-      String aliasName = StringUtils.unquoteIdentifier(funcCtx.alias.getText());
-      return AstDSL.field(aliasName);
+      return AstDSL.field(StringUtils.unquoteIdentifier(funcCtx.alias.getText()));
     }
-
-    if (!fieldArgs.isEmpty()) {
-      UnresolvedExpression firstArg = fieldArgs.get(0);
-      if (firstArg instanceof Field) {
-        return (Field) firstArg;
-      }
-      return AstDSL.field(firstArg.toString());
-    }
-
-    throw new IllegalArgumentException(
-        "Convert function must have either an alias or at least one field argument");
+    return fieldArg instanceof Field ? (Field) fieldArg : AstDSL.field(fieldArg.toString());
   }
 
   @Override

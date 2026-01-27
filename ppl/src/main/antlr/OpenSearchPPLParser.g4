@@ -529,11 +529,11 @@ replacementPair
    ;
 
 convertCommand
-   : CONVERT (TIMEFORMAT EQUAL timeformatValue = stringLiteral)? convertFunction (COMMA? convertFunction)*
+   : CONVERT convertFunction (COMMA? convertFunction)*
    ;
 
 convertFunction
-   : functionName = ident LT_PRTHS fieldList RT_PRTHS (AS alias = fieldExpression)?
+   : functionName = ident LT_PRTHS fieldExpression RT_PRTHS (AS alias = fieldExpression)?
    ;
 
 trendlineCommand
