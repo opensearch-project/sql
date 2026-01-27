@@ -293,42 +293,31 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   @Test
   public void testCrossClusterAppend() throws IOException {
     // TODO: We should enable calcite by default in CrossClusterSearchIT?
-    try {
-      enableCalcite();
-
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "search source=%s | stats count() as cnt by gender | append [ search source=%s |"
-                      + " stats count() as cnt ]",
-                  TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
-      verifyDataRows(result, rows(3, "F"), rows(4, "M"), rows(7, null));
-    } finally {
-      disableCalcite();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | stats count() as cnt by gender | append [ search source=%s |"
+                    + " stats count() as cnt ]",
+                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows(3, "F"), rows(4, "M"), rows(7, null));
   }
 
   /** CrossClusterSearchIT Test for mvcombine. */
   @Test
   public void testCrossClusterMvcombine() throws IOException {
-    try {
-      enableCalcite();
 
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "search source=%s | where firstname='Hattie' or firstname='Nanette' "
-                      + "| fields firstname, age | mvcombine age",
-                  TEST_INDEX_BANK_REMOTE));
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where firstname='Hattie' or firstname='Nanette' "
+                    + "| fields firstname, age | mvcombine age",
+                TEST_INDEX_BANK_REMOTE));
 
-      verifyColumn(result, columnName("firstname"), columnName("age"));
+    verifyColumn(result, columnName("firstname"), columnName("age"));
 
-      verifyDataRows(
-          result,
-          rows("Hattie", new org.json.JSONArray().put(36)),
-          rows("Nanette", new org.json.JSONArray().put(28)));
-    } finally {
-      disableCalcite();
-    }
+    verifyDataRows(
+        result,
+        rows("Hattie", new org.json.JSONArray().put(36)),
+        rows("Nanette", new org.json.JSONArray().put(28)));
   }
 }
