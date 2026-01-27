@@ -41,7 +41,7 @@ For more information about path syntax, see [json_extract](../functions/json.md#
 * **Limitation**: Field order in the result could be inconsistent with query without `spath` command, and the behavior might change in the future version.
 * **Limitation**: Filter with subquery (`where <field> in/exists [...]`) is not supported with `spath` command.
 * **Limitation**: `fillnull` command requires to specify fields when used with `spath` command.
-* **Limitation**: Following commands cannot be used together with `spath` command: `appendcol`, `multisearch`, `lookup`.
+* **Limitation**: Following commands cannot be used together with `spath` command: `lookup`.
 * **Performance**: Filter records before `spath` command for best performance (see Example 8)
 
 * **Internal Implementation**: The auto extraction feature uses an internal `_MAP` system column to store dynamic fields during query processing. This column is automatically expanded into individual columns in the final results and users don't need to reference it directly. For more information, see [System Columns](../general/identifiers.md#system-columns).

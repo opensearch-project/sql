@@ -2232,6 +2232,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       prunedSubSearch.accept(this, context);
       subsearchNodes.add(context.relBuilder.build());
     }
+    subsearchNodes = DynamicFieldsHelper.adjustInputsForDynamicFields(subsearchNodes, context);
 
     // Use shared schema merging logic that handles type conflicts via field renaming
     List<RelNode> alignedNodes =
