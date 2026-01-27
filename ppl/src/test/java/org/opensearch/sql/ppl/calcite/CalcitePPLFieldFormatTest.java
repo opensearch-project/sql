@@ -332,27 +332,35 @@ public class CalcitePPLFieldFormatTest extends CalcitePPLAbstractTest {
   @Test
   public void testEvalMinOnNumericAndString() {
     String ppl =
-        "source=EMP  | sort EMPNO | head 3| fields EMPNO, ENAME | fieldformat a = min(5, 30,"
+        "source=EMP  | sort EMPNO | head 3| fields EMPNO, ENAME, DEPTNO | fieldformat a = \"Minimum"
+            + " of DEPTNO, ENAME and Provided list of  5, 30, 'banana', 'Door': \".min(5, 30,"
             + " DEPTNO, 'banana', 'Door', ENAME)";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], a=[SCALAR_MIN(5, 30, $7, 'banana':VARCHAR, 'Door':VARCHAR,"
-            + " $1)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-    String expectedResult =
-        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], a=[SCALAR_MIN(5, 30, $7, 'banana':VARCHAR, 'Door':VARCHAR,"
-            + " $1)])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], a=[||('Minimum of DEPTNO, ENAME and"
+            + " Provided list of  5, 30, ''banana'', ''Door'': ':VARCHAR, SCALAR_MIN(5, 30, $7,"
+            + " 'banana':VARCHAR, 'Door':VARCHAR, $1))])\n"
             + "  LogicalSort(sort0=[$0], dir0=[ASC-nulls-first], fetch=[3])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
 
+    verifyLogical(root, expectedLogical);
+    String expectedResult =
+        "EMPNO=7369; ENAME=SMITH; DEPTNO=20; a=Minimum of DEPTNO, ENAME and Provided list of  5,"
+            + " 30, 'banana', 'Door': 5\n"
+            + "EMPNO=7499; ENAME=ALLEN; DEPTNO=30; a=Minimum of DEPTNO, ENAME and Provided list of "
+            + " 5, 30, 'banana', 'Door': 5\n"
+            + "EMPNO=7521; ENAME=WARD; DEPTNO=30; a=Minimum of DEPTNO, ENAME and Provided list of "
+            + " 5, 30, 'banana', 'Door': 5\n";
+
     verifyResult(root, expectedResult);
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, SCALAR_MIN(5,"
-            + " 30, `DEPTNO`, 'banana', 'Door', `ENAME`) `a`\n"
-            + "FROM `scott`.`EMP`";
+        "SELECT `EMPNO`, `ENAME`, `DEPTNO`, 'Minimum of DEPTNO, ENAME and Provided list of  5, 30,"
+            + " ''banana'', ''Door'': ' || SCALAR_MIN(5, 30, `DEPTNO`, 'banana', 'Door', `ENAME`)"
+            + " `a`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "ORDER BY `EMPNO`\n"
+            + "LIMIT 3";
+
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
