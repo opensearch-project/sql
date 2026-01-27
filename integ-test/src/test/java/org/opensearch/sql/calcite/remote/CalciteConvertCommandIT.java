@@ -221,8 +221,8 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
             String.format(
                 "search source=%s | convert auto(age) | stats sum(age) by gender",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("sum(age)", null, "bigint"), schema("gender", "string"));
-    verifyDataRows(result, rows(15224L, "M"), rows(14947L, "F"));
+    verifySchema(result, schema("sum(age)", null, "double"), schema("gender", "string"));
+    verifyDataRows(result, rows(137.0, "M"), rows(101.0, "F"));
   }
 
   @Test
