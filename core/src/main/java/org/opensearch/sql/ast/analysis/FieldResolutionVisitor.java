@@ -632,7 +632,14 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
   @Override
   public Node visitMvCombine(MvCombine node, FieldResolutionContext context) {
     Set<String> mvCombineFields = extractFieldsFromExpression(node.getField());
-    context.pushRequirements(context.getCurrentRequirements().or(mvCombineFields));
+
+    FieldResolutionResult current = context.getCurrentRequirements();
+
+    Set<String> regularFields = new HashSet<>(current.getRegularFields());
+    regularFields.addAll(mvCombineFields);
+
+    context.pushRequirements(new FieldResolutionResult(regularFields, Set.of(ALL_FIELDS)));
+
     visitChildren(node, context);
     context.popRequirements();
     return node;

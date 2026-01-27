@@ -262,4 +262,18 @@ public class CalcitePPLSpathCommandIT extends CalcitePPLSpathTestBase {
         rows(null, null, null, "simple", "4", sj("{'a': 1, 'b': 2, 'c': 3}")),
         rows("1", "3", "2", "simple", null, sj("{'a': 1, 'b': 2, 'c': 3}")));
   }
+
+  @Test
+  public void testSpathWithMvCombine() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_json | where category='simple' "
+                + "| spath input=userData "
+                + "| fields a, b, c "
+                + "| mvcombine c");
+
+    verifySchema(result, schema("a", "string"), schema("b", "string"), schema("c", "array"));
+
+    verifyDataRows(result, rows("1", "2", new String[] {"3", "3"}));
+  }
 }

@@ -549,7 +549,6 @@ mvcombineCommand
   : MVCOMBINE fieldExpression (DELIM EQUAL stringLiteral)?
   ;
 
-
 flattenCommand
    : FLATTEN fieldExpression (AS aliases = identifierSeq)?
    ;
