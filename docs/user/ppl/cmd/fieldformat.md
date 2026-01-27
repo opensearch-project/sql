@@ -104,7 +104,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 4: String concatenation with dot operator , prefix and suffix
+## Example 4: String concatenation with dot operator, prefix and suffix
 
 The following query performs prefix and suffix string concatenation operations using dot operator:
 
