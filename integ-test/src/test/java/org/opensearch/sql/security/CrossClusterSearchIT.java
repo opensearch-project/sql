@@ -286,35 +286,42 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterTranspose() throws IOException {
-    // Test query_string without fields parameter on remote cluster
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | where  firstname='Hattie' or firstname ='Nanette' or"
-                    + " firstname='Dale'|sort firstname desc |fields firstname,age,balance |"
-                    + " transpose 3 column_name='column_names'",
-                TEST_INDEX_BANK_REMOTE));
+    try {
+      enableCalcite();
 
-    verifyDataRows(
-        result,
-        rows("firstname", "Nanette", "Hattie", "Dale"),
-        rows("balance", "32838", "5686", "4180"),
-        rows("age", "28", "36", "33"));
+      // Test query_string without fields parameter on remote cluster
+      JSONObject result =
+          executeQuery(
+              String.format(
+                  "search source=%s | where  firstname='Hattie' or firstname ='Nanette' or"
+                      + " firstname='Dale'|sort firstname desc |fields firstname,age,balance |"
+                      + " transpose 3 column_name='column_names'",
+                  TEST_INDEX_BANK_REMOTE));
+
+      verifyDataRows(
+          result,
+          rows("firstname", "Nanette", "Hattie", "Dale"),
+          rows("balance", "32838", "5686", "4180"),
+          rows("age", "28", "36", "33"));
+    } finally {
+      disableCalcite();
+    }
   }
 
   @Test
   public void testCrossClusterAppend() throws IOException {
-    // TODO: We should enable calcite by default in CrossClusterSearchIT?
-    enableCalcite();
+    try {
+      enableCalcite();
 
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | stats count() as cnt by gender | append [ search source=%s |"
-                    + " stats count() as cnt ]",
-                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
-    verifyDataRows(result, rows(3, "F"), rows(4, "M"), rows(7, null));
-
-    disableCalcite();
+      JSONObject result =
+          executeQuery(
+              String.format(
+                  "search source=%s | stats count() as cnt by gender | append [ search source=%s |"
+                      + " stats count() as cnt ]",
+                  TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
+      verifyDataRows(result, rows(3, "F"), rows(4, "M"), rows(7, null));
+    } finally {
+      disableCalcite();
+    }
   }
 }
