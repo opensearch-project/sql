@@ -90,7 +90,6 @@ This document provides general code review principles and standards for the Open
 
 ### OpenSearch SQL
 - **JDK 21**: Required for development
-- **Java 11 Compatibility**: Maintain when possible for OpenSearch 2.x
 - **Module Structure**: Respect existing module boundaries (core, ppl, sql, opensearch, integ-test)
 - **Test Naming**: `*IT.java` for integration tests, `*Test.java` for unit tests
 
