@@ -2486,15 +2486,6 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_CASCADED_NESTED)));
   }
 
-  @Test
-  public void testFieldFormatExplain() throws Exception {
-    // test for issue https://github.com/opensearch-project/sql/issues/4903
-    enabledOnlyWhenPushdownIsEnabled();
-    String expected = loadExpectedPlan("explain_field_format.yaml");
-    assertYamlEqualsIgnoreId(
-        expected,
-        explainQueryYaml("source=opensearch-sql_test_index_account | head 5| fieldformat  "));
-  }
 
   @Test
   public void testFieldFormatExplain() throws Exception {
@@ -2505,16 +2496,16 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryYaml("source=opensearch-sql_test_index_account | head 5| fieldformat  "));
   }
+    @Test
+    public void testExplainMvCombine() throws IOException {
+        String query =
+                "source=opensearch-sql_test_index_account "
+                        + "| fields state, city, age "
+                        + "| mvcombine age delim=','";
 
-  @Test
-  public void testExplainMvCombine() throws IOException {
-    String query =
-        "source=opensearch-sql_test_index_account "
-            + "| fields state, city, age "
-            + "| mvcombine age delim=','";
+        String actual = explainQueryYaml(query);
+        String expected = loadExpectedPlan("explain_mvcombine.yaml");
+        assertYamlEqualsIgnoreId(expected, actual);
+    }
 
-    String actual = explainQueryYaml(query);
-    String expected = loadExpectedPlan("explain_mvcombine.yaml");
-    assertYamlEqualsIgnoreId(expected, actual);
-  }
 }
