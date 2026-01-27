@@ -124,5 +124,6 @@ fetched rows / total rows = 4/4
 | Nanette   | 28  | Age: 28 years. |
 | Dale      | 33  | Age: 33 years. |
 +-----------+-----+----------------+
-  
+```
+
 
