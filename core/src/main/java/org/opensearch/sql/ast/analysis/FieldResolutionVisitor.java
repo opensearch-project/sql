@@ -59,6 +59,7 @@ import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
@@ -567,6 +568,12 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
     context.pushRequirements(context.getCurrentRequirements().or(trendlineFields));
     visitChildren(node, context);
     context.popRequirements();
+    return node;
+  }
+
+  @Override
+  public Node visitTranspose(Transpose node, FieldResolutionContext context) {
+    visitChildren(node, context);
     return node;
   }
 

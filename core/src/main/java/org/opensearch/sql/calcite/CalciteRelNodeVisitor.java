@@ -54,6 +54,7 @@ import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
@@ -63,6 +64,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -697,6 +699,76 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Remove row number column
     context.relBuilder.projectExcept(context.relBuilder.field(REVERSE_ROW_NUM));
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitTranspose(
+      org.opensearch.sql.ast.tree.Transpose node, CalcitePlanContext context) {
+
+    visitChildren(node, context);
+
+    int maxRows =
+        Optional.ofNullable(node.getMaxRows())
+            .filter(r -> r > 0)
+            .orElseThrow(() -> new IllegalArgumentException("maxRows must be positive"));
+
+    String columnName = node.getColumnName();
+    List<String> fieldNames =
+        context.relBuilder.peek().getRowType().getFieldNames().stream()
+            .filter(fieldName -> !isMetadataField(fieldName))
+            .toList();
+
+    RelBuilder b = context.relBuilder;
+    RexBuilder rx = context.rexBuilder;
+    RelDataType varchar = rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+
+    // Step 1: ROW_NUMBER
+    b.projectPlus(
+        b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+            .over()
+            .rowsTo(RexWindowBounds.CURRENT_ROW)
+            .as(PlanUtils.ROW_NUMBER_COLUMN_FOR_TRANSPOSE));
+
+    // Step 2: UNPIVOT
+    b.unpivot(
+        false,
+        ImmutableList.of("value"),
+        ImmutableList.of(columnName),
+        fieldNames.stream()
+            .map(
+                f ->
+                    Map.entry(
+                        ImmutableList.of(rx.makeLiteral(f)),
+                        ImmutableList.of((RexNode) rx.makeCast(varchar, b.field(f), true))))
+            .collect(Collectors.toList()));
+
+    // Step 3: Trim spaces from columnName column before pivot
+
+    RexNode trimmedColumnName =
+        context.rexBuilder.makeCall(
+            SqlStdOperatorTable.TRIM,
+            context.rexBuilder.makeFlag(SqlTrimFunction.Flag.BOTH),
+            context.rexBuilder.makeLiteral(" "),
+            b.field(columnName));
+
+    // Step 4: PIVOT
+    b.pivot(
+        b.groupKey(trimmedColumnName),
+        ImmutableList.of(b.max(b.field("value"))),
+        ImmutableList.of(b.field(PlanUtils.ROW_NUMBER_COLUMN_FOR_TRANSPOSE)),
+        IntStream.rangeClosed(1, maxRows)
+            .mapToObj(i -> Map.entry("row " + i, ImmutableList.of((RexNode) b.literal(i))))
+            .collect(Collectors.toList()));
+
+    // Step 4: RENAME
+    List<String> cleanNames = new ArrayList<>();
+    cleanNames.add(columnName);
+    for (int i = 1; i <= maxRows; i++) {
+      cleanNames.add("row " + i);
+    }
+    b.rename(cleanNames);
+
+    return b.peek();
   }
 
   @Override
