@@ -5,34 +5,26 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.isTimeBasedType;
+import static org.opensearch.sql.calcite.utils.PlanUtils.aggIgnoreNullBucket;
+import static org.opensearch.sql.calcite.utils.PlanUtils.maybeTimeSpanAgg;
 import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_BUCKET;
 
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.Predicate;
+import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexSlot;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.immutables.value.Value;
-import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
@@ -54,15 +46,7 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
       final LogicalFilter filter = call.rel(2);
       final LogicalProject bottomProject = call.rel(3);
       final CalciteLogicalIndexScan scan = call.rel(4);
-      boolean ignoreNullBucket = Config.aggIgnoreNullBucket.test(aggregate);
-      List<Integer> groupRefList =
-          aggregate.getGroupSet().asList().stream()
-              .map(topProject.getProjects()::get)
-              .filter(rex -> ignoreNullBucket || isTimeSpan(rex))
-              .flatMap(expr -> PlanUtils.getInputRefs(expr).stream())
-              .map(RexSlot::getIndex)
-              .toList();
-      if (isNotNullDerivedFromAgg(filter, groupRefList)) {
+      if (PlanUtils.isNotNullDerivedFromAgg(filter.getCondition(), aggregate, topProject, null)) {
         final List<RexNode> newProjects =
             RelOptUtil.pushPastProjectUnlessBloat(
                 topProject.getProjects(), bottomProject, RelOptUtil.DEFAULT_BLOAT);
@@ -86,8 +70,7 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
       final LogicalFilter filter = call.rel(1);
       final LogicalProject project = call.rel(2);
       final CalciteLogicalIndexScan scan = call.rel(3);
-      List<Integer> groupList = aggregate.getGroupSet().asList();
-      if (isNotNullDerivedFromAgg(filter, groupList)) {
+      if (PlanUtils.isNotNullDerivedFromAgg(filter.getCondition(), aggregate, project, null)) {
         // Try to do the aggregate push down and ignore the filter if the filter sources from the
         // aggregate's hint. See{@link CalciteRelNodeVisitor::visitAggregation}
         apply(call, aggregate, project, scan);
@@ -98,7 +81,6 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
       final CalciteLogicalIndexScan scan = call.rel(2);
       apply(call, aggregate, project, scan);
     } else if (call.rels.length == 2) {
-      // case of count() without group-by
       final LogicalAggregate aggregate = call.rel(0);
       final CalciteLogicalIndexScan scan = call.rel(1);
       apply(call, aggregate, null, scan);
@@ -110,38 +92,15 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
     }
   }
 
-  private boolean isTimeSpan(RexNode rex) {
-    return rex instanceof RexCall rexCall
-        && rexCall.getKind() == SqlKind.OTHER_FUNCTION
-        && rexCall.getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())
-        && rexCall.getOperands().size() == 3
-        && rexCall.getOperands().get(2) instanceof RexLiteral unitLiteral
-        && unitLiteral.getTypeName() != SqlTypeName.NULL;
-  }
-
-  private boolean isNotNullDerivedFromAgg(LogicalFilter filter, List<Integer> groupRefList) {
-    RexNode condition = filter.getCondition();
-    Function<RexNode, Boolean> isNotNullFromAgg =
-        rex ->
-            rex instanceof RexCall rexCall
-                && rexCall.isA(SqlKind.IS_NOT_NULL)
-                && rexCall.getOperands().get(0) instanceof RexInputRef ref
-                && groupRefList.contains(ref.getIndex());
-
-    return isNotNullFromAgg.apply(condition)
-        || (condition instanceof RexCall rexCall
-            && rexCall.getOperator() == SqlStdOperatorTable.AND
-            && rexCall.getOperands().stream().allMatch(isNotNullFromAgg::apply));
-  }
-
   protected void apply(
       RelOptRuleCall call,
       LogicalAggregate aggregate,
-      LogicalProject project,
+      @Nullable LogicalProject project,
       CalciteLogicalIndexScan scan) {
     AbstractRelNode newRelNode = scan.pushDownAggregate(aggregate, project);
     if (newRelNode != null) {
       call.transformTo(newRelNode);
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 
@@ -176,21 +135,13 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
                                                             AbstractCalciteIndexScan
                                                                 ::noAggregatePushed))
                                                 .noInputs())));
-    Config COUNT_STAR =
+    Config AGGREGATE_SCAN =
         ImmutableAggregateIndexScanRule.Config.builder()
             .build()
-            .withDescription("Agg[count()]-TableScan")
+            .withDescription("Agg-TableScan")
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalAggregate.class)
-                        .predicate(
-                            agg ->
-                                agg.getGroupSet().isEmpty()
-                                    && agg.getAggCallList().stream()
-                                        .allMatch(
-                                            call ->
-                                                call.getAggregation().kind == SqlKind.COUNT
-                                                    && call.getArgList().isEmpty()))
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
@@ -198,20 +149,6 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
                                         Predicate.not(AbstractCalciteIndexScan::isLimitPushed)
                                             .and(AbstractCalciteIndexScan::noAggregatePushed))
                                     .noInputs()));
-    Predicate<Aggregate> aggIgnoreNullBucket =
-        agg ->
-            agg.getHints().stream()
-                .anyMatch(
-                    hint ->
-                        hint.hintName.equals("stats_args")
-                            && hint.kvOptions.get(Argument.BUCKET_NULLABLE).equals("false"));
-    Predicate<Aggregate> maybeTimeSpanAgg =
-        agg ->
-            agg.getGroupSet().stream()
-                .allMatch(
-                    group ->
-                        isTimeBasedType(
-                            agg.getInput().getRowType().getFieldList().get(group).getType()));
 
     Config BUCKET_NON_NULL_AGG =
         ImmutableAggregateIndexScanRule.Config.builder()

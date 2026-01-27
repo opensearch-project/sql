@@ -111,6 +111,7 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
@@ -130,6 +131,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
@@ -263,6 +265,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
     List<Argument> arguments =
         ctx.joinOption().stream().map(o -> (Argument) expressionBuilder.visit(o)).toList();
+    if (arguments.stream().noneMatch(arg -> arg.getArgName().equals("max"))
+        && !UnresolvedPlanHelper.legacyPreferred(settings)) {
+      arguments = new ArrayList<>(arguments);
+      arguments.add(new Argument("max", Literal.ONE));
+    }
     Argument.ArgumentMap argumentMap = Argument.ArgumentMap.of(arguments);
     if (argumentMap.get("type") != null) {
       Join.JoinType joinTypeFromArgument = ArgumentFactory.getJoinType(argumentMap);
@@ -736,6 +743,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Reverse();
   }
 
+  /** Transpose command. */
+  @Override
+  public UnresolvedPlan visitTransposeCommand(OpenSearchPPLParser.TransposeCommandContext ctx) {
+    java.util.Map<String, Argument> arguments = ArgumentFactory.getArgumentList(ctx);
+    return new Transpose(arguments);
+  }
+
   /** Chart command. */
   @Override
   public UnresolvedPlan visitChartCommand(OpenSearchPPLParser.ChartCommandContext ctx) {
@@ -905,8 +919,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (inField == null) {
       throw new IllegalArgumentException("`input` parameter is required for `spath`");
     }
-    if (path == null) {
-      throw new IllegalArgumentException("`path` parameter is required for `spath`");
+
+    if (outField != null && path == null) {
+      throw new IllegalArgumentException(
+          "`path` parameter is required for `spath` when `output` is specified");
     }
 
     return new SPath(inField, outField, path);
@@ -972,6 +988,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitLookupCommand(OpenSearchPPLParser.LookupCommandContext ctx) {
     Relation lookupRelation = new Relation(this.internalVisitExpression(ctx.tableSource()));
+    // OUTPUT and REPLACE are synonyms - both overwrite existing fields
     Lookup.OutputStrategy strategy =
         ctx.APPEND() != null ? Lookup.OutputStrategy.APPEND : Lookup.OutputStrategy.REPLACE;
     java.util.Map<String, String> mappingAliasMap =

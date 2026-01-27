@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
 import java.io.IOException;
+import java.util.regex.PatternSyntaxException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -404,42 +405,39 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     // Test invalid regex pattern - unclosed character class
     Throwable e1 =
         assertThrowsWithReplace(
-            Exception.class,
+            PatternSyntaxException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s | eval result = replace(firstname, '[unclosed', 'X') | fields"
                             + " firstname, result",
                         TEST_INDEX_ACCOUNT)));
-    verifyErrorMessageContains(e1, "Invalid regex pattern");
     verifyErrorMessageContains(e1, "Unclosed character class");
     verifyErrorMessageContains(e1, "400 Bad Request");
 
     // Test invalid regex pattern - unclosed group
     Throwable e2 =
         assertThrowsWithReplace(
-            Exception.class,
+            PatternSyntaxException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s | eval result = replace(firstname, '(invalid', 'X') | fields"
                             + " firstname, result",
                         TEST_INDEX_ACCOUNT)));
-    verifyErrorMessageContains(e2, "Invalid regex pattern");
     verifyErrorMessageContains(e2, "Unclosed group");
     verifyErrorMessageContains(e2, "400 Bad Request");
 
     // Test invalid regex pattern - dangling metacharacter
     Throwable e3 =
         assertThrowsWithReplace(
-            Exception.class,
+            PatternSyntaxException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s | eval result = replace(firstname, '?invalid', 'X') | fields"
                             + " firstname, result",
                         TEST_INDEX_ACCOUNT)));
-    verifyErrorMessageContains(e3, "Invalid regex pattern");
     verifyErrorMessageContains(e3, "Dangling meta character");
     verifyErrorMessageContains(e3, "400 Bad Request");
   }

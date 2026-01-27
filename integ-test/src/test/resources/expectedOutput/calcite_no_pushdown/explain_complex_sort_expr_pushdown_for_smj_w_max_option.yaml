@@ -8,7 +8,7 @@ calcite:
           LogicalSystemLimit(fetch=[50000], type=[JOIN_SUBSEARCH_MAXOUT])
             LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
               LogicalFilter(condition=[<=($13, 1)])
-                LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], _row_number_join_max_dedup_=[ROW_NUMBER() OVER (PARTITION BY $6)])
+                LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $6)])
                   LogicalFilter(condition=[IS NOT NULL($6)])
                     LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
                       CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])

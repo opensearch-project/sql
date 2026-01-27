@@ -1,21 +1,28 @@
-# explain  
 
-## Description  
+# explain
 
-The `explain` command explains the plan of query which is often used for query translation and troubleshooting. The `explain` command can only be used as the first command in the PPL query.
-## Syntax  
+The `explain` command displays the execution plan of a query, which is often used for query translation and troubleshooting. The `explain` command can only be used as the first command in the PPL query.
 
+## Syntax
+
+The `explain` command has the following syntax:
+
+```syntax
 explain <mode> queryStatement
-* mode: optional. There are 4 explain modes: "simple", "standard", "cost", "extended". **Default:** standard.  
-  * standard: The default mode. Display logical and physical plan with pushdown information (DSL).  
-  * simple: Display the logical plan tree without attributes.  
-  * cost: Display the standard information plus plan cost attributes.  
-  * extended: Display the standard information plus generated code.  
-* queryStatement: mandatory. A PPL query to explain.  
-  
-## Example 1: Explain a PPL query in v2 engine  
+```
 
-When Calcite is disabled (plugins.calcite.enabled=false), explaining a PPL query will get its physical plan of v2 engine and pushdown information.  
+## Parameters
+
+The `explain` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<queryStatement>` | Required | A PPL query to explain. |
+| `<mode>` | Optional | The explain mode. Valid values are: <br> - `standard`: Displays the logical and physical plan along with pushdown information (query domain-specific language [DSL]). Available in both v2 and v3 engines. <br> - `simple`: Displays the logical plan tree without attributes. Requires the v3 engine (`plugins.calcite.enabled` = `true`). <br> - `cost`: Displays the standard information plus plan cost attributes. Requires the v3 engine (`plugins.calcite.enabled` = `true`). <br> - `extended`: Displays the standard information plus the generated code. If the whole plan is able to pushdown, it is equal to the standard mode. Requires the v3 engine (`plugins.calcite.enabled` = `true`). <br><br> Default is `standard`. |
+
+## Example 1: Explain a PPL query in the v2 engine  
+
+When Apache Calcite is disabled (`plugins.calcite.enabled` is set to `false`), `explain` obtains its physical plan and pushdown information from the v2 engine:
   
 ```ppl
 explain source=state_country
@@ -23,7 +30,7 @@ explain source=state_country
 | stats count() by country
 ```
   
-Explain:
+The query returns the following results:
   
 ```json
 {
@@ -45,9 +52,10 @@ Explain:
 }
 ```
   
-## Example 2: Explain a PPL query in v3 engine  
 
-When Calcite is enabled (plugins.calcite.enabled=true), explaining a PPL query will get its logical and physical plan of v3 engine and pushdown information.  
+## Example 2: Explain a PPL query in the v3 engine  
+
+When Apache Calcite is enabled (`plugins.calcite.enabled` is set to `true`), `explain` obtains its logical and physical plan and pushdown information from the v3 engine:  
   
 ```ppl
 explain source=state_country
@@ -55,8 +63,8 @@ explain source=state_country
 | stats count() by country
 ```
   
-Explain
-  
+The query returns the following results:
+
 ```json
 {
   "calcite": {
@@ -72,9 +80,10 @@ Explain
 }
 ```
   
-## Example 3: Explain a PPL query with simple mode  
 
-When Calcite is enabled (plugins.calcite.enabled=true), you can explain a PPL query with the "simple" mode. 
+## Example 3: Explain a PPL query in the simple mode  
+
+The following query uses the `explain` command in the `simple` mode to show a simplified logical plan tree: 
   
 ```ppl
 explain simple source=state_country
@@ -82,9 +91,9 @@ explain simple source=state_country
 | stats count() by country
 ```
   
-Explain 
+The query returns the following results: 
   
-```
+```json
 {
   "calcite": {
     "logical": """LogicalProject
@@ -96,9 +105,10 @@ Explain
 }
 ```
   
-## Example 4: Explain a PPL query with cost mode  
 
-When Calcite is enabled (plugins.calcite.enabled=true), you can explain a PPL query with the "cost" mode.
+## Example 4: Explain a PPL query in the cost mode  
+
+The following query uses the `explain` command in the `cost` mode to show plan cost attributes:
   
 ```ppl
 explain cost source=state_country
@@ -106,8 +116,8 @@ explain cost source=state_country
 | stats count() by country
 ```
   
-Explain
-  
+The query returns the following results:
+
 ```json
 {
   "calcite": {
@@ -123,16 +133,19 @@ Explain
 }
 ```
   
-## Example 5: Explain a PPL query with extended mode  
-  
+
+## Example 5: Explain a PPL query in the extended mode
+
+The following query uses the `explain` command in the `extended` mode to show the generated code:
+
 ```ppl
 explain extended source=state_country
 | where country = 'USA' OR country = 'England'
 | stats count() by country
 ```
   
-Explain
-  
+The query returns the following results:
+
 ```json
 {
   "calcite": {

@@ -18,10 +18,10 @@ calcite:
         "order" : "desc",
         "missing" : "_first"
       }
-    }], LIMIT->5, LIMIT->5], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","query":{"terms":{"category":["A","B"],"boost":1.0}},"_source":{"includes":["@timestamp","category","value","timestamp"],"excludes":[]},"sort":[{"@timestamp":{"order":"desc","missing":"_first"}}]}, requestedTotalSize=5, pageSize=null, startFrom=0)])
+    }], LIMIT->5], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","query":{"terms":{"category":["A","B"],"boost":1.0}},"_source":{"includes":["@timestamp","category","value","timestamp"],"excludes":[]},"sort":[{"@timestamp":{"order":"desc","missing":"_first"}}]}, requestedTotalSize=5, pageSize=null, startFrom=0)])
           CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data2]], PushDownContext=[[PROJECT->[@timestamp, category, value, timestamp], FILTER->SEARCH($1, Sarg['E':VARCHAR, 'F':VARCHAR]:VARCHAR), SORT->[{
       "@timestamp" : {
         "order" : "desc",
         "missing" : "_first"
       }
-    }], LIMIT->5, LIMIT->5], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","query":{"terms":{"category":["E","F"],"boost":1.0}},"_source":{"includes":["@timestamp","category","value","timestamp"],"excludes":[]},"sort":[{"@timestamp":{"order":"desc","missing":"_first"}}]}, requestedTotalSize=5, pageSize=null, startFrom=0)])
+    }], LIMIT->5], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","query":{"terms":{"category":["E","F"],"boost":1.0}},"_source":{"includes":["@timestamp","category","value","timestamp"],"excludes":[]},"sort":[{"@timestamp":{"order":"desc","missing":"_first"}}]}, requestedTotalSize=5, pageSize=null, startFrom=0)])

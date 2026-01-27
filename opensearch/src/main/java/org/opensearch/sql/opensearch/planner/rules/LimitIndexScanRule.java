@@ -12,7 +12,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.immutables.value.Value;
-import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
@@ -45,6 +45,7 @@ public class LimitIndexScanRule extends InterruptibleRelRule<LimitIndexScanRule.
       AbstractRelNode newOperator = scan.pushDownLimit(sort, limitValue, offsetValue);
       if (newOperator != null) {
         call.transformTo(newOperator);
+        PlanUtils.tryPruneRelNodes(call);
       }
     }
   }

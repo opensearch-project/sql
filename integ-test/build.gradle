@@ -179,7 +179,7 @@ configurations.all {
     resolutionStrategy.force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
     resolutionStrategy.force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
     resolutionStrategy.force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
-    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
@@ -208,6 +208,10 @@ dependencies {
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:"${versions.log4j}"
     testImplementation project(':opensearch-sql-plugin')
     testImplementation project(':legacy')
+    testImplementation project(':api')
+    testImplementation(testFixtures(project(':api'))) {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.9.3')
     testImplementation('org.junit.jupiter:junit-jupiter-params:5.9.3')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.9.3')

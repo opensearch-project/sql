@@ -85,6 +85,7 @@ commands
    | regexCommand
    | chartCommand
    | timechartCommand
+   | transposeCommand
    | rexCommand
    | appendPipeCommand
    | replaceCommand
@@ -131,6 +132,7 @@ commandName
    | REX
    | APPENDPIPE
    | REPLACE
+   | TRANSPOSE
    ;
 
 searchCommand
@@ -328,6 +330,16 @@ timechartCommand
    : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)? timechartParameter*
    ;
 
+transposeCommand
+   : TRANSPOSE transposeParameter*
+   ;
+
+transposeParameter
+   : (number = integerLiteral)
+   | (COLUMN_NAME EQUAL stringLiteral)
+   ;
+
+
 timechartParameter
    : LIMIT EQUAL integerLiteral
    | SPAN EQUAL spanLiteral
@@ -476,7 +488,7 @@ patternMode
 
 // lookup
 lookupCommand
-   : LOOKUP tableSource lookupMappingList ((APPEND | REPLACE) outputCandidateList)?
+   : LOOKUP tableSource lookupMappingList ((APPEND | REPLACE | OUTPUT) outputCandidateList)?
    ;
 
 lookupMappingList
@@ -1657,5 +1669,6 @@ searchableKeyWord
    | FIELDNAME
    | ROW
    | COL
+   | COLUMN_NAME
    ;
 

@@ -25,7 +25,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
-import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
@@ -116,6 +116,7 @@ public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexSca
       Project newProject =
           project.copy(sort.getTraitSet(), newScan, project.getProjects(), project.getRowType());
       call.transformTo(newProject);
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 

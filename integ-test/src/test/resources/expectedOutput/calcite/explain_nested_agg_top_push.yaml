@@ -1,0 +1,12 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(address.city=[$0], count=[$1])
+        LogicalFilter(condition=[<=($2, 10)])
+          LogicalProject(address.city=[$0], count=[$1], _row_number_rare_top_=[ROW_NUMBER() OVER (ORDER BY $1 DESC)])
+            LogicalAggregate(group=[{0}], count=[COUNT()])
+              LogicalProject(address.city=[$3])
+                LogicalFilter(condition=[IS NOT NULL($3)])
+                  CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},count=COUNT()), RARE_TOP->top 10 address.city, PROJECT->[address.city, count], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"nested_composite_buckets":{"nested":{"path":"address"},"aggregations":{"address.city":{"terms":{"field":"address.city.keyword","size":10,"min_doc_count":1,"shard_min_doc_count":0,"show_term_doc_count_error":false,"order":[{"_count":"desc"},{"_key":"asc"}]}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

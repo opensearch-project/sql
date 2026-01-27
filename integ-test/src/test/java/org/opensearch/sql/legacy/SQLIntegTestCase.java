@@ -704,6 +704,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getDeepNestedIndexMapping(),
         "src/test/resources/deep_nested_index_data.json"),
+    CASCADED_NESTED(
+        TestsConstants.TEST_INDEX_CASCADED_NESTED,
+        "_doc",
+        getMappingFile("cascaded_nested_index_mapping.json"),
+        "src/test/resources/cascaded_nested.json"),
     TELEMETRY(
         TestsConstants.TEST_INDEX_TELEMETRY,
         "_doc",

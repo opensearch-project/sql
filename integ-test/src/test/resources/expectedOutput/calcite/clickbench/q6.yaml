@@ -6,4 +6,4 @@ calcite:
           LogicalFilter(condition=[IS NOT NULL($63)])
             CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[FILTER->IS NOT NULL($63), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},dc(SearchPhrase)=COUNT(DISTINCT $0)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"exists":{"field":"SearchPhrase","boost":1.0}},"aggregations":{"dc(SearchPhrase)":{"cardinality":{"field":"SearchPhrase"}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+    CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[FILTER->IS NOT NULL($0), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},dc(SearchPhrase)=COUNT(DISTINCT $0)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"exists":{"field":"SearchPhrase","boost":1.0}},"aggregations":{"dc(SearchPhrase)":{"cardinality":{"field":"SearchPhrase"}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

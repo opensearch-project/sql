@@ -39,7 +39,7 @@ For a field to be queryable in PPL, the following index settings must be enabled
   
 ## Nested Field Behavior  
 
-* There are [limitations](https://github.com/opensearch-project/sql/issues/52) regarding the nested levels and query types that needs improvement.  
+* There are [limitations](https://github.com/opensearch-project/sql/issues/4625) regarding the nested levels and query types that need improvement.  
   
 ## Multi-value Field Behavior  
 

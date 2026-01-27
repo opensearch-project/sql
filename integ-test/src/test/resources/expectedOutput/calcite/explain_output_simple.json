@@ -1,0 +1,5 @@
+{
+  "calcite": {
+    "logical": "LogicalSystemLimit\n  LogicalProject\n    LogicalFilter\n      LogicalProject\n        LogicalFilter\n          LogicalProject\n            LogicalSort\n              LogicalProject\n                LogicalAggregate\n                  LogicalProject\n                    LogicalFilter\n                      CalciteLogicalIndexScan\n"
+  }
+}

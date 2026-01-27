@@ -186,8 +186,7 @@ public class OpenSearchExprValueFactory {
    * @return ExprValue
    */
   public ExprValue construct(String field, Object value, boolean supportArrays) {
-    Object extractedValue = extractFinalPrimitiveValue(value);
-    return parse(new ObjectContent(extractedValue), field, type(field), supportArrays);
+    return parse(new ObjectContent(value), field, type(field), supportArrays);
   }
 
   private ExprValue parse(
@@ -218,7 +217,9 @@ public class OpenSearchExprValueFactory {
         || type == STRUCT) {
       return parseStruct(content, field, supportArrays);
     } else if (typeActionMap.containsKey(type)) {
-      return typeActionMap.get(type).apply(content, type);
+      return content.isArray()
+          ? parseArray(content, field, type, supportArrays)
+          : typeActionMap.get(type).apply(content, type);
     } else {
       throw new IllegalStateException(
           String.format(
@@ -585,27 +586,5 @@ public class OpenSearchExprValueFactory {
    */
   private String makeField(String path, String field) {
     return path.equalsIgnoreCase(TOP_PATH) ? field : String.join(".", path, field);
-  }
-
-  /**
-   * Recursively extracts the final primitive value from nested Map structures. For example:
-   * {attributes={telemetry={sdk={language=java}}}} -> "java"
-   *
-   * @param value The value to extract from
-   * @return The extracted primitive value, or the original value if extraction is not possible
-   */
-  @SuppressWarnings("unchecked")
-  private Object extractFinalPrimitiveValue(Object value) {
-    if (value == null || !(value instanceof Map)) {
-      return value;
-    }
-
-    Map<String, Object> map = (Map<String, Object>) value;
-    if (map.size() == 1) {
-      Object singleValue = map.values().iterator().next();
-      return extractFinalPrimitiveValue(singleValue);
-    }
-
-    return value;
   }
 }

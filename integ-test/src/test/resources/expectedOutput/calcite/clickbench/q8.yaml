@@ -5,7 +5,8 @@ calcite:
         LogicalProject(count()=[$1], AdvEngineID=[$0])
           LogicalAggregate(group=[{0}], count()=[COUNT()])
             LogicalProject(AdvEngineID=[$19])
-              LogicalFilter(condition=[<>($19, 0)])
-                CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
+              LogicalFilter(condition=[IS NOT NULL($19)])
+                LogicalFilter(condition=[<>($19, 0)])
+                  CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[FILTER-><>($19, 0), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},count()=COUNT()), SORT_AGG_METRICS->[1 DESC LAST], PROJECT->[count(), AdvEngineID], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"bool":{"must":[{"exists":{"field":"AdvEngineID","boost":1.0}}],"must_not":[{"term":{"AdvEngineID":{"value":0,"boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},"aggregations":{"AdvEngineID":{"terms":{"field":"AdvEngineID","size":10000,"min_doc_count":1,"shard_min_doc_count":0,"show_term_doc_count_error":false,"order":[{"_count":"desc"},{"_key":"asc"}]}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+    CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[FILTER-><>($0, 0), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},count()=COUNT()), SORT_AGG_METRICS->[1 DESC LAST], PROJECT->[count(), AdvEngineID], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"bool":{"must":[{"exists":{"field":"AdvEngineID","boost":1.0}}],"must_not":[{"term":{"AdvEngineID":{"value":0,"boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},"aggregations":{"AdvEngineID":{"terms":{"field":"AdvEngineID","size":10000,"min_doc_count":1,"shard_min_doc_count":0,"show_term_doc_count_error":false,"order":[{"_count":"desc"},{"_key":"asc"}]}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

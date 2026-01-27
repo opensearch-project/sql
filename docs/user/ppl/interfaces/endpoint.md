@@ -61,7 +61,8 @@ You can send HTTP explain request to endpoint **/_plugins/_ppl/_explain** with y
 ### Description  
 
 To translate your query, send it to explain endpoint. The explain output is OpenSearch domain specific language (DSL) in JSON format. You can just copy and paste it to your console to run it against OpenSearch directly.
-Explain output could be set different formats: `standard` (the default format), `simple`, `extended`, `dsl`.
+Explain API supports various mode: `standard` (the default format), `simple`, `extended`, `cost`.
+And the explain output could be shown in different formats: `json` (the default format), `yaml`
 ### Example 1 default (standard) format  
 
 Explain query
@@ -84,13 +85,13 @@ Expected output:
 
 ```
   
-### Example 2 simple format  
+### Example 2 simple mode  
 
 Explain query
   
 ```bash ppl
 curl -sS -H 'Content-Type: application/json' \
--X POST localhost:9200/_plugins/_ppl/_explain?format=simple \
+-X POST localhost:9200/_plugins/_ppl/_explain?mode=simple \
 -d '{"query" : "source=state_country | where age>30"}'
 ```
   
@@ -104,14 +105,14 @@ Expected output:
 }
 ```
   
-### Example 3 extended format  
+### Example 3 extended mode
 
 Explain query
   
 ```bash ppl
 curl -sS -H 'Content-Type: application/json' \
--X POST localhost:9200/_plugins/_ppl/_explain?format=extended \
--d '{"query" : "source=state_country | where age>30"}'
+-X POST localhost:9200/_plugins/_ppl/_explain?mode=extended \
+-d '{"query" : "source=state_country | head 10 | where age>30"}'
 ```
   
 Expected output:
@@ -119,9 +120,9 @@ Expected output:
 ```json
 {
   "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(name=[$0], country=[$1], state=[$2], month=[$3], year=[$4], age=[$5])\n    LogicalFilter(condition=[>($5, 30)])\n      CalciteLogicalIndexScan(table=[[OpenSearch, state_country]])\n",
-    "physical": "CalciteEnumerableIndexScan(table=[[OpenSearch, state_country]], PushDownContext=[[PROJECT->[name, country, state, month, year, age], FILTER->>($5, 30), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"range\":{\"age\":{\"from\":30,\"to\":null,\"include_lower\":false,\"include_upper\":true,\"boost\":1.0}}},\"_source\":{\"includes\":[\"name\",\"country\",\"state\",\"month\",\"year\",\"age\"],\"excludes\":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])\n",
-    "extended": "public org.apache.calcite.linq4j.Enumerable bind(final org.apache.calcite.DataContext root) {\n  final org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan v1stashed = (org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan) root.get(\"v1stashed\");\n  return v1stashed.scan();\n}\n\n\npublic Class getElementType() {\n  return java.lang.Object[].class;\n}\n\n\n"
+    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(name=[$0], country=[$1], state=[$2], month=[$3], year=[$4], age=[$5])\n    LogicalFilter(condition=[>($5, 30)])\n      LogicalSort(fetch=[10])\n        CalciteLogicalIndexScan(table=[[OpenSearch, state_country]])\n",
+    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..5=[{inputs}], expr#6=[30], expr#7=[>($t5, $t6)], proj#0..5=[{exprs}], $condition=[$t7])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, state_country]], PushDownContext=[[PROJECT->[name, country, state, month, year, age], LIMIT->10], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":10,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"name\",\"country\",\"state\",\"month\",\"year\",\"age\"],\"excludes\":[]}}, requestedTotalSize=10, pageSize=null, startFrom=0)])\n",
+    "extended": "public org.apache.calcite.linq4j.Enumerable bind(final org.apache.calcite.DataContext root) {\n  final org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan v1stashed = (org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan) root.get(\"v1stashed\");\n  final org.apache.calcite.linq4j.Enumerable _inputEnumerable = v1stashed.scan();\n  final org.apache.calcite.linq4j.AbstractEnumerable child = new org.apache.calcite.linq4j.AbstractEnumerable(){\n    public org.apache.calcite.linq4j.Enumerator enumerator() {\n      return new org.apache.calcite.linq4j.Enumerator(){\n          public final org.apache.calcite.linq4j.Enumerator inputEnumerator = _inputEnumerable.enumerator();\n          public void reset() {\n            inputEnumerator.reset();\n          }\n\n          public boolean moveNext() {\n            while (inputEnumerator.moveNext()) {\n              final Long input_value = (Long) ((Object[]) inputEnumerator.current())[5];\n              final Boolean binary_call_value = input_value == null ? null : Boolean.valueOf(input_value.longValue() > (long) 30);\n              if (binary_call_value != null && org.apache.calcite.runtime.SqlFunctions.toBoolean(binary_call_value)) {\n                return true;\n              }\n            }\n            return false;\n          }\n\n          public void close() {\n            inputEnumerator.close();\n          }\n\n          public Object current() {\n            final Object[] current = (Object[]) inputEnumerator.current();\n            final Object input_value = current[0];\n            final Object input_value0 = current[1];\n            final Object input_value1 = current[2];\n            final Object input_value2 = current[3];\n            final Object input_value3 = current[4];\n            final Object input_value4 = current[5];\n            return new Object[] {\n                input_value,\n                input_value0,\n                input_value1,\n                input_value2,\n                input_value3,\n                input_value4};\n          }\n\n        };\n    }\n\n  };\n  return child.take(10000);\n}\n\n\npublic Class getElementType() {\n  return java.lang.Object[].class;\n}\n\n\n"
   }
 }
 ```
@@ -130,7 +131,7 @@ Expected output:
 
    YAML explain output is an experimental feature and not intended for
    production use. The interface and output may change without notice.
-Return Explain response format in In `yaml` format.
+Return Explain response in `yaml` format.
 Explain query
   
 ```bash ppl
@@ -151,4 +152,52 @@ calcite:
   physical: |
     CalciteEnumerableIndexScan(table=[[OpenSearch, state_country]], PushDownContext=[[PROJECT->[name, country, state, month, year, age], FILTER->>($5, 30), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"range":{"age":{"from":30,"to":null,"include_lower":false,"include_upper":true,"boost":1.0}}},"_source":{"includes":["name","country","state","month","year","age"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
 ```
-  
+
+## Profile (Experimental)
+
+You can enable profiling on the PPL endpoint to capture per-stage timings in milliseconds. Profiling is returned only for regular query execution (not explain) and only when using the default `format=jdbc`.
+
+### Example
+
+```bash ppl ignore
+curl -sS -H 'Content-Type: application/json' \
+  -X POST localhost:9200/_plugins/_ppl \
+  -d '{
+        "profile": true,
+        "query" : "source=accounts | fields firstname, lastname"
+      }'
+```
+
+Expected output (trimmed):
+
+```json
+{
+   "profile": {
+      "summary": {
+         "total_time_ms": 33.34
+      },
+      "phases": {
+         "analyze": { "time_ms": 8.68 },
+         "optimize": { "time_ms": 18.2 },
+         "execute": { "time_ms": 4.87 },
+         "format": { "time_ms": 0.05 }
+      },
+      "plan": {
+         "node": "EnumerableCalc",
+         "time_ms": 4.82,
+         "rows": 2,
+         "children": [
+            { "node": "CalciteEnumerableIndexScan", "time_ms": 4.12, "rows": 2 }
+         ]
+      }
+   }
+}
+```
+
+### Notes
+
+- Profile output is only returned when the query finishes successfully.
+- Profiling runs only when Calcite is enabled.
+- Plan node names use Calcite physical operator names (for example, `EnumerableCalc` or `CalciteEnumerableIndexScan`).
+- Plan `time_ms` is inclusive of child operators and represents wall-clock time; overlapping work can make summed plan times exceed `summary.total_time_ms`.
+- Scan nodes reflect operator wall-clock time; background prefetch can make scan time smaller than total request latency.

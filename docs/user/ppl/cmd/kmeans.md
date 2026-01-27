@@ -1,18 +1,34 @@
-# kmeans (deprecated by ml command)  
 
-## Description  
+# kmeans (Deprecated)
 
-The `kmeans` command applies the kmeans algorithm in the ml-commons plugin on the search result returned by a PPL command.
-## Syntax  
+> **Warning**: The `kmeans` command is deprecated in favor of the [`ml` command](ml.md).
 
-kmeans \<centroids\> \<iterations\> \<distance_type\>
-* centroids: optional. The number of clusters you want to group your data points into. **Default:** 2.  
-* iterations: optional. Number of iterations. **Default:** 10.  
-* distance_type: optional. The distance type can be COSINE, L1, or EUCLIDEAN. **Default:** EUCLIDEAN.  
+The `kmeans` command applies the k-means algorithm in the ML Commons plugin on the search results returned by a PPL command.
+
+> **Note**: To use the `kmeans` command, `plugins.calcite.enabled` must be set to `false`.
+
+## Syntax
+
+The `kmeans` command has the following syntax:
+
+```syntax
+kmeans <centroids> <iterations> <distance_type>
+```
+
+## Parameters
+
+The `kmeans` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<centroids>` | Optional | The number of clusters to group data points into. Default is `2`. |
+| `<iterations>` | Optional | The number of iterations. Default is `10`. |
+| `<distance_type>` | Optional | The distance type. Valid values are `COSINE`, `L1`, and `EUCLIDEAN`. Default is `EUCLIDEAN`. |  
   
-## Example: Clustering of Iris Dataset  
 
-This example shows how to classify three Iris species (Iris setosa, Iris virginica and Iris versicolor) based on the combination of four features measured from each sample: the length and the width of the sepals and petals.
+## Example: Clustering of the Iris dataset  
+
+The following query classifies three Iris species (Iris setosa, Iris virginica, and Iris versicolor) based on the combination of four features measured from each sample (the lengths and widths of sepals and petals):
   
 ```ppl
 source=iris_data
@@ -20,7 +36,7 @@ source=iris_data
 | kmeans centroids=3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 +--------------------+-------------------+--------------------+-------------------+-----------+
@@ -32,6 +48,4 @@ Expected output:
 +--------------------+-------------------+--------------------+-------------------+-----------+
 ```
   
-## Limitations  
 
-The `kmeans` command can only work with `plugins.calcite.enabled=false`.

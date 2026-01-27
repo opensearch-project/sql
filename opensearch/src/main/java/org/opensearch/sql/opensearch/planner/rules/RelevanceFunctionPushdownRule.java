@@ -12,12 +12,14 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlOperator;
 import org.immutables.value.Value;
-import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /**
@@ -27,7 +29,7 @@ import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
  */
 @Value.Enclosing
 public class RelevanceFunctionPushdownRule
-    extends InterruptibleRelRule<RelevanceFunctionPushdownRule.Config> {
+    extends InterruptibleRelRule<RelevanceFunctionPushdownRule.Config> implements SubstitutionRule {
 
   /** Creates an RelevanceFunctionPushdownRule. */
   protected RelevanceFunctionPushdownRule(Config config) {
@@ -55,6 +57,7 @@ public class RelevanceFunctionPushdownRule
     AbstractRelNode newRel = scan.pushDownFilter(filter);
     if (newRel != null) {
       call.transformTo(newRel);
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 
