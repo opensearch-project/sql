@@ -193,7 +193,11 @@ public class MatcherUtils {
   public static <T> void verify(JSONArray array, Matcher<T>... matchers) {
     List<T> objects = new ArrayList<>();
     array.iterator().forEachRemaining(o -> objects.add((T) o));
-    assertEquals(matchers.length, objects.size());
+    assertEquals(
+        String.format(
+            "Expected %d, but %d. objects=%s", matchers.length, objects.size(), objects.toString()),
+        matchers.length,
+        objects.size());
     assertThat(objects, containsInAnyOrder(matchers));
   }
 
