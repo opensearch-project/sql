@@ -65,11 +65,11 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | convert auto(balance) AS balance_num | fields balance_num |"
-                    + " head 3",
+                "search source=%s | convert auto(balance) AS balance_num | fields balance,"
+                    + " balance_num | head 3",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("balance_num", null, "double"));
-    verifyDataRows(result, rows(39225.0), rows(5686.0), rows(32838.0));
+    verifySchema(result, schema("balance", null, "bigint"), schema("balance_num", null, "double"));
+    verifyDataRows(result, rows(39225, 39225.0), rows(5686, 5686.0), rows(32838, 32838.0));
   }
 
   @Test
