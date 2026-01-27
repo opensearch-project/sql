@@ -623,10 +623,13 @@ addcoltotalsOption
 fromClause
    : SOURCE EQUAL tableOrSubqueryClause
    | INDEX EQUAL tableOrSubqueryClause
+   | INPUTLOOKUP tableOrSubqueryClause
    | SOURCE EQUAL tableFunction
    | INDEX EQUAL tableFunction
+   | INPUTLOOKUP tableFunction
    | SOURCE EQUAL dynamicSourceClause
    | INDEX EQUAL dynamicSourceClause
+   | INPUTLOOKUP dynamicSourceClause
    ;
 
 tableOrSubqueryClause
