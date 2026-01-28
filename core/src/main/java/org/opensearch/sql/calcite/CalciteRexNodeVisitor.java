@@ -321,8 +321,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   private boolean isBooleanField(RexNode node) {
     // Only match actual field references, not arbitrary boolean expressions like CASE
-    return node instanceof RexInputRef
-        && node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
+    return node instanceof RexInputRef && node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
   }
 
   private boolean isBooleanLiteral(RexNode node) {

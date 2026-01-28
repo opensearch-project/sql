@@ -621,7 +621,8 @@ public class PredicateAnalyzer {
         if (call.getKind() == SqlKind.IS_TRUE && operand instanceof QueryExpression qe) {
           return qe.isTrue();
         }
-        throw new PredicateAnalyzerException(call.getKind() + " can only be applied to boolean fields");
+        throw new PredicateAnalyzerException(
+            call.getKind() + " can only be applied to boolean fields");
       }
 
       // Handle IS_NULL / IS_NOT_NULL
