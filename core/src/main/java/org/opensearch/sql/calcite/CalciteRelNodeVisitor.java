@@ -1833,7 +1833,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                             over.ignoreNulls());
                       }
                     }))
-        .toList();
+        .collect(Collectors.toList());
   }
 
   private static RexFieldCollation relCollationToRexCollation(
