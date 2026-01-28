@@ -275,7 +275,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   /** CrossClusterSearchIT Test for fieldformat. */
   @Test
   public void testCrossClusterFieldFormat() throws IOException {
-    // Test query_string without fields parameter on remote cluster
+    // Test fieldformat command with tostring
     JSONObject result =
         executeQuery(
             String.format(
