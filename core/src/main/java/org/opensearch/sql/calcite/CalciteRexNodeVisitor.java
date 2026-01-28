@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -319,7 +320,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   private boolean isBooleanField(RexNode node) {
-    return node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN && !(node instanceof RexLiteral);
+    // Only match actual field references, not arbitrary boolean expressions like CASE
+    return node instanceof RexInputRef
+        && node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
   }
 
   private boolean isBooleanLiteral(RexNode node) {
