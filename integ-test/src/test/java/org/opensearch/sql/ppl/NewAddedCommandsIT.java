@@ -202,6 +202,17 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     }
   }
 
+  @Test
+  public void testTransposeCommand() throws IOException {
+    JSONObject result;
+    try {
+      executeQuery(String.format("search source=%s  | transpose ", TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      verifyQuery(result);
+    }
+  }
+
   private void verifyQuery(JSONObject result) throws IOException {
     if (isCalciteEnabled()) {
       assertFalse(result.getJSONArray("datarows").isEmpty());
@@ -213,5 +224,19 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
               "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
       assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
     }
+  }
+
+  @Test
+  public void testMvCombineUnsupportedInV2() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "source=%s | fields state, city, age | mvcombine age", TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
   }
 }

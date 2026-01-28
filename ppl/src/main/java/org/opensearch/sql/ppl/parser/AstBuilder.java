@@ -91,6 +91,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -111,6 +112,7 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
@@ -130,6 +132,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
@@ -263,6 +266,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
     List<Argument> arguments =
         ctx.joinOption().stream().map(o -> (Argument) expressionBuilder.visit(o)).toList();
+    if (arguments.stream().noneMatch(arg -> arg.getArgName().equals("max"))
+        && !UnresolvedPlanHelper.legacyPreferred(settings)) {
+      arguments = new ArrayList<>(arguments);
+      arguments.add(new Argument("max", Literal.ONE));
+    }
     Argument.ArgumentMap argumentMap = Argument.ArgumentMap.of(arguments);
     if (argumentMap.get("type") != null) {
       Join.JoinType joinTypeFromArgument = ArgumentFactory.getJoinType(argumentMap);
@@ -736,6 +744,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Reverse();
   }
 
+  /** Transpose command. */
+  @Override
+  public UnresolvedPlan visitTransposeCommand(OpenSearchPPLParser.TransposeCommandContext ctx) {
+    java.util.Map<String, Argument> arguments = ArgumentFactory.getArgumentList(ctx);
+    return new Transpose(arguments);
+  }
+
   /** Chart command. */
   @Override
   public UnresolvedPlan visitChartCommand(OpenSearchPPLParser.ChartCommandContext ctx) {
@@ -866,6 +881,18 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Field fieldExpression = (Field) internalVisitExpression(ctx.fieldExpression());
     String alias = ctx.alias != null ? internalVisitExpression(ctx.alias).toString() : null;
     return new Expand(fieldExpression, alias);
+  }
+
+  /** mvcombine command. */
+  @Override
+  public UnresolvedPlan visitMvcombineCommand(OpenSearchPPLParser.MvcombineCommandContext ctx) {
+    Field field = (Field) internalVisitExpression(ctx.fieldExpression());
+
+    String delim = null;
+    if (ctx.DELIM() != null) {
+      delim = StringUtils.unquoteText(getTextInQuery(ctx.stringLiteral()));
+    }
+    return new MvCombine(field, delim);
   }
 
   @Override
