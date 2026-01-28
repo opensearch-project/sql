@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
+import org.apache.commons.text.StringEscapeUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -38,7 +39,10 @@ public class CalciteFieldFormatCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testFieldFormatStringConcatenation() throws IOException {
-    JSONObject result = executeQuery("source=test_eval | fieldformat greeting = 'Hello ' + name");
+    JSONObject result =
+        executeQuery(
+            StringEscapeUtils.escapeJson(
+                "source=test_eval | fieldformat greeting = 'Hello ' + name"));
     verifySchema(
         result,
         schema("name", "string"),
@@ -56,8 +60,9 @@ public class CalciteFieldFormatCommandIT extends PPLIntegTestCase {
   public void testFieldFormatStringConcatenationWithNullFieldToString() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_eval | fieldformat age_desc = \"Age: \".tostring(age,\"commas\") | fields"
-                + " name, age, age_desc");
+            StringEscapeUtils.escapeJson(
+                "source=test_eval | fieldformat age_desc = \"Age: \".tostring(age,\"commas\") |"
+                    + " fields name, age, age_desc"));
     verifySchema(
         result, schema("name", "string"), schema("age", "bigint"), schema("age_desc", "string"));
     verifyDataRows(
@@ -71,8 +76,9 @@ public class CalciteFieldFormatCommandIT extends PPLIntegTestCase {
   public void testFieldFormatStringConcatenationWithNullField() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_eval | fieldformat age_desc = \"Age: \".CAST(age AS STRING) | fields name,"
-                + " age, age_desc");
+            StringEscapeUtils.escapeJson(
+                "source=test_eval | fieldformat age_desc = \"Age: \".CAST(age AS STRING) | fields"
+                    + " name, age, age_desc"));
     verifySchema(
         result, schema("name", "string"), schema("age", "bigint"), schema("age_desc", "string"));
     verifyDataRows(
@@ -86,8 +92,9 @@ public class CalciteFieldFormatCommandIT extends PPLIntegTestCase {
   public void testFieldFormatStringConcatWithSuffix() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_eval | fieldformat age_desc = CAST(age AS STRING).\" years\" | fields"
-                + " name, age, age_desc");
+            StringEscapeUtils.escapeJson(
+                "source=test_eval | fieldformat age_desc = CAST(age AS STRING).\" years\" | fields"
+                    + " name, age, age_desc"));
     verifySchema(
         result, schema("name", "string"), schema("age", "bigint"), schema("age_desc", "string"));
     verifyDataRows(
@@ -101,8 +108,9 @@ public class CalciteFieldFormatCommandIT extends PPLIntegTestCase {
   public void testFieldFormatStringConcatWithPrefixSuffix() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_eval | fieldformat age_desc = \"Age: \".CAST(age AS STRING).\" years\" |"
-                + " fields name, age, age_desc");
+            StringEscapeUtils.escapeJson(
+                "source=test_eval | fieldformat age_desc = \"Age: \".CAST(age AS STRING).\" years\""
+                    + " | fields name, age, age_desc"));
     verifySchema(
         result, schema("name", "string"), schema("age", "bigint"), schema("age_desc", "string"));
     verifyDataRows(
