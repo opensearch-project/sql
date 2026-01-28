@@ -724,7 +724,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s severityNumber=\"not-a-number\"", TEST_INDEX_OTEL_LOGS));
+                "search source=%s severityNumber=\\\"not-a-number\\\"", TEST_INDEX_OTEL_LOGS));
     verifyDataRows(result);
   }
 
