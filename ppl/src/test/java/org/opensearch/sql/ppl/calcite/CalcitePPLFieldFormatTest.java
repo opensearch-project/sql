@@ -266,7 +266,7 @@ public class CalcitePPLFieldFormatTest extends CalcitePPLAbstractTest {
         "source=EMP | sort EMPNO | head 3 |fields EMPNO, ENAME| fieldformat a = max('banana',"
             + " 'Door', ENAME).\" after comparing with provided constant strings and ENAME column"
             + " values.\"";
-    // #
+
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], a=[||(SCALAR_MAX('banana':VARCHAR, 'Door':VARCHAR,"
