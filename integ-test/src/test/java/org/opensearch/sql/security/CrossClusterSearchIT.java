@@ -15,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import lombok.SneakyThrows;
+import org.apache.commons.text.StringEscapeUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -278,11 +279,12 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     // Test fieldformat command with tostring
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | where  firstname='Hattie' or firstname ='Nanette'|fields"
-                    + " firstname,age,balance | fieldformat formatted_balance ="
-                    + " \"$\".tostring(balance,\"commas\")",
-                TEST_INDEX_BANK_REMOTE));
+            StringEscapeUtils.escapeJson(
+                String.format(
+                    "search source=%s | where  firstname='Hattie' or firstname ='Nanette'|fields"
+                        + " firstname,age,balance | fieldformat formatted_balance ="
+                        + " \"$\".tostring(balance,\"commas\")",
+                    TEST_INDEX_BANK_REMOTE)));
     verifyDataRows(
         result, rows("Hattie", 36, 5686, "$5,686"), rows("Nanette", 28, 32838, "$32,838"));
   }
