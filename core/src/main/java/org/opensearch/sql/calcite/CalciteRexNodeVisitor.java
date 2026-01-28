@@ -263,8 +263,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitEqualTo(EqualTo node, CalcitePlanContext context) {
-    RexNode left = analyze(node.getLeft(), context);
-    RexNode right = analyze(node.getRight(), context);
+    final RexNode left = analyze(node.getLeft(), context);
+    final RexNode right = analyze(node.getRight(), context);
     return context.rexBuilder.equals(left, right);
   }
 
@@ -273,7 +273,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   // - "field = true" -> "field" (handled by PredicateAnalyzer detecting boolean field)
   // - "field = false" -> "NOT(field)" (handled by PredicateAnalyzer.prefix())
   // - "NOT(field = true)" -> "NOT(field)" -> would generate term{false}, have conflicted semantics
-  // - "NOT(field = false)" -> "NOT(NOT(field))" -> "field" -> would generate term{true}, have conflicted semantics
+  // - "NOT(field = false)" -> "NOT(NOT(field))" -> "field" -> would generate term{true}, have
+  // conflicted semantics
   // We intercept NOT(field = true/false) at AST level before Calcite optimization:
   // - "NOT(field = true)" -> IS_NOT_TRUE(field): matches false, null, missing
   // - "NOT(field = false)" -> IS_NOT_FALSE(field): matches true, null, missing
