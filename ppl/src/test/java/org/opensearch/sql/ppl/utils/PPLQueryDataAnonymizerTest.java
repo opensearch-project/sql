@@ -1008,4 +1008,17 @@ public class PPLQueryDataAnonymizerTest {
         anonymize(
             "search source=t | spath input=json_attr output=out path=foo.bar | fields id, out"));
   }
+
+  @Test
+  public void testMvcombineCommand() {
+    assertEquals(
+        "source=table | mvcombine delim=*** identifier", anonymize("source=t | mvcombine age"));
+  }
+
+  @Test
+  public void testMvcombineCommandWithDelim() {
+    assertEquals(
+        "source=table | mvcombine delim=*** identifier",
+        anonymize("source=t | mvcombine age delim=','"));
+  }
 }
