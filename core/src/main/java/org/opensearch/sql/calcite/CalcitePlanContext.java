@@ -8,7 +8,6 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +21,6 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.opensearch.sql.ast.analysis.FieldResolutionResult;
@@ -131,12 +129,6 @@ public class CalcitePlanContext {
    * @return new SqlValidator instance
    */
   public SqlValidator getValidator() {
-    final CalciteServerStatement statement;
-    try {
-      statement = connection.createStatement().unwrap(CalciteServerStatement.class);
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
     if (operatorTableProvider == null) {
       throw new IllegalStateException(
           "SqlOperatorTableProvider must be set before creating CalcitePlanContext");
@@ -155,7 +147,7 @@ public class CalcitePlanContext {
             // See SqlValidatorImpl#validateSelectList and AggConverter#translateAgg
             .withIdentifierExpansion(true);
     return PplValidator.create(
-        statement, config, operatorTableProvider.getOperatorTable(), TYPE_FACTORY, validatorConfig);
+        config, operatorTableProvider.getOperatorTable(), TYPE_FACTORY, validatorConfig);
   }
 
   public RexNode resolveJoinCondition(

@@ -8,8 +8,9 @@ package org.opensearch.sql.calcite.validate;
 import static org.opensearch.sql.calcite.validate.ValidationUtils.createUDTWithAttributes;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
-import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.RelDataType;
@@ -17,7 +18,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -64,19 +64,17 @@ public class PplValidator extends SqlValidatorImpl {
    * @return configured SqlValidator instance
    */
   public static PplValidator create(
-      CalciteServerStatement statement,
       FrameworkConfig frameworkConfig,
       SqlOperatorTable operatorTable,
       RelDataTypeFactory typeFactory,
       SqlValidator.Config validatorConfig) {
-    SchemaPlus defaultSchema = frameworkConfig.getDefaultSchema();
+    SchemaPlus defaultSchema =
+        Objects.requireNonNull(frameworkConfig.getDefaultSchema(), "defaultSchema");
 
-    final CalcitePrepare.Context prepareContext = statement.createPrepareContext();
-    final CalciteSchema schema =
-        defaultSchema != null ? CalciteSchema.from(defaultSchema) : prepareContext.getRootSchema();
+    final CalciteSchema schema = CalciteSchema.from(defaultSchema);
     CalciteCatalogReader catalogReader =
         new CalciteCatalogReader(
-            schema.root(), schema.path(null), typeFactory, prepareContext.config());
+            schema.root(), schema.path(null), typeFactory, CalciteConnectionConfig.DEFAULT);
     return new PplValidator(operatorTable, catalogReader, typeFactory, validatorConfig);
   }
 
