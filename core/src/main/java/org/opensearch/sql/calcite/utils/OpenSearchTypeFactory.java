@@ -363,23 +363,27 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           binaryCount++;
         }
       }
-      if (nullCount == 0 && anyCount == 0) {
+      // When there is ANY, fall through to standard leastRestrictive
+      if (anyCount == 0) {
         RelDataType udt;
-        if (dateCount == types.size()) {
-          udt = createUDT(ExprUDT.EXPR_DATE, nullableCount > 0);
-        } else if (timeCount == types.size()) {
-          udt = createUDT(ExprUDT.EXPR_TIME, nullableCount > 0);
+        boolean nullable = nullableCount > 0 || nullCount > 0;
+        if (dateCount + nullCount == types.size()) {
+          udt = createUDT(ExprUDT.EXPR_DATE, nullable);
+        } else if (timeCount + nullCount == types.size()) {
+          udt = createUDT(ExprUDT.EXPR_TIME, nullable);
         }
         // There are cases where UDT IP interleaves with its intermediate SQL type for validation
         // OTHER, we check otherCount to patch such cases
-        else if (ipCount == types.size() || otherCount == types.size()) {
-          udt = createUDT(ExprUDT.EXPR_IP, nullableCount > 0);
-        } else if (binaryCount == types.size()) {
-          udt = createUDT(ExprUDT.EXPR_BINARY, nullableCount > 0);
-        } else if (binaryCount == 0 && ipCount == 0) {
-          udt = createUDT(ExprUDT.EXPR_TIMESTAMP, nullableCount > 0);
+        else if (ipCount + nullCount == types.size() || otherCount + nullCount == types.size()) {
+          udt = createUDT(ExprUDT.EXPR_IP, nullable);
+        } else if (binaryCount + nullCount == types.size()) {
+          udt = createUDT(ExprUDT.EXPR_BINARY, nullable);
+        }
+        // There exists a mix of time, date, and timestamp (and optionally null)
+        else if (binaryCount == 0 && ipCount == 0) {
+          udt = createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);
         } else {
-          udt = createSqlType(SqlTypeName.VARCHAR, nullableCount > 0);
+          udt = createSqlType(SqlTypeName.VARCHAR, nullable);
         }
         return udt;
       }

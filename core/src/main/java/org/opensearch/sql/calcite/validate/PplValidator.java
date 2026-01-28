@@ -58,9 +58,10 @@ public class PplValidator extends SqlValidatorImpl {
   /**
    * Creates a SqlValidator configured for PPL validation.
    *
-   * @param statement Calcite server statement
    * @param frameworkConfig Framework configuration
    * @param operatorTable SQL operator table to use for validation
+   * @param typeFactory Type factory for creating data types
+   * @param validatorConfig Validator configuration settings
    * @return configured SqlValidator instance
    */
   public static PplValidator create(
