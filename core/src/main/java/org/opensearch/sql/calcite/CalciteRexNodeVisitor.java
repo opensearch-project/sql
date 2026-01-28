@@ -231,12 +231,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     RexNode left = analyze(node.getLeft(), context);
     RexNode right = analyze(node.getRight(), context);
     String op = node.getOperator();
-    if ("=".equals(op)) {
-      RexNode result = tryMakeBooleanEquals(left, right, context);
-      if (result != null) {
-        return result;
-      }
-    } else if ("!=".equals(op) || "<>".equals(op)) {
+    // Handle boolean_field != literal -> IS_NOT_TRUE/IS_NOT_FALSE
+    if ("!=".equals(op) || "<>".equals(op)) {
       RexNode result = tryMakeBooleanNotEquals(left, right, context);
       if (result != null) {
         return result;
@@ -269,33 +265,18 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitEqualTo(EqualTo node, CalcitePlanContext context) {
     RexNode left = analyze(node.getLeft(), context);
     RexNode right = analyze(node.getRight(), context);
-    RexNode result = tryMakeBooleanEquals(left, right, context);
-    return result != null ? result : context.rexBuilder.equals(left, right);
+    return context.rexBuilder.equals(left, right);
   }
 
-  // ==================== Boolean comparison helpers ====================
-  // Calcite's RexSimplify transforms "field = true" to "field" and "field = false" to "NOT(field)".
-  // This loses null-handling semantics in OpenSearch. We intercept these patterns at AST level:
-  // - "field = true" -> IS_TRUE(field): only matches documents where field is explicitly true
-  // - "field = false" -> normal EQUALS: PredicateAnalyzer handles NOT(field) pattern
+  // ==================== Boolean NOT comparison helpers ====================
+  // Calcite's RexSimplify transforms:
+  // - "field = true" -> "field" (handled by PredicateAnalyzer detecting boolean field)
+  // - "field = false" -> "NOT(field)" (handled by PredicateAnalyzer.prefix())
+  // - "NOT(field = true)" -> "NOT(field)" -> would generate term{false}, have conflicted semantics
+  // - "NOT(field = false)" -> "NOT(NOT(field))" -> "field" -> would generate term{true}, have conflicted semantics
+  // We intercept NOT(field = true/false) at AST level before Calcite optimization:
   // - "NOT(field = true)" -> IS_NOT_TRUE(field): matches false, null, missing
   // - "NOT(field = false)" -> IS_NOT_FALSE(field): matches true, null, missing
-
-  /**
-   * Try to convert boolean field equality to IS_TRUE/IS_FALSE. This prevents Calcite's RexSimplify
-   * from transforming these expressions and losing the exact match semantics.
-   */
-  private RexNode tryMakeBooleanEquals(RexNode left, RexNode right, CalcitePlanContext context) {
-    BooleanFieldComparison cmp = extractBooleanFieldComparison(left, right);
-    if (cmp == null) {
-      return null;
-    }
-    SqlOperator op =
-        Boolean.TRUE.equals(cmp.literalValue)
-            ? SqlStdOperatorTable.IS_TRUE
-            : SqlStdOperatorTable.IS_FALSE;
-    return context.rexBuilder.makeCall(op, cmp.field);
-  }
 
   /**
    * Try to convert boolean_field != literal or NOT(boolean_field = literal) to
