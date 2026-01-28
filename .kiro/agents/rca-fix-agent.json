@@ -1,0 +1,29 @@
+{
+  "name": "rca-fix-agent",
+  "description": "Root-cause analysis plus fix implementation and verification for PPL bugs.",
+  "prompt": "file://./rca-fix-agent.prompt.md",
+  "resources": [
+    "file:///Users/penghuo/oss/os-ppl/README.md",
+    "file:///Users/penghuo/oss/os-ppl/docs/dev",
+    "file:///Users/penghuo/oss/os-ppl/integ-test"
+  ],
+  "includeMcpJson": true,
+  "tools": [
+    "@builtin",
+    "@github"
+  ],
+  "allowedTools": [
+    "read",
+    "write",
+    "shell",
+    "@github/*"
+  ],
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": [
+        "/Users/penghuo/oss/os-ppl/**"
+      ]
+    }
+  },
+  "model": "claude-opus-4.5"
+}
