@@ -34,6 +34,7 @@ import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -629,6 +630,28 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
   public Node visitExpand(Expand node, FieldResolutionContext context) {
     Set<String> expandFields = extractFieldsFromExpression(node.getField());
     context.pushRequirements(context.getCurrentRequirements().or(expandFields));
+    visitChildren(node, context);
+    context.popRequirements();
+    return node;
+  }
+
+  @Override
+  public Node visitConvert(Convert node, FieldResolutionContext context) {
+    Set<String> inputFields = new HashSet<>();
+    Set<String> outputFields = new HashSet<>();
+
+    for (Let conversion : node.getConversions()) {
+      outputFields.add(conversion.getVar().getField().toString());
+      inputFields.addAll(extractFieldsFromExpression(conversion.getExpression()));
+    }
+
+    FieldResolutionResult currentReq = context.getCurrentRequirements();
+    Set<String> upstreamRequiredFields = new HashSet<>(currentReq.getRegularFields());
+    upstreamRequiredFields.removeAll(outputFields);
+    upstreamRequiredFields.addAll(inputFields);
+
+    context.pushRequirements(
+        new FieldResolutionResult(upstreamRequiredFields, currentReq.getWildcard()));
     visitChildren(node, context);
     context.popRequirements();
     return node;

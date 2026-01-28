@@ -1017,4 +1017,22 @@ public class PPLQueryDataAnonymizerTest {
             "source=t | eval result=mvfind(array('apple', 'banana', 'apricot'), 'ban.*') | fields"
                 + " result"));
   }
+
+  @Test
+  public void testConvertCommand() {
+    assertEquals(
+        "source=table | convert auto(identifier)", anonymize("source=t | convert auto(salary)"));
+    assertEquals(
+        "source=table | convert auto(identifier) AS identifier",
+        anonymize("source=t | convert auto(salary) AS salary_num"));
+    assertEquals(
+        "source=table | convert auto(identifier),num(identifier)",
+        anonymize("source=t | convert auto(salary), num(commission)"));
+    assertEquals(
+        "source=table | convert rmcomma(identifier),rmunit(identifier),(identifier) AS identifier",
+        anonymize("source=t | convert rmcomma(name), rmunit(revenue), none(id)"));
+    assertEquals(
+        "source=table | convert (identifier) AS identifier",
+        anonymize("source=t | convert none(empno) AS empno_same"));
+  }
 }

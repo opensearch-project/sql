@@ -301,6 +301,18 @@ public enum BuiltinFunctionName {
 
   INTERVAL(FunctionName.of("interval")),
 
+  /** PPL Convert Command Functions. */
+  AUTO(FunctionName.of("auto")),
+  NUM(FunctionName.of("num")),
+  CTIME(FunctionName.of("ctime")),
+  MKTIME(FunctionName.of("mktime")),
+  DUR2SEC(FunctionName.of("dur2sec")),
+  MEMK(FunctionName.of("memk")),
+  MSTIME(FunctionName.of("mstime")),
+  RMUNIT(FunctionName.of("rmunit")),
+  RMCOMMA(FunctionName.of("rmcomma")),
+  NONE(FunctionName.of("none")),
+
   /** Data Type Convert Function. */
   CAST_TO_STRING(FunctionName.of("cast_to_string")),
   CAST_TO_BYTE(FunctionName.of("cast_to_byte")),
