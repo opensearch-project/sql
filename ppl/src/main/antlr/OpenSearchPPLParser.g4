@@ -85,9 +85,11 @@ commands
    | regexCommand
    | chartCommand
    | timechartCommand
+   | transposeCommand
    | rexCommand
    | appendPipeCommand
    | replaceCommand
+   | mvcombineCommand
    ;
 
 commandName
@@ -131,6 +133,8 @@ commandName
    | REX
    | APPENDPIPE
    | REPLACE
+   | MVCOMBINE
+   | TRANSPOSE
    ;
 
 searchCommand
@@ -327,6 +331,16 @@ columnSplit
 timechartCommand
    : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)? timechartParameter*
    ;
+
+transposeCommand
+   : TRANSPOSE transposeParameter*
+   ;
+
+transposeParameter
+   : (number = integerLiteral)
+   | (COLUMN_NAME EQUAL stringLiteral)
+   ;
+
 
 timechartParameter
    : LIMIT EQUAL integerLiteral
@@ -530,6 +544,10 @@ trendlineType
 expandCommand
     : EXPAND fieldExpression (AS alias = qualifiedName)?
     ;
+
+mvcombineCommand
+  : MVCOMBINE fieldExpression (DELIM EQUAL stringLiteral)?
+  ;
 
 flattenCommand
    : FLATTEN fieldExpression (AS aliases = identifierSeq)?
@@ -1657,5 +1675,6 @@ searchableKeyWord
    | FIELDNAME
    | ROW
    | COL
+   | COLUMN_NAME
    ;
 
