@@ -225,4 +225,18 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
     }
   }
+
+  @Test
+  public void testMvCombineUnsupportedInV2() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "source=%s | fields state, city, age | mvcombine age", TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
 }
