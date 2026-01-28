@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -599,51 +600,31 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
 
-      if (call.getKind() == SqlKind.IS_TRUE) {
-        Expression qe = call.getOperands().get(0).accept(this);
-        // When IS_TRUE is applied to a boolean field reference (e.g., IS_TRUE(boolean_field)),
-        // create a QueryExpression from the NamedFieldExpression and call isTrue().
-        // When IS_TRUE is applied to a predicate (already evaluated), qe is a QueryExpression.
-        if (qe instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
-          return QueryExpression.create(namedField).isTrue();
+      // Handle boolean field operators: IS_TRUE, IS_FALSE, IS_NOT_TRUE, IS_NOT_FALSE
+      // These generate term queries for exact boolean value matching or mustNot queries
+      // for negated matching (which includes null/missing documents).
+      Function<QueryExpression, QueryExpression> booleanOp =
+          switch (call.getKind()) {
+            case IS_TRUE -> QueryExpression::isTrue;
+            case IS_FALSE -> QueryExpression::isFalse;
+            case IS_NOT_TRUE -> QueryExpression::isNotTrue;
+            case IS_NOT_FALSE -> QueryExpression::isNotFalse;
+            default -> null;
+          };
+
+      if (booleanOp != null) {
+        Expression operand = call.getOperands().get(0).accept(this);
+        if (operand instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+          return booleanOp.apply(QueryExpression.create(namedField));
         }
-        return ((QueryExpression) qe).isTrue();
+        // IS_TRUE on a predicate (already evaluated QueryExpression) is allowed
+        if (call.getKind() == SqlKind.IS_TRUE && operand instanceof QueryExpression qe) {
+          return qe.isTrue();
+        }
+        throw new PredicateAnalyzerException(call.getKind() + " can only be applied to boolean fields");
       }
 
-      if (call.getKind() == SqlKind.IS_FALSE) {
-        Expression qe = call.getOperands().get(0).accept(this);
-        // When IS_FALSE is applied to a boolean field reference (e.g., IS_FALSE(boolean_field)),
-        // create a QueryExpression from the NamedFieldExpression and call isFalse().
-        // This generates a term query with value false, which only matches documents where
-        // the field is explicitly false (not null or missing).
-        if (qe instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
-          return QueryExpression.create(namedField).isFalse();
-        }
-        throw new PredicateAnalyzerException("IS_FALSE can only be applied to boolean fields");
-      }
-
-      if (call.getKind() == SqlKind.IS_NOT_TRUE) {
-        Expression qe = call.getOperands().get(0).accept(this);
-        // IS_NOT_TRUE(boolean_field) -> mustNot(term query {value: true})
-        // This returns documents where field is false, null, or missing.
-        // Used for NOT(field = true) semantics.
-        if (qe instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
-          return QueryExpression.create(namedField).isNotTrue();
-        }
-        throw new PredicateAnalyzerException("IS_NOT_TRUE can only be applied to boolean fields");
-      }
-
-      if (call.getKind() == SqlKind.IS_NOT_FALSE) {
-        Expression qe = call.getOperands().get(0).accept(this);
-        // IS_NOT_FALSE(boolean_field) -> mustNot(term query {value: false})
-        // This returns documents where field is true, null, or missing.
-        // Used for NOT(field = false) semantics.
-        if (qe instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
-          return QueryExpression.create(namedField).isNotFalse();
-        }
-        throw new PredicateAnalyzerException("IS_NOT_FALSE can only be applied to boolean fields");
-      }
-
+      // Handle IS_NULL / IS_NOT_NULL
       // OpenSearch DSL does not handle IS_NULL / IS_NOT_NULL on nested fields correctly
       checkForNestedFieldOperands(call);
 
