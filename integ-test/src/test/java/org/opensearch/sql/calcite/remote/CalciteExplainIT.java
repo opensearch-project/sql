@@ -25,6 +25,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import java.io.IOException;
 import java.util.Locale;
+import org.apache.commons.text.StringEscapeUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.statement.ExplainMode;
@@ -2506,9 +2507,10 @@ public class CalciteExplainIT extends ExplainIT {
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
-            StringUtils.format(
-                "source=%s | head 5| fieldformat formatted_balance ="
-                    + " \"$\".tostring(balance,\"commas\") ",
-                TEST_INDEX_ACCOUNT)));
+            StringEscapeUtils.escapeJson(
+                StringUtils.format(
+                    "source=%s | head 5| fieldformat formatted_balance ="
+                        + " \"$\".tostring(balance,\"commas\") ",
+                    TEST_INDEX_ACCOUNT))));
   }
 }
