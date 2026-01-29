@@ -2050,6 +2050,18 @@ public class CalciteExplainIT extends ExplainIT {
                 + "|  addcoltotals balance age label='GrandTotal'"));
   }
 
+  @Test
+  public void testTransposeExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_transpose.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "|  transpose 4 column_name='column_names'"));
+  }
+
   public void testComplexDedup() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_dedup_complex1.yaml");
@@ -2355,6 +2367,14 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testSpathWithDynamicFieldsExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_spath_with_dynamic_fields.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(source(TEST_INDEX_LOGS, "spath input=message | where status = '200'")));
+  }
+
+  @Test
   public void testExplainInVariousModeAndFormat() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
@@ -2464,5 +2484,17 @@ public class CalciteExplainIT extends ExplainIT {
             StringUtils.format(
                 "source=%s | stats count(eval(author.name < 'K')) as george_and_jk",
                 TEST_INDEX_CASCADED_NESTED)));
+  }
+
+  @Test
+  public void testExplainMvCombine() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account "
+            + "| fields state, city, age "
+            + "| mvcombine age delim=','";
+
+    String actual = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_mvcombine.yaml");
+    assertYamlEqualsIgnoreId(expected, actual);
   }
 }

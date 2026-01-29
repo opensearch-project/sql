@@ -8,7 +8,9 @@ package org.opensearch.sql.ppl.utils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
@@ -303,6 +305,30 @@ public class ArgumentFactory {
             String.format(
                 "A parameter of timechart must be a span, limit, useother, or timefield, got %s",
                 ctx));
+      }
+    }
+    return arguments;
+  }
+
+  public static Map<String, Argument> getArgumentList(
+      OpenSearchPPLParser.TransposeCommandContext transposeCommandContext) {
+    Map<String, Argument> arguments = new HashMap<>();
+    for (OpenSearchPPLParser.TransposeParameterContext ctx :
+        transposeCommandContext.transposeParameter()) {
+
+      if (ctx.COLUMN_NAME() != null) {
+        if (ctx.stringLiteral() == null) {
+          throw new IllegalArgumentException("COLUMN_NAME requires a string literal value");
+        }
+        Literal columnName = getArgumentValue(ctx.stringLiteral());
+        arguments.put("columnName", new Argument("columnName", columnName));
+      } else if (ctx.number != null) {
+
+        arguments.put("number", new Argument("number", getArgumentValue(ctx.number)));
+      } else {
+        throw new IllegalArgumentException(
+            String.format(
+                "A parameter of transpose must be a int limit, column_name , got %s", ctx));
       }
     }
     return arguments;
