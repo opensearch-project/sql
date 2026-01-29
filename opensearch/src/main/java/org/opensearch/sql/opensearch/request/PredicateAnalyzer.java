@@ -1231,23 +1231,6 @@ public class PredicateAnalyzer {
     public QueryExpression not() {
       return new CompoundQueryExpression(partial, boolQuery().mustNot(builder()));
     }
-
-    @Override
-    public QueryExpression isTrue() {
-      // When called on an already-evaluated predicate, return as-is
-      return this;
-    }
-
-    @Override
-    public QueryExpression isNotTrue() {
-      /*
-       * IS_NOT_TRUE(expr) means expr != TRUE, i.e., (FALSE OR UNKNOWN). In DSL, `trueQuery(expr)`
-       * matches only docs where expr is TRUE; FALSE/UNKNOWN simply don’t match. Therefore,
-       * `must_not(trueQuery(expr))` returns exactly the complement: FALSE + missing/null (UNKNOWN).
-       * Other truth-tests like IS_FALSE / IS_NOT_FALSE need explicit UNKNOWN handling, so don’t use this shortcut.
-       */
-      return new CompoundQueryExpression(partial, boolQuery().mustNot(builder()));
-    }
   }
 
   /** Usually basic expression of type {@code a = 'val'} or {@code b > 42}. */
@@ -1469,12 +1452,17 @@ public class PredicateAnalyzer {
     public QueryExpression isTrue() {
       // When IS_TRUE is called on a boolean field directly (e.g., IS_TRUE(field)),
       // generate a term query with value true.
-      builder = termQuery(getFieldReferenceForTermQuery(), true);
+      if (builder == null) {
+        builder = termQuery(getFieldReferenceForTermQuery(), true);
+      }
       return this;
     }
 
     @Override
     public QueryExpression isFalse() {
+      if (builder != null) {
+        throw new PredicateAnalyzerException("isFalse cannot be applied to predicate expression.");
+      }
       // Generate a term query with value false. This only matches documents where
       // the field is explicitly false (not null or missing).
       builder = termQuery(getFieldReferenceForTermQuery(), false);
@@ -1483,6 +1471,9 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression isNotFalse() {
+      if (builder != null) {
+        throw new PredicateAnalyzerException("isNotFalse cannot be applied to predicate expression.");
+      }
       // Generate mustNot(term query {value: false}). This matches documents where
       // the field is true, null, or missing. Used for NOT(field = false) semantics.
       builder = boolQuery().mustNot(termQuery(getFieldReferenceForTermQuery(), false));
@@ -1491,9 +1482,19 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression isNotTrue() {
-      // Generate mustNot(term query {value: true}). This matches documents where
-      // the field is false, null, or missing. Used for NOT(field = true) semantics.
-      builder = boolQuery().mustNot(termQuery(getFieldReferenceForTermQuery(), true));
+      if (builder == null) {
+        // Generate mustNot(term query {value: true}). This matches documents where
+        // the field is false, null, or missing. Used for NOT(field = true) semantics.
+        builder = boolQuery().mustNot(termQuery(getFieldReferenceForTermQuery(), true));
+      } else {
+        /*
+         * IS_NOT_TRUE(expr) means expr != TRUE, i.e., (FALSE OR UNKNOWN). In DSL, `trueQuery(expr)`
+         * matches only docs where expr is TRUE; FALSE/UNKNOWN simply don’t match. Therefore,
+         * `must_not(trueQuery(expr))` returns exactly the complement: FALSE + missing/null (UNKNOWN).
+         * Other truth-tests like IS_FALSE / IS_NOT_FALSE need explicit UNKNOWN handling, so don’t use this shortcut.
+         */
+        builder = boolQuery().mustNot(builder);
+      }
       return this;
     }
 
