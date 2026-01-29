@@ -187,9 +187,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Search command. */
   @Override
   public UnresolvedPlan visitSearchFrom(SearchFromContext ctx) {
-    // Validate search expressions don't contain reserved keywords
-    validateSearchExpressions(ctx.searchExpression());
-    
     if (ctx.searchExpression().isEmpty()) {
       return visitFromClause(ctx.fromClause());
     } else {
@@ -218,24 +215,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       // Create Search node with relation and query string
       Relation relation = (Relation) visitFromClause(ctx.fromClause());
       return new Search(relation, queryString, combined);
-    }
-  }
-
-  /**
-   * Validates that search expressions don't contain reserved keywords like SOURCE or INDEX
-   * that should only appear in the fromClause.
-   */
-  private void validateSearchExpressions(
-      List<OpenSearchPPLParser.SearchExpressionContext> searchExprs) {
-    for (OpenSearchPPLParser.SearchExpressionContext expr : searchExprs) {
-      String text = expr.getText().toLowerCase();
-      if (text.equals("source") || text.equals("index")) {
-        throw new SyntaxCheckException(
-            String.format(
-                "Unexpected keyword '%s' before source clause. "
-                    + "Did you mean '%s=<index_name>' or 'search %s=<index_name>'?",
-                text, text, text));
-      }
     }
   }
 
