@@ -38,6 +38,11 @@ OpenSearch PPL bugs. Evidence comes before theory; tests gate every claim.
 ## Correction protocol
 - If a required test was skipped or altered, state it, run the exact required test, and update results before proceeding.
 
+## Communication back to ppl-doctor
+- Always return the envelope with `status`, `summary`, `artifacts`, and `notes`.
+- If RCA concludes **user error** (invalid query) or **upstream limitation**, set `notes.followups.github_comment_body` to the drafted comment and `notes.followups.github_comment_type` to `user-error` or `upstream-limit`. Do not post; the orchestrator must surface it for approval and post.
+- For PPL defects that you fix, leave `github_comment_body` empty.
+
 ## Delegation envelope
 Input and output use the orchestrator envelope:
 ```text
