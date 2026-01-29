@@ -39,16 +39,16 @@ public class OpenSearchTypeUtil {
    * @return true if the type is numeric or string, false otherwise
    */
   public static boolean isNumericOrCharacter(RelDataType fieldType) {
-    // Check standard SQL numeric types & string types (VARCHAR, CHAR)
-    if (SqlTypeUtil.isNumeric(fieldType) || SqlTypeUtil.isCharacter(fieldType)) {
-      return true;
-    }
-
     // Check for OpenSearch UDT numeric types
     if (isUserDefinedType(fieldType)) {
       AbstractExprRelDataType<?> exprType = (AbstractExprRelDataType<?>) fieldType;
       ExprType udtType = exprType.getExprType();
       return ExprCoreType.numberTypes().contains(udtType);
+    }
+
+    // Check standard SQL numeric types & string types (VARCHAR, CHAR)
+    if (SqlTypeUtil.isNumeric(fieldType) || SqlTypeUtil.isCharacter(fieldType)) {
+      return true;
     }
 
     return false;
