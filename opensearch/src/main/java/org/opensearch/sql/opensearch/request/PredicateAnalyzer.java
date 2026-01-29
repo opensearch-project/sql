@@ -1472,7 +1472,8 @@ public class PredicateAnalyzer {
     @Override
     public QueryExpression isNotFalse() {
       if (builder != null) {
-        throw new PredicateAnalyzerException("isNotFalse cannot be applied to predicate expression.");
+        throw new PredicateAnalyzerException(
+            "isNotFalse cannot be applied to predicate expression.");
       }
       // Generate mustNot(term query {value: false}). This matches documents where
       // the field is true, null, or missing. Used for NOT(field = false) semantics.
