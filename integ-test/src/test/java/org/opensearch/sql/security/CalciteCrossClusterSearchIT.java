@@ -349,4 +349,77 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     verifyDataRows(
         result, rows("Duke Willmington", "u", "vowel=1-1"), rows("Bond", "o", "vowel=1-1"));
   }
+
+  @Test
+  public void testCrossClusterAddTotals() throws IOException {
+    // Test query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s| sort 1 age | fields firstname, age | addtotals age",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Nanette", 28, 28));
+  }
+
+  /** CrossClusterSearchIT Test for addcoltotals. */
+  @Test
+  public void testCrossClusterAddColTotals() throws IOException {
+    // Test query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where  firstname='Hattie' or firstname ='Nanette'|fields"
+                    + " firstname,age,balance | addcoltotals age balance",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result, rows("Hattie", 36, 5686), rows("Nanette", 28, 32838), rows(null, 64, 38524));
+  }
+
+  @Test
+  public void testCrossClusterTranspose() throws IOException {
+    // Test query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where  firstname='Hattie' or firstname ='Nanette' or"
+                    + " firstname='Dale'|sort firstname desc |fields firstname,age,balance |"
+                    + " transpose 3 column_name='column_names'",
+                TEST_INDEX_BANK_REMOTE));
+
+    verifyDataRows(
+        result,
+        rows("firstname", "Nanette", "Hattie", "Dale"),
+        rows("balance", "32838", "5686", "4180"),
+        rows("age", "28", "36", "33"));
+  }
+
+  @Test
+  public void testCrossClusterAppend() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | stats count() as cnt by gender | append [ search source=%s |"
+                    + " stats count() as cnt ]",
+                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows(3, "F"), rows(4, "M"), rows(7, null));
+  }
+
+  /** CrossClusterSearchIT Test for mvcombine. */
+  @Test
+  public void testCrossClusterMvcombine() throws IOException {
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where firstname='Hattie' or firstname='Nanette' "
+                    + "| fields firstname, age | mvcombine age",
+                TEST_INDEX_BANK_REMOTE));
+
+    verifyColumn(result, columnName("firstname"), columnName("age"));
+
+    verifyDataRows(
+        result,
+        rows("Hattie", new org.json.JSONArray().put(36)),
+        rows("Nanette", new org.json.JSONArray().put(28)));
+  }
 }
