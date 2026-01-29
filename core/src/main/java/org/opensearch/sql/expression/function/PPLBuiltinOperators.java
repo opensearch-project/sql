@@ -516,6 +516,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   // it will choose none of them in the end.) Therefore, SPARK functions used are explicitly
   // declared here for lookup.
   public static final SqlFunction REGEXP = SqlLibraryOperators.REGEXP;
+  public static final SqlFunction MAP_FROM_ARRAYS = SqlLibraryOperators.MAP_FROM_ARRAYS;
+  public static final SqlFunction MAP_CONCAT = SqlLibraryOperators.MAP_CONCAT;
 
   /**
    * Returns the PPL specific operator table, creating it if necessary.

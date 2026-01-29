@@ -747,8 +747,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .map(
                 f ->
                     Map.entry(
-                        ImmutableList.of(rx.makeLiteral(f)),
-                        ImmutableList.of((RexNode) rx.makeCast(varchar, b.field(f), true))))
+                        ImmutableList.of((RexLiteral) rx.makeLiteral(f, varchar, true)),
+                        ImmutableList.of(rx.makeCast(varchar, b.field(f), true, true))))
             .collect(Collectors.toList()));
 
     // Step 3: Trim spaces from columnName column before pivot

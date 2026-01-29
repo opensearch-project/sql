@@ -806,9 +806,9 @@ public class PPLFuncImpTable {
       registerOperator(MVZIP, PPLBuiltinOperators.MVZIP);
       registerOperator(MVMAP, PPLBuiltinOperators.TRANSFORM);
       registerOperator(MAP_APPEND, PPLBuiltinOperators.MAP_APPEND);
-      registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
+      registerOperator(MAP_CONCAT, PPLBuiltinOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
-      registerOperator(MAP_FROM_ARRAYS, SqlLibraryOperators.MAP_FROM_ARRAYS);
+      registerOperator(MAP_FROM_ARRAYS, PPLBuiltinOperators.MAP_FROM_ARRAYS);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
       registerOperator(ARRAY_SLICE, SqlLibraryOperators.ARRAY_SLICE);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);

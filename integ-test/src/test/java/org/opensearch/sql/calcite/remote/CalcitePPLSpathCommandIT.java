@@ -5,9 +5,11 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -19,6 +21,7 @@ public class CalcitePPLSpathCommandIT extends CalcitePPLSpathTestBase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
+    loadIndex(Index.LOGS);
 
     putJsonItem(1, "simple", sj("{'a': 1, 'b': 2, 'c': 3}"));
     putJsonItem(2, "simple", sj("{'a': 1, 'b': 2, 'c': 3}"));
@@ -152,6 +155,14 @@ public class CalcitePPLSpathCommandIT extends CalcitePPLSpathTestBase {
                 + " 1");
     verifySchema(result, schema("a", "string"), schema("x", "string"));
     verifyDataRows(result, rows("1", null));
+  }
+
+  @Test
+  public void testSpathWithDynamicFields() throws IOException {
+    JSONObject result =
+        executeQuery(source(TEST_INDEX_LOGS, "spath input=message | where status = '200'"));
+    verifySchema(result, schema("status", "string"));
+    verifyNumOfRows(result, 0);
   }
 
   @Test
