@@ -3,7 +3,7 @@ calcite:
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], b.account_number=[$14], b.firstname=[$15], b.address=[$16], b.birthdate=[$17], b.gender=[$18], b.city=[$19], b.lastname=[$20], b.balance=[$21], b.employer=[$22], b.state=[$23], b.age=[$24], b.email=[$25], b.male=[$26])
         LogicalJoin(condition=[=($13, $27)], joinType=[inner])
-          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], $f13=[SAFE_CAST(+($10, 1))])
+          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], $f13=[CAST(+($10, 1)):BIGINT])
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
           LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], $f13=[-($7, 20)])
             LogicalSort(fetch=[50000])
@@ -13,7 +13,7 @@ calcite:
     EnumerableCalc(expr#0..27=[{inputs}], proj#0..12=[{exprs}], b.account_number=[$t14], b.firstname=[$t15], b.address=[$t16], b.birthdate=[$t17], b.gender=[$t18], b.city=[$t19], b.lastname=[$t20], b.balance=[$t21], b.employer=[$t22], b.state=[$t23], b.age=[$t24], b.email=[$t25], b.male=[$t26])
       EnumerableLimit(fetch=[10000])
         EnumerableMergeJoin(condition=[=($13, $27)], joinType=[inner])
-          EnumerableCalc(expr#0..12=[{inputs}], expr#13=[1], expr#14=[+($t10, $t13)], expr#15=[SAFE_CAST($t14)], proj#0..12=[{exprs}], $f13=[$t15])
+          EnumerableCalc(expr#0..12=[{inputs}], expr#13=[1], expr#14=[+($t10, $t13)], expr#15=[CAST($t14):BIGINT], proj#0..12=[{exprs}], $f13=[$t15])
             CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[PROJECT->[account_number, firstname, address, birthdate, gender, city, lastname, balance, employer, state, age, email, male], SORT->[{
       "age" : {
         "order" : "asc",

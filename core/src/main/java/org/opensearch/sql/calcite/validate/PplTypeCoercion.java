@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeAssignmentRule;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -172,7 +173,7 @@ public class PplTypeCoercion extends TypeCoercionImpl {
     }
     // Fix up nullable attr.
     RelDataType targetType1 = ValidationUtils.syncAttributes(factory, operandType, targetType);
-    SqlNode desired = castTo(operand, targetType1);
+    SqlNode desired = castTo(operand, operandType, targetType1);
     call.setOperand(index, desired);
     // SAFE_CAST always results in nullable return type. See
     // SqlCastFunction#createTypeWithNullabilityFromExpr
@@ -183,9 +184,23 @@ public class PplTypeCoercion extends TypeCoercionImpl {
     return true;
   }
 
-  private static SqlNode castTo(SqlNode node, RelDataType type) {
-    if (OpenSearchTypeUtil.isDatetime(type) || OpenSearchTypeUtil.isIp(type)) {
-      ExprType exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(type);
+  /**
+   * Creates a cast expression from the source node to the target type.
+   *
+   * <p>This method determines whether to use regular CAST or SAFE_CAST based on the following
+   * rules:
+   *
+   * <ul>
+   *   <li>For user-defined types: use specialized conversion functions
+   *   <li>For non-string literals: use regular CAST (safe, folded at compile time)
+   *   <li>For safe numeric widening (e.g., SMALLINT → INTEGER): use regular CAST (no data loss
+   *       possible)
+   *   <li>For all other cases: use SAFE_CAST to handle malformed values gracefully
+   * </ul>
+   */
+  private static SqlNode castTo(SqlNode node, RelDataType sourceType, RelDataType targetType) {
+    if (OpenSearchTypeUtil.isDatetime(targetType) || OpenSearchTypeUtil.isIp(targetType)) {
+      ExprType exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(targetType);
       return switch (exprType) {
         case ExprCoreType.DATE ->
             PPLBuiltinOperators.DATE.createCall(node.getParserPosition(), node);
@@ -197,15 +212,37 @@ public class PplTypeCoercion extends TypeCoercionImpl {
         default -> throw new UnsupportedOperationException("Unsupported type: " + exprType);
       };
     }
-    // Use CAST when node is a literal AND not a string literal
-    // Use SAFE_CAST in rest cases to avoid throwing errors when the source node is malformatted
-    SqlOperator cast =
-        (node.getKind() == SqlKind.LITERAL && !(node instanceof SqlCharStringLiteral))
-            ? SqlStdOperatorTable.CAST
-            : SqlLibraryOperators.SAFE_CAST;
+
+    SqlOperator cast;
+    // Use CAST for non-string literals (safe, folded at compile time)
+    if (node.getKind() == SqlKind.LITERAL && !(node instanceof SqlCharStringLiteral)) {
+      cast = SqlStdOperatorTable.CAST;
+    }
+    // Use CAST for safe numeric widening (no data loss possible, avoids script generation)
+    else if (isSafeNumericWidening(sourceType, targetType)) {
+      cast = SqlStdOperatorTable.CAST;
+    }
+    // Use SAFE_CAST for all other cases to handle malformed values gracefully
+    else {
+      cast = SqlLibraryOperators.SAFE_CAST;
+    }
     return cast.createCall(
         node.getParserPosition(),
         node,
-        SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
+        SqlTypeUtil.convertTypeToSpec(targetType).withNullable(targetType.isNullable()));
+  }
+
+  /**
+   * Checks if the cast from sourceType to targetType is a safe numeric widening operation.
+   *
+   * <p>The cast is regarded safe when both types are numeric and the source can be assigned to the
+   * target.
+   */
+  private static boolean isSafeNumericWidening(RelDataType sourceType, RelDataType targetType) {
+    if (!SqlTypeUtil.isNumeric(sourceType) || !SqlTypeUtil.isNumeric(targetType)) {
+      return false;
+    }
+    return SqlTypeAssignmentRule.instance()
+        .canApplyFrom(targetType.getSqlTypeName(), sourceType.getSqlTypeName());
   }
 }

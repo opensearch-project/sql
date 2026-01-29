@@ -47,6 +47,31 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     getRelNode("source=EMP | where ENAME < 6 | fields ENAME");
   }
 
+  /**
+   * Test that safe numeric widening (e.g., SMALLINT → INTEGER) uses regular CAST instead of
+   * SAFE_CAST. This avoids generating scripts in OpenSearch queries, improving performance.
+   *
+   * <p>EMPNO is SMALLINT in the SCOTT schema, and literal 6 is INTEGER. The comparison requires
+   * widening EMPNO to INTEGER. Since SMALLINT → INTEGER is a safe widening (no data loss), regular
+   * CAST is used instead of SAFE_CAST.
+   *
+   * <p>With regular CAST, Calcite can optimize it away entirely because numeric comparisons between
+   * compatible integer types are semantically equivalent. With SAFE_CAST, the cast would be
+   * preserved because SAFE_CAST has different semantics (returns NULL on failure).
+   */
+  @Test
+  public void testSafeNumericWideningUsesCastInsteadOfSafeCast() {
+    // EMPNO is SMALLINT, 6 is INTEGER
+    // Safe widening SMALLINT → INTEGER uses CAST, which Calcite optimizes away
+    // The result is a direct comparison >($0, 6) without any cast
+    RelNode root = getRelNode("source=EMP | where EMPNO > 6 | fields ENAME");
+    verifyLogical(
+        root,
+        "LogicalProject(ENAME=[$1])\n"
+            + "  LogicalFilter(condition=[>($0, 6)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n");
+  }
+
   @Test
   public void testCoalesceWithSameType() {
     String ppl = "source=EMP | eval coalesce_name = coalesce(ENAME, 'Jack') | fields coalesce_name";

@@ -1,11 +1,10 @@
-
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(age=[$8])
-        LogicalFilter(condition=[AND(>=(SAFE_CAST($8), 1.0), <(SAFE_CAST($8), 10.0))])
+        LogicalFilter(condition=[AND(>=(CAST($8):DECIMAL(20, 1), 1.0), <(CAST($8):DECIMAL(20, 1), 10.0))])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..16=[{inputs}], expr#17=[SAFE_CAST($t8)], expr#18=[Sarg[[1.0:DECIMAL(20, 1)..10.0:DECIMAL(20, 1))]:DECIMAL(20, 1)], expr#19=[SEARCH($t17, $t18)], age=[$t8], $condition=[$t19])
+      EnumerableCalc(expr#0..16=[{inputs}], expr#17=[CAST($t8):DECIMAL(20, 1)], expr#18=[Sarg[[1.0:DECIMAL(20, 1)..10.0:DECIMAL(20, 1))]:DECIMAL(20, 1)], expr#19=[SEARCH($t17, $t18)], age=[$t8], $condition=[$t19])
         CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
