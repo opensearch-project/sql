@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import lombok.Getter;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -332,7 +333,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   @Override
   public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
     // Handle UDTs separately, otherwise the least restrictive type will become VARCHAR
-    if (types.stream().anyMatch(OpenSearchTypeUtil::isUserDefinedType)) {
+    if (types.stream().anyMatch(OpenSearchTypeUtil::isUserDefinedType)
+        && types.stream().allMatch(Objects::nonNull)) {
       int nullCount = 0;
       int anyCount = 0;
       int nullableCount = 0;

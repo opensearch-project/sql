@@ -230,4 +230,35 @@ public class ValidationUtilsTest {
     Exception e = new RuntimeException();
     assertFalse(ValidationUtils.tolerantValidationException(e));
   }
+
+  @Test
+  public void testTolerantValidationExceptionNullException() {
+    assertThrows(
+        NullPointerException.class, () -> ValidationUtils.tolerantValidationException(null));
+  }
+
+  @Test
+  public void testCreateUDTWithAttributesNullSourceType() {
+    // When sourceType is null, syncAttributes handles it gracefully
+    RelDataType dateUdt =
+        ValidationUtils.createUDTWithAttributes(TYPE_FACTORY, null, ExprUDT.EXPR_DATE);
+    assertNotNull(dateUdt);
+  }
+
+  @Test
+  public void testCreateUDTWithAttributesNullExprUDT() {
+    RelDataType sourceType = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true);
+    assertThrows(
+        NullPointerException.class,
+        () -> ValidationUtils.createUDTWithAttributes(TYPE_FACTORY, sourceType, (ExprUDT) null));
+  }
+
+  @Test
+  public void testCreateUDTWithAttributesNullSqlTypeName() {
+    RelDataType sourceType = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true);
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            ValidationUtils.createUDTWithAttributes(TYPE_FACTORY, sourceType, (SqlTypeName) null));
+  }
 }

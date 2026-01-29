@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.validate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
@@ -22,6 +23,7 @@ import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
@@ -107,5 +109,38 @@ public class OpenSearchSparkSqlDialectTest {
 
     assertNotNull(conformance);
     assertTrue(conformance.isLiberal());
+  }
+
+  @Test
+  public void testGetCastSpecForNonIpType() {
+    // Non-IP types should delegate to parent SparkSqlDialect
+    RelDataType intType = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
+
+    SqlNode castSpec = OpenSearchSparkSqlDialect.DEFAULT.getCastSpec(intType);
+
+    // SparkSqlDialect returns a SqlDataTypeSpec for INTEGER type
+    assertNotNull(castSpec);
+    assertInstanceOf(SqlDataTypeSpec.class, castSpec);
+    // It should NOT be the IP-specific spec
+    SqlDataTypeSpec typeSpec = (SqlDataTypeSpec) castSpec;
+    assertEquals("INTEGER", typeSpec.toString());
+  }
+
+  @Test
+  public void testGetCastSpecForVarcharType() {
+    RelDataType varcharType = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);
+
+    SqlNode castSpec = OpenSearchSparkSqlDialect.DEFAULT.getCastSpec(varcharType);
+
+    // SparkSqlDialect handles VARCHAR specially, returns a SqlDataTypeSpec
+    assertNotNull(castSpec);
+    assertInstanceOf(SqlDataTypeSpec.class, castSpec);
+  }
+
+  @Test
+  public void testGetCastSpecForNullType() {
+    // Null input should throw NullPointerException
+    assertThrows(
+        NullPointerException.class, () -> OpenSearchSparkSqlDialect.DEFAULT.getCastSpec(null));
   }
 }

@@ -110,6 +110,7 @@ public class PplTypeCoercionTest {
     assertNotNull(nullableResult);
     assertNotNull(nonNullableResult);
     assertTrue(nullableResult.isNullable());
+    assertFalse(nonNullableResult.isNullable());
   }
 
   // ==================== commonTypeForBinaryComparison tests ====================

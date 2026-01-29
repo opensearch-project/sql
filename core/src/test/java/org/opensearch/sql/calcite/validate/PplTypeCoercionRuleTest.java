@@ -42,7 +42,7 @@ public class PplTypeCoercionRuleTest {
     SqlTypeCoercionRule rule = PplTypeCoercionRule.instance();
     Map<SqlTypeName, ImmutableSet<SqlTypeName>> mapping = rule.getTypeMapping();
 
-    // VARCHAR should be coercible from OTHER
+    // VARCHAR and CHAR should be coercible to OTHER (for IP type support)
     ImmutableSet<SqlTypeName> otherCoercions = mapping.get(SqlTypeName.OTHER);
     assertNotNull(otherCoercions);
     assertTrue(otherCoercions.contains(SqlTypeName.VARCHAR));

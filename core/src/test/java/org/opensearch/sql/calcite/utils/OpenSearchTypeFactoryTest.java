@@ -174,13 +174,12 @@ public class OpenSearchTypeFactoryTest {
   public void testLeastRestrictive_ipUdtAndOther_returnsIpUdt() {
     // When IP UDT is mixed with OTHER type (which is used as intermediate for IP)
     RelDataType ipUdt = TYPE_FACTORY.createUDT(ExprUDT.EXPR_IP);
-    RelDataType nullType = TYPE_FACTORY.createSqlType(SqlTypeName.NULL);
+    RelDataType otherType = TYPE_FACTORY.createSqlType(SqlTypeName.OTHER);
 
-    RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(ipUdt, nullType));
+    RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(ipUdt, otherType));
 
     assertNotNull(result);
     assertTrue(OpenSearchTypeUtil.isIp(result));
-    assertTrue(result.isNullable());
   }
 
   @Test
@@ -275,5 +274,34 @@ public class OpenSearchTypeFactoryTest {
     assertNotNull(result);
     assertTrue(OpenSearchTypeUtil.isDate(result));
     assertTrue(result.isNullable());
+  }
+
+  // ==================== leastRestrictive null/empty input tests ====================
+
+  @Test
+  public void testLeastRestrictive_emptyList_throwsIllegalArgumentException() {
+    // Empty list causes IllegalArgumentException from Calcite's base implementation
+    org.junit.jupiter.api.Assertions.assertThrows(
+        IllegalArgumentException.class, () -> TYPE_FACTORY.leastRestrictive(List.of()));
+  }
+
+  @Test
+  public void testLeastRestrictive_nullList_throwsNPE() {
+    // Null list causes NullPointerException
+    org.junit.jupiter.api.Assertions.assertThrows(
+        NullPointerException.class, () -> TYPE_FACTORY.leastRestrictive(null));
+  }
+
+  @Test
+  public void testLeastRestrictive_listWithNullElement_throwsNPE() {
+    RelDataType dateUdt = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE);
+    // List.of() doesn't allow null elements, so we use a different approach
+    java.util.List<RelDataType> types = new java.util.ArrayList<>();
+    types.add(dateUdt);
+    types.add(null);
+
+    // List containing null element causes NPE
+    org.junit.jupiter.api.Assertions.assertThrows(
+        NullPointerException.class, () -> TYPE_FACTORY.leastRestrictive(types));
   }
 }
