@@ -352,7 +352,6 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterAddTotals() throws IOException {
-    // Test query_string without fields parameter on remote cluster
     JSONObject result =
         executeQuery(
             String.format(
@@ -364,7 +363,6 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   /** CrossClusterSearchIT Test for addcoltotals. */
   @Test
   public void testCrossClusterAddColTotals() throws IOException {
-    // Test query_string without fields parameter on remote cluster
     JSONObject result =
         executeQuery(
             String.format(
@@ -377,7 +375,6 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterTranspose() throws IOException {
-    // Test query_string without fields parameter on remote cluster
     JSONObject result =
         executeQuery(
             String.format(
