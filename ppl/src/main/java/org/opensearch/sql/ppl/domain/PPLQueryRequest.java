@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.json.JSONObject;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
@@ -24,6 +25,7 @@ public class PPLQueryRequest {
   @Getter private final JSONObject jsonContent;
   @Getter private final String path;
   @Getter private String format = "";
+  @Getter private String explainMode;
 
   @Setter
   @Getter
@@ -35,16 +37,33 @@ public class PPLQueryRequest {
   @Accessors(fluent = true)
   private JsonResponseFormatter.Style style = JsonResponseFormatter.Style.COMPACT;
 
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private boolean profile = false;
+
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
     this(pplQuery, jsonContent, path, "");
   }
 
-  /** Constructor of PPLQueryRequest. */
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path, String format) {
+    this(pplQuery, jsonContent, path, format, ExplainMode.STANDARD.getModeName(), false);
+  }
+
+  /** Constructor of PPLQueryRequest. */
+  public PPLQueryRequest(
+      String pplQuery,
+      JSONObject jsonContent,
+      String path,
+      String format,
+      String explainMode,
+      boolean profile) {
     this.pplQuery = pplQuery;
     this.jsonContent = jsonContent;
     this.path = Optional.ofNullable(path).orElse(DEFAULT_PPL_PATH);
     this.format = format;
+    this.explainMode = explainMode;
+    this.profile = profile;
   }
 
   public String getRequest() {
@@ -69,5 +88,9 @@ public class PPLQueryRequest {
       throw new IllegalArgumentException(
           String.format(Locale.ROOT, "response in %s format is not supported.", format));
     }
+  }
+
+  public ExplainMode mode() {
+    return ExplainMode.of(explainMode);
   }
 }

@@ -1,17 +1,31 @@
-# eval  
 
-## Description  
+# eval
 
-The `eval` command evaluates the expression and appends the result to the search result.
-## Syntax  
+The `eval` command evaluates the specified expression and appends the result of the evaluation to the search results.
 
-eval \<field\>=\<expression\> ["," \<field\>=\<expression\> ]...
-* field: mandatory. If the field name does not exist, a new field is added. If the field name already exists, it will be overridden.  
-* expression: mandatory. Any expression supported by the system.  
+> **Note**: The `eval` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
+
+## Syntax
+
+The `eval` command has the following syntax:
+
+```syntax
+eval <field>=<expression> ["," <field>=<expression> ]...
+```
+
+## Parameters
+
+The `eval` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field>` | Required | The name of the field to create or update. If the field does not exist, a new field is added. If it already exists, its value is overwritten. |
+| `<expression>` | Required | The expression to evaluate. |  
   
+
 ## Example 1: Create a new field  
 
-This example shows creating a new field doubleAge for each document. The new doubleAge field is the result of multiplying age by 2.
+The following query creates a new `doubleAge` field for each document:
   
 ```ppl
 source=accounts
@@ -19,7 +33,7 @@ source=accounts
 | fields age, doubleAge
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -33,9 +47,10 @@ fetched rows / total rows = 4/4
 +-----+-----------+
 ```
   
+
 ## Example 2: Override an existing field  
 
-This example shows overriding the existing age field by adding 1 to it.
+The following query overrides the `age` field by adding `1` to its value:
   
 ```ppl
 source=accounts
@@ -43,7 +58,7 @@ source=accounts
 | fields age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -57,9 +72,10 @@ fetched rows / total rows = 4/4
 +-----+
 ```
   
-## Example 3: Create a new field with field defined in eval  
 
-This example shows creating a new field ddAge using a field defined in the same eval command. The new field ddAge is the result of multiplying doubleAge by 2, where doubleAge is defined in the same eval command.
+## Example 3: Create a new field using a field defined in eval
+
+The following query creates a new field based on another field defined in the same `eval` expression. In this example, the new `ddAge` field is calculated by multiplying the `doubleAge` field by `2`. The `doubleAge` field itself is defined earlier in the `eval` command:
   
 ```ppl
 source=accounts
@@ -67,7 +83,7 @@ source=accounts
 | fields age, doubleAge, ddAge
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -81,9 +97,10 @@ fetched rows / total rows = 4/4
 +-----+-----------+-------+
 ```
   
+
 ## Example 4: String concatenation  
 
-This example shows using the + operator for string concatenation. You can concatenate string literals and field values.
+The following query uses the `+` operator for string concatenation. You can concatenate string literals and field values as follows:
   
 ```ppl
 source=accounts 
@@ -91,7 +108,7 @@ source=accounts
 | fields firstname, greeting
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -105,15 +122,16 @@ fetched rows / total rows = 4/4
 +-----------+---------------+
 ```
   
+
 ## Example 5: Multiple string concatenation with type casting  
 
-This example shows multiple concatenations with type casting from numeric to string.
+The following query performs multiple concatenation operations, including type casting from numeric values to strings:
   
 ```ppl
 source=accounts | eval full_info = 'Name: ' + firstname + ', Age: ' + CAST(age AS STRING) | fields firstname, age, full_info
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -127,6 +145,4 @@ fetched rows / total rows = 4/4
 +-----------+-----+------------------------+
 ```
   
-## Limitations  
 
-The `eval` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.

@@ -82,6 +82,7 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -100,6 +101,7 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
@@ -153,7 +155,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitExplain(Explain node, String context) {
     return StringUtils.format(
         "explain %s %s",
-        node.getFormat().name().toLowerCase(Locale.ROOT), node.getStatement().accept(this, null));
+        node.getMode().name().toLowerCase(Locale.ROOT), node.getStatement().accept(this, null));
   }
 
   @Override
@@ -463,6 +465,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format("%s | expand %s", child, field);
   }
 
+  @Override
+  public String visitMvCombine(MvCombine node, String context) {
+    String child = node.getChild().getFirst().accept(this, context);
+    String field = visitExpression(node.getField());
+
+    return StringUtils.format("%s | mvcombine delim=%s %s", child, MASK_LITERAL, field);
+  }
+
   /** Build {@link LogicalSort}. */
   @Override
   public String visitSort(Sort node, String context) {
@@ -634,6 +644,27 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     String computations = visitExpressionList(node.getComputations(), " ");
     return StringUtils.format("%s | trendline %s", child, computations);
+  }
+
+  @Override
+  public String visitTranspose(Transpose node, String context) {
+    if (node.getChild().isEmpty()) {
+      return "source=*** | transpose";
+    }
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder anonymized = new StringBuilder(StringUtils.format("%s | transpose", child));
+    java.util.Map<String, Argument> arguments = node.getArguments();
+
+    if (arguments.containsKey("number")) {
+      Argument numberArg = arguments.get("number");
+      if (numberArg != null) {
+        anonymized.append(StringUtils.format(" %s", numberArg.getValue()));
+      }
+    }
+    if (arguments.containsKey("columnName")) {
+      anonymized.append(StringUtils.format(" %s=***", "column_name"));
+    }
+    return anonymized.toString();
   }
 
   @Override

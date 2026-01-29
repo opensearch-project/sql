@@ -6,8 +6,9 @@ calcite:
           LogicalProject(l=[$1], c=[$2], CounterID=[$0])
             LogicalAggregate(group=[{0}], l=[AVG($1)], c=[COUNT()])
               LogicalProject(CounterID=[$103], $f2=[CHAR_LENGTH($26)])
-                LogicalFilter(condition=[AND(<>($26, ''), IS NOT NULL($103))])
-                  CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
+                LogicalFilter(condition=[IS NOT NULL($103)])
+                  LogicalFilter(condition=[<>($26, '')])
+                    CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
   physical: |
     EnumerableLimit(fetch=[10000])
       CalciteEnumerableTopK(sort0=[$0], dir0=[DESC-nulls-last], fetch=[25])

@@ -198,7 +198,11 @@ public class MatcherUtils {
   public static <T> void verify(JSONArray array, Matcher<T>... matchers) {
     List<T> objects = new ArrayList<>();
     array.iterator().forEachRemaining(o -> objects.add((T) o));
-    assertEquals(matchers.length, objects.size());
+    assertEquals(
+        String.format(
+            "Expected %d, but %d. objects=%s", matchers.length, objects.size(), objects.toString()),
+        matchers.length,
+        objects.size());
     assertThat(objects, containsInAnyOrder(matchers));
   }
 
@@ -299,6 +303,10 @@ public class MatcherUtils {
         return array.similar(new JSONArray(expectedObjects));
       }
     };
+  }
+
+  public static JSONArray array(Object... objects) {
+    return new JSONArray(objects);
   }
 
   public static TypeSafeMatcher<JSONArray> closeTo(Object... values) {
@@ -431,7 +439,8 @@ public class MatcherUtils {
   private static String eliminateRelId(String s) {
     return s.replaceAll("rel#\\d+", "rel#")
         .replaceAll("RelSubset#\\d+", "RelSubset#")
-        .replaceAll("LogicalProject#\\d+", "LogicalProject#");
+        .replaceAll("LogicalProject#\\d+", "LogicalProject#")
+        .replaceAll("id = \\d+", "id = *");
   }
 
   private static String eliminateRequestOptions(String s) {
@@ -484,7 +493,8 @@ public class MatcherUtils {
         .replaceAll("LogicalProject#\\d+", "LogicalProject#")
         .replaceAll("pitId=[^,]+,", "pitId=*,")
         .replaceAll(" needClean=true,", "")
-        .replaceAll(" searchDone=false,", "");
+        .replaceAll(" searchDone=false,", "")
+        .replaceAll("id = \\d+", "id = *");
   }
 
   private static String jsonToYaml(String json) {

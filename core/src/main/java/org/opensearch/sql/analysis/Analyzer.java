@@ -81,6 +81,7 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -100,11 +101,13 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -535,6 +538,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitMvCombine(MvCombine node, AnalysisContext context) {
+    throw getOnlyForCalciteException("mvcombine");
+  }
+
+  @Override
   public LogicalPlan visitGraphLookup(GraphLookup node, AnalysisContext context) {
     throw getOnlyForCalciteException("graphlookup");
   }
@@ -707,6 +715,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             v -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, v.getKey()), v.getValue()));
 
     return new LogicalML(child, node.getArguments());
+  }
+
+  @Override
+  public LogicalPlan visitTranspose(Transpose node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Transpose");
   }
 
   @Override
@@ -959,10 +972,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     List<UnresolvedExpression> aggExprs =
         Stream.of(
                 new Alias(
-                    "pattern_count",
+                    PatternUtils.PATTERN_COUNT,
                     new AggregateFunction(BuiltinFunctionName.COUNT.name(), AllFields.of())),
                 new Alias(
-                    "sample_logs",
+                    PatternUtils.SAMPLE_LOGS,
                     new AggregateFunction(
                         BuiltinFunctionName.TAKE.name(),
                         node.getSourceField(),

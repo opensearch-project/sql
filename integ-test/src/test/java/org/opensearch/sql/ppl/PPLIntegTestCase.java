@@ -6,7 +6,6 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
-import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 
 import com.google.common.io.Resources;
@@ -27,16 +26,17 @@ import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.common.collect.MapBuilder;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.util.RetryProcessor;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
-  private static final String EXTENDED_EXPLAIN_API_ENDPOINT =
-      "/_plugins/_ppl/_explain?format=extended";
-  private static final String YAML_EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain?format=yaml";
+  private static final String BWC_EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain?format=%s";
+  private static final String EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain?format=%s&mode=%s";
   private static final Logger LOG = LogManager.getLogger();
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
   public static final Integer DEFAULT_SUBSEARCH_MAXOUT = 10000;
@@ -62,25 +62,35 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   /** Deprecated, use {@link #explainQueryYaml(String)} */
   @Deprecated
   protected String explainQueryToString(String query) throws IOException {
-    return explainQueryToString(query, false);
+    return explainQueryToString(query, ExplainMode.STANDARD);
   }
 
   protected String explainQueryYaml(String query) throws IOException {
-    Response response = client().performRequest(buildRequest(query, YAML_EXPLAIN_API_ENDPOINT));
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    String responseBody = getResponseBody(response, true);
-    return responseBody;
+    return explainQueryYaml(query, ExplainMode.STANDARD);
   }
 
-  protected String explainQueryToString(String query, boolean extended) throws IOException {
+  protected String explainQueryYaml(String query, ExplainMode mode) throws IOException {
+    return explainQuery(query, Format.YAML, mode);
+  }
+
+  protected String explainQueryToString(String query, ExplainMode mode) throws IOException {
+    return explainQuery(query, Format.JSON, mode).replace("\\r\\n", "\\n");
+  }
+
+  private String explainQuery(String query, Format format, ExplainMode mode) throws IOException {
     Response response =
         client()
-            .performRequest(
-                buildRequest(
-                    query, extended ? EXTENDED_EXPLAIN_API_ENDPOINT : EXPLAIN_API_ENDPOINT));
+            .performRequest(buildRequest(query, String.format(EXPLAIN_API_ENDPOINT, format, mode)));
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    String responseBody = getResponseBody(response, true);
-    return responseBody.replace("\\r\\n", "\\n");
+    return getResponseBody(response, true);
+  }
+
+  protected String explainQueryToStringBWC(String query, Format format) throws IOException {
+    Response response =
+        client()
+            .performRequest(buildRequest(query, String.format(BWC_EXPLAIN_API_ENDPOINT, format)));
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    return getResponseBody(response, true).replace("\\r\\n", "\\n");
   }
 
   protected String executeCsvQuery(String query, boolean sanitize) throws IOException {

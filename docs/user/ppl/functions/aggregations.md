@@ -24,7 +24,7 @@ The following table shows how NULL/MISSING values are handled by aggregation fun
 #### Description  
 
 Usage: Returns a count of the number of expr in the rows retrieved. The `C()` function, `c`, and `count` can be used as abbreviations for `COUNT()`. To perform a filtered counting, wrap the condition to satisfy in an `eval` expression.
-Example
+### Example
   
 ```ppl
 source=accounts
@@ -64,8 +64,8 @@ fetched rows / total rows = 1/1
 
 #### Description  
 
-Usage: SUM(expr). Returns the sum of expr.
-Example
+Usage: `SUM(expr)`. Returns the sum of expr.
+### Example
   
 ```ppl
 source=accounts
@@ -88,8 +88,8 @@ fetched rows / total rows = 2/2
 
 #### Description  
 
-Usage: AVG(expr). Returns the average value of expr.
-Example
+Usage: `AVG(expr)`. Returns the average value of expr.
+### Example
   
 ```ppl
 source=accounts
@@ -112,9 +112,9 @@ fetched rows / total rows = 2/2
 
 #### Description  
 
-Usage: MAX(expr). Returns the maximum value of expr.
+Usage: `MAX(expr)`. Returns the maximum value of expr.
 For non-numeric fields, values are sorted lexicographically.
-Example
+### Example
   
 ```ppl
 source=accounts
@@ -154,9 +154,9 @@ fetched rows / total rows = 1/1
 
 #### Description  
 
-Usage: MIN(expr). Returns the minimum value of expr.
+Usage: `MIN(expr)`. Returns the minimum value of expr.
 For non-numeric fields, values are sorted lexicographically.
-Example
+### Example
   
 ```ppl
 source=accounts
@@ -196,8 +196,8 @@ fetched rows / total rows = 1/1
 
 #### Description  
 
-Usage: VAR_SAMP(expr). Returns the sample variance of expr.
-Example
+Usage: `VAR_SAMP(expr)`. Returns the sample variance of expr.
+### Example
   
 ```ppl
 source=accounts
@@ -219,8 +219,8 @@ fetched rows / total rows = 1/1
 
 #### Description  
 
-Usage: VAR_POP(expr). Returns the population standard variance of expr.
-Example
+Usage: `VAR_POP(expr)`. Returns the population standard variance of expr.
+### Example
   
 ```ppl
 source=accounts
@@ -242,8 +242,8 @@ fetched rows / total rows = 1/1
 
 #### Description  
 
-Usage: STDDEV_SAMP(expr). Return the sample standard deviation of expr.
-Example
+Usage: `STDDEV_SAMP(expr)`. Return the sample standard deviation of expr.
+### Example
   
 ```ppl
 source=accounts
@@ -265,8 +265,8 @@ fetched rows / total rows = 1/1
 
 #### Description  
 
-Usage: STDDEV_POP(expr). Return the population standard deviation of expr.
-Example
+Usage: `STDDEV_POP(expr)`. Return the population standard deviation of expr.
+### Example
   
 ```ppl
 source=accounts
@@ -288,9 +288,9 @@ fetched rows / total rows = 1/1
 
 #### Description  
 
-Usage: DISTINCT_COUNT(expr), DC(expr). Returns the approximate number of distinct values using the HyperLogLog++ algorithm. Both functions are equivalent.
+Usage: `DISTINCT_COUNT(expr)`, `DC(expr)`. Returns the approximate number of distinct values using the HyperLogLog++ algorithm. Both functions are equivalent.
 For details on algorithm accuracy and precision control, see the [OpenSearch Cardinality Aggregation documentation](https://docs.opensearch.org/latest/aggregations/metric/cardinality/#controlling-precision).
-Example
+### Example
   
 ```ppl
 source=accounts
@@ -313,8 +313,8 @@ fetched rows / total rows = 2/2
 
 #### Description  
 
-Usage: DISTINCT_COUNT_APPROX(expr). Return the approximate distinct count value of the expr, using the hyperloglog++ algorithm.
-Example
+Usage: `DISTINCT_COUNT_APPROX(expr)`. Return the approximate distinct count value of the expr, using the hyperloglog++ algorithm.
+### Example
   
 ```ppl
 source=accounts
@@ -336,11 +336,11 @@ fetched rows / total rows = 1/1
 
 #### Description  
 
-Usage: EARLIEST(field [, time_field]). Return the earliest value of a field based on timestamp ordering.
-* field: mandatory. The field to return the earliest value for.  
-* time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.  
+Usage: `EARLIEST(field [, time_field])`. Return the earliest value of a field based on timestamp ordering.
+* `field`: mandatory. The field to return the earliest value for.  
+* `time_field`: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.  
   
-Example
+### Example
   
 ```ppl
 source=events
@@ -384,11 +384,11 @@ fetched rows / total rows = 2/2
 
 #### Description  
 
-Usage: LATEST(field [, time_field]). Return the latest value of a field based on timestamp ordering.
-* field: mandatory. The field to return the latest value for.  
-* time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.  
+Usage: `LATEST(field [, time_field])`. Return the latest value of a field based on timestamp ordering.
+* `field`: mandatory. The field to return the latest value for.  
+* `time_field`: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.  
   
-Example
+### Example
   
 ```ppl
 source=events
@@ -432,11 +432,11 @@ fetched rows / total rows = 2/2
 
 #### Description  
 
-Usage: TAKE(field [, size]). Return original values of a field. It does not guarantee on the order of values.
-* field: mandatory. The field must be a text field.  
-* size: optional integer. The number of values should be returned. Default is 10.  
+Usage: `TAKE(field [, size])`. Return original values of a field. It does not guarantee on the order of values.
+* `field`: mandatory. The field must be a text field.  
+* `size`: optional integer. The number of values should be returned. Default is 10.  
   
-Example
+### Example
   
 ```ppl
 source=accounts
@@ -458,11 +458,11 @@ fetched rows / total rows = 1/1
 
 #### Description  
 
-Usage: PERCENTILE(expr, percent) or PERCENTILE_APPROX(expr, percent). Return the approximate percentile value of expr at the specified percentage.
-* percent: The number must be a constant between 0 and 100.  
+Usage: `PERCENTILE(expr, percent)` or `PERCENTILE_APPROX(expr, percent)`. Return the approximate percentile value of expr at the specified percentage.
+* `percent`: The number must be a constant between 0 and 100.  
   
 Note: From 3.1.0, the percentile implementation is switched to MergingDigest from AVLTreeDigest. Ref [issue link](https://github.com/opensearch-project/OpenSearch/issues/18122).
-Example
+### Example
   
 ```ppl
 source=accounts
@@ -525,8 +525,8 @@ fetched rows / total rows = 1/1
 
 #### Description  
 
-Usage: MEDIAN(expr). Returns the median (50th percentile) value of `expr`. This is equivalent to `PERCENTILE(expr, 50)`.
-Example
+Usage: `MEDIAN(expr)`. Returns the median (50th percentile) value of `expr`. This is equivalent to `PERCENTILE(expr, 50)`.
+### Example
   
 ```ppl
 source=accounts
@@ -548,10 +548,10 @@ fetched rows / total rows = 1/1
 
 #### Description  
 
-Usage: FIRST(field). Return the first non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
-* field: mandatory. The field to return the first value for.  
+Usage: `FIRST(field)`. Return the first non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
+* `field`: mandatory. The field to return the first value for.  
   
-Example
+### Example
   
 ```ppl
 source=accounts
@@ -574,10 +574,10 @@ fetched rows / total rows = 2/2
 
 #### Description  
 
-Usage: LAST(field). Return the last non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
-* field: mandatory. The field to return the last value for.  
+Usage: `LAST(field)`. Return the last non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
+* `field`: mandatory. The field to return the last value for.  
   
-Example
+### Example
   
 ```ppl
 source=accounts
@@ -600,9 +600,9 @@ fetched rows / total rows = 2/2
 
 #### Description  
 
-Usage: LIST(expr). Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved.
+Usage: `LIST(expr)`. Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved.
 The function returns up to 100 values with no guaranteed ordering.
-* expr: The field expression to collect values from.  
+* `expr`: The field expression to collect values from.  
 * This aggregation function doesn't support Array, Struct, Object field types.  
   
 Example with string fields
@@ -627,7 +627,7 @@ fetched rows / total rows = 1/1
 
 #### Description  
 
-Usage: VALUES(expr). Collects all unique values from the specified expression into a sorted array. Values are converted to strings, nulls are filtered, and duplicates are removed.
+Usage: `VALUES(expr)`. Collects all unique values from the specified expression into a sorted array. Values are converted to strings, nulls are filtered, and duplicates are removed.
 The maximum number of unique values returned is controlled by the `plugins.ppl.values.max.limit` setting:
 * Default value is 0, which means unlimited values are returned  
 * Can be configured to any positive integer to limit the number of unique values  

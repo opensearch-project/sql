@@ -27,6 +27,7 @@ If you are working on contributing a new PPL command, please read this guide and
 - [ ] **Visitor Pattern:**
   - Add `visit*` in `AbstractNodeVisitor`
   - Overriding `visit*` in `Analyzer`, `CalciteRelNodeVisitor` and `PPLQueryDataAnonymizer`
+  - Override `visit*` in `FieldResolutionVisitor` for `spath` command support.
 
 - [ ] **Unit Tests:**
   - Extend `CalcitePPLAbstractTest`
@@ -51,7 +52,7 @@ If you are working on contributing a new PPL command, please read this guide and
   - Add a test in `PPLQueryDataAnonymizerTest`
 
 - [ ] **Cross-cluster Tests (optional, nice to have):**
-  - Add a test in `CrossClusterSearchIT`
+  - Add a test in `CrossClusterSearchIT`, or in `CalciteCrossClusterSearchIT` if the command requires Calcite.
 
 - [ ] **User doc:**
   - Add a xxx.md under `docs/user/ppl/cmd` and link the new doc to `docs/user/ppl/index.md`

@@ -3,7 +3,11 @@
 ## Introduction  
 
 When OpenSearch bootstraps, PPL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of PPL plugin without need to bounce your cluster.
-## plugins.ppl.enabled  
+## plugins.ppl.enabled
+
+### Version
+
+1.0
 
 ### Description  
 
@@ -65,7 +69,11 @@ Expected output:
 
 ```
   
-## plugins.ppl.query.timeout  
+## plugins.ppl.query.timeout
+
+### Version
+
+3.4
 
 ### Description  
 
@@ -102,7 +110,11 @@ Expected output:
 }
 ```
   
-## plugins.query.memory_limit  
+## plugins.query.memory_limit
+
+### Version
+
+1.0
 
 ### Description  
 
@@ -133,7 +145,11 @@ Expected output:
 ```
   
 Note: the legacy settings of `opendistro.ppl.query.memory_limit` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
-## plugins.query.size_limit  
+## plugins.query.size_limit
+
+### Version
+
+1.0
 
 ### Description  
 
@@ -165,11 +181,12 @@ Expected output:
 ```
   
 Note: the legacy settings of `opendistro.query.size_limit` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
-## plugins.query.buckets  
+## plugins.query.buckets
 
-### Version  
+### Version
 
-3.4.0
+3.4
+
 ### Description  
 
 This configuration indicates how many aggregation buckets will return in a single response. The default value equals to `plugins.query.size_limit`.
@@ -202,7 +219,11 @@ Expected output:
 ### Limitations  
 
 The number of aggregation buckets is fixed to `1000` in v2. `plugins.query.buckets` can only effect the number of aggregation buckets when calcite enabled.
-## plugins.calcite.all_join_types.allowed  
+## plugins.calcite.all_join_types.allowed
+
+### Version
+
+3.3
 
 ### Description  
 
@@ -233,7 +254,11 @@ Expected output:
 }
 ```
   
-## plugins.ppl.syntax.legacy.preferred  
+## plugins.ppl.syntax.legacy.preferred
+
+### Version
+
+3.3
 
 ### Description  
 
@@ -241,7 +266,8 @@ This configuration is introduced since 3.3.0 which is used to switch some behavi
 The behaviours it controlled includes:
 - The default value of argument `bucket_nullable` in `stats` command. Check [stats command](../cmd/stats.md) for details.
 - The return value of `divide` and `/` operator. Check [expressions](../functions/expressions.md) for details.
-- The default value of argument `usenull` in `top` and `rare` commands. Check [top command](../cmd/top.md) and [rare command](../cmd/rare.md) for details.  
+- The default value of argument `usenull` in `top` and `rare` commands. Check [top command](../cmd/top.md) and [rare command](../cmd/rare.md) for details.
+- The default value of argument `max` in `join` command. Check [join command](../cmd/join.md) for details.
   
 ### Example 1  
 
@@ -294,7 +320,11 @@ Expected output:
 }
 ```
   
-## plugins.ppl.values.max.limit  
+## plugins.ppl.values.max.limit
+
+### Version
+
+3.3
 
 ### Description  
 
@@ -367,14 +397,16 @@ Expected output:
 
 ```
   
-## plugins.ppl.subsearch.maxout  
+## plugins.ppl.subsearch.maxout
 
-### Description  
+### Version
+
+3.4
+
+### Description
 
 The size configures the maximum of rows to return from subsearch. The default value is: `10000`. A value of `0` indicates that the restriction is unlimited.
-### Version  
 
-3.4.0
 ### Example  
 
 Change the subsearch.maxout to unlimited
@@ -403,14 +435,16 @@ Expected output:
 }
 ```
   
-## plugins.ppl.join.subsearch_maxout  
+## plugins.ppl.join.subsearch_maxout
 
-### Description  
+### Version
+
+3.4
+
+### Description
 
 The size configures the maximum of rows from subsearch to join against. This configuration impacts `join` command. The default value is: `50000`. A value of `0` indicates that the restriction is unlimited.
-### Version  
 
-3.4.0
 ### Example  
 
 Change the join.subsearch_maxout to 5000
