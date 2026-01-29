@@ -617,12 +617,12 @@ public class PredicateAnalyzer {
         if (operand instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
           return booleanOp.apply(QueryExpression.create(namedField));
         }
-        // IS_TRUE on a predicate (already evaluated QueryExpression) is allowed
-        if (call.getKind() == SqlKind.IS_TRUE && operand instanceof QueryExpression qe) {
-          return qe.isTrue();
+        // Boolean operators on a predicate (already evaluated QueryExpression) are allowed
+        if (operand instanceof QueryExpression qe) {
+          return booleanOp.apply(qe);
         }
         throw new PredicateAnalyzerException(
-            call.getKind() + " can only be applied to boolean fields");
+            call.getKind() + " can only be applied to boolean fields or predicates");
       }
 
       // Handle IS_NULL / IS_NOT_NULL
