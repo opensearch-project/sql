@@ -1,0 +1,20 @@
+PUT /test_idx
+{
+  "mappings": {
+    "properties": {
+      "nums": {
+        "type": "long"
+      }
+    }
+  }
+}
+
+POST /test_idx/_doc
+{
+  "nums": [1, 2, 3]
+}
+
+POST /_plugins/_ppl
+{
+  "query": "source = test_idx | expand nums"
+}

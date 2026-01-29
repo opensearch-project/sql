@@ -3331,6 +3331,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private void buildExpandRelNode(
       RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
+    // Validate that the field is an array type
+    // OpenSearch doesn't have ARRAY type - multi-value fields are stored as scalar types.
+    // Expand operation requires proper array types to work correctly.
+    RelDataType fieldType = arrayFieldRex.getType();
+    if (fieldType.getSqlTypeName() != SqlTypeName.ARRAY) {
+      throw new UnsupportedOperationException(
+          String.format(
+              "Expand command only works on array types. Field '%s' has type '%s'. "
+              + "OpenSearch multi-value fields are not supported in expand when codegen is triggered. "
+              + "Please ensure the field is explicitly defined as an array type in your mapping.",
+              arrayFieldName,
+              fieldType.getSqlTypeName()));
+    }
+    
     // 3. Capture the outer row in a CorrelationId
     Holder<RexCorrelVariable> correlVariable = Holder.empty();
     context.relBuilder.variable(correlVariable::set);
