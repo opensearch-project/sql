@@ -493,6 +493,7 @@ public class AggregateAnalyzer {
         } else {
           yield Pair.of(
               AggregationBuilders.topHits(aggName)
+                  .fetchSource(false) // TopHitsParser merges sources and fields, disable for MIN.
                   .fetchField(
                       helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery())
                   .size(1)
@@ -513,6 +514,7 @@ public class AggregateAnalyzer {
         } else {
           yield Pair.of(
               AggregationBuilders.topHits(aggName)
+                  .fetchSource(false) // TopHitsParser merges sources and fields, disable for MAX.
                   .fetchField(
                       helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery())
                   .size(1)
@@ -542,6 +544,7 @@ public class AggregateAnalyzer {
       case ARG_MAX ->
           Pair.of(
               AggregationBuilders.topHits(aggName)
+                  .fetchSource(false) // TopHitsParser merges sources and fields, disable for MAX.
                   .fetchField(
                       helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery())
                   .size(1)
@@ -553,6 +556,7 @@ public class AggregateAnalyzer {
       case ARG_MIN ->
           Pair.of(
               AggregationBuilders.topHits(aggName)
+                  .fetchSource(false) // TopHitsParser merges sources and fields, disable for MIN.
                   .fetchField(
                       helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery())
                   .size(1)
@@ -568,10 +572,8 @@ public class AggregateAnalyzer {
           case TAKE ->
               Pair.of(
                   AggregationBuilders.topHits(aggName)
-                      .fetchField(
-                          helper
-                              .inferNamedField(args.getFirst().getKey())
-                              .getReferenceForTermQuery())
+                      .fetchSource(
+                          helper.inferNamedField(args.getFirst().getKey()).getRootName(), null)
                       .size(helper.inferValue(args.getLast().getKey(), Integer.class))
                       .from(0),
                   new TopHitsParser(aggName, false, true));
@@ -579,8 +581,8 @@ public class AggregateAnalyzer {
             TopHitsAggregationBuilder firstBuilder =
                 AggregationBuilders.topHits(aggName).size(1).from(0);
             if (!args.isEmpty()) {
-              firstBuilder.fetchField(
-                  helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery());
+              firstBuilder.fetchSource(
+                  helper.inferNamedField(args.getFirst().getKey()).getRootName(), null);
             }
             yield Pair.of(firstBuilder, new TopHitsParser(aggName, true, false));
           }
@@ -591,8 +593,8 @@ public class AggregateAnalyzer {
                     .from(0)
                     .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
             if (!args.isEmpty()) {
-              lastBuilder.fetchField(
-                  helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery());
+              lastBuilder.fetchSource(
+                  helper.inferNamedField(args.getFirst().getKey()).getRootName(), null);
             }
             yield Pair.of(lastBuilder, new TopHitsParser(aggName, true, false));
           }
@@ -625,7 +627,6 @@ public class AggregateAnalyzer {
               String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         }
         Integer dedupNumber = literal.getValueAs(Integer.class);
-        // Disable fetchSource since TopHitsParser only parses fetchField currently.
         TopHitsAggregationBuilder topHitsAggregationBuilder =
             AggregationBuilders.topHits(aggName).from(0).size(dedupNumber);
         List<String> sources = new ArrayList<>();
@@ -633,7 +634,7 @@ public class AggregateAnalyzer {
         args.forEach(
             rex -> {
               if (rex.getKey() instanceof RexInputRef) {
-                sources.add(helper.inferNamedField(rex.getKey()).getReference());
+                sources.add(helper.inferNamedField(rex.getKey()).getRootName());
               } else if (rex.getKey() instanceof RexCall || rex.getKey() instanceof RexLiteral) {
                 scripts.add(
                     new SearchSourceBuilder.ScriptField(

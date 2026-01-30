@@ -312,6 +312,75 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testFirstAggregationOnTextField() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats first(employer), first(email)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("first(employer)", "string"), schema("first(email)", "string"));
+    verifyDataRows(actual, rows("Pyrami", "amberduke@pyrami.com"));
+  }
+
+  @Test
+  public void testLastAggregationOnTextField() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats last(employer), first(email)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("last(employer)", "string"), schema("first(email)", "string"));
+    verifyDataRows(actual, rows("Quailcom", "amberduke@pyrami.com"));
+  }
+
+  @Test
+  public void testFirstLastByGroupOnTextField() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(employer), last(email) by gender", TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(employer)", "string"),
+        schema("last(email)", "string"),
+        schema("gender", "string"));
+    verifyDataRows(
+        actual,
+        rows("Quility", "dillardmcpherson@quailcom.com", "F"),
+        rows("Pyrami", "elinorratliff@scentric.com", "M"));
+  }
+
+  @Test
+  public void testFirstLastWithOtherAggregationsOnTextField() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(employer), last(email), count(), avg(age) by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(employer)", "string"),
+        schema("last(email)", "string"),
+        schema("count()", "bigint"),
+        schema("avg(age)", "double"),
+        schema("gender", "string"));
+    verifyDataRows(
+        actual,
+        rows("Quility", "dillardmcpherson@quailcom.com", 3, 33.666666666666664, "F"),
+        rows("Pyrami", "elinorratliff@scentric.com", 4, 34.25, "M"));
+  }
+
+  @Test
+  public void testFirstLastMixedFields() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(employer), last(balance), first(age)", TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(employer)", "string"),
+        schema("last(balance)", "bigint"),
+        schema("first(age)", "int"));
+    verifyDataRows(actual, rows("Pyrami", 48086L, 32));
+  }
+
+  @Test
   public void testFirstLastWithBirthdate() throws IOException {
     JSONObject actual =
         executeQuery(
