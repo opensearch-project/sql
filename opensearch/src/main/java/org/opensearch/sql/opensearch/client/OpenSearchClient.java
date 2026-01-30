@@ -56,6 +56,15 @@ public interface OpenSearchClient {
   Map<String, Integer> getIndexMaxResultWindows(String... indexExpression);
 
   /**
+   * Update index.xxx settings to the indices the index expression given.
+   *
+   * @param settings index settings (must start with "index.")
+   * @param indexExpression index expression
+   * @return true if acknowledged
+   */
+  boolean updateIndexSettings(Map<String, Object> settings, String... indexExpression);
+
+  /**
    * Perform search query in the search request.
    *
    * @param request search request

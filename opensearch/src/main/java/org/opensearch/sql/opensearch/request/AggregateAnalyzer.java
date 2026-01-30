@@ -109,6 +109,8 @@ public class AggregateAnalyzer {
   /** metadata field used when there is no argument. Only apply to COUNT. */
   private static final String METADATA_FIELD = "_index";
 
+  private static final int MAX_TOP_HITS_RESULT_WINDOW = 10000;
+
   /** Internal exception. */
   @SuppressWarnings("serial")
   public static final class AggregateAnalyzerException extends RuntimeException {
@@ -568,6 +570,7 @@ public class AggregateAnalyzer {
           case TAKE ->
               Pair.of(
                   AggregationBuilders.topHits(aggName)
+                      .fetchSource(false)
                       .fetchField(
                           helper
                               .inferNamedField(args.getFirst().getKey())
@@ -625,35 +628,52 @@ public class AggregateAnalyzer {
               String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         }
         Integer dedupNumber = literal.getValueAs(Integer.class);
-        // Disable fetchSource since TopHitsParser only parses fetchField currently.
-        TopHitsAggregationBuilder topHitsAggregationBuilder =
-            AggregationBuilders.topHits(aggName).from(0).size(dedupNumber);
-        List<String> sources = new ArrayList<>();
-        List<SearchSourceBuilder.ScriptField> scripts = new ArrayList<>();
-        args.forEach(
-            rex -> {
-              if (rex.getKey() instanceof RexInputRef) {
-                sources.add(helper.inferNamedField(rex.getKey()).getReference());
-              } else if (rex.getKey() instanceof RexCall || rex.getKey() instanceof RexLiteral) {
-                scripts.add(
-                    new SearchSourceBuilder.ScriptField(
-                        rex.getValue(), helper.inferScript(rex.getKey()).getScript(), false));
-              } else {
-                throw new AggregateAnalyzer.AggregateAnalyzerException(
-                    String.format(
-                        "Unsupported push-down aggregator %s due to rex type is %s",
-                        aggCall.getAggregation(), rex.getKey().getKind()));
-              }
-            });
-        topHitsAggregationBuilder.fetchSource(
-            sources.stream().distinct().toArray(String[]::new), new String[0]);
-        topHitsAggregationBuilder.scriptFields(scripts);
-        yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggName, false, false));
+        TopHitsAggregationBuilder topHitsBuilder =
+            getTopHitsAggregationBuilder(aggCall, args, aggName, helper, dedupNumber);
+        yield Pair.of(topHitsBuilder, new TopHitsParser(aggName, false, false));
+      }
+      case COLLECT, ARRAY_AGG -> {
+        TopHitsAggregationBuilder topHitsBuilder =
+            getTopHitsAggregationBuilder(
+                aggCall, args, aggName, helper, MAX_TOP_HITS_RESULT_WINDOW);
+        yield Pair.of(topHitsBuilder, new TopHitsParser(aggName, false, true));
       }
       default ->
           throw new AggregateAnalyzer.AggregateAnalyzerException(
               String.format("unsupported aggregator %s", aggCall.getAggregation()));
     };
+  }
+
+  private static TopHitsAggregationBuilder getTopHitsAggregationBuilder(
+      AggregateCall aggCall,
+      List<Pair<RexNode, String>> args,
+      String aggName,
+      AggregateBuilderHelper helper,
+      Integer topHitsSize) {
+    // Disable fetchSource since TopHitsParser only parses fetchField currently.
+    TopHitsAggregationBuilder topHitsAggregationBuilder =
+        AggregationBuilders.topHits(aggName).from(0).size(topHitsSize);
+    List<String> sources = new ArrayList<>();
+    List<SearchSourceBuilder.ScriptField> scripts = new ArrayList<>();
+    args.forEach(
+        rex -> {
+          if (rex.getKey() instanceof RexInputRef) {
+            sources.add(helper.inferNamedField(rex.getKey()).getReference());
+          } else if (rex.getKey() instanceof RexCall || rex.getKey() instanceof RexLiteral) {
+            scripts.add(
+                new SearchSourceBuilder.ScriptField(
+                    rex.getValue(), helper.inferScript(rex.getKey()).getScript(), false));
+          } else {
+            throw new AggregateAnalyzerException(
+                String.format(
+                    "Unsupported push-down aggregator %s due to rex type is %s",
+                    aggCall.getAggregation(), rex.getKey().getKind()));
+          }
+        });
+    topHitsAggregationBuilder.fetchSource(
+        sources.stream().distinct().toArray(String[]::new), new String[0]);
+    topHitsAggregationBuilder.scriptFields(scripts);
+    return topHitsAggregationBuilder;
   }
 
   private static boolean supportsMaxMinAggregation(ExprType fieldType) {

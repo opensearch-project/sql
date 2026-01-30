@@ -20,7 +20,9 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.action.admin.cluster.settings.ClusterGetSettingsRequest;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.action.search.*;
+import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.client.indices.CreateIndexRequest;
@@ -112,6 +114,22 @@ public class OpenSearchRestClient implements OpenSearchClient {
       return result;
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get max result window for " + indexExpression, e);
+    }
+  }
+
+  @Override
+  public boolean updateIndexSettings(Map<String, Object> settings, String... indexExpression) {
+    UpdateSettingsRequest request = new UpdateSettingsRequest(indexExpression);
+    request.settings(
+        settings.entrySet().stream()
+            .filter(e -> e.getKey().startsWith("index."))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+    try {
+      AcknowledgedResponse response = client.indices().putSettings(request, RequestOptions.DEFAULT);
+      return response.isAcknowledged();
+    } catch (IOException e) {
+      throw new IllegalStateException(
+          String.format("Failed to update index settings %s for %s", settings, indexExpression, e));
     }
   }
 
