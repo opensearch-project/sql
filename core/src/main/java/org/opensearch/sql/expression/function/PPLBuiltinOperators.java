@@ -21,12 +21,16 @@ import org.apache.calcite.adapter.enumerable.RexImpTable.RexCallImplementor;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.udf.udaf.FirstAggFunction;
@@ -40,6 +44,7 @@ import org.opensearch.sql.calcite.udf.udaf.ValuesAggFunction;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.common.patterns.PatternAggregationHelpers;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.CollectionUDF.AppendFunctionImpl;
@@ -481,6 +486,49 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           "VALUES",
           PPLReturnTypes.STRING_ARRAY,
           PPLOperandTypes.ANY_SCALAR_OPTIONAL_INTEGER);
+
+  // Pattern aggregation helper UDFs for scripted metric pushdown
+  // This UDF takes state as parameter and modifies it in-place (for OpenSearch scripted metric)
+  public static final SqlOperator PATTERN_INIT_UDF =
+      UserDefinedFunctionUtils.adaptStaticMethodToUDF(
+              PatternAggregationHelpers.class,
+              "initPatternState",
+              ReturnTypes.explicit(SqlTypeName.ANY), // Returns Map<String, Object>
+              NullPolicy.ANY,
+              null) // Takes state as parameter
+          .toUDF("PATTERN_INIT_UDF");
+
+  public static final SqlOperator PATTERN_ADD_UDF =
+      UserDefinedFunctionUtils.adaptStaticMethodToUDF(
+              PatternAggregationHelpers.class,
+              "addLogToPattern",
+              ReturnTypes.explicit(SqlTypeName.ANY), // Returns Map<String, Object>
+              NullPolicy.ANY,
+              null) // TODO: Add proper operand type checking
+          .toUDF("PATTERN_ADD_UDF");
+
+  public static final SqlOperator PATTERN_COMBINE_UDF =
+      UserDefinedFunctionUtils.adaptStaticMethodToUDF(
+              PatternAggregationHelpers.class,
+              "combinePatternAccumulators",
+              ReturnTypes.explicit(SqlTypeName.ANY), // Returns Map<String, Object>
+              NullPolicy.ANY,
+              null) // TODO: Add proper operand type checking
+          .toUDF("PATTERN_COMBINE_UDF");
+
+  public static final SqlOperator PATTERN_RESULT_UDF =
+      UserDefinedFunctionUtils.adaptStaticMethodToUDF(
+              PatternAggregationHelpers.class,
+              "producePatternResultFromStates",
+              opBinding -> {
+                // Returns List<Map<String, Object>> - represented as ARRAY<ANY>
+                RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+                RelDataType anyType = typeFactory.createSqlType(SqlTypeName.ANY);
+                return SqlTypeUtil.createArrayType(typeFactory, anyType, true);
+              },
+              NullPolicy.ANY,
+              null) // TODO: Add proper operand type checking
+          .toUDF("PATTERN_RESULT_UDF");
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");
