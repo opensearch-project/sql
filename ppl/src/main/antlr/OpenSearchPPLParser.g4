@@ -628,14 +628,16 @@ addcoltotalsOption
    ;
 
 graphLookupCommand
-   : GRAPHLOOKUP graphLookupOption* AS outputField = fieldExpression
+   : GRAPHLOOKUP lookupTable = tableSourceClause graphLookupOption* AS outputField = fieldExpression
    ;
 
 graphLookupOption
-   : (CONNECT_FROM EQUAL fieldExpression)
-   | (CONNECT_TO EQUAL fieldExpression)
+   : (START_WITH EQUAL fieldExpression)
+   | (CONNECT_FROM_FIELD EQUAL fieldExpression)
+   | (CONNECT_TO_FIELD EQUAL fieldExpression)
    | (MAX_DEPTH EQUAL integerLiteral)
-   | (START_WITH EQUAL valueExpression)
+   | (DEPTH_FIELD EQUAL fieldExpression)
+   | (DIRECTION EQUAL (UNI | BI))
    ;
 
 // clauses
@@ -1689,7 +1691,11 @@ searchableKeyWord
    | ROW
    | COL
    | COLUMN_NAME
-   | CONNECT_FROM
-   | CONNECT_TO
+   | CONNECT_FROM_FIELD
+   | CONNECT_TO_FIELD
    | MAX_DEPTH
+   | DEPTH_FIELD
+   | DIRECTION
+   | UNI
+   | BIO
    ;

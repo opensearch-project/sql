@@ -334,6 +334,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
     OperatorTable.addOperator(
         BuiltinFunctionName.DISTINCT_COUNT_APPROX.name(), approxDistinctCountFunction);
+
+    // Note: GraphLookup is now implemented as a custom RelNode (LogicalGraphLookup)
+    // instead of a UDF, so no registration is needed here.
   }
 
   /**

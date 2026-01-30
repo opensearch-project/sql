@@ -40,6 +40,7 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
@@ -527,6 +528,12 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
   @Override
   public Node visitLookup(Lookup node, FieldResolutionContext context) {
     throw new IllegalArgumentException("Lookup command cannot be used together with spath command");
+  }
+
+  @Override
+  public Node visitGraphLookup(GraphLookup node, FieldResolutionContext context) {
+    throw new IllegalArgumentException(
+        "GraphLookup command cannot be used together with spath command");
   }
 
   @Override

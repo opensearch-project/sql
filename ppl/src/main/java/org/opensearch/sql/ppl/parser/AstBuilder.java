@@ -85,6 +85,7 @@ import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.GraphLookup;
+import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -1485,28 +1486,54 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitGraphLookupCommand(OpenSearchPPLParser.GraphLookupCommandContext ctx) {
-    Field from = null;
-    Field to = null;
+    // Parse lookup table
+    UnresolvedPlan fromTable = visitTableSourceClause(ctx.lookupTable);
+
+    // Parse options with defaults
+    Field connectFromField = null;
+    Field connectToField = null;
     Literal maxDepth = Literal.ZERO;
-    UnresolvedExpression startWith = null;
+    Field startWith = null;
+    Field depthField = null;
+    Direction direction = Direction.UNI;
+
     for (OpenSearchPPLParser.GraphLookupOptionContext option : ctx.graphLookupOption()) {
-      if (option.CONNECT_FROM() != null) {
-        from = (Field) internalVisitExpression(option.fieldExpression());
+      if (option.CONNECT_FROM_FIELD() != null) {
+        connectFromField = (Field) internalVisitExpression(option.fieldExpression());
       }
-      if (option.CONNECT_TO() != null) {
-        to = (Field) internalVisitExpression(option.fieldExpression());
+      if (option.CONNECT_TO_FIELD() != null) {
+        connectToField = (Field) internalVisitExpression(option.fieldExpression());
       }
       if (option.MAX_DEPTH() != null) {
         maxDepth = (Literal) internalVisitExpression(option.integerLiteral());
       }
       if (option.START_WITH() != null) {
-        startWith = internalVisitExpression(option.valueExpression());
+        startWith = (Field) internalVisitExpression(option.fieldExpression());
+      }
+      if (option.DEPTH_FIELD() != null) {
+        depthField = (Field) internalVisitExpression(option.fieldExpression());
+      }
+      if (option.DIRECTION() != null) {
+        direction = option.BI() != null ? Direction.BI : Direction.UNI;
       }
     }
+
     Field as = (Field) internalVisitExpression(ctx.outputField);
-    if (from == null || to == null) {
-      throw new SemanticCheckException("connectFrom and connectTo must be specified");
+
+    if (connectFromField == null || connectToField == null) {
+      throw new SemanticCheckException(
+          "connectFromField and connectToField must be specified for graphLookup");
     }
-    return new GraphLookup(from, to, as, maxDepth, startWith);
+
+    return GraphLookup.builder()
+        .fromTable(fromTable)
+        .connectFromField(connectFromField)
+        .connectToField(connectToField)
+        .as(as)
+        .maxDepth(maxDepth)
+        .startWith(startWith)
+        .depthField(depthField)
+        .direction(direction)
+        .build();
   }
 }

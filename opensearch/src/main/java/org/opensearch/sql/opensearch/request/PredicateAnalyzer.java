@@ -1057,7 +1057,7 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException("isTrue cannot be applied to " + this.getClass());
     }
 
-    QueryExpression in(LiteralExpression literal) {
+    public QueryExpression in(LiteralExpression literal) {
       throw new PredicateAnalyzerException("in cannot be applied to " + this.getClass());
     }
 
@@ -1065,7 +1065,7 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException("notIn cannot be applied to " + this.getClass());
     }
 
-    static QueryExpression create(TerminalExpression expression) {
+    public static QueryExpression create(TerminalExpression expression) {
       if (expression instanceof CastExpression) {
         expression = CastExpression.unpack(expression);
       }
@@ -1673,11 +1673,11 @@ public class PredicateAnalyzer {
   }
 
   /** Literal like {@code 'foo' or 42 or true} etc. */
-  static final class LiteralExpression implements TerminalExpression {
+  public static final class LiteralExpression implements TerminalExpression {
 
     final RexLiteral literal;
 
-    LiteralExpression(RexLiteral literal) {
+    public LiteralExpression(RexLiteral literal) {
       this.literal = literal;
     }
 

@@ -14,14 +14,6 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
-import static org.opensearch.sql.calcite.utils.GraphLookupUtils.ANCHOR_FROM_ALIAS;
-import static org.opensearch.sql.calcite.utils.GraphLookupUtils.ANCHOR_TO_ALIAS;
-import static org.opensearch.sql.calcite.utils.GraphLookupUtils.DEPTH_FIELD;
-import static org.opensearch.sql.calcite.utils.GraphLookupUtils.HIER_FIELD_SUFFIX;
-import static org.opensearch.sql.calcite.utils.GraphLookupUtils.RECURSIVE_FROM_ALIAS;
-import static org.opensearch.sql.calcite.utils.GraphLookupUtils.RECURSIVE_TABLE_NAME;
-import static org.opensearch.sql.calcite.utils.GraphLookupUtils.RECURSIVE_TO_ALIAS;
-import static org.opensearch.sql.calcite.utils.GraphLookupUtils.SRC_FIELD_SUFFIX;
 import static org.opensearch.sql.calcite.plan.DynamicFieldsConstants.DYNAMIC_FIELDS_MAP;
 import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupNotNull;
 import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupOrNull;
@@ -48,7 +40,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -128,6 +119,7 @@ import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.GraphLookup;
+import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -161,10 +153,10 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.plan.rel.LogicalGraphLookup;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.BinUtils;
-import org.opensearch.sql.calcite.utils.GraphLookupUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils.OverwriteMode;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
@@ -2586,70 +2578,43 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitGraphLookup(GraphLookup node, CalcitePlanContext context) {
+    // 1. Visit source (child) table
     visitChildren(node, context);
     RelBuilder builder = context.relBuilder;
+    RelNode sourceTable = builder.build();
 
-    List<String> allFields =
-        builder.peek().getRowType().getFieldNames().stream()
-            .filter(Predicate.not(OpenSearchConstants.METADATAFIELD_TYPE_MAP::containsKey))
-            .toList();
-    List<String> aliases = GraphLookupUtils.createAliases(allFields);
-    Literal maxDepth = node.getMaxDepth();
-    String connectFromFieldName = node.getFrom().getField().toString();
-    String connectToFieldName = node.getTo().getField().toString();
-    RexLiteral maxDepthNode = (RexLiteral) rexVisitor.analyze(maxDepth, context);
+    // 2. Extract parameters
+    String startWith = node.getStartWith().getField().toString();
+    String connectFromFieldName = node.getConnectFromField().getField().toString();
+    String connectToFieldName = node.getConnectToField().getField().toString();
+    String outputFieldName = node.getAs().getField().toString();
+    String depthFieldName = node.getDepthField().toString();
+    boolean bidirectional = node.getDirection() == Direction.BI;
+
+    RexLiteral maxDepthNode = (RexLiteral) rexVisitor.analyze(node.getMaxDepth(), context);
     int maxDepthValue = maxDepthNode.getValueAs(Integer.class);
     maxDepthValue = maxDepthValue <= 0 ? -1 : maxDepthValue;
-    UnresolvedExpression startWith = node.getStartWith();
-    if (startWith != null) {
-      RexNode startWithNode = rexVisitor.analyze(startWith, context);
-    }
-    String outputFiledName = node.getAs().getField().toString();
 
-    // 1. build anchor query
-    RelNode self = builder.peek();
-    builder.as(ANCHOR_FROM_ALIAS);
-    builder.push(self).as(ANCHOR_TO_ALIAS);
-    builder
-        .join(
-            JoinRelType.INNER,
-            builder.equals(
-                builder.field(2, ANCHOR_FROM_ALIAS, connectFromFieldName),
-                builder.field(2, ANCHOR_TO_ALIAS, connectToFieldName)))
-        .project(GraphLookupUtils.createAnchorProjections(builder, allFields), aliases)
-        .as("anchor");
+    // 3. Visit and materialize lookup table
+    analyze(node.getFromTable(), context);
+    tryToRemoveMetaFields(context, true);
+    RelNode lookupTable = builder.build();
 
-    // 2. recursive query
-    builder.transientScan(RECURSIVE_TABLE_NAME).as(RECURSIVE_FROM_ALIAS);
-    builder.push(self).as(RECURSIVE_TO_ALIAS);
-    String hierConnectFromField = HIER_FIELD_SUFFIX + connectFromFieldName;
-    builder
-        .join(
-            JoinRelType.INNER,
-            builder.equals(
-                builder.field(2, RECURSIVE_FROM_ALIAS, hierConnectFromField),
-                builder.field(2, RECURSIVE_TO_ALIAS, connectToFieldName)))
-        .project(GraphLookupUtils.createRecursiveProjections(builder, allFields), aliases);
+    // 4. Create LogicalGraphLookup RelNode
+    // The conversion rule will extract the OpenSearchIndex from the lookup table
+    RelNode graphLookup =
+        LogicalGraphLookup.create(
+            sourceTable,
+            lookupTable,
+            startWith,
+            connectFromFieldName,
+            connectToFieldName,
+            outputFieldName,
+            depthFieldName,
+            maxDepthValue,
+            bidirectional);
 
-    // 3. combine RepeatUnion
-    builder.repeatUnion(RECURSIVE_TABLE_NAME, true, maxDepthValue);
-
-    // 4. collect aggregation
-    List<RexNode> groupByFields = new ArrayList<>();
-    for (String field : allFields) {
-      groupByFields.add(builder.field(SRC_FIELD_SUFFIX + field));
-    }
-    List<RexNode> collectFields = new ArrayList<>();
-    for (String field : allFields) {
-      collectFields.add(builder.field(HIER_FIELD_SUFFIX + field));
-    }
-    collectFields.add(builder.field(DEPTH_FIELD));
-
-    RexNode rowExpr = builder.call(SqlStdOperatorTable.ROW, collectFields);
-    builder.aggregate(
-        builder.groupKey(groupByFields),
-        builder.aggregateCall(SqlStdOperatorTable.COLLECT, rowExpr).as(outputFiledName));
-
+    builder.push(graphLookup);
     return builder.peek();
   }
 

@@ -18,8 +18,13 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
+/**
+ * AST node for graphLookup command. Performs BFS graph traversal on a lookup table.
+ *
+ * <p>Example: source=employees | graphLookup employees connectFromField=manager connectToField=name
+ * maxDepth=3 depthField=level direction=uni as hierarchy
+ */
 @Getter
 @Setter
 @ToString
@@ -28,12 +33,37 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @AllArgsConstructor
 @Builder(toBuilder = true)
 public class GraphLookup extends UnresolvedPlan {
-  private final Field from;
-  private final Field to;
+  /** Direction mode for graph traversal. */
+  public enum Direction {
+    /** Unidirectional - traverse edges in one direction only. */
+    UNI,
+    /** Bidirectional - traverse edges in both directions. */
+    BI
+  }
+
+  /** Target table for graph traversal lookup. */
+  private final UnresolvedPlan fromTable;
+
+  /** Field in sourceTable to start with. */
+  private final Field startWith;
+
+  /** Field in fromTable that represents the outgoing edge. */
+  private final Field connectFromField;
+
+  /** Field in input/fromTable to match against for traversal. */
+  private final Field connectToField;
+
+  /** Output field name for collected traversal results. */
   private final Field as;
-  // zero means no limit
+
+  /** Maximum traversal depth. Zero means no limit. */
   private final Literal maxDepth;
-  private @Nullable final UnresolvedExpression startWith;
+
+  /** Optional field name to include recursion depth in output. */
+  private @Nullable final Field depthField;
+
+  /** Direction mode: UNI (default) or BIO for bidirectional. */
+  private final Direction direction;
 
   private UnresolvedPlan child;
 

@@ -1647,37 +1647,75 @@ public class AstBuilderTest {
 
   @Test
   public void testGraphLookupCommand() {
+    // Basic graphLookup with required parameters
     assertEqual(
-        "source=t | graphLookup connectFrom=name connectTo=reportTo maxDepth=3 as"
-            + " reportingHierarchy",
+        "source=t | graphLookup employees connectFromField=manager connectToField=name maxDepth=3"
+            + " as reportingHierarchy",
         GraphLookup.builder()
             .child(relation("t"))
-            .from(field("name"))
-            .to(field("reportTo"))
+            .fromTable(relation("employees"))
+            .connectFromField(field("manager"))
+            .connectToField(field("name"))
             .as(field("reportingHierarchy"))
             .maxDepth(intLiteral(3))
             .startWith(null)
+            .depthField(null)
+            .direction(GraphLookup.Direction.UNI)
             .build());
+
+    // graphLookup with startWith filter
     assertEqual(
-        "source=t | graphLookup connectFrom=name connectTo=reportTo startWith='hello' as"
-            + " reportingHierarchy",
+        "source=t | graphLookup employees connectFromField=manager connectToField=name"
+            + " startWith='hello' as reportingHierarchy",
         GraphLookup.builder()
             .child(relation("t"))
-            .from(field("name"))
-            .to(field("reportTo"))
+            .fromTable(relation("employees"))
+            .connectFromField(field("manager"))
+            .connectToField(field("name"))
             .as(field("reportingHierarchy"))
             .maxDepth(intLiteral(0))
             .startWith(stringLiteral("hello"))
+            .depthField(null)
+            .direction(GraphLookup.Direction.UNI)
             .build());
 
+    // graphLookup with depthField and bidirectional
+    assertEqual(
+        "source=t | graphLookup employees connectFromField=manager connectToField=name"
+            + " depthField=level direction=bio as reportingHierarchy",
+        GraphLookup.builder()
+            .child(relation("t"))
+            .fromTable(relation("employees"))
+            .connectFromField(field("manager"))
+            .connectToField(field("name"))
+            .as(field("reportingHierarchy"))
+            .maxDepth(intLiteral(0))
+            .startWith(null)
+            .depthField(field("level"))
+            .direction(GraphLookup.Direction.BIO)
+            .build());
+
+    // Error: missing connectFromField - SemanticCheckException thrown by AstBuilder
+    assertThrows(
+        SemanticCheckException.class,
+        () ->
+            plan(
+                "source=t | graphLookup employees connectToField=name startWith='hello' as"
+                    + " reportingHierarchy"));
+
+    // Error: missing lookup table - SyntaxCheckException from grammar
     assertThrows(
         SyntaxCheckException.class,
-        () -> plan("| graphLookup connectTo=reportTo startWith='hello' as reportingHierarchy"));
+        () ->
+            plan(
+                "source=t | graphLookup connectFromField=manager connectToField=name as"
+                    + " reportingHierarchy"));
+
+    // Error: missing connectToField - SemanticCheckException thrown by AstBuilder
     assertThrows(
-        SyntaxCheckException.class,
-        () -> plan("| graphLookup connectFrom=name connectTo=reportTo startWith='hello'"));
-    assertThrows(
-        SyntaxCheckException.class,
-        () -> plan("| graphLookup connectFrom=name as reportingHierarchy"));
+        SemanticCheckException.class,
+        () ->
+            plan(
+                "source=t | graphLookup employees connectFromField=manager as reportingHierarchy"));
   }
 }
