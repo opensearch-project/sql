@@ -3,22 +3,22 @@
 Compatible with OpenSearch and OpenSearch Dashboards version 3.5.0
 
 ### Features
+* Feature tonumber : issue #4514 tonumber function as part of roadmap #4287 ([#4605](https://github.com/opensearch-project/sql/pull/4605))
 * Feature addtotals and addcoltotals ([#4754](https://github.com/opensearch-project/sql/pull/4754))
+* Support `mvzip` eval function ([#4805](https://github.com/opensearch-project/sql/pull/4805))
+* Support `split` eval function ([#4814](https://github.com/opensearch-project/sql/pull/4814))
+* Support `mvfind` eval function ([#4839](https://github.com/opensearch-project/sql/pull/4839))
+* Support `mvmap` eval function ([#4856](https://github.com/opensearch-project/sql/pull/4856))
 * [Feature] implement transpose command as in the roadmap #4786 ([#5011](https://github.com/opensearch-project/sql/pull/5011))
 * Feature/mvcombine ([#5025](https://github.com/opensearch-project/sql/pull/5025))
-* * Implement spath command with field resolution ([#5028](https://github.com/opensearch-project/sql/pull/5028))
+* Implement spath command with field resolution ([#5028](https://github.com/opensearch-project/sql/pull/5028))
 
 ### Enhancements
 * ML command supports category_field parameter ([#3909](https://github.com/opensearch-project/sql/pull/3909))
 * Time Unit Unification for bin/stats ([#4450](https://github.com/opensearch-project/sql/pull/4450))
-* Feature tonumber : issue #4514 tonumber function as part of roadmap #4287 ([#4605](https://github.com/opensearch-project/sql/pull/4605))
 * Enhance doc and error message handling for `bins` on time-related fields ([#4713](https://github.com/opensearch-project/sql/pull/4713))
-* Support `mvzip` eval function ([#4805](https://github.com/opensearch-project/sql/pull/4805))
-* Support `split` eval function ([#4814](https://github.com/opensearch-project/sql/pull/4814))
 * Push down filters on nested fields as nested queries ([#4825](https://github.com/opensearch-project/sql/pull/4825))
 * Support sort expression pushdown for SortMergeJoin ([#4830](https://github.com/opensearch-project/sql/pull/4830))
-* Support `mvfind` eval function ([#4839](https://github.com/opensearch-project/sql/pull/4839))
-* Support `mvmap` eval function ([#4856](https://github.com/opensearch-project/sql/pull/4856))
 * Add unified query transpiler API ([#4871](https://github.com/opensearch-project/sql/pull/4871))
 * Pushdown join with `max=n` option to TopHits aggregation ([#4929](https://github.com/opensearch-project/sql/pull/4929))
 * Support pushdown dedup with expression ([#4957](https://github.com/opensearch-project/sql/pull/4957))
@@ -33,7 +33,7 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.5.0
 * Introduce logical dedup operators for PPL ([#5014](https://github.com/opensearch-project/sql/pull/5014))
 * Support read multi-values from OpenSearch if no codegen triggered ([#5015](https://github.com/opensearch-project/sql/pull/5015))
 * Add unified function interface with function discovery API ([#5039](https://github.com/opensearch-project/sql/pull/5039))
-* * Support profile option for PPL - Part II Implement operator level metrics ([#5044](https://github.com/opensearch-project/sql/pull/5044))
+* Support profile option for PPL - Part II Implement operator level metrics ([#5044](https://github.com/opensearch-project/sql/pull/5044))
 * Support spath with dynamic fields ([#5058](https://github.com/opensearch-project/sql/pull/5058))
 * Adopt appendcol, appendpipe, multisearch to spath ([#5075](https://github.com/opensearch-project/sql/pull/5075))
 * Set `max=1` in join as default when `plugins.ppl.syntax.legacy.preferred=false` ([#5057](https://github.com/opensearch-project/sql/pull/5057))
