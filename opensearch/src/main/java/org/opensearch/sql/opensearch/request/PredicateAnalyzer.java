@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -225,7 +226,13 @@ public class PredicateAnalyzer {
     requireNonNull(expression, "expression");
     try {
       // visits expression tree
-      QueryExpression queryExpression = (QueryExpression) expression.accept(visitor);
+      Expression result = expression.accept(visitor);
+      // When a boolean field is used directly as a filter condition (e.g., `where male` after
+      // Calcite simplifies `where male = true`), convert NamedFieldExpression to a term query.
+      if (result instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+        return QueryExpression.create(namedField).isTrue();
+      }
+      QueryExpression queryExpression = (QueryExpression) result;
       return queryExpression;
     } catch (Throwable e) {
       if (e instanceof UnsupportedScriptException) {
@@ -306,6 +313,9 @@ public class PredicateAnalyzer {
         case POSTFIX:
           switch (call.getKind()) {
             case IS_TRUE:
+            case IS_FALSE:
+            case IS_NOT_TRUE:
+            case IS_NOT_FALSE:
             case IS_NOT_NULL:
             case IS_NULL:
               return true;
@@ -353,7 +363,6 @@ public class PredicateAnalyzer {
 
     @Override
     public Expression visitCall(RexCall call) {
-
       SqlSyntax syntax = call.getOperator().getSyntax();
       if (!supportedRexCall(call)) {
         String message = format(Locale.ROOT, "Unsupported call: [%s]", call);
@@ -566,13 +575,24 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
 
-      QueryExpression expr = (QueryExpression) call.getOperands().get(0).accept(this);
+      Expression operandExpr = call.getOperands().get(0).accept(this);
+      // Handle NOT(boolean_field) - Calcite simplifies "field = false" to NOT($field).
+      // In PPL semantics, "field = false" should only match documents where the field is
+      // explicitly false (not null or missing). This is achieved via term query {value: false}.
+      // Note: This differs from SQL semantics where NOT(field) would match null/missing values.
+      if (operandExpr instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+        return QueryExpression.create(namedField).isFalse();
+      }
+      QueryExpression expr = (QueryExpression) operandExpr;
       return expr.not();
     }
 
     private QueryExpression postfix(RexCall call) {
       checkArgument(
           call.getKind() == SqlKind.IS_TRUE
+              || call.getKind() == SqlKind.IS_FALSE
+              || call.getKind() == SqlKind.IS_NOT_TRUE
+              || call.getKind() == SqlKind.IS_NOT_FALSE
               || call.getKind() == SqlKind.IS_NULL
               || call.getKind() == SqlKind.IS_NOT_NULL);
       if (call.getOperands().size() != 1) {
@@ -580,11 +600,32 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
 
-      if (call.getKind() == SqlKind.IS_TRUE) {
-        Expression qe = call.getOperands().get(0).accept(this);
-        return ((QueryExpression) qe).isTrue();
+      // Handle boolean field operators: IS_TRUE, IS_FALSE, IS_NOT_TRUE, IS_NOT_FALSE
+      // These generate term queries for exact boolean value matching or mustNot queries
+      // for negated matching (which includes null/missing documents).
+      Function<QueryExpression, QueryExpression> booleanOp =
+          switch (call.getKind()) {
+            case IS_TRUE -> QueryExpression::isTrue;
+            case IS_FALSE -> QueryExpression::isFalse;
+            case IS_NOT_TRUE -> QueryExpression::isNotTrue;
+            case IS_NOT_FALSE -> QueryExpression::isNotFalse;
+            default -> null;
+          };
+
+      if (booleanOp != null) {
+        Expression operand = call.getOperands().get(0).accept(this);
+        if (operand instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+          return booleanOp.apply(QueryExpression.create(namedField));
+        }
+        // Boolean operators on a predicate (already evaluated QueryExpression) are allowed
+        if (operand instanceof QueryExpression qe) {
+          return booleanOp.apply(qe);
+        }
+        throw new PredicateAnalyzerException(
+            call.getKind() + " can only be applied to boolean fields or predicates");
       }
 
+      // Handle IS_NULL / IS_NOT_NULL
       // OpenSearch DSL does not handle IS_NULL / IS_NOT_NULL on nested fields correctly
       checkForNestedFieldOperands(call);
 
@@ -797,8 +838,12 @@ public class PredicateAnalyzer {
     public Expression tryAnalyzeOperand(RexNode node) {
       try {
         Expression expr = node.accept(this);
-        if (expr instanceof NamedFieldExpression) {
-          return expr;
+        // When a boolean field is used directly as a filter condition (e.g., `where male` after
+        // Calcite simplifies `where male = true`), convert NamedFieldExpression to a term query.
+        if (expr instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+          QueryExpression qe = QueryExpression.create(namedField).isTrue();
+          qe.updateAnalyzedNodes(node);
+          return qe;
         }
         QueryExpression qe = (QueryExpression) expr;
         if (!qe.isPartial()) {
@@ -1055,6 +1100,18 @@ public class PredicateAnalyzer {
 
     QueryExpression isTrue() {
       throw new PredicateAnalyzerException("isTrue cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression isFalse() {
+      throw new PredicateAnalyzerException("isFalse cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression isNotFalse() {
+      throw new PredicateAnalyzerException("isNotFalse cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression isNotTrue() {
+      throw new PredicateAnalyzerException("isNotTrue cannot be applied to " + this.getClass());
     }
 
     QueryExpression in(LiteralExpression literal) {
@@ -1393,8 +1450,52 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression isTrue() {
-      // Ignore istrue if ISTRUE(predicate) and will support ISTRUE(field) later.
-      // builder = termQuery(getFieldReferenceForTermQuery(), true);
+      // When IS_TRUE is called on a boolean field directly (e.g., IS_TRUE(field)),
+      // generate a term query with value true.
+      if (builder == null) {
+        builder = termQuery(getFieldReferenceForTermQuery(), true);
+      }
+      return this;
+    }
+
+    @Override
+    public QueryExpression isFalse() {
+      if (builder != null) {
+        throw new PredicateAnalyzerException("isFalse cannot be applied to predicate expression.");
+      }
+      // Generate a term query with value false. This only matches documents where
+      // the field is explicitly false (not null or missing).
+      builder = termQuery(getFieldReferenceForTermQuery(), false);
+      return this;
+    }
+
+    @Override
+    public QueryExpression isNotFalse() {
+      if (builder != null) {
+        throw new PredicateAnalyzerException(
+            "isNotFalse cannot be applied to predicate expression.");
+      }
+      // Generate mustNot(term query {value: false}). This matches documents where
+      // the field is true, null, or missing. Used for NOT(field = false) semantics.
+      builder = boolQuery().mustNot(termQuery(getFieldReferenceForTermQuery(), false));
+      return this;
+    }
+
+    @Override
+    public QueryExpression isNotTrue() {
+      if (builder == null) {
+        // Generate mustNot(term query {value: true}). This matches documents where
+        // the field is false, null, or missing. Used for NOT(field = true) semantics.
+        builder = boolQuery().mustNot(termQuery(getFieldReferenceForTermQuery(), true));
+      } else {
+        /*
+         * IS_NOT_TRUE(expr) means expr != TRUE, i.e., (FALSE OR UNKNOWN). In DSL, `trueQuery(expr)`
+         * matches only docs where expr is TRUE; FALSE/UNKNOWN simply don’t match. Therefore,
+         * `must_not(trueQuery(expr))` returns exactly the complement: FALSE + missing/null (UNKNOWN).
+         * Other truth-tests like IS_FALSE / IS_NOT_FALSE need explicit UNKNOWN handling, so don’t use this shortcut.
+         */
+        builder = boolQuery().mustNot(builder);
+      }
       return this;
     }
 
@@ -1657,6 +1758,17 @@ public class PredicateAnalyzer {
 
     boolean isTextType() {
       return type != null && type.getOriginalExprType() instanceof OpenSearchTextType;
+    }
+
+    boolean isBooleanType() {
+      if (type == null) {
+        return false;
+      }
+      // Check if the type is a boolean type. For OpenSearchDataType, check exprCoreType.
+      if (type instanceof OpenSearchDataType osType) {
+        return ExprCoreType.BOOLEAN.equals(osType.getExprCoreType());
+      }
+      return ExprCoreType.BOOLEAN.equals(type);
     }
 
     boolean isMetaField() {
