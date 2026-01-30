@@ -10,7 +10,6 @@ Additionally, it also provides string concatenation dot operator followed by and
 The `fieldformat` command has the following syntax:
 
 ```syntax
-Following are possible syntaxes:
  fieldformat <field>=[(prefix).]<expression>[.(suffix)] ["," <field>=[(prefix).]<expression>[.(suffix)] ]...
 
 ```
