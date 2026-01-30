@@ -835,6 +835,18 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_BANK)));
   }
 
+  @Test
+  public void testExplainOnTextFirstLast() throws IOException {
+    String expected = loadExpectedPlan("explain_first_last_text.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats first(employer) as first_employer, last(employer) as"
+                    + " last_employer by gender",
+                TEST_INDEX_BANK)));
+  }
+
   // Only for Calcite
   @Test
   public void testExplainOnEventstatsEarliestLatest() throws IOException {

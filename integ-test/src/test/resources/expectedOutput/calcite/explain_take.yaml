@@ -6,4 +6,4 @@ calcite:
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},take=TAKE($0, $1))], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"take":{"top_hits":{"from":0,"size":2,"version":false,"seq_no_primary_term":false,"explain":false,"fields":[{"field":"firstname.keyword"}]}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},take=TAKE($0, $1))], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"take":{"top_hits":{"from":0,"size":2,"version":false,"seq_no_primary_term":false,"explain":false,"_source":{"includes":["firstname"],"excludes":[]}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
