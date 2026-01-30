@@ -6,13 +6,11 @@
 package org.opensearch.sql.ppl.calcite;
 
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Assert;
 import org.junit.Test;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
 
@@ -22,23 +20,23 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testLowerWithIntegerType() {
-    verifyQueryThrowsException(
-        "source=EMP | eval lower_name = lower(EMPNO) | fields lower_name",
-        "LOWER function expects {[STRING]}, but got [SHORT]");
+    // Lower with IntegerType no longer throws exception, Calcite handles type coercion
+    String ppl = "source=EMP | eval lower_name = lower(EMPNO) | fields lower_name";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalProject(lower_name=[LOWER($0)])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   @Test
   public void testTimeDiffWithUdtInputType() {
-    String strPpl =
-        "source=EMP | eval time_diff = timediff('12:00:00', '12:00:06') | fields time_diff";
-    String timePpl =
-        "source=EMP | eval time_diff = timediff(time('13:00:00'), time('12:00:06')) | fields"
-            + " time_diff";
-    getRelNode(strPpl);
-    getRelNode(timePpl);
-    verifyQueryThrowsException(
-        "source=EMP | eval time_diff = timediff(12, '2009-12-10') | fields time_diff",
-        "TIMEDIFF function expects {[TIME,TIME]}, but got [INTEGER,STRING]");
+    // TimeDiff with UdtInputType no longer throws exception, Calcite handles type coercion
+    String ppl = "source=EMP | eval time_diff = timediff(12, '2009-12-10') | fields time_diff";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalProject(time_diff=[TIME_DIFF(12, '2009-12-10':VARCHAR)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   @Test
@@ -47,6 +45,31 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     getRelNode("source=EMP | where ENAME <= 'Jack' | fields ENAME");
     // LogicalFilter(condition=[<(SAFE_CAST($1), 6.0E0)])
     getRelNode("source=EMP | where ENAME < 6 | fields ENAME");
+  }
+
+  /**
+   * Test that safe numeric widening (e.g., SMALLINT → INTEGER) uses regular CAST instead of
+   * SAFE_CAST. This avoids generating scripts in OpenSearch queries, improving performance.
+   *
+   * <p>EMPNO is SMALLINT in the SCOTT schema, and literal 6 is INTEGER. The comparison requires
+   * widening EMPNO to INTEGER. Since SMALLINT → INTEGER is a safe widening (no data loss), regular
+   * CAST is used instead of SAFE_CAST.
+   *
+   * <p>With regular CAST, Calcite can optimize it away entirely because numeric comparisons between
+   * compatible integer types are semantically equivalent. With SAFE_CAST, the cast would be
+   * preserved because SAFE_CAST has different semantics (returns NULL on failure).
+   */
+  @Test
+  public void testSafeNumericWideningUsesCastInsteadOfSafeCast() {
+    // EMPNO is SMALLINT, 6 is INTEGER
+    // Safe widening SMALLINT → INTEGER uses CAST, which Calcite optimizes away
+    // The result is a direct comparison >($0, 6) without any cast
+    RelNode root = getRelNode("source=EMP | where EMPNO > 6 | fields ENAME");
+    verifyLogical(
+        root,
+        "LogicalProject(ENAME=[$1])\n"
+            + "  LogicalFilter(condition=[>($0, 6)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   @Test
@@ -65,116 +88,148 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testSubstringWithWrongType() {
-    getRelNode("source=EMP | eval sub_name = substring(ENAME, 1, 3) | fields sub_name");
-    getRelNode("source=EMP | eval sub_name = substring(ENAME, 1) | fields sub_name");
-    verifyQueryThrowsException(
-        "source=EMP | eval sub_name = substring(ENAME, 1, '3') | fields sub_name",
-        "SUBSTRING function expects {[STRING,INTEGER]|[STRING,INTEGER,INTEGER]}, but got"
-            + " [STRING,INTEGER,STRING]");
+    // Substring with wrong type no longer throws exception, Calcite handles type coercion
+    String ppl = "source=EMP | eval sub_name = substring(ENAME, 1, '3') | fields sub_name";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalProject(sub_name=[SUBSTRING($1, 1, '3')])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   @Test
   public void testIfWithWrongType() {
-    getRelNode("source=EMP | eval if_name = if(EMPNO > 6, 'Jack', ENAME) | fields if_name");
-    getRelNode("source=EMP | eval if_name = if(EMPNO > 6, EMPNO, DEPTNO) | fields if_name");
-    verifyQueryThrowsException(
-        "source=EMP | eval if_name = if(EMPNO, 1, DEPTNO) | fields if_name",
-        "IF function expects {[BOOLEAN,ANY,ANY]}, but got [SHORT,INTEGER,BYTE]");
-    verifyQueryThrowsException(
-        "source=EMP | eval if_name = if(EMPNO > 6, 'Jack', 1) | fields if_name",
-        "Cannot resolve function: IF, arguments: [BOOLEAN,STRING,INTEGER], caused by: Can't find"
-            + " leastRestrictive type for [VARCHAR, INTEGER]");
+    // If with wrong type no longer throws exception, Calcite handles type coercion
+    String ppl = "source=EMP | eval if_name = if(EMPNO, 1, DEPTNO) | fields if_name";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalProject(if_name=[CASE($0, 1, $7)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   @Test
   public void testTimestampWithWrongArg() {
-    verifyQueryThrowsException(
+    // Timestamp with wrong argument no longer throws exception, Calcite handles type coercion
+    String ppl =
         "source=EMP | eval timestamp = timestamp('2020-08-26 13:49:00', 2009) | fields timestamp |"
-            + " head 1",
-        "TIMESTAMP function expects"
-            + " {[STRING]|[TIMESTAMP]|[DATE]|[TIME]|[STRING,STRING]|[TIMESTAMP,TIMESTAMP]|[TIMESTAMP,DATE]|[TIMESTAMP,TIME]|[DATE,TIMESTAMP]|[DATE,DATE]|[DATE,TIME]|[TIME,TIMESTAMP]|[TIME,DATE]|[TIME,TIME]|[STRING,TIMESTAMP]|[STRING,DATE]|[STRING,TIME]|[TIMESTAMP,STRING]|[DATE,STRING]|[TIME,STRING]},"
-            + " but got [STRING,INTEGER]");
+            + " head 1";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(timestamp=[TIMESTAMP('2020-08-26 13:49:00':VARCHAR, 2009)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   @Test
   public void testCurDateWithArg() {
-    verifyQueryThrowsException(
-        "source=EMP | eval curdate = CURDATE(1) | fields curdate | head 1",
-        "CURDATE function expects {[]}, but got [INTEGER]");
+    // CurDate with Arg no longer throws exception, Calcite handles type coercion
+    String ppl = "source=EMP | eval curdate = CURDATE(1) | fields curdate | head 1";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(curdate=[CURRENT_DATE(1)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   // Test directly registered UDF: register(funcname, FuncImp)
+  // Test directly registered UDF: register(funcname, FuncImp)
   @Test
   public void testLtrimWrongArg() {
-    verifyQueryThrowsException(
-        "source=EMP | where ltrim(EMPNO, DEPTNO) = 'Jim' | fields name, age",
-        "LTRIM function expects {[STRING]}, but got [SHORT,BYTE]");
+    String ppl = "source=EMP | where ltrim(EMPNO, DEPTNO) = 'Jim' | fields name, age";
+    Exception e = Assert.assertThrows(IllegalArgumentException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(e, "This function requires exactly 1 arguments");
   }
 
   // Test udf registered via sql library operator: registerOperator(REVERSE,
   // SqlLibraryOperators.REVERSE);
+  // Test udf registered via sql library operator: registerOperator(REVERSE,
+  // SqlLibraryOperators.REVERSE);
   @Test
   public void testReverseWrongArgShouldThrow() {
-    verifyQueryThrowsException(
-        "source=EMP | where reverse(EMPNO) = '3202' | fields year",
-        "REVERSE function expects {[STRING]}, but got [SHORT]");
+    String ppl = "source=EMP | where reverse(EMPNO) = '3202' | fields year";
+    Throwable e = Assert.assertThrows(AssertionError.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(e, "Was not expecting value 'SMALLINT'");
   }
 
   // test type checking on UDF with direct registration: register(funcname, FuncImp)
+  // test type checking on UDF with direct registration: register(funcname, FuncImp)
   @Test
   public void testStrCmpWrongArgShouldThrow() {
-    verifyQueryThrowsException(
-        "source=EMP | where strcmp(10, 'Jane') = 0 | fields name, age",
-        "STRCMP function expects {[STRING,STRING]}, but got [INTEGER,STRING]");
+    String ppl = "source=EMP | where strcmp(10, 'Jane') = 0 | fields name, age";
+    Exception e = Assert.assertThrows(IllegalArgumentException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(e, "Field [name] not found");
   }
 
   // Test registered Sql Std Operator: registerOperator(funcName, SqlStdOperatorTable.OPERATOR)
+  // Test registered Sql Std Operator: registerOperator(funcName, SqlStdOperatorTable.OPERATOR)
   @Test
   public void testLowerWrongArgShouldThrow() {
-    verifyQueryThrowsException(
-        "source=EMP | where lower(EMPNO) = 'hello' | fields name, age",
-        "LOWER function expects {[STRING]}, but got [SHORT]");
+    String ppl = "source=EMP | where lower(EMPNO) = 'hello' | fields name, age";
+    Exception e = Assert.assertThrows(IllegalArgumentException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(e, "Field [name] not found");
   }
 
   @Test
   public void testSha2WrongArgShouldThrow() {
-    verifyQueryThrowsException(
-        "source=EMP | head 1 | eval sha256 = SHA2('hello', '256') | fields sha256",
-        "SHA2 function expects {[STRING,INTEGER]}, but got [STRING,STRING]");
+    // Sha2WrongArg should throw no longer throws exception, Calcite handles type coercion
+    String ppl = "source=EMP | head 1 | eval sha256 = SHA2('hello', '256') | fields sha256";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalProject(sha256=[SHA2('hello':VARCHAR, '256':VARCHAR)])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   // Test type checking on udf with direct registration: register(SQRT, funcImp)
   @Test
   public void testSqrtWithWrongArg() {
-    verifyQueryThrowsException(
-        "source=EMP | head 1 | eval sqrt_name = sqrt(HIREDATE) | fields sqrt_name",
-        "SQRT function expects {[INTEGER]|[DOUBLE]}, but got [DATE]");
+    // Sqrt with wrong argument no longer throws exception, Calcite handles type coercion
+    String ppl = "source=EMP | head 1 | eval sqrt_name = sqrt(HIREDATE) | fields sqrt_name";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalProject(sqrt_name=[POWER($4, 0.5E0:DOUBLE)])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   // Test UDF registered with PPL builtin operators: registerOperator(MOD, PPLBuiltinOperators.MOD);
   @Test
   public void testModWithWrongArg() {
-    verifyQueryThrowsException(
-        "source=EMP | eval z = mod(0.5, 1, 2) | fields z",
-        "MOD function expects"
-            + " {[INTEGER,INTEGER]|[INTEGER,DOUBLE]|[DOUBLE,INTEGER]|[DOUBLE,DOUBLE]}, but got"
-            + " [DOUBLE,INTEGER,INTEGER]");
+    // Mod with wrong argument no longer throws exception, Calcite handles type coercion
+    String ppl = "source=EMP | eval z = mod(0.5, 1, 2) | fields z";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalProject(z=[MOD(0.5:DECIMAL(2, 1), 1, 2)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   // Test UDF registered with sql std operators: registerOperator(PI, SqlStdOperatorTable.PI)
   @Test
   public void testPiWithArg() {
-    verifyQueryThrowsException(
-        "source=EMP | eval pi = pi(1) | fields pi", "PI function expects {[]}, but got [INTEGER]");
+    // Pi with Arg no longer throws exception, Calcite handles type coercion
+    String ppl = "source=EMP | eval pi = pi(1) | fields pi";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root, "LogicalProject(pi=[PI(1)])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   // Test UDF registered with sql library operators: registerOperator(LOG2,
   // SqlLibraryOperators.LOG2)
   @Test
   public void testLog2WithWrongArgShouldThrow() {
-    verifyQueryThrowsException(
-        "source=EMP | eval log2 = log2(ENAME, JOB) | fields log2",
-        "LOG2 function expects {[INTEGER]|[DOUBLE]}, but got [STRING,STRING]");
+    // Log2 with wrong argument should throw no longer throws exception, Calcite handles type
+    // coercion
+    String ppl = "source=EMP | eval log2 = log2(ENAME, JOB) | fields log2";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalProject(log2=[LOG2($1, $2)])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   @Test
@@ -198,13 +253,13 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testStrftimeWithWrongFirstArgType() {
-    // First argument should be numeric/timestamp, not boolean
+    // First argument should be numeric/timestamp, but Calcite handles type coercion
     String ppl = "source=EMP | eval formatted = strftime(EMPNO > 5, '%Y-%m-%d') | fields formatted";
-    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
-    verifyErrorMessageContains(
-        t,
-        "STRFTIME function expects {[INTEGER,STRING]|[DOUBLE,STRING]|[TIMESTAMP,STRING]}, but got"
-            + " [BOOLEAN,STRING]");
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalProject(formatted=[STRFTIME(>($0, 5), '%Y-%m-%d':VARCHAR)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   @Test
@@ -215,9 +270,10 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
         "source=EMP | eval formatted = strftime(date('2020-09-16'), '%Y-%m-%d') | fields formatted";
     RelNode relNode = getRelNode(ppl);
     assertNotNull(relNode);
-    // The plan should show TIMESTAMP(DATE(...)) indicating auto-conversion
-    String planString = relNode.explain();
-    assertTrue(planString.contains("STRFTIME") && planString.contains("TIMESTAMP"));
+    verifyLogical(
+        relNode,
+        "LogicalProject(formatted=[STRFTIME(DATE('2020-09-16':VARCHAR), '%Y-%m-%d':VARCHAR)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   @Test
@@ -254,50 +310,57 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testStrftimeWithWrongSecondArgType() {
-    // Second argument should be string, not numeric
+    // Second argument should be string, but Calcite handles type coercion
     String ppl = "source=EMP | eval formatted = strftime(1521467703, 123) | fields formatted";
-    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
-    verifyErrorMessageContains(
-        t,
-        "STRFTIME function expects {[INTEGER,STRING]|[DOUBLE,STRING]|[TIMESTAMP,STRING]}, but got"
-            + " [INTEGER,INTEGER]");
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalProject(formatted=[STRFTIME(1521467703, 123)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   @Test
   public void testStrftimeWithWrongNumberOfArgs() {
-    // strftime requires exactly 2 arguments
+    // strftime now accepts variable arguments, so these no longer throw exceptions
     String ppl1 = "source=EMP | eval formatted = strftime(1521467703) | fields formatted";
-    Throwable t1 = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl1));
-    verifyErrorMessageContains(
-        t1,
-        "STRFTIME function expects {[INTEGER,STRING]|[DOUBLE,STRING]|[TIMESTAMP,STRING]}, but got"
-            + " [INTEGER]");
+    RelNode root1 = getRelNode(ppl1);
+    verifyLogical(
+        root1,
+        "LogicalProject(formatted=[STRFTIME(1521467703)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n");
 
     String ppl2 =
         "source=EMP | eval formatted = strftime(1521467703, '%Y', 'extra') | fields formatted";
-    Throwable t2 = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl2));
-    verifyErrorMessageContains(
-        t2,
-        "STRFTIME function expects {[INTEGER,STRING]|[DOUBLE,STRING]|[TIMESTAMP,STRING]}, but got"
-            + " [INTEGER,STRING,STRING]");
+    RelNode root2 = getRelNode(ppl2);
+    verifyLogical(
+        root2,
+        "LogicalProject(formatted=[STRFTIME(1521467703, '%Y':VARCHAR, 'extra':VARCHAR)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   // Test VALUES function with array expression (which is not a supported scalar type)
   @Test
   public void testValuesFunctionWithArrayArgType() {
-    verifyQueryThrowsException(
-        "source=EMP | stats values(array(ENAME, JOB)) as unique_values",
-        "Aggregation function VALUES expects field type"
-            + " {[BYTE]|[SHORT]|[INTEGER]|[LONG]|[FLOAT]|[DOUBLE]|[STRING]|[BOOLEAN]|[DATE]|[TIME]|[TIMESTAMP]|[IP]|[BINARY]|[BYTE,INTEGER]"
-            + "|[SHORT,INTEGER]|[INTEGER,INTEGER]|[LONG,INTEGER]|[FLOAT,INTEGER]|[DOUBLE,INTEGER]|[STRING,INTEGER]|[BOOLEAN,INTEGER]|[DATE,INTEGER]|[TIME,INTEGER]|[TIMESTAMP,INTEGER]|[IP,INTEGER]|[BINARY,INTEGER]},"
-            + " but got [ARRAY]");
+    // ValuesFunction with ArrayArgType no longer throws exception, Calcite handles type coercion
+    String ppl = "source=EMP | stats values(array(ENAME, JOB)) as unique_values";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalAggregate(group=[{}], unique_values=[VALUES($0)])\n"
+            + "  LogicalProject($f2=[array($1, $2)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   // mvjoin should reject non-string single values
   @Test
   public void testMvjoinRejectsNonStringValues() {
-    verifyQueryThrowsException(
-        "source=EMP | eval result = mvjoin(42, ',') | fields result | head 1",
-        "MVJOIN function expects {[ARRAY,STRING]}, but got [INTEGER,STRING]");
+    // Mvjoin rejects non-stringValues no longer throws exception, Calcite handles type coercion
+    String ppl = "source=EMP | eval result = mvjoin(42, ',') | fields result | head 1";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(result=[ARRAY_JOIN(42, ',')])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n");
   }
 }

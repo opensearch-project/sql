@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(count()=[$1], span(age,10)=[$0])
+        LogicalAggregate(group=[{0}], count()=[COUNT()])
+          LogicalProject(span(age,10)=[SPAN($10, 10, null:ANY)])
+            LogicalFilter(condition=[IS NOT NULL($10)])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},count()=COUNT()), PROJECT->[count(), span(age,10)], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"span(age,10)":{"histogram":{"field":"age","missing_bucket":false,"order":"asc","interval":10.0}}}]}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

@@ -14,14 +14,19 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -159,7 +164,7 @@ public class ExtendedRexBuilder extends RexBuilder {
         //            SqlStdOperatorTable.NOT_EQUALS,
         //            ImmutableList.of(exp, makeZeroLiteral(sourceType)));
       }
-    } else if (OpenSearchTypeFactory.isUserDefinedType(type)) {
+    } else if (OpenSearchTypeUtil.isUserDefinedType(type)) {
       if (RexLiteral.isNullLiteral(exp)) {
         return super.makeCast(pos, type, exp, matchNullability, safe, format);
       }
@@ -197,5 +202,34 @@ public class ExtendedRexBuilder extends RexBuilder {
       return makeCall(type, PPLBuiltinOperators.NUMBER_TO_STRING, List.of(exp));
     }
     return super.makeCast(pos, type, exp, matchNullability, safe, format);
+  }
+
+  /**
+   * Derives the return type of call to an operator.
+   *
+   * <p>In Calcite, coercion between STRING and NUMERIC operands takes place during converting SQL
+   * to RelNode. However, as we are building logical plans directly, the coercion is not yet
+   * implemented at this point. Hence, we duplicate {@link
+   * TypeCoercionImpl#binaryArithmeticWithStrings} here to infer the correct type, enabling
+   * operations like {@code "5" / 10}. The actual coercion will be inserted later when performing
+   * validation on SqlNode.
+   *
+   * @see TypeCoercionImpl#binaryArithmeticCoercion(SqlCallBinding)
+   * @param op the operator being called
+   * @param exprs actual operands
+   * @return derived type
+   */
+  @Override
+  public RelDataType deriveReturnType(SqlOperator op, List<? extends RexNode> exprs) {
+    if (op.getKind().belongsTo(SqlKind.BINARY_ARITHMETIC) && exprs.size() == 2) {
+      final RelDataType type1 = exprs.get(0).getType();
+      final RelDataType type2 = exprs.get(1).getType();
+      if (SqlTypeUtil.isNumeric(type1) && OpenSearchTypeUtil.isCharacter(type2)) {
+        return type1;
+      } else if (OpenSearchTypeUtil.isCharacter(type1) && SqlTypeUtil.isNumeric(type2)) {
+        return type2;
+      }
+    }
+    return super.deriveReturnType(op, exprs);
   }
 }

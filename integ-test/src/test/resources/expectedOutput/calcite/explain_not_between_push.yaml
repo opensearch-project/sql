@@ -2,7 +2,7 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
-        LogicalFilter(condition=[SEARCH($10, Sarg[(-∞..30), (39..+∞)])])
+        LogicalFilter(condition=[OR(<($10, 30), >($10, 39))])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
   physical: |
     CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[PROJECT->[account_number, firstname, address, birthdate, gender, city, lastname, balance, employer, state, age, email, male], FILTER->SEARCH($10, Sarg[(-∞..30), (39..+∞)]), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"bool":{"should":[{"range":{"age":{"from":null,"to":30.0,"include_lower":true,"include_upper":false,"boost":1.0}}},{"range":{"age":{"from":39.0,"to":null,"include_lower":false,"include_upper":true,"boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["account_number","firstname","address","birthdate","gender","city","lastname","balance","employer","state","age","email","male"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(name=[$0], address=[$1], id=[$7], age=[$8])\n    LogicalFilter(condition=[AND(IS NULL($1), =($0, 'david'))])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])\n",
-    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t1)], proj#0..3=[{exprs}], $condition=[$t4])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]], PushDownContext=[[PROJECT->[name, address, id, age], FILTER->=($0, 'david')], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"query\":{\"bool\":{\"must\":[{\"term\":{\"name.keyword\":{\"value\":\"david\",\"boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"_source\":{\"includes\":[\"name\",\"address\",\"id\",\"age\"],\"excludes\":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])\n"
-  }
-}

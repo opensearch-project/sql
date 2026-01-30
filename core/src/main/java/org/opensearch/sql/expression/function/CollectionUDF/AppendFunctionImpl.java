@@ -14,8 +14,10 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -45,8 +47,8 @@ public class AppendFunctionImpl extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
-    return null;
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(OperandTypes.VARIADIC);
   }
 
   public static class AppendImplementor implements NotNullImplementor {

@@ -27,7 +27,6 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLAggregationIT extends PPLIntegTestCase {
@@ -746,7 +745,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
     Throwable t =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            IllegalArgumentException.class,
             () ->
                 executeQuery(
                     StringUtils.format(

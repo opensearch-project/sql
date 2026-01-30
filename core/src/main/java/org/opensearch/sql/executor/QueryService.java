@@ -6,6 +6,7 @@
 package org.opensearch.sql.executor;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import lombok.AllArgsConstructor;
@@ -14,13 +15,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
+import org.apache.calcite.rel.rel2sql.SqlImplementor;
+import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
@@ -34,11 +42,20 @@ import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
+import org.opensearch.sql.calcite.validate.PplConvertletTable;
+import org.opensearch.sql.calcite.validate.ValidationUtils;
+import org.opensearch.sql.calcite.validate.converters.OpenSearchRelToSqlConverter;
+import org.opensearch.sql.calcite.validate.converters.OpenSearchSqlToRelConverter;
+import org.opensearch.sql.calcite.validate.shuttles.PplRelToSqlRelShuttle;
+import org.opensearch.sql.calcite.validate.shuttles.SkipRelValidationShuttle;
+import org.opensearch.sql.calcite.validate.shuttles.SqlRewriteShuttle;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.monitor.profile.ProfileContext;
@@ -104,7 +121,8 @@ public class QueryService {
                 CalcitePlanContext.create(
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
             RelNode relNode = analyze(plan, context);
-            RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+            RelNode validated = validate(relNode, context);
+            RelNode calcitePlan = convertToCalcitePlan(validated, context);
             analyzeMetric.set(System.nanoTime() - analyzeStart);
             executionEngine.execute(calcitePlan, context, listener);
           } catch (Throwable t) {
@@ -145,7 +163,8 @@ public class QueryService {
             context.run(
                 () -> {
                   RelNode relNode = analyze(plan, context);
-                  RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+                  RelNode validated = validate(relNode, context);
+                  RelNode calcitePlan = convertToCalcitePlan(validated, context);
                   executionEngine.explain(calcitePlan, mode, context, listener);
                 },
                 settings);
@@ -259,6 +278,66 @@ public class QueryService {
   /** Analyze {@link UnresolvedPlan}. */
   public LogicalPlan analyze(UnresolvedPlan plan, QueryType queryType) {
     return analyzer.analyze(plan, new AnalysisContext(queryType));
+  }
+
+  /**
+   * Validates a RelNode by converting it to SqlNode, performing validation, and converting back.
+   *
+   * <p>This process enables Calcite's type validation and implicit casting mechanisms to work on
+   * PPL queries.
+   *
+   * @param relNode the relation node to validate
+   * @param context the Calcite plan context containing the validator
+   * @return the validated (and potentially modified) relation node
+   */
+  private RelNode validate(RelNode relNode, CalcitePlanContext context) {
+    SkipRelValidationShuttle skipShuttle = new SkipRelValidationShuttle();
+    relNode.accept(skipShuttle);
+    if (skipShuttle.shouldSkipValidation()) {
+      return relNode;
+    }
+    // Fix interval literals before conversion to SQL
+    RelNode sqlRelNode = relNode.accept(new PplRelToSqlRelShuttle(context.rexBuilder, true));
+
+    // Convert RelNode to SqlNode for validation
+    RelToSqlConverter rel2sql = new OpenSearchRelToSqlConverter(OpenSearchSparkSqlDialect.DEFAULT);
+    SqlImplementor.Result result = rel2sql.visitRoot(sqlRelNode);
+    SqlNode root = result.asStatement();
+
+    // Rewrite SqlNode to remove database qualifiers
+    SqlNode rewritten = root.accept(new SqlRewriteShuttle());
+    SqlValidator validator = context.getValidator();
+    try {
+      validator.validate(Objects.requireNonNull(rewritten));
+    } catch (CalciteContextException e) {
+      if (ValidationUtils.tolerantValidationException(e)) {
+        return relNode;
+      }
+      throw new ExpressionEvaluationException(e.getMessage(), e);
+    }
+
+    SqlToRelConverter.Config sql2relConfig =
+        SqlToRelConverter.config()
+            // Do not remove sort in subqueries so that the orders for queries like `... | sort a
+            // | fields b` is preserved
+            .withRemoveSortInSubQuery(false)
+            // Disable automatic JSON_TYPE_OPERATOR wrapping for nested JSON functions.
+            // See CALCITE-4989: Calcite wraps nested JSON functions with JSON_TYPE by default
+            .withAddJsonTypeOperatorEnabled(false)
+            // Set hint strategy so that hints can be properly propagated.
+            // See SqlToRelConverter.java#convertSelectImpl
+            .withHintStrategyTable(context.relBuilder.getCluster().getHintStrategies());
+    SqlToRelConverter sql2rel =
+        new OpenSearchSqlToRelConverter(
+            context.config.getViewExpander(),
+            validator,
+            validator.getCatalogReader().unwrap(CalciteCatalogReader.class),
+            context.relBuilder.getCluster(),
+            PplConvertletTable.INSTANCE,
+            sql2relConfig);
+    // Convert the validated SqlNode back to RelNode
+    RelNode validatedRel = sql2rel.convertQuery(rewritten, false, true).project();
+    return validatedRel.accept(new PplRelToSqlRelShuttle(context.rexBuilder, false));
   }
 
   /** Translate {@link LogicalPlan} to {@link PhysicalPlan}. */

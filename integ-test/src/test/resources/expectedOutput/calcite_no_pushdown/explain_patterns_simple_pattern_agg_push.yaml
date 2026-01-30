@@ -1,13 +1,13 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(patterns_field=[SAFE_CAST(ITEM(PATTERN_PARSER($0, $2), 'pattern'))], pattern_count=[$1], tokens=[SAFE_CAST(ITEM(PATTERN_PARSER($0, $2), 'tokens'))], sample_logs=[$2])
-        LogicalAggregate(group=[{1}], pattern_count=[COUNT($1)], sample_logs=[TAKE($0, $2)])
-          LogicalProject(email=[$9], patterns_field=[CASE(SEARCH($9, Sarg['':VARCHAR; NULL AS TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($9, '[a-zA-Z0-9]+':VARCHAR, '<*>':VARCHAR))], $f18=[10])
+      LogicalProject(patterns_field=[SAFE_CAST(ITEM(PATTERN_PARSER($0, $1), 'pattern'))], pattern_count=[$2], tokens=[SAFE_CAST(ITEM(PATTERN_PARSER($0, $1), 'tokens'))], sample_logs=[$1])
+        LogicalAggregate(group=[{0}], sample_logs=[TAKE($1, $2)], pattern_count=[COUNT($0)])
+          LogicalProject($f0=[CASE(SEARCH($9, Sarg['':VARCHAR; NULL AS TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($9, '[a-zA-Z0-9]+', '<*>'))], email=[$9], $f2=[10])
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[PATTERN_PARSER($t0, $t2)], expr#4=['pattern'], expr#5=[ITEM($t3, $t4)], expr#6=[SAFE_CAST($t5)], expr#7=['tokens'], expr#8=[ITEM($t3, $t7)], expr#9=[SAFE_CAST($t8)], patterns_field=[$t6], pattern_count=[$t1], tokens=[$t9], sample_logs=[$t2])
-        EnumerableAggregate(group=[{1}], pattern_count=[COUNT($1)], sample_logs=[TAKE($0, $2)])
-          EnumerableCalc(expr#0..16=[{inputs}], expr#17=[Sarg['':VARCHAR; NULL AS TRUE]:VARCHAR], expr#18=[SEARCH($t9, $t17)], expr#19=['':VARCHAR], expr#20=['[a-zA-Z0-9]+':VARCHAR], expr#21=['<*>':VARCHAR], expr#22=[REGEXP_REPLACE($t9, $t20, $t21)], expr#23=[CASE($t18, $t19, $t22)], expr#24=[10], email=[$t9], patterns_field=[$t23], $f18=[$t24])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[PATTERN_PARSER($t0, $t1)], expr#4=['pattern'], expr#5=[ITEM($t3, $t4)], expr#6=[SAFE_CAST($t5)], expr#7=['tokens'], expr#8=[ITEM($t3, $t7)], expr#9=[SAFE_CAST($t8)], patterns_field=[$t6], pattern_count=[$t2], tokens=[$t9], sample_logs=[$t1])
+        EnumerableAggregate(group=[{0}], sample_logs=[TAKE($1, $2)], pattern_count=[COUNT($0)])
+          EnumerableCalc(expr#0..16=[{inputs}], expr#17=[Sarg['':VARCHAR; NULL AS TRUE]:VARCHAR], expr#18=[SEARCH($t9, $t17)], expr#19=['':VARCHAR], expr#20=['[a-zA-Z0-9]+'], expr#21=['<*>'], expr#22=[REGEXP_REPLACE($t9, $t20, $t21)], expr#23=[CASE($t18, $t19, $t22)], expr#24=[10], $f0=[$t23], email=[$t9], $f2=[$t24])
             CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

@@ -2,7 +2,7 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalAggregate(group=[{}], count()=[COUNT()])
-        LogicalFilter(condition=[<>($19, 0)])
+        LogicalFilter(condition=[<>(CAST($19):INTEGER, 0)])
           CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[FILTER-><>($0, 0), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},count()=COUNT()), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"bool":{"must":[{"exists":{"field":"AdvEngineID","boost":1.0}}],"must_not":[{"term":{"AdvEngineID":{"value":0,"boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},"track_total_hits":2147483647}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+    CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[FILTER-><>(CAST($0):INTEGER, 0), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},count()=COUNT()), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"bool":{"must":[{"exists":{"field":"AdvEngineID","boost":1.0}}],"must_not":[{"term":{"AdvEngineID":{"value":0,"boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},"track_total_hits":2147483647}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(avg(balance)=[$1], state=[$0])\n    LogicalAggregate(group=[{0}], avg(balance)=[AVG($1)])\n      LogicalProject(state=[$7], balance=[$3])\n        LogicalSort(sort0=[$3], sort1=[$8], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])\n          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={1},avg(balance)=AVG($0)), PROJECT->[avg(balance), state], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"state\":{\"terms\":{\"field\":\"state.keyword\",\"missing_bucket\":true,\"missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\":{\"avg(balance)\":{\"avg\":{\"field\":\"balance\"}}}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])\n"
-  }
-}

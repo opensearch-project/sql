@@ -14,7 +14,6 @@ logical: |
                 LogicalAggregate(group=[{0, 1}], avg(balance)=[AVG($2)])
                   LogicalProject(gender=[$4], age=[$10], balance=[$7])
                     CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
-  
 physical: |
   EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
     EnumerableLimit(fetch=[10000])
@@ -34,4 +33,3 @@ physical: |
                       EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[null:BIGINT], expr#7=[CASE($t5, $t6, $t2)], expr#8=[CAST($t7):DOUBLE], expr#9=[/($t8, $t3)], expr#10=[SAFE_CAST($t1)], avg(balance)=[$t9], age=[$t10])
                         EnumerableAggregate(group=[{4, 10}], agg#0=[$SUM0($7)], agg#1=[COUNT($7)])
                           CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
-  
