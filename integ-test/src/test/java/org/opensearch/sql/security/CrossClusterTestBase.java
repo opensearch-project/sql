@@ -10,8 +10,6 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 
-import lombok.SneakyThrows;
-import org.junit.jupiter.api.BeforeEach;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CrossClusterTestBase extends PPLIntegTestCase {
@@ -38,15 +36,4 @@ public class CrossClusterTestBase extends PPLIntegTestCase {
       REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
   protected static final String TEST_INDEX_TIME_DATA_REMOTE =
       REMOTE_CLUSTER + ":" + TEST_INDEX_TIME_DATA;
-
-  protected static boolean initialized = false;
-
-  @SneakyThrows
-  @BeforeEach
-  public void initialize() {
-    if (!initialized) {
-      setUpIndices();
-      initialized = true;
-    }
-  }
 }

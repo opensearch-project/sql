@@ -17,7 +17,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 /** Cross Cluster Search tests with Calcite enabled for enhanced fields features. */
-public class CalciteCrossClusterSearchIT extends CrossClusterSearchIT {
+public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
 
   @Override
   protected void init() throws Exception {
@@ -28,6 +28,7 @@ public class CalciteCrossClusterSearchIT extends CrossClusterSearchIT {
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.ACCOUNT, remoteClient());
     loadIndex(Index.TIME_TEST_DATA);
     loadIndex(Index.TIME_TEST_DATA, remoteClient());
     enableCalcite();
