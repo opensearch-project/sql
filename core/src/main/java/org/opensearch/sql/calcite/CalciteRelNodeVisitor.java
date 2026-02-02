@@ -3226,7 +3226,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     final RelNode input = relBuilder.peek();
     final List<String> inputFieldNames = input.getRowType().getFieldNames();
     final List<RelDataType> inputFieldTypes =
-        input.getRowType().getFieldList().stream().map(RelDataTypeField::getType).toList();
+        input.getRowType().getFieldList().stream().map(RelDataTypeField::getType).collect(Collectors.toList());
 
     // If true, we should NOT auto-skip meta fields (because user explicitly projected them)
     final boolean includeMetaFields = context.isProjectVisited();
