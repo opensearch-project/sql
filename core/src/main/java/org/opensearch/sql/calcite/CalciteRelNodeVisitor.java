@@ -63,6 +63,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.ArraySqlType;
@@ -124,6 +125,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -3187,6 +3189,174 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);
 
     return context.relBuilder.peek();
+  }
+
+  /**
+   * mvcombine command visitor to collapse rows that are identical on all non-target fields.
+   *
+   * <p>Grouping semantics:
+   *
+   * <ul>
+   *   <li>The target field is always excluded from the GROUP BY keys.
+   *   <li>Metadata fields (for example {@code _id}, {@code _index}, {@code _score}) are excluded
+   *       from GROUP BY keys <strong>unless</strong> they were explicitly projected earlier (for
+   *       example, via {@code fields}).
+   * </ul>
+   *
+   * <p>The target field values are aggregated using {@code ARRAY_AGG}, with {@code NULL} values
+   * filtered out. The aggregation result replaces the original target column and produces an {@code
+   * ARRAY<T>} output.
+   *
+   * <p>The original output column order is preserved. Metadata fields are projected as typed {@code
+   * NULL} literals after aggregation only when they are not part of grouping (since they were
+   * skipped).
+   *
+   * @param node mvcombine command to be visited
+   * @param context CalcitePlanContext containing the RelBuilder and planning context
+   * @return RelNode representing collapsed records with the target combined into a multivalue array
+   * @throws SemanticCheckException if the mvcombine target is not a direct field reference
+   */
+  @Override
+  public RelNode visitMvCombine(MvCombine node, CalcitePlanContext context) {
+    // 1) Lower the child plan first so the RelBuilder has the input schema on the stack.
+    visitChildren(node, context);
+
+    final RelBuilder relBuilder = context.relBuilder;
+
+    final RelNode input = relBuilder.peek();
+    final List<String> inputFieldNames = input.getRowType().getFieldNames();
+    final List<RelDataType> inputFieldTypes =
+        input.getRowType().getFieldList().stream().map(RelDataTypeField::getType).collect(Collectors.toList());
+
+    // If true, we should NOT auto-skip meta fields (because user explicitly projected them)
+    final boolean includeMetaFields = context.isProjectVisited();
+
+    // 2) Resolve the mvcombine target to an input column index (must be a direct field reference).
+    final Field targetField = node.getField();
+    final int targetIndex = resolveTargetIndex(targetField, context);
+    final String targetName = inputFieldNames.get(targetIndex);
+
+    // 3) Group by all non-target fields, skipping meta fields unless explicitly projected.
+    final List<RexNode> groupExprs =
+        buildGroupExpressionsExcludingTarget(
+            targetIndex, inputFieldNames, relBuilder, includeMetaFields);
+
+    // 4) Aggregate target values using ARRAY_AGG, filtering out NULLs.
+    performArrayAggAggregation(relBuilder, targetIndex, targetName, groupExprs);
+
+    // 5) Restore original output column order (ARRAY_AGG already returns ARRAY<T>).
+    restoreColumnOrderAfterArrayAgg(
+        relBuilder, inputFieldNames, inputFieldTypes, targetIndex, groupExprs, includeMetaFields);
+
+    return relBuilder.peek();
+  }
+
+  /** Resolves the mvcombine target expression to an input field index. */
+  private int resolveTargetIndex(Field targetField, CalcitePlanContext context) {
+    final RexNode targetRex;
+    try {
+      targetRex = rexVisitor.analyze(targetField, context);
+    } catch (IllegalArgumentException e) {
+      // Make missing-field behavior deterministic (and consistently mapped to 4xx)
+      // instead of leaking RelBuilder/rexVisitor exception wording.
+      throw new SemanticCheckException(
+          "mvcombine target field not found: " + targetField.getField().toString(), e);
+    }
+
+    if (!isInputRef(targetRex)) {
+      throw new SemanticCheckException(
+          "mvcombine target must be a direct field reference, but got: " + targetField);
+    }
+
+    final int index = ((RexInputRef) targetRex).getIndex();
+
+    final RelDataType fieldType =
+        context.relBuilder.peek().getRowType().getFieldList().get(index).getType();
+
+    if (SqlTypeUtil.isArray(fieldType) || SqlTypeUtil.isMultiset(fieldType)) {
+      throw new SemanticCheckException(
+          "mvcombine target cannot be an array/multivalue type, but got: " + fieldType);
+    }
+
+    return index;
+  }
+
+  /**
+   * Builds group-by expressions for mvcombine: all non-target input fields; meta fields are skipped
+   * unless includeMetaFields is true.
+   */
+  private List<RexNode> buildGroupExpressionsExcludingTarget(
+      int targetIndex,
+      List<String> inputFieldNames,
+      RelBuilder relBuilder,
+      boolean includeMetaFields) {
+
+    final List<RexNode> groupExprs = new ArrayList<>(Math.max(0, inputFieldNames.size() - 1));
+    for (int i = 0; i < inputFieldNames.size(); i++) {
+      if (i == targetIndex) {
+        continue;
+      }
+      if (isMetadataField(inputFieldNames.get(i)) && !includeMetaFields) {
+        continue;
+      }
+      groupExprs.add(relBuilder.field(i));
+    }
+    return groupExprs;
+  }
+
+  /** Applies mvcombine aggregation. */
+  private void performArrayAggAggregation(
+      RelBuilder relBuilder, int targetIndex, String targetName, List<RexNode> groupExprs) {
+
+    final RexNode targetRef = relBuilder.field(targetIndex);
+    final RexNode notNullTarget = relBuilder.isNotNull(targetRef);
+
+    final RelBuilder.AggCall aggCall =
+        relBuilder
+            .aggregateCall(SqlLibraryOperators.ARRAY_AGG, targetRef)
+            .filter(notNullTarget)
+            .as(targetName);
+
+    relBuilder.aggregate(relBuilder.groupKey(groupExprs), aggCall);
+  }
+
+  /**
+   * Restores the original output column order after the aggregate step. Meta fields are set to
+   * typed NULL only when they were skipped from grouping (includeMetaFields=false).
+   */
+  private void restoreColumnOrderAfterArrayAgg(
+      RelBuilder relBuilder,
+      List<String> inputFieldNames,
+      List<RelDataType> inputFieldTypes,
+      int targetIndex,
+      List<RexNode> groupExprs,
+      boolean includeMetaFields) {
+
+    final int aggregatedTargetPos = groupExprs.size();
+
+    final List<RexNode> projections = new ArrayList<>(inputFieldNames.size());
+    final List<String> projectionNames = new ArrayList<>(inputFieldNames.size());
+
+    int groupPos = 0;
+    for (int i = 0; i < inputFieldNames.size(); i++) {
+      final String fieldName = inputFieldNames.get(i);
+      projectionNames.add(fieldName);
+
+      if (i == targetIndex) {
+        // aggregated target is always the last field in the aggregate output
+        projections.add(relBuilder.field(aggregatedTargetPos));
+      } else if (isMetadataField(fieldName) && !includeMetaFields) {
+        // meta fields were skipped from grouping => not present in aggregate output => keep schema
+        // stable
+        projections.add(relBuilder.getRexBuilder().makeNullLiteral(inputFieldTypes.get(i)));
+      } else {
+        // grouped field (including meta fields when includeMetaFields=true)
+        projections.add(relBuilder.field(groupPos));
+        groupPos++;
+      }
+    }
+
+    relBuilder.project(projections, projectionNames, /* force= */ true);
   }
 
   @Override

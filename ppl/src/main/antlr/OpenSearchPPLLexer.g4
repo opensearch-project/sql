@@ -72,6 +72,8 @@ SHOW_NUMBERED_TOKEN:                'SHOW_NUMBERED_TOKEN';
 AGGREGATION:                        'AGGREGATION';
 APPENDPIPE:                         'APPENDPIPE';
 COLUMN_NAME:                        'COLUMN_NAME';
+MVCOMBINE:                          'MVCOMBINE';
+
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';

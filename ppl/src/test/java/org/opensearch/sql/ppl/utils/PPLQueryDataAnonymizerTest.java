@@ -1017,4 +1017,17 @@ public class PPLQueryDataAnonymizerTest {
             "source=t | eval result=mvfind(array('apple', 'banana', 'apricot'), 'ban.*') | fields"
                 + " result"));
   }
+
+  @Test
+  public void testMvcombineCommand() {
+    assertEquals(
+        "source=table | mvcombine delim=*** identifier", anonymize("source=t | mvcombine age"));
+  }
+
+  @Test
+  public void testMvcombineCommandWithDelim() {
+    assertEquals(
+        "source=table | mvcombine delim=*** identifier",
+        anonymize("source=t | mvcombine age delim=','"));
+  }
 }

@@ -107,7 +107,8 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteTransposeCommandIT.class,
   CalciteVisualizationFormatIT.class,
   CalciteWhereCommandIT.class,
-  CalcitePPLTpchIT.class
+  CalcitePPLTpchIT.class,
+  CalciteMvCombineCommandIT.class
 })
 public class CalciteNoPushdownIT {
   private static boolean wasPushdownEnabled;

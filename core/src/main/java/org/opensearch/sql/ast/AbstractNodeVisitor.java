@@ -68,6 +68,7 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -465,6 +466,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitAddColTotals(AddColTotals node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitMvCombine(MvCombine node, C context) {
     return visitChildren(node, context);
   }
 }
