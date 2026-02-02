@@ -79,6 +79,7 @@ public enum BuiltinFunctionName {
   INTERNAL_APPEND(FunctionName.of("append"), true),
   MVJOIN(FunctionName.of("mvjoin")),
   MVINDEX(FunctionName.of("mvindex")),
+  MVFIND(FunctionName.of("mvfind")),
   MVZIP(FunctionName.of("mvzip")),
   SPLIT(FunctionName.of("split")),
   MVDEDUP(FunctionName.of("mvdedup")),

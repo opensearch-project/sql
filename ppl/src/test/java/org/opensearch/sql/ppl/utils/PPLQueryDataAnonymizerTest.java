@@ -1008,4 +1008,13 @@ public class PPLQueryDataAnonymizerTest {
         anonymize(
             "search source=t | spath input=json_attr output=out path=foo.bar | fields id, out"));
   }
+
+  @Test
+  public void testMvfind() {
+    assertEquals(
+        "source=table | eval identifier=mvfind(array(***,***,***),***) | fields + identifier",
+        anonymize(
+            "source=t | eval result=mvfind(array('apple', 'banana', 'apricot'), 'ban.*') | fields"
+                + " result"));
+  }
 }
