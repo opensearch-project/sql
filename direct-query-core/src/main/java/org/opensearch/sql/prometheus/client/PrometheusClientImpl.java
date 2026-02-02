@@ -26,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.sql.prometheus.exception.PrometheusClientException;
 import org.opensearch.sql.prometheus.model.MetricMetadata;
 
@@ -91,7 +92,7 @@ public class PrometheusClientImpl implements PrometheusClient {
     Request request = new Request.Builder().url(queryUrl).build();
 
     logger.debug("Executing Prometheus request with headers: {}", request.headers().toString());
-    Response response = this.prometheusHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
 
     logger.debug("Received Prometheus response for query_range: code={}", response);
 
@@ -126,7 +127,7 @@ public class PrometheusClientImpl implements PrometheusClient {
     Request request = new Request.Builder().url(queryUrl).build();
 
     logger.info("Executing Prometheus request with headers: {}", request.headers().toString());
-    Response response = this.prometheusHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
 
     logger.info("Received Prometheus response for instant query: code={}", response);
     // Return the full response object, not just the data field
@@ -146,7 +147,7 @@ public class PrometheusClientImpl implements PrometheusClient {
             "%s/api/v1/labels%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.prometheusHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     return toListOfLabels(jsonObject.getJSONArray("data"));
   }
@@ -161,7 +162,7 @@ public class PrometheusClientImpl implements PrometheusClient {
             prometheusUri.toString().replaceAll("/$", ""), labelName, queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.prometheusHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     return toListOfLabels(jsonObject.getJSONArray("data"));
   }
@@ -175,7 +176,7 @@ public class PrometheusClientImpl implements PrometheusClient {
             "%s/api/v1/metadata%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.prometheusHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     TypeReference<HashMap<String, List<MetricMetadata>>> typeRef = new TypeReference<>() {};
     return new ObjectMapper().readValue(jsonObject.getJSONObject("data").toString(), typeRef);
@@ -194,7 +195,7 @@ public class PrometheusClientImpl implements PrometheusClient {
             "%s/api/v1/series%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.prometheusHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     JSONArray dataArray = jsonObject.getJSONArray("data");
     return toListOfSeries(dataArray);
@@ -211,7 +212,7 @@ public class PrometheusClientImpl implements PrometheusClient {
             end);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.prometheusHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     return jsonObject.getJSONArray("data");
   }
@@ -222,7 +223,7 @@ public class PrometheusClientImpl implements PrometheusClient {
         String.format("%s/api/v1/alerts", prometheusUri.toString().replaceAll("/$", ""));
     logger.debug("Making Prometheus alerts request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.prometheusHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     return jsonObject.getJSONObject("data");
   }
@@ -235,7 +236,7 @@ public class PrometheusClientImpl implements PrometheusClient {
             "%s/api/v1/rules%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
     logger.debug("Making Prometheus rules request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.prometheusHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     return jsonObject.getJSONObject("data");
   }
@@ -248,7 +249,7 @@ public class PrometheusClientImpl implements PrometheusClient {
 
     logger.debug("Making Alertmanager alerts request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.alertmanagerHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.alertmanagerHttpClient.newCall(request).execute());
 
     return readAlertmanagerResponse(response);
   }
@@ -261,7 +262,7 @@ public class PrometheusClientImpl implements PrometheusClient {
 
     logger.debug("Making Alertmanager alert groups request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.alertmanagerHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.alertmanagerHttpClient.newCall(request).execute());
 
     return readAlertmanagerResponse(response);
   }
@@ -273,7 +274,7 @@ public class PrometheusClientImpl implements PrometheusClient {
 
     logger.debug("Making Alertmanager receivers request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.alertmanagerHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.alertmanagerHttpClient.newCall(request).execute());
 
     return readAlertmanagerResponse(response);
   }
@@ -285,7 +286,7 @@ public class PrometheusClientImpl implements PrometheusClient {
 
     logger.debug("Making Get Alertmanager silences request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.alertmanagerHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.alertmanagerHttpClient.newCall(request).execute());
 
     return readAlertmanagerResponse(response);
   }
@@ -301,7 +302,7 @@ public class PrometheusClientImpl implements PrometheusClient {
             .header("Content-Type", "application/json")
             .post(RequestBody.create(silenceJson.getBytes(StandardCharsets.UTF_8)))
             .build();
-    Response response = this.alertmanagerHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.alertmanagerHttpClient.newCall(request).execute());
 
     if (response.isSuccessful()) {
       return Objects.requireNonNull(response.body()).string();
