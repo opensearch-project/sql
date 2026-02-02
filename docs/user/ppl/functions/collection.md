@@ -625,7 +625,88 @@ fetched rows / total rows = 1/1
 | []     |
 +--------+
 ```
-  
+
+## MVFIND
+
+### Description
+
+Usage: mvfind(array, regex) searches a multivalue array and returns the 0-based index of the first element that matches the regular expression. Returns NULL if no match is found.
+Argument type: array: ARRAY, regex: STRING
+Return type: INTEGER (nullable)
+Example
+
+```ppl
+source=people
+| eval array = array('apple', 'banana', 'apricot'), result = mvfind(array, 'ban.*')
+| fields result
+| head 1
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 1/1
++--------+
+| result |
+|--------|
+| 1      |
++--------+
+```
+
+```ppl
+source=people
+| eval array = array('cat', 'dog', 'bird'), result = mvfind(array, 'fish')
+| fields result
+| head 1
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 1/1
++--------+
+| result |
+|--------|
+| null   |
++--------+
+```
+
+```ppl
+source=people
+| eval array = array('error123', 'info', 'error456'), result = mvfind(array, 'error[0-9]+')
+| fields result
+| head 1
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 1/1
++--------+
+| result |
+|--------|
+| 0      |
++--------+
+```
+
+```ppl
+source=people
+| eval array = array('Apple', 'Banana', 'Cherry'), result = mvfind(array, '(?i)banana')
+| fields result
+| head 1
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 1/1
++--------+
+| result |
+|--------|
+| 1      |
++--------+
+```
+
 ## MVINDEX  
 
 ### Description  
