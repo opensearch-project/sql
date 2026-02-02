@@ -11,6 +11,8 @@ import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import java.io.IOException;
 import java.util.Locale;
 import lombok.SneakyThrows;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
@@ -81,7 +83,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     }
   }
 
-  private void setupTestIndices() throws IOException {
+  private void setupTestIndices() throws IOException, ParseException {
     createPublicLogsIndex();
     createSensitiveLogsIndex();
     createEmployeeRecordsIndex();
@@ -89,7 +91,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   }
 
   /** Creates public_logs index with test documents. */
-  private void createPublicLogsIndex() throws IOException {
+  private void createPublicLogsIndex() throws IOException, ParseException {
     Request request = new Request("PUT", "/" + PUBLIC_LOGS);
     request.setJsonEntity(
         """
@@ -113,7 +115,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   }
 
   /** Creates sensitive_logs index with test documents. */
-  private void createSensitiveLogsIndex() throws IOException {
+  private void createSensitiveLogsIndex() throws IOException, ParseException {
     Request request = new Request("PUT", "/" + SENSITIVE_LOGS);
     request.setJsonEntity(
         """
@@ -140,7 +142,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
    * Creates employee_records index with sensitive fields for field-level security testing. Contains
    * fields: employee_id, name, department, salary, ssn
    */
-  private void createEmployeeRecordsIndex() throws IOException {
+  private void createEmployeeRecordsIndex() throws IOException, ParseException {
     Request request = new Request("PUT", "/" + EMPLOYEE_RECORDS);
     request.setJsonEntity(
         """
@@ -170,7 +172,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
    * Creates secure_logs index with mixed security levels. This index contains documents with
    * different security_level values to test row-level filtering.
    */
-  private void createSecureLogsIndex() throws IOException {
+  private void createSecureLogsIndex() throws IOException, ParseException {
     Request request = new Request("PUT", "/" + SECURE_LOGS);
     request.setJsonEntity(
         """
@@ -194,7 +196,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   }
 
   /** Bulk inserts documents to trigger background scanning. */
-  private void bulkInsertDocs(String indexName, String prefix) throws IOException {
+  private void bulkInsertDocs(String indexName, String prefix) throws IOException, ParseException {
     StringBuilder bulk = new StringBuilder();
     for (int i = 0; i < FGACIndexScanningIT.LARGE_DATASET_SIZE; i++) {
       bulk.append(
@@ -219,10 +221,13 @@ public class FGACIndexScanningIT extends SecurityTestBase {
 
     Response response = client().performRequest(request);
     assertEquals(200, response.getStatusLine().getStatusCode());
+    String body = EntityUtils.toString(response.getEntity());
+    JSONObject json = new JSONObject(body);
+    assertFalse("Bulk indexing reported errors: " + body, json.getBoolean("errors"));
   }
 
   /** Bulk inserts employee records with sensitive fields for FLS testing. */
-  private void bulkInsertEmployeeRecords() throws IOException {
+  private void bulkInsertEmployeeRecords() throws IOException, ParseException {
     String bulk = getBulkEmployeeIndexRequest();
 
     Request request = new Request("POST", "/_bulk");
@@ -235,6 +240,9 @@ public class FGACIndexScanningIT extends SecurityTestBase {
 
     Response response = client().performRequest(request);
     assertEquals(200, response.getStatusLine().getStatusCode());
+    String body = EntityUtils.toString(response.getEntity());
+    JSONObject json = new JSONObject(body);
+    assertFalse("Bulk indexing reported errors: " + body, json.getBoolean("errors"));
   }
 
   @NotNull
@@ -263,7 +271,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   }
 
   /** Bulk inserts documents with different security levels for row-level testing. */
-  private void bulkInsertDocsWithSecurityLevel() throws IOException {
+  private void bulkInsertDocsWithSecurityLevel() throws IOException, ParseException {
     StringBuilder bulk = new StringBuilder();
 
     int publicCount = LARGE_DATASET_SIZE / 2;
@@ -307,6 +315,26 @@ public class FGACIndexScanningIT extends SecurityTestBase {
               i));
     }
 
+    // Add document with null security_level to test DLS behavior with null values
+    bulk.append(
+        String.format(
+            Locale.ROOT,
+            """
+            { "index": { "_index": "%s" } }
+            { "message": "null security level", "security_level": null, "timestamp": "2025-01-01T00:00:00Z" }
+            """,
+            FGACIndexScanningIT.SECURE_LOGS));
+
+    // Add document with missing security_level field to test DLS behavior with missing fields
+    bulk.append(
+        String.format(
+            Locale.ROOT,
+            """
+            { "index": { "_index": "%s" } }
+            { "message": "missing security level", "timestamp": "2025-01-01T00:00:00Z" }
+            """,
+            FGACIndexScanningIT.SECURE_LOGS));
+
     Request request = new Request("POST", "/_bulk");
     request.addParameter("refresh", "true");
     request.setJsonEntity(bulk.toString());
@@ -317,6 +345,9 @@ public class FGACIndexScanningIT extends SecurityTestBase {
 
     Response response = client().performRequest(request);
     assertEquals(200, response.getStatusLine().getStatusCode());
+    String body = EntityUtils.toString(response.getEntity());
+    JSONObject json = new JSONObject(body);
+    assertFalse("Bulk indexing reported errors: " + body, json.getBoolean("errors"));
   }
 
   /** Creates security roles and users for testing. */
@@ -505,25 +536,44 @@ public class FGACIndexScanningIT extends SecurityTestBase {
       throws IOException {
     configureEngine(useCalcite);
     // Verify with large result set that FLS is still enforced
+    // Query all data (not just count) to actually exercise FLS at scale
     String queryLargeDataset =
         String.format(
-            "search source=%s | fields name, salary, department | stats count()", EMPLOYEE_RECORDS);
+            "search source=%s | fields name, salary, department, employee_id", EMPLOYEE_RECORDS);
     JSONObject managerLargeResult = executeQueryAsUser(queryLargeDataset, MANAGER_USER);
 
-    // Even with large dataset, manager should not see ssn
+    // Verify the schema contains allowed fields but not restricted fields
     var largeSchema = managerLargeResult.getJSONArray("schema");
-    boolean hasSSNInLarge = false;
+    boolean hasName = false;
+    boolean hasSalary = false;
+    boolean hasDepartment = false;
+    boolean hasEmployeeId = false;
+    boolean hasSSN = false;
+
     for (int i = 0; i < largeSchema.length(); i++) {
-      if ("ssn".equals(largeSchema.getJSONObject(i).getString("name"))) {
-        hasSSNInLarge = true;
-        break;
-      }
+      String fieldName = largeSchema.getJSONObject(i).getString("name");
+      if ("name".equals(fieldName)) hasName = true;
+      if ("salary".equals(fieldName)) hasSalary = true;
+      if ("department".equals(fieldName)) hasDepartment = true;
+      if ("employee_id".equals(fieldName)) hasEmployeeId = true;
+      if ("ssn".equals(fieldName)) hasSSN = true;
     }
 
+    // Verify allowed fields are present
+    assertTrue("manager_user should see 'name' field in large dataset query", hasName);
+    assertTrue("manager_user should see 'salary' field in large dataset query", hasSalary);
+    assertTrue("manager_user should see 'department' field in large dataset query", hasDepartment);
+    assertTrue("manager_user should see 'employee_id' field in large dataset query", hasEmployeeId);
+
+    // Verify restricted field is NOT present
     assertFalse(
         "SECURITY VIOLATION: manager_user should NOT see 'ssn' even with large dataset. "
             + "Field-level security must be enforced.",
-        hasSSNInLarge);
+        hasSSN);
+
+    // Verify we actually got data back (not just an empty result)
+    var datarows = managerLargeResult.getJSONArray("datarows");
+    assertTrue("Expected to receive data from large dataset query", datarows.length() > 0);
   }
 
   @ParameterizedTest
@@ -544,6 +594,21 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     // Extract the datarows for validation
     var datarows = result.getJSONArray("datarows");
 
+    // Derive column indexes from schema to support both V2 and V3 engines
+    var schema = result.getJSONArray("schema");
+    int countIdx = -1;
+    int levelIdx = -1;
+    for (int i = 0; i < schema.length(); i++) {
+      String name = schema.getJSONObject(i).getString("name");
+      if ("security_level".equals(name)) {
+        levelIdx = i;
+      } else if ("count()".equalsIgnoreCase(name) || "count".equalsIgnoreCase(name)) {
+        countIdx = i;
+      }
+    }
+    assertTrue("Expected count() in schema", countIdx >= 0);
+    assertTrue("Expected security_level in schema", levelIdx >= 0);
+
     // Count total documents visible
     int totalDocs = 0;
     boolean sawConfidential = false;
@@ -552,8 +617,8 @@ public class FGACIndexScanningIT extends SecurityTestBase {
 
     for (int i = 0; i < datarows.length(); i++) {
       var row = datarows.getJSONArray(i);
-      int count = row.getInt(0);
-      String securityLevel = row.getString(1);
+      int count = row.getInt(countIdx);
+      String securityLevel = row.getString(levelIdx);
       totalDocs += count;
 
       if ("confidential".equals(securityLevel)) {
