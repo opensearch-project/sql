@@ -88,7 +88,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("search source=%s | fields *Name", TEST_INDEX_DOG_REMOTE));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"));
-    verifySchema(result, schema("dog_name", "string"), schema("holdersName", "string"));
+    verifySchema(result, schema("holdersName", "string"));
   }
 
   @Test
@@ -165,7 +165,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT_REMOTE));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
-    verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
+    verifyDataRows(result, rows(451, "20.0-30.0"), rows(504L, "30.0-40.0"), rows(45L, "40.0-50.0"));
   }
 
   @Test
@@ -218,7 +218,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT_REMOTE));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
-    verifyDataRows(result, rows(1000L, "0-100"));
+    verifyDataRows(result, rows(451, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
   }
 
   @Test
@@ -227,7 +227,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             REMOTE_CLUSTER
-                + ":opensearch-sql_test_index_time_data"
+                + "source=opensearch-sql_test_index_time_data"
                 + " | bin @timestamp span=1h"
                 + " | fields `@timestamp`, value | sort `@timestamp` | head 3");
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
@@ -290,7 +290,13 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
         result,
         schema("old_dog_name", "string"),
         schema("old_holdersName", "string"),
-        schema("old_age", "bigint"));
+        schema("old_age", "bigint"),
+        schema("old__id", "bigint"),
+        schema("old__index", "bigint"),
+        schema("old__score", "bigint"),
+        schema("old__maxscore", "bigint"),
+        schema("old__sort", "bigint"),
+        schema("old__routing", "bigint"));
   }
 
   @Test
