@@ -450,8 +450,7 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     // NOTE: this IT config discovers only junit5 (jupiter) tests.
     // https://github.com/opensearch-project/sql/issues/1974
     filter {
-        includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
-        includeTestsMatching 'org.opensearch.sql.security.PPLPermissionsIT'
+        includeTestsMatching 'org.opensearch.sql.security.*'
     }
 }
 
