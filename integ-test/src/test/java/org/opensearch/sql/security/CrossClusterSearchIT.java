@@ -13,7 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.opensearch.client.ResponseException;
 
 /** Cross Cluster Search tests to be executed with security plugin. */

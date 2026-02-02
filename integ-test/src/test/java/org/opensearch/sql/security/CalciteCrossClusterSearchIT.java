@@ -14,7 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 /** Cross Cluster Search tests with Calcite enabled for enhanced fields features. */
 public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
