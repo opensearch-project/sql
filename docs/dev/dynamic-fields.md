@@ -7,7 +7,7 @@ The key idea is to map fields that are directly referred in the query to static 
 And most of the command implementation only consider static fields, while very few commands such as join need to handle dynamic fields.
 
 **Key Concepts:**
-- **Field Resolution**: Analyze query and determines which fields need to be mapped to static/dynamic fields.
+- **Field Resolution**: Analyzes query and determines which fields need to be mapped to static/dynamic fields.
 - **Static Fields**: Known fields extracted as individual columns
 - **Dynamic Fields**: Unknown/wildcard-matched fields stored in `_MAP` field
 - **`_MAP` Field**: Special field containing all unmapped fields as a map
@@ -331,5 +331,5 @@ source=logs1
 
 - **Field Resolution**: `core/src/main/java/org/opensearch/sql/ast/analysis/FieldResolutionVisitor.java`
 - **Calcite Integration**: `core/src/main/java/org/opensearch/sql/calcite/CalciteRelNodeVisitor.java`
-- **Dynamic Fields Helper**: `core/src/main/java/org/opensearch/sql/calcite/plan/DynamicFieldsHelper.java`
+- **Dynamic Fields Helper**: `core/src/main/java/org/opensearch/sql/calcite/DynamicFieldsHelper.java`
 - **Integration Tests**: `integ-test/src/test/java/org/opensearch/sql/calcite/remote/CalcitePPLSpathWithJoinIT.java`
