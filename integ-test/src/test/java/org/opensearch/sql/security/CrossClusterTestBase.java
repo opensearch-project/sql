@@ -36,4 +36,10 @@ public class CrossClusterTestBase extends PPLIntegTestCase {
       REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
   protected static final String TEST_INDEX_TIME_DATA_REMOTE =
       REMOTE_CLUSTER + ":" + TEST_INDEX_TIME_DATA;
+
+  @Override
+  protected void init() throws Exception {
+    super.init();
+    configureMultiClusters(REMOTE_CLUSTER);
+  }
 }

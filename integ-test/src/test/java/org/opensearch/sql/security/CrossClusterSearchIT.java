@@ -22,7 +22,6 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
   @Override
   protected void init() throws Exception {
     super.init();
-    configureMultiClusters(REMOTE_CLUSTER);
     loadIndex(Index.BANK);
     loadIndex(Index.BANK, remoteClient());
     loadIndex(Index.DOG);

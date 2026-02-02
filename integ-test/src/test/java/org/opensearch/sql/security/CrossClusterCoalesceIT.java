@@ -10,14 +10,13 @@ import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 public class CrossClusterCoalesceIT extends CrossClusterTestBase {
 
   @Override
   protected void init() throws Exception {
     super.init();
-    configureMultiClusters(REMOTE_CLUSTER);
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
     enableCalcite();
