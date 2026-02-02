@@ -232,10 +232,10 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
     if (cell == null || cell == JSONObject.NULL) {
       return Collections.emptyList();
     }
-    if (cell instanceof JSONArray arr) {
+    if (cell instanceof JSONArray) {
       List<String> out = new ArrayList<>();
-      for (int i = 0; i < arr.length(); i++) {
-        Object v = arr.get(i);
+      for (int i = 0; i < ((JSONArray) cell).length(); i++) {
+        Object v = ((JSONArray) cell).get(i);
         out.add(v == JSONObject.NULL ? null : String.valueOf(v));
       }
       return out;
