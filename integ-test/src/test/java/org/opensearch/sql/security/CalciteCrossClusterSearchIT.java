@@ -8,6 +8,7 @@ package org.opensearch.sql.security;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -41,6 +42,8 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   private static final String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
   private static final String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
   private static final String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
+  private static final String TEST_INDEX_TIME_DATA_REMOTE =
+      REMOTE_CLUSTER + ":" + TEST_INDEX_TIME_DATA;
   private static boolean initialized = false;
 
   @SneakyThrows
@@ -87,7 +90,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   public void testCrossClusterFieldsWildcardSuffix() throws IOException {
     JSONObject result =
         executeQuery(String.format("search source=%s | fields *Name", TEST_INDEX_DOG_REMOTE));
-    verifyColumn(result, columnName("dog_name"), columnName("holdersName"));
+    verifyColumn(result, columnName("holdersName"));
     verifySchema(result, schema("holdersName", "string"));
   }
 
@@ -226,10 +229,10 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     // Time-based binning with span
     JSONObject result =
         executeQuery(
-            REMOTE_CLUSTER
-                + "source=opensearch-sql_test_index_time_data"
-                + " | bin @timestamp span=1h"
-                + " | fields `@timestamp`, value | sort `@timestamp` | head 3");
+            String.format(
+                "source=%s | bin @timestamp span=1h | fields `@timestamp`, value | sort"
+                    + " `@timestamp` | head 3",
+                TEST_INDEX_TIME_DATA_REMOTE));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
 
     // With 1-hour spans
@@ -285,7 +288,16 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("search source=%s | rename * as old_*", TEST_INDEX_DOG_REMOTE));
     verifyColumn(
-        result, columnName("old_dog_name"), columnName("old_holdersName"), columnName("old_age"));
+        result,
+        columnName("old_dog_name"),
+        columnName("old_holdersName"),
+        columnName("old_age"),
+        columnName("old__id"),
+        columnName("old__index"),
+        columnName("old__score"),
+        columnName("old__maxscore"),
+        columnName("old__sort"),
+        columnName("old__routing"));
     verifySchema(
         result,
         schema("old_dog_name", "string"),
