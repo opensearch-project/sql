@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.security;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -17,53 +13,21 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import lombok.SneakyThrows;
 import org.json.JSONObject;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /** Cross Cluster Search tests with Calcite enabled for enhanced fields features. */
-public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
-
-  static {
-    String[] clusterNames = System.getProperty("cluster.names").split(",");
-    var remote = "remoteCluster";
-    for (var cluster : clusterNames) {
-      if (cluster.startsWith("remote")) {
-        remote = cluster;
-        break;
-      }
-    }
-    REMOTE_CLUSTER = remote;
-  }
-
-  public static final String REMOTE_CLUSTER;
-  private static final String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
-  private static final String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
-  private static final String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
-  private static final String TEST_INDEX_TIME_DATA_REMOTE =
-      REMOTE_CLUSTER + ":" + TEST_INDEX_TIME_DATA;
-  private static boolean initialized = false;
-
-  @SneakyThrows
-  @BeforeEach
-  public void initialize() {
-    if (!initialized) {
-      setUpIndices();
-      initialized = true;
-    }
-  }
+public class CalciteCrossClusterSearchIT extends CrossClusterSearchIT {
 
   @Override
   protected void init() throws Exception {
+    super.init();
     configureMultiClusters(REMOTE_CLUSTER);
     loadIndex(Index.BANK);
     loadIndex(Index.BANK, remoteClient());
-    loadIndex(Index.ACCOUNT);
-    loadIndex(Index.ACCOUNT, remoteClient());
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
+    loadIndex(Index.ACCOUNT);
     loadIndex(Index.TIME_TEST_DATA);
     loadIndex(Index.TIME_TEST_DATA, remoteClient());
     enableCalcite();
@@ -303,12 +267,12 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
         schema("old_dog_name", "string"),
         schema("old_holdersName", "string"),
         schema("old_age", "bigint"),
-        schema("old__id", "bigint"),
-        schema("old__index", "bigint"),
-        schema("old__score", "bigint"),
-        schema("old__maxscore", "bigint"),
+        schema("old__id", "string"),
+        schema("old__index", "string"),
+        schema("old__score", "float"),
+        schema("old__maxscore", "float"),
         schema("old__sort", "bigint"),
-        schema("old__routing", "bigint"));
+        schema("old__routing", "string"));
   }
 
   @Test

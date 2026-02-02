@@ -5,50 +5,22 @@
 
 package org.opensearch.sql.security;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 
 import java.io.IOException;
-import lombok.SneakyThrows;
 import org.json.JSONObject;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CrossClusterCoalesceIT extends PPLIntegTestCase {
-
-  static {
-    String[] clusterNames = System.getProperty("cluster.names").split(",");
-    var remote = "remoteCluster";
-    for (var cluster : clusterNames) {
-      if (cluster.startsWith("remote")) {
-        remote = cluster;
-        break;
-      }
-    }
-    REMOTE_CLUSTER = remote;
-  }
-
-  public static final String REMOTE_CLUSTER;
-  private static final String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
-  private static boolean initialized = false;
-
-  @SneakyThrows
-  @BeforeEach
-  public void initialize() {
-    if (!initialized) {
-      setUpIndices();
-      initialized = true;
-    }
-  }
+public class CrossClusterCoalesceIT extends CrossClusterTestBase {
 
   @Override
   protected void init() throws Exception {
-    enableCalcite();
+    super.init();
     configureMultiClusters(REMOTE_CLUSTER);
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
+    enableCalcite();
   }
 
   @Test
