@@ -491,6 +491,125 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMvfindWithMatch() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('apple', 'banana', 'apricot'), result = mvfind(arr,"
+                    + " 'ban.*') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(1));
+  }
+
+  @Test
+  public void testMvfindWithNoMatch() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('cat', 'dog', 'bird'), result = mvfind(arr, 'fish') |"
+                    + " head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows((Object) null));
+  }
+
+  @Test
+  public void testMvfindWithFirstMatch() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('error123', 'info', 'error456'), result ="
+                    + " mvfind(arr, 'err.*') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(0));
+  }
+
+  @Test
+  public void testMvfindWithMultipleMatches() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('test1', 'test2', 'test3'), result = mvfind(arr,"
+                    + " 'test.*') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(0)); // Returns first match at index 0
+  }
+
+  @Test
+  public void testMvfindWithComplexRegex() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('abc123', 'def456', 'ghi789'), result = mvfind(arr,"
+                    + " 'def\\\\d+') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(1));
+  }
+
+  @Test
+  public void testMvfindWithCaseInsensitive() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('Apple', 'Banana', 'Cherry'), result = mvfind(arr,"
+                    + " '(?i)banana') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(1));
+  }
+
+  @Test
+  public void testMvfindWithNumericArray() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(100, 200, 300), result = mvfind(arr, '200') | head 1"
+                    + " | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(1));
+  }
+
+  @Test
+  public void testMvfindWithEmptyArray() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(), result = mvfind(arr, 'test') | head 1 | fields"
+                    + " result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows((Object) null));
+  }
+
+  @Test
+  public void testMvfindWithDynamicRegex() throws IOException {
+    // Test non-literal regex pattern (computed at runtime via concat)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('apple', 'banana', 'apricot'), pattern ="
+                    + " concat('ban', '.*'), result = mvfind(arr, pattern) | head 1 | fields"
+                    + " result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(1));
+  }
+
+  @Test
   public void testMvzipBasic() throws IOException {
     // Basic example from spec: eval nserver=mvzip(hosts,ports)
     JSONObject actual =

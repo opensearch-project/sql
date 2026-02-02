@@ -1147,6 +1147,7 @@ collectionFunctionName
     | MVAPPEND
     | MVJOIN
     | MVINDEX
+    | MVFIND
     | MVDEDUP
     | MVZIP
     | SPLIT
