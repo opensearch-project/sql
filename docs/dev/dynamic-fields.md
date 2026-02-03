@@ -39,7 +39,7 @@ And most of the command implementation only consider static fields, while very f
 5. **DynamicFieldsResultProcessor** (`core/src/main/java/org/opensearch/sql/calcite/utils/DynamicFieldsResultProcessor.java`)
    - Expands `_MAP` field into individual columns before returning results to client
    - Collects all dynamic field names across result rows
-   - Converts dynamic field values to STRING type for consistency
+   - Converts dynamic field values to VARCHAR type for consistency
    - Creates expanded schema with both static and dynamic fields
 
 ## How Dynamic Fields Work
@@ -140,7 +140,7 @@ public static QueryResponse expandDynamicFields(QueryResponse response) {
 1. **Dynamic Field Collection**: Scans all result rows to collect unique field names from `_MAP` fields
 2. **Schema Expansion**: Creates new schema with static fields followed by sorted dynamic fields
 3. **Row Expansion**: For each row, extracts values from `_MAP` and creates individual columns
-4. **Type Conversion**: Converts all dynamic field values to STRING type for consistency
+4. **Type Conversion**: Converts all dynamic field values to VARCHAR type for consistency
 
 **Example:**
 
@@ -161,7 +161,7 @@ After expansion (returned to client):
 **Important Notes:**
 - Dynamic fields are sorted alphabetically in the output schema
 - Missing dynamic fields in a row are filled with NULL values
-- All dynamic field values are converted to STRING type
+- All dynamic field values are converted to VARCHAR type
 - Static fields always appear before dynamic fields in the result
 - The `_MAP` field itself is removed from the final output
 
