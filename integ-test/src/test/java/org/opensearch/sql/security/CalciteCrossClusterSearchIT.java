@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.security;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -16,51 +13,21 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import lombok.SneakyThrows;
 import org.json.JSONObject;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.junit.Test;
 
 /** Cross Cluster Search tests with Calcite enabled for enhanced fields features. */
-public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
-
-  static {
-    String[] clusterNames = System.getProperty("cluster.names").split(",");
-    var remote = "remoteCluster";
-    for (var cluster : clusterNames) {
-      if (cluster.startsWith("remote")) {
-        remote = cluster;
-        break;
-      }
-    }
-    REMOTE_CLUSTER = remote;
-  }
-
-  public static final String REMOTE_CLUSTER;
-  private static final String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
-  private static final String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
-  private static final String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
-  private static boolean initialized = false;
-
-  @SneakyThrows
-  @BeforeEach
-  public void initialize() {
-    if (!initialized) {
-      setUpIndices();
-      initialized = true;
-    }
-  }
+public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
 
   @Override
   protected void init() throws Exception {
-    configureMultiClusters(REMOTE_CLUSTER);
+    super.init();
     loadIndex(Index.BANK);
     loadIndex(Index.BANK, remoteClient());
-    loadIndex(Index.ACCOUNT);
-    loadIndex(Index.ACCOUNT, remoteClient());
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
+    loadIndex(Index.ACCOUNT);
+    loadIndex(Index.ACCOUNT, remoteClient());
     loadIndex(Index.TIME_TEST_DATA);
     loadIndex(Index.TIME_TEST_DATA, remoteClient());
     enableCalcite();
@@ -87,8 +54,8 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   public void testCrossClusterFieldsWildcardSuffix() throws IOException {
     JSONObject result =
         executeQuery(String.format("search source=%s | fields *Name", TEST_INDEX_DOG_REMOTE));
-    verifyColumn(result, columnName("dog_name"), columnName("holdersName"));
-    verifySchema(result, schema("dog_name", "string"), schema("holdersName", "string"));
+    verifyColumn(result, columnName("holdersName"));
+    verifySchema(result, schema("holdersName", "string"));
   }
 
   @Test
@@ -165,7 +132,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT_REMOTE));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
-    verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
+    verifyDataRows(result, rows(451, "20.0-30.0"), rows(504L, "30.0-40.0"), rows(45L, "40.0-50.0"));
   }
 
   @Test
@@ -218,7 +185,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT_REMOTE));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
-    verifyDataRows(result, rows(1000L, "0-100"));
+    verifyDataRows(result, rows(451, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
   }
 
   @Test
@@ -226,10 +193,10 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     // Time-based binning with span
     JSONObject result =
         executeQuery(
-            REMOTE_CLUSTER
-                + ":opensearch-sql_test_index_time_data"
-                + " | bin @timestamp span=1h"
-                + " | fields `@timestamp`, value | sort `@timestamp` | head 3");
+            String.format(
+                "source=%s | bin @timestamp span=1h | fields `@timestamp`, value | sort"
+                    + " `@timestamp` | head 3",
+                TEST_INDEX_TIME_DATA_REMOTE));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
 
     // With 1-hour spans
@@ -285,12 +252,27 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("search source=%s | rename * as old_*", TEST_INDEX_DOG_REMOTE));
     verifyColumn(
-        result, columnName("old_dog_name"), columnName("old_holdersName"), columnName("old_age"));
+        result,
+        columnName("old_dog_name"),
+        columnName("old_holdersName"),
+        columnName("old_age"),
+        columnName("old__id"),
+        columnName("old__index"),
+        columnName("old__score"),
+        columnName("old__maxscore"),
+        columnName("old__sort"),
+        columnName("old__routing"));
     verifySchema(
         result,
         schema("old_dog_name", "string"),
         schema("old_holdersName", "string"),
-        schema("old_age", "bigint"));
+        schema("old_age", "bigint"),
+        schema("old__id", "string"),
+        schema("old__index", "string"),
+        schema("old__score", "float"),
+        schema("old__maxscore", "float"),
+        schema("old__sort", "bigint"),
+        schema("old__routing", "string"));
   }
 
   @Test
@@ -348,5 +330,75 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK_REMOTE));
     verifyDataRows(
         result, rows("Duke Willmington", "u", "vowel=1-1"), rows("Bond", "o", "vowel=1-1"));
+  }
+
+  @Test
+  public void testCrossClusterAddTotals() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s| sort 1 age | fields firstname, age | addtotals age",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Nanette", 28, 28));
+  }
+
+  /** CrossClusterSearchIT Test for addcoltotals. */
+  @Test
+  public void testCrossClusterAddColTotals() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where  firstname='Hattie' or firstname ='Nanette'|fields"
+                    + " firstname,age,balance | addcoltotals age balance",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result, rows("Hattie", 36, 5686), rows("Nanette", 28, 32838), rows(null, 64, 38524));
+  }
+
+  @Test
+  public void testCrossClusterTranspose() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where  firstname='Hattie' or firstname ='Nanette' or"
+                    + " firstname='Dale'|sort firstname desc |fields firstname,age,balance |"
+                    + " transpose 3 column_name='column_names'",
+                TEST_INDEX_BANK_REMOTE));
+
+    verifyDataRows(
+        result,
+        rows("firstname", "Nanette", "Hattie", "Dale"),
+        rows("balance", "32838", "5686", "4180"),
+        rows("age", "28", "36", "33"));
+  }
+
+  @Test
+  public void testCrossClusterAppend() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | stats count() as cnt by gender | append [ search source=%s |"
+                    + " stats count() as cnt ]",
+                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows(3, "F"), rows(4, "M"), rows(7, null));
+  }
+
+  /** CrossClusterSearchIT Test for mvcombine. */
+  @Test
+  public void testCrossClusterMvcombine() throws IOException {
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where firstname='Hattie' or firstname='Nanette' "
+                    + "| fields firstname, age | mvcombine age",
+                TEST_INDEX_BANK_REMOTE));
+
+    verifyColumn(result, columnName("firstname"), columnName("age"));
+
+    verifyDataRows(
+        result,
+        rows("Hattie", new org.json.JSONArray().put(36)),
+        rows("Nanette", new org.json.JSONArray().put(28)));
   }
 }
