@@ -13,7 +13,10 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 
-/** Logical RelNode for graphLookup command. */
+/**
+ * Logical RelNode for graphLookup command. TODO: need to support trim fields and several transpose
+ * rules for this new added RelNode
+ */
 @Getter
 public class LogicalGraphLookup extends GraphLookup {
 

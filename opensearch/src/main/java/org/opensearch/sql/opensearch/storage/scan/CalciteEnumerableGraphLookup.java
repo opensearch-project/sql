@@ -32,6 +32,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rel.GraphLookup;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
@@ -112,6 +113,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
     return super.computeSelfCost(planner, mq);
   }
 
+  // TODO: support non-scannable inputs
   @Override
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     PhysType physType =
@@ -260,6 +262,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         for (Object row : forwardResults) {
           Object[] rowArray = (Object[]) (row);
           Object nextValue = rowArray[connectFromIdx];
+          if (graphLookup.bidirectional && visited.contains(nextValue)) {
+            nextValue = rowArray[connectToIdx];
+          }
           if (!visited.contains(nextValue)) {
             if (graphLookup.depthField != null) {
               Object[] rowWithDepth = new Object[rowArray.length + 1];
@@ -273,32 +278,6 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
             if (nextValue != null) {
               visited.add(nextValue);
               queue.offer(nextValue);
-            }
-          }
-        }
-
-        // Bidirectional: also query reverse direction
-        if (graphLookup.bidirectional) {
-          List<Object> reverseResults = queryLookupTable(currentLevelValues);
-
-          for (Object row : reverseResults) {
-            Object[] rowArray = (Object[]) (row);
-            Object nextValue = rowArray[connectFromIdx];
-            if (!visited.contains(nextValue)) {
-              visited.add(nextValue);
-              if (graphLookup.depthField != null) {
-                Object[] rowWithDepth = new Object[rowArray.length + 1];
-                System.arraycopy(rowArray, 0, rowWithDepth, 0, rowArray.length);
-                rowWithDepth[rowArray.length] = currentLevelDepth;
-                results.add(rowWithDepth);
-              } else {
-                results.add(rowArray);
-              }
-
-              if (nextValue != null) {
-                visited.add(nextValue);
-                queue.offer(nextValue);
-              }
             }
           }
         }
@@ -320,16 +299,26 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         return List.of();
       }
 
-      var fieldExpression =
+      NamedFieldExpression toFieldExpression =
           new NamedFieldExpression(
               connectToIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes());
-      QueryBuilder query = termsQuery(fieldExpression.getReferenceForTermQuery(), values);
+      QueryBuilder query = termsQuery(toFieldExpression.getReferenceForTermQuery(), values);
+      if (graphLookup.bidirectional) {
+        NamedFieldExpression fromFieldExpression =
+            new NamedFieldExpression(
+                connectFromIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes());
+        query =
+            QueryBuilders.boolQuery()
+                .should(query)
+                .should(termsQuery(fromFieldExpression.getReferenceForTermQuery(), values));
+      }
       CalciteEnumerableIndexScan newScan = (CalciteEnumerableIndexScan) this.lookupScan.copy();
+      QueryBuilder finalQuery = query;
       newScan.pushDownContext.add(
           PushDownType.FILTER,
           null,
           (OSRequestBuilderAction)
-              requestBuilder -> requestBuilder.pushDownFilterForCalcite(query));
+              requestBuilder -> requestBuilder.pushDownFilterForCalcite(finalQuery));
       Iterator<@Nullable Object> res = newScan.scan().iterator();
       List<Object> results = new ArrayList<>();
       while (res.hasNext()) {
