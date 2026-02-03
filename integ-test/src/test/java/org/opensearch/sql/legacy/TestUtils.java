@@ -46,10 +46,26 @@ public class TestUtils {
    */
   public static void createIndexByRestClient(RestClient client, String indexName, String mapping) {
     Request request = new Request("PUT", "/" + indexName);
-    if (!isNullOrEmpty(mapping)) {
-      request.setJsonEntity(mapping);
-    }
+    JSONObject jsonObject = isNullOrEmpty(mapping) ? new JSONObject() : new JSONObject(mapping);
+    setZeroReplicas(jsonObject);
+    request.setJsonEntity(jsonObject.toString());
     performRequest(client, request);
+  }
+
+  /**
+   * Sets number_of_replicas to 0 in the index settings. This prevents tests from hanging on
+   * single-node clusters when using wait_for_active_shards=all.
+   *
+   * @param jsonObject the index creation JSON object to modify
+   */
+  private static void setZeroReplicas(JSONObject jsonObject) {
+    JSONObject settings =
+        jsonObject.has("settings") ? jsonObject.getJSONObject("settings") : new JSONObject();
+    JSONObject indexSettings =
+        settings.has("index") ? settings.getJSONObject("index") : new JSONObject();
+    indexSettings.put("number_of_replicas", 0);
+    settings.put("index", indexSettings);
+    jsonObject.put("settings", settings);
   }
 
   /**
