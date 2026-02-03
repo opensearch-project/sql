@@ -1,0 +1,8 @@
+{"index":{"_id":"1"}}
+{"name":"Tanya Jordan","friends":["Shirley Soto","Terry Hawkins"],"hobbies":["tennis","reading"]}
+{"index":{"_id":"2"}}
+{"name":"Shirley Soto","friends":["Tanya Jordan","Terry Hawkins"],"hobbies":["golf","reading"]}
+{"index":{"_id":"3"}}
+{"name":"Terry Hawkins","friends":["Tanya Jordan","Shirley Soto"],"hobbies":["tennis","golf"]}
+{"index":{"_id":"4"}}
+{"name":"Brad Green","friends":["Shirley Soto"],"hobbies":["reading"]}

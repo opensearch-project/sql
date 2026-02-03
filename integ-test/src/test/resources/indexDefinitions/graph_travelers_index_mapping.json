@@ -1,0 +1,15 @@
+{
+  "mappings": {
+    "properties": {
+      "name": {
+        "type": "keyword"
+      },
+      "friends": {
+        "type": "keyword"
+      },
+      "hobbies": {
+        "type": "keyword"
+      }
+    }
+  }
+}

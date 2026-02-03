@@ -851,6 +851,22 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "duplication_nullable",
         getDuplicationNullableIndexMapping(),
         "src/test/resources/duplication_nullable.json"),
+    // Graph lookup test indices (inspired by MongoDB $graphLookup examples)
+    GRAPH_EMPLOYEES(
+        TestsConstants.TEST_INDEX_GRAPH_EMPLOYEES,
+        "graph_employees",
+        getGraphEmployeesIndexMapping(),
+        "src/test/resources/graph_employees.json"),
+    GRAPH_TRAVELERS(
+        TestsConstants.TEST_INDEX_GRAPH_TRAVELERS,
+        "graph_travelers",
+        getGraphTravelersIndexMapping(),
+        "src/test/resources/graph_travelers.json"),
+    GRAPH_AIRPORTS(
+        TestsConstants.TEST_INDEX_GRAPH_AIRPORTS,
+        "graph_airports",
+        getGraphAirportsIndexMapping(),
+        "src/test/resources/graph_airports.json"),
     TPCH_ORDERS(
         "orders",
         "tpch",

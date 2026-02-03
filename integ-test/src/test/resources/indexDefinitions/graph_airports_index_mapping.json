@@ -1,0 +1,12 @@
+{
+  "mappings": {
+    "properties": {
+      "airport": {
+        "type": "keyword"
+      },
+      "connects": {
+        "type": "keyword"
+      }
+    }
+  }
+}
