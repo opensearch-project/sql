@@ -4,8 +4,8 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.5.0
 
 ### Features
 
-* Feature/mvcombine ([#5025](https://github.com/opensearch-project/sql/pull/5025))
 * Implement spath command with field resolution ([#5028](https://github.com/opensearch-project/sql/pull/5028))
+* Feature/mvcombine ([#5025](https://github.com/opensearch-project/sql/pull/5025))
 * [Feature] implement transpose command as in the roadmap #4786 ([#5011](https://github.com/opensearch-project/sql/pull/5011))
 
 ### Enhancements
