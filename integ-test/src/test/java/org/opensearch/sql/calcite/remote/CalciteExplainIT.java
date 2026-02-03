@@ -2578,4 +2578,37 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_filter_query_string_with_boolean_not_true.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
+
+  @Test
+  public void testFilterBooleanFieldOnlyTrue() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test single boolean filter without query_string
+    String query =
+        StringUtils.format("source=%s | where male = true | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_boolean_only_true.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldOnlyFalse() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test single boolean filter with false value without query_string
+    String query =
+        StringUtils.format("source=%s | where male = false | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_boolean_only_false.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldOnlyNotTrue() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test single NOT boolean filter without query_string
+    String query =
+        StringUtils.format("source=%s | where NOT male = true | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_boolean_only_not_true.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
 }
