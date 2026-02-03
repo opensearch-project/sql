@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.plan.rel;
 
 import java.util.List;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -42,9 +43,11 @@ public abstract class GraphLookup extends BiRel {
   protected final String connectFromField; // Field in lookup table (edge source)
   protected final String connectToField; // Field in lookup table (edge target)
   protected final String outputField; // Name of output array field
-  protected final String depthField; // Name of output array field
+  @Nullable protected final String depthField; // Name of output array field
   protected final int maxDepth; // -1 = unlimited
   protected final boolean bidirectional;
+
+  private RelDataType outputRowType;
 
   /**
    * Creates a LogicalGraphLookup.
@@ -70,7 +73,7 @@ public abstract class GraphLookup extends BiRel {
       String connectFromField,
       String connectToField,
       String outputField,
-      String depthField,
+      @Nullable String depthField,
       int maxDepth,
       boolean bidirectional) {
     super(cluster, traitSet, source, lookup);
@@ -98,27 +101,30 @@ public abstract class GraphLookup extends BiRel {
 
   @Override
   protected RelDataType deriveRowType() {
-    // Output = source fields + output array field
-    RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
+    if (outputRowType == null) {
+      // Output = source fields + output array field
+      RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
 
-    // Add all source fields
-    for (var field : getSource().getRowType().getFieldList()) {
-      builder.add(field);
+      // Add all source fields
+      for (var field : getSource().getRowType().getFieldList()) {
+        builder.add(field);
+      }
+
+      // Add output field (ARRAY type containing lookup row struct)
+      RelDataType lookupRowType = getLookup().getRowType();
+      if (this.depthField != null) {
+        final RelDataTypeFactory.Builder lookupBuilder = getCluster().getTypeFactory().builder();
+        lookupBuilder.addAll(lookupRowType.getFieldList());
+        RelDataType depthType = getCluster().getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+        lookupBuilder.add(this.depthField, depthType);
+        lookupRowType = lookupBuilder.build();
+      }
+      RelDataType arrayType = getCluster().getTypeFactory().createArrayType(lookupRowType, -1);
+      builder.add(outputField, arrayType);
+
+      outputRowType = builder.build();
     }
-
-    // Add output field (ARRAY type containing lookup row struct)
-    RelDataType lookupRowType = getLookup().getRowType();
-    if (this.depthField != null) {
-      final RelDataTypeFactory.Builder lookupBuilder = getCluster().getTypeFactory().builder();
-      lookupBuilder.addAll(lookupRowType.getFieldList());
-      RelDataType depthType = getCluster().getTypeFactory().createSqlType(SqlTypeName.INTEGER);
-      lookupBuilder.add(this.depthField, depthType);
-      lookupRowType = lookupBuilder.build();
-    }
-    RelDataType arrayType = getCluster().getTypeFactory().createArrayType(lookupRowType, -1);
-    builder.add(outputField, arrayType);
-
-    return builder.build();
+    return outputRowType;
   }
 
   @Override

@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.plan.rel;
 
 import java.util.List;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -39,7 +40,7 @@ public class LogicalGraphLookup extends GraphLookup {
       String connectFromField,
       String connectToField,
       String outputField,
-      String depthField,
+      @Nullable String depthField,
       int maxDepth,
       boolean bidirectional) {
     super(
@@ -77,7 +78,7 @@ public class LogicalGraphLookup extends GraphLookup {
       String connectFromField,
       String connectToField,
       String outputField,
-      String depthField,
+      @Nullable String depthField,
       int maxDepth,
       boolean bidirectional) {
     RelOptCluster cluster = source.getCluster();

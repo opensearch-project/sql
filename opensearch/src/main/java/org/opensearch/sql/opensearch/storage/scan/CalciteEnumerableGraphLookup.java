@@ -233,27 +233,20 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
       List<Object> results = new ArrayList<>();
       Set<Object> visited = new HashSet<>();
-      Queue<BfsNode> queue = new ArrayDeque<>();
+      Queue<Object> queue = new ArrayDeque<>();
 
       // Initialize BFS with start value
-      queue.offer(new BfsNode(startValue, -1));
+      queue.offer(startValue);
       visited.add(startValue);
 
+      int currentLevelDepth = 0;
       while (!queue.isEmpty()) {
         // Collect all values at current level for batch query
         List<Object> currentLevelValues = new ArrayList<>();
-        List<Integer> currentLevelDepths = new ArrayList<>();
 
         while (!queue.isEmpty()) {
-          BfsNode node = queue.poll();
-
-          // Check depth limit before processing
-          if (graphLookup.maxDepth > 0 && node.depth >= graphLookup.maxDepth) {
-            continue;
-          }
-
-          currentLevelValues.add(node.value);
-          currentLevelDepths.add(node.depth);
+          Object value = queue.poll();
+          currentLevelValues.add(value);
         }
 
         if (currentLevelValues.isEmpty()) {
@@ -268,13 +261,10 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
           Object[] rowArray = (Object[]) (row);
           Object nextValue = rowArray[connectFromIdx];
           if (!visited.contains(nextValue)) {
-            int depth =
-                currentLevelDepths.get(0) + 1; // Simplified; in production track per-value depth
-
             if (graphLookup.depthField != null) {
               Object[] rowWithDepth = new Object[rowArray.length + 1];
               System.arraycopy(rowArray, 0, rowWithDepth, 0, rowArray.length);
-              rowWithDepth[rowArray.length] = depth;
+              rowWithDepth[rowArray.length] = currentLevelDepth;
               results.add(rowWithDepth);
             } else {
               results.add(rowArray);
@@ -282,7 +272,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
             if (nextValue != null) {
               visited.add(nextValue);
-              queue.offer(new BfsNode(nextValue, depth));
+              queue.offer(nextValue);
             }
           }
         }
@@ -296,12 +286,10 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
             Object nextValue = rowArray[connectFromIdx];
             if (!visited.contains(nextValue)) {
               visited.add(nextValue);
-              int depth = currentLevelDepths.get(0) + 1;
-
               if (graphLookup.depthField != null) {
                 Object[] rowWithDepth = new Object[rowArray.length + 1];
                 System.arraycopy(rowArray, 0, rowWithDepth, 0, rowArray.length);
-                rowWithDepth[rowArray.length] = depth;
+                rowWithDepth[rowArray.length] = currentLevelDepth;
                 results.add(rowWithDepth);
               } else {
                 results.add(rowArray);
@@ -309,11 +297,13 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
               if (nextValue != null) {
                 visited.add(nextValue);
-                queue.offer(new BfsNode(nextValue, depth));
+                queue.offer(nextValue);
               }
             }
           }
         }
+
+        if (++currentLevelDepth > graphLookup.maxDepth) break;
       }
 
       return results;
@@ -359,7 +349,4 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       sourceEnumerator.close();
     }
   }
-
-  /** Simple record to track BFS nodes with their depth. */
-  private record BfsNode(Object value, int depth) {}
 }
