@@ -81,7 +81,7 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
     // Test graphLookup with bidirectional traversal
     String ppl =
         "source=employee | graphLookup employee connectFromField=reportsTo connectToField=name"
-            + " direction=bio as reportingHierarchy";
+            + " direction=bi as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     org.junit.Assert.assertNotNull(root);

@@ -644,6 +644,46 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testGraphLookup() {
+    // Basic graphLookup with required parameters
+    assertEquals(
+        "source=table | graphlookup table connectFromField=identifier connectToField=identifier"
+            + " direction=uni as identifier",
+        anonymize(
+            "source=t | graphLookup employees connectFromField=manager connectToField=name"
+                + " as reportingHierarchy"));
+    // graphLookup with maxDepth
+    assertEquals(
+        "source=table | graphlookup table connectFromField=identifier connectToField=identifier"
+            + " maxDepth=*** direction=uni as identifier",
+        anonymize(
+            "source=t | graphLookup employees connectFromField=manager connectToField=name"
+                + " maxDepth=3 as reportingHierarchy"));
+    // graphLookup with depthField
+    assertEquals(
+        "source=table | graphlookup table connectFromField=identifier connectToField=identifier"
+            + " depthField=identifier direction=uni as identifier",
+        anonymize(
+            "source=t | graphLookup employees connectFromField=manager connectToField=name"
+                + " depthField=level as reportingHierarchy"));
+    // graphLookup with bidirectional mode
+    assertEquals(
+        "source=table | graphlookup table connectFromField=identifier connectToField=identifier"
+            + " direction=bi as identifier",
+        anonymize(
+            "source=t | graphLookup employees connectFromField=manager connectToField=name"
+                + " direction=bi as reportingHierarchy"));
+    // graphLookup with all optional parameters
+    assertEquals(
+        "source=table | graphlookup table startwith=identifier connectFromField=identifier"
+            + " connectToField=identifier maxDepth=*** depthField=identifier direction=bi"
+            + " as identifier",
+        anonymize(
+            "source=t | graphLookup employees connectFromField=manager connectToField=name"
+                + " startWith=id maxDepth=5 depthField=level direction=bi as reportingHierarchy"));
+  }
+
+  @Test
   public void testInSubquery() {
     assertEquals(
         "source=table | where (identifier) in [ source=table | fields + identifier ] | fields +"

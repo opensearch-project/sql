@@ -1666,7 +1666,7 @@ public class AstBuilderTest {
     // graphLookup with startWith filter
     assertEqual(
         "source=t | graphLookup employees connectFromField=manager connectToField=name"
-            + " startWith='hello' as reportingHierarchy",
+            + " startWith=id as reportingHierarchy",
         GraphLookup.builder()
             .child(relation("t"))
             .fromTable(relation("employees"))
@@ -1674,7 +1674,7 @@ public class AstBuilderTest {
             .connectToField(field("name"))
             .as(field("reportingHierarchy"))
             .maxDepth(intLiteral(0))
-            .startWith(stringLiteral("hello"))
+            .startWith(field("id"))
             .depthField(null)
             .direction(GraphLookup.Direction.UNI)
             .build());
@@ -1682,7 +1682,7 @@ public class AstBuilderTest {
     // graphLookup with depthField and bidirectional
     assertEqual(
         "source=t | graphLookup employees connectFromField=manager connectToField=name"
-            + " depthField=level direction=bio as reportingHierarchy",
+            + " depthField=level direction=bi as reportingHierarchy",
         GraphLookup.builder()
             .child(relation("t"))
             .fromTable(relation("employees"))
@@ -1692,7 +1692,7 @@ public class AstBuilderTest {
             .maxDepth(intLiteral(0))
             .startWith(null)
             .depthField(field("level"))
-            .direction(GraphLookup.Direction.BIO)
+            .direction(GraphLookup.Direction.BI)
             .build());
 
     // Error: missing connectFromField - SemanticCheckException thrown by AstBuilder
@@ -1700,7 +1700,7 @@ public class AstBuilderTest {
         SemanticCheckException.class,
         () ->
             plan(
-                "source=t | graphLookup employees connectToField=name startWith='hello' as"
+                "source=t | graphLookup employees connectToField=name startWith=id as"
                     + " reportingHierarchy"));
 
     // Error: missing lookup table - SyntaxCheckException from grammar
