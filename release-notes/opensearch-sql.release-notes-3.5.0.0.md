@@ -74,3 +74,4 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.5.0
 * Remove shadow jar task from build file ([#4955](https://github.com/opensearch-project/sql/pull/4955))
 * Add Frequently Used Big5 PPL Queries ([#4976](https://github.com/opensearch-project/sql/pull/4976))
 * Increment version to 3.5.0 ([#5040](https://github.com/opensearch-project/sql/pull/5040))
+* Upgrade assertj-core to 3.27.7 ([#5100](https://github.com/opensearch-project/sql/pull/5100))
