@@ -67,6 +67,10 @@ public class GraphLookup extends UnresolvedPlan {
 
   private UnresolvedPlan child;
 
+  public String getDepthFieldName() {
+    return depthField == null ? null : depthField.toString();
+  }
+
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
     this.child = child;

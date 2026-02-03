@@ -2588,7 +2588,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     String connectFromFieldName = node.getConnectFromField().getField().toString();
     String connectToFieldName = node.getConnectToField().getField().toString();
     String outputFieldName = node.getAs().getField().toString();
-    String depthFieldName = node.getDepthField().toString();
+    String depthFieldName = node.getDepthFieldName();
     boolean bidirectional = node.getDirection() == Direction.BI;
 
     RexLiteral maxDepthNode = (RexLiteral) rexVisitor.analyze(node.getMaxDepth(), context);

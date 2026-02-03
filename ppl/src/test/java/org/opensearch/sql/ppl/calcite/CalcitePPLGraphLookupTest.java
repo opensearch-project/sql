@@ -43,49 +43,68 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupBasic() {
     // Test basic graphLookup with same source and lookup table
     String ppl =
-        "source=employee | graphLookup employee connectFromField=reportsTo connectToField=name"
-            + " as reportingHierarchy";
+        "source=employee | graphLookup employee startWith=reportsTo connectFromField=reportsTo"
+            + " connectToField=name as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
-    // Verify it produces a valid logical plan (actual plan structure depends on implementation)
-    org.junit.Assert.assertNotNull(root);
-    System.out.println("Logical plan:\n" + root.explain());
+    String expectedLogical =
+        "LogicalGraphLookup(connectFromField=[reportsTo], connectToField=[name],"
+            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[-1],"
+            + " bidirectional=[false])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
   public void testGraphLookupWithDepthField() {
     // Test graphLookup with depthField parameter
     String ppl =
-        "source=employee | graphLookup employee connectFromField=reportsTo connectToField=name"
-            + " depthField=level as reportingHierarchy";
+        "source=employee | graphLookup employee startWith=reportsTo connectFromField=reportsTo"
+            + " connectToField=name depthField=level as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
-    org.junit.Assert.assertNotNull(root);
-    System.out.println("Logical plan with depthField:\n" + root.explain());
+    String expectedLogical =
+        "LogicalGraphLookup(connectFromField=[reportsTo], connectToField=[name],"
+            + " outputField=[reportingHierarchy], depthField=[Field(field=level, fieldArgs=[])],"
+            + " maxDepth=[-1], bidirectional=[false])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
   public void testGraphLookupWithMaxDepth() {
     // Test graphLookup with maxDepth parameter
     String ppl =
-        "source=employee | graphLookup employee connectFromField=reportsTo connectToField=name"
-            + " maxDepth=3 as reportingHierarchy";
+        "source=employee | graphLookup employee startWith=reportsTo connectFromField=reportsTo"
+            + " connectToField=name maxDepth=3 as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
-    org.junit.Assert.assertNotNull(root);
-    System.out.println("Logical plan with maxDepth:\n" + root.explain());
+    String expectedLogical =
+        "LogicalGraphLookup(connectFromField=[reportsTo], connectToField=[name],"
+            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[3],"
+            + " bidirectional=[false])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
   public void testGraphLookupBidirectional() {
     // Test graphLookup with bidirectional traversal
     String ppl =
-        "source=employee | graphLookup employee connectFromField=reportsTo connectToField=name"
-            + " direction=bi as reportingHierarchy";
+        "source=employee | graphLookup employee startWith=reportsTo connectFromField=reportsTo"
+            + " connectToField=name direction=bi as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
-    org.junit.Assert.assertNotNull(root);
-    System.out.println("Logical plan bidirectional:\n" + root.explain());
+    String expectedLogical =
+        "LogicalGraphLookup(connectFromField=[reportsTo], connectToField=[name],"
+            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[-1],"
+            + " bidirectional=[true])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Override

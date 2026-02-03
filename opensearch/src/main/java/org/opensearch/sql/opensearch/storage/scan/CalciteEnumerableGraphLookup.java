@@ -233,6 +233,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         return List.of();
       }
 
+      // TODO: support spillable for these collections
       List<Object> results = new ArrayList<>();
       Set<Object> visited = new HashSet<>();
       Queue<Object> queue = new ArrayDeque<>();

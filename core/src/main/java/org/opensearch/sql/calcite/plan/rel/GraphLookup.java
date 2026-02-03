@@ -44,6 +44,8 @@ public abstract class GraphLookup extends BiRel {
   protected final String connectToField; // Field in lookup table (edge target)
   protected final String outputField; // Name of output array field
   @Nullable protected final String depthField; // Name of output array field
+
+  //TODO: add limitation on the maxDepth and input rows count
   protected final int maxDepth; // -1 = unlimited
   protected final boolean bidirectional;
 
