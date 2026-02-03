@@ -272,7 +272,9 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
    * cluster.
    */
   public void configureMultiClusters(String remote) throws IOException {
-    initRemoteClient(remote);
+    if (remoteClient == null) {
+      initRemoteClient(remote);
+    }
 
     Request connectionRequest = new Request("PUT", "_cluster/settings");
     String connectionSetting =
