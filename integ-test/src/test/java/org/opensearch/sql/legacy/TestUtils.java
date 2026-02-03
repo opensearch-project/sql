@@ -53,8 +53,9 @@ public class TestUtils {
   }
 
   /**
-   * Sets number_of_replicas to 0 in the index settings. This prevents tests from hanging on
-   * single-node clusters when using wait_for_active_shards=all.
+   * Sets number_of_replicas to 0 in the index settings. This makes multi-node behavior consistent
+   * (<a href="https://github.com/opensearch-project/sql/issues/4261">4261</a>) and prevents tests
+   * from hanging on single-node clusters when using wait_for_active_shards=all.
    *
    * @param jsonObject the index creation JSON object to modify
    */
