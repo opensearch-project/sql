@@ -99,7 +99,8 @@ public class TestUtils {
   public static void loadDataByRestClient(
       RestClient client, String indexName, String dataSetFilePath) throws IOException {
     Path path = Paths.get(getResourceFilePath(dataSetFilePath));
-    Request request = new Request("POST", "/" + indexName + "/_bulk?refresh=true");
+    Request request =
+        new Request("POST", "/" + indexName + "/_bulk?refresh=wait_for&wait_for_active_shards=all");
     request.setJsonEntity(new String(Files.readAllBytes(path)));
     performRequest(client, request);
   }
