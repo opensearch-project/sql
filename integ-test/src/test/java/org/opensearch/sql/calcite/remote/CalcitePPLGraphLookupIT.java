@@ -28,7 +28,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  *
  * <ul>
  *   <li>graph_employees: Employee hierarchy (Dev->Eliot->Ron->Andrew, Asya->Ron, Dan->Andrew)
- *   <li>graph_travelers: Social network with friends connections
+ *   <li>graph_travelers: Travelers with nearest airport (Dev->JFK, Eliot->JFK, Jeff->BOS)
  *   <li>graph_airports: Airport connections (JFK, BOS, ORD, PWM, LHR)
  * </ul>
  *
@@ -166,110 +166,10 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     verifyDataRows(result, rows("Dev", "Eliot", 1, List.of("{Eliot, Ron, 2}")));
   }
 
-  // ==================== Social Network (Travelers) Tests ====================
-
-  /**
-   * Test 5: Find all friends (direct and indirect) for travelers. Note: Currently returns empty
-   * socialNetwork arrays because the friends field is an array type, which the current
-   * implementation doesn't fully traverse.
-   */
-  @Test
-  public void testTravelersFriendsNetwork() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s"
-                    + " | graphLookup %s"
-                    + " startField=friends"
-                    + " fromField=friends"
-                    + " toField=name"
-                    + " as socialNetwork",
-                TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_TRAVELERS));
-
-    verifySchema(
-        result,
-        schema("name", "string"),
-        schema("hobbies", "string"),
-        schema("friends", "string"),
-        schema("socialNetwork", "array"));
-    verifyDataRows(
-        result,
-        rows(
-            "Tanya Jordan",
-            List.of("tennis", "reading"),
-            List.of("Shirley Soto", "Terry Hawkins"),
-            Collections.emptyList()),
-        rows(
-            "Shirley Soto",
-            List.of("golf", "reading"),
-            List.of("Tanya Jordan", "Terry Hawkins"),
-            Collections.emptyList()),
-        rows(
-            "Terry Hawkins",
-            List.of("tennis", "golf"),
-            List.of("Tanya Jordan", "Shirley Soto"),
-            Collections.emptyList()),
-        rows("Brad Green", List.of("reading"), List.of("Shirley Soto"), Collections.emptyList()));
-  }
-
-  /** Test 6: Brad Green's friends network with maxDepth=1. */
-  @Test
-  public void testTravelersFriendsWithMaxDepth() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s"
-                    + " | where name = 'Brad Green'"
-                    + " | graphLookup %s"
-                    + " startField=friends"
-                    + " fromField=friends"
-                    + " toField=name"
-                    + " maxDepth=1"
-                    + " as socialNetwork",
-                TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_TRAVELERS));
-
-    verifySchema(
-        result,
-        schema("name", "string"),
-        schema("hobbies", "string"),
-        schema("friends", "string"),
-        schema("socialNetwork", "array"));
-    verifyDataRows(
-        result,
-        rows("Brad Green", List.of("reading"), List.of("Shirley Soto"), Collections.emptyList()));
-  }
-
-  /** Test 7: Find friends network with depth tracking. */
-  @Test
-  public void testTravelersFriendsWithDepthField() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s"
-                    + " | where name = 'Brad Green'"
-                    + " | graphLookup %s"
-                    + " startField=friends"
-                    + " fromField=friends"
-                    + " toField=name"
-                    + " depthField=connectionLevel"
-                    + " as socialNetwork",
-                TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_TRAVELERS));
-
-    verifySchema(
-        result,
-        schema("name", "string"),
-        schema("hobbies", "string"),
-        schema("friends", "string"),
-        schema("socialNetwork", "array"));
-    verifyDataRows(
-        result,
-        rows("Brad Green", List.of("reading"), List.of("Shirley Soto"), Collections.emptyList()));
-  }
-
   // ==================== Airport Connections Tests ====================
 
   /**
-   * Test 8: Find all reachable airports from each airport. Note: Currently returns empty
+   * Test 5: Find all reachable airports from each airport. Note: Currently returns empty
    * reachableAirports arrays because the connects field is an array type, which the current
    * implementation doesn't fully traverse.
    */
@@ -300,7 +200,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         rows("LHR", List.of("PWM"), Collections.emptyList()));
   }
 
-  /** Test 9: Find airports reachable from JFK within maxDepth=1. */
+  /** Test 6: Find airports reachable from JFK within maxDepth=1. */
   @Test
   public void testAirportConnectionsWithMaxDepth() throws IOException {
     JSONObject result =
@@ -324,7 +224,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     verifyDataRows(result, rows("JFK", List.of("BOS", "ORD"), Collections.emptyList()));
   }
 
-  /** Test 10: Find airports with hop count tracked. */
+  /** Test 7: Find airports with hop count tracked. */
   @Test
   public void testAirportConnectionsWithDepthField() throws IOException {
     JSONObject result =
@@ -346,6 +246,89 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("connects", "string"),
         schema("reachableAirports", "array"));
     verifyDataRows(result, rows("JFK", List.of("BOS", "ORD"), Collections.emptyList()));
+  }
+
+  /**
+   * Test 8: Find reachable airports for all travelers. Uses travelers as source and airports as
+   * lookup table, with nearestAirport as the starting point for graph traversal.
+   */
+  @Test
+  public void testTravelersReachableAirports() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + " | graphLookup %s"
+                    + " startField=nearestAirport"
+                    + " fromField=connects"
+                    + " toField=airport"
+                    + " as reachableAirports",
+                TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_AIRPORTS));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("nearestAirport", "string"),
+        schema("reachableAirports", "array"));
+    verifyDataRows(
+        result,
+        rows("Dev", "JFK", List.of("{JFK, [BOS, ORD]}")),
+        rows("Eliot", "JFK", List.of("{JFK, [BOS, ORD]}")),
+        rows("Jeff", "BOS", List.of("{BOS, [JFK, PWM]}")));
+  }
+
+  /**
+   * Test 9: Find reachable airports for a specific traveler (Dev at JFK) with depth tracking.
+   * Traverses from JFK through connected airports.
+   */
+  @Test
+  public void testTravelerReachableAirportsWithDepthField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + " | where name = 'Dev'"
+                    + " | graphLookup %s"
+                    + " startField=nearestAirport"
+                    + " fromField=connects"
+                    + " toField=airport"
+                    + " depthField=hops"
+                    + " as reachableAirports",
+                TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_AIRPORTS));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("nearestAirport", "string"),
+        schema("reachableAirports", "array"));
+    verifyDataRows(result, rows("Dev", "JFK", List.of("{JFK, [BOS, ORD], 0}")));
+  }
+
+  /**
+   * Test 10: Find reachable airports for Jeff (at BOS) with maxDepth=1. Finds BOS record as the
+   * starting point and traverses one level to connected airports.
+   */
+  @Test
+  public void testTravelerReachableAirportsWithMaxDepth() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + " | where name = 'Jeff'"
+                    + " | graphLookup %s"
+                    + " startField=nearestAirport"
+                    + " fromField=connects"
+                    + " toField=airport"
+                    + " maxDepth=1"
+                    + " as reachableAirports",
+                TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_AIRPORTS));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("nearestAirport", "string"),
+        schema("reachableAirports", "array"));
+    verifyDataRows(result, rows("Jeff", "BOS", List.of("{BOS, [JFK, PWM]}")));
   }
 
   // ==================== Bidirectional Traversal Tests ====================

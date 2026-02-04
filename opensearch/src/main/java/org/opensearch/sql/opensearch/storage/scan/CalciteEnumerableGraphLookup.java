@@ -273,6 +273,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         for (Object row : forwardResults) {
           Object[] rowArray = (Object[]) (row);
           Object nextValue = rowArray[fromFieldIdx];
+          // Note that nextValue may be a list
           if (graphLookup.bidirectional && visited.contains(nextValue)) {
             nextValue = rowArray[toFieldIdx];
           }

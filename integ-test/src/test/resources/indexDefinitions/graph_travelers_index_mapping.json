@@ -4,10 +4,7 @@
       "name": {
         "type": "keyword"
       },
-      "friends": {
-        "type": "keyword"
-      },
-      "hobbies": {
+      "nearestAirport": {
         "type": "keyword"
       }
     }
