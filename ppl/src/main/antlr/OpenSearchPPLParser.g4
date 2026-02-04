@@ -1691,11 +1691,11 @@ searchableKeyWord
    | ROW
    | COL
    | COLUMN_NAME
-   | CONNECT_FROM_FIELD
-   | CONNECT_TO_FIELD
+   | FROM_FIELD
+   | TO_FIELD
    | MAX_DEPTH
    | DEPTH_FIELD
    | DIRECTION
    | UNI
-   | BIO
+   | BI
    ;
