@@ -4,9 +4,16 @@
       "original_col": {
         "type": "integer"
       },
+      "original_col2": {
+        "type": "text"
+      },
       "alias_col": {
         "type": "alias",
         "path": "original_col"
+      },
+      "alias_col2": {
+        "type": "alias",
+        "path": "original_col2"
       }
     }
   }

@@ -1602,4 +1602,51 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("first_lang", "string"));
     verifyDataRows(actual, rows(10, 14, false, true, "java"));
   }
+
+  @Test
+  public void testTextTypeWithLastFirstTakeAggregation() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats take(address, 2), last(address), first(address), "
+                    + "take(state, 2), last(state), first(state), "
+                    + "take(balance, 2), last(balance), first(balance)",
+                TEST_INDEX_BANK));
+    verifyDataRows(
+        actual,
+        rows(
+            List.of("880 Holmes Lane", "671 Bristol Street"),
+            "702 Quentin Street",
+            "880 Holmes Lane",
+            List.of("IL", "TN"),
+            "IN",
+            "IL",
+            List.of(39225, 5686),
+            48086,
+            39225));
+  }
+
+  @Test
+  public void testScriptWithLastFirstTakeAggregation() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval new_address = upper(address), new_state = lower(state),"
+                    + " new_balance = balance * 10 | stats take(new_address, 2), last(new_address),"
+                    + " first(new_address), take(new_state, 2), last(new_state), first(new_state),"
+                    + " take(new_balance, 2), last(new_balance), first(new_balance)",
+                TEST_INDEX_BANK));
+    verifyDataRows(
+        actual,
+        rows(
+            List.of("880 HOLMES LANE", "671 BRISTOL STREET"),
+            "702 QUENTIN STREET",
+            "880 HOLMES LANE",
+            List.of("il", "tn"),
+            "in",
+            "il",
+            List.of(392250, 56860),
+            480860,
+            392250));
+  }
 }

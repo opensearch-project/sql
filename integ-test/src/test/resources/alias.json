@@ -1,6 +1,6 @@
 {"index":{"_id":"1"}}
-{"original_col" : 1}
+{"original_col" : 1,"original_col2" : "a b c"}
 {"index":{"_id":"2"}}
-{"original_col" : 2}
+{"original_col" : 2,"original_col2" : "d e f"}
 {"index":{"_id":"3"}}
-{"original_col" : 3}
+{"original_col" : 3,"original_col2" : "x y z"}

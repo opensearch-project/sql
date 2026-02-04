@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -25,13 +26,14 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  */
 public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
 
-  private static final String TEST_INDEX_ALIAS = "test_alias_bug";
+  private static final String TEST_ALIAS_BUG = "test_alias_bug";
 
   @Override
   public void init() throws Exception {
     super.init();
     enableCalcite();
     createTestIndexWithAliasFields();
+    loadIndex(Index.DATA_TYPE_ALIAS);
   }
 
   /**
@@ -41,14 +43,14 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
   private void createTestIndexWithAliasFields() throws IOException {
     // Delete the index if it exists (for test isolation)
     try {
-      Request deleteIndex = new Request("DELETE", "/" + TEST_INDEX_ALIAS);
+      Request deleteIndex = new Request("DELETE", "/" + TEST_ALIAS_BUG);
       client().performRequest(deleteIndex);
     } catch (ResponseException e) {
       // Index doesn't exist, which is fine
     }
 
     // Create index with alias fields
-    Request createIndex = new Request("PUT", "/" + TEST_INDEX_ALIAS);
+    Request createIndex = new Request("PUT", "/" + TEST_ALIAS_BUG);
     createIndex.setJsonEntity(
         "{\n"
             + "  \"mappings\": {\n"
@@ -63,7 +65,7 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
     client().performRequest(createIndex);
 
     // Insert test documents
-    Request bulkRequest = new Request("POST", "/" + TEST_INDEX_ALIAS + "/_bulk?refresh=true");
+    Request bulkRequest = new Request("POST", "/" + TEST_ALIAS_BUG + "/_bulk?refresh=true");
     bulkRequest.setJsonEntity(
         "{\"index\":{}}\n"
             + "{\"created_at\": \"2024-01-01T10:00:00Z\", \"value\": 100}\n"
@@ -77,7 +79,7 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
   @Test
   public void testMinWithDateAliasField() throws IOException {
     JSONObject actual =
-        executeQuery(String.format("source=%s | stats MIN(@timestamp)", TEST_INDEX_ALIAS));
+        executeQuery(String.format("source=%s | stats MIN(@timestamp)", TEST_ALIAS_BUG));
     verifySchema(actual, schema("MIN(@timestamp)", "timestamp"));
     verifyDataRows(actual, rows("2024-01-01 10:00:00"));
   }
@@ -85,7 +87,7 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
   @Test
   public void testMaxWithDateAliasField() throws IOException {
     JSONObject actual =
-        executeQuery(String.format("source=%s | stats MAX(@timestamp)", TEST_INDEX_ALIAS));
+        executeQuery(String.format("source=%s | stats MAX(@timestamp)", TEST_ALIAS_BUG));
     verifySchema(actual, schema("MAX(@timestamp)", "timestamp"));
     verifyDataRows(actual, rows("2024-01-03 10:00:00"));
   }
@@ -94,8 +96,7 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
   public void testMinMaxWithNumericAliasField() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats MIN(value_alias), MAX(value_alias)", TEST_INDEX_ALIAS));
+            String.format("source=%s | stats MIN(value_alias), MAX(value_alias)", TEST_ALIAS_BUG));
     verifySchemaInOrder(
         actual, schema("MIN(value_alias)", "int"), schema("MAX(value_alias)", "int"));
     verifyDataRows(actual, rows(100, 300));
@@ -105,8 +106,7 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
   public void testFirstWithAliasField() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | sort @timestamp | stats FIRST(@timestamp)", TEST_INDEX_ALIAS));
+            String.format("source=%s | sort @timestamp | stats FIRST(@timestamp)", TEST_ALIAS_BUG));
     verifySchema(actual, schema("FIRST(@timestamp)", "timestamp"));
     verifyDataRows(actual, rows("2024-01-01 10:00:00"));
   }
@@ -115,8 +115,7 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
   public void testLastWithAliasField() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | sort @timestamp | stats LAST(@timestamp)", TEST_INDEX_ALIAS));
+            String.format("source=%s | sort @timestamp | stats LAST(@timestamp)", TEST_ALIAS_BUG));
     verifySchema(actual, schema("LAST(@timestamp)", "timestamp"));
     verifyDataRows(actual, rows("2024-01-03 10:00:00"));
   }
@@ -126,7 +125,7 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | sort @timestamp | stats TAKE(@timestamp, 2)", TEST_INDEX_ALIAS));
+                "source=%s | sort @timestamp | stats TAKE(@timestamp, 2)", TEST_ALIAS_BUG));
     verifySchema(actual, schema("TAKE(@timestamp, 2)", "array"));
     verifyDataRows(actual, rows(List.of("2024-01-01T10:00:00.000Z", "2024-01-02T10:00:00.000Z")));
   }
@@ -135,7 +134,7 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
   public void testAggregationsWithOriginalFieldsStillWork() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format("source=%s | stats MIN(created_at), MAX(value)", TEST_INDEX_ALIAS));
+            String.format("source=%s | stats MIN(created_at), MAX(value)", TEST_ALIAS_BUG));
     verifySchemaInOrder(
         actual, schema("MIN(created_at)", "timestamp"), schema("MAX(value)", "int"));
     verifyDataRows(actual, rows("2024-01-01 10:00:00", 300));
@@ -147,12 +146,40 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats SUM(value_alias), AVG(value_alias), COUNT(value_alias)",
-                TEST_INDEX_ALIAS));
+                TEST_ALIAS_BUG));
     verifySchemaInOrder(
         actual,
         schema("SUM(value_alias)", "bigint"),
         schema("AVG(value_alias)", "double"),
         schema("COUNT(value_alias)", "bigint"));
     verifyDataRows(actual, rows(600, 200.0, 3));
+  }
+
+  @Test
+  public void testAliasTypeWithLastFirstTakeAggregation() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats take(original_col2, 2), last(original_col2),"
+                    + " first(original_col2), take(alias_col2, 2), last(alias_col2),"
+                    + " first(alias_col2), take(original_col, 2), last(original_col),"
+                    + " first(original_col), take(alias_col, 2), last(alias_col), first(alias_col)",
+                TEST_INDEX_ALIAS));
+    System.out.println(actual);
+    verifyDataRows(
+        actual,
+        rows(
+            List.of("a b c", "d e f"),
+            "x y z",
+            "a b c",
+            List.of("a b c", "d e f"),
+            "x y z",
+            "a b c",
+            List.of(1, 2),
+            3,
+            1,
+            List.of(1, 2),
+            3,
+            1));
   }
 }
