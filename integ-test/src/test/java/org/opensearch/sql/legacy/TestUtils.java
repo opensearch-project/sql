@@ -46,10 +46,27 @@ public class TestUtils {
    */
   public static void createIndexByRestClient(RestClient client, String indexName, String mapping) {
     Request request = new Request("PUT", "/" + indexName);
-    if (!isNullOrEmpty(mapping)) {
-      request.setJsonEntity(mapping);
-    }
+    JSONObject jsonObject = isNullOrEmpty(mapping) ? new JSONObject() : new JSONObject(mapping);
+    setZeroReplicas(jsonObject);
+    request.setJsonEntity(jsonObject.toString());
     performRequest(client, request);
+  }
+
+  /**
+   * Sets number_of_replicas to 0 in the index settings. This makes multi-node behavior consistent
+   * (<a href="https://github.com/opensearch-project/sql/issues/4261">4261</a>) and prevents tests
+   * from hanging on single-node clusters when using wait_for_active_shards=all.
+   *
+   * @param jsonObject the index creation JSON object to modify
+   */
+  private static void setZeroReplicas(JSONObject jsonObject) {
+    JSONObject settings =
+        jsonObject.has("settings") ? jsonObject.getJSONObject("settings") : new JSONObject();
+    JSONObject indexSettings =
+        settings.has("index") ? settings.getJSONObject("index") : new JSONObject();
+    indexSettings.put("number_of_replicas", 0);
+    settings.put("index", indexSettings);
+    jsonObject.put("settings", settings);
   }
 
   /**
@@ -99,7 +116,8 @@ public class TestUtils {
   public static void loadDataByRestClient(
       RestClient client, String indexName, String dataSetFilePath) throws IOException {
     Path path = Paths.get(getResourceFilePath(dataSetFilePath));
-    Request request = new Request("POST", "/" + indexName + "/_bulk?refresh=true");
+    Request request =
+        new Request("POST", "/" + indexName + "/_bulk?refresh=wait_for&wait_for_active_shards=all");
     request.setJsonEntity(new String(Files.readAllBytes(path)));
     performRequest(client, request);
   }

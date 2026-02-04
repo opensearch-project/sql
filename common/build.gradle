@@ -45,7 +45,7 @@ dependencies {
     implementation "com.github.seancfoley:ipaddress:5.4.2"
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
-    testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.9.1'
+    testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.27.7'
     testImplementation group: 'com.google.guava', name: 'guava', version: "${guava_version}"
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
