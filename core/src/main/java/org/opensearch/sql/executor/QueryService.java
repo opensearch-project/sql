@@ -100,9 +100,9 @@ public class QueryService {
                 QueryProfiling.activate(QueryContext.isProfileEnabled());
             ProfileMetric analyzeMetric = profileContext.getOrCreateMetric(MetricName.ANALYZE);
             long analyzeStart = System.nanoTime();
-            SysLimit sysLimit = SysLimit.fromSettings(settings);
             CalcitePlanContext context =
-                CalcitePlanContext.create(buildFrameworkConfig(), sysLimit, queryType);
+                CalcitePlanContext.create(
+                    buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
             RelNode relNode = analyze(plan, context);
             RelNode calcitePlan = convertToCalcitePlan(relNode, context);
             analyzeMetric.set(System.nanoTime() - analyzeStart);
@@ -236,18 +236,16 @@ public class QueryService {
           .getSplit()
           .ifPresentOrElse(
               split -> executionEngine.execute(plan(plan), new ExecutionContext(split), listener),
-              () -> {
-                Integer effectiveLimit;
-                if (plan instanceof LogicalPaginate) {
-                  // For pagination, querySizeLimit shouldn't take effect.
-                  // See {@link PaginationWindowIT::testQuerySizeLimitDoesNotEffectPageSize}
-                  effectiveLimit = null;
-                } else {
-                  effectiveLimit = SysLimit.fromSettings(settings).querySizeLimit();
-                }
-                executionEngine.execute(
-                    plan(plan), ExecutionContext.querySizeLimit(effectiveLimit), listener);
-              });
+              () ->
+                  executionEngine.execute(
+                      plan(plan),
+                      ExecutionContext.querySizeLimit(
+                          // For pagination, querySizeLimit shouldn't take effect.
+                          // See {@link PaginationWindowIT::testQuerySizeLimitDoesNotEffectPageSize}
+                          plan instanceof LogicalPaginate
+                              ? null
+                              : SysLimit.fromSettings(settings).querySizeLimit()),
+                      listener));
     } catch (Exception e) {
       listener.onFailure(e);
     }
