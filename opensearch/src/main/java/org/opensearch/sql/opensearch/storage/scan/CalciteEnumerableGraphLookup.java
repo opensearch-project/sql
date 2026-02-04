@@ -36,6 +36,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rel.GraphLookup;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
+import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
@@ -163,6 +164,14 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
     GraphLookupEnumerator(CalciteEnumerableGraphLookup graphLookup) {
       this.graphLookup = graphLookup;
       this.lookupScan = (CalciteEnumerableIndexScan) graphLookup.getLookup();
+      // For performance consideration, limit the size of the lookup table MaxResultWindow to avoid
+      // PIT search
+      final int maxResultWindow = this.lookupScan.getOsIndex().getMaxResultWindow();
+      this.lookupScan.pushDownContext.add(
+          PushDownType.LIMIT,
+          new LimitDigest(maxResultWindow, 0),
+          (OSRequestBuilderAction)
+              requestBuilder -> requestBuilder.pushDownLimit(maxResultWindow, 0));
 
       // Get the source enumerator
       if (graphLookup.getSource() instanceof Scannable scannable) {

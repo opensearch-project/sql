@@ -2581,6 +2581,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 1. Visit source (child) table
     visitChildren(node, context);
     RelBuilder builder = context.relBuilder;
+    // TODO: Limit the number of source rows to 100 for now, make it configurable.
+    builder.limit(0, 100);
     RelNode sourceTable = builder.build();
 
     // 2. Extract parameters
