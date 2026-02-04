@@ -32,6 +32,7 @@ import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.support.MultiTermsValuesSourceConfig;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
@@ -468,6 +469,14 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     if (builder instanceof MultiTermsAggregationBuilder multiTermsAggBuilder) {
       if (size < multiTermsAggBuilder.size()) {
         multiTermsAggBuilder.size(size);
+        return true;
+      } else {
+        return false;
+      }
+    }
+    if (builder instanceof TopHitsAggregationBuilder hotHitsAggBuilder) {
+      if (size < hotHitsAggBuilder.size()) {
+        hotHitsAggBuilder.size(size);
         return true;
       } else {
         return false;

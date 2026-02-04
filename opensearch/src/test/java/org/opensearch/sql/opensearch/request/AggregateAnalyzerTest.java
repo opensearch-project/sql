@@ -358,7 +358,7 @@ class AggregateAnalyzerTest {
     buildAggregation("first_a")
         .withAggCall(b -> b.aggregateCall(PPLBuiltinOperators.FIRST, b.field("a")).as("first_a"))
         .expectDslQuery(
-            "[{\"first_a\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":{\"includes\":[\"a\"],\"excludes\":[]}}}}]")
+            "[{\"first_a\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":false,\"fields\":[{\"field\":\"a\"}]}}}]")
         .expectResponseParser(
             new MetricParserHelper(List.of(new TopHitsParser("first_a", true, false))))
         .verify();
@@ -369,7 +369,7 @@ class AggregateAnalyzerTest {
     buildAggregation("last_b")
         .withAggCall(b -> b.aggregateCall(PPLBuiltinOperators.LAST, b.field("b")).as("last_b"))
         .expectDslQuery(
-            "[{\"last_b\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":{\"includes\":[\"b\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"desc\"}}]}}}]")
+            "[{\"last_b\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":false,\"fields\":[{\"field\":\"b.keyword\"}],\"sort\":[{\"_doc\":{\"order\":\"desc\"}}]}}}]")
         .expectResponseParser(
             new MetricParserHelper(List.of(new TopHitsParser("last_b", true, false))))
         .verify();
