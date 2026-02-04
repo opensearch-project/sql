@@ -49,7 +49,7 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
-            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[-1],"
+            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[0],"
             + " bidirectional=[false])\n"
             + "  LogicalSort(fetch=[100])\n"
             + "    LogicalTableScan(table=[[scott, employee]])\n"
@@ -68,7 +68,7 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
             + " outputField=[reportingHierarchy], depthField=[Field(field=level, fieldArgs=[])],"
-            + " maxDepth=[-1], bidirectional=[false])\n"
+            + " maxDepth=[0], bidirectional=[false])\n"
             + "  LogicalSort(fetch=[100])\n"
             + "    LogicalTableScan(table=[[scott, employee]])\n"
             + "  LogicalTableScan(table=[[scott, employee]])\n";
@@ -103,7 +103,7 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
-            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[-1],"
+            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[0],"
             + " bidirectional=[true])\n"
             + "  LogicalSort(fetch=[100])\n"
             + "    LogicalTableScan(table=[[scott, employee]])\n"

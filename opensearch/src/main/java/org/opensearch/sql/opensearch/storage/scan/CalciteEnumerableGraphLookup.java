@@ -249,8 +249,16 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       Queue<Object> queue = new ArrayDeque<>();
 
       // Initialize BFS with start value
-      queue.offer(startValue);
-      visited.add(startValue);
+      if (startValue instanceof List<?> list) {
+        list.forEach(
+            value -> {
+              queue.offer(value);
+              visited.add(value);
+            });
+      } else {
+        queue.offer(startValue);
+        visited.add(startValue);
+      }
 
       int currentLevelDepth = 0;
       while (!queue.isEmpty()) {
@@ -272,24 +280,32 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
         for (Object row : forwardResults) {
           Object[] rowArray = (Object[]) (row);
-          Object nextValue = rowArray[fromFieldIdx];
-          // Note that nextValue may be a list
-          if (graphLookup.bidirectional && visited.contains(nextValue)) {
-            nextValue = rowArray[toFieldIdx];
+          Object fromValue = rowArray[fromFieldIdx];
+          // Collect next values to traverse (may be single value or list)
+          // For forward traversal: extract fromField values for next level
+          // For bidirectional: also extract toField values
+          List<Object> nextValues = new ArrayList<>();
+          collectValues(fromValue, nextValues);
+          if (graphLookup.bidirectional) {
+            Object toValue = rowArray[toFieldIdx];
+            collectValues(toValue, nextValues);
           }
-          if (!visited.contains(nextValue)) {
-            if (graphLookup.depthField != null) {
-              Object[] rowWithDepth = new Object[rowArray.length + 1];
-              System.arraycopy(rowArray, 0, rowWithDepth, 0, rowArray.length);
-              rowWithDepth[rowArray.length] = currentLevelDepth;
-              results.add(rowWithDepth);
-            } else {
-              results.add(rowArray);
-            }
 
-            if (nextValue != null) {
-              visited.add(nextValue);
-              queue.offer(nextValue);
+          // Add row to results (all matched rows should be included)
+          if (graphLookup.depthField != null) {
+            Object[] rowWithDepth = new Object[rowArray.length + 1];
+            System.arraycopy(rowArray, 0, rowWithDepth, 0, rowArray.length);
+            rowWithDepth[rowArray.length] = currentLevelDepth;
+            results.add(rowWithDepth);
+          } else {
+            results.add(rowArray);
+          }
+
+          // Add unvisited values to queue for next level traversal
+          for (Object val : nextValues) {
+            if (val != null && !visited.contains(val)) {
+              visited.add(val);
+              queue.offer(val);
             }
           }
         }
@@ -311,11 +327,14 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         return List.of();
       }
 
+      // Forward direction: query toField = values to find nodes matching current values
+      // Then extract fromField values for next level traversal
       NamedFieldExpression toFieldExpression =
           new NamedFieldExpression(
               toFieldIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes());
       QueryBuilder query = termsQuery(toFieldExpression.getReferenceForTermQuery(), values);
       if (graphLookup.bidirectional) {
+        // Also query fromField for bidirectional traversal
         NamedFieldExpression fromFieldExpression =
             new NamedFieldExpression(
                 fromFieldIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes());
@@ -337,6 +356,23 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         results.add(res.next());
       }
       return results;
+    }
+
+    /**
+     * Collects values from a field that may be a single value or a list.
+     *
+     * @param value The field value (may be single value or List)
+     * @param collector The list to collect values into
+     */
+    private void collectValues(Object value, List<Object> collector) {
+      if (value == null) {
+        return;
+      }
+      if (value instanceof List<?> list) {
+        collector.addAll(list);
+      } else {
+        collector.add(value);
+      }
     }
 
     @Override

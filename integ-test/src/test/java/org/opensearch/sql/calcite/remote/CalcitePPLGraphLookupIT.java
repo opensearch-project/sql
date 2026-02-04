@@ -168,11 +168,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
 
   // ==================== Airport Connections Tests ====================
 
-  /**
-   * Test 5: Find all reachable airports from each airport. Note: Currently returns empty
-   * reachableAirports arrays because the connects field is an array type, which the current
-   * implementation doesn't fully traverse.
-   */
+  /** Test 5: Find all reachable airports from each airport. */
   @Test
   public void testAirportConnections() throws IOException {
     JSONObject result =
@@ -180,7 +176,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=connects"
+                    + " startField=airport"
                     + " fromField=connects"
                     + " toField=airport"
                     + " as reachableAirports",
@@ -193,11 +189,11 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reachableAirports", "array"));
     verifyDataRows(
         result,
-        rows("JFK", List.of("BOS", "ORD"), Collections.emptyList()),
-        rows("BOS", List.of("JFK", "PWM"), Collections.emptyList()),
-        rows("ORD", List.of("JFK"), Collections.emptyList()),
-        rows("PWM", List.of("BOS", "LHR"), Collections.emptyList()),
-        rows("LHR", List.of("PWM"), Collections.emptyList()));
+        rows("JFK", List.of("BOS", "ORD"), List.of("{JFK, [BOS, ORD]}")),
+        rows("BOS", List.of("JFK", "PWM"), List.of("{BOS, [JFK, PWM]}")),
+        rows("ORD", List.of("JFK"), List.of("{ORD, [JFK]}")),
+        rows("PWM", List.of("BOS", "LHR"), List.of("{PWM, [BOS, LHR]}")),
+        rows("LHR", List.of("PWM"), List.of("{LHR, [PWM]}")));
   }
 
   /** Test 6: Find airports reachable from JFK within maxDepth=1. */
@@ -209,7 +205,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where airport = 'JFK'"
                     + " | graphLookup %s"
-                    + " startField=connects"
+                    + " startField=airport"
                     + " fromField=connects"
                     + " toField=airport"
                     + " maxDepth=1"
@@ -221,10 +217,15 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("airport", "string"),
         schema("connects", "string"),
         schema("reachableAirports", "array"));
-    verifyDataRows(result, rows("JFK", List.of("BOS", "ORD"), Collections.emptyList()));
+    verifyDataRows(
+        result,
+        rows(
+            "JFK",
+            List.of("BOS", "ORD"),
+            List.of("{JFK, [BOS, ORD]}", "{BOS, [JFK, PWM]}", "{ORD, [JFK]}")));
   }
 
-  /** Test 7: Find airports with hop count tracked. */
+  /** Test 7: Find airports with default depth(=0) and start value of list */
   @Test
   public void testAirportConnectionsWithDepthField() throws IOException {
     JSONObject result =
@@ -239,13 +240,14 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                     + " depthField=numConnections"
                     + " as reachableAirports",
                 TEST_INDEX_GRAPH_AIRPORTS, TEST_INDEX_GRAPH_AIRPORTS));
-
     verifySchema(
         result,
         schema("airport", "string"),
         schema("connects", "string"),
         schema("reachableAirports", "array"));
-    verifyDataRows(result, rows("JFK", List.of("BOS", "ORD"), Collections.emptyList()));
+    verifyDataRows(
+        result,
+        rows("JFK", List.of("BOS", "ORD"), List.of("{BOS, [JFK, PWM], 0}", "{ORD, [JFK], 0}")));
   }
 
   /**
@@ -328,7 +330,10 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("name", "string"),
         schema("nearestAirport", "string"),
         schema("reachableAirports", "array"));
-    verifyDataRows(result, rows("Jeff", "BOS", List.of("{BOS, [JFK, PWM]}")));
+    verifyDataRows(
+        result,
+        rows(
+            "Jeff", "BOS", List.of("{BOS, [JFK, PWM]}", "{JFK, [BOS, ORD]}", "{PWM, [BOS, LHR]}")));
   }
 
   // ==================== Bidirectional Traversal Tests ====================
@@ -388,7 +393,12 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("airport", "string"),
         schema("connects", "string"),
         schema("allConnections", "array"));
-    verifyDataRows(result, rows("ORD", List.of("JFK"), Collections.emptyList()));
+    verifyDataRows(
+        result,
+        rows(
+            "ORD",
+            List.of("JFK"),
+            List.of("{JFK, [BOS, ORD]}", "{BOS, [JFK, PWM]}", "{ORD, [JFK]}")));
   }
 
   // ==================== Edge Cases ====================

@@ -2594,8 +2594,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     boolean bidirectional = node.getDirection() == Direction.BI;
 
     RexLiteral maxDepthNode = (RexLiteral) rexVisitor.analyze(node.getMaxDepth(), context);
-    int maxDepthValue = maxDepthNode.getValueAs(Integer.class);
-    maxDepthValue = maxDepthValue <= 0 ? -1 : maxDepthValue;
+    Integer maxDepthValue = maxDepthNode.getValueAs(Integer.class);
+    maxDepthValue = maxDepthValue == null ? 0 : maxDepthValue;
 
     // 3. Visit and materialize lookup table
     analyze(node.getFromTable(), context);
