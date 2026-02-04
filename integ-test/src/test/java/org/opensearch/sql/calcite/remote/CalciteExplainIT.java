@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -25,8 +26,12 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import java.io.IOException;
 import java.util.Locale;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -2496,5 +2501,69 @@ public class CalciteExplainIT extends ExplainIT {
     String actual = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_mvcombine.yaml");
     assertYamlEqualsIgnoreId(expected, actual);
+  }
+
+  // ==================== fetch_size explain tests ====================
+
+  @Test
+  public void testExplainFetchSizePushDown() throws IOException {
+    // fetch_size=5 injects Head(5, 0) on top of the plan
+    // Logical plan: LogicalSort(fetch=[5]) wraps the Project
+    String expected = loadExpectedPlan("explain_fetch_size_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryWithFetchSizeYaml(
+            String.format("source=%s | fields age", TEST_INDEX_ACCOUNT), 5));
+  }
+
+  @Test
+  public void testExplainFetchSizeWithSmallerHead() throws IOException {
+    // fetch_size=10 with user's | head 3
+    // Two LogicalSort nodes: inner fetch=[3] from user head, outer fetch=[10] from fetch_size
+    // Effective limit = min(3, 10) = 3
+    String expected = loadExpectedPlan("explain_fetch_size_with_head_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryWithFetchSizeYaml(
+            String.format("source=%s | head 3 | fields age", TEST_INDEX_ACCOUNT), 10));
+  }
+
+  @Test
+  public void testExplainFetchSizeSmallerThanHead() throws IOException {
+    // fetch_size=5 with user's | head 100
+    // Two LogicalSort nodes: inner fetch=[100] from user head, outer fetch=[5] from fetch_size
+    // Effective limit = min(100, 5) = 5
+    String expected = loadExpectedPlan("explain_fetch_size_smaller_than_head_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryWithFetchSizeYaml(
+            String.format("source=%s | head 100 | fields age", TEST_INDEX_ACCOUNT), 5));
+  }
+
+  /**
+   * Send an explain request with fetch_size in the JSON body and return YAML output.
+   *
+   * @param query the PPL query string
+   * @param fetchSize the fetch_size parameter value
+   * @return the explain output as YAML string
+   */
+  private String explainQueryWithFetchSizeYaml(String query, int fetchSize) throws IOException {
+    Request request =
+        new Request(
+            "POST",
+            String.format(
+                "/_plugins/_ppl/_explain?format=%s&mode=%s", Format.YAML, ExplainMode.STANDARD));
+    String jsonBody =
+        String.format(
+            Locale.ROOT, "{\n  \"query\": \"%s\",\n  \"fetch_size\": %d\n}", query, fetchSize);
+    request.setJsonEntity(jsonBody);
+
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+
+    Response response = client().performRequest(request);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    return getResponseBody(response, true);
   }
 }

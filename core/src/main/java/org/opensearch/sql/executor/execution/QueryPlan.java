@@ -29,7 +29,7 @@ public class QueryPlan extends AbstractPlan {
 
   protected final Optional<Integer> pageSize;
 
-  /** Constructor. */
+  /** Constructor without page size. */
   public QueryPlan(
       QueryId queryId,
       QueryType queryType,
@@ -43,7 +43,7 @@ public class QueryPlan extends AbstractPlan {
     this.pageSize = Optional.empty();
   }
 
-  /** Constructor with page size. */
+  /** Constructor with page size (for pagination). */
   public QueryPlan(
       QueryId queryId,
       QueryType queryType,

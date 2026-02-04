@@ -18,6 +18,8 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 public class PPLQueryRequest {
 
   private static final String DEFAULT_PPL_PATH = "/_plugins/_ppl";
+  private static final String FETCH_SIZE_FIELD = "fetch_size";
+  private static final int MAX_FETCH_SIZE = 10000;
 
   public static final PPLQueryRequest NULL = new PPLQueryRequest("", null, DEFAULT_PPL_PATH, "");
 
@@ -92,5 +94,25 @@ public class PPLQueryRequest {
 
   public ExplainMode mode() {
     return ExplainMode.of(explainMode);
+  }
+
+  /**
+   * Get the maximum number of results to return. Unlike SQL's fetch_size which enables cursor-based
+   * pagination, PPL's fetch_size simply limits the response to N rows without cursor support.
+   *
+   * @return fetch_size value from request, or 0 if not specified (meaning use system default)
+   * @throws IllegalArgumentException if fetch_size exceeds MAX_FETCH_SIZE (10000)
+   */
+  public int getFetchSize() {
+    if (jsonContent == null) {
+      return 0;
+    }
+    int fetchSize = jsonContent.optInt(FETCH_SIZE_FIELD, 0);
+    if (fetchSize > MAX_FETCH_SIZE) {
+      throw new IllegalArgumentException(
+          String.format(
+              Locale.ROOT, "fetch_size must be less than or equal to %d", MAX_FETCH_SIZE));
+    }
+    return fetchSize;
   }
 }

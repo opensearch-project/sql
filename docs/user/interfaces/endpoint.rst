@@ -208,13 +208,13 @@ Explain::
       }
     }
 
-Cursor
-======
+Cursor (SQL)
+============
 
 Description
 -----------
 
-To get paginated response for a query, user needs to provide `fetch_size` parameter as part of normal query. The value of `fetch_size` should be greater than `0`. In absence of `fetch_size` or a value of `0`, it will fallback to non-paginated response. This feature is only available over `jdbc` format for now.
+To get paginated response for a SQL query, user needs to provide `fetch_size` parameter as part of normal query. The value of `fetch_size` should be greater than `0`. In absence of `fetch_size` or a value of `0`, it will fallback to non-paginated response. This feature is only available over `jdbc` format for now.
 
 Example
 -------
@@ -266,3 +266,60 @@ Result set::
       "size": 5,
       "status": 200
     }
+
+Fetch Size (PPL)
+================
+
+Description
+-----------
+
+PPL also supports the ``fetch_size`` parameter, but with different semantics from SQL. In PPL, ``fetch_size`` limits the number of rows returned in a single, complete response. **PPL does not support cursor-based pagination** — no cursor is returned and there is no way to fetch additional pages. The value of ``fetch_size`` should be between ``1`` and ``10000``. In absence of ``fetch_size`` or a value of ``0``, it will use the system default behavior (no limit).
+
++--------------------+-------------------------------------+------------------------------------+
+| Aspect             | SQL ``fetch_size``                  | PPL ``fetch_size``                 |
++====================+=====================================+====================================+
+| Purpose            | Cursor-based pagination             | Response size limiting             |
++--------------------+-------------------------------------+------------------------------------+
+| Returns cursor?    | Yes                                 | No                                 |
++--------------------+-------------------------------------+------------------------------------+
+| Can fetch more?    | Yes (with cursor)                   | No (single response)               |
++--------------------+-------------------------------------+------------------------------------+
+| Maximum value      | No hard limit                       | 10,000                             |
++--------------------+-------------------------------------+------------------------------------+
+
+Example
+-------
+
+PPL query::
+
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_ppl -d '{
+	  "fetch_size" : 5,
+	  "query" : "source = accounts | fields firstname, lastname | where age > 20"
+	}'
+
+Result set::
+
+    {
+      "schema": [
+        {
+          "name": "firstname",
+          "type": "text"
+        },
+        {
+          "name": "lastname",
+          "type": "text"
+        }
+      ],
+      "total": 5,
+      "datarows": [
+        ["Cherry", "Carey"],
+        ["Lindsey", "Hawkins"],
+        ["Sargent", "Powers"],
+        ["Campos", "Olsen"],
+        ["Savannah", "Kirby"]
+      ],
+      "size": 5,
+      "status": 200
+    }
+
+Note that unlike the SQL response above, there is no ``cursor`` field in the PPL response. The response is complete and final.
