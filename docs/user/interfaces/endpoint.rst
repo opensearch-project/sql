@@ -279,19 +279,20 @@ The ``fetch_size`` parameter limits the number of rows returned in a PPL query r
 
 If ``fetch_size`` is larger than ``plugins.query.size_limit``, the result is capped at ``plugins.query.size_limit``. The effective number of rows returned is always ``min(fetch_size, plugins.query.size_limit)``.
 
-.. note::
+Note
+----
 
-   Unlike SQL's ``fetch_size`` which enables cursor-based pagination, PPL's ``fetch_size`` does not return a cursor and does not support fetching additional pages. The response is always complete and final.
+Unlike SQL's ``fetch_size`` which enables cursor-based pagination, PPL's ``fetch_size`` does not return a cursor and does not support fetching additional pages. The response is always complete and final.
 
-   +--------------------+-------------------------------------+------------------------------------+
-   | Aspect             | SQL ``fetch_size``                  | PPL ``fetch_size``                 |
-   +====================+=====================================+====================================+
-   | Purpose            | Cursor-based pagination             | Response size limiting             |
-   +--------------------+-------------------------------------+------------------------------------+
-   | Returns cursor?    | Yes                                 | No                                 |
-   +--------------------+-------------------------------------+------------------------------------+
-   | Can fetch more?    | Yes (with cursor)                   | No (single response)               |
-   +--------------------+-------------------------------------+------------------------------------+
++--------------------+-------------------------------------+------------------------------------+
+| Aspect             | SQL ``fetch_size``                  | PPL ``fetch_size``                 |
++====================+=====================================+====================================+
+| Purpose            | Cursor-based pagination             | Response size limiting             |
++--------------------+-------------------------------------+------------------------------------+
+| Returns cursor?    | Yes                                 | No                                 |
++--------------------+-------------------------------------+------------------------------------+
+| Can fetch more?    | Yes (with cursor)                   | No (single response)               |
++--------------------+-------------------------------------+------------------------------------+
 
 Example 1: JSON body
 -------
