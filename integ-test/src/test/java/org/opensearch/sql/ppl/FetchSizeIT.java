@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
-import org.opensearch.client.ResponseException;
 
 /** Integration tests for PPL fetch_size parameter. */
 public class FetchSizeIT extends PPLIntegTestCase {
@@ -164,17 +163,6 @@ public class FetchSizeIT extends PPLIntegTestCase {
             String.format("source=%s | head 100 | fields firstname", TEST_INDEX_ACCOUNT), 5);
     JSONArray dataRows = result.getJSONArray("datarows");
     assertEquals(5, dataRows.length());
-  }
-
-  @Test
-  public void testFetchSizeExceedsMaxReturnsError() throws IOException {
-    // fetch_size > 10000 should return an error
-    ResponseException exception =
-        assertThrows(
-            ResponseException.class,
-            () -> executeQueryWithFetchSize(String.format("source=%s", TEST_INDEX_ACCOUNT), 15000));
-    String responseBody = getResponseBody(exception.getResponse(), true);
-    assertTrue(responseBody.contains("fetch_size"));
   }
 
   @Test

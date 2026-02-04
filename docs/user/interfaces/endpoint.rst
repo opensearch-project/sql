@@ -273,7 +273,7 @@ Fetch Size (PPL)
 Description
 -----------
 
-PPL also supports the ``fetch_size`` parameter, but with different semantics from SQL. In PPL, ``fetch_size`` limits the number of rows returned in a single, complete response. **PPL does not support cursor-based pagination** — no cursor is returned and there is no way to fetch additional pages. The value of ``fetch_size`` should be between ``1`` and ``10000``. In absence of ``fetch_size`` or a value of ``0``, it will use the system default behavior (no limit).
+PPL also supports the ``fetch_size`` parameter, but with different semantics from SQL. In PPL, ``fetch_size`` limits the number of rows returned in a single, complete response. **PPL does not support cursor-based pagination** — no cursor is returned and there is no way to fetch additional pages. The value of ``fetch_size`` should be greater than ``0``. In absence of ``fetch_size`` or a value of ``0``, it will use the system default behavior (no limit). The effective upper bound is governed by the ``plugins.query.size_limit`` cluster setting (defaults to ``index.max_result_window``, which is 10000).
 
 +--------------------+-------------------------------------+------------------------------------+
 | Aspect             | SQL ``fetch_size``                  | PPL ``fetch_size``                 |
@@ -283,8 +283,6 @@ PPL also supports the ``fetch_size`` parameter, but with different semantics fro
 | Returns cursor?    | Yes                                 | No                                 |
 +--------------------+-------------------------------------+------------------------------------+
 | Can fetch more?    | Yes (with cursor)                   | No (single response)               |
-+--------------------+-------------------------------------+------------------------------------+
-| Maximum value      | No hard limit                       | 10,000                             |
 +--------------------+-------------------------------------+------------------------------------+
 
 Example

@@ -79,17 +79,8 @@ public class PPLQueryRequestTest {
 
   @Test
   public void testGetFetchSizeWithLargeValue() {
-    JSONObject json = new JSONObject("{\"query\": \"source=t\", \"fetch_size\": 10000}");
-    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
-    assertEquals(10000, request.getFetchSize());
-  }
-
-  @Test
-  public void testGetFetchSizeThrowsWhenExceedsMax() {
     JSONObject json = new JSONObject("{\"query\": \"source=t\", \"fetch_size\": 15000}");
     PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
-    exceptionRule.expect(IllegalArgumentException.class);
-    exceptionRule.expectMessage("fetch_size must be less than or equal to 10000");
-    request.getFetchSize();
+    assertEquals(15000, request.getFetchSize());
   }
 }
