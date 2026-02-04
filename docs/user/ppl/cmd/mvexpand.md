@@ -118,7 +118,7 @@ fetched rows / total rows = 1/1
 ```
 
 ### Example 5: Missing Field
-If the field does not exist in the input schema (for example, it is not mapped or was projected out earlier), mvexpand does not throw an error and produces no rows.
+If the field does not exist in the input schema (for example, it is not mapped or was projected out earlier), mvexpand throws a semantic check exception.
 
 PPL query:
 ```ppl
@@ -132,11 +132,8 @@ source=people
 
 Expected output:
 ```text
-fetched rows / total rows = 0/0
-+------+
-| tags |
-|------|
-+------+
+{'reason': 'Invalid Query', 'details': "Field 'tags' not found in the schema", 'type': 'SemanticCheckException'}
+Error: Query returned no data
 ```
 
 ## Notes about these doctests
