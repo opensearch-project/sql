@@ -814,7 +814,7 @@ public class AggregateAnalyzer {
     if (sortNeeded && sortField != null && sortOrder != null) {
       builder.sort(sortField, sortOrder);
     }
-    List<String> sources = new ArrayList<>();
+    List<String> sourceSpecific = new ArrayList<>();
     List<String> fields = new ArrayList<>();
     List<SearchSourceBuilder.ScriptField> scripts = new ArrayList<>();
     (useSingleColumn ? args.stream().findFirst().stream() : args.stream())
@@ -822,21 +822,21 @@ public class AggregateAnalyzer {
             rex -> {
               if (rex.getKey() instanceof RexInputRef) {
                 NamedFieldExpression fieldExpression = helper.inferNamedField(rex.getKey());
-                String keyword = fieldExpression.getReferenceForTermQuery();
+                String name = fieldExpression.getRootName();
                 if (fieldExpression.isAliasField()) {
-                  // use fetchField(alias)
-                  fields.add(fieldExpression.getRootName());
-                } else if (keyword == null && fieldExpression.isTextType()) {
-                  // use fetchSource() for text type without subField
-                  sources.add(fieldExpression.getRootName());
+                  // alias type cannot use fetchSource and must use alias name
+                  fields.add(name);
                 } else if (fieldExpression.isStructField()) {
-                  // use fetchSource() for struct type
-                  sources.add(fieldExpression.getRootName());
+                  // struct type cannot use fetchField
+                  sourceSpecific.add(name);
                 } else {
-                  fields.add(keyword);
+                  fields.add(name);
                   // text or struct type cannot apply sort
                   if (sortNeeded && sortField == null) {
-                    builder.sort(keyword, sortOrder);
+                    String keyword = fieldExpression.getReferenceForTermQuery();
+                    if (keyword != null) {
+                      builder.sort(keyword, sortOrder);
+                    }
                   }
                 }
               } else if (rex.getKey() instanceof RexCall || rex.getKey() instanceof RexLiteral) {
@@ -853,13 +853,9 @@ public class AggregateAnalyzer {
                         aggCall.getAggregation(), rex.getKey().getKind()));
               }
             });
-    if (useSingleColumn && !fields.isEmpty()) {
-      // disable _source to use fetchField only when use single column in TopHits
+    if (useSingleColumn && sourceSpecific.isEmpty()) {
+      // disable _source when use single column in TopHits and no specific source
       builder.fetchSource(false);
-    } else {
-      if (!sources.isEmpty()) {
-        builder.fetchSource(sources.toArray(String[]::new), new String[0]);
-      }
     }
     fields.stream().distinct().forEach(builder::fetchField);
     if (!scripts.isEmpty()) {

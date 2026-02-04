@@ -89,25 +89,45 @@ public class TopHitsParser implements MetricParser {
       //        "_source": {
       //          "name": "A",
       //          "category": "X"
+      //        },
+      //        "fields": {
+      //          "name": [
+      //            "B"
+      //          ],
+      //          "category": [
+      //            "Z"
+      //          ]
       //        }
       //      },
       //      {
       //        "_source": {
       //          "name": "A",
       //          "category": "Y"
+      //        },
+      //        "fields": {
+      //          "category": [
+      //            "A"
+      //          ],
+      //          "state": [
+      //            "N"
+      //          ]
       //        }
       //      }
       //    ]
       // }
       // will converts to:
       // List[
-      //   LinkedHashMap["name" -> "A", "category" -> "X"],
-      //   LinkedHashMap["name" -> "A", "category" -> "Y"]
+      //   LinkedHashMap["name" -> "B", "category" -> "Z"],
+      //   LinkedHashMap["name" -> "A", "category" -> "A", "state" -> "N"]
       // ]
       return Arrays.stream(hits)
           .map(
               hit -> {
-                Map<String, Object> map = new LinkedHashMap<>(hit.getSourceAsMap());
+                Map<String, Object> source = hit.getSourceAsMap();
+                Map<String, Object> map =
+                    source == null
+                        ? new LinkedHashMap<>()
+                        : new LinkedHashMap<>(hit.getSourceAsMap());
                 hit.getFields().values().forEach(f -> map.put(f.getName(), f.getValue()));
                 return map;
               })

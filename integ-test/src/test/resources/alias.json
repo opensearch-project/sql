@@ -1,6 +1,6 @@
 {"index":{"_id":"1"}}
-{"original_col" : 1,"original_col2" : "a b c"}
+{"original_col" : 1,"original_text" : "a b c","original_date":"2026-01-01T10:00:00Z"}
 {"index":{"_id":"2"}}
-{"original_col" : 2,"original_col2" : "d e f"}
+{"original_col" : 2,"original_text" : "d e f","original_date":"2026-01-02T10:00:00Z"}
 {"index":{"_id":"3"}}
-{"original_col" : 3,"original_col2" : "x y z"}
+{"original_col" : 3,"original_text" : "x y z","original_date":"2026-01-03T10:00:00Z"}

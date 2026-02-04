@@ -156,14 +156,17 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testAliasTypeWithLastFirstTakeAggregation() throws IOException {
+  public void testAliasTypeWithLastFirstTakeLatestEarliestAggregation() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats take(original_col2, 2), last(original_col2),"
-                    + " first(original_col2), take(alias_col2, 2), last(alias_col2),"
-                    + " first(alias_col2), take(original_col, 2), last(original_col),"
-                    + " first(original_col), take(alias_col, 2), last(alias_col), first(alias_col)",
+                "source=%s | stats take(original_text, 2), last(original_text),"
+                    + " first(original_text), take(alias_text, 2), last(alias_text),"
+                    + " first(alias_text), take(original_col, 2), last(original_col),"
+                    + " first(original_col), take(alias_col, 2), last(alias_col), first(alias_col),"
+                    + " latest(original_col), earliest(original_col), latest(alias_col),"
+                    + " earliest(alias_col),latest(original_text), earliest(original_text),"
+                    + " latest(alias_text), earliest(alias_text)",
                 TEST_INDEX_ALIAS));
     System.out.println(actual);
     verifyDataRows(
@@ -180,6 +183,14 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
             1,
             List.of(1, 2),
             3,
-            1));
+            1,
+            3,
+            1,
+            3,
+            1,
+            "x y z",
+            "a b c",
+            "x y z",
+            "a b c"));
   }
 }

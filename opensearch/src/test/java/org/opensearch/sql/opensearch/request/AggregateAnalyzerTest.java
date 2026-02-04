@@ -369,7 +369,7 @@ class AggregateAnalyzerTest {
     buildAggregation("last_b")
         .withAggCall(b -> b.aggregateCall(PPLBuiltinOperators.LAST, b.field("b")).as("last_b"))
         .expectDslQuery(
-            "[{\"last_b\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":false,\"fields\":[{\"field\":\"b.keyword\"}],\"sort\":[{\"_doc\":{\"order\":\"desc\"}}]}}}]")
+            "[{\"last_b\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":false,\"fields\":[{\"field\":\"b\"}],\"sort\":[{\"_doc\":{\"order\":\"desc\"}}]}}}]")
         .expectResponseParser(
             new MetricParserHelper(List.of(new TopHitsParser("last_b", true, false))))
         .verify();
