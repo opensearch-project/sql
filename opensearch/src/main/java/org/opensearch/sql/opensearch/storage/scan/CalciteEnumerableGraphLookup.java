@@ -245,19 +245,20 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
       // TODO: support spillable for these collections
       List<Object> results = new ArrayList<>();
-      Set<Object> visited = new HashSet<>();
+      // TODO: If we want to include loop edges, we also need to track the visited edges
+      Set<Object> visitedNodes = new HashSet<>();
       Queue<Object> queue = new ArrayDeque<>();
 
       // Initialize BFS with start value
       if (startValue instanceof List<?> list) {
         list.forEach(
             value -> {
+              visitedNodes.add(value);
               queue.offer(value);
-              visited.add(value);
             });
       } else {
+        visitedNodes.add(startValue);
         queue.offer(startValue);
-        visited.add(startValue);
       }
 
       int currentLevelDepth = 0;
@@ -283,29 +284,32 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
           Object fromValue = rowArray[fromFieldIdx];
           // Collect next values to traverse (may be single value or list)
           // For forward traversal: extract fromField values for next level
-          // For bidirectional: also extract toField values
+          // For bidirectional: also extract toField values.
+          // Skip visited values while keep null value
           List<Object> nextValues = new ArrayList<>();
-          collectValues(fromValue, nextValues);
+          collectValues(fromValue, nextValues, visitedNodes);
           if (graphLookup.bidirectional) {
             Object toValue = rowArray[toFieldIdx];
-            collectValues(toValue, nextValues);
+            collectValues(toValue, nextValues, visitedNodes);
           }
 
-          // Add row to results (all matched rows should be included)
-          if (graphLookup.depthField != null) {
-            Object[] rowWithDepth = new Object[rowArray.length + 1];
-            System.arraycopy(rowArray, 0, rowWithDepth, 0, rowArray.length);
-            rowWithDepth[rowArray.length] = currentLevelDepth;
-            results.add(rowWithDepth);
-          } else {
-            results.add(rowArray);
-          }
+          // Add row to results if the nextValues is not empty
+          if (!nextValues.isEmpty()) {
+            if (graphLookup.depthField != null) {
+              Object[] rowWithDepth = new Object[rowArray.length + 1];
+              System.arraycopy(rowArray, 0, rowWithDepth, 0, rowArray.length);
+              rowWithDepth[rowArray.length] = currentLevelDepth;
+              results.add(rowWithDepth);
+            } else {
+              results.add(rowArray);
+            }
 
-          // Add unvisited values to queue for next level traversal
-          for (Object val : nextValues) {
-            if (val != null && !visited.contains(val)) {
-              visited.add(val);
-              queue.offer(val);
+            // Add unvisited non-null values to queue for next level traversal
+            for (Object val : nextValues) {
+              if (val != null) {
+                visitedNodes.add(val);
+                queue.offer(val);
+              }
             }
           }
         }
@@ -363,14 +367,16 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
      *
      * @param value The field value (may be single value or List)
      * @param collector The list to collect values into
+     * @param visited Previously visited values to avoid duplicates
      */
-    private void collectValues(Object value, List<Object> collector) {
-      if (value == null) {
-        return;
-      }
+    private void collectValues(Object value, List<Object> collector, Set<Object> visited) {
       if (value instanceof List<?> list) {
-        collector.addAll(list);
-      } else {
+        for (Object item : list) {
+          if (!visited.contains(item)) {
+            collector.add(item);
+          }
+        }
+      } else if (!visited.contains(value)) {
         collector.add(value);
       }
     }

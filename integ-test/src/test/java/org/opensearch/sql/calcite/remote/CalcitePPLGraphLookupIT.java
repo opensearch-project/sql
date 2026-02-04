@@ -222,7 +222,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         rows(
             "JFK",
             List.of("BOS", "ORD"),
-            List.of("{JFK, [BOS, ORD]}", "{BOS, [JFK, PWM]}", "{ORD, [JFK]}")));
+            List.of("{JFK, [BOS, ORD]}", "{BOS, [JFK, PWM]}")));
   }
 
   /** Test 7: Find airports with default depth(=0) and start value of list */
@@ -247,7 +247,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reachableAirports", "array"));
     verifyDataRows(
         result,
-        rows("JFK", List.of("BOS", "ORD"), List.of("{BOS, [JFK, PWM], 0}", "{ORD, [JFK], 0}")));
+        rows("JFK", List.of("BOS", "ORD"), List.of("{BOS, [JFK, PWM], 0}")));
   }
 
   /**
@@ -398,7 +398,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         rows(
             "ORD",
             List.of("JFK"),
-            List.of("{JFK, [BOS, ORD]}", "{BOS, [JFK, PWM]}", "{ORD, [JFK]}")));
+            List.of("{JFK, [BOS, ORD]}", "{BOS, [JFK, PWM]}")));
   }
 
   // ==================== Edge Cases ====================
