@@ -52,7 +52,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -957,7 +956,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 .toList();
         context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCall);
         buildExpandRelNode(
-            context.relBuilder.field(node.getAlias()), node.getAlias(), node.getAlias(), context);
+            context.relBuilder.field(node.getAlias()),
+            node.getAlias(),
+            node.getAlias(),
+            null,
+            context);
         flattenParsedPattern(
             node.getAlias(),
             context.relBuilder.field(node.getAlias()),
@@ -3344,18 +3347,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   /**
    * MVExpand command visitor.
    *
-   * <p>For Calcite remote planning, mvexpand reuses the same expansion mechanics as {@link Expand}:
-   * it unnests the target multivalue field and joins back to the original relation.
-   * mvexpand-specific semantics (such as an optional per-document limit) are carried by the {@link
-   * MvExpand} AST node and applied via the limit parameter passed into the shared expansion
-   * builder.
+   * <p>Expands a multi-value (array) field into separate rows using Calcite's CORRELATE join with
+   * UNCOLLECT. Each element of the array becomes a separate row while preserving all other fields
+   * from the original row.
    *
-   * <p>Missing-field behavior: if the target field does not exist in the input schema, mvexpand
-   * produces no rows while keeping the output schema stable.
+   * <p>Implementation uses {@link #buildExpandRelNode} to create a correlate join between the
+   * original relation and an uncollected (unnested) version of the target array field.
    *
-   * @param mvExpand MVExpand command to be visited
-   * @param context CalcitePlanContext containing the RelBuilder and other context
-   * @return RelNode representing records with the expanded multi-value field
+   * <p>Behavior:
+   *
+   * <ul>
+   *   <li>Array fields: Each array element is expanded into a separate row
+   *   <li>Non-array fields: Treated as single-element arrays (returns original row unchanged)
+   *   <li>Missing fields: Throws {@link SemanticCheckException}
+   *   <li>Optional limit parameter: Limits the number of expanded elements per document
+   * </ul>
+   *
+   * @param mvExpand MVExpand command containing the field to expand and optional limit
+   * @param context CalcitePlanContext containing the RelBuilder and planning context
+   * @return RelNode representing the relation with the expanded multi-value field
+   * @throws SemanticCheckException if the target field does not exist in the schema
    */
   @Override
   public RelNode visitMvExpand(MvExpand mvExpand, CalcitePlanContext context) {
@@ -3365,37 +3376,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     final Field field = mvExpand.getField();
     final String fieldName = field.getField().toString();
 
-    // Missing-field: produce no rows (but keep schema stable).
     final RelDataType inputType = relBuilder.peek().getRowType();
     final RelDataTypeField inputField =
         inputType.getField(fieldName, /*caseSensitive*/ true, /*elideRecord*/ false);
 
     if (inputField == null) {
-      return buildEmptyResultWithStableSchema(relBuilder, fieldName);
+      throw new SemanticCheckException(
+          String.format("Field '%s' not found in the schema", fieldName));
     }
 
-    // Resolve field ref using rexVisitor for consistent semantics (same as expand).
     final RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(field, context);
 
-    // If it's not an ARRAY, treat it as a single-value "multivalue" and keep results unchanged.
     final SqlTypeName actual = arrayFieldRex.getType().getSqlTypeName();
     if (actual != SqlTypeName.ARRAY) {
+      // For non-array fields (scalars), mvexpand just returns the field unchanged.
+      // This treats single-value fields as if they were arrays with one element.
       return relBuilder.peek();
     }
 
     buildExpandRelNode(arrayFieldRex, fieldName, fieldName, mvExpand.getLimit(), context);
-    return relBuilder.peek();
-  }
 
-  private static RelNode buildEmptyResultWithStableSchema(RelBuilder relBuilder, String fieldName) {
-    final RelDataTypeFactory typeFactory = relBuilder.getTypeFactory();
-    final RelDataType arrayAny =
-        typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.ANY), -1);
-
-    relBuilder.projectPlus(
-        List.of(relBuilder.alias(relBuilder.getRexBuilder().makeNullLiteral(arrayAny), fieldName)));
-
-    relBuilder.filter(relBuilder.literal(false));
     return relBuilder.peek();
   }
 

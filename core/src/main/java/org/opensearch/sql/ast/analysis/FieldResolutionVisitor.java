@@ -45,6 +45,7 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -646,6 +647,15 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
     context.pushRequirements(new FieldResolutionResult(regularFields, Set.of(ALL_FIELDS)));
 
+    visitChildren(node, context);
+    context.popRequirements();
+    return node;
+  }
+
+  @Override
+  public Node visitMvExpand(MvExpand node, FieldResolutionContext context) {
+    Set<String> mvExpandFields = extractFieldsFromExpression(node.getField());
+    context.pushRequirements(context.getCurrentRequirements().or(mvExpandFields));
     visitChildren(node, context);
     context.popRequirements();
     return node;

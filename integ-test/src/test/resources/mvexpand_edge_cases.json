@@ -16,3 +16,15 @@
 {"username":"duplicate","skills":[{"name":"dup"},{"name":"dup"}]}
 {"index":{}}
 {"username":"large","skills":[{"name":"s1"},{"name":"s2"},{"name":"s3"},{"name":"s4"},{"name":"s5"},{"name":"s6"},{"name":"s7"},{"name":"s8"},{"name":"s9"},{"name":"s10"}]}
+{"index":{}}
+{"username":"partial","skills":[{"name":"kotlin"},{"level":"intermediate"},{"level":"advanced"}]}
+{"index":{}}
+{"username":"mixed_shapes","skills":[{"name":"elixir"},{"name":"haskell"}]}
+{"index":{}}
+{"username":"hetero_types","skills":[{"level":"senior"},{"level":"3"}]}
+{"index":{}}
+{"username":"limituser","skills":[{"name":"a"},{"name":"b"},{"name":"c"},{"name":"d"},{"name":"e"}]}
+{"index":{}}
+{"username":"u1","skills_not_array":"scala"}
+{"index":{}}
+{"username":"u_int","skills_int":5}

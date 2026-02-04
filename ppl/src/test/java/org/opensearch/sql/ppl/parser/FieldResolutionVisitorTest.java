@@ -362,6 +362,16 @@ public class FieldResolutionVisitorTest {
   }
 
   @Test
+  public void testMvExpandCommand() {
+    assertSingleRelationFields("source=logs | mvexpand skills", Set.of("skills"), "*");
+  }
+
+  @Test
+  public void testMvExpandCommandWithLimit() {
+    assertSingleRelationFields("source=logs | mvexpand skills limit=5", Set.of("skills"), "*");
+  }
+
+  @Test
   public void testUnimplementedVisitDetected() {
     assertThrows(
         "Unsupported command for field resolution: Kmeans",
