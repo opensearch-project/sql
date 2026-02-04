@@ -166,6 +166,42 @@ public class FetchSizeIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testFetchSizeAsUrlParameter() throws IOException {
+    // fetch_size specified as URL parameter instead of JSON body
+    Request request = new Request("POST", QUERY_API_ENDPOINT + "?fetch_size=5");
+    String jsonBody =
+        String.format(
+            Locale.ROOT, "{\n  \"query\": \"source=%s | fields firstname\"\n}", TEST_INDEX_ACCOUNT);
+    request.setJsonEntity(jsonBody);
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    Response response = client().performRequest(request);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    JSONObject result = jsonify(getResponseBody(response, true));
+    assertEquals(5, result.getJSONArray("datarows").length());
+  }
+
+  @Test
+  public void testFetchSizeJsonBodyTakesPrecedenceOverUrlParam() throws IOException {
+    // JSON body fetch_size=3 should take precedence over URL param fetch_size=10
+    Request request = new Request("POST", QUERY_API_ENDPOINT + "?fetch_size=10");
+    String jsonBody =
+        String.format(
+            Locale.ROOT,
+            "{\n  \"query\": \"source=%s | fields firstname\",\n  \"fetch_size\": 3\n}",
+            TEST_INDEX_ACCOUNT);
+    request.setJsonEntity(jsonBody);
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    Response response = client().performRequest(request);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    JSONObject result = jsonify(getResponseBody(response, true));
+    assertEquals(3, result.getJSONArray("datarows").length());
+  }
+
+  @Test
   public void testWithoutFetchSizeReturnsDefaultBehavior() throws IOException {
     // Without fetch_size, should return results up to system default
     JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_BANK));

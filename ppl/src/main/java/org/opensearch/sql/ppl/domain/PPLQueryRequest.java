@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl.domain;
 
+import java.util.Locale;
 import java.util.Optional;
 import lombok.Getter;
 import lombok.Setter;
