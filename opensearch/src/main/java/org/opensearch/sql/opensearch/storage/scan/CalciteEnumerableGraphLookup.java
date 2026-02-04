@@ -59,8 +59,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
    * @param source Source table RelNode
    * @param lookup Lookup table RelNode // * @param lookupIndex OpenSearchIndex for the lookup table
    *     (extracted from lookup RelNode)
-   * @param connectFromField Field name for outgoing edges
-   * @param connectToField Field name for incoming edges
+   * @param startField Field name for start entities
+   * @param fromField Field name for outgoing edges
+   * @param toField Field name for incoming edges
    * @param outputField Name of the output array field
    * @param depthField Name of the depth field
    * @param maxDepth Maximum traversal depth (-1 for unlimited)
@@ -71,9 +72,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       RelTraitSet traitSet,
       RelNode source,
       RelNode lookup,
-      String startWith,
-      String connectFromField,
-      String connectToField,
+      String startField,
+      String fromField,
+      String toField,
       String outputField,
       String depthField,
       int maxDepth,
@@ -83,9 +84,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         traitSet,
         source,
         lookup,
-        startWith,
-        connectFromField,
-        connectToField,
+        startField,
+        fromField,
+        toField,
         outputField,
         depthField,
         maxDepth,
@@ -99,9 +100,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         traitSet,
         inputs.get(0),
         inputs.get(1),
-        startWith,
-        connectFromField,
-        connectToField,
+        startField,
+        fromField,
+        toField,
         outputField,
         depthField,
         maxDepth,
@@ -154,9 +155,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
     private final CalciteEnumerableIndexScan lookupScan;
     private final Enumerator<@Nullable Object> sourceEnumerator;
     private final List<String> lookupFields;
-    private final int startWithIndex;
-    private final int connectFromIdx;
-    private final int connectToIdx;
+    private final int startFieldIndex;
+    private final int fromFieldIdx;
+    private final int toFieldIdx;
 
     private Object[] current = null;
 
@@ -184,9 +185,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
       List<String> sourceFields = graphLookup.getSource().getRowType().getFieldNames();
       this.lookupFields = graphLookup.getLookup().getRowType().getFieldNames();
-      this.startWithIndex = sourceFields.indexOf(graphLookup.getStartWith());
-      this.connectFromIdx = lookupFields.indexOf(graphLookup.connectFromField);
-      this.connectToIdx = lookupFields.indexOf(graphLookup.connectToField);
+      this.startFieldIndex = sourceFields.indexOf(graphLookup.getStartField());
+      this.fromFieldIdx = lookupFields.indexOf(graphLookup.fromField);
+      this.toFieldIdx = lookupFields.indexOf(graphLookup.toField);
     }
 
     @Override
@@ -216,8 +217,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
       // Get the start value for BFS
       Object startValue =
-          (startWithIndex >= 0 && startWithIndex < sourceValues.length)
-              ? sourceValues[startWithIndex]
+          (startFieldIndex >= 0 && startFieldIndex < sourceValues.length)
+              ? sourceValues[startFieldIndex]
               : null;
 
       // Perform BFS traversal
@@ -266,14 +267,14 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         }
 
         // Query OpenSearch for all current level values
-        // Forward direction: connectFromField = currentLevelValues
+        // Forward direction: fromField = currentLevelValues
         List<Object> forwardResults = queryLookupTable(currentLevelValues);
 
         for (Object row : forwardResults) {
           Object[] rowArray = (Object[]) (row);
-          Object nextValue = rowArray[connectFromIdx];
+          Object nextValue = rowArray[fromFieldIdx];
           if (graphLookup.bidirectional && visited.contains(nextValue)) {
-            nextValue = rowArray[connectToIdx];
+            nextValue = rowArray[toFieldIdx];
           }
           if (!visited.contains(nextValue)) {
             if (graphLookup.depthField != null) {
@@ -311,12 +312,12 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
       NamedFieldExpression toFieldExpression =
           new NamedFieldExpression(
-              connectToIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes());
+              toFieldIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes());
       QueryBuilder query = termsQuery(toFieldExpression.getReferenceForTermQuery(), values);
       if (graphLookup.bidirectional) {
         NamedFieldExpression fromFieldExpression =
             new NamedFieldExpression(
-                connectFromIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes());
+                fromFieldIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes());
         query =
             QueryBuilders.boolQuery()
                 .should(query)

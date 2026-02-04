@@ -27,8 +27,9 @@ public class LogicalGraphLookup extends GraphLookup {
    * @param traitSet Trait set
    * @param source Source table RelNode
    * @param lookup Lookup table RelNode
-   * @param connectFromField Field name for outgoing edges
-   * @param connectToField Field name for incoming edges
+   * @param startField Field name for start entities
+   * @param fromField Field name for outgoing edges
+   * @param toField Field name for incoming edges
    * @param outputField Name of the output array field
    * @param depthField Name of the depth field
    * @param maxDepth Maximum traversal depth (-1 for unlimited)
@@ -39,9 +40,9 @@ public class LogicalGraphLookup extends GraphLookup {
       RelTraitSet traitSet,
       RelNode source,
       RelNode lookup,
-      String startWith,
-      String connectFromField,
-      String connectToField,
+      String startField,
+      String fromField,
+      String toField,
       String outputField,
       @Nullable String depthField,
       int maxDepth,
@@ -51,9 +52,9 @@ public class LogicalGraphLookup extends GraphLookup {
         traitSet,
         source,
         lookup,
-        startWith,
-        connectFromField,
-        connectToField,
+        startField,
+        fromField,
+        toField,
         outputField,
         depthField,
         maxDepth,
@@ -65,9 +66,9 @@ public class LogicalGraphLookup extends GraphLookup {
    *
    * @param source Source table RelNode
    * @param lookup Lookup table RelNode
-   * @param startWith Field name for start with entities
-   * @param connectFromField Field name for outgoing edges
-   * @param connectToField Field name for incoming edges
+   * @param startField Field name for start entities
+   * @param fromField Field name for outgoing edges
+   * @param toField Field name for incoming edges
    * @param outputField Name of the output array field
    * @param maxDepth Maximum traversal depth (-1 for unlimited)
    * @param bidirectional Whether to traverse edges in both directions
@@ -77,9 +78,9 @@ public class LogicalGraphLookup extends GraphLookup {
   public static LogicalGraphLookup create(
       RelNode source,
       RelNode lookup,
-      String startWith,
-      String connectFromField,
-      String connectToField,
+      String startField,
+      String fromField,
+      String toField,
       String outputField,
       @Nullable String depthField,
       int maxDepth,
@@ -91,9 +92,9 @@ public class LogicalGraphLookup extends GraphLookup {
         traitSet,
         source,
         lookup,
-        startWith,
-        connectFromField,
-        connectToField,
+        startField,
+        fromField,
+        toField,
         outputField,
         depthField,
         maxDepth,
@@ -107,9 +108,9 @@ public class LogicalGraphLookup extends GraphLookup {
         traitSet,
         inputs.get(0),
         inputs.get(1),
-        startWith,
-        connectFromField,
-        connectToField,
+        startField,
+        fromField,
+        toField,
         outputField,
         depthField,
         maxDepth,

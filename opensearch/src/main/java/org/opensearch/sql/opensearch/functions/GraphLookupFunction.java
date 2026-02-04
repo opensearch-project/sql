@@ -51,10 +51,10 @@ public class GraphLookupFunction {
    *
    * @param startValue The starting value to begin traversal from
    * @param lookupTableRows All rows from the lookup table
-   * @param connectFromFieldIndex Index of the field that represents outgoing edges (the field
-   *     values we traverse FROM)
-   * @param connectToFieldIndex Index of the field that represents the target to match against (the
-   *     field values we traverse TO)
+   * @param fromFieldIndex Index of the field that represents outgoing edges (the field values we
+   *     traverse FROM)
+   * @param toFieldIndex Index of the field that represents the target to match against (the field
+   *     values we traverse TO)
    * @param maxDepth Maximum traversal depth (-1 or 0 for unlimited)
    * @param bidirectional If true, traverse edges in both directions
    * @return List of traversal results containing row data and depth
@@ -62,8 +62,8 @@ public class GraphLookupFunction {
   public static List<TraversalResult> execute(
       Object startValue,
       List<Object[]> lookupTableRows,
-      int connectFromFieldIndex,
-      int connectToFieldIndex,
+      int fromFieldIndex,
+      int toFieldIndex,
       int maxDepth,
       boolean bidirectional) {
 
@@ -71,27 +71,27 @@ public class GraphLookupFunction {
       return List.of();
     }
 
-    // Build adjacency index: connectToField value -> list of rows with matching connectFromField
-    // This creates edges: when we're at a node with connectFromField=X, we can traverse to nodes
-    // where connectToField=X
+    // Build adjacency index: toField value -> list of rows with matching fromField
+    // This creates edges: when we're at a node with fromField=X, we can traverse to nodes
+    // where toField=X
     Map<Object, List<Object[]>> forwardAdjacency = new HashMap<>();
 
     // For bidirectional: also index reverse edges
-    // connectFromField value -> list of rows with matching connectToField
+    // fromField value -> list of rows with matching toField
     Map<Object, List<Object[]>> reverseAdjacency = bidirectional ? new HashMap<>() : null;
 
     for (Object[] row : lookupTableRows) {
-      Object connectFromValue = row[connectFromFieldIndex];
-      Object connectToValue = row[connectToFieldIndex];
+      Object fromValue = row[fromFieldIndex];
+      Object toValue = row[toFieldIndex];
 
-      // Forward edge: from connectFromValue, we can reach this row
-      if (connectFromValue != null) {
-        forwardAdjacency.computeIfAbsent(connectFromValue, k -> new ArrayList<>()).add(row);
+      // Forward edge: from fromValue, we can reach this row
+      if (fromValue != null) {
+        forwardAdjacency.computeIfAbsent(fromValue, k -> new ArrayList<>()).add(row);
       }
 
-      // Reverse edge (for bidirectional): from connectToValue, we can reach this row
-      if (bidirectional && connectToValue != null) {
-        reverseAdjacency.computeIfAbsent(connectToValue, k -> new ArrayList<>()).add(row);
+      // Reverse edge (for bidirectional): from toValue, we can reach this row
+      if (bidirectional && toValue != null) {
+        reverseAdjacency.computeIfAbsent(toValue, k -> new ArrayList<>()).add(row);
       }
     }
 
@@ -117,7 +117,7 @@ public class GraphLookupFunction {
       List<Object[]> forwardNeighbors = forwardAdjacency.get(current.value());
       if (forwardNeighbors != null) {
         for (Object[] neighborRow : forwardNeighbors) {
-          Object neighborKey = neighborRow[connectToFieldIndex];
+          Object neighborKey = neighborRow[toFieldIndex];
           if (!visited.contains(neighborKey)) {
             visited.add(neighborKey);
             results.add(new TraversalResult(neighborRow, currentDepth + 1));
@@ -131,7 +131,7 @@ public class GraphLookupFunction {
         List<Object[]> reverseNeighbors = reverseAdjacency.get(current.value());
         if (reverseNeighbors != null) {
           for (Object[] neighborRow : reverseNeighbors) {
-            Object neighborKey = neighborRow[connectFromFieldIndex];
+            Object neighborKey = neighborRow[fromFieldIndex];
             if (!visited.contains(neighborKey)) {
               visited.add(neighborKey);
               results.add(new TraversalResult(neighborRow, currentDepth + 1));
@@ -149,14 +149,14 @@ public class GraphLookupFunction {
    * Convenience method to get the starting value from an input row.
    *
    * @param inputRow The input row
-   * @param connectToFieldIndex Index of the field in input that contains the starting value
+   * @param toFieldIndex Index of the field in input that contains the starting value
    * @return The starting value for traversal
    */
-  public static Object getStartValue(Object[] inputRow, int connectToFieldIndex) {
-    if (inputRow == null || connectToFieldIndex < 0 || connectToFieldIndex >= inputRow.length) {
+  public static Object getStartValue(Object[] inputRow, int toFieldIndex) {
+    if (inputRow == null || toFieldIndex < 0 || toFieldIndex >= inputRow.length) {
       return null;
     }
-    return inputRow[connectToFieldIndex];
+    return inputRow[toFieldIndex];
   }
 
   /**
@@ -192,8 +192,8 @@ public class GraphLookupFunction {
    *
    * @param startValue Starting value for BFS traversal
    * @param lookupTable Collected rows from lookup table
-   * @param connectFromIdx Index of connectFrom field in lookup rows
-   * @param connectToIdx Index of connectTo field in lookup rows
+   * @param fromIdx Index of from field in lookup rows
+   * @param toIdx Index of to field in lookup rows
    * @param maxDepth Maximum traversal depth (-1 = unlimited)
    * @param bidirectional Whether to traverse edges in both directions
    * @param includeDepth Whether to include depth in output rows
@@ -202,8 +202,8 @@ public class GraphLookupFunction {
   public static List<Object[]> executeWithDynamicLookup(
       Object startValue,
       RexSubQuery lookupTable,
-      int connectFromIdx,
-      int connectToIdx,
+      int fromIdx,
+      int toIdx,
       int maxDepth,
       boolean bidirectional,
       boolean includeDepth) {
@@ -221,7 +221,7 @@ public class GraphLookupFunction {
     }
 
     List<TraversalResult> results =
-        execute(startValue, rows, connectFromIdx, connectToIdx, maxDepth, bidirectional);
+        execute(startValue, rows, fromIdx, toIdx, maxDepth, bidirectional);
 
     // Convert to output format
     List<Object[]> output = new ArrayList<>();

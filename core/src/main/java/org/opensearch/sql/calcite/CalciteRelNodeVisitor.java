@@ -2586,9 +2586,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelNode sourceTable = builder.build();
 
     // 2. Extract parameters
-    String startWith = node.getStartWith().getField().toString();
-    String connectFromFieldName = node.getConnectFromField().getField().toString();
-    String connectToFieldName = node.getConnectToField().getField().toString();
+    String startFieldName = node.getStartField().getField().toString();
+    String fromFieldName = node.getFromField().getField().toString();
+    String toFieldName = node.getToField().getField().toString();
     String outputFieldName = node.getAs().getField().toString();
     String depthFieldName = node.getDepthFieldName();
     boolean bidirectional = node.getDirection() == Direction.BI;
@@ -2608,9 +2608,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         LogicalGraphLookup.create(
             sourceTable,
             lookupTable,
-            startWith,
-            connectFromFieldName,
-            connectToFieldName,
+            startFieldName,
+            fromFieldName,
+            toFieldName,
             outputFieldName,
             depthFieldName,
             maxDepthValue,

@@ -230,11 +230,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     StringBuilder command = new StringBuilder();
     command.append(child).append(" | graphlookup ").append(MASK_TABLE);
-    if (node.getStartWith() != null) {
-      command.append(" startwith=").append(MASK_COLUMN);
+    if (node.getStartField() != null) {
+      command.append(" startField=").append(MASK_COLUMN);
     }
-    command.append(" connectFromField=").append(MASK_COLUMN);
-    command.append(" connectToField=").append(MASK_COLUMN);
+    command.append(" fromField=").append(MASK_COLUMN);
+    command.append(" toField=").append(MASK_COLUMN);
     if (node.getMaxDepth() != null && !Integer.valueOf(0).equals(node.getMaxDepth().getValue())) {
       command.append(" maxDepth=").append(MASK_LITERAL);
     }

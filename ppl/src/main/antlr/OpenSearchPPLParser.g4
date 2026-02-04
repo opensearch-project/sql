@@ -632,9 +632,9 @@ graphLookupCommand
    ;
 
 graphLookupOption
-   : (START_WITH EQUAL fieldExpression)
-   | (CONNECT_FROM_FIELD EQUAL fieldExpression)
-   | (CONNECT_TO_FIELD EQUAL fieldExpression)
+   : (START_FIELD EQUAL fieldExpression)
+   | (FROM_FIELD EQUAL fieldExpression)
+   | (TO_FIELD EQUAL fieldExpression)
    | (MAX_DEPTH EQUAL integerLiteral)
    | (DEPTH_FIELD EQUAL fieldExpression)
    | (DIRECTION EQUAL (UNI | BI))

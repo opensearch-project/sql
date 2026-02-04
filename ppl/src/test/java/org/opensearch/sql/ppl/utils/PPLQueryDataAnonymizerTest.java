@@ -647,40 +647,40 @@ public class PPLQueryDataAnonymizerTest {
   public void testGraphLookup() {
     // Basic graphLookup with required parameters
     assertEquals(
-        "source=table | graphlookup table connectFromField=identifier connectToField=identifier"
+        "source=table | graphlookup table fromField=identifier toField=identifier"
             + " direction=uni as identifier",
         anonymize(
-            "source=t | graphLookup employees connectFromField=manager connectToField=name"
+            "source=t | graphLookup employees fromField=manager toField=name"
                 + " as reportingHierarchy"));
     // graphLookup with maxDepth
     assertEquals(
-        "source=table | graphlookup table connectFromField=identifier connectToField=identifier"
+        "source=table | graphlookup table fromField=identifier toField=identifier"
             + " maxDepth=*** direction=uni as identifier",
         anonymize(
-            "source=t | graphLookup employees connectFromField=manager connectToField=name"
+            "source=t | graphLookup employees fromField=manager toField=name"
                 + " maxDepth=3 as reportingHierarchy"));
     // graphLookup with depthField
     assertEquals(
-        "source=table | graphlookup table connectFromField=identifier connectToField=identifier"
+        "source=table | graphlookup table fromField=identifier toField=identifier"
             + " depthField=identifier direction=uni as identifier",
         anonymize(
-            "source=t | graphLookup employees connectFromField=manager connectToField=name"
+            "source=t | graphLookup employees fromField=manager toField=name"
                 + " depthField=level as reportingHierarchy"));
     // graphLookup with bidirectional mode
     assertEquals(
-        "source=table | graphlookup table connectFromField=identifier connectToField=identifier"
+        "source=table | graphlookup table fromField=identifier toField=identifier"
             + " direction=bi as identifier",
         anonymize(
-            "source=t | graphLookup employees connectFromField=manager connectToField=name"
+            "source=t | graphLookup employees fromField=manager toField=name"
                 + " direction=bi as reportingHierarchy"));
     // graphLookup with all optional parameters
     assertEquals(
-        "source=table | graphlookup table startwith=identifier connectFromField=identifier"
-            + " connectToField=identifier maxDepth=*** depthField=identifier direction=bi"
+        "source=table | graphlookup table startField=identifier fromField=identifier"
+            + " toField=identifier maxDepth=*** depthField=identifier direction=bi"
             + " as identifier",
         anonymize(
-            "source=t | graphLookup employees connectFromField=manager connectToField=name"
-                + " startWith=id maxDepth=5 depthField=level direction=bi as reportingHierarchy"));
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " startField=id maxDepth=5 depthField=level direction=bi as reportingHierarchy"));
   }
 
   @Test
