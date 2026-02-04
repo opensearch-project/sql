@@ -124,6 +124,34 @@ public class FetchSizeIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testFetchSizeAtSystemLimit() throws IOException {
+    // fetch_size at the default system limit (10000) should work without error
+    JSONObject result =
+        executeQueryWithFetchSize(String.format("source=%s", TEST_INDEX_BANK), 10000);
+    JSONArray dataRows = result.getJSONArray("datarows");
+    // Bank index has 7 documents, so we get all of them
+    assertEquals(7, dataRows.length());
+  }
+
+  @Test
+  public void testFetchSizeExceedingSystemLimitIsCapped() throws IOException {
+    // fetch_size > system limit (10000) is accepted but capped by LogicalSystemLimit
+    JSONObject result =
+        executeQueryWithFetchSize(String.format("source=%s", TEST_INDEX_BANK), 10001);
+    JSONArray dataRows = result.getJSONArray("datarows");
+    // Bank index has 7 documents, result is capped by system limit but dataset is smaller
+    assertEquals(7, dataRows.length());
+  }
+
+  @Test
+  public void testNegativeFetchSizeReturnsAllResults() throws IOException {
+    // Negative fetch_size is treated as "no limit" (same as 0)
+    JSONObject result = executeQueryWithFetchSize(String.format("source=%s", TEST_INDEX_BANK), -1);
+    JSONArray dataRows = result.getJSONArray("datarows");
+    assertEquals(7, dataRows.length());
+  }
+
+  @Test
   public void testFetchSizeOne() throws IOException {
     JSONObject result =
         executeQueryWithFetchSize(

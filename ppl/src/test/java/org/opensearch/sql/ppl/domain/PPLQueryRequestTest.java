@@ -78,6 +78,15 @@ public class PPLQueryRequestTest {
   }
 
   @Test
+  public void testGetFetchSizeHandlesExplicitNull() {
+    JSONObject json = new JSONObject();
+    json.put("query", "source=t");
+    json.put("fetch_size", JSONObject.NULL);
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    assertEquals(0, request.getFetchSize());
+  }
+
+  @Test
   public void testGetFetchSizeWithLargeValue() {
     JSONObject json = new JSONObject("{\"query\": \"source=t\", \"fetch_size\": 15000}");
     PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
