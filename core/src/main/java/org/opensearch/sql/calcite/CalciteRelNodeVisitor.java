@@ -44,9 +44,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
+import lombok.NonNull;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -57,10 +60,14 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -740,8 +747,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .map(
                 f ->
                     Map.entry(
-                        ImmutableList.of(rx.makeLiteral(f)),
-                        ImmutableList.of((RexNode) rx.makeCast(varchar, b.field(f), true))))
+                        ImmutableList.of((RexLiteral) rx.makeLiteral(f, varchar, true)),
+                        ImmutableList.of(rx.makeCast(varchar, b.field(f), true, true))))
             .collect(Collectors.toList()));
 
     // Step 3: Trim spaces from columnName column before pivot
@@ -1808,6 +1815,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Default: first get rawExpr
     List<RexNode> overExpressions =
         node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
+    overExpressions = embedExistingCollationsIntoOver(overExpressions, context);
 
     if (hasGroup) {
       // only build sequence when there is by condition
@@ -1847,6 +1855,84 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     return context.relBuilder.peek();
+  }
+
+  /**
+   * Embed existing collation into window function's over clauses.
+   *
+   * <p>Window functions with frame specifications like {@code ROWS n PRECEDING} require ORDER BY to
+   * determine row order. Without it, results are non-deterministic.
+   *
+   * <p>Without this fix, the initial plan has ORDER BY separate from window functions:
+   *
+   * <pre>
+   * LogicalProject(SUM($5) OVER (ROWS 1 PRECEDING))  ← Missing ORDER BY
+   *   LogicalSort(sort0=[$5])
+   * </pre>
+   *
+   * <p>This causes problems during validation as the order is not bound to the window. With this
+   * fix, sort collations are embeded into each {@code RexOver} window:
+   *
+   * <pre>
+   * LogicalProject(SUM($5) OVER (ORDER BY $5 ROWS 1 PRECEDING))  ← ORDER BY embedded
+   * </pre>
+   *
+   * @param overExpressions Window function expressions (may contain nested {@link RexOver})
+   * @param context Plan context for building RexNodes
+   * @return Expressions with ORDER BY embedded in all window specifications
+   */
+  private List<RexNode> embedExistingCollationsIntoOver(
+      List<RexNode> overExpressions, CalcitePlanContext context) {
+    RelCollation existingCollation = context.relBuilder.peek().getTraitSet().getCollation();
+    List<@NonNull RelFieldCollation> relCollations =
+        existingCollation == null ? List.of() : existingCollation.getFieldCollations();
+    ImmutableList<@NonNull RexFieldCollation> rexCollations =
+        relCollations.stream()
+            .map(f -> relCollationToRexCollation(f, context.relBuilder))
+            .collect(ImmutableList.toImmutableList());
+    return overExpressions.stream()
+        .map(
+            n ->
+                n.accept(
+                    new RexShuttle() {
+                      @Override
+                      public RexNode visitOver(RexOver over) {
+                        RexWindow window = over.getWindow();
+                        return context.rexBuilder.makeOver(
+                            over.getType(),
+                            over.getAggOperator(),
+                            over.getOperands(),
+                            window.partitionKeys,
+                            rexCollations,
+                            window.getLowerBound(),
+                            window.getUpperBound(),
+                            window.isRows(),
+                            true,
+                            false,
+                            over.isDistinct(),
+                            over.ignoreNulls());
+                      }
+                    }))
+        .collect(Collectors.toList());
+  }
+
+  private static RexFieldCollation relCollationToRexCollation(
+      RelFieldCollation relCollation, RelBuilder builder) {
+    RexNode fieldRef = builder.field(relCollation.getFieldIndex());
+
+    // Convert direction flags to SqlKind set
+    Set<SqlKind> flags = new HashSet<>();
+    if (relCollation.direction == RelFieldCollation.Direction.DESCENDING
+        || relCollation.direction == RelFieldCollation.Direction.STRICTLY_DESCENDING) {
+      flags.add(SqlKind.DESCENDING);
+    }
+    if (relCollation.nullDirection == RelFieldCollation.NullDirection.FIRST) {
+      flags.add(SqlKind.NULLS_FIRST);
+    } else if (relCollation.nullDirection == RelFieldCollation.NullDirection.LAST) {
+      flags.add(SqlKind.NULLS_LAST);
+    }
+
+    return new RexFieldCollation(fieldRef, flags);
   }
 
   private List<RexNode> wrapWindowFunctionsWithGroupNotNull(

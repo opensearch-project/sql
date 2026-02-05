@@ -1,0 +1,9 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalSort(fetch=[1])
+        LogicalProject(formatted_date=[STRFTIME(1521467703, '%Y-%m-%d')])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableCalc(expr#0..16=[{inputs}], expr#17=[1521467703], expr#18=['%Y-%m-%d'], expr#19=[STRFTIME($t17, $t18)], formatted_date=[$t19])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[LIMIT->1, LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":1,"timeout":"1m"}, requestedTotalSize=1, pageSize=null, startFrom=0)])

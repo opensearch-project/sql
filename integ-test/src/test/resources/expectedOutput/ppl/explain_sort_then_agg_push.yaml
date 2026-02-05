@@ -1,0 +1,15 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[avg(balance), state]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
+          \ sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"sort\":[],\"\
+          aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\"\
+          :[{\"state\":{\"terms\":{\"field\":\"state.keyword\",\"missing_bucket\"\
+          :true,\"missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\"\
+          :{\"avg(balance)\":{\"avg\":{\"field\":\"balance\"}}}}}}, pitId=*, cursorKeepAlive=null,\
+          \ searchAfter=null, searchResponse=null)"
+      children: []

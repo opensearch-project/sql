@@ -2,14 +2,14 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(avg(value)=[$2], span(@timestamp,1h)=[$1], value_range=[$0])
-        LogicalAggregate(group=[{0, 2}], avg(value)=[AVG($1)])
-          LogicalProject(value_range=[$10], value=[$2], span(@timestamp,1h)=[SPAN($0, 1, 'h')])
+        LogicalAggregate(group=[{0, 1}], avg(value)=[AVG($2)])
+          LogicalProject(value_range=[$10], span(@timestamp,1h)=[SPAN($0, 1, 'h')], value=[$2])
             LogicalFilter(condition=[IS NOT NULL($0)])
               LogicalProject(@timestamp=[$0], category=[$1], value=[$2], timestamp=[$3], _id=[$4], _index=[$5], _score=[$6], _maxscore=[$7], _sort=[$8], _routing=[$9], value_range=[CASE(<($2, 7000), 'small':VARCHAR, 'large':VARCHAR)])
                 CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[null:BIGINT], expr#7=[CASE($t5, $t6, $t2)], expr#8=[CAST($t7):DOUBLE], expr#9=[/($t8, $t3)], avg(value)=[$t9], span(@timestamp,1h)=[$t1], value_range=[$t0])
-        EnumerableAggregate(group=[{0, 2}], agg#0=[$SUM0($1)], agg#1=[COUNT($1)])
-          EnumerableCalc(expr#0..9=[{inputs}], expr#10=[7000], expr#11=[<($t2, $t10)], expr#12=['small':VARCHAR], expr#13=['large':VARCHAR], expr#14=[CASE($t11, $t12, $t13)], expr#15=[1], expr#16=['h'], expr#17=[SPAN($t0, $t15, $t16)], expr#18=[IS NOT NULL($t0)], value_range=[$t14], value=[$t2], span(@timestamp,1h)=[$t17], $condition=[$t18])
+        EnumerableAggregate(group=[{0, 1}], agg#0=[$SUM0($2)], agg#1=[COUNT($2)])
+          EnumerableCalc(expr#0..9=[{inputs}], expr#10=[7000], expr#11=[<($t2, $t10)], expr#12=['small':VARCHAR], expr#13=['large':VARCHAR], expr#14=[CASE($t11, $t12, $t13)], expr#15=[1], expr#16=['h'], expr#17=[SPAN($t0, $t15, $t16)], expr#18=[IS NOT NULL($t0)], value_range=[$t14], span(@timestamp,1h)=[$t17], value=[$t2], $condition=[$t18])
             CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])

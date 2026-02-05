@@ -2,7 +2,7 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(author=[$0])
-        LogicalFilter(condition=[AND(SEARCH($4, Sarg[[4..6)]), =($6, 'The Shining'))])
+        LogicalFilter(condition=[AND(>=($4, 4), <($4, 6), =($6, 'The Shining'))])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_cascaded_nested]])
   physical: |
     EnumerableLimit(fetch=[10000])

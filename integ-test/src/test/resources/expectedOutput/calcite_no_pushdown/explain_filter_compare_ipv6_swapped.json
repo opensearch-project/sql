@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(host=[$0])\n    LogicalFilter(condition=[LTE_IP(IP('::ffff:1234':VARCHAR), $0)])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_weblogs]])\n",
-    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..11=[{inputs}], expr#12=['::ffff:1234':VARCHAR], expr#13=[IP($t12)], expr#14=[LTE_IP($t13, $t0)], host=[$t0], $condition=[$t14])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_weblogs]])\n"
-  }
-}

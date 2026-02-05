@@ -200,9 +200,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE EXISTS (SELECT 1\n"
-            + "FROM `scott`.`DEPT`\n"
-            + "WHERE `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)";
+            + "LEFT SEMI JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -222,9 +220,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE NOT EXISTS (SELECT 1\n"
-            + "FROM `scott`.`DEPT`\n"
-            + "WHERE `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)";
+            + "LEFT ANTI JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -823,9 +819,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE EXISTS (SELECT 1\n"
-            + "FROM `scott`.`DEPT`\n"
-            + "WHERE `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)";
+            + "LEFT SEMI JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

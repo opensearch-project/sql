@@ -1,0 +1,13 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalSort(fetch=[5])
+        LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], email=[$9], lastname=[$10], age=[WIDTH_BUCKET($8, 3, -(MAX($8) OVER (), MIN($8) OVER ()), MAX($8) OVER ())])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..12=[{inputs}], expr#13=[3], expr#14=[-($t11, $t12)], expr#15=[WIDTH_BUCKET($t8, $t13, $t14, $t11)], proj#0..7=[{exprs}], email=[$t9], lastname=[$t10], age=[$t15])
+        EnumerableLimit(fetch=[5])
+          EnumerableWindow(window#0=[window(aggs [MAX($8), MIN($8)])])
+            EnumerableCalc(expr#0..16=[{inputs}], proj#0..10=[{exprs}])
+              CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

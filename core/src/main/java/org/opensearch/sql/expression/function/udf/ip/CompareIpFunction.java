@@ -15,18 +15,23 @@ import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.data.model.ExprIpValue;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -119,8 +124,28 @@ public class CompareIpFunction extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrapUDT(List.of(List.of(ExprCoreType.IP, ExprCoreType.IP)));
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(
+        new SqlOperandTypeChecker() {
+          @Override
+          public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+            if (!getOperandCountRange().isValidCount(callBinding.getOperandCount())) {
+              return false;
+            }
+            return OpenSearchTypeUtil.isIp(callBinding.getOperandType(0), true)
+                && OpenSearchTypeUtil.isIp(callBinding.getOperandType(1), true);
+          }
+
+          @Override
+          public SqlOperandCountRange getOperandCountRange() {
+            return SqlOperandCountRanges.of(2);
+          }
+
+          @Override
+          public String getAllowedSignatures(SqlOperator op, String opName) {
+            return String.format(Locale.ROOT, "%s(<IP>, <IP>)", opName);
+          }
+        });
   }
 
   public static class CompareImplementor implements NotNullImplementor {

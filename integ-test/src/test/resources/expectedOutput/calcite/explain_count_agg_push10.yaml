@@ -2,7 +2,7 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalAggregate(group=[{}], count(firstname)=[COUNT($0)], count(name)=[COUNT($1)])
-        LogicalProject(firstname=[$1], name=[$10])
+        LogicalProject(firstname=[$1], lastname=[$10])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},count(firstname)=COUNT($0),count(name)=COUNT($1)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"count(firstname)":{"value_count":{"field":"firstname.keyword"}},"count(name)":{"value_count":{"field":"lastname.keyword"}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#1284:LogicalAggregate.NONE.[](input=RelSubset#1283,group={},count(firstname)=COUNT($0),count(name)=COUNT($1)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"count(firstname)":{"value_count":{"field":"firstname.keyword"}},"count(name)":{"value_count":{"field":"lastname.keyword"}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

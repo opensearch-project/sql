@@ -17,9 +17,11 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.opensearch.sql.ast.analysis.FieldResolutionResult;
 import org.opensearch.sql.ast.analysis.FieldResolutionVisitor;
@@ -27,6 +29,11 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
+import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
+import org.opensearch.sql.calcite.validate.PplTypeCoercion;
+import org.opensearch.sql.calcite.validate.PplTypeCoercionRule;
+import org.opensearch.sql.calcite.validate.PplValidator;
+import org.opensearch.sql.calcite.validate.SqlOperatorTableProvider;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -78,6 +85,14 @@ public class CalcitePlanContext {
   /** Root node of the AST tree. Used for field resolution */
   @Setter private UnresolvedPlan rootNode;
 
+  /**
+   * -- SETTER -- Sets the SQL operator table provider. This must be called during initialization by
+   * the opensearch module.
+   *
+   * @param provider the provider to use for obtaining operator tables
+   */
+  @Setter private static SqlOperatorTableProvider operatorTableProvider;
+
   private CalcitePlanContext(FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     this.config = config;
     this.sysLimit = sysLimit;
@@ -105,6 +120,34 @@ public class CalcitePlanContext {
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
+  }
+
+  /**
+   * Creates a new SqlValidator instance. SqlValidator is stateful and should not be reused across
+   * validations, so a new instance is created for each call.
+   *
+   * @return new SqlValidator instance
+   */
+  public SqlValidator getValidator() {
+    if (operatorTableProvider == null) {
+      throw new IllegalStateException(
+          "SqlOperatorTableProvider must be set before creating CalcitePlanContext");
+    }
+    SqlValidator.Config validatorConfig =
+        SqlValidator.Config.DEFAULT
+            .withTypeCoercionRules(PplTypeCoercionRule.instance())
+            .withTypeCoercionFactory(PplTypeCoercion::create)
+            // Use lenient conformance for PPL compatibility
+            .withConformance(OpenSearchSparkSqlDialect.DEFAULT.getConformance())
+            // Use Spark SQL's NULL collation (NULLs sorted LOW/FIRST)
+            .withDefaultNullCollation(NullCollation.LOW)
+            // This ensures that coerced arguments are replaced with cast version in sql
+            // select list because coercion is performed during select list expansion during
+            // sql validation. Affects 4356.yml
+            // See SqlValidatorImpl#validateSelectList and AggConverter#translateAgg
+            .withIdentifierExpansion(true);
+    return PplValidator.create(
+        config, operatorTableProvider.getOperatorTable(), TYPE_FACTORY, validatorConfig);
   }
 
   public RexNode resolveJoinCondition(

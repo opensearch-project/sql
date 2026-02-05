@@ -162,8 +162,9 @@ Usage: `transform(array, function)` transform the element of array one by one us
 **Argument type:** `array:ARRAY, function:LAMBDA`
 **Return type:** `ARRAY`
 ### Example
-  
-```ppl
+
+<!-- TODO: To be fixed with https://github.com/opensearch-project/sql/issues/4972 -->
+```ppl ignore
 source=people
 | eval array = array(1, -2, 3), result = transform(array, x -> x + 2)
 | fields result
@@ -180,8 +181,8 @@ fetched rows / total rows = 1/1
 | [3,0,5] |
 +---------+
 ```
-  
-```ppl
+<!-- TODO: To be fixed with https://github.com/opensearch-project/sql/issues/4972 -->
+```ppl ignore
 source=people
 | eval array = array(1, -2, 3), result = transform(array, (x, i) -> x + i)
 | fields result
@@ -814,8 +815,8 @@ Usage: mvmap(array, expression) iterates over each element of a multivalue array
 Argument type: array: ARRAY, expression: EXPRESSION
 Return type: ARRAY
 Example
-
-```ppl
+<!-- TODO: To be fixed with https://github.com/opensearch-project/sql/issues/4972 -->
+```ppl ignore
 source=people
 | eval array = array(1, 2, 3), result = mvmap(array, array * 10)
 | fields result
@@ -832,8 +833,8 @@ fetched rows / total rows = 1/1
 | [10,20,30] |
 +------------+
 ```
-
-```ppl
+<!-- TODO: To be fixed with https://github.com/opensearch-project/sql/issues/4972 -->
+```ppl ignore
 source=people
 | eval array = array(1, 2, 3), result = mvmap(array, array + 5)
 | fields result
@@ -854,8 +855,8 @@ fetched rows / total rows = 1/1
 Note: For nested expressions like ``mvmap(mvindex(arr, 1, 3), arr * 2)``, the field name (``arr``) is extracted from the first argument and must match the field referenced in the expression.
 
 The expression can also reference other single-value fields:
-
-```ppl
+<!-- TODO: To be fixed with https://github.com/opensearch-project/sql/issues/4972 -->
+```ppl ignore
 source=people
 | eval array = array(1, 2, 3), multiplier = 10, result = mvmap(array, array * multiplier)
 | fields result

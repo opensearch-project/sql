@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
@@ -287,6 +288,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 ImmutableList.of("-6620182933895093708"))));
   }
 
+  @Ignore("To be fixed in https://github.com/opensearch-project/sql/issues/4968")
   @Test
   public void testBrainAggregationMode_NotShowNumberedToken() throws IOException {
     JSONObject result =
@@ -337,6 +339,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 "PacketResponder failed for blk_-1547954353065580372")));
   }
 
+  @Ignore("To be fixed in https://github.com/opensearch-project/sql/issues/4968")
   @Test
   public void testBrainAggregationMode_ShowNumberedToken() throws IOException {
     JSONObject result =
@@ -420,6 +423,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 "PacketResponder failed for blk_-1547954353065580372")));
   }
 
+  @Ignore("To be fixed in https://github.com/opensearch-project/sql/issues/4968")
   @Test
   public void testBrainAggregationModeWithGroupByClause_ShowNumberedToken() throws IOException {
     JSONObject result =

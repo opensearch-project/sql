@@ -1,9 +1,10 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(count(account_number)=[$1], c2=[$2], gender=[$0])
-        LogicalAggregate(group=[{0}], count(account_number)=[COUNT($1)], c2=[COUNT($2)])
-          LogicalProject(gender=[$4], account_number=[$0], account_number_alias=[$0])
+      LogicalProject(count(account_number)=[$1], c2=[$1], gender=[$0])
+        LogicalAggregate(group=[{0}], c2=[COUNT($1)])
+          LogicalProject(gender=[$4], account_number=[$0])
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},count(account_number)=COUNT($1),c2=COUNT($2)), PROJECT->[count(account_number), c2, gender], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"gender":{"terms":{"field":"gender.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"count(account_number)":{"value_count":{"field":"account_number"}},"c2":{"value_count":{"field":"account_number"}}}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
+    EnumerableCalc(expr#0..1=[{inputs}], count(account_number)=[$t1], c2=[$t1], gender=[$t0])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},c2=COUNT($1)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"gender":{"terms":{"field":"gender.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"c2":{"value_count":{"field":"account_number"}}}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

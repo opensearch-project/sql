@@ -1,9 +1,10 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalFilter(condition=[>($1, 29)])
-        LogicalProject(projects.name=[$3], proj_name_len=[CHAR_LENGTH($3)])
-          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_deep_nested]])
+      LogicalProject(projects.name=[$0], proj_name_len=[$1])
+        LogicalFilter(condition=[>($1, 29)])
+          LogicalProject(projects.name=[$3], proj_name_len=[CHAR_LENGTH($3)])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_deep_nested]])
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableCalc(expr#0..15=[{inputs}], expr#16=[CHAR_LENGTH($t3)], expr#17=[29], expr#18=[>($t16, $t17)], projects.name=[$t3], proj_name_len=[$t16], $condition=[$t18])

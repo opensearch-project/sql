@@ -1,0 +1,16 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[w]"
+  children:
+    - name: OpenSearchEvalOperator
+      description:
+        expressions:
+          w: week("2024-12-10")
+      children:
+        - name: OpenSearchIndexScan
+          description:
+            request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
+              \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, pitId=*,\
+              \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+          children: []

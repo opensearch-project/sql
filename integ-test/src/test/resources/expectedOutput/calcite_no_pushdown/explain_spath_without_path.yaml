@@ -1,9 +1,9 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(test=[CAST(ITEM(JSON_EXTRACT_ALL($3), 'test')):VARCHAR NOT NULL])
+      LogicalProject(test=[CAST(ITEM(JSON_EXTRACT_ALL($3), 'test')):VARCHAR])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..10=[{inputs}], expr#11=[JSON_EXTRACT_ALL($t3)], expr#12=['test'], expr#13=[ITEM($t11, $t12)], expr#14=[CAST($t13):VARCHAR NOT NULL], test=[$t14])
+      EnumerableCalc(expr#0..10=[{inputs}], expr#11=[JSON_EXTRACT_ALL($t3)], expr#12=['test'], expr#13=[ITEM($t11, $t12)], expr#14=[CAST($t13):VARCHAR], test=[$t14])
         CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])

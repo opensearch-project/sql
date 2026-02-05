@@ -1,9 +1,9 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], new=[SCALAR_MIN(1, 2, 3, $8, 'banana':VARCHAR)])
+      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], new=[SCALAR_MIN(1, 2, 3, $8, 'banana')])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..16=[{inputs}], expr#17=[1], expr#18=[2], expr#19=[3], expr#20=['banana':VARCHAR], expr#21=[SCALAR_MIN($t17, $t18, $t19, $t8, $t20)], proj#0..10=[{exprs}], new=[$t21])
+      EnumerableCalc(expr#0..16=[{inputs}], expr#17=[1], expr#18=[2], expr#19=[3], expr#20=['banana'], expr#21=[SCALAR_MIN($t17, $t18, $t19, $t8, $t20)], proj#0..10=[{exprs}], new=[$t21])
         CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

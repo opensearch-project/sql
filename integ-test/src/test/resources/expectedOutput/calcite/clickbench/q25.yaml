@@ -1,10 +1,11 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(SearchPhrase=[$63])
-        LogicalSort(sort0=[$17], dir0=[ASC-nulls-first], fetch=[10])
-          LogicalFilter(condition=[<>($63, '')])
-            CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
+      LogicalProject(SearchPhrase=[$0])
+        LogicalSort(sort0=[$1], dir0=[ASC-nulls-first], fetch=[10])
+          LogicalProject(SearchPhrase=[$63], EventTime=[$17])
+            LogicalFilter(condition=[<>($63, '')])
+              CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
   physical: |
     CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[PROJECT->[EventTime, SearchPhrase], FILTER-><>($1, ''), SORT->[{
       "EventTime" : {

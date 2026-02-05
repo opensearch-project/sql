@@ -18,12 +18,13 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.model.ExprValue;
@@ -57,17 +58,15 @@ public class SpanFunction extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker)
-            OperandTypes.family(
-                    SqlTypeFamily.CHARACTER, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)
-                .or(
-                    OperandTypes.family(
-                        SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER))
-                .or(
-                    OperandTypes.family(
-                        SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.ANY)));
+        OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)
+            .or(
+                OperandTypes.family(
+                    SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER))
+            .or(
+                OperandTypes.family(
+                    SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.ANY)));
   }
 
   public static class SpanImplementor implements NotNullImplementor {
@@ -86,7 +85,7 @@ public class SpanFunction extends ImplementorUDF {
       if (SqlTypeUtil.isDecimal(intervalType)) {
         interval = Expressions.call(interval, "doubleValue");
       }
-      if (SqlTypeUtil.isNull(unitType)) {
+      if (SqlTypeUtil.isNull(unitType) || SqlTypeName.ANY.equals(unitType.getSqlTypeName())) {
         return switch (call.getType().getSqlTypeName()) {
           case BIGINT, INTEGER, SMALLINT, TINYINT ->
               Expressions.multiply(Expressions.divide(field, interval), interval);

@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalSort(fetch=[1])\n    LogicalProject(result=[ARRAY_JOIN(array('a', 'b', 'c'), ',')])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..16=[{inputs}], expr#17=['a'], expr#18=['b'], expr#19=['c'], expr#20=[array($t17, $t18, $t19)], expr#21=[','], expr#22=[ARRAY_JOIN($t20, $t21)], result=[$t22])\n    EnumerableLimit(fetch=[1])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
-  }
-}

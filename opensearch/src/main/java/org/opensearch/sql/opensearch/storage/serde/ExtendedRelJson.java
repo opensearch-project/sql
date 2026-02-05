@@ -500,7 +500,7 @@ public class ExtendedRelJson extends RelJson {
         }
         final RelDataType type = toType(typeFactory, get(map, "type"));
         if (literal instanceof Map && ((Map<?, ?>) literal).containsKey("rangeSet")) {
-          Sarg sarg = sargFromJson((Map) literal);
+          Sarg sarg = sargFromJson((Map) literal, type);
           return rexBuilder.makeSearchArgumentLiteral(sarg, type);
         }
         if (type.getSqlTypeName() == SqlTypeName.SYMBOL) {
@@ -515,7 +515,7 @@ public class ExtendedRelJson extends RelJson {
           return rexBuilder.makeNullLiteral(type);
         }
         final RelDataType type = toType(typeFactory, get(map, "type"));
-        Sarg sarg = sargFromJson((Map) sargObject);
+        Sarg sarg = sargFromJson((Map) sargObject, type);
         return rexBuilder.makeSearchArgumentLiteral(sarg, type);
       }
       if (map.containsKey("dynamicParam")) {

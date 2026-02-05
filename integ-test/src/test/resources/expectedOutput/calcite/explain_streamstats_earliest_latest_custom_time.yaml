@@ -1,9 +1,9 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(created_at=[$0], server=[$1], @timestamp=[$2], message=[$3], level=[$4], earliest_message=[$12], latest_message=[$13])
-        LogicalSort(sort0=[$11], dir0=[ASC])
-          LogicalProject(created_at=[$0], server=[$1], @timestamp=[$2], message=[$3], level=[$4], _id=[$5], _index=[$6], _score=[$7], _maxscore=[$8], _sort=[$9], _routing=[$10], __stream_seq__=[$11], earliest_message=[ARG_MIN($3, $0) OVER (PARTITION BY $4 ROWS UNBOUNDED PRECEDING)], latest_message=[ARG_MAX($3, $0) OVER (PARTITION BY $4 ROWS UNBOUNDED PRECEDING)])
+      LogicalProject(created_at=[$0], server=[$1], @timestamp=[$2], message=[$3], level=[$4], earliest_message=[$5], latest_message=[$6])
+        LogicalSort(sort0=[$7], dir0=[ASC])
+          LogicalProject(created_at=[$0], server=[$1], @timestamp=[$2], message=[$3], level=[$4], earliest_message=[ARG_MIN($3, $0) OVER (PARTITION BY $4 ROWS UNBOUNDED PRECEDING)], latest_message=[ARG_MAX($3, $0) OVER (PARTITION BY $4 ROWS UNBOUNDED PRECEDING)], __stream_seq__=[$11])
             LogicalProject(created_at=[$0], server=[$1], @timestamp=[$2], message=[$3], level=[$4], _id=[$5], _index=[$6], _score=[$7], _maxscore=[$8], _sort=[$9], _routing=[$10], __stream_seq__=[ROW_NUMBER() OVER ()])
               CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])
   physical: |

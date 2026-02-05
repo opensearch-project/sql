@@ -1,0 +1,15 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[p50, p90]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
+          \ sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\"\
+          :{\"p50\":{\"percentiles\":{\"field\":\"balance\",\"percents\":[50.0],\"\
+          keyed\":true,\"tdigest\":{\"compression\":100.0}}},\"p90\":{\"percentiles\"\
+          :{\"field\":\"balance\",\"percents\":[90.0],\"keyed\":true,\"tdigest\":{\"\
+          compression\":100.0}}}}}, pitId=*, cursorKeepAlive=null, searchAfter=null,\
+          \ searchResponse=null)"
+      children: []

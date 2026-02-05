@@ -1,13 +1,14 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(ageTrend=[CASE(>(COUNT() OVER (ROWS 1 PRECEDING), 1), /(SUM($8) OVER (ROWS 1 PRECEDING), CAST(COUNT($8) OVER (ROWS 1 PRECEDING)):DOUBLE NOT NULL), null:NULL)])
+      LogicalProject(ageTrend=[CASE(>(COUNT() OVER (ROWS 1 PRECEDING), 1), /(CASE(>(COUNT($8) OVER (ROWS 1 PRECEDING), 0), SUM($8) OVER (ROWS 1 PRECEDING), null:BIGINT), CAST(COUNT($8) OVER (ROWS 1 PRECEDING)):DOUBLE NOT NULL), null:DOUBLE)])
         LogicalFilter(condition=[IS NOT NULL($8)])
           LogicalSort(fetch=[5])
-            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+            LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[>($t1, $t4)], expr#6=[CAST($t3):DOUBLE NOT NULL], expr#7=[/($t2, $t6)], expr#8=[null:NULL], expr#9=[CASE($t5, $t7, $t8)], ageTrend=[$t9])
-        EnumerableWindow(window#0=[window(rows between $1 PRECEDING and CURRENT ROW aggs [COUNT(), $SUM0($0), COUNT($0)])], constants=[[1]])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1:BIGINT], expr#5=[>($t1, $t4)], expr#6=[0:BIGINT], expr#7=[>($t2, $t6)], expr#8=[null:BIGINT], expr#9=[CASE($t7, $t3, $t8)], expr#10=[CAST($t2):DOUBLE NOT NULL], expr#11=[/($t9, $t10)], expr#12=[null:DOUBLE], expr#13=[CASE($t5, $t11, $t12)], ageTrend=[$t13])
+        EnumerableWindow(window#0=[window(rows between $1 PRECEDING and CURRENT ROW aggs [COUNT(), COUNT($0), $SUM0($0)])], constants=[[1]])
           EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], age=[$t0], $condition=[$t1])
             CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[age], LIMIT->5], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","_source":{"includes":["age"],"excludes":[]}}, requestedTotalSize=5, pageSize=null, startFrom=0)])

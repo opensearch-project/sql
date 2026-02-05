@@ -5,18 +5,17 @@
 
 package org.opensearch.sql.expression.function.udf;
 
-import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -39,55 +38,11 @@ public class RelevanceQueryFunction extends ImplementorUDF {
    * Query parameter is always required and cannot be null.
    */
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker)
-            OperandTypes.family(
-                    ImmutableList.of(
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP,
-                        SqlTypeFamily.MAP),
-                    i -> i > 0 && i < 14) // Parameters 3-14 are optional
-                .or(
-                    OperandTypes.family(
-                        ImmutableList.of(
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP,
-                            SqlTypeFamily.MAP),
-                        i -> i > 0 && i < 25))); // Parameters 3-25 are optional
+        OperandTypes.repeat(
+            SqlOperandCountRanges.between(1, 25),
+            OperandTypes.MAP)); // Parameters 2-25 are optional
   }
 
   public static class RelevanceQueryImplementor implements NotNullImplementor {

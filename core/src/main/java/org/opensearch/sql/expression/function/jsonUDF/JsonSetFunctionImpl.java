@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
+import static org.apache.calcite.util.Static.RESOURCE;
 import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
@@ -18,10 +19,19 @@ import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlJsonModifyFunction;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.jspecify.annotations.NonNull;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -36,8 +46,39 @@ public class JsonSetFunctionImpl extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
-    return null;
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(
+        new SqlOperandTypeChecker() {
+          /**
+           * Copied from {@link SqlJsonModifyFunction#checkOperandTypes(SqlCallBinding, boolean)}
+           * (Calcite 1.41)
+           */
+          @Override
+          public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+            final int count = callBinding.getOperandCount();
+            for (int i = 1; i < count; i += 2) {
+              RelDataType nameType = callBinding.getOperandType(i);
+              if (!OpenSearchTypeUtil.isCharacter(nameType)) {
+                if (throwOnFailure) {
+                  throw callBinding.newError(RESOURCE.expectedCharacter());
+                }
+                return false;
+              }
+            }
+            return true;
+          }
+
+          @Override
+          public SqlOperandCountRange getOperandCountRange() {
+            return SqlOperandCountRanges.from(3);
+          }
+
+          @Override
+          public String getAllowedSignatures(SqlOperator op, String opName) {
+            return "(json_string: STRING, path1: STRING, value1: ANY, path2: STRING, value2: ANY"
+                + " ...)";
+          }
+        });
   }
 
   public static class JsonSetImplementor implements NotNullImplementor {

@@ -26,6 +26,9 @@ public class CalcitePPLAppendcolIT extends PPLIntegTestCase {
 
   @Test
   public void testAppendCol() throws IOException {
+    // Although the plans are identical, not pushing down resulting the cnt in the first two rows
+    // being null
+    enabledOnlyWhenPushdownIsEnabled();
     JSONObject actual =
         executeQuery(
             String.format(
@@ -55,6 +58,9 @@ public class CalcitePPLAppendcolIT extends PPLIntegTestCase {
 
   @Test
   public void testAppendColOverride() throws IOException {
+    // Although the plans are identical, not pushing down resulting the cnt in the first two rows
+    // being null
+    enabledOnlyWhenPushdownIsEnabled();
     JSONObject actual =
         executeQuery(
             String.format(

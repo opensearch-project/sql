@@ -7,7 +7,7 @@ calcite:
             LogicalAggregate(group=[{0}], c=[COUNT()])
               LogicalProject(state=[$7])
                 CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
-          LogicalSystemLimit(fetch=[50000], type=[JOIN_SUBSEARCH_MAXOUT])
+          LogicalSort(fetch=[50000])
             LogicalProject(c=[$1], state=[$0])
               LogicalAggregate(group=[{0}], c=[COUNT()])
                 LogicalProject(state=[$9])

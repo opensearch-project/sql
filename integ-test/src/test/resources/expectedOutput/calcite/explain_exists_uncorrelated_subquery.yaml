@@ -1,18 +1,18 @@
 calcite:
   logical: |
     LogicalSystemLimit(sort0=[$2], dir0=[DESC-nulls-last], fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(id=[$2], name=[$0], salary=[$4])
-        LogicalSort(sort0=[$4], dir0=[DESC-nulls-last])
+      LogicalSort(sort0=[$2], dir0=[DESC-nulls-last])
+        LogicalProject(id=[$2], name=[$0], salary=[$4])
           LogicalFilter(condition=[EXISTS({
-    LogicalSystemLimit(fetch=[10000], type=[SUBSEARCH_MAXOUT])
+    LogicalSort(fetch=[10000])
       LogicalProject(name=[$0], uid=[$1], occupation=[$2], department=[$3])
         LogicalFilter(condition=[=($0, 'Tom')])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_work_information]])
-    })], variablesSet=[[$cor0]])
+    })])
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]])
   physical: |
-    EnumerableCalc(expr#0..3=[{inputs}], id=[$t1], name=[$t0], salary=[$t2])
-      CalciteEnumerableTopK(sort0=[$2], dir0=[DESC-nulls-last], fetch=[10000])
+    CalciteEnumerableTopK(sort0=[$2], dir0=[DESC-nulls-last], fetch=[10000])
+      EnumerableCalc(expr#0..3=[{inputs}], id=[$t1], name=[$t0], salary=[$t2])
         EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
           CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]], PushDownContext=[[PROJECT->[name, id, salary]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["name","id","salary"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
           EnumerableAggregate(group=[{0}])

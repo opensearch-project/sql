@@ -480,26 +480,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                   (arguments.isEmpty() || arguments.size() == 1)
                       ? Collections.emptyList()
                       : arguments.subList(1, arguments.size());
-              List<RexNode> nodes =
-                  PPLFuncImpTable.INSTANCE.validateAggFunctionSignature(
-                      functionName, field, args, context.rexBuilder);
-              return nodes != null
-                  ? PlanUtils.makeOver(
-                      context,
-                      functionName,
-                      nodes.getFirst(),
-                      nodes.size() <= 1 ? Collections.emptyList() : nodes.subList(1, nodes.size()),
-                      partitions,
-                      List.of(),
-                      node.getWindowFrame())
-                  : PlanUtils.makeOver(
-                      context,
-                      functionName,
-                      field,
-                      args,
-                      partitions,
-                      List.of(),
-                      node.getWindowFrame());
+              return PlanUtils.makeOver(
+                  context, functionName, field, args, partitions, List.of(), node.getWindowFrame());
             })
         .orElseThrow(
             () ->

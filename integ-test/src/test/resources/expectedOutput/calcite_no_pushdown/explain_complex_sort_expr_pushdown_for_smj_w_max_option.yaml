@@ -1,11 +1,12 @@
+
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(account_number=[$13], firstname=[$14], address=[$15], birthdate=[$16], gender=[$17], city=[$18], lastname=[$19], balance=[$20], employer=[$21], state=[$22], age=[$23], email=[$24], male=[$25])
-        LogicalJoin(condition=[=($12, $19)], joinType=[left])
-          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], lastname=[REX_EXTRACT($6, '(?<lastname>^[A-Z])', 'lastname')])
+      LogicalProject(account_number=[$14], firstname=[$15], address=[$16], birthdate=[$17], gender=[$18], city=[$19], lastname=[$20], balance=[$21], employer=[$22], state=[$23], age=[$24], email=[$25], male=[$26])
+        LogicalJoin(condition=[=($13, $20)], joinType=[left])
+          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], lastname=[REX_EXTRACT($6, '(?<lastname>^[A-Z])', 'lastname')], $f13=[CAST(REX_EXTRACT($6, '(?<lastname>^[A-Z])', 'lastname')):VARCHAR])
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
-          LogicalSystemLimit(fetch=[50000], type=[JOIN_SUBSEARCH_MAXOUT])
+          LogicalSort(fetch=[50000])
             LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
               LogicalFilter(condition=[<=($13, 1)])
                 LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $6)])
@@ -17,7 +18,7 @@ calcite:
       EnumerableLimit(fetch=[10000])
         EnumerableMergeJoin(condition=[=($0, $7)], joinType=[left])
           EnumerableSort(sort0=[$0], dir0=[ASC])
-            EnumerableCalc(expr#0..18=[{inputs}], expr#19=['(?<lastname>^[A-Z])'], expr#20=['lastname'], expr#21=[REX_EXTRACT($t6, $t19, $t20)], lastname=[$t21])
+            EnumerableCalc(expr#0..18=[{inputs}], expr#19=['(?<lastname>^[A-Z])'], expr#20=['lastname'], expr#21=[REX_EXTRACT($t6, $t19, $t20)], expr#22=[CAST($t21):VARCHAR], $f13=[$t22])
               CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
           EnumerableSort(sort0=[$6], dir0=[ASC])
             EnumerableLimit(fetch=[50000])

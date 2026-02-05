@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(name=[$0], age=[$1])
+        LogicalFilter(condition=[=($1, 20)])
+          CalciteLogicalIndexScan(table=[[OpenSearch, test]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20:BIGINT], expr#9=[=($t1, $t8)], proj#0..1=[{exprs}], $condition=[$t9])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, test]])

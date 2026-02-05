@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
@@ -64,6 +65,10 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
       // because of too much script push down, which will cause ResourceMonitor restriction.
       ignored.add(30);
     }
+    if (isCalciteEnabled()) {
+      // Ignore q41 as it needs special handling
+      ignored.add(41);
+    }
     return ignored;
   }
 
@@ -82,5 +87,16 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
       }
       timing(summary, "q" + i, ppl);
     }
+  }
+
+  @Test
+  public void testQ41() throws IOException {
+    Assume.assumeTrue(isCalciteEnabled());
+    logger.info("Running Query 41");
+    String ppl = sanitize(loadFromFile("clickbench/queries/q41.ppl"));
+    String expected = loadExpectedPlan("clickbench/q41.yaml");
+    String alternative = loadExpectedPlan("clickbench/q41_alternative.yaml");
+    assertYamlEqualsIgnoreId(expected, alternative, explainQueryYaml(ppl));
+    timing(summary, "q" + 41, ppl);
   }
 }

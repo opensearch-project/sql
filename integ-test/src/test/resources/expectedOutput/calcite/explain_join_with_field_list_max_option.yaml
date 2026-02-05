@@ -1,0 +1,20 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(account_number=[$13], firstname=[$14], address=[$15], birthdate=[$16], gender=[$17], city=[$18], lastname=[$19], balance=[$20], employer=[$21], state=[$22], age=[$23], email=[$24], male=[$25])
+        LogicalJoin(condition=[=($0, $13)], joinType=[inner])
+          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+          LogicalSort(fetch=[50000])
+            LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
+              LogicalFilter(condition=[<=($13, SAFE_CAST(1:BIGINT))])
+                LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], _row_number_join_max_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0)])
+                  LogicalFilter(condition=[IS NOT NULL($0)])
+                    LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
+                      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    EnumerableCalc(expr#0..13=[{inputs}], proj#0..12=[{exprs}])
+      EnumerableLimit(fetch=[10000])
+        EnumerableHashJoin(condition=[=($0, $13)], joinType=[inner])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=LogicalProject#,group={0},agg#0=LITERAL_AGG(1)), LIMIT->50000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"account_number":{"terms":{"field":"account_number","missing_bucket":false,"order":"asc"}}}]},"aggregations":{"$f1":{"top_hits":{"from":0,"size":1,"version":false,"seq_no_primary_term":false,"explain":false,"_source":{"includes":["account_number","firstname","address","birthdate","gender","city","lastname","balance","employer","state","age","email","male"],"excludes":[]},"script_fields":{}}}}}}}, requestedTotalSize=50000, pageSize=null, startFrom=0)])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[PROJECT->[account_number]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["account_number"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

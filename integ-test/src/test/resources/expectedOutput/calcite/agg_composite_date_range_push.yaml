@@ -2,10 +2,10 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(avg(value)=[$2], span(@timestamp,1h)=[$1], value_range=[$0])
-        LogicalAggregate(group=[{0, 2}], avg(value)=[AVG($1)])
-          LogicalProject(value_range=[$10], value=[$2], span(@timestamp,1h)=[SPAN($0, 1, 'h')])
+        LogicalAggregate(group=[{0, 1}], avg(value)=[AVG($2)])
+          LogicalProject(value_range=[$10], span(@timestamp,1h)=[SPAN($0, 1, 'h')], value=[$2])
             LogicalFilter(condition=[IS NOT NULL($0)])
               LogicalProject(@timestamp=[$0], category=[$1], value=[$2], timestamp=[$3], _id=[$4], _index=[$5], _score=[$6], _maxscore=[$7], _sort=[$8], _routing=[$9], value_range=[CASE(<($2, 7000), 'small':VARCHAR, 'large':VARCHAR)])
                 CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 2},avg(value)=AVG($1)), PROJECT->[avg(value), span(@timestamp,1h), value_range], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"span(@timestamp,1h)":{"date_histogram":{"field":"@timestamp","missing_bucket":false,"order":"asc","fixed_interval":"1h"}}}]},"aggregations":{"value_range":{"range":{"field":"value","ranges":[{"key":"small","to":7000.0},{"key":"large","from":7000.0}],"keyed":true},"aggregations":{"avg(value)":{"avg":{"field":"value"}}}}}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 1},avg(value)=AVG($2)), PROJECT->[avg(value), span(@timestamp,1h), value_range], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"span(@timestamp,1h)":{"date_histogram":{"field":"@timestamp","missing_bucket":false,"order":"asc","fixed_interval":"1h"}}}]},"aggregations":{"value_range":{"range":{"field":"value","ranges":[{"key":"small","to":7000.0},{"key":"large","from":7000.0}],"keyed":true},"aggregations":{"avg(value)":{"avg":{"field":"value"}}}}}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

@@ -16,8 +16,8 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.jspecify.annotations.NonNull;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -51,21 +51,15 @@ public class WidthBucketFunction extends ImplementorUDF {
     return (opBinding) -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
       RelDataType arg0Type = opBinding.getOperandType(0);
-      return dateRelatedType(arg0Type)
+      return OpenSearchTypeUtil.isDatetime(arg0Type)
           ? arg0Type
           : typeFactory.createTypeWithNullability(
               typeFactory.createSqlType(SqlTypeName.VARCHAR, 2000), true);
     };
   }
 
-  public static boolean dateRelatedType(RelDataType type) {
-    return type instanceof ExprSqlType exprSqlType
-        && List.of(ExprUDT.EXPR_DATE, ExprUDT.EXPR_TIME, ExprUDT.EXPR_TIMESTAMP)
-            .contains(exprSqlType.getUdt());
-  }
-
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     return PPLOperandTypes.WIDTH_BUCKET_OPERAND;
   }
 

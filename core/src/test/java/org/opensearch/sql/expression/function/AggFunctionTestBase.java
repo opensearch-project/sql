@@ -16,22 +16,19 @@ import org.opensearch.sql.expression.function.PPLFuncImpTable.AggHandler;
 public abstract class AggFunctionTestBase {
 
   @SuppressWarnings("unchecked")
-  protected Map<BuiltinFunctionName, org.apache.commons.lang3.tuple.Pair<?, AggHandler>>
-      getAggFunctionRegistry() {
+  protected Map<BuiltinFunctionName, AggHandler> getAggFunctionRegistry() {
     try {
       PPLFuncImpTable funcTable = PPLFuncImpTable.INSTANCE;
       Field field = PPLFuncImpTable.class.getDeclaredField("aggFunctionRegistry");
       field.setAccessible(true);
-      return (Map<BuiltinFunctionName, org.apache.commons.lang3.tuple.Pair<?, AggHandler>>)
-          field.get(funcTable);
+      return (Map<BuiltinFunctionName, AggHandler>) field.get(funcTable);
     } catch (Exception e) {
       throw new RuntimeException("Failed to access aggFunctionRegistry", e);
     }
   }
 
   protected void assertFunctionIsRegistered(BuiltinFunctionName functionName) {
-    Map<BuiltinFunctionName, org.apache.commons.lang3.tuple.Pair<?, AggHandler>> registry =
-        getAggFunctionRegistry();
+    Map<BuiltinFunctionName, AggHandler> registry = getAggFunctionRegistry();
     assertTrue(
         registry.containsKey(functionName),
         functionName.getName().getFunctionName()
@@ -48,36 +45,23 @@ public abstract class AggFunctionTestBase {
   }
 
   protected void assertFunctionHandlerTypes(BuiltinFunctionName... functionNames) {
-    Map<BuiltinFunctionName, org.apache.commons.lang3.tuple.Pair<?, AggHandler>> registry =
-        getAggFunctionRegistry();
+    Map<BuiltinFunctionName, AggHandler> registry = getAggFunctionRegistry();
     for (BuiltinFunctionName functionName : functionNames) {
-      org.apache.commons.lang3.tuple.Pair<?, AggHandler> registryEntry = registry.get(functionName);
-      assertNotNull(
-          registryEntry, functionName.getName().getFunctionName() + " should be registered");
-
-      // Extract the AggHandler from the pair
-      AggHandler handler = registryEntry.getRight();
-
+      AggHandler handler = registry.get(functionName);
       assertNotNull(
           handler, functionName.getName().getFunctionName() + " handler should not be null");
-      assertTrue(
-          handler instanceof AggHandler,
-          functionName.getName().getFunctionName()
-              + " handler should implement AggHandler interface");
     }
   }
 
   protected void assertRegistryMinimumSize(int expectedMinimumSize) {
-    Map<BuiltinFunctionName, org.apache.commons.lang3.tuple.Pair<?, AggHandler>> registry =
-        getAggFunctionRegistry();
+    Map<BuiltinFunctionName, AggHandler> registry = getAggFunctionRegistry();
     assertTrue(
         registry.size() >= expectedMinimumSize,
         "Registry should contain at least " + expectedMinimumSize + " aggregate functions");
   }
 
   protected void assertKnownFunctionsPresent(Set<BuiltinFunctionName> knownFunctions) {
-    Map<BuiltinFunctionName, org.apache.commons.lang3.tuple.Pair<?, AggHandler>> registry =
-        getAggFunctionRegistry();
+    Map<BuiltinFunctionName, AggHandler> registry = getAggFunctionRegistry();
     long foundFunctions = registry.keySet().stream().filter(knownFunctions::contains).count();
 
     assertTrue(

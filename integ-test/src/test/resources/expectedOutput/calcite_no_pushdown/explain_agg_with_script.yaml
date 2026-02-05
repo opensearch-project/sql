@@ -3,7 +3,7 @@ calcite:
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(sum=[$2], len=[$0], gender=[$1])
         LogicalAggregate(group=[{0, 1}], sum=[SUM($2)])
-          LogicalProject(len=[CHAR_LENGTH($4)], gender=[$4], $f3=[+($7, 100)])
+          LogicalProject(len=[CHAR_LENGTH($4)], gender=[$4], $f2=[+($7, 100)])
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
   physical: |
     EnumerableLimit(fetch=[10000])

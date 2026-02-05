@@ -290,11 +290,26 @@ class DynamicFieldsHelper {
     List<String> keys = excludeMetaFields(existingFields);
     keys.removeAll(excluded);
     Collections.sort(keys);
+    // Handle empty keys case - Calcite ARRAY[] requires at least 1 element
+    if (keys.isEmpty()) {
+      return createEmptyMap(context);
+    }
     RexNode keysArray = getStringLiteralArray(keys, context);
     List<RexNode> values =
-        keys.stream().map(key -> context.relBuilder.field(key)).collect(Collectors.toList());
+        keys.stream()
+            .map(key -> context.relBuilder.cast(context.relBuilder.field(key), SqlTypeName.VARCHAR))
+            .collect(Collectors.toList());
     RexNode valuesArray = makeArray(values, context);
     return context.rexBuilder.makeCall(BuiltinFunctionName.MAP_FROM_ARRAYS, keysArray, valuesArray);
+  }
+
+  /** Create an empty map by casting NULL to MAP type */
+  private static RexNode createEmptyMap(CalcitePlanContext context) {
+    RelDataType varcharType =
+        context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    RelDataType mapType =
+        context.rexBuilder.getTypeFactory().createMapType(varcharType, varcharType);
+    return context.rexBuilder.makeNullLiteral(mapType);
   }
 
   /** Create string literal array from collection of strings */

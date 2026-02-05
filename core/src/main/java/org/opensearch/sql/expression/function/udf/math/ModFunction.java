@@ -14,10 +14,12 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.calcite.utils.MathUtils;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -37,7 +39,12 @@ public class ModFunction extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public SqlKind getKind() {
+    return SqlKind.MOD;
+  }
+
+  @Override
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     return PPLOperandTypes.NUMERIC_NUMERIC;
   }
 

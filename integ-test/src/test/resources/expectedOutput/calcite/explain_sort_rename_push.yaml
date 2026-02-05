@@ -1,0 +1,13 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$0], dir0=[ASC-nulls-first], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])
+        LogicalProject(alias=[$1])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[firstname], SORT->[{
+      "firstname.keyword" : {
+        "order" : "asc",
+        "missing" : "_first"
+      }
+    }], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","_source":{"includes":["firstname"],"excludes":[]},"sort":[{"firstname.keyword":{"order":"asc","missing":"_first"}}]}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

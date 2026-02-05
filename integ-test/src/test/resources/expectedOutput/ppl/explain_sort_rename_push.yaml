@@ -1,0 +1,29 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[alias]"
+  children:
+    - name: SortOperator
+      description:
+        sortList:
+          alias:
+            sortOrder: ASC
+            nullOrder: NULL_FIRST
+      children:
+        - name: OpenSearchEvalOperator
+          description:
+            expressions:
+              alias: name
+          children:
+            - name: RenameOperator
+              description:
+                mapping:
+                  firstname: name
+              children:
+                - name: OpenSearchIndexScan
+                  description:
+                    request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
+                      \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"\
+                      }, pitId=*,\
+                      \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+                  children: []
