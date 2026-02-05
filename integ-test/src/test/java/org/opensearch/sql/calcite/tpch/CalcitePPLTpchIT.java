@@ -40,7 +40,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
     loadIndex(Index.TPCH_REGION);
   }
 
-  @Ignore("Flaky test - see https://github.com/opensearch-project/sql/issues/XXXX")
+  @Ignore
   @Test
   public void testQ1() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q1.ppl"));
