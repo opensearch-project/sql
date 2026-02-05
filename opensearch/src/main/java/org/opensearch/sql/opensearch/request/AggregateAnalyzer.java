@@ -810,6 +810,8 @@ public class AggregateAnalyzer {
       boolean sortNeeded,
       @Nullable String sortField,
       @Nullable SortOrder sortOrder) {
+    // numHits in Lucene TotalHitCountCollectorManager must > 0, set to -1 to disable pushdown
+    if (size == 0) size = -1;
     TopHitsAggregationBuilder builder = AggregationBuilders.topHits(aggName).from(0).size(size);
     if (sortNeeded && sortField != null && sortOrder != null) {
       builder.sort(sortField, sortOrder);
@@ -843,7 +845,8 @@ public class AggregateAnalyzer {
                 Script script = helper.inferScript(rex.getKey()).getScript();
                 scripts.add(new SearchSourceBuilder.ScriptField(rex.getValue(), script, false));
                 if (sortNeeded && sortField == null) {
-                  ScriptSortBuilder.ScriptSortType sortType = getScriptSortType(helper.rowType);
+                  ScriptSortBuilder.ScriptSortType sortType =
+                      getScriptSortType(rex.getKey().getType());
                   builder.sort(SortBuilders.scriptSort(script, sortType));
                 }
               } else {

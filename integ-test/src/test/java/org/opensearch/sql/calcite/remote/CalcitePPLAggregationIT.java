@@ -1649,4 +1649,15 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             480860,
             392250));
   }
+
+  @Test
+  public void testTakeAggregationWithNegative() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval new_balance = balance * 10 | stats take(new_balance, 0),"
+                    + " take(new_balance, -1), take(balance, 0), take(balance, -1)",
+                TEST_INDEX_BANK));
+    verifyDataRows(actual, rows(List.of(), List.of(), List.of(), List.of()));
+  }
 }

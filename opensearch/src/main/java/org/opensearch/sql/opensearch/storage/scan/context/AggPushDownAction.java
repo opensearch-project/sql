@@ -474,9 +474,9 @@ public class AggPushDownAction implements OSRequestBuilderAction {
         return false;
       }
     }
-    if (builder instanceof TopHitsAggregationBuilder hotHitsAggBuilder) {
-      if (size < hotHitsAggBuilder.size()) {
-        hotHitsAggBuilder.size(size);
+    if (builder instanceof TopHitsAggregationBuilder topHitsAggBuilder) {
+      if (size < topHitsAggBuilder.size()) {
+        topHitsAggBuilder.size(size);
         return true;
       } else {
         return false;

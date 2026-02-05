@@ -168,7 +168,6 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
                     + " earliest(alias_col),latest(original_text), earliest(original_text),"
                     + " latest(alias_text), earliest(alias_text)",
                 TEST_INDEX_ALIAS));
-    System.out.println(actual);
     verifyDataRows(
         actual,
         rows(

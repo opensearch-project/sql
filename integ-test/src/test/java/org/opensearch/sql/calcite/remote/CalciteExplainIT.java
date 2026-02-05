@@ -847,6 +847,19 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_BANK)));
   }
 
+  @Test
+  public void testExplainTakeAggregationWithNegative() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // without agg pushdown
+    String expected = loadExpectedPlan("explain_take_negative.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats take(employer, 0), take(balance, -2) by gender",
+                TEST_INDEX_BANK)));
+  }
+
   // Only for Calcite
   @Test
   public void testExplainOnEventstatsEarliestLatest() throws IOException {
