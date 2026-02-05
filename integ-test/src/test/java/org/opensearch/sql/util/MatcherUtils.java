@@ -328,7 +328,7 @@ public class MatcherUtils {
 
       @Override
       public void describeTo(Description description) {
-        description.appendText(String.join(",", Arrays.asList().toString()));
+        description.appendText(Arrays.toString(values));
       }
 
       private boolean valuesAreClose(Number v1, Number v2) {
