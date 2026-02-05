@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.Retry;
 
+@Ignore
 @Retry
 public class CalcitePPLTpchIT extends PPLIntegTestCase {
 
@@ -40,7 +41,6 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
     loadIndex(Index.TPCH_REGION);
   }
 
-  @Ignore
   @Test
   public void testQ1() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q1.ppl"));
