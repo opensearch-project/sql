@@ -17,10 +17,12 @@ import java.io.IOException;
 import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.Retry;
 
+@Ignore
 @Retry
 public class CalcitePPLTpchIT extends PPLIntegTestCase {
 

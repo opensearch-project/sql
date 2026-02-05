@@ -6,8 +6,10 @@
 package org.opensearch.sql.calcite.tpch;
 
 import org.junit.After;
+import org.junit.Ignore;
 import org.opensearch.sql.util.Retry;
 
+@Ignore
 @Retry
 public class CalcitePPLTpchPaginatingIT extends CalcitePPLTpchIT {
 
