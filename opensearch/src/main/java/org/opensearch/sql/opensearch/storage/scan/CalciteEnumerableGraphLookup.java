@@ -32,6 +32,8 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -52,6 +54,7 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
  */
 @Getter
 public class CalciteEnumerableGraphLookup extends GraphLookup implements EnumerableRel, Scannable {
+  private static final Logger LOG = LogManager.getLogger();
 
   /**
    * Creates a CalciteEnumerableGraphLookup.
@@ -260,7 +263,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       }
 
       // Perform unified BFS with all start values
-      List<Object> bfsResults = performBfsWithMultipleStarts(allStartValues);
+      List<Object> bfsResults = performBfs(allStartValues);
 
       // Build output row: [Array<source>, Array<lookup>]
       current = new Object[] {allSourceRows, bfsResults};
@@ -303,79 +306,6 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
     }
 
     /**
-     * Performs unified BFS traversal starting from multiple start values.
-     *
-     * @param startValues The set of starting values for BFS
-     * @return List of rows found during traversal
-     */
-    private List<Object> performBfsWithMultipleStarts(Set<Object> startValues) {
-      if (startValues.isEmpty()) {
-        return List.of();
-      }
-
-      List<Object> results = new ArrayList<>();
-      Set<Object> visitedNodes = new HashSet<>();
-      Queue<Object> queue = new ArrayDeque<>();
-
-      // Initialize BFS with all start values
-      for (Object value : startValues) {
-        if (value != null && !visitedNodes.contains(value)) {
-          visitedNodes.add(value);
-          queue.offer(value);
-        }
-      }
-
-      int currentLevelDepth = 0;
-      while (!queue.isEmpty()) {
-        List<Object> currentLevelValues = new ArrayList<>();
-
-        while (!queue.isEmpty()) {
-          Object value = queue.poll();
-          currentLevelValues.add(value);
-        }
-
-        if (currentLevelValues.isEmpty()) {
-          break;
-        }
-
-        List<Object> forwardResults = queryLookupTable(currentLevelValues, visitedNodes);
-
-        for (Object row : forwardResults) {
-          Object[] rowArray = (Object[]) row;
-          Object fromValue = rowArray[fromFieldIdx];
-          List<Object> nextValues = new ArrayList<>();
-          collectValues(fromValue, nextValues, visitedNodes);
-          if (graphLookup.bidirectional) {
-            Object toValue = rowArray[toFieldIdx];
-            collectValues(toValue, nextValues, visitedNodes);
-          }
-
-          if (!nextValues.isEmpty()) {
-            if (graphLookup.depthField != null) {
-              Object[] rowWithDepth = new Object[rowArray.length + 1];
-              System.arraycopy(rowArray, 0, rowWithDepth, 0, rowArray.length);
-              rowWithDepth[rowArray.length] = currentLevelDepth;
-              results.add(rowWithDepth);
-            } else {
-              results.add(rowArray);
-            }
-
-            for (Object val : nextValues) {
-              if (val != null) {
-                visitedNodes.add(val);
-                queue.offer(val);
-              }
-            }
-          }
-        }
-
-        if (++currentLevelDepth > graphLookup.maxDepth) break;
-      }
-
-      return results;
-    }
-
-    /**
      * Performs BFS traversal starting from the given value by dynamically querying OpenSearch.
      *
      * @param startValue The starting value for BFS
@@ -393,12 +323,13 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       Queue<Object> queue = new ArrayDeque<>();
 
       // Initialize BFS with start value
-      if (startValue instanceof List<?> list) {
-        list.forEach(
-            value -> {
-              visitedNodes.add(value);
-              queue.offer(value);
-            });
+      if (startValue instanceof Collection<?> collection) {
+        collection.forEach(value -> {
+          if (!visitedNodes.contains(value)) {
+            visitedNodes.add(value);
+            queue.offer(value);
+          }
+        });
       } else {
         visitedNodes.add(startValue);
         queue.offer(startValue);
@@ -422,6 +353,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         // Forward direction: fromField = currentLevelValues
         List<Object> forwardResults = queryLookupTable(currentLevelValues, visitedNodes);
 
+        if (forwardResults.size() >=  this.lookupScan.getOsIndex().getMaxResultWindow()) {
+          LOG.warn("BFS result size exceeds max result window, returning partial result.");
+        }
         for (Object row : forwardResults) {
           Object[] rowArray = (Object[]) (row);
           Object fromValue = rowArray[fromFieldIdx];

@@ -681,6 +681,20 @@ public class PPLQueryDataAnonymizerTest {
         anonymize(
             "source=t | graphLookup employees fromField=manager toField=name"
                 + " startField=id maxDepth=5 depthField=level direction=bi as reportingHierarchy"));
+    // graphLookup with supportArray
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=uni supportArray=true as identifier",
+        anonymize(
+            "source=t | graphLookup airports fromField=connects toField=airport"
+                + " supportArray=true as reachableAirports"));
+    // graphLookup with batchMode
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=uni batchMode=true as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " batchMode=true as reportingHierarchy"));
   }
 
   @Test
