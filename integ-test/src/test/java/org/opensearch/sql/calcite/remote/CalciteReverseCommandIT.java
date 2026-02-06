@@ -367,9 +367,7 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     verifySchema(result, schema("c", "bigint"), schema("gender", "string"));
     // With explicit sort and reverse, data should be in descending gender order
     // Sort by gender ASC: F, M -> Reverse: M, F
-    // Note: Due to column reordering after stats (c, gender), the result order
-    // may differ from expected. Using unordered verification for robustness.
-    verifyDataRows(result, rows(4, "M"), rows(3, "F"));
+    verifyDataRowsInOrder(result, rows(4, "M"), rows(3, "F"));
   }
 
   @Test
@@ -460,9 +458,6 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
   // These tests verify that reverse works correctly with timechart.
   // Timechart always adds a sort at the end of its plan (tier 1), so reverse
   // will find the collation via metadata query and flip the sort direction.
-  // Note: Due to Calcite optimization behavior with consecutive sorts,
-  // the order verification is skipped for now. The logical plan is correct
-  // (verified by unit tests) but physical execution optimization may affect order.
 
   @Test
   public void testTimechartWithReverse() throws IOException {
@@ -471,8 +466,8 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     JSONObject result = executeQuery("source=events | timechart span=1m count() | reverse");
     verifySchema(result, schema("@timestamp", "timestamp"), schema("count()", "bigint"));
     // Events data has timestamps at 00:00, 00:01, 00:02, 00:03, 00:04
-    // Verify data rows exist (order verification skipped due to Calcite optimization)
-    verifyDataRows(
+    // Reverse should return them in descending order
+    verifyDataRowsInOrder(
         result,
         rows("2024-07-01 00:04:00", 1),
         rows("2024-07-01 00:03:00", 1),
@@ -494,8 +489,8 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     verifySchema(result, schema("birthdate", "timestamp"), schema("count()", "bigint"));
     // Bank data has birthdates in 2017 and 2018
     // Timechart groups by year: 2017 (2 records), 2018 (5 records)
-    // Verify data rows exist (order verification skipped due to Calcite optimization)
-    verifyDataRows(result, rows("2018-01-01 00:00:00", 5), rows("2017-01-01 00:00:00", 2));
+    // Reverse should return 2018 before 2017
+    verifyDataRowsInOrder(result, rows("2018-01-01 00:00:00", 5), rows("2017-01-01 00:00:00", 2));
   }
 
   @Test
@@ -509,11 +504,11 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
         schema("host", "string"),
         schema("count()", "bigint"));
     // All events are in the same hour, so only one time bucket
-    // Hosts are grouped and results are reversed
-    verifyDataRows(
+    // Hosts are grouped and results are reversed (DESC order: web-02, web-01, db-01)
+    verifyDataRowsInOrder(
         result,
-        rows("2024-07-01 00:00:00", "db-01", 1),
+        rows("2024-07-01 00:00:00", "web-02", 2),
         rows("2024-07-01 00:00:00", "web-01", 2),
-        rows("2024-07-01 00:00:00", "web-02", 2));
+        rows("2024-07-01 00:00:00", "db-01", 1));
   }
 }

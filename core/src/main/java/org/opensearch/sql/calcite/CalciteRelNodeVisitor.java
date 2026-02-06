@@ -787,7 +787,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (collation != null && !collation.getFieldCollations().isEmpty()) {
       // If there's an existing sort, reverse its direction
       RelCollation reversedCollation = PlanUtils.reverseCollation(collation);
-      context.relBuilder.sort(reversedCollation);
+      RelNode currentNode = context.relBuilder.peek();
+      if (currentNode instanceof org.apache.calcite.rel.core.Sort) {
+        // Replace the existing sort in-place to avoid consecutive sorts.
+        // Calcite's physical optimizer merges consecutive LogicalSort nodes and may
+        // discard the reversed direction. Replacing in-place avoids this issue.
+        org.apache.calcite.rel.core.Sort existingSort =
+            (org.apache.calcite.rel.core.Sort) currentNode;
+        RelNode replacedSort =
+            org.apache.calcite.rel.logical.LogicalSort.create(
+                existingSort.getInput(),
+                reversedCollation,
+                existingSort.offset,
+                existingSort.fetch);
+        PlanUtils.replaceTop(context.relBuilder, replacedSort);
+      } else {
+        context.relBuilder.sort(reversedCollation);
+      }
     } else {
       // Collation not found on current node - try backtracking
       RelNode currentNode = context.relBuilder.peek();

@@ -75,19 +75,13 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
   public void testReverseWithSortParserSuccess() {
     String ppl = "source=EMP | sort ENAME | reverse";
     RelNode root = getRelNode(ppl);
-    // Optimization rule may show double sorts in logical plan but physical execution is optimized
+    // Reverse replaces the existing sort in-place, producing a single sort with reversed direction
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])\n"
-            + "  LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql =
-        "SELECT *\n"
-            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "ORDER BY `ENAME`) `t`\n"
-            + "ORDER BY `ENAME` DESC";
+    String expectedSparkSql = "SELECT *\n" + "FROM `scott`.`EMP`\n" + "ORDER BY `ENAME` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -95,19 +89,13 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
   public void testDoubleReverseParserSuccess() {
     String ppl = "source=EMP | reverse | reverse";
     RelNode root = getRelNode(ppl);
-    // Without optimization rule, shows consecutive sorts
+    // Double reverse: first reverse flips ASC->DESC, second reverse flips DESC->ASC
+    // Result is back to original order with a single sort node
     String expectedLogical =
-        "LogicalSort(sort0=[$0], dir0=[ASC])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalSort(sort0=[$0], dir0=[ASC])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql =
-        "SELECT *\n"
-            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST) `t`\n"
-            + "ORDER BY `EMPNO` NULLS LAST";
+    String expectedSparkSql = "SELECT *\n" + "FROM `scott`.`EMP`\n" + "ORDER BY `EMPNO` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -160,20 +148,18 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
   public void testMultipleSortsWithReverseParserSuccess() {
     String ppl = "source=EMP | sort + SAL | sort - ENAME | reverse";
     RelNode root = getRelNode(ppl);
+    // Reverse replaces the last sort (- ENAME DESC) in-place, flipping to ASC
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
-            + "  LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])\n"
-            + "    LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT *\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
-            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "ORDER BY `SAL`) `t`\n"
-            + "ORDER BY `ENAME` DESC) `t0`\n"
             + "ORDER BY `ENAME`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -182,19 +168,14 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
   public void testMultiFieldSortWithReverseParserSuccess() {
     String ppl = "source=EMP | sort + SAL, - ENAME | reverse";
     RelNode root = getRelNode(ppl);
+    // Reverse replaces the multi-field sort in-place, flipping each field's direction
     String expectedLogical =
         "LogicalSort(sort0=[$5], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n"
-            + "  LogicalSort(sort0=[$5], sort1=[$1], dir0=[ASC-nulls-first],"
-            + " dir1=[DESC-nulls-last])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT *\n"
-            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "ORDER BY `SAL`, `ENAME` DESC) `t`\n"
-            + "ORDER BY `SAL` DESC, `ENAME`";
+        "SELECT *\n" + "FROM `scott`.`EMP`\n" + "ORDER BY `SAL` DESC, `ENAME`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -202,20 +183,15 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
   public void testComplexMultiFieldSortWithReverseParserSuccess() {
     String ppl = "source=EMP | sort DEPTNO, + SAL, - ENAME | reverse";
     RelNode root = getRelNode(ppl);
+    // Reverse replaces the 3-field sort in-place, flipping each direction
     String expectedLogical =
         "LogicalSort(sort0=[$7], sort1=[$5], sort2=[$1], dir0=[DESC-nulls-last],"
             + " dir1=[DESC-nulls-last], dir2=[ASC-nulls-first])\n"
-            + "  LogicalSort(sort0=[$7], sort1=[$5], sort2=[$1], dir0=[ASC-nulls-first],"
-            + " dir1=[ASC-nulls-first], dir2=[DESC-nulls-last])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT *\n"
-            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "ORDER BY `DEPTNO`, `SAL`, `ENAME` DESC) `t`\n"
-            + "ORDER BY `DEPTNO` DESC, `SAL` DESC, `ENAME`";
+        "SELECT *\n" + "FROM `scott`.`EMP`\n" + "ORDER BY `DEPTNO` DESC, `SAL` DESC, `ENAME`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -223,45 +199,37 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
   public void testReverseWithFieldsAndSortParserSuccess() {
     String ppl = "source=EMP | fields ENAME, SAL, DEPTNO | sort + SAL | reverse";
     RelNode root = getRelNode(ppl);
+    // Reverse replaces the sort on SAL in-place
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])\n"
-            + "  LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
-            + "    LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT *\n"
-            + "FROM (SELECT `ENAME`, `SAL`, `DEPTNO`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "ORDER BY `SAL`) `t0`\n"
-            + "ORDER BY `SAL` DESC";
+        "SELECT `ENAME`, `SAL`, `DEPTNO`\n" + "FROM `scott`.`EMP`\n" + "ORDER BY `SAL` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
   public void testHeadThenSortReverseNoOpt() {
     // Tests fetch limit behavior: head 5 | sort field | reverse
-    // Should NOT be optimized to preserve "take first 5, then sort" semantics
+    // Reverse replaces the sort on SAL in-place, preserving the head limit below
     String ppl = "source=EMP | head 5 | sort + SAL | reverse";
     RelNode root = getRelNode(ppl);
 
-    // Should have three LogicalSort nodes: fetch=5, sort SAL, reverse
-    // Calcite's built-in optimization will handle the physical plan optimization
+    // Two LogicalSort nodes: reversed sort on SAL, then fetch=5
     String expectedLogical =
         "LogicalSort(sort0=[$5], dir0=[DESC-nulls-last])\n"
-            + "  LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
-            + "    LogicalSort(fetch=[5])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalSort(fetch=[5])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT *\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
-            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 5) `t`\n"
-            + "ORDER BY `SAL`) `t0`\n"
             + "ORDER BY `SAL` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -419,39 +387,37 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
         "source=EMP | sort SAL | join on EMP.DEPTNO = DEPT.DEPTNO DEPT | sort DNAME | reverse";
     RelNode root = getRelNode(ppl);
     // The sort before join is destroyed by join, but sort after join can be reversed
+    // Reverse replaces the sort on DNAME in-place
     String expectedLogical =
         "LogicalSort(sort0=[$9], dir0=[DESC-nulls-last])\n"
-            + "  LogicalSort(sort0=[$9], dir0=[ASC-nulls-first])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPT.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
-            + "      LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
-            + "        LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
-            + "          LogicalTableScan(table=[[scott, EMP]])\n"
-            + "        LogicalTableScan(table=[[scott, DEPT]])\n";
+            + "    LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "      LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
   }
 
   @Test
   public void testReverseAfterAggregationWithSort() {
     // Sort after aggregation, then reverse should work
+    // Reverse replaces the sort on DEPTNO in-place
     String ppl = "source=EMP | stats count() as c by DEPTNO | sort DEPTNO | reverse";
     RelNode root = getRelNode(ppl);
     // Note: There's a project for column reordering (c, DEPTNO) so DEPTNO is at position 1
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])\n"
-            + "  LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
-            + "    LogicalProject(c=[$1], DEPTNO=[$0])\n"
-            + "      LogicalAggregate(group=[{0}], c=[COUNT()])\n"
-            + "        LogicalProject(DEPTNO=[$7])\n"
-            + "          LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalProject(c=[$1], DEPTNO=[$0])\n"
+            + "    LogicalAggregate(group=[{0}], c=[COUNT()])\n"
+            + "      LogicalProject(DEPTNO=[$7])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT *\n"
-            + "FROM (SELECT COUNT(*) `c`, `DEPTNO`\n"
+        "SELECT COUNT(*) `c`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`\n"
-            + "ORDER BY `DEPTNO`) `t2`\n"
             + "ORDER BY `DEPTNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
