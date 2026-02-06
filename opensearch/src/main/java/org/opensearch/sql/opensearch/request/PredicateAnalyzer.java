@@ -228,11 +228,13 @@ public class PredicateAnalyzer {
       Expression result = expression.accept(visitor);
       // When a boolean field is used directly as a filter condition (e.g., `where male` after
       // Calcite simplifies `where male = true`), convert NamedFieldExpression to a term query.
-      if (result instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
-        return QueryExpression.create(namedField).isTrue();
+      if (result instanceof NamedFieldExpression) {
+        NamedFieldExpression namedField = (NamedFieldExpression) result;
+        if (namedField.isBooleanType()) {
+          return QueryExpression.create(namedField).isTrue();
+        }
       }
-      QueryExpression queryExpression = (QueryExpression) result;
-      return queryExpression;
+      return (QueryExpression) result;
     } catch (Throwable e) {
       if (e instanceof UnsupportedScriptException) {
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
@@ -586,11 +588,13 @@ public class PredicateAnalyzer {
       // In PPL semantics, "field = false" should only match documents where the field is
       // explicitly false (not null or missing). This is achieved via term query {value: false}.
       // Note: This differs from SQL semantics where NOT(field) would match null/missing values.
-      if (operandExpr instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
-        return QueryExpression.create(namedField).isFalse();
+      if (operandExpr instanceof NamedFieldExpression) {
+        NamedFieldExpression namedField = (NamedFieldExpression) operandExpr;
+        if (namedField.isBooleanType()) {
+          return QueryExpression.create(namedField).isFalse();
+        }
       }
-      QueryExpression expr = (QueryExpression) operandExpr;
-      return expr.not();
+      return ((QueryExpression) operandExpr).not();
     }
 
     private QueryExpression postfix(RexCall call) {
@@ -609,23 +613,36 @@ public class PredicateAnalyzer {
       // Handle boolean field operators: IS_TRUE, IS_FALSE, IS_NOT_TRUE, IS_NOT_FALSE
       // These generate term queries for exact boolean value matching or mustNot queries
       // for negated matching (which includes null/missing documents).
-      Function<QueryExpression, QueryExpression> booleanOp =
-          switch (call.getKind()) {
-            case IS_TRUE -> QueryExpression::isTrue;
-            case IS_FALSE -> QueryExpression::isFalse;
-            case IS_NOT_TRUE -> QueryExpression::isNotTrue;
-            case IS_NOT_FALSE -> QueryExpression::isNotFalse;
-            default -> null;
-          };
+      Function<QueryExpression, QueryExpression> booleanOp;
+      switch (call.getKind()) {
+        case IS_TRUE:
+          booleanOp = QueryExpression::isTrue;
+          break;
+        case IS_FALSE:
+          booleanOp = QueryExpression::isFalse;
+          break;
+        case IS_NOT_TRUE:
+          booleanOp = QueryExpression::isNotTrue;
+          break;
+        case IS_NOT_FALSE:
+          booleanOp = QueryExpression::isNotFalse;
+          break;
+        default:
+          booleanOp = null;
+          break;
+      }
 
       if (booleanOp != null) {
         Expression operand = call.getOperands().get(0).accept(this);
-        if (operand instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
-          return booleanOp.apply(QueryExpression.create(namedField));
+        if (operand instanceof NamedFieldExpression) {
+          NamedFieldExpression namedField = (NamedFieldExpression) operand;
+          if (namedField.isBooleanType()) {
+            return booleanOp.apply(QueryExpression.create(namedField));
+          }
         }
-        // Boolean operators on a predicate (already evaluated QueryExpression) are allowed
-        if (operand instanceof QueryExpression qe) {
-          return booleanOp.apply(qe);
+        // Boolean operators on a predicate (already evaluated QueryExpression) are allowed.
+        if (operand instanceof QueryExpression) {
+          return booleanOp.apply((QueryExpression) operand);
         }
         throw new PredicateAnalyzerException(
             call.getKind() + " can only be applied to boolean fields or predicates");
@@ -853,10 +870,13 @@ public class PredicateAnalyzer {
         Expression expr = node.accept(this);
         // When a boolean field is used directly as a filter condition (e.g., `where male` after
         // Calcite simplifies `where male = true`), convert NamedFieldExpression to a term query.
-        if (expr instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
-          QueryExpression qe = QueryExpression.create(namedField).isTrue();
-          qe.updateAnalyzedNodes(node);
-          return qe;
+        if (expr instanceof NamedFieldExpression) {
+          NamedFieldExpression namedField = (NamedFieldExpression) expr;
+          if (namedField.isBooleanType()) {
+            QueryExpression qe = QueryExpression.create(namedField).isTrue();
+            qe.updateAnalyzedNodes(node);
+            return qe;
+          }
         }
         QueryExpression qe = (QueryExpression) expr;
         if (!qe.isPartial()) {
@@ -1777,11 +1797,12 @@ public class PredicateAnalyzer {
       if (type == null) {
         return false;
       }
-      // Check if the type is a boolean type. For OpenSearchDataType, check exprCoreType.
-      if (type instanceof OpenSearchDataType osType) {
-        return ExprCoreType.BOOLEAN.equals(osType.getExprCoreType());
-      }
-      return ExprCoreType.BOOLEAN.equals(type);
+      // Check if the type is boolean. For OpenSearchDataType, compare its core type.
+      Object actualType =
+          type instanceof OpenSearchDataType
+              ? ((OpenSearchDataType) type).getExprCoreType()
+              : type;
+      return ExprCoreType.BOOLEAN.equals(actualType);
     }
 
     boolean isMetaField() {

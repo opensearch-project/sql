@@ -1073,16 +1073,14 @@ public class PredicateAnalyzerTest {
 
     assertInstanceOf(TermQueryBuilder.class, result);
     assertEquals(
-        """
-        {
-          "term" : {
-            "e" : {
-              "value" : true,
-              "boost" : 1.0
-            }
-          }
-        }\
-        """,
+        "{\n"
+            + "  \"term\" : {\n"
+            + "    \"e\" : {\n"
+            + "      \"value\" : true,\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
         result.toString());
   }
 
@@ -1097,32 +1095,30 @@ public class PredicateAnalyzerTest {
 
     assertInstanceOf(BoolQueryBuilder.class, result);
     assertEquals(
-        """
-        {
-          "bool" : {
-            "must" : [
-              {
-                "term" : {
-                  "e" : {
-                    "value" : true,
-                    "boost" : 1.0
-                  }
-                }
-              },
-              {
-                "term" : {
-                  "a" : {
-                    "value" : 12,
-                    "boost" : 1.0
-                  }
-                }
-              }
-            ],
-            "adjust_pure_negative" : true,
-            "boost" : 1.0
-          }
-        }\
-        """,
+        "{\n"
+            + "  \"bool\" : {\n"
+            + "    \"must\" : [\n"
+            + "      {\n"
+            + "        \"term\" : {\n"
+            + "          \"e\" : {\n"
+            + "            \"value\" : true,\n"
+            + "            \"boost\" : 1.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      },\n"
+            + "      {\n"
+            + "        \"term\" : {\n"
+            + "          \"a\" : {\n"
+            + "            \"value\" : 12,\n"
+            + "            \"boost\" : 1.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      }\n"
+            + "    ],\n"
+            + "    \"adjust_pure_negative\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
         result.toString());
   }
 }

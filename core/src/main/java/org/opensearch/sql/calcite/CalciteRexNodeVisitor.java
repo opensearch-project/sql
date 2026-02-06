@@ -196,10 +196,13 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitNot(Not node, CalcitePlanContext context) {
     // Special handling for NOT(boolean_field = true/false) - see boolean comparison helpers below
     UnresolvedExpression inner = node.getExpression();
-    if (inner instanceof Compare compare && "=".equals(compare.getOperator())) {
-      RexNode result = tryMakeBooleanNotEquals(compare, context);
-      if (result != null) {
-        return result;
+    if (inner instanceof Compare) {
+      Compare compare = (Compare) inner;
+      if ("=".equals(compare.getOperator())) {
+        RexNode result = tryMakeBooleanNotEquals(compare, context);
+        if (result != null) {
+          return result;
+        }
       }
     }
     return context.relBuilder.not(analyze(node.getExpression(), context));
@@ -304,7 +307,15 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   /** Represents a comparison between a boolean field and a boolean literal. */
-  private record BooleanFieldComparison(RexNode field, Boolean literalValue) {}
+  private static final class BooleanFieldComparison {
+    final RexNode field;
+    final Boolean literalValue;
+
+    BooleanFieldComparison(RexNode field, Boolean literalValue) {
+      this.field = field;
+      this.literalValue = literalValue;
+    }
+  }
 
   /**
    * Extract boolean field and literal value from a comparison, normalizing operand order. Returns
