@@ -208,13 +208,13 @@ Explain::
       }
     }
 
-Cursor
-======
+Cursor (SQL)
+============
 
 Description
 -----------
 
-To get paginated response for a query, user needs to provide `fetch_size` parameter as part of normal query. The value of `fetch_size` should be greater than `0`. In absence of `fetch_size` or a value of `0`, it will fallback to non-paginated response. This feature is only available over `jdbc` format for now.
+To get paginated response for a SQL query, user needs to provide `fetch_size` parameter as part of normal query. The value of `fetch_size` should be greater than `0`. In absence of `fetch_size` or a value of `0`, it will fallback to non-paginated response. This feature is only available over `jdbc` format for now.
 
 Example
 -------
@@ -262,6 +262,77 @@ Result set::
           "Savannah",
           "Kirby"
         ]
+      ],
+      "size": 5,
+      "status": 200
+    }
+
+Fetch Size (PPL) [Experimental]
+================================
+
+Description
+-----------
+
+The ``fetch_size`` parameter limits the number of rows returned in a PPL query response. The value of ``fetch_size`` should be greater than ``0``. In absence of ``fetch_size`` or a value of ``0``, the result size is governed by the ``plugins.query.size_limit`` cluster setting.
+
+``fetch_size`` can be specified either as a URL parameter or in the JSON request body. If both are provided, the JSON body value takes precedence.
+
+If ``fetch_size`` is larger than ``plugins.query.size_limit``, the result is capped at ``plugins.query.size_limit``. The effective number of rows returned is always ``min(fetch_size, plugins.query.size_limit)``.
+
+Note
+----
+
+Unlike SQL's ``fetch_size`` which enables cursor-based pagination, PPL's ``fetch_size`` does not return a cursor and does not support fetching additional pages. The response is always complete and final.
+
++--------------------+-------------------------------------+------------------------------------+
+| Aspect             | SQL ``fetch_size``                  | PPL ``fetch_size``                 |
++====================+=====================================+====================================+
+| Purpose            | Cursor-based pagination             | Response size limiting             |
++--------------------+-------------------------------------+------------------------------------+
+| Returns cursor?    | Yes                                 | No                                 |
++--------------------+-------------------------------------+------------------------------------+
+| Can fetch more?    | Yes (with cursor)                   | No (single response)               |
++--------------------+-------------------------------------+------------------------------------+
+
+Example 1: JSON body
+-------
+
+PPL query::
+
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_ppl -d '{
+	  "fetch_size" : 5,
+	  "query" : "source = accounts | fields firstname, lastname | where age > 20"
+	}'
+
+Example 2: URL parameter
+-------
+
+PPL query::
+
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_ppl?fetch_size=5 -d '{
+	  "query" : "source = accounts | fields firstname, lastname | where age > 20"
+	}'
+
+Result set::
+
+    {
+      "schema": [
+        {
+          "name": "firstname",
+          "type": "text"
+        },
+        {
+          "name": "lastname",
+          "type": "text"
+        }
+      ],
+      "total": 5,
+      "datarows": [
+        ["Cherry", "Carey"],
+        ["Lindsey", "Hawkins"],
+        ["Sargent", "Powers"],
+        ["Campos", "Olsen"],
+        ["Savannah", "Kirby"]
       ],
       "size": 5,
       "status": 200
