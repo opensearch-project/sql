@@ -373,25 +373,22 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     // Reverse should flip it to DESC
     String ppl = "source=events | timechart count() | reverse";
     RelNode root = getRelNode(ppl);
-    // The plan should have two sorts: original ASC from timechart, then DESC from reverse
+    // Reverse replaces the timechart's ASC sort in-place with DESC
     String expectedLogical =
         "LogicalSort(sort0=[$0], dir0=[DESC])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
-            + "    LogicalProject(@timestamp=[$0], count()=[$1])\n"
-            + "      LogicalAggregate(group=[{0}], count()=[COUNT()])\n"
-            + "        LogicalProject(@timestamp0=[SPAN($0, 1, 'm')])\n"
-            + "          LogicalFilter(condition=[IS NOT NULL($0)])\n"
-            + "            LogicalTableScan(table=[[scott, events]])\n";
+            + "  LogicalProject(@timestamp=[$0], count()=[$1])\n"
+            + "    LogicalAggregate(group=[{0}], count()=[COUNT()])\n"
+            + "      LogicalProject(@timestamp0=[SPAN($0, 1, 'm')])\n"
+            + "        LogicalFilter(condition=[IS NOT NULL($0)])\n"
+            + "          LogicalTableScan(table=[[scott, events]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT *\n"
-            + "FROM (SELECT SPAN(`@timestamp`, 1, 'm') `@timestamp`, COUNT(*) `count()`\n"
+        "SELECT SPAN(`@timestamp`, 1, 'm') `@timestamp`, COUNT(*) `count()`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL\n"
             + "GROUP BY SPAN(`@timestamp`, 1, 'm')\n"
-            + "ORDER BY 1 NULLS LAST) `t3`\n"
-            + "ORDER BY `@timestamp` DESC NULLS FIRST";
+            + "ORDER BY 1 DESC NULLS FIRST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -402,25 +399,22 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     String ppl = "source=events | timechart timefield=created_at span=1month count() | reverse";
     RelNode root = getRelNode(ppl);
 
-    // Verify the logical plan shows two sorts: ASC from timechart, DESC from reverse
+    // Reverse replaces the timechart's ASC sort in-place with DESC
     String expectedLogical =
         "LogicalSort(sort0=[$0], dir0=[DESC])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
-            + "    LogicalProject(created_at=[$0], count()=[$1])\n"
-            + "      LogicalAggregate(group=[{0}], count()=[COUNT()])\n"
-            + "        LogicalProject(created_at0=[SPAN($1, 1, 'M')])\n"
-            + "          LogicalFilter(condition=[IS NOT NULL($1)])\n"
-            + "            LogicalTableScan(table=[[scott, events]])\n";
+            + "  LogicalProject(created_at=[$0], count()=[$1])\n"
+            + "    LogicalAggregate(group=[{0}], count()=[COUNT()])\n"
+            + "      LogicalProject(created_at0=[SPAN($1, 1, 'M')])\n"
+            + "        LogicalFilter(condition=[IS NOT NULL($1)])\n"
+            + "          LogicalTableScan(table=[[scott, events]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT *\n"
-            + "FROM (SELECT SPAN(`created_at`, 1, 'M') `created_at`, COUNT(*) `count()`\n"
+        "SELECT SPAN(`created_at`, 1, 'M') `created_at`, COUNT(*) `count()`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `created_at` IS NOT NULL\n"
             + "GROUP BY SPAN(`created_at`, 1, 'M')\n"
-            + "ORDER BY 1 NULLS LAST) `t3`\n"
-            + "ORDER BY `created_at` DESC NULLS FIRST";
+            + "ORDER BY 1 DESC NULLS FIRST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
