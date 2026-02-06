@@ -2583,6 +2583,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelBuilder builder = context.relBuilder;
     // TODO: Limit the number of source rows to 100 for now, make it configurable.
     builder.limit(0, 100);
+    if (node.isBatchMode()) {
+      tryToRemoveMetaFields(context, true);
+    }
     RelNode sourceTable = builder.build();
 
     // 2. Extract parameters
@@ -2597,6 +2600,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Integer maxDepthValue = maxDepthNode.getValueAs(Integer.class);
     maxDepthValue = maxDepthValue == null ? 0 : maxDepthValue;
     boolean supportArray = node.isSupportArray();
+    boolean batchMode = node.isBatchMode();
 
     // 3. Visit and materialize lookup table
     analyze(node.getFromTable(), context);
@@ -2616,7 +2620,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             depthFieldName,
             maxDepthValue,
             bidirectional,
-            supportArray);
+            supportArray,
+            batchMode);
 
     builder.push(graphLookup);
     return builder.peek();

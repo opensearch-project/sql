@@ -8,7 +8,7 @@ The `graphLookup` command performs recursive graph traversal on a collection usi
 The `graphLookup` command has the following syntax:
 
 ```syntax
-graphLookup <lookupIndex> startField=<startField> fromField=<fromField> toField=<toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [direction=(uni | bi)] [supportArray=(true | false)] as <outputField>
+graphLookup <lookupIndex> startField=<startField> fromField=<fromField> toField=<toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [direction=(uni | bi)] [supportArray=(true | false)] [batchMode=(true | false)] as <outputField>
 ```
 
 The following are examples of the `graphLookup` command syntax:
@@ -36,6 +36,7 @@ The `graphLookup` command supports the following parameters.
 | `depthField=<depthField>` | Optional | The name of the field to add to each traversed document indicating its recursion depth. If not specified, no depth field is added. Depth starts at `0` for the first level of matches.                                             |
 | `direction=(uni \| bi)` | Optional | The traversal direction. `uni` (default) performs unidirectional traversal following edges in the forward direction only. `bi` performs bidirectional traversal, following edges in both directions.                               |
 | `supportArray=(true \| false)` | Optional | When `true`, disables early visited-node filter pushdown to OpenSearch. Default is `false`. Set to `true` when `fromField` or `toField` contains array values to ensure correct traversal behavior. See [Array Field Handling](#array-field-handling) for details. |
+| `batchMode=(true \| false)` | Optional | When `true`, collects all start values from all source rows and performs a single unified BFS traversal. Default is `false`. The output changes to two arrays: `[Array<sourceRows>, Array<lookupResults>]`. See [Batch Mode](#batch-mode) for details. |
 | `as <outputField>` | Required | The name of the output array field that will contain all documents found during the graph traversal.                                                                                                                               |
 
 ## How It Works
@@ -252,6 +253,51 @@ With bidirectional traversal, Ron's connections include:
 - His own record (Ron reports to Andrew)
 - His manager (Andrew)
 - His peer (Dan, who also reports to Andrew)
+
+## Batch Mode
+
+When `batchMode=true`, the `graphLookup` command collects all start values from all source rows and performs a single unified BFS traversal instead of separate traversals per row.
+
+### Output Format Change
+
+In batch mode, the output is a **single row** with two arrays:
+- First array: All source rows collected
+- Second array: All lookup results from the unified BFS traversal
+
+### When to Use Batch Mode
+
+Use `batchMode=true` when:
+- You want to find all nodes reachable from **any** of the source start values
+- You need a global view of the graph connectivity from multiple starting points
+- You want to avoid duplicate traversals when multiple source rows share overlapping paths
+
+### Example
+
+```ppl ignore
+source = travelers
+  | graphLookup airports
+    startField=nearestAirport
+    fromField=connects
+    toField=airport
+    batchMode=true
+    maxDepth=2
+    as reachableAirports
+```
+
+**Normal mode** (default): Each traveler gets their own list of reachable airports
+```text
+| name  | nearestAirport | reachableAirports |
+|-------|----------------|-------------------|
+| Dev   | JFK            | [JFK, BOS, ORD]   |
+| Jeff  | BOS            | [BOS, JFK, PWM]   |
+```
+
+**Batch mode**: A single row with all travelers and all reachable airports combined
+```text
+| travelers                              | reachableAirports           |
+|----------------------------------------|-----------------------------|
+| [{Dev, JFK}, {Jeff, BOS}]              | [JFK, BOS, ORD, PWM, ...]   |
+```
 
 ## Array Field Handling
 

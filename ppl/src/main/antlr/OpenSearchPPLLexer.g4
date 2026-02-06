@@ -62,6 +62,7 @@ DIRECTION:                          'DIRECTION';
 UNI:                                'UNI';
 BI:                                 'BI';
 SUPPORT_ARRAY:                      'SUPPORTARRAY';
+BATCH_MODE:                         'BATCHMODE';
 ROW:                                'ROW';
 COL:                                'COL';
 EXPAND:                             'EXPAND';

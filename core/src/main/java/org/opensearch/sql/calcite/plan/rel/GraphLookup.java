@@ -49,6 +49,7 @@ public abstract class GraphLookup extends BiRel {
   protected final int maxDepth; // -1 = unlimited
   protected final boolean bidirectional;
   protected final boolean supportArray;
+  protected final boolean batchMode;
 
   private RelDataType outputRowType;
 
@@ -68,6 +69,7 @@ public abstract class GraphLookup extends BiRel {
    * @param bidirectional Whether to traverse edges in both directions
    * @param supportArray Whether to support array-typed fields (disables early visited filter
    *     pushdown)
+   * @param batchMode Whether to batch all source start values into a single unified BFS
    */
   protected GraphLookup(
       RelOptCluster cluster,
@@ -81,7 +83,8 @@ public abstract class GraphLookup extends BiRel {
       @Nullable String depthField,
       int maxDepth,
       boolean bidirectional,
-      boolean supportArray) {
+      boolean supportArray,
+      boolean batchMode) {
     super(cluster, traitSet, source, lookup);
     this.startField = startField;
     this.fromField = fromField;
@@ -91,6 +94,7 @@ public abstract class GraphLookup extends BiRel {
     this.maxDepth = maxDepth;
     this.bidirectional = bidirectional;
     this.supportArray = supportArray;
+    this.batchMode = batchMode;
   }
 
   /** Returns the source table RelNode. */
@@ -109,25 +113,47 @@ public abstract class GraphLookup extends BiRel {
   @Override
   protected RelDataType deriveRowType() {
     if (outputRowType == null) {
-      // Output = source fields + output array field
       RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
 
-      // Add all source fields
-      for (var field : getSource().getRowType().getFieldList()) {
-        builder.add(field);
-      }
+      if (batchMode) {
+        // Batch mode: Output = [Array<source>, Array<lookup>]
+        // First field: aggregated source rows as array
+        RelDataType sourceRowType = getSource().getRowType();
+        RelDataType sourceArrayType =
+            getCluster().getTypeFactory().createArrayType(sourceRowType, -1);
+        builder.add(startField, sourceArrayType);
 
-      // Add output field (ARRAY type containing lookup row struct)
-      RelDataType lookupRowType = getLookup().getRowType();
-      if (this.depthField != null) {
-        final RelDataTypeFactory.Builder lookupBuilder = getCluster().getTypeFactory().builder();
-        lookupBuilder.addAll(lookupRowType.getFieldList());
-        RelDataType depthType = getCluster().getTypeFactory().createSqlType(SqlTypeName.INTEGER);
-        lookupBuilder.add(this.depthField, depthType);
-        lookupRowType = lookupBuilder.build();
+        // Second field: aggregated lookup rows as array
+        RelDataType lookupRowType = getLookup().getRowType();
+        if (this.depthField != null) {
+          final RelDataTypeFactory.Builder lookupBuilder = getCluster().getTypeFactory().builder();
+          lookupBuilder.addAll(lookupRowType.getFieldList());
+          RelDataType depthType = getCluster().getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+          lookupBuilder.add(this.depthField, depthType);
+          lookupRowType = lookupBuilder.build();
+        }
+        RelDataType lookupArrayType =
+            getCluster().getTypeFactory().createArrayType(lookupRowType, -1);
+        builder.add(outputField, lookupArrayType);
+      } else {
+        // Normal mode: Output = source fields + output array field
+        // Add all source fields
+        for (var field : getSource().getRowType().getFieldList()) {
+          builder.add(field);
+        }
+
+        // Add output field (ARRAY type containing lookup row struct)
+        RelDataType lookupRowType = getLookup().getRowType();
+        if (this.depthField != null) {
+          final RelDataTypeFactory.Builder lookupBuilder = getCluster().getTypeFactory().builder();
+          lookupBuilder.addAll(lookupRowType.getFieldList());
+          RelDataType depthType = getCluster().getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+          lookupBuilder.add(this.depthField, depthType);
+          lookupRowType = lookupBuilder.build();
+        }
+        RelDataType arrayType = getCluster().getTypeFactory().createArrayType(lookupRowType, -1);
+        builder.add(outputField, arrayType);
       }
-      RelDataType arrayType = getCluster().getTypeFactory().createArrayType(lookupRowType, -1);
-      builder.add(outputField, arrayType);
 
       outputRowType = builder.build();
     }
@@ -136,7 +162,8 @@ public abstract class GraphLookup extends BiRel {
 
   @Override
   public double estimateRowCount(RelMetadataQuery mq) {
-    return getSource().estimateRowCount(mq);
+    // Batch mode aggregates all source rows into a single output row
+    return batchMode ? 1 : getSource().estimateRowCount(mq);
   }
 
   @Override
@@ -148,6 +175,7 @@ public abstract class GraphLookup extends BiRel {
         .item("depthField", depthField)
         .item("maxDepth", maxDepth)
         .item("bidirectional", bidirectional)
-        .itemIf("supportArray", supportArray, supportArray);
+        .itemIf("supportArray", supportArray, supportArray)
+        .itemIf("batchMode", batchMode, batchMode);
   }
 }

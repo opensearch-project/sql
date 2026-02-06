@@ -68,6 +68,9 @@ public class GraphLookup extends UnresolvedPlan {
   /** Whether to support array-typed fields without early filter pushdown. */
   private final boolean supportArray;
 
+  /** Whether to batch all source start values into a single unified BFS traversal. */
+  private final boolean batchMode;
+
   private UnresolvedPlan child;
 
   public String getDepthFieldName() {

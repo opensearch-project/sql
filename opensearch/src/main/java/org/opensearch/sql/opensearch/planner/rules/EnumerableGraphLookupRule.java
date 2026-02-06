@@ -99,6 +99,7 @@ public class EnumerableGraphLookupRule extends ConverterRule {
         graphLookup.getDepthField(),
         graphLookup.getMaxDepth(),
         graphLookup.isBidirectional(),
-        graphLookup.isSupportArray());
+        graphLookup.isSupportArray(),
+        graphLookup.isBatchMode());
   }
 }

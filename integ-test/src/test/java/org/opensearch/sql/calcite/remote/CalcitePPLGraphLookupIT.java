@@ -496,4 +496,108 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         rows("Asya", List.of("{Ron, Andrew, 3}")),
         rows("Dan", List.of("{Andrew, null, 4}")));
   }
+
+  // ==================== Batch Mode Tests ====================
+
+  /**
+   * Test 17: Batch mode - collects all start values and performs unified BFS. Output is a single
+   * row with [Array<source>, Array<lookup>].
+   *
+   * <p>Source: Dev (reportsTo=Eliot), Asya (reportsTo=Ron) Start values: {Eliot, Ron} BFS finds:
+   * Eliot->Ron, Ron->Andrew, Andrew->null
+   */
+  @Test
+  public void testBatchModeEmployeeHierarchy() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + " | where name in ('Dev', 'Asya')"
+                    + " | graphLookup %s"
+                    + " startField=reportsTo"
+                    + " fromField=reportsTo"
+                    + " toField=name"
+                    + " depthField=depth"
+                    + " maxDepth=3"
+                    + " batchMode=true"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(result, schema("reportsTo", "array"), schema("reportingHierarchy", "array"));
+    verifyDataRows(
+        result,
+        rows(
+            List.of("{Dev, Eliot, 1}", "{Asya, Ron, 5}"),
+            List.of("{Ron, Andrew, 3, 0}", "{Andrew, null, 4, 1}")));
+  }
+
+  /**
+   * Test 18: Batch mode for travelers - find all airports reachable from any traveler. All
+   * travelers' nearest airports: JFK (Dev, Eliot), BOS (Jeff) Unified BFS from {JFK, BOS} with
+   * maxDepth=1 finds connected airports.
+   */
+  @Test
+  public void testBatchModeTravelersAirports() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + " | graphLookup %s"
+                    + " startField=nearestAirport"
+                    + " fromField=connects"
+                    + " toField=airport"
+                    + " batchMode=true"
+                    + " depthField=depth"
+                    + " maxDepth=3"
+                    + " supportArray=true"
+                    + " as reachableAirports",
+                TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_AIRPORTS));
+
+    verifySchema(result, schema("nearestAirport", "array"), schema("reachableAirports", "array"));
+    // Batch mode returns single row with:
+    // - sourceRows: [{Dev, JFK}, {Eliot, JFK}, {Jeff, BOS}]
+    // - lookupResults: airports reachable from JFK and BOS within maxDepth=1
+    verifyDataRows(
+        result,
+        rows(
+            List.of("{Dev, JFK}", "{Eliot, JFK}", "{Jeff, BOS}"),
+            List.of("{JFK, [BOS, ORD], 0}", "{BOS, [JFK, PWM], 0}", "{PWM, [BOS, LHR], 1}")));
+  }
+
+  /**
+   * Test 19: Batch mode with bidirectional traversal. Dev (reportsTo=Eliot), Dan (reportsTo=Andrew)
+   * Bidirectional BFS from {Eliot, Andrew} finds connections in both directions.
+   */
+  @Test
+  public void testBatchModeBidirectional() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + " | where name in ('Dev', 'Dan')"
+                    + " | graphLookup %s"
+                    + " startField=reportsTo"
+                    + " fromField=reportsTo"
+                    + " toField=name"
+                    + " depthField=depth"
+                    + " maxDepth=3"
+                    + " direction=bi"
+                    + " batchMode=true"
+                    + " as connections",
+                TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(result, schema("reportsTo", "array"), schema("connections", "array"));
+    // Batch mode returns single row with bidirectional traversal results
+    // Start from {Eliot, Andrew}, find connections in both directions
+    verifyDataRows(
+        result,
+        rows(
+            List.of("{Dev, Eliot, 1}", "{Dan, Andrew, 6}"),
+            List.of(
+                "{Dev, Eliot, 1, 0}",
+                "{Eliot, Ron, 2, 0}",
+                "{Andrew, null, 4, 0}",
+                "{Dan, Andrew, 6, 0}",
+                "{Asya, Ron, 5, 1}")));
+  }
 }

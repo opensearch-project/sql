@@ -69,6 +69,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
    * @param maxDepth Maximum traversal depth (-1 for unlimited)
    * @param bidirectional Whether to traverse edges in both directions
    * @param supportArray Whether to support array-typed fields
+   * @param batchMode Whether to batch all source start values into a single unified BFS
    */
   public CalciteEnumerableGraphLookup(
       RelOptCluster cluster,
@@ -82,7 +83,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       String depthField,
       int maxDepth,
       boolean bidirectional,
-      boolean supportArray) {
+      boolean supportArray,
+      boolean batchMode) {
     super(
         cluster,
         traitSet,
@@ -95,7 +97,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         depthField,
         maxDepth,
         bidirectional,
-        supportArray);
+        supportArray,
+        batchMode);
   }
 
   @Override
@@ -112,7 +115,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         depthField,
         maxDepth,
         bidirectional,
-        supportArray);
+        supportArray,
+        batchMode);
   }
 
   @Override
@@ -166,6 +170,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
     private final int toFieldIdx;
 
     private Object[] current = null;
+    private boolean batchModeCompleted = false;
 
     @SuppressWarnings("unchecked")
     GraphLookupEnumerator(CalciteEnumerableGraphLookup graphLookup) {
@@ -198,14 +203,73 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
     @Override
     public Object current() {
-      // source fields + output array
+      // source fields + output array (normal mode) or [source array, lookup array] (batch mode)
       return current;
     }
 
-    // TODO: currently we perform BFS for each single row.
-    //  We can improve this by performing BFS for batch of rows.
     @Override
     public boolean moveNext() {
+      if (graphLookup.batchMode) {
+        return moveNextBatchMode();
+      } else {
+        return moveNextNormalMode();
+      }
+    }
+
+    /**
+     * Batch mode: collect all source start values, perform unified BFS, return single aggregated
+     * row.
+     */
+    private boolean moveNextBatchMode() {
+      // Batch mode only returns one row
+      if (batchModeCompleted) {
+        return false;
+      }
+      batchModeCompleted = true;
+
+      // Collect all source rows and start values
+      List<Object> allSourceRows = new ArrayList<>();
+      Set<Object> allStartValues = new HashSet<>();
+
+      while (sourceEnumerator.moveNext()) {
+        Object sourceRow = sourceEnumerator.current();
+        Object[] sourceValues;
+
+        if (sourceRow instanceof Object[] arr) {
+          sourceValues = arr;
+        } else {
+          sourceValues = new Object[] {sourceRow};
+        }
+
+        // Store the source row
+        allSourceRows.add(sourceValues);
+
+        // Collect start value(s)
+        Object startValue =
+            (startFieldIndex >= 0 && startFieldIndex < sourceValues.length)
+                ? sourceValues[startFieldIndex]
+                : null;
+
+        if (startValue != null) {
+          if (startValue instanceof List<?> list) {
+            allStartValues.addAll(list);
+          } else {
+            allStartValues.add(startValue);
+          }
+        }
+      }
+
+      // Perform unified BFS with all start values
+      List<Object> bfsResults = performBfsWithMultipleStarts(allStartValues);
+
+      // Build output row: [Array<source>, Array<lookup>]
+      current = new Object[] {allSourceRows, bfsResults};
+
+      return true;
+    }
+
+    /** Normal mode: perform BFS for each source row individually. */
+    private boolean moveNextNormalMode() {
       if (!sourceEnumerator.moveNext()) {
         return false;
       }
@@ -236,6 +300,79 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       current[sourceValues.length] = bfsResults;
 
       return true;
+    }
+
+    /**
+     * Performs unified BFS traversal starting from multiple start values.
+     *
+     * @param startValues The set of starting values for BFS
+     * @return List of rows found during traversal
+     */
+    private List<Object> performBfsWithMultipleStarts(Set<Object> startValues) {
+      if (startValues.isEmpty()) {
+        return List.of();
+      }
+
+      List<Object> results = new ArrayList<>();
+      Set<Object> visitedNodes = new HashSet<>();
+      Queue<Object> queue = new ArrayDeque<>();
+
+      // Initialize BFS with all start values
+      for (Object value : startValues) {
+        if (value != null && !visitedNodes.contains(value)) {
+          visitedNodes.add(value);
+          queue.offer(value);
+        }
+      }
+
+      int currentLevelDepth = 0;
+      while (!queue.isEmpty()) {
+        List<Object> currentLevelValues = new ArrayList<>();
+
+        while (!queue.isEmpty()) {
+          Object value = queue.poll();
+          currentLevelValues.add(value);
+        }
+
+        if (currentLevelValues.isEmpty()) {
+          break;
+        }
+
+        List<Object> forwardResults = queryLookupTable(currentLevelValues, visitedNodes);
+
+        for (Object row : forwardResults) {
+          Object[] rowArray = (Object[]) row;
+          Object fromValue = rowArray[fromFieldIdx];
+          List<Object> nextValues = new ArrayList<>();
+          collectValues(fromValue, nextValues, visitedNodes);
+          if (graphLookup.bidirectional) {
+            Object toValue = rowArray[toFieldIdx];
+            collectValues(toValue, nextValues, visitedNodes);
+          }
+
+          if (!nextValues.isEmpty()) {
+            if (graphLookup.depthField != null) {
+              Object[] rowWithDepth = new Object[rowArray.length + 1];
+              System.arraycopy(rowArray, 0, rowWithDepth, 0, rowArray.length);
+              rowWithDepth[rowArray.length] = currentLevelDepth;
+              results.add(rowWithDepth);
+            } else {
+              results.add(rowArray);
+            }
+
+            for (Object val : nextValues) {
+              if (val != null) {
+                visitedNodes.add(val);
+                queue.offer(val);
+              }
+            }
+          }
+        }
+
+        if (++currentLevelDepth > graphLookup.maxDepth) break;
+      }
+
+      return results;
     }
 
     /**
