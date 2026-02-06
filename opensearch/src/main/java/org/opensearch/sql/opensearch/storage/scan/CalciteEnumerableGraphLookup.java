@@ -5,10 +5,12 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import static org.opensearch.index.query.QueryBuilders.boolQuery;
 import static org.opensearch.index.query.QueryBuilders.termsQuery;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -277,7 +279,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
         // Query OpenSearch for all current level values
         // Forward direction: fromField = currentLevelValues
-        List<Object> forwardResults = queryLookupTable(currentLevelValues);
+        List<Object> forwardResults = queryLookupTable(currentLevelValues, visitedNodes);
 
         for (Object row : forwardResults) {
           Object[] rowArray = (Object[]) (row);
@@ -324,28 +326,28 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
      * Queries the lookup table with a terms filter.
      *
      * @param values Values to match
+     * @param visitedValues Values to not match
      * @return List of matching rows
      */
-    private List<Object> queryLookupTable(List<Object> values) {
+    private List<Object> queryLookupTable(
+        Collection<Object> values, Collection<Object> visitedValues) {
       if (values.isEmpty()) {
         return List.of();
       }
 
-      // Forward direction: query toField = values to find nodes matching current values
-      // Then extract fromField values for next level traversal
-      NamedFieldExpression toFieldExpression =
-          new NamedFieldExpression(
-              toFieldIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes());
-      QueryBuilder query = termsQuery(toFieldExpression.getReferenceForTermQuery(), values);
+      // Forward direction
+      QueryBuilder query =
+          boolQuery()
+              .must(getQueryBuilder(toFieldIdx, values))
+              .mustNot(getQueryBuilder(fromFieldIdx, visitedValues));
       if (graphLookup.bidirectional) {
         // Also query fromField for bidirectional traversal
-        NamedFieldExpression fromFieldExpression =
-            new NamedFieldExpression(
-                fromFieldIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes());
-        query =
-            QueryBuilders.boolQuery()
-                .should(query)
-                .should(termsQuery(fromFieldExpression.getReferenceForTermQuery(), values));
+        QueryBuilder backQuery =
+            boolQuery()
+                .must(getQueryBuilder(fromFieldIdx, values))
+                .mustNot(getQueryBuilder(toFieldIdx, visitedValues));
+
+        query = QueryBuilders.boolQuery().should(query).should(backQuery);
       }
       CalciteEnumerableIndexScan newScan = (CalciteEnumerableIndexScan) this.lookupScan.copy();
       QueryBuilder finalQuery = query;
@@ -360,6 +362,20 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         results.add(res.next());
       }
       return results;
+    }
+
+    /**
+     * Provides a query builder to search edges with the field matching values
+     *
+     * @param fieldIdx field index
+     * @param values values to match
+     * @return query builder
+     */
+    private QueryBuilder getQueryBuilder(int fieldIdx, Collection<Object> values) {
+      String fieldName =
+          new NamedFieldExpression(fieldIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes())
+              .getReferenceForTermQuery();
+      return termsQuery(fieldName, values);
     }
 
     /**
