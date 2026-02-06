@@ -67,7 +67,7 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
-            + " outputField=[reportingHierarchy], depthField=[Field(field=level, fieldArgs=[])],"
+            + " outputField=[reportingHierarchy], depthField=[level],"
             + " maxDepth=[0], bidirectional=[false])\n"
             + "  LogicalSort(fetch=[100])\n"
             + "    LogicalTableScan(table=[[scott, employee]])\n"
