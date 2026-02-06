@@ -1496,6 +1496,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Field startField = null;
     Field depthField = null;
     Direction direction = Direction.UNI;
+    boolean supportArray = false;
 
     for (OpenSearchPPLParser.GraphLookupOptionContext option : ctx.graphLookupOption()) {
       if (option.FROM_FIELD() != null) {
@@ -1516,6 +1517,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       if (option.DIRECTION() != null) {
         direction = option.BI() != null ? Direction.BI : Direction.UNI;
       }
+      if (option.SUPPORT_ARRAY() != null) {
+        Literal literal = (Literal) internalVisitExpression(option.booleanLiteral());
+        supportArray = Boolean.TRUE.equals(literal.getValue());
+      }
     }
 
     Field as = (Field) internalVisitExpression(ctx.outputField);
@@ -1533,6 +1538,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .startField(startField)
         .depthField(depthField)
         .direction(direction)
+        .supportArray(supportArray)
         .build();
   }
 }

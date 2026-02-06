@@ -8,7 +8,7 @@ The `graphLookup` command performs recursive graph traversal on a collection usi
 The `graphLookup` command has the following syntax:
 
 ```syntax
-graphLookup <lookupIndex> startField=<startField> fromField=<fromField> toField=<toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [direction=(uni | bi)] as <outputField>
+graphLookup <lookupIndex> startField=<startField> fromField=<fromField> toField=<toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [direction=(uni | bi)] [supportArray=(true | false)] as <outputField>
 ```
 
 The following are examples of the `graphLookup` command syntax:
@@ -18,7 +18,8 @@ source = employees | graphLookup employees startField=reportsTo fromField=report
 source = employees | graphLookup employees startField=reportsTo fromField=reportsTo toField=name maxDepth=2 as reportingHierarchy
 source = employees | graphLookup employees startField=reportsTo fromField=reportsTo toField=name depthField=level as reportingHierarchy
 source = employees | graphLookup employees startField=reportsTo fromField=reportsTo toField=name direction=bi as connections
-source = travelers | graphLookup airports startField=nearestAirport fromField=connects toField=airport as reachableAirports
+source = travelers | graphLookup airports startField=nearestAirport fromField=connects toField=airport supportArray=true as reachableAirports
+source = airports | graphLookup airports startField=airport fromField=connects toField=airport supportArray=true as reachableAirports
 ```
 
 ## Parameters
@@ -34,6 +35,7 @@ The `graphLookup` command supports the following parameters.
 | `maxDepth=<maxDepth>` | Optional | The maximum recursion depth of hops. Default is `0`. A value of `0` means only the direct connections to the statr values are returned. A value of `1` means 1 hop connections (initial match plus one recursive step), and so on. |
 | `depthField=<depthField>` | Optional | The name of the field to add to each traversed document indicating its recursion depth. If not specified, no depth field is added. Depth starts at `0` for the first level of matches.                                             |
 | `direction=(uni \| bi)` | Optional | The traversal direction. `uni` (default) performs unidirectional traversal following edges in the forward direction only. `bi` performs bidirectional traversal, following edges in both directions.                               |
+| `supportArray=(true \| false)` | Optional | When `true`, disables early visited-node filter pushdown to OpenSearch. Default is `false`. Set to `true` when `fromField` or `toField` contains array values to ensure correct traversal behavior. See [Array Field Handling](#array-field-handling) for details. |
 | `as <outputField>` | Required | The name of the output array field that will contain all documents found during the graph traversal.                                                                                                                               |
 
 ## How It Works
@@ -250,6 +252,10 @@ With bidirectional traversal, Ron's connections include:
 - His own record (Ron reports to Andrew)
 - His manager (Andrew)
 - His peer (Dan, who also reports to Andrew)
+
+## Array Field Handling
+
+When the `fromField` or `toField` contains array values, you should set `supportArray=true` to ensure correct traversal behavior.
 
 ## Limitations
 

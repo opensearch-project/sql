@@ -638,6 +638,7 @@ graphLookupOption
    | (MAX_DEPTH EQUAL integerLiteral)
    | (DEPTH_FIELD EQUAL fieldExpression)
    | (DIRECTION EQUAL (UNI | BI))
+   | (SUPPORT_ARRAY EQUAL booleanLiteral)
    ;
 
 // clauses

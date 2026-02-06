@@ -179,6 +179,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                     + " startField=airport"
                     + " fromField=connects"
                     + " toField=airport"
+                    + " supportArray=true"
                     + " as reachableAirports",
                 TEST_INDEX_GRAPH_AIRPORTS, TEST_INDEX_GRAPH_AIRPORTS));
 
@@ -209,6 +210,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                     + " fromField=connects"
                     + " toField=airport"
                     + " maxDepth=1"
+                    + " supportArray=true"
                     + " as reachableAirports",
                 TEST_INDEX_GRAPH_AIRPORTS, TEST_INDEX_GRAPH_AIRPORTS));
 
@@ -317,6 +319,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                     + " fromField=connects"
                     + " toField=airport"
                     + " maxDepth=1"
+                    + " supportArray=true"
                     + " as reachableAirports",
                 TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_AIRPORTS));
 

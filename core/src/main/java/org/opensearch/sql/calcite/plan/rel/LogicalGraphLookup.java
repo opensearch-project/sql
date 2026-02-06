@@ -34,6 +34,7 @@ public class LogicalGraphLookup extends GraphLookup {
    * @param depthField Name of the depth field
    * @param maxDepth Maximum traversal depth (-1 for unlimited)
    * @param bidirectional Whether to traverse edges in both directions
+   * @param supportArray Whether to support array-typed fields
    */
   protected LogicalGraphLookup(
       RelOptCluster cluster,
@@ -46,7 +47,8 @@ public class LogicalGraphLookup extends GraphLookup {
       String outputField,
       @Nullable String depthField,
       int maxDepth,
-      boolean bidirectional) {
+      boolean bidirectional,
+      boolean supportArray) {
     super(
         cluster,
         traitSet,
@@ -58,7 +60,8 @@ public class LogicalGraphLookup extends GraphLookup {
         outputField,
         depthField,
         maxDepth,
-        bidirectional);
+        bidirectional,
+        supportArray);
   }
 
   /**
@@ -70,9 +73,10 @@ public class LogicalGraphLookup extends GraphLookup {
    * @param fromField Field name for outgoing edges
    * @param toField Field name for incoming edges
    * @param outputField Name of the output array field
+   * @param depthField Named of the output depth field
    * @param maxDepth Maximum traversal depth (-1 for unlimited)
    * @param bidirectional Whether to traverse edges in both directions
-   * @param depthField Named of the output depth field
+   * @param supportArray Whether to support array-typed fields
    * @return A new LogicalGraphLookup instance
    */
   public static LogicalGraphLookup create(
@@ -84,7 +88,8 @@ public class LogicalGraphLookup extends GraphLookup {
       String outputField,
       @Nullable String depthField,
       int maxDepth,
-      boolean bidirectional) {
+      boolean bidirectional,
+      boolean supportArray) {
     RelOptCluster cluster = source.getCluster();
     RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalGraphLookup(
@@ -98,7 +103,8 @@ public class LogicalGraphLookup extends GraphLookup {
         outputField,
         depthField,
         maxDepth,
-        bidirectional);
+        bidirectional,
+        supportArray);
   }
 
   @Override
@@ -114,6 +120,7 @@ public class LogicalGraphLookup extends GraphLookup {
         outputField,
         depthField,
         maxDepth,
-        bidirectional);
+        bidirectional,
+        supportArray);
   }
 }

@@ -48,6 +48,7 @@ public abstract class GraphLookup extends BiRel {
   // TODO: add limitation on the maxDepth and input rows count
   protected final int maxDepth; // -1 = unlimited
   protected final boolean bidirectional;
+  protected final boolean supportArray;
 
   private RelDataType outputRowType;
 
@@ -65,6 +66,8 @@ public abstract class GraphLookup extends BiRel {
    * @param depthField Name of the depth field
    * @param maxDepth Maximum traversal depth (-1 for unlimited)
    * @param bidirectional Whether to traverse edges in both directions
+   * @param supportArray Whether to support array-typed fields (disables early visited filter
+   *     pushdown)
    */
   protected GraphLookup(
       RelOptCluster cluster,
@@ -77,7 +80,8 @@ public abstract class GraphLookup extends BiRel {
       String outputField,
       @Nullable String depthField,
       int maxDepth,
-      boolean bidirectional) {
+      boolean bidirectional,
+      boolean supportArray) {
     super(cluster, traitSet, source, lookup);
     this.startField = startField;
     this.fromField = fromField;
@@ -86,6 +90,7 @@ public abstract class GraphLookup extends BiRel {
     this.depthField = depthField;
     this.maxDepth = maxDepth;
     this.bidirectional = bidirectional;
+    this.supportArray = supportArray;
   }
 
   /** Returns the source table RelNode. */
@@ -142,6 +147,7 @@ public abstract class GraphLookup extends BiRel {
         .item("outputField", outputField)
         .item("depthField", depthField)
         .item("maxDepth", maxDepth)
-        .item("bidirectional", bidirectional);
+        .item("bidirectional", bidirectional)
+        .itemIf("supportArray", supportArray, supportArray);
   }
 }

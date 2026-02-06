@@ -2596,6 +2596,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexLiteral maxDepthNode = (RexLiteral) rexVisitor.analyze(node.getMaxDepth(), context);
     Integer maxDepthValue = maxDepthNode.getValueAs(Integer.class);
     maxDepthValue = maxDepthValue == null ? 0 : maxDepthValue;
+    boolean supportArray = node.isSupportArray();
 
     // 3. Visit and materialize lookup table
     analyze(node.getFromTable(), context);
@@ -2614,7 +2615,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             outputFieldName,
             depthFieldName,
             maxDepthValue,
-            bidirectional);
+            bidirectional,
+            supportArray);
 
     builder.push(graphLookup);
     return builder.peek();

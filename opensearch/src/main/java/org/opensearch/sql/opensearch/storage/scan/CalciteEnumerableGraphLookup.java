@@ -68,6 +68,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
    * @param depthField Name of the depth field
    * @param maxDepth Maximum traversal depth (-1 for unlimited)
    * @param bidirectional Whether to traverse edges in both directions
+   * @param supportArray Whether to support array-typed fields
    */
   public CalciteEnumerableGraphLookup(
       RelOptCluster cluster,
@@ -80,7 +81,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       String outputField,
       String depthField,
       int maxDepth,
-      boolean bidirectional) {
+      boolean bidirectional,
+      boolean supportArray) {
     super(
         cluster,
         traitSet,
@@ -92,7 +94,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         outputField,
         depthField,
         maxDepth,
-        bidirectional);
+        bidirectional,
+        supportArray);
   }
 
   @Override
@@ -108,7 +111,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         outputField,
         depthField,
         maxDepth,
-        bidirectional);
+        bidirectional,
+        supportArray);
   }
 
   @Override
@@ -326,7 +330,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
      * Queries the lookup table with a terms filter.
      *
      * @param values Values to match
-     * @param visitedValues Values to not match
+     * @param visitedValues Values to not match (ignored when supportArray is true)
      * @return List of matching rows
      */
     private List<Object> queryLookupTable(
@@ -335,18 +339,30 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         return List.of();
       }
 
-      // Forward direction
-      QueryBuilder query =
-          boolQuery()
-              .must(getQueryBuilder(toFieldIdx, values))
-              .mustNot(getQueryBuilder(fromFieldIdx, visitedValues));
+      // Forward direction query
+      QueryBuilder query;
+      if (graphLookup.supportArray) {
+        // When supportArray is true, don't push down visited filter
+        // because array fields may contain multiple values that need to be checked individually
+        query = getQueryBuilder(toFieldIdx, values);
+      } else {
+        query =
+            boolQuery()
+                .must(getQueryBuilder(toFieldIdx, values))
+                .mustNot(getQueryBuilder(fromFieldIdx, visitedValues));
+      }
+
       if (graphLookup.bidirectional) {
         // Also query fromField for bidirectional traversal
-        QueryBuilder backQuery =
-            boolQuery()
-                .must(getQueryBuilder(fromFieldIdx, values))
-                .mustNot(getQueryBuilder(toFieldIdx, visitedValues));
-
+        QueryBuilder backQuery;
+        if (graphLookup.supportArray) {
+          backQuery = getQueryBuilder(fromFieldIdx, values);
+        } else {
+          backQuery =
+              boolQuery()
+                  .must(getQueryBuilder(fromFieldIdx, values))
+                  .mustNot(getQueryBuilder(toFieldIdx, visitedValues));
+        }
         query = QueryBuilders.boolQuery().should(query).should(backQuery);
       }
       CalciteEnumerableIndexScan newScan = (CalciteEnumerableIndexScan) this.lookupScan.copy();

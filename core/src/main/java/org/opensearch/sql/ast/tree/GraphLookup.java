@@ -65,6 +65,9 @@ public class GraphLookup extends UnresolvedPlan {
   /** Direction mode: UNI (default) or BIO for bidirectional. */
   private final Direction direction;
 
+  /** Whether to support array-typed fields without early filter pushdown. */
+  private final boolean supportArray;
+
   private UnresolvedPlan child;
 
   public String getDepthFieldName() {

@@ -61,6 +61,7 @@ DEPTH_FIELD:                        'DEPTHFIELD';
 DIRECTION:                          'DIRECTION';
 UNI:                                'UNI';
 BI:                                 'BI';
+SUPPORT_ARRAY:                      'SUPPORTARRAY';
 ROW:                                'ROW';
 COL:                                'COL';
 EXPAND:                             'EXPAND';
