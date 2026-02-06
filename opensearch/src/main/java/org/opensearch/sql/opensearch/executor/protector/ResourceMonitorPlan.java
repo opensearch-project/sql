@@ -43,8 +43,14 @@ public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePla
 
   @Override
   public void open() {
-    if (!this.monitor.isHealthy()) {
-      throw new IllegalStateException("insufficient resources to run the query, quit.");
+    org.opensearch.sql.monitor.ResourceStatus status = this.monitor.getStatus();
+    if (!status.isHealthy()) {
+      throw new IllegalStateException(
+          String.format(
+              "Insufficient resources to start query: %s. "
+                  + "To increase the limit, adjust the 'plugins.query.memory_limit' setting "
+                  + "(current default: 85%%).",
+              status.getFormattedDescription()));
     }
     delegate.open();
   }
@@ -67,8 +73,17 @@ public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePla
   @Override
   public ExprValue next() {
     boolean shouldCheck = (++nextCallCount % NUMBER_OF_NEXT_CALL_TO_CHECK == 0);
-    if (shouldCheck && !this.monitor.isHealthy()) {
-      throw new IllegalStateException("insufficient resources to load next row, quit.");
+    if (shouldCheck) {
+      org.opensearch.sql.monitor.ResourceStatus status = this.monitor.getStatus();
+      if (!status.isHealthy()) {
+        throw new IllegalStateException(
+            String.format(
+                "Insufficient resources to continue processing query: %s. "
+                    + "Rows processed: %d. "
+                    + "To increase the limit, adjust the 'plugins.query.memory_limit' setting "
+                    + "(current default: 85%%).",
+                status.getFormattedDescription(), nextCallCount));
+      }
     }
     return delegate.next();
   }

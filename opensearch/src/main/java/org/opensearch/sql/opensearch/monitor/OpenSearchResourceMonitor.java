@@ -60,4 +60,29 @@ public class OpenSearchResourceMonitor extends ResourceMonitor {
       return false;
     }
   }
+
+  /**
+   * Get detailed resource status with memory usage metrics.
+   *
+   * @return ResourceStatus with health state and detailed context
+   */
+  @Override
+  public org.opensearch.sql.monitor.ResourceStatus getStatus() {
+    try {
+      ByteSizeValue limit = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
+      if (limit == null) {
+        // undefined, be always healthy
+        return org.opensearch.sql.monitor.ResourceStatus.healthy(
+            org.opensearch.sql.monitor.ResourceStatus.ResourceType.MEMORY);
+      }
+      return memoryMonitor.getMemoryStatus(limit.getBytes());
+    } catch (Exception e) {
+      // If we can't determine status, report as unhealthy with error context
+      return org.opensearch.sql.monitor.ResourceStatus.builder()
+          .healthy(false)
+          .type(org.opensearch.sql.monitor.ResourceStatus.ResourceType.MEMORY)
+          .description("Failed to determine memory status: " + e.getMessage())
+          .build();
+    }
+  }
 }

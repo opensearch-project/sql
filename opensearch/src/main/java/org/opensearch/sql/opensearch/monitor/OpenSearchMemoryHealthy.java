@@ -63,6 +63,41 @@ public class OpenSearchMemoryHealthy {
     }
   }
 
+  /**
+   * Get detailed memory health status with usage metrics.
+   *
+   * @param limitBytes Memory limit in bytes
+   * @return ResourceStatus with detailed memory information
+   */
+  public org.opensearch.sql.monitor.ResourceStatus getMemoryStatus(long limitBytes) {
+    final long currentMemoryUsage = this.memoryUsage.usage();
+    log.debug("Memory usage:{}, limit:{}", currentMemoryUsage, limitBytes);
+
+    if (currentMemoryUsage < limitBytes) {
+      return org.opensearch.sql.monitor.ResourceStatus.builder()
+          .healthy(true)
+          .type(org.opensearch.sql.monitor.ResourceStatus.ResourceType.MEMORY)
+          .currentUsage(currentMemoryUsage)
+          .maxLimit(limitBytes)
+          .description("Memory usage is within limits")
+          .build();
+    } else {
+      log.warn("Memory usage:{} exceed limit:{}", currentMemoryUsage, limitBytes);
+      String description =
+          String.format(
+              "Memory usage exceeds limit: %d bytes used, %d bytes limit",
+              currentMemoryUsage, limitBytes);
+
+      return org.opensearch.sql.monitor.ResourceStatus.builder()
+          .healthy(false)
+          .type(org.opensearch.sql.monitor.ResourceStatus.ResourceType.MEMORY)
+          .currentUsage(currentMemoryUsage)
+          .maxLimit(limitBytes)
+          .description(description)
+          .build();
+    }
+  }
+
   static class RandomFail {
     public boolean shouldFail() {
       return ThreadLocalRandom.current().nextBoolean();
