@@ -5,6 +5,13 @@ setup:
           transient:
             plugins.calcite.enabled: true
   - do:
+      indices.create:
+        index: hdfs_logs
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+  - do:
       bulk:
         index: hdfs_logs
         refresh: true
