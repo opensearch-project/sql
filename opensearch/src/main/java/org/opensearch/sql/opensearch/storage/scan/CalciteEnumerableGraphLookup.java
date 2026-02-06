@@ -514,7 +514,20 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       while (res.hasNext()) {
         results.add(res.next());
       }
+      closeIterator(res);
       return results;
+    }
+
+    private static <T> void closeIterator(@Nullable Iterator<? extends T> iterator) {
+      if (iterator instanceof AutoCloseable) {
+        try {
+          ((AutoCloseable) iterator).close();
+        } catch (RuntimeException e) {
+          throw e;
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
     }
 
     /**
