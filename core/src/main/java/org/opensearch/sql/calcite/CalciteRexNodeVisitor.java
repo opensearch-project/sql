@@ -28,9 +28,12 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLambdaRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -191,8 +194,15 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitNot(Not node, CalcitePlanContext context) {
-    final RexNode expr = analyze(node.getExpression(), context);
-    return context.relBuilder.not(expr);
+    // Special handling for NOT(boolean_field = true/false) - see boolean comparison helpers below
+    UnresolvedExpression inner = node.getExpression();
+    if (inner instanceof Compare compare && "=".equals(compare.getOperator())) {
+      RexNode result = tryMakeBooleanNotEquals(compare, context);
+      if (result != null) {
+        return result;
+      }
+    }
+    return context.relBuilder.not(analyze(node.getExpression(), context));
   }
 
   @Override
@@ -222,7 +232,15 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
     RexNode left = analyze(node.getLeft(), context);
     RexNode right = analyze(node.getRight(), context);
-    return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, node.getOperator(), left, right);
+    String op = node.getOperator();
+    // Handle boolean_field != literal -> IS_NOT_TRUE/IS_NOT_FALSE
+    if ("!=".equals(op) || "<>".equals(op)) {
+      RexNode result = tryMakeBooleanNotEquals(left, right, context);
+      if (result != null) {
+        return result;
+      }
+    }
+    return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, op, left, right);
   }
 
   @Override
@@ -250,6 +268,65 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     final RexNode left = analyze(node.getLeft(), context);
     final RexNode right = analyze(node.getRight(), context);
     return context.rexBuilder.equals(left, right);
+  }
+
+  // ==================== Boolean NOT comparison helpers ====================
+  // Calcite's RexSimplify transforms:
+  // - "field = true" -> "field" (handled by PredicateAnalyzer detecting boolean field)
+  // - "field = false" -> "NOT(field)" (handled by PredicateAnalyzer.prefix())
+  // - "NOT(field = true)" -> "NOT(field)" -> would generate term{false}, have conflicted semantics
+  // - "NOT(field = false)" -> "NOT(NOT(field))" -> "field" -> would generate term{true}, have
+  // conflicted semantics
+  // We intercept NOT(field = true/false) at AST level before Calcite optimization:
+  // - "NOT(field = true)" -> IS_NOT_TRUE(field): matches false, null, missing
+  // - "NOT(field = false)" -> IS_NOT_FALSE(field): matches true, null, missing
+
+  /**
+   * Try to convert boolean_field != literal or NOT(boolean_field = literal) to
+   * IS_NOT_TRUE/IS_NOT_FALSE. This preserves correct null-handling semantics.
+   */
+  private RexNode tryMakeBooleanNotEquals(RexNode left, RexNode right, CalcitePlanContext context) {
+    BooleanFieldComparison cmp = extractBooleanFieldComparison(left, right);
+    if (cmp == null) {
+      return null;
+    }
+    SqlOperator op =
+        Boolean.FALSE.equals(cmp.literalValue)
+            ? SqlStdOperatorTable.IS_NOT_FALSE
+            : SqlStdOperatorTable.IS_NOT_TRUE;
+    return context.rexBuilder.makeCall(op, cmp.field);
+  }
+
+  /** Overload for NOT(Compare) AST pattern. */
+  private RexNode tryMakeBooleanNotEquals(Compare compare, CalcitePlanContext context) {
+    return tryMakeBooleanNotEquals(
+        analyze(compare.getLeft(), context), analyze(compare.getRight(), context), context);
+  }
+
+  /** Represents a comparison between a boolean field and a boolean literal. */
+  private record BooleanFieldComparison(RexNode field, Boolean literalValue) {}
+
+  /**
+   * Extract boolean field and literal value from a comparison, normalizing operand order. Returns
+   * null if the comparison is not between a boolean field and a boolean literal.
+   */
+  private BooleanFieldComparison extractBooleanFieldComparison(RexNode left, RexNode right) {
+    if (isBooleanField(left) && isBooleanLiteral(right)) {
+      return new BooleanFieldComparison(left, ((RexLiteral) right).getValueAs(Boolean.class));
+    }
+    if (isBooleanField(right) && isBooleanLiteral(left)) {
+      return new BooleanFieldComparison(right, ((RexLiteral) left).getValueAs(Boolean.class));
+    }
+    return null;
+  }
+
+  private boolean isBooleanField(RexNode node) {
+    // Only match actual field references, not arbitrary boolean expressions like CASE
+    return node instanceof RexInputRef && node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
+  }
+
+  private boolean isBooleanLiteral(RexNode node) {
+    return node instanceof RexLiteral && node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
   }
 
   /** Resolve qualified name. Note, the name should be case-sensitive. */
