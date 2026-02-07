@@ -212,6 +212,21 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testSortHeadReverse() {
+    // Tests "sort | head | reverse": reverse must be applied after the limit,
+    // not merged into the sort+fetch node, to preserve correct semantics.
+    String ppl = "source=EMP | sort SAL | head 5 | reverse";
+    RelNode root = getRelNode(ppl);
+
+    // The reversed sort sits above the limit+sort node
+    String expectedLogical =
+        "LogicalSort(sort0=[$5], dir0=[DESC-nulls-last])\n"
+            + "  LogicalSort(sort0=[$5], dir0=[ASC-nulls-first], fetch=[5])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
   public void testHeadThenSortReverseNoOpt() {
     // Tests fetch limit behavior: head 5 | sort field | reverse
     // Reverse replaces the sort on SAL in-place, preserving the head limit below

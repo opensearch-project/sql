@@ -754,16 +754,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
           @Override
           public RelNode visit(RelNode other) {
-            // Check if this is a Sort node and we haven't inserted the reversed sort yet
             if (!sortFound && other instanceof org.apache.calcite.rel.core.Sort) {
               org.apache.calcite.rel.core.Sort sort = (org.apache.calcite.rel.core.Sort) other;
+              // Treat a Sort with fetch or offset as a barrier (limit node).
+              // Place the reversed sort above the barrier to preserve limit semantics,
+              // rather than inserting below the downstream collation Sort.
+              if (sort.fetch != null || sort.offset != null) {
+                sortFound = true;
+                RelNode visitedBarrier = super.visit(other);
+                return org.apache.calcite.rel.logical.LogicalSort.create(
+                    visitedBarrier, reversedCollation, null, null);
+              }
+              // Found a collation Sort - insert reversed sort on top of it
               if (sort.getCollation() != null
                   && !sort.getCollation().getFieldCollations().isEmpty()) {
-                // Found the sort node - insert reversed sort after it
                 sortFound = true;
-                // First visit the sort's children
                 RelNode visitedSort = super.visit(other);
-                // Create a new reversed sort on top of the original sort
                 return org.apache.calcite.rel.logical.LogicalSort.create(
                     visitedSort, reversedCollation, null, null);
               }
@@ -789,18 +795,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       RelCollation reversedCollation = PlanUtils.reverseCollation(collation);
       RelNode currentNode = context.relBuilder.peek();
       if (currentNode instanceof org.apache.calcite.rel.core.Sort) {
-        // Replace the existing sort in-place to avoid consecutive sorts.
-        // Calcite's physical optimizer merges consecutive LogicalSort nodes and may
-        // discard the reversed direction. Replacing in-place avoids this issue.
         org.apache.calcite.rel.core.Sort existingSort =
             (org.apache.calcite.rel.core.Sort) currentNode;
-        RelNode replacedSort =
-            org.apache.calcite.rel.logical.LogicalSort.create(
-                existingSort.getInput(),
-                reversedCollation,
-                existingSort.offset,
-                existingSort.fetch);
-        PlanUtils.replaceTop(context.relBuilder, replacedSort);
+        if (existingSort.getCollation() != null
+            && !existingSort.getCollation().getFieldCollations().isEmpty()
+            && existingSort.fetch == null
+            && existingSort.offset == null) {
+          // Pure collation sort (no fetch/offset) - replace in-place to avoid consecutive
+          // sorts. Calcite's physical optimizer merges consecutive LogicalSort nodes and may
+          // discard the reversed direction. Replacing in-place avoids this issue.
+          RelCollation reversedFromSort = PlanUtils.reverseCollation(existingSort.getCollation());
+          RelNode replacedSort =
+              org.apache.calcite.rel.logical.LogicalSort.create(
+                  existingSort.getInput(), reversedFromSort, null, null);
+          PlanUtils.replaceTop(context.relBuilder, replacedSort);
+        } else {
+          // Sort with fetch/offset (limit) or fetch-only Sort - add a separate reversed
+          // sort on top so the "limit then reverse" semantics are preserved.
+          context.relBuilder.sort(reversedCollation);
+        }
       } else {
         context.relBuilder.sort(reversedCollation);
       }

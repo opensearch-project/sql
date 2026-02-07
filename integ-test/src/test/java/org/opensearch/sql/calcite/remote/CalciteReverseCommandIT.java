@@ -287,7 +287,8 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testStreamstatsByWithReverse() throws IOException {
-    // Test that reverse is ignored after streamstats with partitioning (by clause)
+    // Test that reverse is effective after streamstats with partitioning (by clause).
+    // Backtracking finds the __stream_seq__ sort from streamstats and reverses its order.
     JSONObject result =
         executeQuery(
             String.format(
