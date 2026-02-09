@@ -248,6 +248,9 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     if (node.isBatchMode()) {
       command.append(" batchMode=true");
     }
+    if (node.isUsePIT()) {
+      command.append(" usePIT=true");
+    }
     command.append(" as ").append(MASK_COLUMN);
     return command.toString();
   }

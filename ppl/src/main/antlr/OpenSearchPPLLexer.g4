@@ -63,6 +63,7 @@ UNI:                                'UNI';
 BI:                                 'BI';
 SUPPORT_ARRAY:                      'SUPPORTARRAY';
 BATCH_MODE:                         'BATCHMODE';
+USE_PIT:                            'USEPIT';
 ROW:                                'ROW';
 COL:                                'COL';
 EXPAND:                             'EXPAND';

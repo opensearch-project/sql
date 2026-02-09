@@ -71,6 +71,9 @@ public class GraphLookup extends UnresolvedPlan {
   /** Whether to batch all source start values into a single unified BFS traversal. */
   private final boolean batchMode;
 
+  /** Whether to use PIT (Point In Time) search for the lookup table to get complete results. */
+  private final boolean usePIT;
+
   private UnresolvedPlan child;
 
   public String getDepthFieldName() {

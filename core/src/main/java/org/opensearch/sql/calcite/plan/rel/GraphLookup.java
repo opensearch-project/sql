@@ -50,6 +50,7 @@ public abstract class GraphLookup extends BiRel {
   protected final boolean bidirectional;
   protected final boolean supportArray;
   protected final boolean batchMode;
+  protected final boolean usePIT;
 
   private RelDataType outputRowType;
 
@@ -70,6 +71,7 @@ public abstract class GraphLookup extends BiRel {
    * @param supportArray Whether to support array-typed fields (disables early visited filter
    *     pushdown)
    * @param batchMode Whether to batch all source start values into a single unified BFS
+   * @param usePIT Whether to use PIT (Point In Time) search for complete results
    */
   protected GraphLookup(
       RelOptCluster cluster,
@@ -84,7 +86,8 @@ public abstract class GraphLookup extends BiRel {
       int maxDepth,
       boolean bidirectional,
       boolean supportArray,
-      boolean batchMode) {
+      boolean batchMode,
+      boolean usePIT) {
     super(cluster, traitSet, source, lookup);
     this.startField = startField;
     this.fromField = fromField;
@@ -95,6 +98,7 @@ public abstract class GraphLookup extends BiRel {
     this.bidirectional = bidirectional;
     this.supportArray = supportArray;
     this.batchMode = batchMode;
+    this.usePIT = usePIT;
   }
 
   /** Returns the source table RelNode. */
@@ -176,6 +180,7 @@ public abstract class GraphLookup extends BiRel {
         .item("maxDepth", maxDepth)
         .item("bidirectional", bidirectional)
         .itemIf("supportArray", supportArray, supportArray)
-        .itemIf("batchMode", batchMode, batchMode);
+        .itemIf("batchMode", batchMode, batchMode)
+        .itemIf("usePIT", usePIT, usePIT);
   }
 }

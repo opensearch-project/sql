@@ -36,6 +36,7 @@ public class LogicalGraphLookup extends GraphLookup {
    * @param bidirectional Whether to traverse edges in both directions
    * @param supportArray Whether to support array-typed fields
    * @param batchMode Whether to batch all source start values into a single unified BFS
+   * @param usePIT Whether to use PIT (Point In Time) search for complete results
    */
   protected LogicalGraphLookup(
       RelOptCluster cluster,
@@ -50,7 +51,8 @@ public class LogicalGraphLookup extends GraphLookup {
       int maxDepth,
       boolean bidirectional,
       boolean supportArray,
-      boolean batchMode) {
+      boolean batchMode,
+      boolean usePIT) {
     super(
         cluster,
         traitSet,
@@ -64,7 +66,8 @@ public class LogicalGraphLookup extends GraphLookup {
         maxDepth,
         bidirectional,
         supportArray,
-        batchMode);
+        batchMode,
+        usePIT);
   }
 
   /**
@@ -81,6 +84,7 @@ public class LogicalGraphLookup extends GraphLookup {
    * @param bidirectional Whether to traverse edges in both directions
    * @param supportArray Whether to support array-typed fields
    * @param batchMode Whether to batch all source start values into a single unified BFS
+   * @param usePIT Whether to use PIT (Point In Time) search for complete results
    * @return A new LogicalGraphLookup instance
    */
   public static LogicalGraphLookup create(
@@ -94,7 +98,8 @@ public class LogicalGraphLookup extends GraphLookup {
       int maxDepth,
       boolean bidirectional,
       boolean supportArray,
-      boolean batchMode) {
+      boolean batchMode,
+      boolean usePIT) {
     RelOptCluster cluster = source.getCluster();
     RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalGraphLookup(
@@ -110,7 +115,8 @@ public class LogicalGraphLookup extends GraphLookup {
         maxDepth,
         bidirectional,
         supportArray,
-        batchMode);
+        batchMode,
+        usePIT);
   }
 
   @Override
@@ -128,6 +134,7 @@ public class LogicalGraphLookup extends GraphLookup {
         maxDepth,
         bidirectional,
         supportArray,
-        batchMode);
+        batchMode,
+        usePIT);
   }
 }

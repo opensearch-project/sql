@@ -2601,6 +2601,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     maxDepthValue = maxDepthValue == null ? 0 : maxDepthValue;
     boolean supportArray = node.isSupportArray();
     boolean batchMode = node.isBatchMode();
+    boolean usePIT = node.isUsePIT();
 
     // 3. Visit and materialize lookup table
     analyze(node.getFromTable(), context);
@@ -2621,7 +2622,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             maxDepthValue,
             bidirectional,
             supportArray,
-            batchMode);
+            batchMode,
+            usePIT);
 
     builder.push(graphLookup);
     return builder.peek();

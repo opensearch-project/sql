@@ -73,6 +73,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
    * @param bidirectional Whether to traverse edges in both directions
    * @param supportArray Whether to support array-typed fields
    * @param batchMode Whether to batch all source start values into a single unified BFS
+   * @param usePIT Whether to use PIT (Point In Time) search for complete results
    */
   public CalciteEnumerableGraphLookup(
       RelOptCluster cluster,
@@ -87,7 +88,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       int maxDepth,
       boolean bidirectional,
       boolean supportArray,
-      boolean batchMode) {
+      boolean batchMode,
+      boolean usePIT) {
     super(
         cluster,
         traitSet,
@@ -101,7 +103,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         maxDepth,
         bidirectional,
         supportArray,
-        batchMode);
+        batchMode,
+        usePIT);
   }
 
   @Override
@@ -119,7 +122,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         maxDepth,
         bidirectional,
         supportArray,
-        batchMode);
+        batchMode,
+        usePIT);
   }
 
   @Override
@@ -179,14 +183,17 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
     GraphLookupEnumerator(CalciteEnumerableGraphLookup graphLookup) {
       this.graphLookup = graphLookup;
       this.lookupScan = (CalciteEnumerableIndexScan) graphLookup.getLookup();
-      // For performance consideration, limit the size of the lookup table MaxResultWindow to avoid
-      // PIT search
-      final int maxResultWindow = this.lookupScan.getOsIndex().getMaxResultWindow();
-      this.lookupScan.pushDownContext.add(
-          PushDownType.LIMIT,
-          new LimitDigest(maxResultWindow, 0),
-          (OSRequestBuilderAction)
-              requestBuilder -> requestBuilder.pushDownLimit(maxResultWindow, 0));
+      if (!graphLookup.usePIT) {
+        // When usePIT is false (default), limit the size of the lookup table to MaxResultWindow
+        // to avoid PIT search for better performance, but results may be incomplete
+        final int maxResultWindow = this.lookupScan.getOsIndex().getMaxResultWindow();
+        this.lookupScan.pushDownContext.add(
+            PushDownType.LIMIT,
+            new LimitDigest(maxResultWindow, 0),
+            (OSRequestBuilderAction)
+                requestBuilder -> requestBuilder.pushDownLimit(maxResultWindow, 0));
+      }
+      // When usePIT is true, no limit is set, allowing PIT-based pagination for complete results
 
       // Get the source enumerator
       if (graphLookup.getSource() instanceof Scannable scannable) {
@@ -324,12 +331,13 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
       // Initialize BFS with start value
       if (startValue instanceof Collection<?> collection) {
-        collection.forEach(value -> {
-          if (!visitedNodes.contains(value)) {
-            visitedNodes.add(value);
-            queue.offer(value);
-          }
-        });
+        collection.forEach(
+            value -> {
+              if (!visitedNodes.contains(value)) {
+                visitedNodes.add(value);
+                queue.offer(value);
+              }
+            });
       } else {
         visitedNodes.add(startValue);
         queue.offer(startValue);
@@ -353,7 +361,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         // Forward direction: fromField = currentLevelValues
         List<Object> forwardResults = queryLookupTable(currentLevelValues, visitedNodes);
 
-        if (forwardResults.size() >=  this.lookupScan.getOsIndex().getMaxResultWindow()) {
+        if (!graphLookup.usePIT
+            && forwardResults.size() >= this.lookupScan.getOsIndex().getMaxResultWindow()) {
           LOG.warn("BFS result size exceeds max result window, returning partial result.");
         }
         for (Object row : forwardResults) {

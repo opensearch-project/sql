@@ -640,6 +640,7 @@ graphLookupOption
    | (DIRECTION EQUAL (UNI | BI))
    | (SUPPORT_ARRAY EQUAL booleanLiteral)
    | (BATCH_MODE EQUAL booleanLiteral)
+   | (USE_PIT EQUAL booleanLiteral)
    ;
 
 // clauses

@@ -8,7 +8,7 @@ The `graphLookup` command performs recursive graph traversal on a collection usi
 The `graphLookup` command has the following syntax:
 
 ```syntax
-graphLookup <lookupIndex> startField=<startField> fromField=<fromField> toField=<toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [direction=(uni | bi)] [supportArray=(true | false)] [batchMode=(true | false)] as <outputField>
+graphLookup <lookupIndex> startField=<startField> fromField=<fromField> toField=<toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [direction=(uni | bi)] [supportArray=(true | false)] [batchMode=(true | false)] [usePIT=(true | false)] as <outputField>
 ```
 
 The following are examples of the `graphLookup` command syntax:
@@ -37,6 +37,7 @@ The `graphLookup` command supports the following parameters.
 | `direction=(uni \| bi)` | Optional | The traversal direction. `uni` (default) performs unidirectional traversal following edges in the forward direction only. `bi` performs bidirectional traversal, following edges in both directions.                               |
 | `supportArray=(true \| false)` | Optional | When `true`, disables early visited-node filter pushdown to OpenSearch. Default is `false`. Set to `true` when `fromField` or `toField` contains array values to ensure correct traversal behavior. See [Array Field Handling](#array-field-handling) for details. |
 | `batchMode=(true \| false)` | Optional | When `true`, collects all start values from all source rows and performs a single unified BFS traversal. Default is `false`. The output changes to two arrays: `[Array<sourceRows>, Array<lookupResults>]`. See [Batch Mode](#batch-mode) for details. |
+| `usePIT=(true \| false)` | Optional | When `true`, enables PIT (Point In Time) search for the lookup table, allowing paginated retrieval of complete results without the `max_result_window` size limit. Default is `false`. See [PIT Search](#pit-search) for details. |
 | `as <outputField>` | Required | The name of the output array field that will contain all documents found during the graph traversal.                                                                                                                               |
 
 ## How It Works
@@ -303,7 +304,32 @@ source = travelers
 
 When the `fromField` or `toField` contains array values, you should set `supportArray=true` to ensure correct traversal behavior.
 
+## PIT Search
+
+By default, each level of BFS traversal limits the number of returned documents to the `max_result_window` setting of the lookup index (typically 10,000). This avoids the overhead of PIT (Point In Time) search but may return incomplete results when a single traversal level matches more documents than the limit.
+
+When `usePIT=true`, this limit is removed and the lookup table uses PIT-based pagination, which ensures all matching documents are retrieved at each traversal level. This provides complete and accurate results at the cost of additional search overhead.
+
+### When to Use PIT Search
+
+Use `usePIT=true` when:
+- The graph has high-degree nodes where a single traversal level may match more than `max_result_window` documents
+- Result completeness is more important than query performance
+- You observe incomplete or missing results with the default setting
+
+### Example
+
+```ppl ignore
+source = employees
+  | graphLookup employees
+    startField=reportsTo
+    fromField=reportsTo
+    toField=name
+    usePIT=true
+    as reportingHierarchy
+```
+
 ## Limitations
 
 - The source input, which provides the starting point for the traversal, has a limitation of 100 documents to avoid performance issues.
-- To avoid PIT (Point in Time) search, each level of traversal search returns documents up to the "max result windows" of the lookup index.
+- When `usePIT=false` (default), each level of traversal search returns documents up to the `max_result_window` of the lookup index, which may result in incomplete data. Set `usePIT=true` to retrieve complete results.
