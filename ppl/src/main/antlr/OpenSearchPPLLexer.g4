@@ -74,6 +74,7 @@ AGGREGATION:                        'AGGREGATION';
 APPENDPIPE:                         'APPENDPIPE';
 COLUMN_NAME:                        'COLUMN_NAME';
 MVCOMBINE:                          'MVCOMBINE';
+NOMV:                               'NOMV';
 
 
 //Native JOIN KEYWORDS

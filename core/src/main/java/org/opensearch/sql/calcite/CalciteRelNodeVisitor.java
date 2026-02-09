@@ -126,6 +126,7 @@ import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -3288,6 +3289,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     relBuilder.project(projections, projectionNames, /* force= */ true);
+  }
+
+  @Override
+  public RelNode visitNoMv(NoMv node, CalcitePlanContext context) {
+    return visitEval((Eval) node.rewriteAsEval(), context);
   }
 
   @Override
