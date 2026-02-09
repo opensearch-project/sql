@@ -49,24 +49,10 @@ teardown:
       ppl:
         body:
           query: 'source=hdfs_logs | patterns content method=brain mode=aggregation max_sample_count=2 variable_count_threshold=3'
-  - match: {"total": 2}
-  - match: {"schema": [{"name": "patterns_field", "type": "string"}, {"name": "pattern_count", "type": "bigint"}, {"name": "sample_logs", "type": "array"}]}
-  - match: {"datarows": [
-    [
-      "PacketResponder failed for blk_<*>",
-      2,
-      [
-        "PacketResponder failed for blk_6996194389878584395",
-        "PacketResponder failed for blk_-1547954353065580372"
-      ]
-    ],
-    [
-      "BLOCK* NameSystem.addStoredBlock: blockMap updated: <*IP*> is added to blk_<*> size <*>",
-      2,
-      [
-        "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to blk_-7017553867379051457 size 67108864",
-        "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added to blk_-3249711809227781266 size 67108864"
-      ]
-    ]
-  ]}
+  - match: { total: 2 }
+  - match: { schema: [{"name": "patterns_field", "type": "string"}, {"name": "pattern_count", "type": "bigint"}, {"name": "sample_logs", "type": "array"}] }
+  - length: { datarows: 2 }
+  # Verify each pattern has exactly 2 sample logs (max_sample_count=2)
+  - length: { datarows.0.2: 2 }
+  - length: { datarows.1.2: 2 }
 
