@@ -12,7 +12,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.common.document.DocumentField;
@@ -45,28 +44,44 @@ public class TopHitsParser implements MetricParser {
     }
 
     if (returnSingleValue) {
-      if (hits[0].getFields() == null || hits[0].getFields().isEmpty()) {
-        return Collections.singletonList(
-            new HashMap<>(Collections.singletonMap(agg.getName(), null)));
+      Object value = null;
+      if (!isSourceEmpty(hits)) {
+        // Extract the single value from the first (and only) hit from source (fetchSource)
+        value = getLeafValue(hits[0].getSourceAsMap().values().iterator().next());
       }
-      // Extract the single value from the first (and only) hit from fields (fetchField)
-      Object value = hits[0].getFields().values().iterator().next().getValue();
+      if (!isFieldsEmpty(hits)) {
+        // Extract the single value from the first (and only) hit from fields (fetchField)
+        value = hits[0].getFields().values().iterator().next().getValue();
+      }
       return Collections.singletonList(
           new HashMap<>(Collections.singletonMap(agg.getName(), value)));
     } else if (returnMergeValue) {
-      if (hits[0].getFields() == null || hits[0].getFields().isEmpty()) {
+      if (isEmptyHits(hits)) {
         return Collections.singletonList(
             new HashMap<>(Collections.singletonMap(agg.getName(), Collections.emptyList())));
       }
-      // Return all values as a list from fields (fetchField)
+      List<Object> list = Collections.emptyList();
+      if (!isSourceEmpty(hits)) {
+        // Return all values as a list from _source (fetchSource)
+        list =
+            Arrays.stream(hits)
+                .map(SearchHit::getSourceAsMap)
+                .filter(Objects::nonNull)
+                .flatMap(map -> map.values().stream())
+                .filter(Objects::nonNull)
+                .toList();
+      }
+      if (!isFieldsEmpty(hits)) {
+        // Return all values as a list from fields (fetchField)
+        list =
+            Arrays.stream(hits)
+                .flatMap(h -> h.getFields().values().stream())
+                .map(DocumentField::getValue)
+                .filter(Objects::nonNull)
+                .toList();
+      }
       return Collections.singletonList(
-          Collections.singletonMap(
-              agg.getName(),
-              Arrays.stream(hits)
-                  .flatMap(h -> h.getFields().values().stream())
-                  .map(DocumentField::getValue)
-                  .filter(Objects::nonNull) // Filter out null values
-                  .collect(Collectors.toList())));
+          new HashMap<>(Collections.singletonMap(agg.getName(), list)));
     } else {
       // "hits": {
       //    "hits": [
@@ -74,29 +89,69 @@ public class TopHitsParser implements MetricParser {
       //        "_source": {
       //          "name": "A",
       //          "category": "X"
+      //        },
+      //        "fields": {
+      //          "name": [
+      //            "B"
+      //          ],
+      //          "category": [
+      //            "Z"
+      //          ]
       //        }
       //      },
       //      {
       //        "_source": {
       //          "name": "A",
       //          "category": "Y"
+      //        },
+      //        "fields": {
+      //          "category": [
+      //            "A"
+      //          ],
+      //          "state": [
+      //            "N"
+      //          ]
       //        }
       //      }
       //    ]
       // }
       // will converts to:
       // List[
-      //   LinkedHashMap["name" -> "A", "category" -> "X"],
-      //   LinkedHashMap["name" -> "A", "category" -> "Y"]
+      //   LinkedHashMap["name" -> "B", "category" -> "Z"],
+      //   LinkedHashMap["name" -> "A", "category" -> "A", "state" -> "N"]
       // ]
       return Arrays.stream(hits)
           .map(
               hit -> {
-                Map<String, Object> map = new LinkedHashMap<>(hit.getSourceAsMap());
+                Map<String, Object> source = hit.getSourceAsMap();
+                Map<String, Object> map =
+                    source == null
+                        ? new LinkedHashMap<>()
+                        : new LinkedHashMap<>(hit.getSourceAsMap());
                 hit.getFields().values().forEach(f -> map.put(f.getName(), f.getValue()));
                 return map;
               })
           .toList();
+    }
+  }
+
+  private boolean isEmptyHits(SearchHit[] hits) {
+    return isFieldsEmpty(hits) && isSourceEmpty(hits);
+  }
+
+  private boolean isFieldsEmpty(SearchHit[] hits) {
+    return hits[0].getFields().isEmpty();
+  }
+
+  private boolean isSourceEmpty(SearchHit[] hits) {
+    return hits[0].getSourceAsMap() == null || hits[0].getSourceAsMap().isEmpty();
+  }
+
+  private Object getLeafValue(Object object) {
+    if (object instanceof Map map) {
+      return getLeafValue(map.values().iterator().next());
+    } else {
+      return object;
     }
   }
 }

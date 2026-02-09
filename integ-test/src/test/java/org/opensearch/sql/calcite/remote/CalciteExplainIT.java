@@ -840,6 +840,31 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_BANK)));
   }
 
+  @Test
+  public void testExplainOnTextFirstLast() throws IOException {
+    String expected = loadExpectedPlan("explain_first_last_text.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats first(employer) as first_employer, last(employer) as"
+                    + " last_employer by gender",
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testExplainTakeAggregationWithNegative() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // without agg pushdown
+    String expected = loadExpectedPlan("explain_take_negative.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats take(employer, 0), take(balance, -2) by gender",
+                TEST_INDEX_BANK)));
+  }
+
   // Only for Calcite
   @Test
   public void testExplainOnEventstatsEarliestLatest() throws IOException {
