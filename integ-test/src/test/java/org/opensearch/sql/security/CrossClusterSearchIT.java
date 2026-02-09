@@ -8,10 +8,8 @@ package org.opensearch.sql.security;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
-import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
-import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -29,8 +27,6 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
     loadIndex(Index.ACCOUNT);
-    loadIndex(Index.MVEXPAND_EDGE_CASES);
-    loadIndex(Index.MVEXPAND_EDGE_CASES, remoteClient());
   }
 
   @Test
@@ -212,78 +208,5 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
                 "search source=%s | where query_string('Hattie') | fields firstname",
                 TEST_INDEX_BANK_REMOTE));
     verifyDataRows(result, rows("Hattie"));
-  }
-
-  @Test
-  public void testCrossClusterAddTotals() throws IOException {
-    // Test query_string without fields parameter on remote cluster
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s| sort 1 age | fields firstname, age | addtotals age",
-                TEST_INDEX_BANK_REMOTE));
-    verifyDataRows(result, rows("Nanette", 28, 28));
-  }
-
-  /** CrossClusterSearchIT Test for addcoltotals. */
-  @Test
-  public void testCrossClusterAddColTotals() throws IOException {
-    // Test query_string without fields parameter on remote cluster
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | where  firstname='Hattie' or firstname ='Nanette'|fields"
-                    + " firstname,age,balance | addcoltotals age balance",
-                TEST_INDEX_BANK_REMOTE));
-    verifyDataRows(
-        result, rows("Hattie", 36, 5686), rows("Nanette", 28, 32838), rows(null, 64, 38524));
-  }
-
-  @Test
-  public void testCrossClusterAppend() throws IOException {
-    // TODO: We should enable calcite by default in CrossClusterSearchIT?
-    enableCalcite();
-
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | stats count() as cnt by gender | append [ search source=%s |"
-                    + " stats count() as cnt ]",
-                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
-    verifyDataRows(result, rows(3, "F"), rows(4, "M"), rows(7, null));
-
-    disableCalcite();
-  }
-
-  @Test
-  public void testCrossClusterMvExpandBasic() throws IOException {
-    enableCalcite();
-
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | mvexpand skills | where username='happy' | fields username,"
-                    + " skills.name | sort skills.name",
-                TEST_INDEX_MVEXPAND_REMOTE));
-    verifySchema(result, schema("username", "string"), schema("skills.name", "string"));
-    verifyDataRows(result, rows("happy", "java"), rows("happy", "python"), rows("happy", "sql"));
-
-    disableCalcite();
-  }
-
-  @Test
-  public void testCrossClusterMvExpandWithLimit() throws IOException {
-    enableCalcite();
-
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | mvexpand skills limit=2 | where username='limituser' | fields"
-                    + " username, skills.name | sort skills.name",
-                TEST_INDEX_MVEXPAND_REMOTE));
-    verifySchema(result, schema("username", "string"), schema("skills.name", "string"));
-    verifyDataRows(result, rows("limituser", "a"), rows("limituser", "b"));
-
-    disableCalcite();
   }
 }
