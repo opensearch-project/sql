@@ -1,0 +1,66 @@
+# Issue: https://github.com/opensearch-project/sql/issues/5114
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: test_issue_5114
+        body:
+          mappings:
+            properties:
+              id:
+                type: integer
+              name:
+                type: keyword
+              reportsTo:
+                type: keyword
+  - do:
+      bulk:
+        index: test_issue_5114
+        refresh: true
+        body:
+          - '{"index":{"_id":"1"}}'
+          - '{"id":1,"name":"Dev","reportsTo":"Eliot"}'
+          - '{"index":{"_id":"2"}}'
+          - '{"id":2,"name":"Eliot","reportsTo":"Ron"}'
+          - '{"index":{"_id":"3"}}'
+          - '{"id":3,"name":"Ron","reportsTo":"Andrew"}'
+          - '{"index":{"_id":"4"}}'
+          - '{"id":4,"name":"Andrew","reportsTo":null}'
+          - '{"index":{"_id":"5"}}'
+          - '{"id":5,"name":"Asya","reportsTo":"Ron"}'
+          - '{"index":{"_id":"6"}}'
+          - '{"id":6,"name":"Dan","reportsTo":"Andrew"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+  - do:
+      indices.delete:
+        index: test_issue_5114
+
+---
+"sort rand with head should cap result size to 5":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_issue_5114 | eval a = rand() | sort a | fields id | head 5
+
+  - match: { total: 5 }
+  - length: { datarows: 5 }
