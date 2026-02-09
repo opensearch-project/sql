@@ -68,7 +68,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
           String.format(
               "Insufficient resources to start query: %s. "
                   + "To increase the limit, adjust the 'plugins.query.memory_limit' setting "
-                  + "(current default: 85%%).",
+                  + "(default: 85%%).",
               status.getFormattedDescription()));
     }
 
@@ -116,7 +116,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
                 "Insufficient resources to continue processing query: %s. "
                     + "Rows processed: %d. "
                     + "To increase the limit, adjust the 'plugins.query.memory_limit' setting "
-                    + "(current default: 85%%).",
+                    + "(default: 85%%).",
                 status.getFormattedDescription(), queryCount));
       }
     }

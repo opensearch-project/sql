@@ -49,7 +49,7 @@ public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePla
           String.format(
               "Insufficient resources to start query: %s. "
                   + "To increase the limit, adjust the 'plugins.query.memory_limit' setting "
-                  + "(current default: 85%%).",
+                  + "(default: 85%%).",
               status.getFormattedDescription()));
     }
     delegate.open();
@@ -81,7 +81,7 @@ public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePla
                 "Insufficient resources to continue processing query: %s. "
                     + "Rows processed: %d. "
                     + "To increase the limit, adjust the 'plugins.query.memory_limit' setting "
-                    + "(current default: 85%%).",
+                    + "(default: 85%%).",
                 status.getFormattedDescription(), nextCallCount));
       }
     }
