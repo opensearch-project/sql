@@ -105,7 +105,10 @@ public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexSca
     // EnumerableSort won't have limit or offset
     Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
     Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
-    if (newScan instanceof CalciteLogicalIndexScan && limitValue != null && offsetValue != null) {
+    if (newScan instanceof CalciteLogicalIndexScan
+        && sort instanceof LogicalSort
+        && limitValue != null
+        && offsetValue != null) {
       newScan =
           (CalciteLogicalIndexScan)
               ((CalciteLogicalIndexScan) newScan)
@@ -219,6 +222,7 @@ public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexSca
       // Reject literals or constant expression - they don't provide meaningful sorting
       if (expr instanceof RexLiteral
           || RexUtil.isConstant(expr)
+          || !RexUtil.isDeterministic(expr)
           || !isSupportedSortScriptType(expr.getType().getSqlTypeName())) {
         return false;
       }
