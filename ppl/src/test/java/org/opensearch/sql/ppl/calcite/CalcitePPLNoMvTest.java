@@ -111,7 +111,8 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `JOB`), '\n') `tags`\n"
+        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `JOB`), '\n') `tags`"
+            + LS
             + "FROM `scott`.`EMP`"
             + LS
             + "LIMIT 1";
@@ -136,10 +137,12 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `JOB`), '\n') `names`\n"
+        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `JOB`), '\n') `names`"
+            + LS
             + "FROM `scott`.`EMP`"
             + LS
-            + "WHERE `DEPTNO` = 10\n"
+            + "WHERE `DEPTNO` = 10"
+            + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -175,7 +178,8 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, ARRAY_JOIN(ARRAY('a', 'b', 'c'), '\n') `arr`,"
-            + " CHAR_LENGTH(ARRAY_JOIN(ARRAY('a', 'b', 'c'), '\n')) `arr_len`\n"
+            + " CHAR_LENGTH(ARRAY_JOIN(ARRAY('a', 'b', 'c'), '\n')) `arr_len`"
+            + LS
             + "FROM `scott`.`EMP`"
             + LS
             + "LIMIT 1";
@@ -296,7 +300,8 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT ARRAY_JOIN(ARRAY('a', 'b'), '\n') `arr`, UPPER(ARRAY_JOIN(ARRAY('a', 'b'),"
-            + " '\n')) `arr_upper`\n"
+            + " '\n')) `arr_upper`"
+            + LS
             + "FROM `scott`.`EMP`"
             + LS
             + "LIMIT 1";
