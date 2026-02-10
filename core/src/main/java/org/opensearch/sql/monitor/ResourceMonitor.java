@@ -45,8 +45,7 @@ public abstract class ResourceMonitor {
    * @return true for healthy, otherwise false.
    */
   protected boolean isHealthyImpl() {
-    // Default: delegate to old isHealthy() behavior
-    // This prevents infinite recursion for old implementations
+    // Subclass must override either getStatus() or isHealthyImpl()
     throw new UnsupportedOperationException(
         "Subclass must override either getStatus() or isHealthyImpl()");
   }

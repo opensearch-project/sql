@@ -83,6 +83,11 @@ public class ResourceStatus {
    */
   public String getFormattedDescription() {
     if (currentUsage != null && maxLimit != null) {
+      if (maxLimit <= 0) {
+        // Treat invalid limit as 0, don't compute percentage
+        return String.format(
+            "%s (current: %s, limit: %s)", description, formatBytes(currentUsage), formatBytes(0));
+      }
       double percentage = (double) currentUsage / maxLimit * 100;
       return String.format(
           "%s (current: %s, limit: %s, usage: %.1f%%)",
