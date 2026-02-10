@@ -358,4 +358,18 @@ public class CalcitePPLSpathCommandIT extends CalcitePPLSpathTestBase {
             "str",
             sj("{'nested': {'d': [1, 2, 3], 'e': 'str'}}")));
   }
+
+  @Test
+  public void testSpathWithMvCombine() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_json | where category='simple' "
+                + "| spath input=userData "
+                + "| fields a, b, c "
+                + "| mvcombine c");
+
+    verifySchema(result, schema("a", "string"), schema("b", "string"), schema("c", "array"));
+
+    verifyDataRows(result, rows("1", "2", new String[] {"3", "3"}));
+  }
 }

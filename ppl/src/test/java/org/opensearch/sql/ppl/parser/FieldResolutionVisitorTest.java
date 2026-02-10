@@ -173,6 +173,16 @@ public class FieldResolutionVisitorTest {
   }
 
   @Test
+  public void testMvCombineAddsTargetFieldToRequirements() {
+    assertSingleRelationFields("source=logs | mvcombine packets_str", Set.of("packets_str"), "*");
+  }
+
+  @Test
+  public void testMvCombineAddsWildcard() {
+    assertSingleRelationFields("source=logs | mvcombine packets_str", Set.of("packets_str"), "*");
+  }
+
+  @Test
   public void testSimpleJoin() {
     assertMultiRelationFields(
         "source=logs1 | join left=l right=r ON l.id = r.id logs2",

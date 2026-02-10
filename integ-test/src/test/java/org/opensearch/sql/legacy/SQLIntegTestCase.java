@@ -210,19 +210,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
       createIndexByRestClient(client, indexName, mapping);
       loadDataByRestClient(client, indexName, dataSet);
     }
-    // loadIndex() could directly return when isIndexExist()=true,
-    // e.g. the index is created in the cluster but data hasn't been flushed.
-    // We block loadIndex() until data loaded to resolve
-    // https://github.com/opensearch-project/sql/issues/4261
-    int countDown = 3; // 1500ms timeout
-    while (countDown != 0 && getDocCount(client, indexName) == 0) {
-      try {
-        Thread.sleep(500);
-        countDown--;
-      } catch (InterruptedException e) {
-        throw new IOException(e);
-      }
-    }
   }
 
   protected synchronized void loadIndex(Index index) throws IOException {
@@ -926,6 +913,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "time_data",
         getMappingFile("time_test_data_index_mapping.json"),
         "src/test/resources/time_test_data.json"),
+    MVCOMBINE(
+        "test_index_mvcombine",
+        "_doc",
+        getMappingFile("mvcombine_index_mapping.json"),
+        "src/test/resources/mvcombine.json"),
     TIME_TEST_DATA_WITH_NULL(
         TestsConstants.TEST_INDEX_TIME_DATE_NULL,
         "time_data_with_null",

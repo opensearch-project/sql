@@ -1,0 +1,9 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(firstname=[$1])
+        LogicalFilter(condition=[NOT($12)])
+          LogicalFilter(condition=[query_string(MAP('query', 'firstname:Amber':VARCHAR))])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[PROJECT->[firstname, male], FILTER->AND(query_string(MAP('query', 'firstname:Amber':VARCHAR)), NOT($1)), PROJECT->[firstname], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"bool":{"must":[{"query_string":{"query":"firstname:Amber","fields":[],"type":"best_fields","default_operator":"or","max_determinized_states":10000,"enable_position_increments":true,"fuzziness":"AUTO","fuzzy_prefix_length":0,"fuzzy_max_expansions":50,"phrase_slop":0,"escape":false,"auto_generate_synonyms_phrase_query":true,"fuzzy_transpositions":true,"boost":1.0}},{"term":{"male":{"value":false,"boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["firstname"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
