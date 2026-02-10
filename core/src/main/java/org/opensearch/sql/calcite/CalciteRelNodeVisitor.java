@@ -118,6 +118,8 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
+import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -151,6 +153,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.plan.rel.LogicalGraphLookup;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.BinUtils;
@@ -2571,6 +2574,59 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<Field> fieldsToAggregate = node.getFieldList();
     return buildAddRowTotalAggregate(
         context, fieldsToAggregate, false, true, null, labelField, label);
+  }
+
+  @Override
+  public RelNode visitGraphLookup(GraphLookup node, CalcitePlanContext context) {
+    // 1. Visit source (child) table
+    visitChildren(node, context);
+    RelBuilder builder = context.relBuilder;
+    // TODO: Limit the number of source rows to 100 for now, make it configurable.
+    builder.limit(0, 100);
+    if (node.isBatchMode()) {
+      tryToRemoveMetaFields(context, true);
+    }
+    RelNode sourceTable = builder.build();
+
+    // 2. Extract parameters
+    String startFieldName = node.getStartField().getField().toString();
+    String fromFieldName = node.getFromField().getField().toString();
+    String toFieldName = node.getToField().getField().toString();
+    String outputFieldName = node.getAs().getField().toString();
+    String depthFieldName = node.getDepthFieldName();
+    boolean bidirectional = node.getDirection() == Direction.BI;
+
+    RexLiteral maxDepthNode = (RexLiteral) rexVisitor.analyze(node.getMaxDepth(), context);
+    Integer maxDepthValue = maxDepthNode.getValueAs(Integer.class);
+    maxDepthValue = maxDepthValue == null ? 0 : maxDepthValue;
+    boolean supportArray = node.isSupportArray();
+    boolean batchMode = node.isBatchMode();
+    boolean usePIT = node.isUsePIT();
+
+    // 3. Visit and materialize lookup table
+    analyze(node.getFromTable(), context);
+    tryToRemoveMetaFields(context, true);
+    RelNode lookupTable = builder.build();
+
+    // 4. Create LogicalGraphLookup RelNode
+    // The conversion rule will extract the OpenSearchIndex from the lookup table
+    RelNode graphLookup =
+        LogicalGraphLookup.create(
+            sourceTable,
+            lookupTable,
+            startFieldName,
+            fromFieldName,
+            toFieldName,
+            outputFieldName,
+            depthFieldName,
+            maxDepthValue,
+            bidirectional,
+            supportArray,
+            batchMode,
+            usePIT);
+
+    builder.push(graphLookup);
+    return builder.peek();
   }
 
   /**

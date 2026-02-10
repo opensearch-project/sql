@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import org.apache.calcite.avatica.util.StructImpl;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -245,6 +246,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       }
       return convertedMap;
     }
+    if (value instanceof StructImpl) {
+      return ((StructImpl) value).toString();
+    }
     if (value instanceof List) {
       List<Object> list = (List<Object>) value;
       List<Object> convertedList = new ArrayList<>();
@@ -330,6 +334,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
     OperatorTable.addOperator(
         BuiltinFunctionName.DISTINCT_COUNT_APPROX.name(), approxDistinctCountFunction);
+
+    // Note: GraphLookup is now implemented as a custom RelNode (LogicalGraphLookup)
+    // instead of a UDF, so no registration is needed here.
   }
 
   /**
