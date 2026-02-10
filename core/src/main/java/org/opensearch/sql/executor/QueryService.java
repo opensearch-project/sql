@@ -177,7 +177,13 @@ public class QueryService {
       // if there is a failure thrown from Calcite and execution after fallback V2
       // keeps failure, we should throw the failure from Calcite.
       if (calciteFailure.isPresent()) {
-        listener.onFailure(new RuntimeException(calciteFailure.get()));
+        Throwable t = calciteFailure.get();
+        // Pass through Exceptions directly, wrap Errors in CalciteUnsupportedException
+        // to match the error handling pattern in executeWithCalcite
+        listener.onFailure(
+            t instanceof Exception
+                ? (Exception) t
+                : new CalciteUnsupportedException(t.getMessage(), t));
       } else {
         listener.onFailure(e);
       }
@@ -209,7 +215,13 @@ public class QueryService {
       // if there is a failure thrown from Calcite and execution after fallback V2
       // keeps failure, we should throw the failure from Calcite.
       if (calciteFailure.isPresent()) {
-        listener.onFailure(new RuntimeException(calciteFailure.get()));
+        Throwable t = calciteFailure.get();
+        // Pass through Exceptions directly, wrap Errors in CalciteUnsupportedException
+        // to match the error handling pattern in explainWithCalcite
+        listener.onFailure(
+            t instanceof Exception
+                ? (Exception) t
+                : new CalciteUnsupportedException(t.getMessage(), t));
       } else {
         listener.onFailure(e);
       }
