@@ -172,7 +172,7 @@ public class ErrorReport extends RuntimeException {
       Map<String, Object> contextMap = new LinkedHashMap<>(context);
       if (stage != null) {
         contextMap.put("stage", stage.toJsonKey());
-        contextMap.put("stage_name", stage.getDisplayName());
+        contextMap.put("stage_description", stage.getDisplayName());
       }
       json.put("context", contextMap);
     }
