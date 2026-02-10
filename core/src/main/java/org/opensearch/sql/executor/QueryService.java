@@ -174,11 +174,10 @@ public class QueryService {
     try {
       executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);
     } catch (Exception e) {
-      if (shouldUseCalcite(queryType) && isCalciteFallbackAllowed(null)) {
-        // if there is a failure thrown from Calcite and execution after fallback V2
-        // keeps failure, we should throw the failure from Calcite.
-        calciteFailure.ifPresentOrElse(
-            t -> listener.onFailure(new RuntimeException(t)), () -> listener.onFailure(e));
+      // if there is a failure thrown from Calcite and execution after fallback V2
+      // keeps failure, we should throw the failure from Calcite.
+      if (calciteFailure.isPresent()) {
+        listener.onFailure(new RuntimeException(calciteFailure.get()));
       } else {
         listener.onFailure(e);
       }
@@ -207,11 +206,10 @@ public class QueryService {
       }
       executionEngine.explain(plan(analyze(plan, queryType)), listener);
     } catch (Exception e) {
-      if (shouldUseCalcite(queryType) && isCalciteFallbackAllowed(null)) {
-        // if there is a failure thrown from Calcite and execution after fallback V2
-        // keeps failure, we should throw the failure from Calcite.
-        calciteFailure.ifPresentOrElse(
-            t -> listener.onFailure(new RuntimeException(t)), () -> listener.onFailure(e));
+      // if there is a failure thrown from Calcite and execution after fallback V2
+      // keeps failure, we should throw the failure from Calcite.
+      if (calciteFailure.isPresent()) {
+        listener.onFailure(new RuntimeException(calciteFailure.get()));
       } else {
         listener.onFailure(e);
       }
