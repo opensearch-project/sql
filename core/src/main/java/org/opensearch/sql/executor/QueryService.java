@@ -34,6 +34,8 @@ import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.common.error.QueryProcessingStage;
+import org.opensearch.sql.common.error.StageErrorHandler;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
@@ -103,10 +105,28 @@ public class QueryService {
             CalcitePlanContext context =
                 CalcitePlanContext.create(
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-            RelNode relNode = analyze(plan, context);
-            RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+
+            // Wrap analyze with ANALYZING stage tracking
+            RelNode relNode =
+                StageErrorHandler.executeStage(
+                    QueryProcessingStage.ANALYZING,
+                    () -> analyze(plan, context),
+                    "checking if fields and indices exist");
+
+            // Wrap plan conversion with PLAN_CONVERSION stage tracking
+            RelNode calcitePlan =
+                StageErrorHandler.executeStage(
+                    QueryProcessingStage.PLAN_CONVERSION,
+                    () -> convertToCalcitePlan(relNode, context),
+                    "preparing to execute your query");
+
             analyzeMetric.set(System.nanoTime() - analyzeStart);
-            executionEngine.execute(calcitePlan, context, listener);
+
+            // Wrap execution with EXECUTING stage tracking
+            StageErrorHandler.executeStageVoid(
+                QueryProcessingStage.EXECUTING,
+                () -> executionEngine.execute(calcitePlan, context, listener),
+                "running query on your cluster");
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
