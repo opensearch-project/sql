@@ -14,6 +14,8 @@ public abstract class ResourceMonitor {
    * Is the resource healthy.
    *
    * @return true for healthy, otherwise false.
+   * @throws UnsupportedOperationException if the subclass doesn't override getStatus() or
+   *     isHealthyImpl()
    */
   public boolean isHealthy() {
     return getStatus().isHealthy();
@@ -24,6 +26,8 @@ public abstract class ResourceMonitor {
    * this method to provide rich status information.
    *
    * @return ResourceStatus with health state and detailed context
+   * @throws UnsupportedOperationException if the subclass doesn't override getStatus() or
+   *     isHealthyImpl()
    */
   public ResourceStatus getStatus() {
     // Default implementation for backwards compatibility

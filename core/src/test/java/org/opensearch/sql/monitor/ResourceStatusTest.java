@@ -8,6 +8,7 @@ package org.opensearch.sql.monitor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -210,5 +211,42 @@ class ResourceStatusTest {
     assertTrue(formatted2.contains("current:"));
     assertTrue(formatted2.contains("limit:"));
     assertFalse(formatted2.contains("%")); // Should not contain percentage
+  }
+
+  @Test
+  void testHealthyWithNullResourceType() {
+    // Test healthy() with null ResourceType
+    ResourceStatus status = ResourceStatus.healthy(null);
+    assertTrue(status.isHealthy());
+    assertNull(status.getType());
+    assertEquals("null resources are healthy", status.getDescription());
+  }
+
+  @Test
+  void testUnhealthyWithNullResourceType() {
+    // Test unhealthy() with null ResourceType
+    ResourceStatus status = ResourceStatus.unhealthy(null, 1024, 2048, "Resource limit exceeded");
+    assertFalse(status.isHealthy());
+    assertNull(status.getType());
+    assertEquals("Resource limit exceeded", status.getDescription());
+    assertEquals(1024L, status.getCurrentUsage());
+    assertEquals(2048L, status.getMaxLimit());
+  }
+
+  @Test
+  void testUnhealthyWithNullDescription() {
+    // Test unhealthy() with null description
+    ResourceStatus status = ResourceStatus.unhealthy(ResourceType.MEMORY, 1024, 2048, null);
+    assertFalse(status.isHealthy());
+    assertEquals(ResourceType.MEMORY, status.getType());
+    assertNull(status.getDescription());
+    assertEquals(1024L, status.getCurrentUsage());
+    assertEquals(2048L, status.getMaxLimit());
+
+    // Formatted description should handle null description gracefully
+    String formatted = status.getFormattedDescription();
+    assertNotNull(formatted);
+    assertTrue(formatted.contains("current:"));
+    assertTrue(formatted.contains("limit:"));
   }
 }
