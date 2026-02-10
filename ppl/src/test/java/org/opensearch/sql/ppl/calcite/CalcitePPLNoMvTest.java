@@ -8,13 +8,38 @@ package org.opensearch.sql.ppl.calcite;
 import static org.junit.Assert.assertThrows;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
+import org.apache.calcite.rel.rel2sql.SqlImplementor;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
 
 public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
 
+  private static final String LS = System.lineSeparator();
+
   public CalcitePPLNoMvTest() {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
+  }
+
+  /**
+   * Override to avoid normalizing the '\n' delimiter inside ARRAY_JOIN. The base class's
+   * normalization replaces ALL \n with System.lineSeparator(), which incorrectly changes the
+   * delimiter from '\n' to '\r\n' on Windows. The delimiter should always be '\n' regardless of
+   * platform - it's a data value, not a line separator.
+   */
+  @Override
+  public void verifyPPLToSparkSQL(RelNode rel, String expected) {
+    // Don't normalize - expect strings are written with explicit System.lineSeparator()
+    SqlImplementor.Result result = getConverter().visitRoot(rel);
+    final SqlNode sqlNode = result.asStatement();
+    final String sql = sqlNode.toSqlString(OpenSearchSparkSqlDialect.DEFAULT).getSql();
+    org.hamcrest.MatcherAssert.assertThat(sql, org.hamcrest.CoreMatchers.is(expected));
+  }
+
+  // Helper to access converter from parent
+  private RelToSqlConverter getConverter() {
+    return new RelToSqlConverter(OpenSearchSparkSqlDialect.DEFAULT);
   }
 
   @Test
@@ -35,8 +60,10 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(ARRAY('web', 'production', 'east'), '\n') `arr`\n"
-            + "FROM `scott`.`EMP`\n"
+        "SELECT ARRAY_JOIN(ARRAY('web', 'production', 'east'), '\n') `arr`"
+            + LS
+            + "FROM `scott`.`EMP`"
+            + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -60,8 +87,10 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT ARRAY_JOIN(ARRAY('a', 'b'), '\n') `arr1`, ARRAY_JOIN(ARRAY('x', 'y'), '\n')"
-            + " `arr2`\n"
-            + "FROM `scott`.`EMP`\n"
+            + " `arr2`"
+            + LS
+            + "FROM `scott`.`EMP`"
+            + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -83,7 +112,8 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `JOB`), '\n') `tags`\n"
-            + "FROM `scott`.`EMP`\n"
+            + "FROM `scott`.`EMP`"
+            + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -107,7 +137,8 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `JOB`), '\n') `names`\n"
-            + "FROM `scott`.`EMP`\n"
+            + "FROM `scott`.`EMP`"
+            + LS
             + "WHERE `DEPTNO` = 10\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -145,7 +176,8 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `EMPNO`, ARRAY_JOIN(ARRAY('a', 'b', 'c'), '\n') `arr`,"
             + " CHAR_LENGTH(ARRAY_JOIN(ARRAY('a', 'b', 'c'), '\n')) `arr_len`\n"
-            + "FROM `scott`.`EMP`\n"
+            + "FROM `scott`.`EMP`"
+            + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -168,8 +200,10 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(CONCAT(`ENAME`, ' - ', `JOB`)), '\n') `arr`\n"
-            + "FROM `scott`.`EMP`\n"
+        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(CONCAT(`ENAME`, ' - ', `JOB`)), '\n') `arr`"
+            + LS
+            + "FROM `scott`.`EMP`"
+            + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -190,8 +224,10 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY('single'), '\n') `arr`\n"
-            + "FROM `scott`.`EMP`\n"
+        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY('single'), '\n') `arr`"
+            + LS
+            + "FROM `scott`.`EMP`"
+            + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -233,8 +269,10 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(ARRAY('1', '2', '3', '4', '5', '6', '7', '8', '9', '10'), '\n') `arr`\n"
-            + "FROM `scott`.`EMP`\n"
+        "SELECT ARRAY_JOIN(ARRAY('1', '2', '3', '4', '5', '6', '7', '8', '9', '10'), '\n') `arr`"
+            + LS
+            + "FROM `scott`.`EMP`"
+            + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -259,7 +297,8 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT ARRAY_JOIN(ARRAY('a', 'b'), '\n') `arr`, UPPER(ARRAY_JOIN(ARRAY('a', 'b'),"
             + " '\n')) `arr_upper`\n"
-            + "FROM `scott`.`EMP`\n"
+            + "FROM `scott`.`EMP`"
+            + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -280,8 +319,10 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `COMM`), '\n') `arr`\n"
-            + "FROM `scott`.`EMP`\n"
+        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `COMM`), '\n') `arr`"
+            + LS
+            + "FROM `scott`.`EMP`"
+            + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -301,8 +342,10 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`MGR`, `COMM`), '\n') `arr`\n"
-            + "FROM `scott`.`EMP`\n"
+        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`MGR`, `COMM`), '\n') `arr`"
+            + LS
+            + "FROM `scott`.`EMP`"
+            + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -323,8 +366,10 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `COMM`, `JOB`), '\n') `arr`\n"
-            + "FROM `scott`.`EMP`\n"
+        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `COMM`, `JOB`), '\n') `arr`"
+            + LS
+            + "FROM `scott`.`EMP`"
+            + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
