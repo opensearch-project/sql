@@ -49,6 +49,13 @@ configurations.all {
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 }
 
+// Ensure compileJava waits for all dependency modules to finish building classes
+// This prevents race conditions in parallel builds and composite builds
+tasks.named('compileJava') {
+    dependsOn ':core:classes'
+    dependsOn ':opensearch:classes'
+}
+
 test {
     maxParallelForks = Runtime.runtime.availableProcessors()
     useJUnitPlatform()

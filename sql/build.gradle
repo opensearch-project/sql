@@ -78,6 +78,14 @@ spotless {
     }
 }
 
+// Ensure compileJava waits for all dependency modules to finish building classes
+// This prevents race conditions in parallel builds and composite builds
+tasks.named('compileJava') {
+    dependsOn ':core:classes'
+    dependsOn ':common:classes'
+    dependsOn ':protocol:classes'
+}
+
 test {
     maxParallelForks = Runtime.runtime.availableProcessors()
     useJUnitPlatform()
