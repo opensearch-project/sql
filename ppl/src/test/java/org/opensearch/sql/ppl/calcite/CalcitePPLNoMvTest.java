@@ -69,6 +69,32 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testNoMvMultipleDocuments() {
+    String ppl =
+        "source=EMP | eval arr = array('web', 'production') | nomv arr | head 2 | fields"
+            + " EMPNO, arr";
+
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], arr=[$8])\n"
+            + "  LogicalSort(fetch=[2])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array('web':VARCHAR,"
+            + " 'production':VARCHAR), '\n')])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY('web', 'production'), '\n') `arr`"
+            + LS
+            + "FROM `scott`.`EMP`"
+            + LS
+            + "LIMIT 2";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testNoMvWithMultipleFields() {
     String ppl =
         "source=EMP | eval arr1 = array('a', 'b'), arr2 = array('x', 'y') | nomv arr1 | nomv arr2 |"
@@ -157,6 +183,32 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     org.junit.Assert.assertTrue(
         "Expected error message to mention missing field. Actual: " + msg,
         msg.toLowerCase().contains("does_not_exist") || msg.toLowerCase().contains("field"));
+  }
+
+  @Test
+  public void testNoMvScalarFieldError() {
+    String ppl = "source=EMP | nomv EMPNO | head 1";
+
+    Exception ex = assertThrows(Exception.class, () -> getRelNode(ppl));
+
+    String msg = String.valueOf(ex.getMessage());
+    org.junit.Assert.assertTrue(
+        "Expected error for non-array field. Actual: " + msg,
+        msg.toLowerCase().contains("array") || msg.toLowerCase().contains("type"));
+  }
+
+  @Test
+  public void testNoMvNonDirectFieldReferenceError() {
+    String ppl = "source=EMP | eval arr = array('a', 'b') | nomv upper(arr) | head 1";
+
+    Exception ex = assertThrows(Exception.class, () -> getRelNode(ppl));
+
+    String msg = String.valueOf(ex.getMessage());
+    org.junit.Assert.assertTrue(
+        "Expected parser error for non-direct field reference. Actual: " + msg,
+        msg.contains("(")
+            || msg.toLowerCase().contains("syntax")
+            || msg.toLowerCase().contains("parse"));
   }
 
   @Test
@@ -251,7 +303,11 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(), '\n') `arr`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(), '\n') `arr`"
+            + LS
+            + "FROM `scott`.`EMP`"
+            + LS
+            + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
