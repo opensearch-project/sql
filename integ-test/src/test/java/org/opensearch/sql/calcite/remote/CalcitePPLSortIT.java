@@ -5,16 +5,19 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLSortIT extends PPLIntegTestCase {
@@ -24,6 +27,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
 
+    loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
   }
@@ -271,6 +275,27 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
         rows(20, "Elinor"),
         rows(25, "Virginia"),
         rows(32, "Dillard"));
+  }
+
+  @Test
+  public void testSortExprRespectsSystemQuerySizeLimit() throws IOException {
+    withSettings(
+        Settings.Key.QUERY_SIZE_LIMIT,
+        "50",
+        () -> {
+          JSONObject result;
+          try {
+            result =
+                executeQuery(
+                    String.format(
+                        "source=%s | eval sort_expr = age + 1 | sort sort_expr | fields"
+                            + " firstname",
+                        TEST_INDEX_ACCOUNT));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+          verifyNumOfRows(result, 50);
+        });
   }
 
   @Test

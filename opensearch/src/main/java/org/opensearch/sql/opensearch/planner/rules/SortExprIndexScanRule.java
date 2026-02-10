@@ -55,6 +55,13 @@ public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexSca
       return;
     }
 
+    // Keep limit/offset semantics on non-LogicalSort nodes (for example LogicalSystemLimit).
+    // This rule removes the Sort node after pushdown; we only support limit pushdown from
+    // LogicalSort today.
+    if (!(sort instanceof LogicalSort) && (sort.fetch != null || sort.offset != null)) {
+      return;
+    }
+
     // Only match sort - project - scan when any sort key references an expression
     if (!PlanUtils.sortReferencesExpr(sort, project)) {
       return;

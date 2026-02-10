@@ -1068,6 +1068,16 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testNonDeterministicSortExprShouldNotPushdown() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank | eval r = rand() | sort r | fields"
+            + " account_number | head 5";
+    var result = explainQueryYaml(query);
+    Assert.assertFalse(result.contains("SORT_EXPR->["));
+    Assert.assertTrue(result.contains("LogicalSort("));
+  }
+
+  @Test
   public void testComplexSortExprPushdownForSMJ() throws Exception {
     String query =
         "source=opensearch-sql_test_index_bank | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
