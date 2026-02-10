@@ -3291,6 +3291,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     relBuilder.project(projections, projectionNames, /* force= */ true);
   }
 
+  /**
+   * Visits a NoMv (no multivalue) node by rewriting it as an Eval node.
+   *
+   * <p>The NoMv command converts multivalue (array) fields to single-value strings by joining array
+   * elements with newline delimiters. Internally, NoMv rewrites itself to an Eval node containing a
+   * mvjoin function call: {@code eval field = mvjoin(field, "\n")}.
+   *
+   * <p>The explicit cast to Eval is safe because {@link NoMv#rewriteAsEval()} always returns a
+   * newly constructed Eval instance and never returns null or other types.
+   *
+   * @param node the NoMv node to visit
+   * @param context the Calcite plan context containing schema and optimization information
+   * @return the RelNode resulting from visiting the rewritten Eval node
+   * @see NoMv#rewriteAsEval()
+   */
   @Override
   public RelNode visitNoMv(NoMv node, CalcitePlanContext context) {
     return visitEval((Eval) node.rewriteAsEval(), context);

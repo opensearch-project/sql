@@ -32,7 +32,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   // ---------------------------
 
   @Test
-  public void testSanity_datasetIsLoaded() throws IOException {
+  public void testSanityDatasetIsLoaded() throws IOException {
     JSONObject result = executeQuery("source=" + TEST_INDEX_BANK + " | head 5");
     int rows = result.getJSONArray("datarows").length();
     Assertions.assertTrue(rows > 0, "Expected bank dataset to have rows, got 0");
@@ -43,7 +43,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   // ---------------------------
 
   @Test
-  public void testNoMv_basicUsage_withArrayLiterals() throws IOException {
+  public void testNoMvBasicUsageWithArrayLiterals() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -57,7 +57,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_withArrayFromFields() throws IOException {
+  public void testNoMvWithArrayFromFields() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -77,7 +77,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_multipleArrays_appliedInSequence() throws IOException {
+  public void testNoMvMultipleArraysAppliedInSequence() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -92,7 +92,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_inComplexPipeline_withWhereAndSort() throws IOException {
+  public void testNoMvInComplexPipelineWithWhereAndSort() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -108,7 +108,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_fieldUsableInSubsequentOperations() throws IOException {
+  public void testNoMvFieldUsableInSubsequentOperations() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -127,7 +127,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_withStats_afterAggregation() throws IOException {
+  public void testNoMvWithStatsAfterAggregation() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -146,7 +146,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_withEval_worksOnComputedArrays() throws IOException {
+  public void testNoMvWithEvalWorksOnComputedArrays() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -162,7 +162,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_preservesFieldInPlace() throws IOException {
+  public void testNoMvPreservesFieldInPlace() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -182,7 +182,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   // ---------------------------
 
   @Test
-  public void testNoMv_singleElementArray() throws IOException {
+  public void testNoMvSingleElementArray() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -196,7 +196,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_emptyArray() throws IOException {
+  public void testNoMvEmptyArray() throws IOException {
     String q =
         "source=" + TEST_INDEX_BANK + " | eval arr = array() | nomv arr | head 1 | fields arr";
 
@@ -208,7 +208,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_arrayWithNullValues() throws IOException {
+  public void testNoMvArrayWithNullValues() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -222,7 +222,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_scalarFieldError() throws IOException {
+  public void testNoMvScalarFieldError() throws IOException {
     ResponseException ex =
         Assertions.assertThrows(
             ResponseException.class,
@@ -239,7 +239,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_arrayWithMixedTypes() throws IOException {
+  public void testNoMvArrayWithMixedTypes() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -254,7 +254,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_largeArray() throws IOException {
+  public void testNoMvLargeArray() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -269,7 +269,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMv_resultUsedInComparison() throws IOException {
+  public void testNoMvResultUsedInComparison() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
@@ -288,7 +288,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   // ---------------------------
 
   @Test
-  public void testNoMv_missingField_shouldReturn4xx() throws IOException {
+  public void testNoMvMissingFieldShouldReturn4xx() throws IOException {
     // Error when field does not exist
     ResponseException ex =
         Assertions.assertThrows(

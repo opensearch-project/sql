@@ -263,4 +263,69 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testNoMvWithNullableField() {
+    String ppl =
+        "source=EMP | eval arr = array(ENAME, COMM) | nomv arr | head 1 | fields EMPNO, arr";
+
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], arr=[$8])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array($1, $6), '\n')])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `COMM`), '\n') `arr`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testNoMvWithMultipleNullableFields() {
+    String ppl = "source=EMP | eval arr = array(MGR, COMM) | nomv arr | head 1 | fields EMPNO, arr";
+
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], arr=[$8])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array($3, $6), '\n')])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`MGR`, `COMM`), '\n') `arr`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testNoMvWithMixedNullableAndNonNullableFields() {
+    String ppl =
+        "source=EMP | eval arr = array(ENAME, COMM, JOB) | nomv arr | head 1 | fields EMPNO, arr";
+
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], arr=[$8])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array($1, $6, $2), '\n')])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `COMM`, `JOB`), '\n') `arr`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

@@ -8,7 +8,7 @@ The `nomv` command converts a multivalue (array) field into a single-value strin
 
 ### Key behaviors
 
-- The field must be of **ARRAY type**. For scalar fields, use the `array()` function to create an array first.
+- The field must be a **direct field reference** of **ARRAY type**. For scalar fields, use the `array()` function to create an array first. 
 - The specified field is **replaced** with a string containing all array elements joined by newline (`\n`) characters.
 - **NULL values within the array are automatically filtered out** before joining.
 - If the field doesn't exist, an error is returned.
@@ -50,7 +50,7 @@ fetched rows / total rows = 1/1
 +----------------+-------+
 ```
 
-## Example 2: nomv with multiple fields
+## Example 2: nomv with an eval-created field
 
 ```ppl
 source=accounts

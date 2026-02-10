@@ -76,7 +76,6 @@ public enum BuiltinFunctionName {
   MAP_REMOVE(FunctionName.of("map_remove"), true),
   MVAPPEND(FunctionName.of("mvappend")),
   MVJOIN(FunctionName.of("mvjoin")),
-  NOMV(FunctionName.of("nomv")),
   MVINDEX(FunctionName.of("mvindex")),
   MVFIND(FunctionName.of("mvfind")),
   MVZIP(FunctionName.of("mvzip")),
