@@ -5,6 +5,7 @@ calcite:
     ')])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[array($t0, $t1)], expr#4=['
-    '], expr#5=[ARRAY_JOIN($t3, $t4)], proj#0..2=[{exprs}], location=[$t5])
-      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[state, city, age], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","_source":{"includes":["state","city","age"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..16=[{inputs}], expr#17=[array($t7, $t5)], expr#18=['
+    '], expr#19=[ARRAY_JOIN($t17, $t18)], state=[$t7], city=[$t5], age=[$t8], location=[$t19])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
