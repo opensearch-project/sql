@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import lombok.Getter;
@@ -32,6 +33,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -39,6 +41,8 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rel.GraphLookup;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
@@ -74,6 +78,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
    * @param supportArray Whether to support array-typed fields
    * @param batchMode Whether to batch all source start values into a single unified BFS
    * @param usePIT Whether to use PIT (Point In Time) search for complete results
+   * @param filter Optional filter condition for lookup table documents
    */
   public CalciteEnumerableGraphLookup(
       RelOptCluster cluster,
@@ -89,7 +94,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       boolean bidirectional,
       boolean supportArray,
       boolean batchMode,
-      boolean usePIT) {
+      boolean usePIT,
+      @Nullable RexNode filter) {
     super(
         cluster,
         traitSet,
@@ -104,7 +110,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         bidirectional,
         supportArray,
         batchMode,
-        usePIT);
+        usePIT,
+        filter);
   }
 
   @Override
@@ -123,7 +130,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         bidirectional,
         supportArray,
         batchMode,
-        usePIT);
+        usePIT,
+        filter);
   }
 
   @Override
@@ -209,6 +217,23 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       this.startFieldIndex = sourceFields.indexOf(graphLookup.getStartField());
       this.fromFieldIdx = lookupFields.indexOf(graphLookup.fromField);
       this.toFieldIdx = lookupFields.indexOf(graphLookup.toField);
+
+      // Push down user-specified filter to the lookup scan
+      if (graphLookup.filter != null) {
+        List<String> schema = graphLookup.getLookup().getRowType().getFieldNames();
+        Map<String, ExprType> fieldTypes = this.lookupScan.getOsIndex().getAllFieldTypes();
+        try {
+          QueryBuilder filterQuery =
+              PredicateAnalyzer.analyze(graphLookup.filter, schema, fieldTypes);
+          this.lookupScan.pushDownContext.add(
+              PushDownType.FILTER,
+              null,
+              (OSRequestBuilderAction) rb -> rb.pushDownFilterForCalcite(filterQuery));
+        } catch (PredicateAnalyzer.ExpressionNotAnalyzableException e) {
+          throw new RuntimeException(
+              "Cannot push down filter for graphLookup: " + e.getMessage(), e);
+        }
+      }
     }
 
     @Override

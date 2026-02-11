@@ -18,6 +18,7 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /**
  * AST node for graphLookup command. Performs BFS graph traversal on a lookup table.
@@ -73,6 +74,11 @@ public class GraphLookup extends UnresolvedPlan {
 
   /** Whether to use PIT (Point In Time) search for the lookup table to get complete results. */
   private final boolean usePIT;
+
+  /**
+   * Optional filter condition to restrict which lookup table documents participate in traversal.
+   */
+  private @Nullable final UnresolvedExpression filter;
 
   private UnresolvedPlan child;
 
