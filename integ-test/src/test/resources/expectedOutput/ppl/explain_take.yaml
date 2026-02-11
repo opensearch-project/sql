@@ -8,6 +8,6 @@ root:
         request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
           \ sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\"\
           :{\"take\":{\"top_hits\":{\"from\":0,\"size\":2,\"version\":false,\"seq_no_primary_term\"\
-          :false,\"explain\":false,\"fields\":[{\"field\":\"firstname\"}]}}}}, pitId=*,\
-          \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+          :false,\"explain\":false,\"_source\":{\"includes\":[\"firstname\"],\"excludes\"\
+          :[]}}}}}, pitId=*, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
       children: []
