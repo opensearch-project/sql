@@ -264,6 +264,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitFieldFormat(Eval node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitParse(Parse node, C context) {
     return visitChildren(node, context);
   }
