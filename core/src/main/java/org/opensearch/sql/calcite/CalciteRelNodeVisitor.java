@@ -49,12 +49,15 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -144,7 +147,6 @@ import org.opensearch.sql.ast.tree.ReplacePair;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
-import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -638,7 +640,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
-  public RelNode visitSort(Sort node, CalcitePlanContext context) {
+  public RelNode visitSort(org.opensearch.sql.ast.tree.Sort node, CalcitePlanContext context) {
     visitChildren(node, context);
     List<RexNode> sortList =
         node.getSortList().stream()
@@ -721,8 +723,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
 
       // Check for Sort node with collation
-      if (node instanceof org.apache.calcite.rel.core.Sort) {
-        org.apache.calcite.rel.core.Sort sort = (org.apache.calcite.rel.core.Sort) node;
+      if (node instanceof Sort) {
+        Sort sort = (Sort) node;
         if (sort.getCollation() != null && !sort.getCollation().getFieldCollations().isEmpty()) {
           return sort.getCollation();
         }
@@ -749,29 +751,27 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private RelNode insertReversedSortInTree(
       RelNode root, RelCollation reversedCollation, CalcitePlanContext context) {
     return root.accept(
-        new org.apache.calcite.rel.RelHomogeneousShuttle() {
+        new RelHomogeneousShuttle() {
           boolean sortFound = false;
 
           @Override
           public RelNode visit(RelNode other) {
-            if (!sortFound && other instanceof org.apache.calcite.rel.core.Sort) {
-              org.apache.calcite.rel.core.Sort sort = (org.apache.calcite.rel.core.Sort) other;
+            if (!sortFound && other instanceof Sort) {
+              Sort sort = (Sort) other;
               // Treat a Sort with fetch or offset as a barrier (limit node).
               // Place the reversed sort above the barrier to preserve limit semantics,
               // rather than inserting below the downstream collation Sort.
               if (sort.fetch != null || sort.offset != null) {
                 sortFound = true;
                 RelNode visitedBarrier = super.visit(other);
-                return org.apache.calcite.rel.logical.LogicalSort.create(
-                    visitedBarrier, reversedCollation, null, null);
+                return LogicalSort.create(visitedBarrier, reversedCollation, null, null);
               }
               // Found a collation Sort - insert reversed sort on top of it
               if (sort.getCollation() != null
                   && !sort.getCollation().getFieldCollations().isEmpty()) {
                 sortFound = true;
                 RelNode visitedSort = super.visit(other);
-                return org.apache.calcite.rel.logical.LogicalSort.create(
-                    visitedSort, reversedCollation, null, null);
+                return LogicalSort.create(visitedSort, reversedCollation, null, null);
               }
             }
             // For all other nodes, continue traversal
@@ -794,9 +794,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // If there's an existing sort, reverse its direction
       RelCollation reversedCollation = PlanUtils.reverseCollation(collation);
       RelNode currentNode = context.relBuilder.peek();
-      if (currentNode instanceof org.apache.calcite.rel.core.Sort) {
-        org.apache.calcite.rel.core.Sort existingSort =
-            (org.apache.calcite.rel.core.Sort) currentNode;
+      if (currentNode instanceof Sort) {
+        Sort existingSort = (Sort) currentNode;
         if (existingSort.getCollation() != null
             && !existingSort.getCollation().getFieldCollations().isEmpty()
             && existingSort.fetch == null
@@ -806,8 +805,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           // discard the reversed direction. Replacing in-place avoids this issue.
           RelCollation reversedFromSort = PlanUtils.reverseCollation(existingSort.getCollation());
           RelNode replacedSort =
-              org.apache.calcite.rel.logical.LogicalSort.create(
-                  existingSort.getInput(), reversedFromSort, null, null);
+              LogicalSort.create(existingSort.getInput(), reversedFromSort, null, null);
           PlanUtils.replaceTop(context.relBuilder, replacedSort);
         } else {
           // Sort with fetch/offset (limit) or fetch-only Sort - add a separate reversed
