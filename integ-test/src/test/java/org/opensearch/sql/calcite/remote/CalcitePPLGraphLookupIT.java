@@ -395,6 +395,110 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         result, rows("ORD", List.of("JFK"), List.of("{JFK, [BOS, ORD]}", "{BOS, [JFK, PWM]}")));
   }
 
+  // ==================== Filter Tests ====================
+
+  /**
+   * Test: Filter employee hierarchy by id. Only lookup documents with id > 3 (Andrew=4, Asya=5,
+   * Dan=6) participate in traversal. Dev starts with reportsTo=Eliot, but Eliot (id=2) is excluded
+   * by filter, so Dev gets empty results.
+   */
+  @Test
+  public void testEmployeeHierarchyWithFilter() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + " | graphLookup %s"
+                    + " startField=reportsTo"
+                    + " fromField=reportsTo"
+                    + " toField=name"
+                    + " filter=(id > 3)"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("reportsTo", "string"),
+        schema("id", "int"),
+        schema("reportingHierarchy", "array"));
+    // Only documents with id > 3 (Andrew=4, Asya=5, Dan=6) are in lookup table
+    // Dev: reportsTo=Eliot -> Eliot(id=2) is filtered out -> empty
+    // Eliot: reportsTo=Ron -> Ron(id=3) is filtered out -> empty
+    // Ron: reportsTo=Andrew -> Andrew(id=4) passes filter -> [{Andrew, null, 4}]
+    // Andrew: reportsTo=null -> empty
+    // Asya: reportsTo=Ron -> Ron(id=3) is filtered out -> empty
+    // Dan: reportsTo=Andrew -> Andrew(id=4) passes filter -> [{Andrew, null, 4}]
+    verifyDataRows(
+        result,
+        rows("Dev", "Eliot", 1, Collections.emptyList()),
+        rows("Eliot", "Ron", 2, Collections.emptyList()),
+        rows("Ron", "Andrew", 3, List.of("{Andrew, null, 4}")),
+        rows("Andrew", null, 4, Collections.emptyList()),
+        rows("Asya", "Ron", 5, Collections.emptyList()),
+        rows("Dan", "Andrew", 6, List.of("{Andrew, null, 4}")));
+  }
+
+  /**
+   * Test: Filter employee hierarchy with keyword match. Only employees whose name is NOT 'Andrew'
+   * participate in traversal.
+   */
+  @Test
+  public void testEmployeeHierarchyWithKeywordFilter() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + " | where name = 'Ron'"
+                    + " | graphLookup %s"
+                    + " startField=reportsTo"
+                    + " fromField=reportsTo"
+                    + " toField=name"
+                    + " filter=(name != 'Andrew')"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("reportsTo", "string"),
+        schema("id", "int"),
+        schema("reportingHierarchy", "array"));
+    // Ron: reportsTo=Andrew -> Andrew is filtered out by name != 'Andrew' -> empty
+    verifyDataRows(result, rows("Ron", "Andrew", 3, Collections.emptyList()));
+  }
+
+  /**
+   * Test: Filter with maxDepth combined. Dev traverses reporting chain but only considers lookup
+   * documents with id <= 3.
+   */
+  @Test
+  public void testEmployeeHierarchyWithFilterAndMaxDepth() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + " | where name = 'Dev'"
+                    + " | graphLookup %s"
+                    + " startField=reportsTo"
+                    + " fromField=reportsTo"
+                    + " toField=name"
+                    + " maxDepth=3"
+                    + " filter=(id <= 3)"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("reportsTo", "string"),
+        schema("id", "int"),
+        schema("reportingHierarchy", "array"));
+    // Dev: reportsTo=Eliot -> Eliot(id=2) passes -> then Eliot.reportsTo=Ron -> Ron(id=3) passes
+    // -> then Ron.reportsTo=Andrew -> Andrew(id=4) is filtered out -> stops
+    verifyDataRows(result, rows("Dev", "Eliot", 1, List.of("{Eliot, Ron, 2}", "{Ron, Andrew, 3}")));
+  }
+
   // ==================== Edge Cases ====================
 
   /** Test 13: Graph lookup on empty result set (non-existent employee). */

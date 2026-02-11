@@ -2606,9 +2606,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 3. Visit and materialize lookup table
     analyze(node.getFromTable(), context);
     tryToRemoveMetaFields(context, true);
+
+    // 4. Convert filter expression to RexNode against lookup table schema
+    RexNode filterRex = null;
+    if (node.getFilter() != null) {
+      filterRex = rexVisitor.analyze(node.getFilter(), context);
+    }
+
     RelNode lookupTable = builder.build();
 
-    // 4. Create LogicalGraphLookup RelNode
+    // 5. Create LogicalGraphLookup RelNode
     // The conversion rule will extract the OpenSearchIndex from the lookup table
     RelNode graphLookup =
         LogicalGraphLookup.create(
@@ -2623,7 +2630,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             bidirectional,
             supportArray,
             batchMode,
-            usePIT);
+            usePIT,
+            filterRex);
 
     builder.push(graphLookup);
     return builder.peek();

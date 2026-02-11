@@ -641,6 +641,7 @@ graphLookupOption
    | (SUPPORT_ARRAY EQUAL booleanLiteral)
    | (BATCH_MODE EQUAL booleanLiteral)
    | (USE_PIT EQUAL booleanLiteral)
+   | (FILTER EQUAL LT_PRTHS logicalExpression RT_PRTHS)
    ;
 
 // clauses

@@ -8,7 +8,7 @@ The `graphLookup` command performs recursive graph traversal on a collection usi
 The `graphLookup` command has the following syntax:
 
 ```syntax
-graphLookup <lookupIndex> startField=<startField> fromField=<fromField> toField=<toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [direction=(uni | bi)] [supportArray=(true | false)] [batchMode=(true | false)] [usePIT=(true | false)] as <outputField>
+graphLookup <lookupIndex> startField=<startField> fromField=<fromField> toField=<toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [direction=(uni | bi)] [supportArray=(true | false)] [batchMode=(true | false)] [usePIT=(true | false)] [filter=(<condition>)] as <outputField>
 ```
 
 The following are examples of the `graphLookup` command syntax:
@@ -20,6 +20,7 @@ source = employees | graphLookup employees startField=reportsTo fromField=report
 source = employees | graphLookup employees startField=reportsTo fromField=reportsTo toField=name direction=bi as connections
 source = travelers | graphLookup airports startField=nearestAirport fromField=connects toField=airport supportArray=true as reachableAirports
 source = airports | graphLookup airports startField=airport fromField=connects toField=airport supportArray=true as reachableAirports
+source = employees | graphLookup employees startField=reportsTo fromField=reportsTo toField=name filter=(status = 'active' AND age > 18) as reportingHierarchy
 ```
 
 ## Parameters
@@ -38,6 +39,7 @@ The `graphLookup` command supports the following parameters.
 | `supportArray=(true \| false)` | Optional | When `true`, disables early visited-node filter pushdown to OpenSearch. Default is `false`. Set to `true` when `fromField` or `toField` contains array values to ensure correct traversal behavior. See [Array Field Handling](#array-field-handling) for details. |
 | `batchMode=(true \| false)` | Optional | When `true`, collects all start values from all source rows and performs a single unified BFS traversal. Default is `false`. The output changes to two arrays: `[Array<sourceRows>, Array<lookupResults>]`. See [Batch Mode](#batch-mode) for details. |
 | `usePIT=(true \| false)` | Optional | When `true`, enables PIT (Point In Time) search for the lookup table, allowing paginated retrieval of complete results without the `max_result_window` size limit. Default is `false`. See [PIT Search](#pit-search) for details. |
+| `filter=(<condition>)` | Optional | A filter condition to restrict which lookup table documents participate in the graph traversal. Only documents matching the condition are considered as candidates during BFS. Parentheses around the condition are required. Example: `filter=(status = 'active' AND age > 18)`. |
 | `as <outputField>` | Required | The name of the output array field that will contain all documents found during the graph traversal.                                                                                                                               |
 
 ## How It Works
@@ -328,6 +330,26 @@ source = employees
     usePIT=true
     as reportingHierarchy
 ```
+
+## Filtered Graph Traversal
+
+The `filter` parameter restricts which documents in the lookup table are considered during the BFS traversal. Only documents matching the filter condition participate as candidates at each traversal level.
+
+### Example
+
+The following query traverses only active employees in the reporting hierarchy:
+
+```ppl ignore
+source = employees
+  | graphLookup employees
+    startField=reportsTo
+    fromField=reportsTo
+    toField=name
+    filter=(status = 'active')
+    as reportingHierarchy
+```
+
+The filter is applied at the OpenSearch query level, so it combines efficiently with the BFS traversal queries. At each BFS level, the query sent to OpenSearch is effectively: `bool { filter: [user_filter, bfs_terms_query] }`.
 
 ## Limitations
 

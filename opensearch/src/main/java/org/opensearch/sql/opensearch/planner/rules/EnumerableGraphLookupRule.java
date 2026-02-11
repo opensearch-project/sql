@@ -101,6 +101,7 @@ public class EnumerableGraphLookupRule extends ConverterRule {
         graphLookup.isBidirectional(),
         graphLookup.isSupportArray(),
         graphLookup.isBatchMode(),
-        graphLookup.isUsePIT());
+        graphLookup.isUsePIT(),
+        graphLookup.getFilter());
   }
 }
