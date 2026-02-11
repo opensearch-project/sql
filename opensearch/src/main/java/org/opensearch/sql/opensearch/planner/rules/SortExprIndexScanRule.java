@@ -48,8 +48,8 @@ public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexSca
   @Override
   protected void onMatchImpl(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
-    // CalciteEnumerableTopK carries fetch semantics; this rule may collapse Sort/TopK into a
-    // project-on-scan shape, so skip TopK and let dedicated TopK/limit rules preserve semantics.
+    // CalciteEnumerableTopK carries fetch semantics; this rule doesn't preserve it on physical
+    // scans because limit pushdown path is logical-only.
     if (sort instanceof CalciteEnumerableTopK) {
       return;
     }
@@ -108,23 +108,14 @@ public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexSca
       newScan = scan.pushdownSortExpr(sortExprDigests);
     }
 
-    // Keep top-k semantics intact: remove Sort only when limit/offset is also preserved in scan.
-    if (sort.fetch != null || sort.offset != null) {
-      Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
-      Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
-      if (!(newScan instanceof CalciteLogicalIndexScan)
-          || !(sort instanceof LogicalSort)
-          || limitValue == null
-          || offsetValue == null) {
-        return;
-      }
+    // EnumerableSort won't have limit or offset
+    Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
+    Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
+    if (newScan instanceof CalciteLogicalIndexScan && limitValue != null && offsetValue != null) {
       newScan =
           (CalciteLogicalIndexScan)
               ((CalciteLogicalIndexScan) newScan)
                   .pushDownLimit((LogicalSort) sort, limitValue, offsetValue);
-      if (newScan == null) {
-        return;
-      }
     }
 
     if (newScan != null) {
