@@ -227,28 +227,26 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
   public void testStreamstatsWithReverse() {
     String ppl = "source=EMP | streamstats max(SAL) by DEPTNO | reverse";
     RelNode root = getRelNode(ppl);
+    // Reverse replaces the __stream_seq__ sort in-place via backtracking
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
             + " COMM=[$6], DEPTNO=[$7], max(SAL)=[$9])\n"
             + "  LogicalSort(sort0=[$8], dir0=[DESC])\n"
-            + "    LogicalSort(sort0=[$8], dir0=[ASC])\n"
-            + "      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[$8], max(SAL)=[MAX($5) OVER"
             + " (PARTITION BY $7 ROWS UNBOUNDED PRECEDING)])\n"
-            + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + "      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[ROW_NUMBER() OVER ()])\n"
-            + "          LogicalTableScan(table=[[scott, EMP]])\n";
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, `max(SAL)`\n"
-            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " `__stream_seq__`, MAX(`SAL`) OVER (PARTITION BY `DEPTNO` ROWS BETWEEN UNBOUNDED"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
+            + " MAX(`SAL`) OVER (PARTITION BY `DEPTNO` ROWS BETWEEN UNBOUNDED"
             + " PRECEDING AND CURRENT ROW) `max(SAL)`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " ROW_NUMBER() OVER () `__stream_seq__`\n"
             + "FROM `scott`.`EMP`) `t`\n"
-            + "ORDER BY `__stream_seq__` NULLS LAST) `t1`\n"
             + "ORDER BY `__stream_seq__` DESC NULLS FIRST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

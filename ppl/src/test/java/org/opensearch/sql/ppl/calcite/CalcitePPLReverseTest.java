@@ -253,22 +253,16 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
   public void testSortFieldsReverse() {
     // Test backtracking: sort on SAL, then project only ENAME, then reverse
     // The sort field (SAL) is removed from schema by fields command
-    // But reverse should still work by backtracking to find the sort
+    // But reverse should still work by backtracking to find the sort and replacing it in-place
     String ppl = "source=EMP | sort SAL | fields ENAME | reverse";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(ENAME=[$1])\n"
             + "  LogicalSort(sort0=[$5], dir0=[DESC-nulls-last])\n"
-            + "    LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql =
-        "SELECT `ENAME`\n"
-            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "ORDER BY `SAL`) `t`\n"
-            + "ORDER BY `SAL` DESC";
+    String expectedSparkSql = "SELECT `ENAME`\n" + "FROM `scott`.`EMP`\n" + "ORDER BY `SAL` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
