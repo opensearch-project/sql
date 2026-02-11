@@ -632,9 +632,9 @@ graphLookupCommand
    ;
 
 graphLookupOption
-   : (START_FIELD EQUAL fieldExpression)
-   | (FROM_FIELD EQUAL fieldExpression)
-   | (TO_FIELD EQUAL fieldExpression)
+   : (START_WITH EQUAL fieldExpression)
+   | (CONNECT_FROM_FIELD EQUAL fieldExpression)
+   | (CONNECT_TO_FIELD EQUAL fieldExpression)
    | (MAX_DEPTH EQUAL integerLiteral)
    | (DEPTH_FIELD EQUAL fieldExpression)
    | (DIRECTION EQUAL (UNI | BI))
@@ -1695,8 +1695,9 @@ searchableKeyWord
    | ROW
    | COL
    | COLUMN_NAME
-   | FROM_FIELD
-   | TO_FIELD
+   | START_WITH
+   | CONNECT_FROM_FIELD
+   | CONNECT_TO_FIELD
    | MAX_DEPTH
    | DEPTH_FIELD
    | DIRECTION

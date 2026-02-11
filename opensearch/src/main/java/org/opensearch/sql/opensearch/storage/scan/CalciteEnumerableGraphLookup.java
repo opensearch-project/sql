@@ -68,9 +68,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
    * @param source Source table RelNode
    * @param lookup Lookup table RelNode // * @param lookupIndex OpenSearchIndex for the lookup table
    *     (extracted from lookup RelNode)
-   * @param startField Field name for start entities
-   * @param fromField Field name for outgoing edges
-   * @param toField Field name for incoming edges
+   * @param startWith Field name for start entities
+   * @param connectFromField Field name for outgoing edges
+   * @param connectToField Field name for incoming edges
    * @param outputField Name of the output array field
    * @param depthField Name of the depth field
    * @param maxDepth Maximum traversal depth (-1 for unlimited)
@@ -85,9 +85,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       RelTraitSet traitSet,
       RelNode source,
       RelNode lookup,
-      String startField,
-      String fromField,
-      String toField,
+      String startWith,
+      String connectFromField,
+      String connectToField,
       String outputField,
       String depthField,
       int maxDepth,
@@ -101,9 +101,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         traitSet,
         source,
         lookup,
-        startField,
-        fromField,
-        toField,
+        startWith,
+        connectFromField,
+        connectToField,
         outputField,
         depthField,
         maxDepth,
@@ -121,9 +121,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         traitSet,
         inputs.get(0),
         inputs.get(1),
-        startField,
-        fromField,
-        toField,
+        startWith,
+        connectFromField,
+        connectToField,
         outputField,
         depthField,
         maxDepth,
@@ -214,9 +214,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
       List<String> sourceFields = graphLookup.getSource().getRowType().getFieldNames();
       this.lookupFields = graphLookup.getLookup().getRowType().getFieldNames();
-      this.startFieldIndex = sourceFields.indexOf(graphLookup.getStartField());
-      this.fromFieldIdx = lookupFields.indexOf(graphLookup.fromField);
-      this.toFieldIdx = lookupFields.indexOf(graphLookup.toField);
+      this.startFieldIndex = sourceFields.indexOf(graphLookup.getStartWith());
+      this.fromFieldIdx = lookupFields.indexOf(graphLookup.connectFromField);
+      this.toFieldIdx = lookupFields.indexOf(graphLookup.connectToField);
 
       // Push down user-specified filter to the lookup scan
       if (graphLookup.filter != null) {
