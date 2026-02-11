@@ -78,9 +78,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.AstNodeUtils;
 import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
-import org.opensearch.sql.ast.analysis.FieldResolutionResult;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
@@ -90,6 +89,7 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
@@ -100,6 +100,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFrame.FrameType;
 import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.AddColTotals;
 import org.opensearch.sql.ast.tree.AddTotals;
@@ -239,8 +240,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitFilter(Filter node, CalcitePlanContext context) {
     visitChildren(node, context);
-    boolean containsSubqueryExpression =
-        AstNodeUtils.containsSubqueryExpression(node.getCondition());
+    boolean containsSubqueryExpression = containsSubqueryExpression(node.getCondition());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     if (containsSubqueryExpression) {
       context.relBuilder.variable(v::set);
@@ -367,6 +367,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     projectPlusOverriding(newFields, newFieldNames, context);
     return context.relBuilder.peek();
+  }
+
+  private boolean containsSubqueryExpression(Node expr) {
+    if (expr == null) {
+      return false;
+    }
+    if (expr instanceof SubqueryExpression) {
+      return true;
+    }
+    if (expr instanceof Let l) {
+      return containsSubqueryExpression(l.getExpression());
+    }
+    for (Node child : expr.getChild()) {
+      if (containsSubqueryExpression(child)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
@@ -777,63 +795,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitSpath(SPath node, CalcitePlanContext context) {
-    if (node.getPath() != null) {
-      return visitEval(node.rewriteAsEval(), context);
-    } else {
-      return spathExtractAll(node, context);
-    }
-  }
-
-  private RelNode spathExtractAll(SPath node, CalcitePlanContext context) {
-    visitChildren(node, context);
-
-    FieldResolutionResult resolutionResult = context.resolveFields(node);
-    if (resolutionResult.hasWildcards()) {
-      // Logic for handling wildcards (dynamic fields) will be implemented later.
-      throw new IllegalArgumentException(
-          "spath command failed to identify fields to extract. Use fields/stats command to specify"
-              + " output fields.");
-    }
-
-    // 1. Extract all fields from JSON in `inField`
-    RexNode inField = rexVisitor.analyze(AstDSL.field(node.getInField()), context);
-    RexNode map = makeCall(context, BuiltinFunctionName.JSON_EXTRACT_ALL, inField);
-
-    // 2. Project items from FieldResolutionResult
-    Set<String> existingFields =
-        new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
-    List<String> fieldNames =
-        resolutionResult.getRegularFields().stream().sorted().collect(Collectors.toList());
-    List<RexNode> fields = new ArrayList<>();
-    for (String fieldName : fieldNames) {
-      RexNode item = itemCall(map, fieldName, context);
-      // Cast to string for type consistency. (This cast will be removed once functions are adopted
-      // to ANY type)
-      item = context.relBuilder.cast(item, SqlTypeName.VARCHAR);
-      // Append if field already exist
-      if (existingFields.contains(fieldName)) {
-        item =
-            makeCall(
-                context,
-                BuiltinFunctionName.INTERNAL_APPEND,
-                context.relBuilder.field(fieldName),
-                item);
-      }
-      fields.add(context.relBuilder.alias(item, fieldName));
-    }
-
-    context.relBuilder.project(fields);
-    return context.relBuilder.peek();
-  }
-
-  private RexNode itemCall(RexNode node, String key, CalcitePlanContext context) {
-    return makeCall(
-        context, BuiltinFunctionName.INTERNAL_ITEM, node, context.rexBuilder.makeLiteral(key));
-  }
-
-  private RexNode makeCall(
-      CalcitePlanContext context, BuiltinFunctionName functionName, RexNode... args) {
-    return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, args);
+    return visitEval(node.rewriteAsEval(), context);
   }
 
   @Override
@@ -976,7 +938,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     node.getExpressionList()
         .forEach(
             expr -> {
-              boolean containsSubqueryExpression = AstNodeUtils.containsSubqueryExpression(expr);
+              boolean containsSubqueryExpression = containsSubqueryExpression(expr);
               final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
               if (containsSubqueryExpression) {
                 context.relBuilder.variable(v::set);

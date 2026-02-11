@@ -8,7 +8,7 @@ package org.opensearch.sql.expression.function;
 import org.apache.commons.lang3.tuple.Pair;
 
 /**
- * An interface for any class that can provide a {@link FunctionBuilder} given a {@link
+ * An interface for any class that can provide a {@ref FunctionBuilder} given a {@ref
  * FunctionSignature}.
  */
 public interface FunctionResolver {

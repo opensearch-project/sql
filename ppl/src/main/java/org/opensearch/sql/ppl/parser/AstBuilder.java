@@ -945,10 +945,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (inField == null) {
       throw new IllegalArgumentException("`input` parameter is required for `spath`");
     }
-
-    if (outField != null && path == null) {
-      throw new IllegalArgumentException(
-          "`path` parameter is required for `spath` when `output` is specified");
+    if (path == null) {
+      throw new IllegalArgumentException("`path` parameter is required for `spath`");
     }
 
     return new SPath(inField, outField, path);
