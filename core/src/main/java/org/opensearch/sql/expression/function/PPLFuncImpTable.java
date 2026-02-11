@@ -128,7 +128,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKEDAT
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKETIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_APPEND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_CONCAT;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_FROM_ARRAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_REMOVE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_BOOL_PREFIX;
@@ -1049,7 +1048,6 @@ public class PPLFuncImpTable {
       registerOperator(MAP_APPEND, PPLBuiltinOperators.MAP_APPEND);
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
-      registerOperator(MAP_FROM_ARRAYS, SqlLibraryOperators.MAP_FROM_ARRAYS);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
       registerOperator(ARRAY_SLICE, SqlLibraryOperators.ARRAY_SLICE);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);

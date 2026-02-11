@@ -63,10 +63,6 @@ public class FillNull extends UnresolvedPlan {
     return getReplacementPairs().stream().map(Pair::getLeft).toList();
   }
 
-  public boolean isAgainstAllFields() {
-    return !replacementForAll.isEmpty() && getReplacementPairs().isEmpty();
-  }
-
   @Override
   public FillNull attach(UnresolvedPlan child) {
     this.child = child;

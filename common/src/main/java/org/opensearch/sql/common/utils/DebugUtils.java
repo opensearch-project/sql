@@ -8,6 +8,8 @@ package org.opensearch.sql.common.utils;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Utility class for debugging operations. This class is only for debugging purpose, and not
@@ -16,6 +18,7 @@ import java.util.stream.Collectors;
 public class DebugUtils {
   // Update this to true while you are debugging. (Safe guard to avoid usage in production code. )
   private static final boolean IS_DEBUG = false;
+  private static final Logger logger = LogManager.getLogger(DebugUtils.class);
 
   public static <T> T debug(T obj, String message) {
     verifyDebug();
@@ -36,7 +39,7 @@ public class DebugUtils {
   }
 
   private static void print(String format, Object... args) {
-    System.out.println(String.format(format, args));
+    logger.info(String.format(format, args));
   }
 
   private static String getCalledFrom(int pos) {

@@ -28,17 +28,17 @@ public class FieldResolutionResult {
   @NonNull private final Set<String> regularFields;
   @NonNull private final Wildcard wildcard;
 
-  public FieldResolutionResult(Collection<String> regularFields) {
+  public FieldResolutionResult(Set<String> regularFields) {
     this.regularFields = new HashSet<>(regularFields);
     this.wildcard = NULL_WILDCARD;
   }
 
-  public FieldResolutionResult(Collection<String> regularFields, Wildcard wildcard) {
+  public FieldResolutionResult(Set<String> regularFields, Wildcard wildcard) {
     this.regularFields = new HashSet<>(regularFields);
     this.wildcard = wildcard;
   }
 
-  public FieldResolutionResult(Collection<String> regularFields, String wildcard) {
+  public FieldResolutionResult(Set<String> regularFields, String wildcard) {
     this.regularFields = new HashSet<>(regularFields);
     this.wildcard = getWildcard(wildcard);
   }
@@ -53,12 +53,12 @@ public class FieldResolutionResult {
     }
   }
 
-  public FieldResolutionResult(Collection<String> regularFields, Collection<String> wildcards) {
+  public FieldResolutionResult(Set<String> regularFields, Set<String> wildcards) {
     this.regularFields = new HashSet<>(regularFields);
     this.wildcard = createOrWildcard(wildcards);
   }
 
-  private static Wildcard createOrWildcard(Collection<String> patterns) {
+  private static Wildcard createOrWildcard(Set<String> patterns) {
     if (patterns == null || patterns.isEmpty()) {
       return NULL_WILDCARD;
     }
@@ -70,50 +70,38 @@ public class FieldResolutionResult {
     return new OrWildcard(wildcards);
   }
 
-  /** Returns unmodifiable view of regular fields. */
   public Set<String> getRegularFieldsUnmodifiable() {
     return Collections.unmodifiableSet(regularFields);
   }
 
-  /** Checks if result contains any wildcard patterns. */
   public boolean hasWildcards() {
     return wildcard != NULL_WILDCARD;
   }
 
-  /** Checks if result contains partial wildcard patterns (not '*'). */
-  public boolean hasPartialWildcards() {
-    return wildcard != NULL_WILDCARD && wildcard != ANY_WILDCARD;
-  }
-
-  /** Checks if result contains regular fields. */
   public boolean hasRegularFields() {
     return !regularFields.isEmpty();
   }
 
-  /** Creates new result excluding specified fields. */
   public FieldResolutionResult exclude(Collection<String> fields) {
     Set<String> combinedFields = new HashSet<>(this.regularFields);
     combinedFields.removeAll(fields);
     return new FieldResolutionResult(combinedFields, this.wildcard);
   }
 
-  /** Creates new result combining this result with additional fields (union). */
-  public FieldResolutionResult or(Collection<String> fields) {
+  public FieldResolutionResult or(Set<String> fields) {
     Set<String> combinedFields = new HashSet<>(this.regularFields);
     combinedFields.addAll(fields);
     return new FieldResolutionResult(combinedFields, this.wildcard);
   }
 
-  private Set<String> and(Collection<String> fields) {
+  private Set<String> and(Set<String> fields) {
     return fields.stream()
         .filter(field -> this.getRegularFields().contains(field) || this.wildcard.matches(field))
         .collect(Collectors.toSet());
   }
 
-  /** Creates new result intersecting this result with another (intersection). */
   public FieldResolutionResult and(FieldResolutionResult other) {
-    Set<String> combinedFields = new HashSet<>();
-    combinedFields.addAll(this.and(other.regularFields));
+    Set<String> combinedFields = this.and(other.regularFields);
     combinedFields.addAll(other.and(this.regularFields));
 
     Wildcard combinedWildcard = this.wildcard.and(other.wildcard);
@@ -123,7 +111,6 @@ public class FieldResolutionResult {
 
   /** Interface for wildcard pattern matching. */
   public interface Wildcard {
-    /** Checks if field name matches wildcard pattern. */
     boolean matches(String fieldName);
 
     default Wildcard and(Wildcard other) {
