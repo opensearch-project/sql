@@ -29,7 +29,7 @@ public enum QueryProcessingStage {
    * ANALYZING stage: Semantic validation and type checking. Errors: Field not found, type
    * mismatches, semantic violations.
    */
-  ANALYZING("Validating the query's steps"),
+  ANALYZING("Validating the query"),
 
   /**
    * OPTIMIZING stage: Logical plan optimization with transformation rules. Errors: Optimization
