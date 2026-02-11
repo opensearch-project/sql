@@ -352,6 +352,12 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
   }
 
   @Override
+  public Node visitAppendPipe(AppendPipe node, FieldResolutionContext context) {
+    visitChildren(node, context);
+    return node;
+  }
+
+  @Override
   public Node visitRegex(Regex node, FieldResolutionContext context) {
     Set<String> regexFields = extractFieldsFromExpression(node.getField());
     context.pushRequirements(context.getCurrentRequirements().or(regexFields));
@@ -503,10 +509,8 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
   @Override
   public Node visitAppendCol(AppendCol node, FieldResolutionContext context) {
-    // dispatch requirements to subsearch and main
-    acceptAndVerifyNodeVisited(node.getSubSearch(), context);
-    visitChildren(node, context);
-    return node;
+    throw new IllegalArgumentException(
+        "AppendCol command cannot be used together with spath command");
   }
 
   @Override
@@ -518,10 +522,9 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
   }
 
   @Override
-  public Node visitAppendPipe(AppendPipe node, FieldResolutionContext context) {
-    acceptAndVerifyNodeVisited(node.getSubQuery(), context);
-    visitChildren(node, context);
-    return node;
+  public Node visitMultisearch(Multisearch node, FieldResolutionContext context) {
+    throw new IllegalArgumentException(
+        "Multisearch command cannot be used together with spath command");
   }
 
   @Override
@@ -531,16 +534,7 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
   @Override
   public Node visitValues(Values node, FieldResolutionContext context) {
-    // do nothing
-    return node;
-  }
-
-  @Override
-  public Node visitMultisearch(Multisearch node, FieldResolutionContext context) {
-    // dispatch requirements to subsearches and main
-    node.getSubsearches().forEach(subsearch -> acceptAndVerifyNodeVisited(subsearch, context));
-    visitChildren(node, context);
-    return node;
+    throw new IllegalArgumentException("Values command cannot be used together with spath command");
   }
 
   @Override
