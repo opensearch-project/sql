@@ -230,7 +230,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
    * Process values recursively, handling geo points and nested maps. Geo points are converted to
    * OpenSearchExprGeoPointValue. Maps are recursively processed to handle nested structures.
    */
-  private static Object processValue(Object value) {
+  private static Object processValue(Object value) throws SQLException {
     if (value == null) {
       return null;
     }
@@ -247,7 +247,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       return convertedMap;
     }
     if (value instanceof StructImpl) {
-      return ((StructImpl) value).toString();
+      return List.of(((StructImpl) value).getAttributes());
     }
     if (value instanceof List) {
       List<Object> list = (List<Object>) value;
