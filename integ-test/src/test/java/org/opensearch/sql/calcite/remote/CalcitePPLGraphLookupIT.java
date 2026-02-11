@@ -14,6 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.json.JSONObject;
@@ -72,12 +73,12 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reportingHierarchy", "array"));
     verifyDataRows(
         result,
-        rows("Dev", "Eliot", 1, List.of("{Eliot, Ron, 2}")),
-        rows("Eliot", "Ron", 2, List.of("{Ron, Andrew, 3}")),
-        rows("Ron", "Andrew", 3, List.of("{Andrew, null, 4}")),
+        rows("Dev", "Eliot", 1, List.of(List.of("Eliot", "Ron", 2))),
+        rows("Eliot", "Ron", 2, List.of(List.of("Ron", "Andrew", 3))),
+        rows("Ron", "Andrew", 3, List.of(Arrays.asList("Andrew", null, 4))),
         rows("Andrew", null, 4, Collections.emptyList()),
-        rows("Asya", "Ron", 5, List.of("{Ron, Andrew, 3}")),
-        rows("Dan", "Andrew", 6, List.of("{Andrew, null, 4}")));
+        rows("Asya", "Ron", 5, List.of(List.of("Ron", "Andrew", 3))),
+        rows("Dan", "Andrew", 6, List.of(Arrays.asList("Andrew", null, 4))));
   }
 
   /** Test 2: Employee hierarchy traversal with depth field. */
@@ -103,12 +104,12 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reportingHierarchy", "array"));
     verifyDataRows(
         result,
-        rows("Dev", "Eliot", 1, List.of("{Eliot, Ron, 2, 0}")),
-        rows("Eliot", "Ron", 2, List.of("{Ron, Andrew, 3, 0}")),
-        rows("Ron", "Andrew", 3, List.of("{Andrew, null, 4, 0}")),
+        rows("Dev", "Eliot", 1, List.of(List.of("Eliot", "Ron", 2, 0))),
+        rows("Eliot", "Ron", 2, List.of(List.of("Ron", "Andrew", 3, 0))),
+        rows("Ron", "Andrew", 3, List.of(Arrays.asList("Andrew", null, 4, 0))),
         rows("Andrew", null, 4, Collections.emptyList()),
-        rows("Asya", "Ron", 5, List.of("{Ron, Andrew, 3, 0}")),
-        rows("Dan", "Andrew", 6, List.of("{Andrew, null, 4, 0}")));
+        rows("Asya", "Ron", 5, List.of(List.of("Ron", "Andrew", 3, 0))),
+        rows("Dan", "Andrew", 6, List.of(Arrays.asList("Andrew", null, 4, 0))));
   }
 
   /** Test 3: Employee hierarchy with maxDepth=1 (allows 2 levels of traversal). */
@@ -134,12 +135,20 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reportingHierarchy", "array"));
     verifyDataRows(
         result,
-        rows("Dev", "Eliot", 1, List.of("{Eliot, Ron, 2}", "{Ron, Andrew, 3}")),
-        rows("Eliot", "Ron", 2, List.of("{Ron, Andrew, 3}", "{Andrew, null, 4}")),
-        rows("Ron", "Andrew", 3, List.of("{Andrew, null, 4}")),
+        rows("Dev", "Eliot", 1, List.of(List.of("Eliot", "Ron", 2), List.of("Ron", "Andrew", 3))),
+        rows(
+            "Eliot",
+            "Ron",
+            2,
+            List.of(List.of("Ron", "Andrew", 3), Arrays.asList("Andrew", null, 4))),
+        rows("Ron", "Andrew", 3, List.of(Arrays.asList("Andrew", null, 4))),
         rows("Andrew", null, 4, Collections.emptyList()),
-        rows("Asya", "Ron", 5, List.of("{Ron, Andrew, 3}", "{Andrew, null, 4}")),
-        rows("Dan", "Andrew", 6, List.of("{Andrew, null, 4}")));
+        rows(
+            "Asya",
+            "Ron",
+            5,
+            List.of(List.of("Ron", "Andrew", 3), Arrays.asList("Andrew", null, 4))),
+        rows("Dan", "Andrew", 6, List.of(Arrays.asList("Andrew", null, 4))));
   }
 
   /** Test 4: Query Dev's complete reporting chain: Dev->Eliot->Ron->Andrew */
@@ -163,7 +172,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reportsTo", "string"),
         schema("id", "int"),
         schema("reportingHierarchy", "array"));
-    verifyDataRows(result, rows("Dev", "Eliot", 1, List.of("{Eliot, Ron, 2}")));
+    verifyDataRows(result, rows("Dev", "Eliot", 1, List.of(List.of("Eliot", "Ron", 2))));
   }
 
   // ==================== Airport Connections Tests ====================
@@ -190,11 +199,11 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reachableAirports", "array"));
     verifyDataRows(
         result,
-        rows("JFK", List.of("BOS", "ORD"), List.of("{JFK, [BOS, ORD]}")),
-        rows("BOS", List.of("JFK", "PWM"), List.of("{BOS, [JFK, PWM]}")),
-        rows("ORD", List.of("JFK"), List.of("{ORD, [JFK]}")),
-        rows("PWM", List.of("BOS", "LHR"), List.of("{PWM, [BOS, LHR]}")),
-        rows("LHR", List.of("PWM"), List.of("{LHR, [PWM]}")));
+        rows("JFK", List.of("BOS", "ORD"), List.of(List.of("JFK", List.of("BOS", "ORD")))),
+        rows("BOS", List.of("JFK", "PWM"), List.of(List.of("BOS", List.of("JFK", "PWM")))),
+        rows("ORD", List.of("JFK"), List.of(List.of("ORD", List.of("JFK")))),
+        rows("PWM", List.of("BOS", "LHR"), List.of(List.of("PWM", List.of("BOS", "LHR")))),
+        rows("LHR", List.of("PWM"), List.of(List.of("LHR", List.of("PWM")))));
   }
 
   /** Test 6: Find airports reachable from JFK within maxDepth=1. */
@@ -221,7 +230,10 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reachableAirports", "array"));
     verifyDataRows(
         result,
-        rows("JFK", List.of("BOS", "ORD"), List.of("{JFK, [BOS, ORD]}", "{BOS, [JFK, PWM]}")));
+        rows(
+            "JFK",
+            List.of("BOS", "ORD"),
+            List.of(List.of("JFK", List.of("BOS", "ORD")), List.of("BOS", List.of("JFK", "PWM")))));
   }
 
   /** Test 7: Find airports with default depth(=0) and start value of list */
@@ -244,7 +256,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("airport", "string"),
         schema("connects", "string"),
         schema("reachableAirports", "array"));
-    verifyDataRows(result, rows("JFK", List.of("BOS", "ORD"), List.of("{BOS, [JFK, PWM], 0}")));
+    verifyDataRows(
+        result,
+        rows("JFK", List.of("BOS", "ORD"), List.of(List.of("BOS", List.of("JFK", "PWM"), 0))));
   }
 
   /**
@@ -271,9 +285,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reachableAirports", "array"));
     verifyDataRows(
         result,
-        rows("Dev", "JFK", List.of("{JFK, [BOS, ORD]}")),
-        rows("Eliot", "JFK", List.of("{JFK, [BOS, ORD]}")),
-        rows("Jeff", "BOS", List.of("{BOS, [JFK, PWM]}")));
+        rows("Dev", "JFK", List.of(List.of("JFK", List.of("BOS", "ORD")))),
+        rows("Eliot", "JFK", List.of(List.of("JFK", List.of("BOS", "ORD")))),
+        rows("Jeff", "BOS", List.of(List.of("BOS", List.of("JFK", "PWM")))));
   }
 
   /**
@@ -300,7 +314,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("name", "string"),
         schema("nearestAirport", "string"),
         schema("reachableAirports", "array"));
-    verifyDataRows(result, rows("Dev", "JFK", List.of("{JFK, [BOS, ORD], 0}")));
+    verifyDataRows(result, rows("Dev", "JFK", List.of(List.of("JFK", List.of("BOS", "ORD"), 0))));
   }
 
   /**
@@ -331,7 +345,12 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(
-            "Jeff", "BOS", List.of("{BOS, [JFK, PWM]}", "{JFK, [BOS, ORD]}", "{PWM, [BOS, LHR]}")));
+            "Jeff",
+            "BOS",
+            List.of(
+                List.of("BOS", List.of("JFK", "PWM")),
+                List.of("JFK", List.of("BOS", "ORD")),
+                List.of("PWM", List.of("BOS", "LHR")))));
   }
 
   // ==================== Bidirectional Traversal Tests ====================
@@ -364,7 +383,10 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             "Ron",
             "Andrew",
             3,
-            List.of("{Ron, Andrew, 3}", "{Andrew, null, 4}", "{Dan, Andrew, 6}")));
+            List.of(
+                List.of("Ron", "Andrew", 3),
+                Arrays.asList("Andrew", null, 4),
+                List.of("Dan", "Andrew", 6))));
   }
 
   /**
@@ -392,7 +414,117 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("connects", "string"),
         schema("allConnections", "array"));
     verifyDataRows(
-        result, rows("ORD", List.of("JFK"), List.of("{JFK, [BOS, ORD]}", "{BOS, [JFK, PWM]}")));
+        result,
+        rows(
+            "ORD",
+            List.of("JFK"),
+            List.of(List.of("JFK", List.of("BOS", "ORD")), List.of("BOS", List.of("JFK", "PWM")))));
+  }
+
+  // ==================== Filter Tests ====================
+
+  /**
+   * Test: Filter employee hierarchy by id. Only lookup documents with id > 3 (Andrew=4, Asya=5,
+   * Dan=6) participate in traversal. Dev starts with reportsTo=Eliot, but Eliot (id=2) is excluded
+   * by filter, so Dev gets empty results.
+   */
+  @Test
+  public void testEmployeeHierarchyWithFilter() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + " | graphLookup %s"
+                    + " startField=reportsTo"
+                    + " fromField=reportsTo"
+                    + " toField=name"
+                    + " filter=(id > 3)"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("reportsTo", "string"),
+        schema("id", "int"),
+        schema("reportingHierarchy", "array"));
+    // Only documents with id > 3 (Andrew=4, Asya=5, Dan=6) are in lookup table
+    // Dev: reportsTo=Eliot -> Eliot(id=2) is filtered out -> empty
+    // Eliot: reportsTo=Ron -> Ron(id=3) is filtered out -> empty
+    // Ron: reportsTo=Andrew -> Andrew(id=4) passes filter -> [{Andrew, null, 4}]
+    // Andrew: reportsTo=null -> empty
+    // Asya: reportsTo=Ron -> Ron(id=3) is filtered out -> empty
+    // Dan: reportsTo=Andrew -> Andrew(id=4) passes filter -> [{Andrew, null, 4}]
+    verifyDataRows(
+        result,
+        rows("Dev", "Eliot", 1, Collections.emptyList()),
+        rows("Eliot", "Ron", 2, Collections.emptyList()),
+        rows("Ron", "Andrew", 3, List.of(Arrays.asList("Andrew", null, 4))),
+        rows("Andrew", null, 4, Collections.emptyList()),
+        rows("Asya", "Ron", 5, Collections.emptyList()),
+        rows("Dan", "Andrew", 6, List.of(Arrays.asList("Andrew", null, 4))));
+  }
+
+  /**
+   * Test: Filter employee hierarchy with keyword match. Only employees whose name is NOT 'Andrew'
+   * participate in traversal.
+   */
+  @Test
+  public void testEmployeeHierarchyWithKeywordFilter() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + " | where name = 'Ron'"
+                    + " | graphLookup %s"
+                    + " startField=reportsTo"
+                    + " fromField=reportsTo"
+                    + " toField=name"
+                    + " filter=(name != 'Andrew')"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("reportsTo", "string"),
+        schema("id", "int"),
+        schema("reportingHierarchy", "array"));
+    // Ron: reportsTo=Andrew -> Andrew is filtered out by name != 'Andrew' -> empty
+    verifyDataRows(result, rows("Ron", "Andrew", 3, Collections.emptyList()));
+  }
+
+  /**
+   * Test: Filter with maxDepth combined. Dev traverses reporting chain but only considers lookup
+   * documents with id <= 3.
+   */
+  @Test
+  public void testEmployeeHierarchyWithFilterAndMaxDepth() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + " | where name = 'Dev'"
+                    + " | graphLookup %s"
+                    + " startField=reportsTo"
+                    + " fromField=reportsTo"
+                    + " toField=name"
+                    + " maxDepth=3"
+                    + " filter=(id <= 3)"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("reportsTo", "string"),
+        schema("id", "int"),
+        schema("reportingHierarchy", "array"));
+    // Dev: reportsTo=Eliot -> Eliot(id=2) passes -> then Eliot.reportsTo=Ron -> Ron(id=3) passes
+    // -> then Ron.reportsTo=Andrew -> Andrew(id=4) is filtered out -> stops
+    verifyDataRows(
+        result,
+        rows("Dev", "Eliot", 1, List.of(List.of("Eliot", "Ron", 2), List.of("Ron", "Andrew", 3))));
   }
 
   // ==================== Edge Cases ====================
@@ -489,12 +621,12 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     verifySchema(result, schema("name", "string"), schema("reportingHierarchy", "array"));
     verifyDataRows(
         result,
-        rows("Dev", List.of("{Eliot, Ron, 2}")),
-        rows("Eliot", List.of("{Ron, Andrew, 3}")),
-        rows("Ron", List.of("{Andrew, null, 4}")),
+        rows("Dev", List.of(List.of("Eliot", "Ron", 2))),
+        rows("Eliot", List.of(List.of("Ron", "Andrew", 3))),
+        rows("Ron", List.of(Arrays.asList("Andrew", null, 4))),
         rows("Andrew", Collections.emptyList()),
-        rows("Asya", List.of("{Ron, Andrew, 3}")),
-        rows("Dan", List.of("{Andrew, null, 4}")));
+        rows("Asya", List.of(List.of("Ron", "Andrew", 3))),
+        rows("Dan", List.of(Arrays.asList("Andrew", null, 4))));
   }
 
   // ==================== Batch Mode Tests ====================
@@ -527,8 +659,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(
-            List.of("{Dev, Eliot, 1}", "{Asya, Ron, 5}"),
-            List.of("{Ron, Andrew, 3, 0}", "{Andrew, null, 4, 1}")));
+            List.of(List.of("Dev", "Eliot", 1), List.of("Asya", "Ron", 5)),
+            List.of(List.of("Ron", "Andrew", 3, 0), Arrays.asList("Andrew", null, 4, 1))));
   }
 
   /**
@@ -560,8 +692,11 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(
-            List.of("{Dev, JFK}", "{Eliot, JFK}", "{Jeff, BOS}"),
-            List.of("{JFK, [BOS, ORD], 0}", "{BOS, [JFK, PWM], 0}", "{PWM, [BOS, LHR], 1}")));
+            List.of(List.of("Dev", "JFK"), List.of("Eliot", "JFK"), List.of("Jeff", "BOS")),
+            List.of(
+                List.of("JFK", List.of("BOS", "ORD"), 0),
+                List.of("BOS", List.of("JFK", "PWM"), 0),
+                List.of("PWM", List.of("BOS", "LHR"), 1))));
   }
 
   /**
@@ -592,12 +727,12 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(
-            List.of("{Dev, Eliot, 1}", "{Dan, Andrew, 6}"),
+            List.of(List.of("Dev", "Eliot", 1), List.of("Dan", "Andrew", 6)),
             List.of(
-                "{Dev, Eliot, 1, 0}",
-                "{Eliot, Ron, 2, 0}",
-                "{Andrew, null, 4, 0}",
-                "{Dan, Andrew, 6, 0}",
-                "{Asya, Ron, 5, 1}")));
+                List.of("Dev", "Eliot", 1, 0),
+                List.of("Eliot", "Ron", 2, 0),
+                Arrays.asList("Andrew", null, 4, 0),
+                List.of("Dan", "Andrew", 6, 0),
+                List.of("Asya", "Ron", 5, 1))));
   }
 }

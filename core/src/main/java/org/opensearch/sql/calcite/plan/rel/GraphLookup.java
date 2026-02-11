@@ -16,6 +16,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
@@ -51,6 +52,7 @@ public abstract class GraphLookup extends BiRel {
   protected final boolean supportArray;
   protected final boolean batchMode;
   protected final boolean usePIT;
+  @Nullable protected final RexNode filter;
 
   private RelDataType outputRowType;
 
@@ -72,6 +74,7 @@ public abstract class GraphLookup extends BiRel {
    *     pushdown)
    * @param batchMode Whether to batch all source start values into a single unified BFS
    * @param usePIT Whether to use PIT (Point In Time) search for complete results
+   * @param filter Optional filter condition for lookup table documents
    */
   protected GraphLookup(
       RelOptCluster cluster,
@@ -87,7 +90,8 @@ public abstract class GraphLookup extends BiRel {
       boolean bidirectional,
       boolean supportArray,
       boolean batchMode,
-      boolean usePIT) {
+      boolean usePIT,
+      @Nullable RexNode filter) {
     super(cluster, traitSet, source, lookup);
     this.startField = startField;
     this.fromField = fromField;
@@ -99,6 +103,7 @@ public abstract class GraphLookup extends BiRel {
     this.supportArray = supportArray;
     this.batchMode = batchMode;
     this.usePIT = usePIT;
+    this.filter = filter;
   }
 
   /** Returns the source table RelNode. */
@@ -181,6 +186,7 @@ public abstract class GraphLookup extends BiRel {
         .item("bidirectional", bidirectional)
         .itemIf("supportArray", supportArray, supportArray)
         .itemIf("batchMode", batchMode, batchMode)
-        .itemIf("usePIT", usePIT, usePIT);
+        .itemIf("usePIT", usePIT, usePIT)
+        .itemIf("filter", filter, filter != null);
   }
 }

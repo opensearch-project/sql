@@ -12,6 +12,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexNode;
 
 /**
  * Logical RelNode for graphLookup command. TODO: need to support trim fields and several transpose
@@ -37,6 +38,7 @@ public class LogicalGraphLookup extends GraphLookup {
    * @param supportArray Whether to support array-typed fields
    * @param batchMode Whether to batch all source start values into a single unified BFS
    * @param usePIT Whether to use PIT (Point In Time) search for complete results
+   * @param filter Optional filter condition for lookup table documents
    */
   protected LogicalGraphLookup(
       RelOptCluster cluster,
@@ -52,7 +54,8 @@ public class LogicalGraphLookup extends GraphLookup {
       boolean bidirectional,
       boolean supportArray,
       boolean batchMode,
-      boolean usePIT) {
+      boolean usePIT,
+      @Nullable RexNode filter) {
     super(
         cluster,
         traitSet,
@@ -67,7 +70,8 @@ public class LogicalGraphLookup extends GraphLookup {
         bidirectional,
         supportArray,
         batchMode,
-        usePIT);
+        usePIT,
+        filter);
   }
 
   /**
@@ -85,6 +89,7 @@ public class LogicalGraphLookup extends GraphLookup {
    * @param supportArray Whether to support array-typed fields
    * @param batchMode Whether to batch all source start values into a single unified BFS
    * @param usePIT Whether to use PIT (Point In Time) search for complete results
+   * @param filter Optional filter condition for lookup table documents
    * @return A new LogicalGraphLookup instance
    */
   public static LogicalGraphLookup create(
@@ -99,7 +104,8 @@ public class LogicalGraphLookup extends GraphLookup {
       boolean bidirectional,
       boolean supportArray,
       boolean batchMode,
-      boolean usePIT) {
+      boolean usePIT,
+      @Nullable RexNode filter) {
     RelOptCluster cluster = source.getCluster();
     RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalGraphLookup(
@@ -116,7 +122,8 @@ public class LogicalGraphLookup extends GraphLookup {
         bidirectional,
         supportArray,
         batchMode,
-        usePIT);
+        usePIT,
+        filter);
   }
 
   @Override
@@ -135,6 +142,7 @@ public class LogicalGraphLookup extends GraphLookup {
         bidirectional,
         supportArray,
         batchMode,
-        usePIT);
+        usePIT,
+        filter);
   }
 }

@@ -94,6 +94,42 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testGraphLookupWithFilter() {
+    // Test graphLookup with filter parameter
+    String ppl =
+        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
+            + " toField=name filter=(id > 2) as reportingHierarchy";
+
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
+            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[0],"
+            + " bidirectional=[false], filter=[>($0, 2)])\n"
+            + "  LogicalSort(fetch=[100])\n"
+            + "    LogicalTableScan(table=[[scott, employee]])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testGraphLookupWithCompoundFilter() {
+    // Test graphLookup with compound filter condition
+    String ppl =
+        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
+            + " toField=name filter=(id > 1 AND name != 'Andrew') as reportingHierarchy";
+
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
+            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[0],"
+            + " bidirectional=[false], filter=[AND(>($0, 1), <>($1, 'Andrew'))])\n"
+            + "  LogicalSort(fetch=[100])\n"
+            + "    LogicalTableScan(table=[[scott, employee]])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
   public void testGraphLookupBidirectional() {
     // Test graphLookup with bidirectional traversal
     String ppl =
