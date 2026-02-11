@@ -67,14 +67,15 @@ public class QueryService {
   /** Helper: depending on the type of error, either re-raise or propagate to the listener. */
   private void propagateCalciteError(Throwable t, ResponseListener<?> listener)
       throws VirtualMachineError {
+    if (t instanceof VirtualMachineError) {
+      // throw and fast fail the VM errors such as OOM (same with v2).
+      throw (VirtualMachineError) t;
+    }
     if (t instanceof Exception) {
       listener.onFailure((Exception) t);
     } else if (t instanceof ExceptionInInitializerError
         && ((ExceptionInInitializerError) t).getException() instanceof Exception) {
       listener.onFailure((Exception) ((ExceptionInInitializerError) t).getException());
-    } else if (t instanceof VirtualMachineError) {
-      // throw and fast fail the VM errors such as OOM (same with v2).
-      throw (VirtualMachineError) t;
     } else {
       // Calcite may throw AssertError during query execution.
       listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
@@ -175,9 +176,10 @@ public class QueryService {
     try {
       executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);
     } catch (Exception e) {
-      // if there is a failure thrown from Calcite and execution after fallback V2
-      // keeps failure, we should throw the failure from Calcite.
       if (calciteFailure.isPresent()) {
+        // This happens if Calcite fell back to V2 due to some issue, and then V2 also failed.
+        // Prefer the Calcite error.
+        // https://github.com/opensearch-project/sql/issues/5060
         propagateCalciteError(calciteFailure.get(), listener);
       } else {
         listener.onFailure(e);
@@ -207,9 +209,10 @@ public class QueryService {
       }
       executionEngine.explain(plan(analyze(plan, queryType)), listener);
     } catch (Exception e) {
-      // if there is a failure thrown from Calcite and execution after fallback V2
-      // keeps failure, we should throw the failure from Calcite.
       if (calciteFailure.isPresent()) {
+        // This happens if Calcite fell back to V2 due to some issue, and then V2 also failed.
+        // Prefer the Calcite error.
+        // https://github.com/opensearch-project/sql/issues/5060
         propagateCalciteError(calciteFailure.get(), listener);
       } else {
         listener.onFailure(e);
