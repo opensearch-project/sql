@@ -15,6 +15,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupComma
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DynamicSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldformatCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
@@ -821,6 +822,18 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.evalClause().stream()
             .map(ct -> (Let) internalVisitExpression(ct))
             .collect(Collectors.toList()));
+  }
+
+  @Override
+  public UnresolvedPlan visitFieldformatCommand(FieldformatCommandContext ctx) {
+    // Use the new fieldFormatEvalClause instead of evalClause
+    org.opensearch.sql.ast.tree.Eval eval =
+        new org.opensearch.sql.ast.tree.Eval(
+            ctx.fieldFormatEvalClause().stream()
+                .map(ct -> (Let) internalVisitExpression(ct))
+                .collect(Collectors.toList()));
+
+    return eval;
   }
 
   private List<UnresolvedExpression> getGroupByList(ByClauseContext ctx) {

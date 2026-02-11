@@ -26,6 +26,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import java.io.IOException;
 import java.util.Locale;
+import org.apache.commons.text.StringEscapeUtils;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -2523,6 +2524,21 @@ public class CalciteExplainIT extends ExplainIT {
             StringUtils.format(
                 "source=%s | stats count(eval(author.name < 'K')) as george_and_jk",
                 TEST_INDEX_CASCADED_NESTED)));
+  }
+
+  @Test
+  public void testFieldFormatExplain() throws Exception {
+
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_field_format.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            StringEscapeUtils.escapeJson(
+                StringUtils.format(
+                    "source=%s | head 5| fieldformat formatted_balance ="
+                        + " \"$\".tostring(balance,\"commas\") ",
+                    TEST_INDEX_ACCOUNT))));
   }
 
   @Test

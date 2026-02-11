@@ -628,6 +628,12 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
   }
 
   @Override
+  public Node visitFieldFormat(Eval node, FieldResolutionContext context) {
+    visitChildren(node, context);
+    return node;
+  }
+
+  @Override
   public Node visitExpand(Expand node, FieldResolutionContext context) {
     Set<String> expandFields = extractFieldsFromExpression(node.getField());
     context.pushRequirements(context.getCurrentRequirements().or(expandFields));
