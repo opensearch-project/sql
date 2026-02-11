@@ -64,7 +64,7 @@ public class ErrorReportTest {
     @SuppressWarnings("unchecked")
     Map<String, Object> context = (Map<String, Object>) json.get("context");
     assertEquals("analyzing", context.get("stage"));
-    assertEquals("Checking Query Against Your Data", context.get("stage_description"));
+    assertEquals("Validating the query's steps", context.get("stage_description"));
     assertEquals("test", context.get("field_name"));
   }
 
