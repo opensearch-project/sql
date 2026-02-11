@@ -82,6 +82,8 @@ source=accounts
 | [addcoltotals command](cmd/addcoltotals.md) | 3.5 | stable (since 3.5) | Adds column values and appends a totals row. |
 | [transpose command](cmd/transpose.md) | 3.5 | stable (since 3.5) | Transpose rows to columns. |
 | [mvcombine command](cmd/mvcombine.md) | 3.5 | stable (since 3.4) | Combines values of a specified field across rows identical on all other fields. |
+| [graphlookup command](cmd/graphlookup.md) | 3.5 | experimental (since 3.5) | Performs recursive graph traversal on a collection using a BFS algorithm.|
+
   
   - [Syntax](cmd/syntax.md) - PPL query structure and command syntax formatting  
 * **Functions**  

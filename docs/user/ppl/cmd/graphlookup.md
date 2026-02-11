@@ -1,5 +1,5 @@
 
-# graphLookup
+# graphLookup (Experimental)
 
 The `graphLookup` command performs recursive graph traversal on a collection using a breadth-first search (BFS) algorithm. It searches for documents matching a start value and recursively traverses connections between documents based on specified fields. This is useful for hierarchical data like organizational charts, social networks, or routing graphs.
 
