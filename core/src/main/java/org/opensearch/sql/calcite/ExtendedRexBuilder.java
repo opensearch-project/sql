@@ -25,9 +25,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
-import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 public class ExtendedRexBuilder extends RexBuilder {
 
@@ -46,17 +44,6 @@ public class ExtendedRexBuilder extends RexBuilder {
   public RexNode and(RexNode left, RexNode right) {
     final RelDataType booleanType = this.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
     return this.makeCall(booleanType, SqlStdOperatorTable.AND, List.of(left, right));
-  }
-
-  /** Create an item access call for map/array access. */
-  public RexNode itemCall(RexNode node, String key) {
-    return PPLFuncImpTable.INSTANCE.resolve(
-        this, BuiltinFunctionName.INTERNAL_ITEM, node, this.makeLiteral(key));
-  }
-
-  /** Create a function call using PPLFuncImpTable. */
-  public RexNode makeCall(BuiltinFunctionName functionName, RexNode... args) {
-    return PPLFuncImpTable.INSTANCE.resolve(this, functionName, args);
   }
 
   public RelDataType commonType(RexNode... nodes) {

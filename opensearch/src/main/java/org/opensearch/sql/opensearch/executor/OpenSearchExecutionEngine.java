@@ -39,7 +39,6 @@ import org.locationtech.jts.geom.Point;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
-import org.opensearch.sql.calcite.utils.DynamicFieldsResultProcessor;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -301,9 +300,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     }
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
-    QueryResponse processedResponse = DynamicFieldsResultProcessor.expandDynamicFields(response);
-
-    return processedResponse;
+    return response;
   }
 
   /** Registers opensearch-dependent functions */

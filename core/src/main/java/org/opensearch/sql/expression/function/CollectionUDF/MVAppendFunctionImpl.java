@@ -97,15 +97,6 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
   }
 
   public static Object mvappend(Object... args) {
-    return collectElements(args);
-  }
-
-  /**
-   * Collect non-null elements from `args`. If an item is a list, it will collect non-null elements
-   * of the list. See {@link MVAppendFunctionImplTest} for detailed behavior.
-   */
-  public static List<Object> collectElements(Object... args) {
-    List<Object> elements = AppendCore.collectElementsToList(args);
-    return elements.isEmpty() ? null : elements;
+    return MVAppendCore.collectElements(args);
   }
 }
