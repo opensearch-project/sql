@@ -2034,6 +2034,17 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testIssue5114SortExprHeadExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account | eval a = rand() | sort a | fields"
+            + " account_number | head 5";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_issue_5114_sort_expr_head_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testGeoIpPushedInAgg() throws IOException {
     // This explain IT verifies that externally registered UDF can be properly pushed down
     assertYamlEqualsIgnoreId(

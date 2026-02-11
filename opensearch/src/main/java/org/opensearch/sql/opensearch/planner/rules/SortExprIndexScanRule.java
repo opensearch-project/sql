@@ -27,6 +27,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.opensearch.planner.physical.CalciteEnumerableTopK;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
@@ -47,6 +48,11 @@ public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexSca
   @Override
   protected void onMatchImpl(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
+    // CalciteEnumerableTopK carries fetch semantics; this rule may collapse Sort/TopK into a
+    // project-on-scan shape, so skip TopK and let dedicated TopK/limit rules preserve semantics.
+    if (sort instanceof CalciteEnumerableTopK) {
+      return;
+    }
     final Project project = call.rel(1);
     final AbstractCalciteIndexScan scan = call.rel(2);
 
@@ -102,14 +108,23 @@ public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexSca
       newScan = scan.pushdownSortExpr(sortExprDigests);
     }
 
-    // EnumerableSort won't have limit or offset
-    Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
-    Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
-    if (newScan instanceof CalciteLogicalIndexScan && limitValue != null && offsetValue != null) {
+    // Keep top-k semantics intact: remove Sort only when limit/offset is also preserved in scan.
+    if (sort.fetch != null || sort.offset != null) {
+      Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
+      Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
+      if (!(newScan instanceof CalciteLogicalIndexScan)
+          || !(sort instanceof LogicalSort)
+          || limitValue == null
+          || offsetValue == null) {
+        return;
+      }
       newScan =
           (CalciteLogicalIndexScan)
               ((CalciteLogicalIndexScan) newScan)
                   .pushDownLimit((LogicalSort) sort, limitValue, offsetValue);
+      if (newScan == null) {
+        return;
+      }
     }
 
     if (newScan != null) {
