@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -247,7 +248,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       return convertedMap;
     }
     if (value instanceof StructImpl) {
-      return List.of(((StructImpl) value).getAttributes());
+      return Arrays.asList(((StructImpl) value).getAttributes());
     }
     if (value instanceof List) {
       List<Object> list = (List<Object>) value;
