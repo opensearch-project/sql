@@ -766,12 +766,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 RelNode visitedBarrier = super.visit(other);
                 return LogicalSort.create(visitedBarrier, reversedCollation, null, null);
               }
-              // Found a collation Sort - insert reversed sort on top of it
+              // Found a collation Sort - replace in-place with reversed collation.
+              // Stacking a reversed sort on top would create consecutive sorts, and
+              // Calcite's SortRemoveRule would merge them keeping the original direction.
               if (sort.getCollation() != null
                   && !sort.getCollation().getFieldCollations().isEmpty()) {
                 sortFound = true;
-                RelNode visitedSort = super.visit(other);
-                return LogicalSort.create(visitedSort, reversedCollation, null, null);
+                RelNode visitedInput = sort.getInput().accept(this);
+                return LogicalSort.create(visitedInput, reversedCollation, null, null);
               }
             }
             // For all other nodes, continue traversal
@@ -801,8 +803,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             && existingSort.fetch == null
             && existingSort.offset == null) {
           // Pure collation sort (no fetch/offset) - replace in-place to avoid consecutive
-          // sorts. Calcite's physical optimizer merges consecutive LogicalSort nodes and may
-          // discard the reversed direction. Replacing in-place avoids this issue.
+          // sorts. Calcite's SortRemoveRule merges consecutive LogicalSort nodes and keeps
+          // the lower sort's direction, which discards the reversed direction.
+          // Replacing in-place avoids this issue.
           RelCollation reversedFromSort = PlanUtils.reverseCollation(existingSort.getCollation());
           RelNode replacedSort =
               LogicalSort.create(existingSort.getInput(), reversedFromSort, null, null);
