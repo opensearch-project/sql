@@ -65,8 +65,7 @@ public class QueryService {
   private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor(dataSourceService);
 
   /** Helper: depending on the type of error, either re-raise or propagate to the listener. */
-  private void propagateCalciteError(
-      Throwable t, ResponseListener<ExecutionEngine.QueryResponse> listener)
+  private void propagateCalciteError(Throwable t, ResponseListener<?> listener)
       throws VirtualMachineError {
     if (t instanceof Exception) {
       listener.onFailure((Exception) t);
@@ -79,18 +78,6 @@ public class QueryService {
     } else {
       // Calcite may throw AssertError during query execution.
       listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
-    }
-  }
-
-  /** Helper: depending on the type of error, either re-raise or propagate to the listener. */
-  private void propagateCalciteExplainError(
-      Throwable t, ResponseListener<ExecutionEngine.ExplainResponse> listener)
-      throws VirtualMachineError {
-    if (t instanceof Error) {
-      // Calcite may throw AssertError during query execution.
-      listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
-    } else {
-      listener.onFailure((Exception) t);
     }
   }
 
@@ -173,7 +160,7 @@ public class QueryService {
               log.warn("Fallback to V2 query engine since got exception", t);
               explainWithLegacy(plan, queryType, listener, mode, Optional.of(t));
             } else {
-              propagateCalciteExplainError(t, listener);
+              propagateCalciteError(t, listener);
             }
           }
         },
@@ -223,7 +210,7 @@ public class QueryService {
       // if there is a failure thrown from Calcite and execution after fallback V2
       // keeps failure, we should throw the failure from Calcite.
       if (calciteFailure.isPresent()) {
-        propagateCalciteExplainError(calciteFailure.get(), listener);
+        propagateCalciteError(calciteFailure.get(), listener);
       } else {
         listener.onFailure(e);
       }
