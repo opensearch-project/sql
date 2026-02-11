@@ -1540,7 +1540,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Field as = (Field) internalVisitExpression(ctx.outputField);
 
     if (connectFromField == null || connectToField == null) {
-      throw new SemanticCheckException("connectFromField and connectToField must be specified for graphLookup");
+      throw new SemanticCheckException(
+          "connectFromField and connectToField must be specified for graphLookup");
     }
 
     return GraphLookup.builder()

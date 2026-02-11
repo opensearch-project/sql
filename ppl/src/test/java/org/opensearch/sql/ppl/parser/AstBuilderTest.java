@@ -1714,6 +1714,8 @@ public class AstBuilderTest {
     // Error: missing connectToField - SemanticCheckException thrown by AstBuilder
     assertThrows(
         SemanticCheckException.class,
-        () -> plan("source=t | graphLookup employees connectFromField=manager as reportingHierarchy"));
+        () ->
+            plan(
+                "source=t | graphLookup employees connectFromField=manager as reportingHierarchy"));
   }
 }
