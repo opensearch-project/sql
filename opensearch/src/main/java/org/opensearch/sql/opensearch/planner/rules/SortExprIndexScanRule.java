@@ -27,7 +27,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
-import org.opensearch.sql.opensearch.planner.physical.CalciteEnumerableTopK;
+import org.apache.calcite.adapter.enumerable.EnumerableLimitSort;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
@@ -48,9 +48,9 @@ public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexSca
   @Override
   protected void onMatchImpl(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
-    // CalciteEnumerableTopK carries fetch semantics; this rule doesn't preserve it on physical
+    // EnumerableLimitSort carries fetch semantics; this rule doesn't preserve it on physical
     // scans because limit pushdown path is logical-only.
-    if (sort instanceof CalciteEnumerableTopK) {
+    if (sort instanceof EnumerableLimitSort) {
       return;
     }
     final Project project = call.rel(1);
