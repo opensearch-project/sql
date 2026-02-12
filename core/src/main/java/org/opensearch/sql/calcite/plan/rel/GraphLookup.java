@@ -40,9 +40,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 public abstract class GraphLookup extends BiRel {
 
   // TODO: use RexInputRef instead of String for there fields
-  protected final String startField; // Field in source table (start entities)
-  protected final String fromField; // Field in lookup table (edge source)
-  protected final String toField; // Field in lookup table (edge target)
+  protected final String startWith; // Field in source table (start entities)
+  protected final String connectFromField; // Field in lookup table (edge source)
+  protected final String connectToField; // Field in lookup table (edge target)
   protected final String outputField; // Name of output array field
   @Nullable protected final String depthField; // Name of output array field
 
@@ -63,9 +63,9 @@ public abstract class GraphLookup extends BiRel {
    * @param traitSet Trait set
    * @param source Source table RelNode
    * @param lookup Lookup table RelNode
-   * @param startField Field name for start entities
-   * @param fromField Field name for outgoing edges
-   * @param toField Field name for incoming edges
+   * @param startWith Field name for start entities
+   * @param connectFromField Field name for outgoing edges
+   * @param connectToField Field name for incoming edges
    * @param outputField Name of the output array field
    * @param depthField Name of the depth field
    * @param maxDepth Maximum traversal depth (-1 for unlimited)
@@ -81,9 +81,9 @@ public abstract class GraphLookup extends BiRel {
       RelTraitSet traitSet,
       RelNode source,
       RelNode lookup,
-      String startField,
-      String fromField,
-      String toField,
+      String startWith,
+      String connectFromField,
+      String connectToField,
       String outputField,
       @Nullable String depthField,
       int maxDepth,
@@ -93,9 +93,9 @@ public abstract class GraphLookup extends BiRel {
       boolean usePIT,
       @Nullable RexNode filter) {
     super(cluster, traitSet, source, lookup);
-    this.startField = startField;
-    this.fromField = fromField;
-    this.toField = toField;
+    this.startWith = startWith;
+    this.connectFromField = connectFromField;
+    this.connectToField = connectToField;
     this.outputField = outputField;
     this.depthField = depthField;
     this.maxDepth = maxDepth;
@@ -130,7 +130,7 @@ public abstract class GraphLookup extends BiRel {
         RelDataType sourceRowType = getSource().getRowType();
         RelDataType sourceArrayType =
             getCluster().getTypeFactory().createArrayType(sourceRowType, -1);
-        builder.add(startField, sourceArrayType);
+        builder.add(startWith, sourceArrayType);
 
         // Second field: aggregated lookup rows as array
         RelDataType lookupRowType = getLookup().getRowType();
@@ -178,8 +178,8 @@ public abstract class GraphLookup extends BiRel {
   @Override
   public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
-        .item("fromField", fromField)
-        .item("toField", toField)
+        .item("connectFromField", connectFromField)
+        .item("connectToField", connectToField)
         .item("outputField", outputField)
         .item("depthField", depthField)
         .item("maxDepth", maxDepth)

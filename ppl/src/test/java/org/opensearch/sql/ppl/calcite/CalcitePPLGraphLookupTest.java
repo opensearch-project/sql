@@ -43,12 +43,12 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupBasic() {
     // Test basic graphLookup with same source and lookup table
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name as reportingHierarchy";
+        "source=employee | graphLookup employee startWith=reportsTo connectFromField=reportsTo"
+            + " connectToField=name as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
+        "LogicalGraphLookup(connectFromField=[reportsTo], connectToField=[name],"
             + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[0],"
             + " bidirectional=[false])\n"
             + "  LogicalSort(fetch=[100])\n"
@@ -61,12 +61,12 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupWithDepthField() {
     // Test graphLookup with depthField parameter
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name depthField=level as reportingHierarchy";
+        "source=employee | graphLookup employee startWith=reportsTo connectFromField=reportsTo"
+            + " connectToField=name depthField=level as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
+        "LogicalGraphLookup(connectFromField=[reportsTo], connectToField=[name],"
             + " outputField=[reportingHierarchy], depthField=[level],"
             + " maxDepth=[0], bidirectional=[false])\n"
             + "  LogicalSort(fetch=[100])\n"
@@ -79,12 +79,12 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupWithMaxDepth() {
     // Test graphLookup with maxDepth parameter
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name maxDepth=3 as reportingHierarchy";
+        "source=employee | graphLookup employee startWith=reportsTo connectFromField=reportsTo"
+            + " connectToField=name maxDepth=3 as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
+        "LogicalGraphLookup(connectFromField=[reportsTo], connectToField=[name],"
             + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[3],"
             + " bidirectional=[false])\n"
             + "  LogicalSort(fetch=[100])\n"
@@ -97,12 +97,12 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupWithFilter() {
     // Test graphLookup with filter parameter
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name filter=(id > 2) as reportingHierarchy";
+        "source=employee | graphLookup employee startWith=reportsTo connectFromField=reportsTo"
+            + " connectToField=name filter=(id > 2) as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
+        "LogicalGraphLookup(connectFromField=[reportsTo], connectToField=[name],"
             + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[0],"
             + " bidirectional=[false], filter=[>($0, 2)])\n"
             + "  LogicalSort(fetch=[100])\n"
@@ -115,12 +115,12 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupWithCompoundFilter() {
     // Test graphLookup with compound filter condition
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name filter=(id > 1 AND name != 'Andrew') as reportingHierarchy";
+        "source=employee | graphLookup employee startWith=reportsTo connectFromField=reportsTo"
+            + " connectToField=name filter=(id > 1 AND name != 'Andrew') as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
+        "LogicalGraphLookup(connectFromField=[reportsTo], connectToField=[name],"
             + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[0],"
             + " bidirectional=[false], filter=[AND(>($0, 1), <>($1, 'Andrew'))])\n"
             + "  LogicalSort(fetch=[100])\n"
@@ -133,12 +133,12 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupBidirectional() {
     // Test graphLookup with bidirectional traversal
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name direction=bi as reportingHierarchy";
+        "source=employee | graphLookup employee startWith=reportsTo connectFromField=reportsTo"
+            + " connectToField=name direction=bi as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
+        "LogicalGraphLookup(connectFromField=[reportsTo], connectToField=[name],"
             + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[0],"
             + " bidirectional=[true])\n"
             + "  LogicalSort(fetch=[100])\n"

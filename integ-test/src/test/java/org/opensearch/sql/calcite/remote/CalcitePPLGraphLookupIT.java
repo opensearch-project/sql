@@ -59,9 +59,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
 
@@ -89,9 +89,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " depthField=level"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -120,9 +120,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " maxDepth=1"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -160,9 +160,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Dev'"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
 
@@ -185,9 +185,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=airport"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " startWith=airport"
+                    + " connectFromField=connects"
+                    + " connectToField=airport"
                     + " supportArray=true"
                     + " as reachableAirports",
                 TEST_INDEX_GRAPH_AIRPORTS, TEST_INDEX_GRAPH_AIRPORTS));
@@ -215,9 +215,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where airport = 'JFK'"
                     + " | graphLookup %s"
-                    + " startField=airport"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " startWith=airport"
+                    + " connectFromField=connects"
+                    + " connectToField=airport"
                     + " maxDepth=1"
                     + " supportArray=true"
                     + " as reachableAirports",
@@ -245,9 +245,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where airport = 'JFK'"
                     + " | graphLookup %s"
-                    + " startField=connects"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " startWith=connects"
+                    + " connectFromField=connects"
+                    + " connectToField=airport"
                     + " depthField=numConnections"
                     + " as reachableAirports",
                 TEST_INDEX_GRAPH_AIRPORTS, TEST_INDEX_GRAPH_AIRPORTS));
@@ -272,9 +272,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=nearestAirport"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " startWith=nearestAirport"
+                    + " connectFromField=connects"
+                    + " connectToField=airport"
                     + " as reachableAirports",
                 TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_AIRPORTS));
 
@@ -302,9 +302,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Dev'"
                     + " | graphLookup %s"
-                    + " startField=nearestAirport"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " startWith=nearestAirport"
+                    + " connectFromField=connects"
+                    + " connectToField=airport"
                     + " depthField=hops"
                     + " as reachableAirports",
                 TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_AIRPORTS));
@@ -329,9 +329,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Jeff'"
                     + " | graphLookup %s"
-                    + " startField=nearestAirport"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " startWith=nearestAirport"
+                    + " connectFromField=connects"
+                    + " connectToField=airport"
                     + " maxDepth=1"
                     + " supportArray=true"
                     + " as reachableAirports",
@@ -364,9 +364,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Ron'"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " direction=bi"
                     + " as connections",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -401,9 +401,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where airport = 'ORD'"
                     + " | graphLookup %s"
-                    + " startField=connects"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " startWith=connects"
+                    + " connectFromField=connects"
+                    + " connectToField=airport"
                     + " direction=bi"
                     + " as allConnections",
                 TEST_INDEX_GRAPH_AIRPORTS, TEST_INDEX_GRAPH_AIRPORTS));
@@ -435,9 +435,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " filter=(id > 3)"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -477,9 +477,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Ron'"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " filter=(name != 'Andrew')"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -506,9 +506,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Dev'"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " maxDepth=3"
                     + " filter=(id <= 3)"
                     + " as reportingHierarchy",
@@ -538,9 +538,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'NonExistent'"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
 
@@ -562,9 +562,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Andrew'"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
 
@@ -585,9 +585,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " as reportingHierarchy"
                     + " | stats count() by name",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -611,9 +611,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " as reportingHierarchy"
                     + " | fields name, reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -646,9 +646,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name in ('Dev', 'Asya')"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " depthField=depth"
                     + " maxDepth=3"
                     + " batchMode=true"
@@ -675,9 +675,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=nearestAirport"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " startWith=nearestAirport"
+                    + " connectFromField=connects"
+                    + " connectToField=airport"
                     + " batchMode=true"
                     + " depthField=depth"
                     + " maxDepth=3"
@@ -711,9 +711,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name in ('Dev', 'Dan')"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " startWith=reportsTo"
+                    + " connectFromField=reportsTo"
+                    + " connectToField=name"
                     + " depthField=depth"
                     + " maxDepth=3"
                     + " direction=bi"

@@ -1501,10 +1501,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedPlan fromTable = visitTableSourceClause(ctx.lookupTable);
 
     // Parse options with defaults
-    Field fromField = null;
-    Field toField = null;
+    Field connectFromField = null;
+    Field connectToField = null;
     Literal maxDepth = Literal.ZERO;
-    Field startField = null;
+    Field startWith = null;
     Field depthField = null;
     Direction direction = Direction.UNI;
     boolean supportArray = false;
@@ -1513,17 +1513,17 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression filter = null;
 
     for (OpenSearchPPLParser.GraphLookupOptionContext option : ctx.graphLookupOption()) {
-      if (option.FROM_FIELD() != null) {
-        fromField = (Field) internalVisitExpression(option.fieldExpression());
+      if (option.CONNECT_FROM_FIELD() != null) {
+        connectFromField = (Field) internalVisitExpression(option.fieldExpression());
       }
-      if (option.TO_FIELD() != null) {
-        toField = (Field) internalVisitExpression(option.fieldExpression());
+      if (option.CONNECT_TO_FIELD() != null) {
+        connectToField = (Field) internalVisitExpression(option.fieldExpression());
       }
       if (option.MAX_DEPTH() != null) {
         maxDepth = (Literal) internalVisitExpression(option.integerLiteral());
       }
-      if (option.START_FIELD() != null) {
-        startField = (Field) internalVisitExpression(option.fieldExpression());
+      if (option.START_WITH() != null) {
+        startWith = (Field) internalVisitExpression(option.fieldExpression());
       }
       if (option.DEPTH_FIELD() != null) {
         depthField = (Field) internalVisitExpression(option.fieldExpression());
@@ -1550,17 +1550,18 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     Field as = (Field) internalVisitExpression(ctx.outputField);
 
-    if (fromField == null || toField == null) {
-      throw new SemanticCheckException("fromField and toField must be specified for graphLookup");
+    if (connectFromField == null || connectToField == null) {
+      throw new SemanticCheckException(
+          "connectFromField and connectToField must be specified for graphLookup");
     }
 
     return GraphLookup.builder()
         .fromTable(fromTable)
-        .fromField(fromField)
-        .toField(toField)
+        .connectFromField(connectFromField)
+        .connectToField(connectToField)
         .as(as)
         .maxDepth(maxDepth)
-        .startField(startField)
+        .startWith(startWith)
         .depthField(depthField)
         .direction(direction)
         .supportArray(supportArray)
