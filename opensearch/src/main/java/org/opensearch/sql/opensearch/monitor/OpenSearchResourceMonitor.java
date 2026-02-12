@@ -13,6 +13,7 @@ import lombok.extern.log4j.Log4j2;
 import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.monitor.ResourceMonitor;
+import org.opensearch.sql.monitor.ResourceStatus;
 
 /**
  * {@link ResourceMonitor} implementation on Elasticsearch. When the heap memory usage exceeds
@@ -23,19 +24,27 @@ import org.opensearch.sql.monitor.ResourceMonitor;
 public class OpenSearchResourceMonitor extends ResourceMonitor {
   private final Settings settings;
   private final Retry retry;
+  private final Retry statusRetry;
   private final OpenSearchMemoryHealthy memoryMonitor;
 
   /** Constructor. */
   public OpenSearchResourceMonitor(Settings settings, OpenSearchMemoryHealthy memoryMonitor) {
     this.settings = settings;
-    RetryConfig config =
+    RetryConfig booleanRetryConfig =
         RetryConfig.custom()
             .maxAttempts(3)
             .intervalFunction(IntervalFunction.ofExponentialRandomBackoff(1000))
             .retryExceptions(OpenSearchMemoryHealthy.MemoryUsageExceedException.class)
             .ignoreExceptions(OpenSearchMemoryHealthy.MemoryUsageExceedFastFailureException.class)
             .build();
-    retry = Retry.of("mem", config);
+    RetryConfig statusRetryConfig =
+        RetryConfig.<ResourceStatus>custom()
+            .maxAttempts(3)
+            .intervalFunction(IntervalFunction.ofExponentialRandomBackoff(1000))
+            .retryOnResult(status -> status != null && !status.isHealthy())
+            .build();
+    retry = Retry.of("mem", booleanRetryConfig);
+    statusRetry = Retry.of("memStatus", statusRetryConfig);
     this.memoryMonitor = memoryMonitor;
   }
 
@@ -67,20 +76,22 @@ public class OpenSearchResourceMonitor extends ResourceMonitor {
    * @return ResourceStatus with health state and detailed context
    */
   @Override
-  public org.opensearch.sql.monitor.ResourceStatus getStatus() {
+  public ResourceStatus getStatus() {
     try {
       ByteSizeValue limit = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
       if (limit == null) {
         // undefined, be always healthy
-        return org.opensearch.sql.monitor.ResourceStatus.healthy(
-            org.opensearch.sql.monitor.ResourceStatus.ResourceType.MEMORY);
+        return ResourceStatus.healthy(ResourceStatus.ResourceType.MEMORY);
       }
-      return memoryMonitor.getMemoryStatus(limit.getBytes());
+      Supplier<ResourceStatus> statusSupplier =
+          Retry.decorateSupplier(
+              statusRetry, () -> memoryMonitor.getMemoryStatus(limit.getBytes()));
+      return statusSupplier.get();
     } catch (Exception e) {
       // If we can't determine status, report as unhealthy with error context
-      return org.opensearch.sql.monitor.ResourceStatus.builder()
+      return ResourceStatus.builder()
           .healthy(false)
-          .type(org.opensearch.sql.monitor.ResourceStatus.ResourceType.MEMORY)
+          .type(ResourceStatus.ResourceType.MEMORY)
           .description("Failed to determine memory status: " + e.getMessage())
           .build();
     }

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.executor.protector;
 
+import static org.opensearch.common.settings.Settings.EMPTY;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -12,8 +14,11 @@ import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.monitor.ResourceMonitor;
+import org.opensearch.sql.monitor.ResourceStatus;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
@@ -36,6 +41,15 @@ public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePla
   /** Count how many calls to delegate's next() already. */
   @EqualsAndHashCode.Exclude private long nextCallCount = 0L;
 
+  /**
+   * Helper method to get the default memory limit string from the Setting constant.
+   *
+   * @return Default memory limit string (e.g., "85%")
+   */
+  private static String getDefaultMemoryLimit() {
+    return OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING.getDefault(EMPTY).toString();
+  }
+
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
     return delegate.accept(visitor, context);
@@ -43,14 +57,15 @@ public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePla
 
   @Override
   public void open() {
-    org.opensearch.sql.monitor.ResourceStatus status = this.monitor.getStatus();
+    ResourceStatus status = this.monitor.getStatus();
     if (!status.isHealthy()) {
       throw new IllegalStateException(
           String.format(
               "Insufficient resources to start query: %s. "
-                  + "To increase the limit, adjust the 'plugins.query.memory_limit' setting "
-                  + "(default: 85%%).",
-              status.getFormattedDescription()));
+                  + "To increase the limit, adjust the '%s' setting (default: %s).",
+              status.getFormattedDescription(),
+              Settings.Key.QUERY_MEMORY_LIMIT.getKeyValue(),
+              getDefaultMemoryLimit()));
     }
     delegate.open();
   }
@@ -74,15 +89,17 @@ public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePla
   public ExprValue next() {
     boolean shouldCheck = (++nextCallCount % NUMBER_OF_NEXT_CALL_TO_CHECK == 0);
     if (shouldCheck) {
-      org.opensearch.sql.monitor.ResourceStatus status = this.monitor.getStatus();
+      ResourceStatus status = this.monitor.getStatus();
       if (!status.isHealthy()) {
         throw new IllegalStateException(
             String.format(
                 "Insufficient resources to continue processing query: %s. "
                     + "Rows processed: %d. "
-                    + "To increase the limit, adjust the 'plugins.query.memory_limit' setting "
-                    + "(default: 85%%).",
-                status.getFormattedDescription(), nextCallCount));
+                    + "To increase the limit, adjust the '%s' setting (default: %s).",
+                status.getFormattedDescription(),
+                nextCallCount,
+                Settings.Key.QUERY_MEMORY_LIMIT.getKeyValue(),
+                getDefaultMemoryLimit()));
       }
     }
     return delegate.next();

@@ -10,6 +10,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.monitor.ResourceStatus;
 
 /** OpenSearch Memory Monitor. */
 @Log4j2
@@ -69,14 +70,14 @@ public class OpenSearchMemoryHealthy {
    * @param limitBytes Memory limit in bytes
    * @return ResourceStatus with detailed memory information
    */
-  public org.opensearch.sql.monitor.ResourceStatus getMemoryStatus(long limitBytes) {
+  public ResourceStatus getMemoryStatus(long limitBytes) {
     final long currentMemoryUsage = this.memoryUsage.usage();
     log.debug("Memory usage:{}, limit:{}", currentMemoryUsage, limitBytes);
 
     if (currentMemoryUsage < limitBytes) {
-      return org.opensearch.sql.monitor.ResourceStatus.builder()
+      return ResourceStatus.builder()
           .healthy(true)
-          .type(org.opensearch.sql.monitor.ResourceStatus.ResourceType.MEMORY)
+          .type(ResourceStatus.ResourceType.MEMORY)
           .currentUsage(currentMemoryUsage)
           .maxLimit(limitBytes)
           .description("Memory usage is within limits")
@@ -88,9 +89,9 @@ public class OpenSearchMemoryHealthy {
               "Memory usage exceeds limit: %d bytes used, %d bytes limit",
               currentMemoryUsage, limitBytes);
 
-      return org.opensearch.sql.monitor.ResourceStatus.builder()
+      return ResourceStatus.builder()
           .healthy(false)
-          .type(org.opensearch.sql.monitor.ResourceStatus.ResourceType.MEMORY)
+          .type(ResourceStatus.ResourceType.MEMORY)
           .currentUsage(currentMemoryUsage)
           .maxLimit(limitBytes)
           .description(description)
