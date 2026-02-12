@@ -51,7 +51,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     return ReturnTypes.explicit(
         TYPE_FACTORY.createMapType(
             TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
-            TYPE_FACTORY.createSqlType(SqlTypeName.ANY),
+            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
             true));
   }
 
@@ -82,7 +82,31 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
       return null;
     }
 
-    return parseJson(jsonStr);
+    Map<String, Object> parsed = parseJson(jsonStr);
+    return parsed == null ? null : stringifyMap(parsed);
+  }
+
+  /**
+   * Convert all values in the map to strings to match the declared {@code map<VARCHAR, VARCHAR>}
+   * return type. List values (from duplicate key merging) are stringified element-wise.
+   */
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> stringifyMap(Map<String, Object> map) {
+    Map<String, Object> result = new HashMap<>(map.size());
+    for (Map.Entry<String, Object> entry : map.entrySet()) {
+      Object value = entry.getValue();
+      if (value instanceof List) {
+        List<Object> original = (List<Object>) value;
+        List<String> stringified = new LinkedList<>();
+        for (Object item : original) {
+          stringified.add(String.valueOf(item));
+        }
+        result.put(entry.getKey(), stringified);
+      } else {
+        result.put(entry.getKey(), String.valueOf(value));
+      }
+    }
+    return result;
   }
 
   private static Map<String, Object> parseJson(String jsonStr) {
@@ -150,7 +174,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
   @SuppressWarnings("unchecked")
   private static void appendValue(Map<String, Object> resultMap, String path, Object value) {
     Object existingValue = resultMap.get(path);
-    if (existingValue == null) {
+    if (existingValue == null && !resultMap.containsKey(path)) {
       resultMap.put(path, value);
     } else if (existingValue instanceof List) {
       ((List<Object>) existingValue).add(value);

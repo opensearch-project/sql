@@ -111,7 +111,7 @@ public class JsonExtractAllFunctionImplTest {
     Map<String, Object> map = eval("{\"name\": \"John\", \"age\": 30}");
 
     assertEquals("John", map.get("name"));
-    assertEquals(30, map.get("age"));
+    assertEquals("30", map.get("age"));
     assertEquals(2, map.size());
   }
 
@@ -127,7 +127,7 @@ public class JsonExtractAllFunctionImplTest {
   public void testNonObjectJsonArray() {
     Map<String, Object> map = eval("[1, 2, 3]");
 
-    assertMapListValue(map, "{}", 1, 2, 3);
+    assertMapListValue(map, "{}", "1", "2", "3");
     assertEquals(1, map.size());
   }
 
@@ -135,7 +135,7 @@ public class JsonExtractAllFunctionImplTest {
   public void testTopLevelArrayOfObjects() {
     Map<String, Object> map = eval("[{\"age\": 1}, {\"age\": 2}]");
 
-    assertMapListValue(map, "{}.age", 1, 2);
+    assertMapListValue(map, "{}.age", "1", "2");
     assertEquals(1, map.size());
   }
 
@@ -145,7 +145,7 @@ public class JsonExtractAllFunctionImplTest {
         eval("[{\"name\": \"John\", \"age\": 30}, {\"name\": \"Jane\", \"age\": 25}]");
 
     assertMapListValue(map, "{}.name", "John", "Jane");
-    assertMapListValue(map, "{}.age", 30, 25);
+    assertMapListValue(map, "{}.age", "30", "25");
     assertEquals(2, map.size());
   }
 
@@ -220,7 +220,7 @@ public class JsonExtractAllFunctionImplTest {
   public void testNestedArray() {
     Map<String, Object> map = eval("{\"data\": {\"items\": [1, 2, 3]}}");
 
-    assertMapListValue(map, "data.items{}", 1, 2, 3);
+    assertMapListValue(map, "data.items{}", "1", "2", "3");
     assertEquals(1, map.size());
   }
 
@@ -231,12 +231,12 @@ public class JsonExtractAllFunctionImplTest {
             "{\"data\": {\"items\": [[1, 2, {\"hello\": 3}], 4], \"other\": 5}, \"another\": [6,"
                 + " [7, 8], 9]}");
 
-    assertMapListValue(map, "data.items{}{}", 1, 2);
-    assertMapValue(map, "data.items{}{}.hello", 3);
-    assertMapValue(map, "data.items{}", 4);
-    assertMapValue(map, "data.other", 5);
-    assertMapListValue(map, "another{}", 6, 9);
-    assertMapListValue(map, "another{}{}", 7, 8);
+    assertMapListValue(map, "data.items{}{}", "1", "2");
+    assertMapValue(map, "data.items{}{}.hello", "3");
+    assertMapValue(map, "data.items{}", "4");
+    assertMapValue(map, "data.other", "5");
+    assertMapListValue(map, "another{}", "6", "9");
+    assertMapListValue(map, "another{}{}", "7", "8");
     assertEquals(6, map.size());
   }
 
@@ -265,18 +265,18 @@ public class JsonExtractAllFunctionImplTest {
                 + " \"double\": 3.14159}");
 
     assertEquals(4, map.size());
-    assertEquals(42, map.get("int"));
-    assertEquals(9223372036854775807L, map.get("long"));
-    assertEquals(9223372036854775808.0, map.get("hugeNumber"));
-    assertEquals(3.14159, map.get("double"));
+    assertEquals("42", map.get("int"));
+    assertEquals("9223372036854775807", map.get("long"));
+    assertEquals("9.223372036854776E18", map.get("hugeNumber"));
+    assertEquals("3.14159", map.get("double"));
   }
 
   @Test
   public void testBooleanValues() {
     Map<String, Object> map = eval("{\"isTrue\": true, \"isFalse\": false}");
 
-    assertEquals(true, map.get("isTrue"));
-    assertEquals(false, map.get("isFalse"));
+    assertEquals("true", map.get("isTrue"));
+    assertEquals("false", map.get("isFalse"));
     assertEquals(2, map.size());
   }
 
@@ -284,7 +284,7 @@ public class JsonExtractAllFunctionImplTest {
   public void testNullValues() {
     Map<String, Object> map = eval("{\"nullValue\": null, \"notNull\": \"value\"}");
 
-    assertNull(map.get("nullValue"));
+    assertEquals("null", map.get("nullValue"));
     assertEquals("value", map.get("notNull"));
     assertEquals(2, map.size());
   }
@@ -296,10 +296,10 @@ public class JsonExtractAllFunctionImplTest {
     List<Object> mixed = (List<Object>) assertListValue(map, "mixed{}");
     assertEquals(5, mixed.size());
     assertEquals("string", mixed.get(0));
-    assertEquals(42, mixed.get(1));
-    assertEquals(true, mixed.get(2));
-    assertNull(mixed.get(3));
-    assertEquals(3.14, mixed.get(4));
+    assertEquals("42", mixed.get(1));
+    assertEquals("true", mixed.get(2));
+    assertEquals("null", mixed.get(3));
+    assertEquals("3.14", mixed.get(4));
     assertEquals(1, map.size());
   }
 
@@ -322,7 +322,7 @@ public class JsonExtractAllFunctionImplTest {
 
     assertEquals("こんにちは", map.get("unicode"));
     assertEquals("🚀", map.get("emoji"));
-    assertEquals(1, map.get("🚀"));
+    assertEquals("1", map.get("🚀"));
     assertEquals(3, map.size());
   }
 
@@ -339,7 +339,7 @@ public class JsonExtractAllFunctionImplTest {
     assertMapListValue(map, "user.profile.contacts{}.type", "email", "phone");
     assertMapListValue(map, "user.profile.contacts{}.value", "john@example.com", "123-456-7890");
     assertEquals("dark", map.get("user.preferences.theme"));
-    assertEquals(true, map.get("user.preferences.notifications"));
+    assertEquals("true", map.get("user.preferences.notifications"));
     assertEquals(5, map.size());
   }
 
@@ -354,7 +354,7 @@ public class JsonExtractAllFunctionImplTest {
 
     Map<String, Object> map = eval(jsonBuilder.toString());
     assertEquals(100, map.size());
-    assertEquals(0, map.get("field0"));
-    assertEquals(99, map.get("field99"));
+    assertEquals("0", map.get("field0"));
+    assertEquals("99", map.get("field99"));
   }
 }

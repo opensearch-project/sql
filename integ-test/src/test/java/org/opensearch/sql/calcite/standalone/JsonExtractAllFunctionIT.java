@@ -73,7 +73,7 @@ public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
 
           Map<String, Object> map = getMap(resultSet, 1);
           assertEquals("John", map.get("name"));
-          assertEquals(30, map.get("age"));
+          assertEquals("30", map.get("age"));
           assertEquals(2, map.size());
         });
   }
@@ -111,8 +111,8 @@ public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
 
           Map<String, Object> map = getMap(resultSet, 1);
           assertEquals("John", map.get("user.name"));
-          assertEquals(30, map.get("user.age"));
-          assertEquals(true, map.get("active"));
+          assertEquals("30", map.get("user.age"));
+          assertEquals("true", map.get("active"));
           assertEquals(3, map.size());
         });
   }
@@ -208,8 +208,8 @@ public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           Map<String, Object> map = getMap(resultSet, 1);
           List<Object> ids = getList(map, "{}.id");
           assertEquals(2, ids.size());
-          assertEquals(1, ids.get(0));
-          assertEquals(2, ids.get(1));
+          assertEquals("1", ids.get(0));
+          assertEquals("2", ids.get(1));
           assertEquals(1, map.size());
         });
   }
