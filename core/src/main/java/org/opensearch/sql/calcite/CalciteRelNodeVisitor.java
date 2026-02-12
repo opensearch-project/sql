@@ -227,6 +227,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitSearch(Search node, CalcitePlanContext context) {
     // Visit the Relation child to get the scan
     node.getChild().get(0).accept(this, context);
+
+    // Mark the scan as originating from a search command so that the optimizer
+    // can scope auto-highlight injection to search queries only.
+    PPLHintUtils.markSearchCommand(context.relBuilder);
+
     // Create query_string function
     Function queryStringFunc =
         AstDSL.function(
