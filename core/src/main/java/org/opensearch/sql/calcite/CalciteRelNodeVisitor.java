@@ -795,11 +795,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitSpath(SPath node, CalcitePlanContext context) {
-    if (node.getPath() != null) {
-      return visitEval(node.rewriteAsEval(), context);
-    } else {
-      return visitEval(node.rewriteAsExtractAllEval(), context);
-    }
+    return visitEval(node.rewriteAsEval(), context);
   }
 
   @Override

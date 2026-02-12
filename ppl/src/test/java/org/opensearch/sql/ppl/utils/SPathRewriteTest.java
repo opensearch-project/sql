@@ -56,24 +56,6 @@ public class SPathRewriteTest {
   }
 
   @Test
-  public void testSpathExtractAllRewrite() {
-    // spath input=a output=o (no path) -> eval o=json_extract_all(a)
-    SPath sp = (SPath) plan("source = t | spath input=a output=o");
-    assertEquals(
-        eval(relation("t"), let(field("o"), function("json_extract_all", field("a")))),
-        sp.rewriteAsExtractAllEval());
-  }
-
-  @Test
-  public void testSpathExtractAllDefaultOutput() {
-    // spath input=a (no path, no output) -> eval a=json_extract_all(a)
-    SPath sp = (SPath) plan("source = t | spath input=a");
-    assertEquals(
-        eval(relation("t"), let(field("a"), function("json_extract_all", field("a")))),
-        sp.rewriteAsExtractAllEval());
-  }
-
-  @Test
   public void testSpathArgumentDeshuffle() {
     assertEquals(plan("source = t | spath path=a input=a"), plan("source = t | spath input=a a"));
   }
@@ -93,5 +75,21 @@ public class SPathRewriteTest {
     Eval ev = (Eval) plan("source = t | eval o=json_extract(f, \"['abc def ghi']\")");
 
     assertEquals(ev, sp.rewriteAsEval());
+  }
+
+  @Test
+  public void testSpathAutoExtractMode() {
+    SPath sp = (SPath) plan("source = t | spath input=a");
+    assertEquals(
+        eval(relation("t"), let(field("a"), function("json_extract_all", field("a")))),
+        sp.rewriteAsEval());
+  }
+
+  @Test
+  public void testSpathAutoExtractModeWithOutput() {
+    SPath sp = (SPath) plan("source = t | spath input=a output=o");
+    assertEquals(
+        eval(relation("t"), let(field("o"), function("json_extract_all", field("a")))),
+        sp.rewriteAsEval());
   }
 }

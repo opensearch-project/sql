@@ -18,21 +18,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 
-/**
- * AST node for the PPL {@code spath} command. Supports two modes:
- *
- * <ul>
- *   <li>Path-based extraction ({@code path} is non-null): rewrites to {@code eval output =
- *       json_extract(input, path)} via {@link #rewriteAsEval()}.
- *   <li>Extract-all mode ({@code path} is null): rewrites to {@code eval output =
- *       json_extract_all(input)} via {@link #rewriteAsExtractAllEval()}, returning a {@code
- *       map<string, any>} with flattened keys (dotted for nested objects, {@code {}} suffix for
- *       arrays).
- * </ul>
- *
- * <p>The {@code input} parameter is always required. When {@code output} is omitted, it defaults to
- * the path value (path mode) or the input field name (extract-all mode).
- */
+/** AST node for the PPL {@code spath} command. */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
@@ -45,7 +31,7 @@ public class SPath extends UnresolvedPlan {
 
   @Nullable private final String outField;
 
-  private final String path;
+  @Nullable private final String path;
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
@@ -55,7 +41,7 @@ public class SPath extends UnresolvedPlan {
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
+    return child == null ? ImmutableList.of() : ImmutableList.of(child);
   }
 
   @Override
@@ -63,26 +49,30 @@ public class SPath extends UnresolvedPlan {
     return nodeVisitor.visitSpath(this, context);
   }
 
+  /** Rewrites this spath node to an equivalent {@link Eval} node. */
   public Eval rewriteAsEval() {
-    String outField = this.outField;
-    String unquotedPath = unquoteText(this.path);
-    if (outField == null) {
-      outField = unquotedPath;
+    if (path != null) {
+      return rewritePathMode();
     }
+    return rewriteAutoExtractMode();
+  }
 
+  private Eval rewritePathMode() {
+    String unquotedPath = unquoteText(path);
+    String output = outField != null ? outField : unquotedPath;
     return AstDSL.eval(
-        this.child,
+        child,
         AstDSL.let(
-            AstDSL.field(outField),
+            AstDSL.field(output),
             AstDSL.function(
                 "json_extract", AstDSL.field(inField), AstDSL.stringLiteral(unquotedPath))));
   }
 
-  public Eval rewriteAsExtractAllEval() {
-    String outField = this.outField != null ? this.outField : this.inField;
+  private Eval rewriteAutoExtractMode() {
+    String output = outField != null ? outField : inField;
     return AstDSL.eval(
-        this.child,
+        child,
         AstDSL.let(
-            AstDSL.field(outField), AstDSL.function("json_extract_all", AstDSL.field(inField))));
+            AstDSL.field(output), AstDSL.function("json_extract_all", AstDSL.field(inField))));
   }
 }
