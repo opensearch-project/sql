@@ -87,7 +87,7 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
 
     // Arrays use {} suffix: tags{}
     verifySchema(result, schema("result", "struct"));
-    verifyDataRows(result, rows(new JSONObject("{\"tags{}\":[\"java\",\"sql\"]}")));
+    verifyDataRows(result, rows(new JSONObject("{\"tags{}\":\"[java, sql]\"}")));
   }
 
   @Test
@@ -98,7 +98,7 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
 
     // Duplicate logical keys merge into arrays: a.b from nested and dotted key
     verifySchema(result, schema("result", "struct"));
-    verifyDataRows(result, rows(new JSONObject("{\"a.b\":[\"1\",\"2\"]}")));
+    verifyDataRows(result, rows(new JSONObject("{\"a.b\":\"[1, 2]\"}")));
   }
 
   @Test

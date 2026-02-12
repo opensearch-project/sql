@@ -5,12 +5,13 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anEmptyMap;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -19,39 +20,12 @@ public class JsonExtractAllFunctionImplTest {
   private final JsonExtractAllFunctionImpl function = new JsonExtractAllFunctionImpl();
 
   @SuppressWarnings("unchecked")
-  private Map<String, Object> assertValidMapResult(Object result) {
-    assertNotNull(result);
-    assertTrue(result instanceof Map);
-    return (Map<String, Object>) result;
-  }
-
-  @SuppressWarnings("unchecked")
-  private List<Object> assertListValue(Map<String, Object> map, String key) {
-    Object value = map.get(key);
-    assertNotNull(value);
-    assertTrue(value instanceof List);
-    return (List<Object>) value;
-  }
-
-  private void assertListEquals(List<Object> actual, Object... expected) {
-    assertEquals(expected.length, actual.size());
-    for (int i = 0; i < expected.length; i++) {
-      assertEquals(expected[i], actual.get(i));
-    }
-  }
-
-  private void assertMapListValue(Map<String, Object> map, String key, Object... expectedValues) {
-    List<Object> list = assertListValue(map, key);
-    assertListEquals(list, expectedValues);
-  }
-
-  private void assertMapValue(Map<String, Object> map, String key, Object expectedValue) {
-    assertEquals(expectedValue, map.get(key));
-  }
-
-  private Map<String, Object> eval(String json) {
+  private Map<String, String> jsonExtractAll(String json) {
     Object result = JsonExtractAllFunctionImpl.eval(json);
-    return assertValidMapResult(result);
+    if (result == null) {
+      return null;
+    }
+    return (Map<String, String>) result;
   }
 
   @Test
@@ -66,281 +40,371 @@ public class JsonExtractAllFunctionImplTest {
 
   @Test
   public void testFunctionConstructor() {
-    JsonExtractAllFunctionImpl testFunction = new JsonExtractAllFunctionImpl();
-
-    assertNotNull(testFunction, "Function should be properly initialized");
+    assertNotNull(new JsonExtractAllFunctionImpl(), "Function should be properly initialized");
   }
 
   @Test
   public void testNoArguments() {
-    Object result = JsonExtractAllFunctionImpl.eval();
-
-    assertNull(result);
+    assertNull(JsonExtractAllFunctionImpl.eval());
   }
 
   @Test
   public void testNullInput() {
-    Object result = JsonExtractAllFunctionImpl.eval((String) null);
-
-    assertNull(result);
+    assertNull(jsonExtractAll(null));
   }
 
   @Test
   public void testEmptyString() {
-    Object result = JsonExtractAllFunctionImpl.eval("");
-
-    assertNull(result);
+    assertNull(jsonExtractAll(""));
   }
 
   @Test
   public void testWhitespaceString() {
-    Object result = JsonExtractAllFunctionImpl.eval("   ");
-
-    assertNull(result);
+    assertNull(jsonExtractAll("   "));
   }
 
   @Test
   public void testEmptyJsonObject() {
-    Map<String, Object> map = eval("{}");
-
-    assertTrue(map.isEmpty());
+    assertThat(jsonExtractAll("{}"), anEmptyMap());
   }
 
   @Test
-  public void testSimpleJsonObject() throws Exception {
-    Map<String, Object> map = eval("{\"name\": \"John\", \"age\": 30}");
-
-    assertEquals("John", map.get("name"));
-    assertEquals("30", map.get("age"));
-    assertEquals(2, map.size());
+  public void testSimpleJsonObject() {
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "name": "John",
+              "age": 30
+            }\
+            """),
+        is(Map.of("name", "John", "age", "30")));
   }
 
   @Test
   public void testInvalidJsonReturnResults() {
-    Map<String, Object> map = eval("{\"name\": \"John\", \"age\":}");
-
-    assertEquals("John", map.get("name"));
-    assertEquals(1, map.size());
+    assertThat(jsonExtractAll("{\"name\": \"John\", \"age\":}"), is(Map.of("name", "John")));
   }
 
   @Test
   public void testNonObjectJsonArray() {
-    Map<String, Object> map = eval("[1, 2, 3]");
-
-    assertMapListValue(map, "{}", "1", "2", "3");
-    assertEquals(1, map.size());
+    assertThat(jsonExtractAll("[1, 2, 3]"), is(Map.of("{}", "[1, 2, 3]")));
   }
 
   @Test
   public void testTopLevelArrayOfObjects() {
-    Map<String, Object> map = eval("[{\"age\": 1}, {\"age\": 2}]");
-
-    assertMapListValue(map, "{}.age", "1", "2");
-    assertEquals(1, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            [
+              {"age": 1},
+              {"age": 2}
+            ]\
+            """),
+        is(Map.of("{}.age", "[1, 2]")));
   }
 
   @Test
   public void testTopLevelArrayOfComplexObjects() {
-    Map<String, Object> map =
-        eval("[{\"name\": \"John\", \"age\": 30}, {\"name\": \"Jane\", \"age\": 25}]");
-
-    assertMapListValue(map, "{}.name", "John", "Jane");
-    assertMapListValue(map, "{}.age", "30", "25");
-    assertEquals(2, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            [
+              {"name": "John", "age": 30},
+              {"name": "Jane", "age": 25}
+            ]\
+            """),
+        is(Map.of("{}.name", "[John, Jane]", "{}.age", "[30, 25]")));
   }
 
   @Test
   public void testNonObjectJsonPrimitive() {
-    Object result = JsonExtractAllFunctionImpl.eval("\"just a string\"");
-
-    assertNull(result);
+    assertNull(jsonExtractAll("\"just a string\""));
   }
 
   @Test
   public void testNonObjectJsonNumber() {
-    Object result = JsonExtractAllFunctionImpl.eval("42");
-
-    assertNull(result);
+    assertNull(jsonExtractAll("42"));
   }
 
   @Test
   public void testSingleLevelNesting() {
-    Map<String, Object> map = eval("{\"user\": {\"name\": \"John\"}, \"system\": \"linux\"}");
-
-    assertEquals("John", map.get("user.name"));
-    assertEquals("linux", map.get("system"));
-    assertEquals(2, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "user": {"name": "John"},
+              "system": "linux"
+            }\
+            """),
+        is(Map.of("user.name", "John", "system", "linux")));
   }
 
   @Test
   public void testMultiLevelNesting() {
-    Map<String, Object> map = eval("{\"a\": {\"b\": {\"c\": \"value\"}}}");
-
-    assertEquals("value", map.get("a.b.c"));
-    assertEquals(1, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "a": {
+                "b": {
+                  "c": "value"
+                }
+              }
+            }\
+            """),
+        is(Map.of("a.b.c", "value")));
   }
 
   @Test
   public void testMixedNestedAndFlat() {
-    Map<String, Object> map =
-        eval("{\"name\": \"John\", \"address\": {\"city\": \"NYC\", \"zip\": \"10001\"}}");
-
-    assertEquals("John", map.get("name"));
-    assertEquals("NYC", map.get("address.city"));
-    assertEquals("10001", map.get("address.zip"));
-    assertEquals(3, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "name": "John",
+              "address": {
+                "city": "NYC",
+                "zip": "10001"
+              }
+            }\
+            """),
+        is(Map.of("name", "John", "address.city", "NYC", "address.zip", "10001")));
   }
 
   @Test
   public void testDeeplyNestedStructure() {
-    Map<String, Object> map =
-        eval("{\"level1\": {\"level2\": {\"level3\": {\"level4\": {\"level5\": \"deep\"}}}}}");
-
-    assertEquals("deep", map.get("level1.level2.level3.level4.level5"));
-    assertEquals(1, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "level1": {
+                "level2": {
+                  "level3": {
+                    "level4": {
+                      "level5": "deep"
+                    }
+                  }
+                }
+              }
+            }\
+            """),
+        is(Map.of("level1.level2.level3.level4.level5", "deep")));
   }
 
   @Test
   public void testSimpleArray() {
-    Map<String, Object> map = eval("{\"tags\": [\"a\", \"b\", \"c\"]}");
-
-    assertMapListValue(map, "tags{}", "a", "b", "c");
-    assertEquals(1, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "tags": ["a", "b", "c"]
+            }\
+            """),
+        is(Map.of("tags{}", "[a, b, c]")));
   }
 
   @Test
   public void testArrayOfObjects() {
-    Map<String, Object> map = eval("{\"users\": [{\"name\": \"John\"}, {\"name\": \"Jane\"}]}");
-
-    assertMapListValue(map, "users{}.name", "John", "Jane");
-    assertEquals(1, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "users": [
+                {"name": "John"},
+                {"name": "Jane"}
+              ]
+            }\
+            """),
+        is(Map.of("users{}.name", "[John, Jane]")));
   }
 
   @Test
   public void testNestedArray() {
-    Map<String, Object> map = eval("{\"data\": {\"items\": [1, 2, 3]}}");
-
-    assertMapListValue(map, "data.items{}", "1", "2", "3");
-    assertEquals(1, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "data": {
+                "items": [1, 2, 3]
+              }
+            }\
+            """),
+        is(Map.of("data.items{}", "[1, 2, 3]")));
   }
 
   @Test
   public void testNested() {
-    Map<String, Object> map =
-        eval(
-            "{\"data\": {\"items\": [[1, 2, {\"hello\": 3}], 4], \"other\": 5}, \"another\": [6,"
-                + " [7, 8], 9]}");
-
-    assertMapListValue(map, "data.items{}{}", "1", "2");
-    assertMapValue(map, "data.items{}{}.hello", "3");
-    assertMapValue(map, "data.items{}", "4");
-    assertMapValue(map, "data.other", "5");
-    assertMapListValue(map, "another{}", "6", "9");
-    assertMapListValue(map, "another{}{}", "7", "8");
-    assertEquals(6, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "data": {
+                "items": [[1, 2, {"hello": 3}], 4],
+                "other": 5
+              },
+              "another": [6, [7, 8], 9]
+            }\
+            """),
+        is(
+            Map.of(
+                "data.items{}{}", "[1, 2]",
+                "data.items{}{}.hello", "3",
+                "data.items{}", "4",
+                "data.other", "5",
+                "another{}", "[6, 9]",
+                "another{}{}", "[7, 8]")));
   }
 
   @Test
   public void testEmptyArray() {
-    Map<String, Object> map = eval("{\"empty\": []}");
-
-    Object emptyValue = map.get("empty{}");
-    assertNull(emptyValue);
+    assertNull(jsonExtractAll("{\"empty\": []}").get("empty{}"));
   }
 
   @Test
   public void testStringValues() {
-    Map<String, Object> map = eval("{\"text\": \"hello world\", \"empty\": \"\"}");
-
-    assertMapValue(map, "text", "hello world");
-    assertMapValue(map, "empty", "");
-    assertEquals(2, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "text": "hello world",
+              "empty": ""
+            }\
+            """),
+        is(Map.of("text", "hello world", "empty", "")));
   }
 
   @Test
   public void testNumericValues() {
-    Map<String, Object> map =
-        eval(
-            "{\"int\": 42, \"long\": 9223372036854775807, \"hugeNumber\": 9223372036854775808,"
-                + " \"double\": 3.14159}");
-
-    assertEquals(4, map.size());
-    assertEquals("42", map.get("int"));
-    assertEquals("9223372036854775807", map.get("long"));
-    assertEquals("9.223372036854776E18", map.get("hugeNumber"));
-    assertEquals("3.14159", map.get("double"));
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "int": 42,
+              "long": 9223372036854775807,
+              "hugeNumber": 9223372036854775808,
+              "double": 3.14159
+            }\
+            """),
+        is(
+            Map.of(
+                "int", "42",
+                "long", "9223372036854775807",
+                "hugeNumber", "9.223372036854776E18",
+                "double", "3.14159")));
   }
 
   @Test
   public void testBooleanValues() {
-    Map<String, Object> map = eval("{\"isTrue\": true, \"isFalse\": false}");
-
-    assertEquals("true", map.get("isTrue"));
-    assertEquals("false", map.get("isFalse"));
-    assertEquals(2, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "isTrue": true,
+              "isFalse": false
+            }\
+            """),
+        is(Map.of("isTrue", "true", "isFalse", "false")));
   }
 
   @Test
   public void testNullValues() {
-    Map<String, Object> map = eval("{\"nullValue\": null, \"notNull\": \"value\"}");
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "nullValue": null,
+              "notNull": "value"
+            }\
+            """),
+        is(Map.of("nullValue", "null", "notNull", "value")));
+  }
 
-    assertEquals("null", map.get("nullValue"));
-    assertEquals("value", map.get("notNull"));
-    assertEquals(2, map.size());
+  @Test
+  public void testNullValuesInArray() {
+    assertThat(
+        jsonExtractAll(
+            """
+            [
+              {"a": null},
+              {"a": 1}
+            ]\
+            """),
+        is(Map.of("{}.a", "[null, 1]")));
   }
 
   @Test
   public void testMixedTypesInArray() {
-    Map<String, Object> map = eval("{\"mixed\": [\"string\", 42, true, null, 3.14]}");
-
-    List<Object> mixed = (List<Object>) assertListValue(map, "mixed{}");
-    assertEquals(5, mixed.size());
-    assertEquals("string", mixed.get(0));
-    assertEquals("42", mixed.get(1));
-    assertEquals("true", mixed.get(2));
-    assertEquals("null", mixed.get(3));
-    assertEquals("3.14", mixed.get(4));
-    assertEquals(1, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "mixed": ["string", 42, true, null, 3.14]
+            }\
+            """),
+        is(Map.of("mixed{}", "[string, 42, true, null, 3.14]")));
   }
 
   @Test
   public void testSpecialCharactersInKeys() {
-    Map<String, Object> map =
-        eval(
-            "{\"key.with.dots\": \"value1\", \"key-with-dashes\": \"value2\","
-                + " \"key_with_underscores\": \"value3\"}");
-
-    assertEquals("value1", map.get("key.with.dots"));
-    assertEquals("value2", map.get("key-with-dashes"));
-    assertEquals("value3", map.get("key_with_underscores"));
-    assertEquals(3, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "key.with.dots": "value1",
+              "key-with-dashes": "value2",
+              "key_with_underscores": "value3"
+            }\
+            """),
+        is(
+            Map.of(
+                "key.with.dots", "value1",
+                "key-with-dashes", "value2",
+                "key_with_underscores", "value3")));
   }
 
   @Test
   public void testUnicodeCharacters() {
-    Map<String, Object> map = eval("{\"unicode\": \"こんにちは\", \"emoji\": \"🚀\", \"🚀\": 1}");
-
-    assertEquals("こんにちは", map.get("unicode"));
-    assertEquals("🚀", map.get("emoji"));
-    assertEquals("1", map.get("🚀"));
-    assertEquals(3, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "unicode": "こんにちは",
+              "emoji": "🚀",
+              "🚀": 1
+            }\
+            """),
+        is(Map.of("unicode", "こんにちは", "emoji", "🚀", "🚀", "1")));
   }
 
   @Test
   public void testComplexNestedStructure() {
-    Map<String, Object> map =
-        eval(
-            "{\"user\": {\"profile\": {\"name\": \"John\", \"contacts\": [{\"type\": \"email\","
-                + " \"value\": \"john@example.com\"}, {\"type\": \"phone\", \"value\":"
-                + " \"123-456-7890\"}]}, \"preferences\": {\"theme\": \"dark\", \"notifications\":"
-                + " true}}}");
-
-    assertEquals("John", map.get("user.profile.name"));
-    assertMapListValue(map, "user.profile.contacts{}.type", "email", "phone");
-    assertMapListValue(map, "user.profile.contacts{}.value", "john@example.com", "123-456-7890");
-    assertEquals("dark", map.get("user.preferences.theme"));
-    assertEquals("true", map.get("user.preferences.notifications"));
-    assertEquals(5, map.size());
+    assertThat(
+        jsonExtractAll(
+            """
+            {
+              "user": {
+                "profile": {
+                  "name": "John",
+                  "contacts": [
+                    {"type": "email", "value": "john@example.com"},
+                    {"type": "phone", "value": "123-456-7890"}
+                  ]
+                },
+                "preferences": {
+                  "theme": "dark",
+                  "notifications": true
+                }
+              }
+            }\
+            """),
+        is(
+            Map.of(
+                "user.profile.name", "John",
+                "user.profile.contacts{}.type", "[email, phone]",
+                "user.profile.contacts{}.value", "[john@example.com, 123-456-7890]",
+                "user.preferences.theme", "dark",
+                "user.preferences.notifications", "true")));
   }
 
   @Test
@@ -352,7 +416,7 @@ public class JsonExtractAllFunctionImplTest {
     }
     jsonBuilder.append("}");
 
-    Map<String, Object> map = eval(jsonBuilder.toString());
+    Map<String, String> map = jsonExtractAll(jsonBuilder.toString());
     assertEquals(100, map.size());
     assertEquals("0", map.get("field0"));
     assertEquals("99", map.get("field99"));

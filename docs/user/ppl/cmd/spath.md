@@ -36,7 +36,7 @@ When `path` is omitted, the `spath` command runs in auto-extract mode. Instead o
 - Arrays use `{}` suffix: `tags{}`, `users{}.name`
 - Duplicate logical keys merge into arrays: `c{}.b = [2, 3]`
 - Null values are preserved: a JSON `null` becomes the string `"null"` in the map
-- All values are stringified: numbers and booleans are converted to their string representation (for example, `30` becomes `"30"`, `true` becomes `"true"`)
+- All values are stringified: numbers and booleans are converted to their string representation (for example, `30` becomes `"30"`, `true` becomes `"true"`, and arrays become `"[a, b, c]"`)
 
 > **Note**: Auto-extract mode processes the entire input field with no character limit. For large JSON payloads, consider using path-based extraction to target specific fields.
 
@@ -158,20 +158,20 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+---------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
-| doc_auto                                                                        | result                                                                               |
-|---------------------------------------------------------------------------------+--------------------------------------------------------------------------------------|
-| {"user":{"name":"John","age":30},"tags":["java","sql"],"active":true}           | {'user.age': '30', 'tags{}': ['java', 'sql'], 'user.name': 'John', 'active': 'true'} |
-| {"user":{"name":"Jane","age":25},"tags":["python"],"active":null}               | {'user.age': '25', 'tags{}': 'python', 'user.name': 'Jane', 'active': 'null'}        |
-| {"user":{"name":"Bob","age":35},"tags":["go","rust","sql"],"user.name":"Bobby"} | {'user.age': '35', 'tags{}': ['go', 'rust', 'sql'], 'user.name': ['Bob', 'Bobby']}   |
-+---------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
++---------------------------------------------------------------------------------+------------------------------------------------------------------------------------+
+| doc_auto                                                                        | result                                                                             |
+|---------------------------------------------------------------------------------+------------------------------------------------------------------------------------|
+| {"user":{"name":"John","age":30},"tags":["java","sql"],"active":true}           | {'user.age': '30', 'tags{}': '[java, sql]', 'user.name': 'John', 'active': 'true'} |
+| {"user":{"name":"Jane","age":25},"tags":["python"],"active":null}               | {'user.age': '25', 'tags{}': 'python', 'user.name': 'Jane', 'active': 'null'}      |
+| {"user":{"name":"Bob","age":35},"tags":["go","rust","sql"],"user.name":"Bobby"} | {'user.age': '35', 'tags{}': '[go, rust, sql]', 'user.name': '[Bob, Bobby]'}       |
++---------------------------------------------------------------------------------+------------------------------------------------------------------------------------+
 ```
   
 The flattening rules demonstrated in this example:
 
 - Nested objects use dotted keys: `user.name` and `user.age` are extracted from `{"user": {"name": "John", "age": 30}}`
 - Arrays use `{}` suffix: `tags{}` is extracted from `{"tags": ["java", "sql"]}`
-- Duplicate logical keys merge into arrays: in the third row, both `"user": {"name": "Bob"}` (nested) and `"user.name": "Bobby"` (direct dotted key) resolve to the same key `user.name`, so their values merge into `['Bob', 'Bobby']`
-- All values are strings: numeric `30` becomes `'30'`, boolean `true` becomes `'true'`
+- Duplicate logical keys merge into arrays: in the third row, both `"user": {"name": "Bob"}` (nested) and `"user.name": "Bobby"` (direct dotted key) resolve to the same key `user.name`, so their values merge into `'[Bob, Bobby]'`
+- All values are strings: numeric `30` becomes `'30'`, boolean `true` becomes `'true'`, and arrays become strings like `'[java, sql]'`
 - Null values are preserved: in the second row, `"active": null` is kept as `'active': 'null'` in the map
   

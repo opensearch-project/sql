@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
+import static java.util.stream.Collectors.toMap;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -72,6 +73,11 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     }
   }
 
+  /**
+   * Evaluate the JSON extract-all function. Returns a {@code Map<String, String>} where keys are
+   * dot-separated JSON paths (with {@code {}} suffix for arrays) and values are stringified. List
+   * values are stringified via {@code String.valueOf}, which produces {@code [a, b, c]} format.
+   */
   public static Object eval(Object... args) {
     if (args.length < 1) {
       return null;
@@ -86,27 +92,9 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     return parsed == null ? null : stringifyMap(parsed);
   }
 
-  /**
-   * Convert all values in the map to strings to match the declared {@code map<VARCHAR, VARCHAR>}
-   * return type. List values (from duplicate key merging) are stringified element-wise.
-   */
-  @SuppressWarnings("unchecked")
-  private static Map<String, Object> stringifyMap(Map<String, Object> map) {
-    Map<String, Object> result = new HashMap<>(map.size());
-    for (Map.Entry<String, Object> entry : map.entrySet()) {
-      Object value = entry.getValue();
-      if (value instanceof List) {
-        List<Object> original = (List<Object>) value;
-        List<String> stringified = new LinkedList<>();
-        for (Object item : original) {
-          stringified.add(String.valueOf(item));
-        }
-        result.put(entry.getKey(), stringified);
-      } else {
-        result.put(entry.getKey(), String.valueOf(value));
-      }
-    }
-    return result;
+  private static Map<String, String> stringifyMap(Map<String, Object> map) {
+    return map.entrySet().stream()
+        .collect(toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue())));
   }
 
   private static Map<String, Object> parseJson(String jsonStr) {
@@ -174,7 +162,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
   @SuppressWarnings("unchecked")
   private static void appendValue(Map<String, Object> resultMap, String path, Object value) {
     Object existingValue = resultMap.get(path);
-    if (existingValue == null && !resultMap.containsKey(path)) {
+    if (existingValue == null && !resultMap.containsKey(path)) { // key absent, not null value
       resultMap.put(path, value);
     } else if (existingValue instanceof List) {
       ((List<Object>) existingValue).add(value);

@@ -18,7 +18,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 
-/** AST node for the PPL {@code spath} command. */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
@@ -41,7 +40,7 @@ public class SPath extends UnresolvedPlan {
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return child == null ? ImmutableList.of() : ImmutableList.of(child);
+    return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
   }
 
   @Override
@@ -49,7 +48,12 @@ public class SPath extends UnresolvedPlan {
     return nodeVisitor.visitSpath(this, context);
   }
 
-  /** Rewrites this spath node to an equivalent {@link Eval} node. */
+  /**
+   * Rewrites this spath node to an equivalent {@link Eval} node.
+   *
+   * <p>In path mode, rewrites to {@code eval output = json_extract(input, path)}. In auto-extract
+   * mode (path is null), rewrites to {@code eval output = json_extract_all(input)}.
+   */
   public Eval rewriteAsEval() {
     if (path != null) {
       return rewritePathMode();
@@ -58,18 +62,22 @@ public class SPath extends UnresolvedPlan {
   }
 
   private Eval rewritePathMode() {
-    String unquotedPath = unquoteText(path);
-    String output = outField != null ? outField : unquotedPath;
+    String outField = this.outField;
+    String unquotedPath = unquoteText(this.path);
+    if (outField == null) {
+      outField = unquotedPath;
+    }
+
     return AstDSL.eval(
-        child,
+        this.child,
         AstDSL.let(
-            AstDSL.field(output),
+            AstDSL.field(outField),
             AstDSL.function(
                 "json_extract", AstDSL.field(inField), AstDSL.stringLiteral(unquotedPath))));
   }
 
   private Eval rewriteAutoExtractMode() {
-    String output = outField != null ? outField : inField;
+    String output = (outField != null) ? outField : inField;
     return AstDSL.eval(
         child,
         AstDSL.let(
