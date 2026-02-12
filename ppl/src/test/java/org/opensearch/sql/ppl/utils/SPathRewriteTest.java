@@ -55,9 +55,22 @@ public class SPathRewriteTest {
     plan("source = t | spath path=a output=a");
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testSpathMissingPathArgumentHandling() {
-    plan("source = t | spath input=a output=a");
+  @Test
+  public void testSpathExtractAllRewrite() {
+    // spath input=a output=o (no path) -> eval o=json_extract_all(a)
+    SPath sp = (SPath) plan("source = t | spath input=a output=o");
+    assertEquals(
+        eval(relation("t"), let(field("o"), function("json_extract_all", field("a")))),
+        sp.rewriteAsExtractAllEval());
+  }
+
+  @Test
+  public void testSpathExtractAllDefaultOutput() {
+    // spath input=a (no path, no output) -> eval a=json_extract_all(a)
+    SPath sp = (SPath) plan("source = t | spath input=a");
+    assertEquals(
+        eval(relation("t"), let(field("a"), function("json_extract_all", field("a")))),
+        sp.rewriteAsExtractAllEval());
   }
 
   @Test

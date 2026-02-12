@@ -18,6 +18,21 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 
+/**
+ * AST node for the PPL {@code spath} command. Supports two modes:
+ *
+ * <ul>
+ *   <li>Path-based extraction ({@code path} is non-null): rewrites to {@code eval output =
+ *       json_extract(input, path)} via {@link #rewriteAsEval()}.
+ *   <li>Extract-all mode ({@code path} is null): rewrites to {@code eval output =
+ *       json_extract_all(input)} via {@link #rewriteAsExtractAllEval()}, returning a {@code
+ *       map<string, any>} with flattened keys (dotted for nested objects, {@code {}} suffix for
+ *       arrays).
+ * </ul>
+ *
+ * <p>The {@code input} parameter is always required. When {@code output} is omitted, it defaults to
+ * the path value (path mode) or the input field name (extract-all mode).
+ */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
@@ -61,5 +76,13 @@ public class SPath extends UnresolvedPlan {
             AstDSL.field(outField),
             AstDSL.function(
                 "json_extract", AstDSL.field(inField), AstDSL.stringLiteral(unquotedPath))));
+  }
+
+  public Eval rewriteAsExtractAllEval() {
+    String outField = this.outField != null ? this.outField : this.inField;
+    return AstDSL.eval(
+        this.child,
+        AstDSL.let(
+            AstDSL.field(outField), AstDSL.function("json_extract_all", AstDSL.field(inField))));
   }
 }

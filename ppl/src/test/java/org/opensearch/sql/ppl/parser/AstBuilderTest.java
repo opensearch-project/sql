@@ -938,6 +938,16 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testSpathWithNoPath() {
+    assertEqual("source=t | spath input=f", spath(relation("t"), "f", null, null));
+  }
+
+  @Test
+  public void testSpathWithNoPathButOutput() {
+    assertEqual("source=t | spath input=f output=o", spath(relation("t"), "f", "o", null));
+  }
+
+  @Test
   public void testKmeansCommand() {
     assertEqual(
         "source=t | kmeans centroids=3 iterations=2 distance_type='l1'",
