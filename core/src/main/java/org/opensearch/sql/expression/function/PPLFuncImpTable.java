@@ -80,7 +80,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR_OF
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ILIKE;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_APPEND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_GROK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PARSE;
@@ -128,7 +127,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKEDAT
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKETIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_APPEND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_CONCAT;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_FROM_ARRAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_REMOVE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_BOOL_PREFIX;
@@ -1041,7 +1039,6 @@ public class PPLFuncImpTable {
 
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
-      registerOperator(INTERNAL_APPEND, PPLBuiltinOperators.INTERNAL_APPEND);
       registerOperator(MVDEDUP, SqlLibraryOperators.ARRAY_DISTINCT);
       registerOperator(MVFIND, PPLBuiltinOperators.MVFIND);
       registerOperator(MVZIP, PPLBuiltinOperators.MVZIP);
@@ -1049,7 +1046,6 @@ public class PPLFuncImpTable {
       registerOperator(MAP_APPEND, PPLBuiltinOperators.MAP_APPEND);
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
-      registerOperator(MAP_FROM_ARRAYS, SqlLibraryOperators.MAP_FROM_ARRAYS);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
       registerOperator(ARRAY_SLICE, SqlLibraryOperators.ARRAY_SLICE);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);

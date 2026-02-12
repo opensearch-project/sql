@@ -198,11 +198,7 @@ public class MatcherUtils {
   public static <T> void verify(JSONArray array, Matcher<T>... matchers) {
     List<T> objects = new ArrayList<>();
     array.iterator().forEachRemaining(o -> objects.add((T) o));
-    assertEquals(
-        String.format(
-            "Expected %d, but %d. objects=%s", matchers.length, objects.size(), objects.toString()),
-        matchers.length,
-        objects.size());
+    assertEquals(matchers.length, objects.size());
     assertThat(objects, containsInAnyOrder(matchers));
   }
 
@@ -303,10 +299,6 @@ public class MatcherUtils {
         return array.similar(new JSONArray(expectedObjects));
       }
     };
-  }
-
-  public static JSONArray array(Object... objects) {
-    return new JSONArray(objects);
   }
 
   public static TypeSafeMatcher<JSONArray> closeTo(Object... values) {

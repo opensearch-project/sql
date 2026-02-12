@@ -14,7 +14,6 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
-import static org.opensearch.sql.calcite.plan.DynamicFieldsConstants.DYNAMIC_FIELDS_MAP;
 import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupNotNull;
 import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupOrNull;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_MAIN;
@@ -79,9 +78,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.AstNodeUtils;
 import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
-import org.opensearch.sql.ast.analysis.FieldResolutionResult;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
@@ -91,6 +89,7 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
@@ -101,6 +100,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFrame.FrameType;
 import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.AddColTotals;
 import org.opensearch.sql.ast.tree.AddTotals;
@@ -158,7 +158,6 @@ import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
-import org.opensearch.sql.calcite.utils.JoinAndLookupUtils.OverwriteMode;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -244,8 +243,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitFilter(Filter node, CalcitePlanContext context) {
     visitChildren(node, context);
-    boolean containsSubqueryExpression =
-        AstNodeUtils.containsSubqueryExpression(node.getCondition());
+    boolean containsSubqueryExpression = containsSubqueryExpression(node.getCondition());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     if (containsSubqueryExpression) {
       context.relBuilder.variable(v::set);
@@ -374,16 +372,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  private boolean containsSubqueryExpression(Node expr) {
+    if (expr == null) {
+      return false;
+    }
+    if (expr instanceof SubqueryExpression) {
+      return true;
+    }
+    if (expr instanceof Let l) {
+      return containsSubqueryExpression(l.getExpression());
+    }
+    for (Node child : expr.getChild()) {
+      if (containsSubqueryExpression(child)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @Override
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
 
     if (isSingleAllFieldsProject(node)) {
       return handleAllFieldsProject(node, context);
-    }
-
-    if (DynamicFieldsHelper.isDynamicFieldsExists(context)) {
-      rejectWildcardNotAtTheEnd(node);
     }
 
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
@@ -400,20 +412,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.project(expandedFields);
     }
     return context.relBuilder.peek();
-  }
-
-  /**
-   * Reject if wildcard(`*`) is specified other than at the end, this is a limitation until field
-   * ordering for dynamic field is implemented.
-   */
-  private void rejectWildcardNotAtTheEnd(Project node) {
-    List<UnresolvedExpression> list = node.getProjectList();
-    for (int i = 0; i < list.size() - 1; i++) {
-      if (list.get(i) instanceof AllFields) {
-        throw new IllegalArgumentException(
-            "Wildcard can be placed only at the end of the fields list (limit of spath command).");
-      }
-    }
   }
 
   private boolean isSingleAllFieldsProject(Project node) {
@@ -449,7 +447,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           if (WildcardUtils.containsWildcard(fieldName)) {
             List<String> matchingFields =
                 WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
-                    .filter(f -> !isMetadataField(f) && !f.equals(DYNAMIC_FIELDS_MAP))
+                    .filter(f -> !isMetadataField(f))
                     .filter(addedFields::add)
                     .toList();
             if (matchingFields.isEmpty()) {
@@ -507,7 +505,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
-  private static boolean isMetadataField(String fieldName) {
+  private boolean isMetadataField(String fieldName) {
     return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
   }
 
@@ -800,40 +798,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitSpath(SPath node, CalcitePlanContext context) {
-    if (node.getPath() != null) {
-      return visitEval(node.rewriteAsEval(), context);
-    } else {
-      return spathExtractAll(node, context);
-    }
-  }
-
-  private RelNode spathExtractAll(SPath node, CalcitePlanContext context) {
-    visitChildren(node, context);
-
-    FieldResolutionResult resolutionResult = context.resolveFields(node);
-
-    // 1. Extract all fields from JSON in `inField`
-    RexNode inField = rexVisitor.analyze(AstDSL.field(node.getInField()), context);
-    RexNode map = context.rexBuilder.makeCall(BuiltinFunctionName.JSON_EXTRACT_ALL, inField);
-
-    // 2. Project items from FieldResolutionResult
-    Set<String> existingFields = new HashSet<>(DynamicFieldsHelper.getStaticFields(context));
-    List<String> sortedRegularFieldNames =
-        resolutionResult.getRegularFields().stream().sorted().collect(Collectors.toList());
-    List<RexNode> fields =
-        DynamicFieldsHelper.buildRegularFieldProjections(
-            map, sortedRegularFieldNames, existingFields, context);
-
-    // 3. Add _MAP field for dynamic fields when wildcards present
-    if (resolutionResult.hasWildcards()) {
-      RexNode dynamicMapField =
-          DynamicFieldsHelper.buildDynamicMapFieldProjection(
-              map, sortedRegularFieldNames, existingFields, context);
-      fields.add(context.relBuilder.alias(dynamicMapField, DYNAMIC_FIELDS_MAP));
-    }
-
-    context.relBuilder.project(fields);
-    return context.relBuilder.peek();
+    return visitEval(node.rewriteAsEval(), context);
   }
 
   @Override
@@ -976,7 +941,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     node.getExpressionList()
         .forEach(
             expr -> {
-              boolean containsSubqueryExpression = AstNodeUtils.containsSubqueryExpression(expr);
+              boolean containsSubqueryExpression = containsSubqueryExpression(expr);
               final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
               if (containsSubqueryExpression) {
                 context.relBuilder.variable(v::set);
@@ -1388,19 +1353,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
-    DynamicFieldsHelper.adjustJoinInputsForDynamicFields(
-        node.getLeftAlias(), node.getRightAlias(), context);
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
-      List<String> leftColumns = DynamicFieldsHelper.getLeftStaticFields(context);
-      List<String> rightColumns = DynamicFieldsHelper.getRightStaticFields(context);
+      List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
+      List<String> rightColumns = context.relBuilder.peek().getRowType().getFieldNames();
       List<String> duplicatedFieldNames =
-          leftColumns.stream()
-              .filter(
-                  column ->
-                      !DynamicFieldsHelper.isDynamicFieldMap(column)
-                          && rightColumns.contains(column))
-              .toList();
+          leftColumns.stream().filter(rightColumns::contains).toList();
       RexNode joinCondition;
       if (node.getJoinFields().isPresent()) {
         joinCondition =
@@ -1422,7 +1380,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         return context.relBuilder.peek();
       }
       List<RexNode> toBeRemovedFields;
-      if (node.isOverwrite()) {
+      if (node.getArgumentMap().get("overwrite") == null // 'overwrite' default value is true
+          || (node.getArgumentMap().get("overwrite").equals(Literal.TRUE))) {
         toBeRemovedFields =
             duplicatedFieldNames.stream()
                 .map(field -> JoinAndLookupUtils.analyzeFieldsForLookUp(field, true, context))
@@ -1457,8 +1416,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (!toBeRemovedFields.isEmpty()) {
         context.relBuilder.projectExcept(toBeRemovedFields);
       }
-      JoinAndLookupUtils.mergeDynamicFieldsAsNeeded(
-          context, node.isOverwrite() ? OverwriteMode.RIGHT_WINS : OverwriteMode.LEFT_WINS);
     } else {
       // The join-with-criteria grammar doesn't allow empty join condition
       RexNode joinCondition =
@@ -1475,8 +1432,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // column name with numeric suffix, e.g. ON t1.id = t2.id, the output contains `id` and `id0`
       // when a new project add to stack. To avoid `id0`, we will rename the `id0` to `alias.id`
       // or `tableIdentifier.id`:
-      List<String> leftColumns = DynamicFieldsHelper.getLeftStaticFields(context);
-      List<String> rightColumns = DynamicFieldsHelper.getRightStaticFields(context);
+      List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
+      List<String> rightColumns = context.relBuilder.peek().getRowType().getFieldNames();
       List<String> rightTableName =
           PlanUtils.findTable(context.relBuilder.peek()).getQualifiedName();
       // Using `table.column` instead of `catalog.database.table.column` as column prefix because
@@ -1491,7 +1448,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           rightColumns.stream()
               .map(
                   col ->
-                      !DynamicFieldsHelper.isDynamicFieldMap(col) && leftColumns.contains(col)
+                      leftColumns.contains(col)
                           ? node.getRightAlias()
                               .map(a -> a + "." + col)
                               .orElse(rightTableQualifiedName + "." + col)
@@ -1514,7 +1471,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       addSysLimitForJoinSubsearch(context);
       context.relBuilder.join(
           JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
-      JoinAndLookupUtils.mergeDynamicFieldsAsNeeded(context, OverwriteMode.LEFT_WINS);
       JoinAndLookupUtils.renameToExpectedFields(
           rightColumnsWithAliasIfConflict, leftColumns.size(), context);
     }
@@ -2284,10 +2240,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private RelNode mergeTableAndResolveColumnConflict(
       RelNode mainNode, RelNode subqueryNode, CalcitePlanContext context) {
-    mainNode = DynamicFieldsHelper.adjustFieldsForDynamicFields(mainNode, subqueryNode, context);
-    subqueryNode =
-        DynamicFieldsHelper.adjustFieldsForDynamicFields(subqueryNode, mainNode, context);
-
     // Use shared schema merging logic that handles type conflicts via field renaming
     List<RelNode> nodesToMerge = Arrays.asList(mainNode, subqueryNode);
     List<RelNode> projectedNodes =
@@ -2309,7 +2261,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       prunedSubSearch.accept(this, context);
       subsearchNodes.add(context.relBuilder.build());
     }
-    subsearchNodes = DynamicFieldsHelper.adjustInputsForDynamicFields(subsearchNodes, context);
 
     // Use shared schema merging logic that handles type conflicts via field renaming
     List<RelNode> alignedNodes =
