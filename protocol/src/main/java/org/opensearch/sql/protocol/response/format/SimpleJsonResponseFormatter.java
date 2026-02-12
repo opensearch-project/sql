@@ -6,6 +6,8 @@
 package org.opensearch.sql.protocol.response.format;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +56,13 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
     response.columnNameTypes().forEach((name, type) -> json.column(new Column(name, type)));
 
     json.datarows(fetchDataRows(response));
+
+    // Populate highlights if present
+    List<Map<String, Object>> highlights = response.highlights();
+    if (highlights.stream().anyMatch(Objects::nonNull)) {
+      json.highlights(highlights);
+    }
+
     formatMetric.set(System.nanoTime() - formatTime);
 
     json.profile(QueryProfiling.current().finish());
@@ -79,6 +88,7 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
     private final List<Column> schema;
 
     private final Object[][] datarows;
+    private final List<Map<String, Object>> highlights;
 
     private long total;
     private long size;

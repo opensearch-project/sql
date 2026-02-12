@@ -5,11 +5,15 @@
 
 package org.opensearch.sql.protocol.response;
 
+import static org.opensearch.sql.expression.HighlightExpression.HIGHLIGHT_FIELD;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -82,19 +86,48 @@ public class QueryResult implements Iterable<Object[]> {
 
   @Override
   public Iterator<Object[]> iterator() {
-    // Any chance to avoid copy for json response generation?
     return exprValues.stream()
         .map(ExprValueUtils::getTupleValue)
-        .map(Map::values)
-        .map(this::convertExprValuesToValues)
+        .map(
+            tuple ->
+                tuple.entrySet().stream()
+                    .filter(e -> !HIGHLIGHT_FIELD.equals(e.getKey()))
+                    .map(e -> e.getValue().value())
+                    .toArray(Object[]::new))
         .iterator();
+  }
+
+  /**
+   * Extract highlight data from each result row. Each row may contain a {@code _highlight} field
+   * added by {@code OpenSearchResponse.addHighlightsToBuilder()} and preserved through projection.
+   * Returns a list parallel to datarows where each entry is either a map of field name to highlight
+   * fragments, or null if no highlight data exists for that row.
+   *
+   * @return list of highlight maps, one per row
+   */
+  public List<Map<String, Object>> highlights() {
+    return exprValues.stream()
+        .map(ExprValueUtils::getTupleValue)
+        .map(
+            tuple -> {
+              ExprValue hl = tuple.get(HIGHLIGHT_FIELD);
+              if (hl == null || hl.isMissing()) {
+                return null;
+              }
+              Map<String, Object> hlMap = new LinkedHashMap<>();
+              for (Map.Entry<String, ExprValue> entry : hl.tupleValue().entrySet()) {
+                hlMap.put(
+                    entry.getKey(),
+                    entry.getValue().collectionValue().stream()
+                        .map(ExprValue::stringValue)
+                        .collect(Collectors.toList()));
+              }
+              return (Map<String, Object>) hlMap;
+            })
+        .collect(Collectors.toList());
   }
 
   private String getColumnName(Column column) {
     return (column.getAlias() != null) ? column.getAlias() : column.getName();
-  }
-
-  private Object[] convertExprValuesToValues(Collection<ExprValue> exprValues) {
-    return exprValues.stream().map(ExprValue::value).toArray(Object[]::new);
   }
 }

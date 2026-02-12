@@ -40,6 +40,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
+import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.common.setting.Settings;
@@ -157,6 +158,27 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                   : filter.getCondition()),
           (OSRequestBuilderAction)
               requestBuilder -> requestBuilder.pushDownFilterForCalcite(queryExpression.builder()));
+
+      // Auto-inject wildcard highlight for PPL search command result highlighting.
+      // Only adds highlight when the scan is marked with a SEARCH_COMMAND hint
+      // (set by CalciteRelNodeVisitor.visitSearch), scoping it to the search command only.
+      // Uses OSD custom tags so the frontend getHighlightHtml() can convert to <mark>.
+      if (PPLHintUtils.isSearchCommand(this)) {
+        newScan.pushDownContext.add(
+            PushDownType.HIGHLIGHT,
+            "auto_highlight",
+            (OSRequestBuilderAction)
+                requestBuilder -> {
+                  if (requestBuilder.getSourceBuilder().highlighter() == null) {
+                    HighlightBuilder highlightBuilder =
+                        new HighlightBuilder()
+                            .field(new HighlightBuilder.Field("*").numOfFragments(0))
+                            .preTags("@opensearch-dashboards-highlighted-field@")
+                            .postTags("@/opensearch-dashboards-highlighted-field@");
+                    requestBuilder.getSourceBuilder().highlighter(highlightBuilder);
+                  }
+                });
+      }
 
       // If the query expression is partial, we need to replace the input of the filter with the
       // partial pushed scan and the filter condition with non-pushed-down conditions.
