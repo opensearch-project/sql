@@ -36,7 +36,7 @@ class OpenSearchResourceMonitorTest {
   }
 
   @Test
-  void isHealthy() {
+  void testIsHealthy() {
     when(memoryMonitor.isMemoryHealthy(anyLong())).thenReturn(true);
 
     OpenSearchResourceMonitor resourceMonitor =
@@ -45,7 +45,7 @@ class OpenSearchResourceMonitorTest {
   }
 
   @Test
-  void notHealthyFastFailure() {
+  void testNotHealthyFastFailure() {
     when(memoryMonitor.isMemoryHealthy(anyLong()))
         .thenThrow(OpenSearchMemoryHealthy.MemoryUsageExceedFastFailureException.class);
 
@@ -56,7 +56,7 @@ class OpenSearchResourceMonitorTest {
   }
 
   @Test
-  void notHealthyWithRetry() {
+  void testNotHealthyWithRetry() {
     when(memoryMonitor.isMemoryHealthy(anyLong()))
         .thenThrow(OpenSearchMemoryHealthy.MemoryUsageExceedException.class);
 
@@ -67,7 +67,7 @@ class OpenSearchResourceMonitorTest {
   }
 
   @Test
-  void healthyWithRetry() {
+  void testHealthyWithRetry() {
 
     when(memoryMonitor.isMemoryHealthy(anyLong()))
         .thenThrow(OpenSearchMemoryHealthy.MemoryUsageExceedException.class)
@@ -80,7 +80,7 @@ class OpenSearchResourceMonitorTest {
   }
 
   @Test
-  void getStatusHealthy() {
+  void testGetStatusHealthy() {
     ResourceStatus healthyStatus =
         ResourceStatus.builder()
             .healthy(true)
@@ -98,7 +98,7 @@ class OpenSearchResourceMonitorTest {
   }
 
   @Test
-  void getStatusUnhealthyWithRetry() {
+  void testGetStatusUnhealthyWithRetry() {
     ResourceStatus unhealthyStatus =
         ResourceStatus.builder()
             .healthy(false)
@@ -117,7 +117,7 @@ class OpenSearchResourceMonitorTest {
   }
 
   @Test
-  void getStatusBecomesHealthyAfterRetry() {
+  void testGetStatusBecomesHealthyAfterRetry() {
     ResourceStatus unhealthyStatus =
         ResourceStatus.builder()
             .healthy(false)
