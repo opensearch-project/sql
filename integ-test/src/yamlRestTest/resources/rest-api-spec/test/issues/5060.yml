@@ -1,0 +1,66 @@
+# Issue: https://github.com/opensearch-project/sql/issues/5060
+# PR: https://github.com/opensearch-project/sql/pull/5133
+# When Calcite falls back to V2 and V2 also fails, return the original Calcite error instead of V2's.
+#
+# The AD command forces a V2 fallback, then join is only supported in V3 (Calcite).
+# This test verifies that when both Calcite and V2 fail, the error message correctly shows
+# the Calcite error (CalciteUnsupportedException) rather than the V2 error.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: test_join_ad_error_5133
+        body:
+          mappings:
+            properties:
+              "event.id":
+                type: keyword
+              "@timestamp":
+                type: date
+              message:
+                type: text
+  - do:
+      bulk:
+        index: test_join_ad_error_5133
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"event.id": "evt1", "@timestamp": "2025-01-15T10:30:00Z", "message": "test message 1"}'
+          - '{"index": {}}'
+          - '{"event.id": "evt2", "@timestamp": "2025-01-15T10:31:00Z", "message": "test message 2"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+  - do:
+      indices.delete:
+        index: test_join_ad_error_5133
+
+---
+"Join with AD command should return Calcite error when both Calcite and V2 fail":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  # Before the fix: Returns V2 error "Join is supported only when plugins.calcite.enabled=true" (status 500)
+  # After the fix: Returns Calcite error "AD command is unsupported in Calcite" (status 400)
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_join_ad_error_5133 | join `event.id` [source = test_join_ad_error_5133] | ad time_field='@timestamp'
+  - match: { "$body": "/CalciteUnsupportedException/" }
+  - match: { "$body": "/AD\\s+command\\s+is\\s+unsupported\\s+in\\s+Calcite/" }

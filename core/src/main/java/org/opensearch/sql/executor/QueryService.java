@@ -64,6 +64,24 @@ public class QueryService {
   @Getter(lazy = true)
   private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor(dataSourceService);
 
+  /** Helper: depending on the type of error, either re-raise or propagate to the listener. */
+  private void propagateCalciteError(Throwable t, ResponseListener<?> listener)
+      throws VirtualMachineError {
+    if (t instanceof VirtualMachineError) {
+      // throw and fast fail the VM errors such as OOM (same with v2).
+      throw (VirtualMachineError) t;
+    }
+    if (t instanceof Exception) {
+      listener.onFailure((Exception) t);
+    } else if (t instanceof ExceptionInInitializerError
+        && ((ExceptionInInitializerError) t).getException() instanceof Exception) {
+      listener.onFailure((Exception) ((ExceptionInInitializerError) t).getException());
+    } else {
+      // Calcite may throw AssertError during query execution.
+      listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
+    }
+  }
+
   /** Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.<br> */
   public void execute(
       UnresolvedPlan plan,
@@ -112,18 +130,7 @@ public class QueryService {
               log.warn("Fallback to V2 query engine since got exception", t);
               executeWithLegacy(plan, queryType, listener, Optional.of(t));
             } else {
-              if (t instanceof Exception) {
-                listener.onFailure((Exception) t);
-              } else if (t instanceof ExceptionInInitializerError
-                  && ((ExceptionInInitializerError) t).getException() instanceof Exception) {
-                listener.onFailure((Exception) ((ExceptionInInitializerError) t).getException());
-              } else if (t instanceof VirtualMachineError) {
-                // throw and fast fail the VM errors such as OOM (same with v2).
-                throw t;
-              } else {
-                // Calcite may throw AssertError during query execution.
-                listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
-              }
+              propagateCalciteError(t, listener);
             }
           }
         },
@@ -154,12 +161,7 @@ public class QueryService {
               log.warn("Fallback to V2 query engine since got exception", t);
               explainWithLegacy(plan, queryType, listener, mode, Optional.of(t));
             } else {
-              if (t instanceof Error) {
-                // Calcite may throw AssertError during query execution.
-                listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
-              } else {
-                listener.onFailure((Exception) t);
-              }
+              propagateCalciteError(t, listener);
             }
           }
         },
@@ -174,11 +176,11 @@ public class QueryService {
     try {
       executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);
     } catch (Exception e) {
-      if (shouldUseCalcite(queryType) && isCalciteFallbackAllowed(null)) {
-        // if there is a failure thrown from Calcite and execution after fallback V2
-        // keeps failure, we should throw the failure from Calcite.
-        calciteFailure.ifPresentOrElse(
-            t -> listener.onFailure(new RuntimeException(t)), () -> listener.onFailure(e));
+      if (calciteFailure.isPresent()) {
+        // This happens if Calcite fell back to V2 due to some issue, and then V2 also failed.
+        // Prefer the Calcite error.
+        // https://github.com/opensearch-project/sql/issues/5060
+        propagateCalciteError(calciteFailure.get(), listener);
       } else {
         listener.onFailure(e);
       }
@@ -207,11 +209,11 @@ public class QueryService {
       }
       executionEngine.explain(plan(analyze(plan, queryType)), listener);
     } catch (Exception e) {
-      if (shouldUseCalcite(queryType) && isCalciteFallbackAllowed(null)) {
-        // if there is a failure thrown from Calcite and execution after fallback V2
-        // keeps failure, we should throw the failure from Calcite.
-        calciteFailure.ifPresentOrElse(
-            t -> listener.onFailure(new RuntimeException(t)), () -> listener.onFailure(e));
+      if (calciteFailure.isPresent()) {
+        // This happens if Calcite fell back to V2 due to some issue, and then V2 also failed.
+        // Prefer the Calcite error.
+        // https://github.com/opensearch-project/sql/issues/5060
+        propagateCalciteError(calciteFailure.get(), listener);
       } else {
         listener.onFailure(e);
       }
