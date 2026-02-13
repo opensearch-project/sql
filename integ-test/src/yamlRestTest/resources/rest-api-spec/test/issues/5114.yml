@@ -1,0 +1,97 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  - do:
+      indices.create:
+        index: issue5114
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              id:
+                type: integer
+              name:
+                type: keyword
+              reportsTo:
+                type: keyword
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5114", "_id": "1"}}'
+          - '{"id": 1, "name": "Dev", "reportsTo": "Eliot"}'
+          - '{"index": {"_index": "issue5114", "_id": "2"}}'
+          - '{"id": 2, "name": "Eliot", "reportsTo": "Ron"}'
+          - '{"index": {"_index": "issue5114", "_id": "3"}}'
+          - '{"id": 3, "name": "Ron", "reportsTo": "Andrew"}'
+          - '{"index": {"_index": "issue5114", "_id": "4"}}'
+          - '{"id": 4, "name": "Andrew", "reportsTo": null}'
+          - '{"index": {"_index": "issue5114", "_id": "5"}}'
+          - '{"id": 5, "name": "Asya", "reportsTo": "Ron"}'
+          - '{"index": {"_index": "issue5114", "_id": "6"}}'
+          - '{"id": 6, "name": "Dan", "reportsTo": "Andrew"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5114
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5114: head should be preserved for non-order-equivalent deterministic sort expression":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5114 | eval a = abs(id) + 1 | sort a | fields id | head 5
+
+  - match: { total: 5 }
+  - match: { schema: [ { name: id, type: int } ] }
+
+---
+"Issue 5114: head should be preserved for non-deterministic sort expression":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5114 | eval a = rand() | sort a | fields id | head 5
+
+  - match: { total: 5 }
+  - match: { schema: [ { name: id, type: int } ] }
+
+---
+"Issue 5114 control: order-equivalent expression remains correct":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5114 | eval a = id + 1 | sort a | fields id | head 5
+
+  - match: { total: 5 }
+  - match: { schema: [ { name: id, type: int } ] }
+  - match: { datarows: [ [ 1 ], [ 2 ], [ 3 ], [ 4 ], [ 5 ] ] }
