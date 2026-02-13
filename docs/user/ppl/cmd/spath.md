@@ -13,7 +13,7 @@ The `spath` command extracts fields from structured JSON data. It operates in tw
 The `spath` command has the following syntax:
 
 ```syntax
-spath input=<field> [output=<field>] [path=]<path>
+spath input=<field> [output=<field>] [[path=]<path>]
 ```
 
 ## Parameters
@@ -40,10 +40,7 @@ When `path` is omitted, the `spath` command runs in auto-extract mode. Instead o
 
 > **Note**: Auto-extract mode processes the entire input field with no character limit. For large JSON payloads, consider using path-based extraction to target specific fields.
 
-### Corner cases
-
-- Invalid or malformed JSON returns partial results containing any fields successfully parsed before the error.
-- Empty JSON object (`{}`) returns an empty map.
+> **Note**: Invalid or malformed JSON returns partial results containing any fields successfully parsed before the error. Empty JSON object (`{}`) returns an empty map.
 
 ## Example 1: Basic field extraction
 

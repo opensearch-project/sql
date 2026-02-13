@@ -75,8 +75,8 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
 
   /**
    * Evaluate the JSON extract-all function. Returns a {@code Map<String, String>} where keys are
-   * dot-separated JSON paths (with {@code {}} suffix for arrays) and values are stringified. List
-   * values are stringified via {@code String.valueOf}, which produces {@code [a, b, c]} format.
+   * dot-separated JSON paths (with {@code {}} suffix for arrays) and all values are strings. Merged
+   * array values use {@code [a, b, c]} format.
    */
   public static Object eval(Object... args) {
     if (args.length < 1) {
@@ -92,9 +92,14 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     return parsed == null ? null : stringifyMap(parsed);
   }
 
+  // TODO: JSON parsing dominates cost; consider stringify scalars in place during parsing
+  //  to avoid this extra pass.
   private static Map<String, String> stringifyMap(Map<String, Object> map) {
     return map.entrySet().stream()
-        .collect(toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue())));
+        .collect(
+            toMap(
+                Map.Entry::getKey,
+                e -> String.valueOf(e.getValue()))); // relies on List.toString() for [a, b, c]
   }
 
   private static Map<String, Object> parseJson(String jsonStr) {
