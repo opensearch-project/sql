@@ -13,14 +13,9 @@ import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
-import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
-import org.opensearch.client.Request;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
-import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
  * Integration tests for PPL permissions issue fix. Tests that PPL queries work correctly when users
@@ -31,13 +26,12 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  * for all indices instead of just the requested index when no indices were specified in the
  * SearchRequest.
  */
-public class PPLPermissionsIT extends PPLIntegTestCase {
+public class PPLPermissionsIT extends SecurityTestBase {
 
   private static final String BANK_USER = "bank_user";
   private static final String BANK_ROLE = "bank_role";
   private static final String DOG_USER = "dog_user";
   private static final String DOG_ROLE = "dog_role";
-  private static final String STRONG_PASSWORD = "StrongPassword123!";
 
   // Users for testing missing permissions
   private static final String NO_PPL_USER = "no_ppl_user";
@@ -78,10 +72,10 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
   private void createSecurityRolesAndUsers() throws IOException {
     if (!initialized) {
       // Create role for bank index access
-      createRole(BANK_ROLE, TEST_INDEX_BANK);
+      createRoleWithIndexAccess(BANK_ROLE, TEST_INDEX_BANK);
 
       // Create role for dog index access
-      createRole(DOG_ROLE, TEST_INDEX_DOG);
+      createRoleWithIndexAccess(DOG_ROLE, TEST_INDEX_DOG);
 
       // Create users and map them to roles
       createUser(BANK_USER, BANK_ROLE);
@@ -99,95 +93,10 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     }
   }
 
-  private void createRole(String roleName, String indexPattern) throws IOException {
-    Request request = new Request("PUT", "/_plugins/_security/api/roles/" + roleName);
-    request.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            """
-            {
-              "cluster_permissions": [
-                "cluster:admin/opensearch/ppl"
-              ],
-              "index_permissions": [{
-                "index_patterns": [
-                  "%s"
-                ],
-                "allowed_actions": [
-                  "indices:data/read/search*",
-                  "indices:admin/mappings/get",
-                  "indices:monitor/settings/get",
-                  "indices:data/read/point_in_time/create",
-                  "indices:data/read/point_in_time/delete"
-                ]
-              }]
-            }
-            """,
-            indexPattern));
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-
-    Response response = client().performRequest(request);
-    // Role creation returns 201 (Created) for new roles or 200 (OK) for updates
-    assertTrue(
-        response.getStatusLine().getStatusCode() == 200
-            || response.getStatusLine().getStatusCode() == 201);
-  }
-
-  private void createUser(String username, String roleName) throws IOException {
-    // Create user with password
-    Request userRequest = new Request("PUT", "/_plugins/_security/api/internalusers/" + username);
-    userRequest.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            """
-            {
-              "password": "%s",
-              "backend_roles": [],
-              "attributes": {}
-            }
-            """,
-            STRONG_PASSWORD));
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    userRequest.setOptions(restOptionsBuilder);
-
-    Response userResponse = client().performRequest(userRequest);
-    // User creation returns 201 (Created) for new users or 200 (OK) for updates
-    assertTrue(
-        userResponse.getStatusLine().getStatusCode() == 200
-            || userResponse.getStatusLine().getStatusCode() == 201);
-
-    // Map user to role
-    Request mappingRequest = new Request("PUT", "/_plugins/_security/api/rolesmapping/" + roleName);
-    mappingRequest.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            """
-            {
-              "backend_roles": [],
-              "hosts": [],
-              "users": ["%s"]
-            }
-            """,
-            username));
-
-    mappingRequest.setOptions(restOptionsBuilder);
-
-    Response mappingResponse = client().performRequest(mappingRequest);
-    // Role mapping returns 201 (Created) for new mappings or 200 (OK) for updates
-    assertTrue(
-        mappingResponse.getStatusLine().getStatusCode() == 200
-            || mappingResponse.getStatusLine().getStatusCode() == 201);
-  }
-
   /** Creates roles with missing permissions for negative testing. */
   private void createRoleWithMissingPermissions() throws IOException {
     // Role missing PPL cluster permission
-    createRoleWithSpecificPermissions(
+    createRoleWithPermissions(
         NO_PPL_ROLE,
         TEST_INDEX_BANK,
         new String[] {}, // No cluster permissions
@@ -201,7 +110,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     createUser(NO_PPL_USER, NO_PPL_ROLE);
 
     // Role missing search permissions
-    createRoleWithSpecificPermissions(
+    createRoleWithPermissions(
         NO_SEARCH_ROLE,
         TEST_INDEX_BANK,
         new String[] {"cluster:admin/opensearch/ppl"},
@@ -214,7 +123,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     createUser(NO_SEARCH_USER, NO_SEARCH_ROLE);
 
     // Role missing mapping permissions
-    createRoleWithSpecificPermissions(
+    createRoleWithPermissions(
         NO_MAPPING_ROLE,
         TEST_INDEX_BANK,
         new String[] {"cluster:admin/opensearch/ppl"},
@@ -227,7 +136,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     createUser(NO_MAPPING_USER, NO_MAPPING_ROLE);
 
     // Role missing settings permissions
-    createRoleWithSpecificPermissions(
+    createRoleWithPermissions(
         NO_SETTINGS_ROLE,
         TEST_INDEX_BANK,
         new String[] {"cluster:admin/opensearch/ppl"},
@@ -240,55 +149,11 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     createUser(NO_SETTINGS_USER, NO_SETTINGS_ROLE);
   }
 
-  /** Creates a role with specific permissions for testing. */
-  private void createRoleWithSpecificPermissions(
-      String roleName, String indexPattern, String[] clusterPermissions, String[] indexPermissions)
-      throws IOException {
-    Request request = new Request("PUT", "/_plugins/_security/api/roles/" + roleName);
-
-    StringBuilder clusterPermsJson = new StringBuilder();
-    for (int i = 0; i < clusterPermissions.length; i++) {
-      clusterPermsJson.append("\"").append(clusterPermissions[i]).append("\"");
-      if (i < clusterPermissions.length - 1) clusterPermsJson.append(",");
-    }
-
-    StringBuilder indexPermsJson = new StringBuilder();
-    for (int i = 0; i < indexPermissions.length; i++) {
-      indexPermsJson.append("\"").append(indexPermissions[i]).append("\"");
-      if (i < indexPermissions.length - 1) indexPermsJson.append(",");
-    }
-
-    request.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            """
-            {
-              "cluster_permissions": [%s],
-              "index_permissions": [{
-                "index_patterns": ["%s"],
-                "allowed_actions": [%s]
-              }]
-            }
-            """,
-            clusterPermsJson,
-            indexPattern,
-            indexPermsJson));
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-
-    Response response = client().performRequest(request);
-    assertTrue(
-        response.getStatusLine().getStatusCode() == 200
-            || response.getStatusLine().getStatusCode() == 201);
-  }
-
   /** Creates a user with minimal permissions for testing plugin-based PIT functionality. */
   private void createMinimalUserForPitTesting() throws IOException {
     // Create role with minimal permissions needed for plugin-based PIT testing
     // This role has all required permissions (PPL, search, mapping, settings, and PIT)
-    createRoleWithSpecificPermissions(
+    createRoleWithPermissions(
         MINIMAL_ROLE,
         TEST_INDEX_BANK,
         new String[] {"cluster:admin/opensearch/ppl"}, // PPL permission
@@ -306,7 +171,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
   private void createNoPitUserForTesting() throws IOException {
     // Create role with all permissions EXCEPT PIT create/delete permissions
     // This role has PPL, search, mapping, settings permissions but NO PIT permissions
-    createRoleWithSpecificPermissions(
+    createRoleWithPermissions(
         NO_PIT_ROLE,
         TEST_INDEX_BANK,
         new String[] {"cluster:admin/opensearch/ppl"}, // PPL permission
@@ -318,25 +183,6 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
           // indices:data/read/point_in_time/delete)
         });
     createUser(NO_PIT_USER, NO_PIT_ROLE);
-  }
-
-  /** Executes a PPL query as a specific user with basic authentication. */
-  private JSONObject executeQueryAsUser(String query, String username) throws IOException {
-    Request request = new Request("POST", "/_plugins/_ppl");
-    request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    restOptionsBuilder.addHeader(
-        "Authorization",
-        "Basic "
-            + java.util.Base64.getEncoder()
-                .encodeToString((username + ":" + STRONG_PASSWORD).getBytes()));
-    request.setOptions(restOptionsBuilder);
-
-    Response response = client().performRequest(request);
-    assertEquals(200, response.getStatusLine().getStatusCode());
-    return new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
   }
 
   @Test
