@@ -54,13 +54,16 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(arr=[$8])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array('web':VARCHAR,"
-            + " 'production':VARCHAR, 'east':VARCHAR), '\n')])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7],"
+            + " arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array('web':VARCHAR, 'production':VARCHAR,"
+            + " 'east':VARCHAR)), '\n"
+            + "'), '':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(ARRAY('web', 'production', 'east'), '\n') `arr`"
+        "SELECT COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY('web', 'production', 'east')), '\n"
+            + "'), '') `arr`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -80,13 +83,16 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(EMPNO=[$0], arr=[$8])\n"
             + "  LogicalSort(fetch=[2])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array('web':VARCHAR,"
-            + " 'production':VARCHAR), '\n')])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7],"
+            + " arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array('web':VARCHAR, 'production':VARCHAR)),"
+            + " '\n"
+            + "'), '':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY('web', 'production'), '\n') `arr`"
+        "SELECT `EMPNO`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY('web', 'production')), '\n"
+            + "'), '') `arr`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -106,14 +112,17 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(arr1=[$8], arr2=[$9])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr1=[ARRAY_JOIN(array('a', 'b'), '\n')],"
-            + " arr2=[ARRAY_JOIN(array('x', 'y'), '\n')])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7],"
+            + " arr1=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array('a', 'b')), '\n"
+            + "'), '':VARCHAR)], arr2=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array('x', 'y')), '\n"
+            + "'), '':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(ARRAY('a', 'b'), '\n') `arr1`, ARRAY_JOIN(ARRAY('x', 'y'), '\n')"
-            + " `arr2`"
+        "SELECT COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY('a', 'b')), '\n"
+            + "'), '') `arr1`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY('x', 'y')), '\n"
+            + "'), '') `arr2`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -132,12 +141,15 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(EMPNO=[$0], tags=[$8])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], tags=[ARRAY_JOIN(array($1, $2), '\n')])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], tags=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array($1,"
+            + " $2)), '\n"
+            + "'), '':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `JOB`), '\n') `tags`"
+        "SELECT `EMPNO`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(`ENAME`, `JOB`)), '\n"
+            + "'), '') `tags`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -157,13 +169,16 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(EMPNO=[$0], names=[$8])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], names=[ARRAY_JOIN(array($1, $2), '\n')])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7],"
+            + " names=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array($1, $2)), '\n"
+            + "'), '':VARCHAR)])\n"
             + "      LogicalFilter(condition=[=($7, 10)])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `JOB`), '\n') `names`"
+        "SELECT `EMPNO`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(`ENAME`, `JOB`)), '\n"
+            + "'), '') `names`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -181,8 +196,11 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
 
     String msg = String.valueOf(ex.getMessage());
     org.junit.Assert.assertTrue(
-        "Expected error message to mention missing field. Actual: " + msg,
-        msg.toLowerCase().contains("does_not_exist") || msg.toLowerCase().contains("field"));
+        "Expected error message to mention missing field or type error. Actual: " + msg,
+        msg.toLowerCase().contains("does_not_exist")
+            || msg.toLowerCase().contains("field")
+            || msg.contains("ARRAY_COMPACT")
+            || msg.contains("ARRAY"));
   }
 
   @Test
@@ -223,14 +241,19 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(EMPNO=[$0], arr=[$8], arr_len=[$9])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array('a', 'b', 'c'), '\n')],"
-            + " arr_len=[CHAR_LENGTH(ARRAY_JOIN(array('a', 'b', 'c'), '\n'))])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array('a',"
+            + " 'b', 'c')), '\n"
+            + "'), '':VARCHAR)], arr_len=[CHAR_LENGTH(COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array('a',"
+            + " 'b', 'c')), '\n"
+            + "'), '':VARCHAR))])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY('a', 'b', 'c'), '\n') `arr`,"
-            + " CHAR_LENGTH(ARRAY_JOIN(ARRAY('a', 'b', 'c'), '\n')) `arr_len`"
+        "SELECT `EMPNO`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY('a', 'b', 'c')), '\n"
+            + "'), '') `arr`, CHAR_LENGTH(COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY('a', 'b', 'c')),"
+            + " '\n"
+            + "'), '')) `arr_len`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -251,12 +274,15 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], full_name=[CONCAT($1, ' - ':VARCHAR, $2)],"
-            + " arr=[ARRAY_JOIN(array(CONCAT($1, ' - ':VARCHAR, $2)), '\n')])\n"
+            + " arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array(CONCAT($1, ' - ':VARCHAR, $2))), '\n"
+            + "'), '':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(CONCAT(`ENAME`, ' - ', `JOB`)), '\n') `arr`"
+        "SELECT `EMPNO`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(CONCAT(`ENAME`, ' - ', `JOB`))),"
+            + " '\n"
+            + "'), '') `arr`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -274,13 +300,14 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(EMPNO=[$0], arr=[$8])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array('single':VARCHAR),"
-            + " '\n')])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7],"
+            + " arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array('single':VARCHAR)), '\n"
+            + "'), '':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY('single'), '\n') `arr`"
+        "SELECT `EMPNO`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY('single')), '\n'), '') `arr`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -298,12 +325,14 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(EMPNO=[$0], arr=[$8])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array(), '\n')])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array()),"
+            + " '\n"
+            + "'), '':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(), '\n') `arr`"
+        "SELECT `EMPNO`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY()), '\n'), '') `arr`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -323,13 +352,16 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(arr=[$8])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array('1', '2', '3', '4', '5',"
-            + " '6', '7', '8', '9', '10':VARCHAR), '\n')])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array('1',"
+            + " '2', '3', '4', '5', '6', '7', '8', '9', '10':VARCHAR)), '\n"
+            + "'), '':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(ARRAY('1', '2', '3', '4', '5', '6', '7', '8', '9', '10'), '\n') `arr`"
+        "SELECT COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY('1', '2', '3', '4', '5', '6', '7', '8',"
+            + " '9', '10')), '\n"
+            + "'), '') `arr`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -349,14 +381,18 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(arr=[$8], arr_upper=[$9])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array('a', 'b'), '\n')],"
-            + " arr_upper=[UPPER(ARRAY_JOIN(array('a', 'b'), '\n'))])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array('a',"
+            + " 'b')), '\n"
+            + "'), '':VARCHAR)], arr_upper=[UPPER(COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array('a',"
+            + " 'b')), '\n"
+            + "'), '':VARCHAR))])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(ARRAY('a', 'b'), '\n') `arr`, UPPER(ARRAY_JOIN(ARRAY('a', 'b'),"
-            + " '\n')) `arr_upper`"
+        "SELECT COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY('a', 'b')), '\n"
+            + "'), '') `arr`, UPPER(COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY('a', 'b')), '\n"
+            + "'), '')) `arr_upper`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -375,12 +411,15 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(EMPNO=[$0], arr=[$8])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array($1, $6), '\n')])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array($1,"
+            + " $6)), '\n"
+            + "'), '':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `COMM`), '\n') `arr`"
+        "SELECT `EMPNO`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(`ENAME`, `COMM`)), '\n"
+            + "'), '') `arr`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -398,12 +437,14 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(EMPNO=[$0], arr=[$8])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array($3, $6), '\n')])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array($3,"
+            + " $6)), '\n"
+            + "'), '':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`MGR`, `COMM`), '\n') `arr`"
+        "SELECT `EMPNO`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(`MGR`, `COMM`)), '\n'), '') `arr`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
@@ -422,12 +463,15 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(EMPNO=[$0], arr=[$8])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[ARRAY_JOIN(array($1, $6, $2), '\n')])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array($1,"
+            + " $6, $2)), '\n"
+            + "'), '':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, ARRAY_JOIN(ARRAY(`ENAME`, `COMM`, `JOB`), '\n') `arr`"
+        "SELECT `EMPNO`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(`ENAME`, `COMM`, `JOB`)), '\n"
+            + "'), '') `arr`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS

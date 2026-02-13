@@ -8,11 +8,7 @@ The `nomv` command converts a multivalue (array) field into a single-value strin
 
 ### Key behaviors
 
-- The field must be a **direct field reference** of **ARRAY type**. For scalar fields, use the `array()` function to create an array first. 
-- The specified field is **replaced** with a string containing all array elements joined by newline (`\n`) characters.
-- **NULL values within the array are automatically filtered out** before joining.
-- If the field doesn't exist, an error is returned.
-- The operation uses Calcite's ARRAY_JOIN function internally (same underlying implementation as mvjoin).
+- The field must be **ARRAY type**. For scalar fields, use the `array()` function to create an array first. 
 
 ---
 
@@ -71,19 +67,6 @@ fetched rows / total rows = 1/1
 +----------------+----------+
 ```
 
-## Example 3: Error when field does not exist
-
-```ppl
-source=accounts
-| nomv does_not_exist
-```
-
-Expected output:
-```text
-{'reason': 'Invalid Query', 'details': 'Field [does_not_exist] not found.', 'type': 'IllegalArgumentException'}
-Error: Query returned no data
-```
-
 ---
 
 ## Notes
@@ -91,9 +74,8 @@ Error: Query returned no data
 - The `nomv` command is only available when the Calcite query engine is enabled.
 - This command is particularly useful when you need to export or display multivalue fields as single strings.
 - The newline delimiter (`\n`) is fixed and cannot be customized. For custom delimiters, use the `mvjoin` function directly in an eval expression.
-- NULL values are automatically filtered out during the join operation, so they do not contribute empty strings to the output.
+- NULL values within the array are automatically filtered out when converting the array to a string, so they do not appear in the output or contribute empty lines.
 
 ## Related commands
 
 - `mvjoin()` -- Function used by nomv internally to join array elements with a custom delimiter
-- [`eval`](eval.md) -- Create computed fields using the `array()` and `mvjoin()` functions

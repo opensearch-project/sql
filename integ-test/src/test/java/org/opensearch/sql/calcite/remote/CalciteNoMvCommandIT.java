@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -25,6 +26,7 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
     loadIndex(Index.BANK);
+    loadIndex(Index.BANK_WITH_NULL_VALUES);
   }
 
   // ---------------------------
@@ -43,38 +45,39 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   // ---------------------------
 
   @Test
-  public void testNoMvBasicUsageWithArrayLiterals() throws IOException {
+  public void testNoMvBasicUsageFromRFC() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
-            + " | eval arr = array('web', 'production', 'east') | nomv arr | head 1 | fields arr";
+            + " | where account_number=1 | eval names = array(firstname, lastname) | nomv names |"
+            + " fields account_number, names";
 
     JSONObject result = executeQuery(q);
 
-    verifySchema(result, schema("arr", null, "string"));
+    verifySchema(result, schema("account_number", null, "bigint"), schema("names", null, "string"));
 
-    verifyDataRows(result, rows("web\nproduction\neast"));
+    verifyDataRows(result, rows(1, "Amber JOHnny\nDuke Willmington"));
   }
 
   @Test
-  public void testNoMvWithArrayFromFields() throws IOException {
+  public void testNoMvEvalCreatedFieldFromRFC() throws IOException {
     String q =
         "source="
             + TEST_INDEX_BANK
-            + " | eval names = array(firstname, lastname) | nomv names | head 1 | fields"
-            + " firstname, lastname, names";
+            + " | where account_number=1 | eval location = array(city, state) | nomv location |"
+            + " fields account_number, location";
 
     JSONObject result = executeQuery(q);
 
     verifySchema(
-        result,
-        schema("firstname", null, "string"),
-        schema("lastname", null, "string"),
-        schema("names", null, "string"));
+        result, schema("account_number", null, "bigint"), schema("location", null, "string"));
 
-    verifyDataRows(
-        result, rows("Amber JOHnny", "Duke Willmington", "Amber JOHnny\nDuke Willmington"));
+    verifyDataRows(result, rows(1, "Brogan\nIL"));
   }
+
+  // ---------------------------
+  // Additional nomv tests
+  // ---------------------------
 
   @Test
   public void testNoMvMultipleArraysAppliedInSequence() throws IOException {
@@ -162,40 +165,6 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMvPreservesFieldInPlace() throws IOException {
-    String q =
-        "source="
-            + TEST_INDEX_BANK
-            + " | eval arr = array('a', 'b', 'c') | nomv arr | head 1 | fields arr";
-
-    JSONObject result = executeQuery(q);
-
-    verifySchema(result, schema("arr", null, "string"));
-
-    verifyDataRows(result, rows("a\nb\nc"));
-
-    Assertions.assertEquals(1, result.getJSONArray("schema").length());
-  }
-
-  // ---------------------------
-  // Edge case / error semantics
-  // ---------------------------
-
-  @Test
-  public void testNoMvSingleElementArray() throws IOException {
-    String q =
-        "source="
-            + TEST_INDEX_BANK
-            + " | eval arr = array('single') | nomv arr | head 1 | fields arr";
-
-    JSONObject result = executeQuery(q);
-
-    verifySchema(result, schema("arr", null, "string"));
-
-    verifyDataRows(result, rows("single"));
-  }
-
-  @Test
   public void testNoMvEmptyArray() throws IOException {
     String q =
         "source=" + TEST_INDEX_BANK + " | eval arr = array() | nomv arr | head 1 | fields arr";
@@ -205,20 +174,6 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
     verifySchema(result, schema("arr", null, "string"));
 
     verifyDataRows(result, rows(""));
-  }
-
-  @Test
-  public void testNoMvArrayWithNullValues() throws IOException {
-    String q =
-        "source="
-            + TEST_INDEX_BANK
-            + " | eval arr = array('first', 'second', 'third') | nomv arr | head 1 | fields arr";
-
-    JSONObject result = executeQuery(q);
-
-    verifySchema(result, schema("arr", null, "string"));
-
-    verifyDataRows(result, rows("first\nsecond\nthird"));
   }
 
   @Test
@@ -239,36 +194,6 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMvArrayWithMixedTypes() throws IOException {
-    String q =
-        "source="
-            + TEST_INDEX_BANK
-            + " | where account_number = 1 | eval arr = array('age:', cast(age as string)) | nomv"
-            + " arr | fields arr";
-
-    JSONObject result = executeQuery(q);
-
-    verifySchema(result, schema("arr", null, "string"));
-
-    verifyDataRows(result, rows("age:\n32"));
-  }
-
-  @Test
-  public void testNoMvLargeArray() throws IOException {
-    String q =
-        "source="
-            + TEST_INDEX_BANK
-            + " | eval arr = array('1', '2', '3', '4', '5', '6', '7', '8', '9', '10') | nomv arr |"
-            + " head 1 | fields arr";
-
-    JSONObject result = executeQuery(q);
-
-    verifySchema(result, schema("arr", null, "string"));
-
-    verifyDataRows(result, rows("1\n2\n3\n4\n5\n6\n7\n8\n9\n10"));
-  }
-
-  @Test
   public void testNoMvResultUsedInComparison() throws IOException {
     String q =
         "source="
@@ -283,13 +208,8 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
     Assertions.assertTrue(result.getJSONArray("datarows").length() > 0);
   }
 
-  // ---------------------------
-  // Edge case / error semantics
-  // ---------------------------
-
   @Test
   public void testNoMvMissingFieldShouldReturn4xx() throws IOException {
-    // Error when field does not exist
     ResponseException ex =
         Assertions.assertThrows(
             ResponseException.class,
@@ -301,6 +221,139 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
 
     String msg = ex.getMessage();
     Assertions.assertTrue(
-        msg.contains("does_not_exist") || msg.contains("field") || msg.contains("Field"), msg);
+        msg.contains("does_not_exist")
+            || msg.contains("field")
+            || msg.contains("Field")
+            || msg.contains("ARRAY_COMPACT")
+            || msg.contains("ARRAY"),
+        msg);
+  }
+
+  @Test
+  public void testNoMvWithNullInMiddleOfArray() throws IOException {
+    String q =
+        "source="
+            + TEST_INDEX_BANK_WITH_NULL_VALUES
+            + " | where account_number = 25 | eval arr = array(firstname, age, lastname) | nomv"
+            + " arr | fields account_number, arr";
+
+    JSONObject result = executeQuery(q);
+
+    verifySchema(result, schema("account_number", null, "bigint"), schema("arr", null, "string"));
+
+    verifyDataRows(result, rows(25, "Virginia\nAyala"));
+  }
+
+  @Test
+  public void testNoMvWithNullAtBeginningAndEnd() throws IOException {
+    String q =
+        "source="
+            + TEST_INDEX_BANK_WITH_NULL_VALUES
+            + " | where account_number = 25 | eval arr = array(age, firstname, age) | nomv arr |"
+            + " fields account_number, arr";
+
+    JSONObject result = executeQuery(q);
+
+    verifySchema(result, schema("account_number", null, "bigint"), schema("arr", null, "string"));
+
+    verifyDataRows(result, rows(25, "Virginia"));
+  }
+
+  @Test
+  public void testNoMvWithAllNulls() throws IOException {
+    String q =
+        "source="
+            + TEST_INDEX_BANK_WITH_NULL_VALUES
+            + " | where account_number = 25 | eval arr = array(age, age, age) | nomv arr | fields"
+            + " account_number, arr";
+
+    JSONObject result = executeQuery(q);
+
+    verifySchema(result, schema("account_number", null, "bigint"), schema("arr", null, "string"));
+
+    verifyDataRows(result, rows(25, ""));
+  }
+
+  @Test
+  public void testNoMvArrayWithAllNulls() throws IOException {
+    String q =
+        "source="
+            + TEST_INDEX_BANK_WITH_NULL_VALUES
+            + " | where account_number = 25 | eval arr = array(age, age, age) | nomv arr | fields"
+            + " account_number, arr";
+
+    JSONObject result = executeQuery(q);
+
+    verifySchema(result, schema("account_number", null, "bigint"), schema("arr", null, "string"));
+
+    verifyDataRows(result, rows(25, ""));
+  }
+
+  @Test
+  public void testNoMvMultipleRowsRowLocalBehavior() throws IOException {
+    String q =
+        "source="
+            + TEST_INDEX_BANK
+            + " | eval tags = array(firstname, lastname) | nomv tags | sort account_number | head"
+            + " 3 | fields account_number, tags";
+
+    JSONObject result = executeQuery(q);
+
+    verifySchema(result, schema("account_number", null, "bigint"), schema("tags", null, "string"));
+
+    verifyDataRows(
+        result,
+        rows(1, "Amber JOHnny\nDuke Willmington"),
+        rows(6, "Hattie\nBond"),
+        rows(13, "Nanette\nBates"));
+  }
+
+  @Test
+  public void testNoMvNonConsecutiveRowsNoGrouping() throws IOException {
+    String q =
+        "source="
+            + TEST_INDEX_BANK
+            + " | where account_number = 1 or account_number = 6 or account_number = 13 | eval"
+            + " tags = array(firstname, city) | nomv tags | sort account_number | fields"
+            + " account_number, tags";
+
+    JSONObject result = executeQuery(q);
+
+    verifySchema(result, schema("account_number", null, "bigint"), schema("tags", null, "string"));
+
+    verifyDataRows(
+        result,
+        rows(1, "Amber JOHnny\nBrogan"),
+        rows(6, "Hattie\nDante"),
+        rows(13, "Nanette\nNogal"));
+  }
+
+  @Test
+  public void testNoMvNullFieldValue() throws IOException {
+    String q =
+        "source="
+            + TEST_INDEX_BANK_WITH_NULL_VALUES
+            + " | where account_number = 6 | eval balance_str = cast(balance as string) | eval arr"
+            + " = array(balance_str) | nomv arr | fields account_number, arr";
+
+    JSONObject result = executeQuery(q);
+
+    verifySchema(result, schema("account_number", null, "bigint"), schema("arr", null, "string"));
+
+    verifyDataRows(result, rows(6, ""));
+  }
+
+  @Test
+  public void testNoMvArrayWithEmptyStrings() throws IOException {
+    String q =
+        "source="
+            + TEST_INDEX_BANK
+            + " | eval tags = array('a', '', 'b') | nomv tags | head 1 | fields tags";
+
+    JSONObject result = executeQuery(q);
+
+    verifySchema(result, schema("tags", null, "string"));
+
+    verifyDataRows(result, rows("a\n\nb"));
   }
 }

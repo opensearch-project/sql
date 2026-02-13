@@ -50,20 +50,26 @@ public class NoMv extends UnresolvedPlan {
   }
 
   /**
-   * Rewrites the nomv command as an eval command using mvjoin function. nomv <field> is rewritten
-   * to: eval <field> = mvjoin(<field>, "\n")
+   * Rewrites the nomv command as an eval command using mvjoin function with null filtering. nomv
+   * <field> is rewritten to: eval <field> = coalesce(mvjoin(array_compact(<field>), "\n"), "")
    *
-   * @return an Eval node representing the equivalent mvjoin operation
+   * <p>The array_compact removes null elements from the array, and coalesce ensures empty arrays
+   * return empty string instead of null.
+   *
+   * @return an Eval node representing the equivalent mvjoin operation with null filtering
    */
   public UnresolvedPlan rewriteAsEval() {
-    // Create mvjoin function call: mvjoin(field, "\n")
+    Function arrayCompactFunc = new Function("array_compact", ImmutableList.of(field));
+
     Function mvjoinFunc =
-        new Function("mvjoin", ImmutableList.of(field, new Literal("\n", DataType.STRING)));
+        new Function(
+            "mvjoin", ImmutableList.of(arrayCompactFunc, new Literal("\n", DataType.STRING)));
 
-    // Create eval expression: field = mvjoin(field, "\n")
-    Let letExpr = new Let(field, mvjoinFunc);
+    Function coalesceFunc =
+        new Function("coalesce", ImmutableList.of(mvjoinFunc, new Literal("", DataType.STRING)));
 
-    // Create eval node and attach the child from this NoMv node
+    Let letExpr = new Let(field, coalesceFunc);
+
     Eval eval = new Eval(ImmutableList.of(letExpr));
     if (this.child != null) {
       eval.attach(this.child);
