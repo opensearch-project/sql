@@ -52,6 +52,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
 import org.opensearch.sql.executor.Explain;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.monitor.profile.MetricName;
@@ -62,6 +63,7 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexEnumerator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.transport.client.node.NodeClient;
@@ -210,6 +212,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     client.schedule(
         () -> {
           try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
+            OpenSearchIndexEnumerator.clearCollectedHighlights();
             ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
             long execTime = System.nanoTime();
             ResultSet result = statement.executeQuery();
@@ -276,6 +279,21 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         row.put(columnName, exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));
+    }
+
+    // Merge highlight data collected by the enumerator back into ExprTupleValues.
+    // The Calcite row pipeline only carries schema column values, so highlight metadata
+    // is collected as a side channel in OpenSearchIndexEnumerator and merged here.
+    List<ExprValue> collectedHighlights =
+        OpenSearchIndexEnumerator.getAndClearCollectedHighlights();
+    for (int i = 0; i < Math.min(values.size(), collectedHighlights.size()); i++) {
+      ExprValue hl = collectedHighlights.get(i);
+      if (hl != null) {
+        Map<String, ExprValue> rowWithHighlight =
+            new LinkedHashMap<>(ExprValueUtils.getTupleValue(values.get(i)));
+        rowWithHighlight.put(HighlightExpression.HIGHLIGHT_FIELD, hl);
+        values.set(i, ExprTupleValue.fromExprValueMap(rowWithHighlight));
+      }
     }
 
     List<Column> columns = new ArrayList<>(metaData.getColumnCount());
