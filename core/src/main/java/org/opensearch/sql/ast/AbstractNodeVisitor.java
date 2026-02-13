@@ -61,6 +61,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -473,6 +474,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitMvCombine(MvCombine node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitGraphLookup(GraphLookup node, C context) {
     return visitChildren(node, context);
   }
 }

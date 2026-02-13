@@ -77,6 +77,7 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
@@ -222,6 +223,42 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String outputFields = formatFieldAlias(node.getOutputAliasMap());
     return StringUtils.format(
         "%s | lookup %s %s%s%s", child, MASK_TABLE, mappingFields, strategy, outputFields);
+  }
+
+  @Override
+  public String visitGraphLookup(GraphLookup node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder command = new StringBuilder();
+    command.append(child).append(" | graphlookup ").append(MASK_TABLE);
+    if (node.getStartField() != null) {
+      command.append(" startField=").append(MASK_COLUMN);
+    }
+    command.append(" fromField=").append(MASK_COLUMN);
+    command.append(" toField=").append(MASK_COLUMN);
+    if (node.getMaxDepth() != null && !Integer.valueOf(0).equals(node.getMaxDepth().getValue())) {
+      command.append(" maxDepth=").append(MASK_LITERAL);
+    }
+    if (node.getDepthField() != null) {
+      command.append(" depthField=").append(MASK_COLUMN);
+    }
+    command.append(" direction=").append(node.getDirection().name().toLowerCase());
+    if (node.isSupportArray()) {
+      command.append(" supportArray=true");
+    }
+    if (node.isBatchMode()) {
+      command.append(" batchMode=true");
+    }
+    if (node.isUsePIT()) {
+      command.append(" usePIT=true");
+    }
+    if (node.getFilter() != null) {
+      command
+          .append(" filter=(")
+          .append(expressionAnalyzer.analyze(node.getFilter(), context))
+          .append(")");
+    }
+    command.append(" as ").append(MASK_COLUMN);
+    return command.toString();
   }
 
   private String formatFieldAlias(java.util.Map<String, String> fieldMap) {

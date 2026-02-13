@@ -338,6 +338,21 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getGraphEmployeesIndexMapping() {
+    String mappingFile = "graph_employees_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getGraphTravelersIndexMapping() {
+    String mappingFile = "graph_travelers_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getGraphAirportsIndexMapping() {
+    String mappingFile = "graph_airports_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getDuplicationNullableIndexMapping() {
     String mappingFile = "duplication_nullable_index_mapping.json";
     return getMappingFile(mappingFile);

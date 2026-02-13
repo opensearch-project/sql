@@ -1,0 +1,12 @@
+{"index":{"_id":"1"}}
+{"id":1,"name":"Dev","reportsTo":"Eliot"}
+{"index":{"_id":"2"}}
+{"id":2,"name":"Eliot","reportsTo":"Ron"}
+{"index":{"_id":"3"}}
+{"id":3,"name":"Ron","reportsTo":"Andrew"}
+{"index":{"_id":"4"}}
+{"id":4,"name":"Andrew","reportsTo":null}
+{"index":{"_id":"5"}}
+{"id":5,"name":"Asya","reportsTo":"Ron"}
+{"index":{"_id":"6"}}
+{"id":6,"name":"Dan","reportsTo":"Andrew"}

@@ -1,0 +1,10 @@
+{"index":{"_id":"1"}}
+{"airport":"JFK","connects":["BOS","ORD"]}
+{"index":{"_id":"2"}}
+{"airport":"BOS","connects":["JFK","PWM"]}
+{"index":{"_id":"3"}}
+{"airport":"ORD","connects":["JFK"]}
+{"index":{"_id":"4"}}
+{"airport":"PWM","connects":["BOS","LHR"]}
+{"index":{"_id":"5"}}
+{"airport":"LHR","connects":["PWM"]}
