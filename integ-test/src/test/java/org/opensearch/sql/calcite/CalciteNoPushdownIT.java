@@ -91,6 +91,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteQueryAnalysisIT.class,
   CalciteRareCommandIT.class,
   CalciteRegexCommandIT.class,
+  CalciteReverseCommandIT.class,
   CalciteRexCommandIT.class,
   CalciteRenameCommandIT.class,
   CalciteReplaceCommandIT.class,
