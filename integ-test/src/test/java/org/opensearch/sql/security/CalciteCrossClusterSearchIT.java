@@ -418,4 +418,21 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
     verifyDataRows(
         result, rows("Hattie", 36, 5686, "$5,686"), rows("Nanette", 28, 32838, "$32,838"));
   }
+
+  /** CrossClusterSearchIT Test for nomv. */
+  @Test
+  public void testCrossClusterNoMv() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where firstname='Hattie' "
+                    + "| eval names = array(firstname, lastname) | nomv names "
+                    + "| fields firstname, names",
+                TEST_INDEX_BANK_REMOTE));
+
+    verifyColumn(result, columnName("firstname"), columnName("names"));
+    verifySchema(result, schema("firstname", "string"), schema("names", "string"));
+
+    verifyDataRows(result, rows("Hattie", "Hattie\nBond"));
+  }
 }

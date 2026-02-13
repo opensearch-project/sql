@@ -91,6 +91,7 @@ commands
    | replaceCommand
    | mvcombineCommand
    | fieldformatCommand
+   | nomvCommand
    ;
 
 commandName
@@ -136,6 +137,7 @@ commandName
    | APPENDPIPE
    | REPLACE
    | MVCOMBINE
+   | NOMV
    | TRANSPOSE
    ;
 
@@ -553,6 +555,10 @@ expandCommand
 
 mvcombineCommand
   : MVCOMBINE fieldExpression (DELIM EQUAL stringLiteral)?
+  ;
+
+nomvCommand
+  : NOMV fieldExpression
   ;
 
 flattenCommand

@@ -93,6 +93,7 @@ import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -906,6 +907,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       delim = StringUtils.unquoteText(getTextInQuery(ctx.stringLiteral()));
     }
     return new MvCombine(field, delim);
+  }
+
+  @Override
+  public UnresolvedPlan visitNomvCommand(OpenSearchPPLParser.NomvCommandContext ctx) {
+    Field field = (Field) internalVisitExpression(ctx.fieldExpression());
+    return new NoMv(field);
   }
 
   @Override

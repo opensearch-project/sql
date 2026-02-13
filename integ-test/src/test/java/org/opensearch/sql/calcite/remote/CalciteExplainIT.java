@@ -2529,6 +2529,19 @@ public class CalciteExplainIT extends ExplainIT {
     assertYamlEqualsIgnoreId(expected, actual);
   }
 
+  @Test
+  public void testExplainNoMv() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account "
+            + "| fields state, city, age "
+            + "| eval location = array(state, city) "
+            + "| nomv location";
+
+    String actual = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_nomv.yaml");
+    assertYamlEqualsIgnoreId(expected, actual);
+  }
+
   // ==================== fetch_size explain tests ====================
 
   @Test
@@ -2705,5 +2718,31 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_filter_boolean_only_not_true.yaml");
     assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testNoMvBasic() throws IOException {
+    String query =
+        StringUtils.format(
+            "source=%s | fields firstname, age | eval names = array(firstname) | nomv names |"
+                + " fields names",
+            TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    Assert.assertTrue(
+        "Expected explain to contain ARRAY_JOIN function",
+        result.toLowerCase().contains("array_join"));
+  }
+
+  @Test
+  public void testNoMvWithEval() throws IOException {
+    String query =
+        StringUtils.format(
+            "source=%s | eval full_name = concat(firstname, ' J.') | eval name_array ="
+                + " array(full_name) | nomv name_array | fields name_array",
+            TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    Assert.assertTrue(
+        "Expected explain to contain both CONCAT and ARRAY_JOIN",
+        result.toLowerCase().contains("concat") && result.toLowerCase().contains("array_join"));
   }
 }

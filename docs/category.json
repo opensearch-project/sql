@@ -25,6 +25,7 @@
     "user/ppl/cmd/join.md",
     "user/ppl/cmd/lookup.md",
     "user/ppl/cmd/mvcombine.md",
+    "user/ppl/cmd/nomv.md",
     "user/ppl/cmd/parse.md",
     "user/ppl/cmd/patterns.md",
     "user/ppl/cmd/rare.md",
