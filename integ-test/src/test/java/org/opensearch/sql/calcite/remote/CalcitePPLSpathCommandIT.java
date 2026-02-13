@@ -37,15 +37,25 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     request3.setJsonEntity("{\"doc\": \"{\\\"n\\\": 3}\"}");
     client().performRequest(request3);
 
-    // Auto-extract mode: one doc field per flatten rule
+    // Auto-extract mode: flatten rules and edge cases (empty, malformed)
     Request autoExtractDoc = new Request("PUT", "/test_spath_auto/_doc/1?refresh=true");
     autoExtractDoc.setJsonEntity(
         "{\"nested_doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\"}}\","
             + " \"array_doc\": \"{\\\"tags\\\":[\\\"java\\\",\\\"sql\\\"]}\","
             + " \"merge_doc\": \"{\\\"a\\\":{\\\"b\\\":1},\\\"a.b\\\":2}\","
-            + " \"stringify_doc\":"
-            + " \"{\\\"n\\\":30,\\\"b\\\":true,\\\"x\\\":null}\"}");
+            + " \"stringify_doc\": \"{\\\"n\\\":30,\\\"b\\\":true,\\\"x\\\":null}\","
+            + " \"empty_doc\": \"{}\","
+            + " \"malformed_doc\": \"{\\\"user\\\":{\\\"name\\\":\"}");
     client().performRequest(autoExtractDoc);
+
+    // Auto-extract mode: null input handling (doc 1 establishes mapping, doc 2 has null)
+    Request nullDoc1 = new Request("PUT", "/test_spath_null/_doc/1?refresh=true");
+    nullDoc1.setJsonEntity("{\"doc\": \"{\\\"n\\\": 1}\"}");
+    client().performRequest(nullDoc1);
+
+    Request nullDoc2 = new Request("PUT", "/test_spath_null/_doc/2?refresh=true");
+    nullDoc2.setJsonEntity("{\"doc\": null}");
+    client().performRequest(nullDoc2);
   }
 
   @Test
@@ -60,12 +70,22 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   public void testSpathAutoExtract() throws IOException {
     JSONObject result = executeQuery("source=test_spath | spath input=doc");
     verifySchema(result, schema("doc", "struct"));
+    verifyDataRows(
+        result,
+        rows(new JSONObject("{\"n\":\"1\"}")),
+        rows(new JSONObject("{\"n\":\"2\"}")),
+        rows(new JSONObject("{\"n\":\"3\"}")));
   }
 
   @Test
   public void testSpathAutoExtractWithOutput() throws IOException {
     JSONObject result = executeQuery("source=test_spath | spath input=doc output=result");
     verifySchema(result, schema("doc", "string"), schema("result", "struct"));
+    verifyDataRows(
+        result,
+        rows("{\"n\": 1}", new JSONObject("{\"n\":\"1\"}")),
+        rows("{\"n\": 2}", new JSONObject("{\"n\":\"2\"}")),
+        rows("{\"n\": 3}", new JSONObject("{\"n\":\"3\"}")));
   }
 
   @Test
@@ -110,5 +130,37 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     // All values stringified, null preserved
     verifySchema(result, schema("result", "struct"));
     verifyDataRows(result, rows(new JSONObject("{\"n\":\"30\",\"b\":\"true\",\"x\":\"null\"}")));
+  }
+
+  @Test
+  public void testSpathAutoExtractNullInput() throws IOException {
+    JSONObject result =
+        executeQuery("source=test_spath_null | spath input=doc output=result | fields result");
+
+    // Non-null doc extracts normally, null doc returns null
+    verifySchema(result, schema("result", "struct"));
+    verifyDataRows(result, rows(new JSONObject("{\"n\":\"1\"}")), rows((Object) null));
+  }
+
+  @Test
+  public void testSpathAutoExtractEmptyJson() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_auto | spath input=empty_doc output=result | fields result");
+
+    // Empty JSON object returns empty map
+    verifySchema(result, schema("result", "struct"));
+    verifyDataRows(result, rows(new JSONObject("{}")));
+  }
+
+  @Test
+  public void testSpathAutoExtractMalformedJson() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_auto | spath input=malformed_doc output=result | fields result");
+
+    // Malformed JSON returns partial results parsed before the error
+    verifySchema(result, schema("result", "struct"));
+    verifyDataRows(result, rows(new JSONObject("{}")));
   }
 }

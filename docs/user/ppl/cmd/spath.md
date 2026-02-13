@@ -39,8 +39,8 @@ When `path` is omitted, the `spath` command runs in auto-extract mode. Instead o
 - All values are stringified: numbers and booleans are converted to their string representation (for example, `30` becomes `"30"`, `true` becomes `"true"`, and arrays become `"[a, b, c]"`)
 
 > **Note**: Auto-extract mode processes the entire input field with no character limit. For large JSON payloads, consider using path-based extraction to target specific fields.
-
-> **Note**: Invalid or malformed JSON returns partial results containing any fields successfully parsed before the error. Empty JSON object (`{}`) returns an empty map.
+>
+> Invalid or malformed JSON returns partial results containing any fields successfully parsed before the error. Empty JSON object (`{}`) returns an empty map.
 
 ## Example 1: Basic field extraction
 
