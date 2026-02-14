@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_MVEXPAND_EDGE_CASES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 
 import java.io.IOException;
@@ -25,6 +26,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.DOG);
     loadIndex(Index.STRINGS);
+    loadIndex(Index.MVEXPAND_EDGE_CASES);
   }
 
   @Test
@@ -263,6 +265,19 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
                   "source=%s | fields account_number, firstname | eval names = array(firstname) |"
                       + " nomv names",
                   TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
+
+  @Test
+  public void testMvExpandCommand() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format("search source=%s | mvexpand skills", TEST_INDEX_MVEXPAND_EDGE_CASES));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }

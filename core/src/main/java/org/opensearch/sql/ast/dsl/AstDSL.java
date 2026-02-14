@@ -63,6 +63,7 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -475,6 +476,10 @@ public class AstDSL {
 
   public static MvCombine mvcombine(Field field, String delim) {
     return new MvCombine(field, delim);
+  }
+
+  public static UnresolvedPlan mvexpand(UnresolvedPlan input, Field field, Integer limit) {
+    return new MvExpand(field, limit).attach(input);
   }
 
   public static List<Argument> sortOptions() {
