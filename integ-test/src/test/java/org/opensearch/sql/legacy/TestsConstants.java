@@ -92,6 +92,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_LOGS = TEST_INDEX + "_logs";
   public static final String TEST_INDEX_OTEL_LOGS = TEST_INDEX + "_otel_logs";
   public static final String TEST_INDEX_TIME_DATE_NULL = TEST_INDEX + "_time_date_null";
+  public static final String TEST_INDEX_MVEXPAND_EDGE_CASES = "mvexpand_edge_cases";
 
   public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
   public static final String TS_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";

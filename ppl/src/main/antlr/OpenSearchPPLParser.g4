@@ -80,6 +80,7 @@ commands
    | addcoltotalsCommand
    | appendCommand
    | expandCommand
+    | mvexpandCommand
    | flattenCommand
    | reverseCommand
    | regexCommand
@@ -122,6 +123,7 @@ commandName
    | ML
    | FILLNULL
    | EXPAND
+    | MVEXPAND
    | FLATTEN
    | TRENDLINE
    | TIMECHART
@@ -554,6 +556,10 @@ expandCommand
 mvcombineCommand
   : MVCOMBINE fieldExpression (DELIM EQUAL stringLiteral)?
   ;
+
+mvexpandCommand
+    : MVEXPAND fieldExpression (LIMIT EQUAL INTEGER_LITERAL)?
+    ;
 
 flattenCommand
    : FLATTEN fieldExpression (AS aliases = identifierSeq)?
