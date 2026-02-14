@@ -1037,4 +1037,16 @@ public class PPLQueryDataAnonymizerTest {
         "source=table | mvcombine delim=*** identifier",
         anonymize("source=t | mvcombine age delim=','"));
   }
+
+  @Test
+  public void testMvexpandCommand() {
+    assertEquals("source=table | mvexpand identifier", anonymize("source=t | mvexpand skills"));
+  }
+
+  @Test
+  public void testMvexpandCommandWithLimit() {
+    assertEquals(
+        "source=table | mvexpand identifier limit=***",
+        anonymize("source=t | mvexpand skills limit=5"));
+  }
 }
