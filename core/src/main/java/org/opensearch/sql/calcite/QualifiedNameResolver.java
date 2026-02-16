@@ -289,9 +289,7 @@ public class QualifiedNameResolver {
       return field;
     } else {
       String itemName = joinParts(parts, length + start, parts.size() - length);
-      return context.relBuilder.alias(
-          createItemAccess(field, itemName, context),
-          String.join(QualifiedName.DELIMITER, parts.subList(start, parts.size())));
+      return createItemAccess(field, itemName, context);
     }
   }
 

@@ -65,12 +65,12 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
             "source=EMP | spath input=ENAME output=result"
                 + " | eval age = result.user.age + 1 | fields age")
         .expectLogical(
-            "LogicalProject(age=[+(SAFE_CAST(AS(ITEM(JSON_EXTRACT_ALL($1),"
-                + " 'user.age'), 'result.user.age')), 1.0E0)])\n"
+            "LogicalProject(age=[+(SAFE_CAST(ITEM(JSON_EXTRACT_ALL($1),"
+                + " 'user.age')), 1.0E0)])\n"
                 + "  LogicalTableScan(table=[[scott, EMP]])\n")
         .expectSparkSQL(
-            "SELECT TRY_CAST((JSON_EXTRACT_ALL(`ENAME`)['user.age']"
-                + " 'result.user.age') AS DOUBLE) + 1.0E0 `age`\n"
+            "SELECT TRY_CAST(JSON_EXTRACT_ALL(`ENAME`)['user.age']"
+                + " AS DOUBLE) + 1.0E0 `age`\n"
                 + "FROM `scott`.`EMP`");
   }
 
@@ -98,8 +98,8 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
                 + " | where result.active = 'true' | fields result")
         .expectLogical(
             "LogicalProject(result=[$8])\n"
-                + "  LogicalFilter(condition=[=(AS(ITEM($8, 'active'),"
-                + " 'result.active'), 'true')])\n"
+                + "  LogicalFilter(condition=[=(ITEM($8, 'active'),"
+                + " 'true')])\n"
                 + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3],"
                 + " HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7],"
                 + " result=[JSON_EXTRACT_ALL($1)])\n"
@@ -109,7 +109,7 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
                 + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`,"
                 + " `SAL`, `COMM`, `DEPTNO`, JSON_EXTRACT_ALL(`ENAME`) `result`\n"
                 + "FROM `scott`.`EMP`) `t`\n"
-                + "WHERE (`result`['active'] 'result.active') = 'true'");
+                + "WHERE `result`['active'] = 'true'");
   }
 
   @Test
@@ -138,13 +138,13 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
                 + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3],"
                 + " HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7],"
                 + " result=[JSON_EXTRACT_ALL($1)],"
-                + " result.user.name=[ITEM(JSON_EXTRACT_ALL($1), 'user.name')])\n"
+                + " $f9=[ITEM(JSON_EXTRACT_ALL($1), 'user.name')])\n"
                 + "      LogicalTableScan(table=[[scott, EMP]])\n")
         .expectSparkSQL(
             "SELECT `result`['user.name'] `result.user.name`\n"
                 + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`,"
                 + " `SAL`, `COMM`, `DEPTNO`, JSON_EXTRACT_ALL(`ENAME`) `result`,"
-                + " JSON_EXTRACT_ALL(`ENAME`)['user.name'] `result.user.name`\n"
+                + " JSON_EXTRACT_ALL(`ENAME`)['user.name'] `$f9`\n"
                 + "FROM `scott`.`EMP`\n"
                 + "ORDER BY 10) `t0`");
   }

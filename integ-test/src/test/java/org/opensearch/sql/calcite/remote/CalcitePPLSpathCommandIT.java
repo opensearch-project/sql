@@ -186,13 +186,11 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSpathAutoExtractWithWhere() throws IOException {
-    // FIXME: Use eval to materialize map field before where to avoid AS-in-filter pushdown issue
     JSONObject result =
         executeQuery(
             "source=test_spath_cmd | spath input=doc output=result"
-                + " | eval name = result.user.name"
-                + " | where name = 'John' | fields name");
-    verifySchema(result, schema("name", "string"));
+                + " | where result.user.name = 'John' | fields result.user.name");
+    verifySchema(result, schema("result.user.name", "string"));
     verifyDataRows(result, rows("John"));
   }
 

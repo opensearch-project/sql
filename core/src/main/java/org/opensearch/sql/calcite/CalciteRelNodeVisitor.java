@@ -452,7 +452,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             }
             matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
           } else if (addedFields.add(fieldName)) {
-            expandedFields.add(rexVisitor.analyze(field, context));
+            RexNode resolved = rexVisitor.analyze(field, context);
+            // Nested struct access via ITEM() loses the qualified name during resolution.
+            // Re-apply the alias so the projected column retains the user-visible name.
+            if (resolved.getKind() == SqlKind.ITEM) {
+              resolved = context.relBuilder.alias(resolved, fieldName);
+            }
+            expandedFields.add(resolved);
           }
         }
         case AllFields ignored -> {
