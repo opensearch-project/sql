@@ -472,16 +472,16 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
           String.format(
               "search source=%s | mvexpand skills limit=-1 | fields username, skills.name",
               TEST_INDEX_MVEXPAND_EDGE_CASES));
-      fail("Expected IllegalArgumentException for negative limit");
+      fail("Expected SyntaxCheckException for negative limit");
     } catch (ResponseException e) {
       JSONObject result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
       JSONObject error = result.getJSONObject("error");
       String details = error.getString("details");
       assertThat(
-          "Error message should mention limit or positive",
+          "Error message should mention parsing error",
           details.toLowerCase(),
-          containsString("limit"));
-      assertThat(error.getString("type"), equalTo("IllegalArgumentException"));
+          containsString("extraneous"));
+      assertThat(error.getString("type"), equalTo("SyntaxCheckException"));
     }
   }
 }

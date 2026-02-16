@@ -199,10 +199,10 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
     Exception ex = Assert.assertThrows(Exception.class, () -> getRelNode(ppl));
     String msg = String.valueOf(ex.getMessage());
     Assert.assertTrue(
-        "Expected error message for negative limit. Actual: " + msg,
-        msg.toLowerCase().contains("limit")
-            || msg.toLowerCase().contains("negative")
-            || msg.toLowerCase().contains("positive"));
+        "Expected parsing error for negative limit. Actual: " + msg,
+        msg.toLowerCase().contains("extraneous")
+            || msg.toLowerCase().contains("unexpected")
+            || msg.toLowerCase().contains("expecting"));
   }
 
   @Test
