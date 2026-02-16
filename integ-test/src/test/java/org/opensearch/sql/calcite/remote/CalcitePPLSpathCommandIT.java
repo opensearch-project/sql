@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -162,5 +163,51 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     // Malformed JSON returns partial results parsed before the error
     verifySchema(result, schema("result", "struct"));
     verifyDataRows(result, rows(new JSONObject("{}")));
+  }
+
+  // Path navigation: access map values using dotted path syntax
+
+  @Test
+  public void testSpathWithEval() throws IOException {
+    // result.user.name resolves to element_at(result, 'user.name')
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_auto | spath input=nested_doc output=result"
+                + " | eval name = result.user.name | fields name");
+    verifySchema(result, schema("name", "string"));
+    verifyDataRows(result, rows("John"));
+  }
+
+  @Test
+  public void testSpathWithWhere() throws IOException {
+    // Use eval to materialize map field before where to avoid AS-in-filter pushdown issue
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_auto | spath input=nested_doc output=result"
+                + " | eval name = result.user.name"
+                + " | where name = 'John' | fields nested_doc");
+    verifySchema(result, schema("nested_doc", "string"));
+    verifyDataRows(result, rows("{\"user\":{\"name\":\"John\"}}"));
+  }
+
+  @Test
+  public void testSpathWithStats() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_auto | spath input=nested_doc output=result"
+                + " | stats count() by result.user.name");
+    verifySchema(result, schema("count()", "bigint"), schema("result.user.name", "string"));
+    verifyDataRows(result, rows(1, "John"));
+  }
+
+  @Test
+  public void testSpathWithSort() throws IOException {
+    // spath path extraction + sort by extracted value
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | spath input=doc path=n"
+                + " | sort - n | fields n");
+    verifySchema(result, schema("n", "string"));
+    verifyDataRowsInOrder(result, rows("3"), rows("2"), rows("1"));
   }
 }

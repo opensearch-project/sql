@@ -95,7 +95,7 @@ public class QualifiedNameResolver {
   private static String joinParts(List<String> parts, int start, int length) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < length; i++) {
-      if (start < i) {
+      if (i > 0) {
         sb.append(".");
       }
       sb.append(parts.get(start + i));
