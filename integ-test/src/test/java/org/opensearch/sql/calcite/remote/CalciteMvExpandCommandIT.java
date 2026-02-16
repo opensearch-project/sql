@@ -236,6 +236,7 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows("large", "s1"),
+        rows("large", "s10"),
         rows("large", "s2"),
         rows("large", "s3"),
         rows("large", "s4"),
@@ -243,8 +244,7 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
         rows("large", "s6"),
         rows("large", "s7"),
         rows("large", "s8"),
-        rows("large", "s9"),
-        rows("large", "s10"));
+        rows("large", "s9"));
   }
 
   @Test

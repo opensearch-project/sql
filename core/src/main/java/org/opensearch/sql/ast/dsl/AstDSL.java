@@ -478,6 +478,12 @@ public class AstDSL {
     return new MvCombine(field, delim);
   }
 
+  /**
+   * Build an MVEXPAND plan node and attach it to the input plan.
+   *
+   * <p>`@param` input input plan `@param` field field to expand `@param` limit optional
+   * per-document limit `@return` MvExpand plan attached to the input
+   */
   public static UnresolvedPlan mvexpand(UnresolvedPlan input, Field field, Integer limit) {
     return new MvExpand(field, limit).attach(input);
   }

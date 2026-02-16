@@ -124,8 +124,15 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
 
     assertContains(root, "LogicalCorrelate");
     assertContains(root, "Uncollect");
-
     assertAnyContains(root, "fetch=", "LIMIT", "RowNumber", "Window");
+
+    String expectedSparkSql =
+        "SELECT `$cor0`.`DEPTNO`, `t00`.`EMPNOS`\n"
+            + "FROM `scott`.`DEPT` `$cor0`,\n"
+            + "LATERAL UNNEST((SELECT `$cor0`.`EMPNOS`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`)\n"
+            + "LIMIT 2)) `t00` (`EMPNOS`)";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -136,6 +143,14 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
     assertContains(root, "LogicalCorrelate");
     assertContains(root, "Uncollect");
     assertContains(root, "LogicalProject");
+
+    String expectedSparkSql =
+        "SELECT `DEPTNO`, `EMPNOS`\n"
+            + "FROM (SELECT `$cor0`.`DEPTNO`, `t00`.`EMPNOS`\n"
+            + "FROM `scott`.`DEPT` `$cor0`,\n"
+            + "LATERAL UNNEST((SELECT `$cor0`.`EMPNOS`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t00` (`EMPNOS`))";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -164,6 +179,28 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode("source=DEPT | mvexpand EMPNOS");
     assertContains(root, "LogicalCorrelate");
     assertContains(root, "Uncollect");
+  }
+
+  @Test
+  public void testMvExpandInvalidLimitZero() {
+    String ppl = "source=DEPT | mvexpand EMPNOS limit=0";
+    Exception ex = Assert.assertThrows(Exception.class, () -> getRelNode(ppl));
+    String msg = String.valueOf(ex.getMessage());
+    Assert.assertTrue(
+        "Expected error message for limit=0. Actual: " + msg,
+        msg.toLowerCase().contains("limit") || msg.toLowerCase().contains("positive"));
+  }
+
+  @Test
+  public void testMvExpandInvalidLimitNegative() {
+    String ppl = "source=DEPT | mvexpand EMPNOS limit=-1";
+    Exception ex = Assert.assertThrows(Exception.class, () -> getRelNode(ppl));
+    String msg = String.valueOf(ex.getMessage());
+    Assert.assertTrue(
+        "Expected error message for negative limit. Actual: " + msg,
+        msg.toLowerCase().contains("limit")
+            || msg.toLowerCase().contains("negative")
+            || msg.toLowerCase().contains("positive"));
   }
 
   private static void assertContains(RelNode root, String token) {

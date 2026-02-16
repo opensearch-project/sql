@@ -921,6 +921,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Field field = (Field) expressionBuilder.visit(ctx.fieldExpression());
     Integer limit =
         ctx.INTEGER_LITERAL() != null ? Integer.parseInt(ctx.INTEGER_LITERAL().getText()) : null;
+
+    if (limit != null && limit <= 0) {
+      throw new IllegalArgumentException("Limit must be a positive number, got: " + limit);
+    }
+
     return new MvExpand(field, limit);
   }
 

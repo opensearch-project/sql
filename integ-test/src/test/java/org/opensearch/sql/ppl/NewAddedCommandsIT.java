@@ -14,6 +14,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_MVEXPAND_EDGE_
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 
 import java.io.IOException;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
@@ -272,15 +273,169 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMvExpandCommand() throws IOException {
+  public void testMvExpandCommandBasicExpansion() throws IOException {
     JSONObject result;
     try {
       result =
           executeQuery(
-              String.format("search source=%s | mvexpand skills", TEST_INDEX_MVEXPAND_EDGE_CASES));
+              String.format(
+                  "search source=%s | mvexpand skills | where username='happy' | fields username,"
+                      + " skills.name | sort skills.name",
+                  TEST_INDEX_MVEXPAND_EDGE_CASES));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
-    verifyQuery(result);
+
+    if (isCalciteEnabled()) {
+      assertThat(result.getJSONArray("datarows").length(), equalTo(3));
+
+      JSONArray datarows = result.getJSONArray("datarows");
+      assertThat(datarows.getJSONArray(0).getString(0), equalTo("happy"));
+      assertThat(datarows.getJSONArray(0).getString(1), equalTo("java"));
+      assertThat(datarows.getJSONArray(1).getString(1), equalTo("python"));
+      assertThat(datarows.getJSONArray(2).getString(1), equalTo("sql"));
+    } else {
+      JSONObject error = result.getJSONObject("error");
+      assertThat(
+          error.getString("details"),
+          containsString(
+              "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
+      assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
+    }
+  }
+
+  @Test
+  public void testMvExpandCommandNullInput() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | mvexpand skills | where username='nullskills' | fields"
+                      + " username, skills.name",
+                  TEST_INDEX_MVEXPAND_EDGE_CASES));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+
+    if (isCalciteEnabled()) {
+      assertThat(result.getJSONArray("datarows").length(), equalTo(0));
+    } else {
+      JSONObject error = result.getJSONObject("error");
+      assertThat(
+          error.getString("details"),
+          containsString(
+              "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
+      assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
+    }
+  }
+
+  @Test
+  public void testMvExpandCommandEmptyArray() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | mvexpand skills | where username='empty' | fields username,"
+                      + " skills.name",
+                  TEST_INDEX_MVEXPAND_EDGE_CASES));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+
+    if (isCalciteEnabled()) {
+      assertThat(result.getJSONArray("datarows").length(), equalTo(0));
+    } else {
+      JSONObject error = result.getJSONObject("error");
+      assertThat(
+          error.getString("details"),
+          containsString(
+              "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
+      assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
+    }
+  }
+
+  @Test
+  public void testMvExpandCommandNonArrayField() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | mvexpand skills_not_array | where username='u1' | fields"
+                      + " username, skills_not_array",
+                  TEST_INDEX_MVEXPAND_EDGE_CASES));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+
+    if (isCalciteEnabled()) {
+      assertThat(result.getJSONArray("datarows").length(), equalTo(1));
+      assertThat(result.getJSONArray("datarows").getJSONArray(0).getString(1), equalTo("scala"));
+    } else {
+      JSONObject error = result.getJSONObject("error");
+      assertThat(
+          error.getString("details"),
+          containsString(
+              "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
+      assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
+    }
+  }
+
+  @Test
+  public void testMvExpandCommandLimitBoundary() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | mvexpand skills limit=3 | where username='limituser' | fields"
+                      + " username, skills.name",
+                  TEST_INDEX_MVEXPAND_EDGE_CASES));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+
+    if (isCalciteEnabled()) {
+      assertThat(result.getJSONArray("datarows").length(), equalTo(3));
+    } else {
+      JSONObject error = result.getJSONObject("error");
+      assertThat(
+          error.getString("details"),
+          containsString(
+              "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
+      assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
+    }
+  }
+
+  @Test
+  public void testMvExpandCommandMultiDocument() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | mvexpand skills | where username='happy' OR username='single'"
+                      + " | fields username, skills.name | sort username, skills.name",
+                  TEST_INDEX_MVEXPAND_EDGE_CASES));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+
+    if (isCalciteEnabled()) {
+      assertThat(result.getJSONArray("datarows").length(), equalTo(4));
+
+      JSONArray datarows = result.getJSONArray("datarows");
+      assertThat(datarows.getJSONArray(0).getString(0), equalTo("happy"));
+      assertThat(datarows.getJSONArray(3).getString(0), equalTo("single"));
+    } else {
+      JSONObject error = result.getJSONObject("error");
+      assertThat(
+          error.getString("details"),
+          containsString(
+              "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
+      assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
+    }
   }
 }

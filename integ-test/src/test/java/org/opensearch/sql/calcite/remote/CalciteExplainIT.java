@@ -2545,10 +2545,11 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testMvexpandExplain() throws IOException {
-    // mvexpand explain plan validation
     String expected = loadExpectedPlan("explain_mvexpand.yaml");
-    explainQueryYaml(
-        "source=mvexpand_edge_cases | eval skills_arr = array(1, 2, 3) | mvexpand skills_arr");
+    String actual =
+        explainQueryYaml(
+            "source=mvexpand_edge_cases | eval skills_arr = array(1, 2, 3) | mvexpand skills_arr");
+    assertYamlEqualsIgnoreId(expected, actual);
   }
 
   // ==================== fetch_size explain tests ====================
