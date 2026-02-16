@@ -87,7 +87,6 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
   protected Frameworks.ConfigBuilder config(CalciteAssert.SchemaSpec... schemaSpecs) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final SchemaPlus schema = CalciteAssert.addSchema(rootSchema, schemaSpecs);
-    // Add an empty table with name DEPT for test purpose
     schema.add("DEPT", new TableWithArray());
     return Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
@@ -127,11 +126,12 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
     assertAnyContains(root, "fetch=", "LIMIT", "RowNumber", "Window");
 
     String expectedSparkSql =
-        "SELECT `$cor0`.`DEPTNO`, `t00`.`EMPNOS`\n"
+        "SELECT `$cor0`.`DEPTNO`, `t1`.`EMPNOS`\n"
             + "FROM `scott`.`DEPT` `$cor0`,\n"
-            + "LATERAL UNNEST((SELECT `$cor0`.`EMPNOS`\n"
-            + "FROM (VALUES (0)) `t` (`ZERO`)\n"
-            + "LIMIT 2)) `t00` (`EMPNOS`)";
+            + "LATERAL (SELECT `EMPNOS`\n"
+            + "FROM UNNEST((SELECT `$cor0`.`EMPNOS`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t0` (`EMPNOS`)\n"
+            + "LIMIT 2) `t1`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -145,11 +145,10 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
     assertContains(root, "LogicalProject");
 
     String expectedSparkSql =
-        "SELECT `DEPTNO`, `EMPNOS`\n"
-            + "FROM (SELECT `$cor0`.`DEPTNO`, `t00`.`EMPNOS`\n"
+        "SELECT `$cor0`.`DEPTNO`, `t00`.`EMPNOS`\n"
             + "FROM `scott`.`DEPT` `$cor0`,\n"
             + "LATERAL UNNEST((SELECT `$cor0`.`EMPNOS`\n"
-            + "FROM (VALUES (0)) `t` (`ZERO`))) `t00` (`EMPNOS`))";
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t00` (`EMPNOS`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -201,6 +200,22 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
         msg.toLowerCase().contains("limit")
             || msg.toLowerCase().contains("negative")
             || msg.toLowerCase().contains("positive"));
+  }
+
+  @Test
+  public void testMvExpandNonArrayField() {
+    String ppl = "source=DEPT | mvexpand DEPTNO";
+    RelNode root = getRelNode(ppl);
+
+    Assert.assertNotNull("Query should produce a valid plan", root);
+
+    String plan = root.explain();
+    Assert.assertTrue(
+        "Plan should contain LogicalTableScan",
+        plan.contains("LogicalTableScan") || plan.contains("LogicalProject"));
+
+    Assert.assertFalse(
+        "Non-array field should not generate Uncollect operation", plan.contains("Uncollect"));
   }
 
   private static void assertContains(RelNode root, String token) {

@@ -438,4 +438,44 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
     }
   }
+
+  @Test
+  public void testMvExpandInvalidLimitZero() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "search source=%s | mvexpand skills limit=0 | fields username, skills.name",
+              TEST_INDEX_MVEXPAND_EDGE_CASES));
+      fail("Expected IllegalArgumentException for limit=0");
+    } catch (ResponseException e) {
+      JSONObject result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      JSONObject error = result.getJSONObject("error");
+      String details = error.getString("details");
+      assertThat(
+          "Error message should mention limit or positive",
+          details.toLowerCase(),
+          containsString("limit"));
+      assertThat(error.getString("type"), equalTo("IllegalArgumentException"));
+    }
+  }
+
+  @Test
+  public void testMvExpandInvalidLimitNegative() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "search source=%s | mvexpand skills limit=-1 | fields username, skills.name",
+              TEST_INDEX_MVEXPAND_EDGE_CASES));
+      fail("Expected IllegalArgumentException for negative limit");
+    } catch (ResponseException e) {
+      JSONObject result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      JSONObject error = result.getJSONObject("error");
+      String details = error.getString("details");
+      assertThat(
+          "Error message should mention limit or positive",
+          details.toLowerCase(),
+          containsString("limit"));
+      assertThat(error.getString("type"), equalTo("IllegalArgumentException"));
+    }
+  }
 }
