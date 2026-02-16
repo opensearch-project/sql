@@ -441,6 +441,9 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
 
   @Test
   public void testMvExpandInvalidLimitZero() throws IOException {
+    if (!isCalciteEnabled()) {
+      return; // Skip test when Calcite is disabled
+    }
     try {
       executeQuery(
           String.format(
@@ -461,6 +464,9 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
 
   @Test
   public void testMvExpandInvalidLimitNegative() throws IOException {
+    if (!isCalciteEnabled()) {
+      return; // Skip test when Calcite is disabled
+    }
     try {
       executeQuery(
           String.format(
