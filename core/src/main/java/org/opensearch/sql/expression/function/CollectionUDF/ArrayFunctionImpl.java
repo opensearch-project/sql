@@ -35,7 +35,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  */
 public class ArrayFunctionImpl extends ImplementorUDF {
   public ArrayFunctionImpl() {
-    super(new ArrayImplementor(), NullPolicy.ANY);
+    super(new ArrayImplementor(), NullPolicy.NONE);
   }
 
   /**
@@ -81,7 +81,8 @@ public class ArrayFunctionImpl extends ImplementorUDF {
 
   /**
    * The asList will generate the List<Object>. We need to convert internally, otherwise, the
-   * calcite will directly cast like DOUBLE -> INTEGER, which throw error
+   * calcite will directly cast like DOUBLE -> INTEGER, which throw error. Null elements are
+   * preserved in the array.
    */
   public static Object internalCast(Object... args) {
     List<Object> originalList = (List<Object>) args[0];
@@ -93,7 +94,9 @@ public class ArrayFunctionImpl extends ImplementorUDF {
             originalList.stream()
                 .map(
                     num -> {
-                      if (num instanceof BigDecimal) {
+                      if (num == null) {
+                        return null;
+                      } else if (num instanceof BigDecimal) {
                         return (BigDecimal) num;
                       } else {
                         return BigDecimal.valueOf(((Number) num).doubleValue());
@@ -104,17 +107,20 @@ public class ArrayFunctionImpl extends ImplementorUDF {
       case DOUBLE:
         result =
             originalList.stream()
-                .map(i -> (Object) ((Number) i).doubleValue())
+                .map(i -> i == null ? null : (Object) ((Number) i).doubleValue())
                 .collect(Collectors.toList());
         break;
       case FLOAT:
         result =
             originalList.stream()
-                .map(i -> (Object) ((Number) i).floatValue())
+                .map(i -> i == null ? null : (Object) ((Number) i).floatValue())
                 .collect(Collectors.toList());
         break;
       case VARCHAR, CHAR:
-        result = originalList.stream().map(i -> (Object) i.toString()).collect(Collectors.toList());
+        result =
+            originalList.stream()
+                .map(i -> i == null ? null : (Object) i.toString())
+                .collect(Collectors.toList());
         break;
       default:
         result = originalList;

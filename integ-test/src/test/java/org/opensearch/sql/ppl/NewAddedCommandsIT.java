@@ -252,4 +252,20 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     }
     verifyQuery(result);
   }
+
+  @Test
+  public void testNoMvUnsupportedInV2() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "source=%s | fields account_number, firstname | eval names = array(firstname) |"
+                      + " nomv names",
+                  TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
 }
