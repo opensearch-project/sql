@@ -59,11 +59,8 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
         .expectSparkSQL("SELECT JSON_EXTRACT_ALL(`ENAME`) `result`\n" + "FROM `scott`.`EMP`");
   }
 
-  // spath + common command combinations using path navigation
-
   @Test
-  public void testSpathWithEval() {
-    // spath auto-extract + eval with path navigation + arithmetic
+  public void testSpathAutoExtractModeWithEval() {
     withPPLQuery(
             "source=EMP | spath input=ENAME output=result"
                 + " | eval age = result.user.age + 1 | fields age")
@@ -78,8 +75,7 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testSpathWithStats() {
-    // spath auto-extract + stats using path navigation
+  public void testSpathAutoExtractModeWithStats() {
     withPPLQuery(
             "source=EMP | spath input=ENAME output=result" + " | stats count() by result.user.name")
         .expectLogical(
@@ -96,8 +92,7 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testSpathWithWhere() {
-    // spath auto-extract + where using path navigation
+  public void testSpathAutoExtractModeWithWhere() {
     withPPLQuery(
             "source=EMP | spath input=ENAME output=result"
                 + " | where result.active = 'true' | fields result")
@@ -118,8 +113,7 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testSpathWithFields() {
-    // spath auto-extract + fields selecting via path navigation
+  public void testSpathAutoExtractModeWithFields() {
     withPPLQuery(
             "source=EMP | spath input=ENAME output=result"
                 + " | fields result.user.name, result.user.age")
@@ -134,20 +128,24 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testSpathWithSort() {
-    // spath auto-extract + sort by path navigation field
-    withPPLQuery("source=EMP | spath input=ENAME" + " | sort ENAME | fields EMPNO, ENAME")
+  public void testSpathAutoExtractModeWithSort() {
+    withPPLQuery(
+            "source=EMP | spath input=ENAME output=result"
+                + " | sort result.user.name | fields result.user.name")
         .expectLogical(
-            "LogicalProject(EMPNO=[$0], ENAME=[$7])\n"
-                + "  LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
-                + "    LogicalProject(EMPNO=[$0], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-                + " SAL=[$5], COMM=[$6], DEPTNO=[$7], ENAME=[JSON_EXTRACT_ALL($1)])\n"
+            "LogicalProject(result.user.name=[ITEM($8, 'user.name')])\n"
+                + "  LogicalSort(sort0=[$9], dir0=[ASC-nulls-first])\n"
+                + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3],"
+                + " HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7],"
+                + " result=[JSON_EXTRACT_ALL($1)],"
+                + " result.user.name=[ITEM(JSON_EXTRACT_ALL($1), 'user.name')])\n"
                 + "      LogicalTableScan(table=[[scott, EMP]])\n")
         .expectSparkSQL(
-            "SELECT `EMPNO`, `ENAME`\n"
-                + "FROM (SELECT `EMPNO`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-                + " JSON_EXTRACT_ALL(`ENAME`) `ENAME`\n"
+            "SELECT `result`['user.name'] `result.user.name`\n"
+                + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`,"
+                + " `SAL`, `COMM`, `DEPTNO`, JSON_EXTRACT_ALL(`ENAME`) `result`,"
+                + " JSON_EXTRACT_ALL(`ENAME`)['user.name'] `result.user.name`\n"
                 + "FROM `scott`.`EMP`\n"
-                + "ORDER BY 8) `t0`");
+                + "ORDER BY 10) `t0`");
   }
 }

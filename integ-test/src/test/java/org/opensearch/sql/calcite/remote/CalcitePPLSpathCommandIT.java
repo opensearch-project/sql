@@ -49,6 +49,15 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
             + " \"malformed_doc\": \"{\\\"user\\\":{\\\"name\\\":\"}");
     client().performRequest(autoExtractDoc);
 
+    // Auto-extract mode: 2-doc index for spath + command (eval/where/stats/sort) tests
+    Request cmdDoc1 = new Request("PUT", "/test_spath_cmd/_doc/1?refresh=true");
+    cmdDoc1.setJsonEntity("{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\"}}\"}");
+    client().performRequest(cmdDoc1);
+
+    Request cmdDoc2 = new Request("PUT", "/test_spath_cmd/_doc/2?refresh=true");
+    cmdDoc2.setJsonEntity("{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"Alice\\\"}}\"}");
+    client().performRequest(cmdDoc2);
+
     // Auto-extract mode: null input handling (doc 1 establishes mapping, doc 2 has null)
     Request nullDoc1 = new Request("PUT", "/test_spath_null/_doc/1?refresh=true");
     nullDoc1.setJsonEntity("{\"doc\": \"{\\\"n\\\": 1}\"}");
@@ -165,49 +174,46 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     verifyDataRows(result, rows(new JSONObject("{}")));
   }
 
-  // Path navigation: access map values using dotted path syntax
-
   @Test
-  public void testSpathWithEval() throws IOException {
-    // result.user.name resolves to element_at(result, 'user.name')
+  public void testSpathAutoExtractWithEval() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_spath_auto | spath input=nested_doc output=result"
+            "source=test_spath_cmd | spath input=doc output=result"
                 + " | eval name = result.user.name | fields name");
+    verifySchema(result, schema("name", "string"));
+    verifyDataRows(result, rows("Alice"), rows("John"));
+  }
+
+  @Test
+  public void testSpathAutoExtractWithWhere() throws IOException {
+    // FIXME: Use eval to materialize map field before where to avoid AS-in-filter pushdown issue
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc output=result"
+                + " | eval name = result.user.name"
+                + " | where name = 'John' | fields name");
     verifySchema(result, schema("name", "string"));
     verifyDataRows(result, rows("John"));
   }
 
   @Test
-  public void testSpathWithWhere() throws IOException {
-    // Use eval to materialize map field before where to avoid AS-in-filter pushdown issue
+  public void testSpathAutoExtractWithStats() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_spath_auto | spath input=nested_doc output=result"
-                + " | eval name = result.user.name"
-                + " | where name = 'John' | fields nested_doc");
-    verifySchema(result, schema("nested_doc", "string"));
-    verifyDataRows(result, rows("{\"user\":{\"name\":\"John\"}}"));
-  }
-
-  @Test
-  public void testSpathWithStats() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_spath_auto | spath input=nested_doc output=result"
+            "source=test_spath_cmd | spath input=doc output=result"
                 + " | stats count() by result.user.name");
     verifySchema(result, schema("count()", "bigint"), schema("result.user.name", "string"));
-    verifyDataRows(result, rows(1, "John"));
+    verifyDataRows(result, rows(1, "Alice"), rows(1, "John"));
   }
 
   @Test
-  public void testSpathWithSort() throws IOException {
-    // spath path extraction + sort by extracted value
+  public void testSpathAutoExtractWithSort() throws IOException {
+    // spath auto-extract + sort by path navigation on result
     JSONObject result =
         executeQuery(
-            "source=test_spath | spath input=doc path=n"
-                + " | sort - n | fields n");
-    verifySchema(result, schema("n", "string"));
-    verifyDataRowsInOrder(result, rows("3"), rows("2"), rows("1"));
+            "source=test_spath_cmd | spath input=doc output=result"
+                + " | sort result.user.name | fields result.user.name");
+    verifySchema(result, schema("result.user.name", "string"));
+    verifyDataRowsInOrder(result, rows("Alice"), rows("John"));
   }
 }
