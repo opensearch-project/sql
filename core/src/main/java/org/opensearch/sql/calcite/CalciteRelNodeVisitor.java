@@ -3359,9 +3359,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     final RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(field, context);
 
-    final SqlTypeName actual = arrayFieldRex.getType().getSqlTypeName();
-    if (actual != SqlTypeName.ARRAY) {
-      // For non-array fields (scalars), mvexpand just returns the field unchanged.
+    final RelDataType fieldType = arrayFieldRex.getType();
+    if (!(SqlTypeUtil.isArray(fieldType) || SqlTypeUtil.isMultiset(fieldType))) {
+      // For non-array/multiset fields (scalars), mvexpand just returns the field unchanged.
       // This treats single-value fields as if they were arrays with one element.
       return relBuilder.peek();
     }

@@ -211,6 +211,25 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMvexpandMultiDocumentLimitParameter() throws Exception {
+    String query =
+        String.format(
+            "source=%s | mvexpand skills limit=2 | where username='happy' OR username='limituser'"
+                + " | fields username, skills.name | sort username, skills.name",
+            INDEX);
+    JSONObject result = executeQuery(query);
+
+    verifyNumOfRows(result, 4);
+
+    verifyDataRows(
+        result,
+        rows("happy", "java"),
+        rows("happy", "python"),
+        rows("limituser", "a"),
+        rows("limituser", "b"));
+  }
+
+  @Test
   public void testMvexpandTypeInferenceForHeterogeneousSubfields() throws Exception {
     String query =
         String.format(

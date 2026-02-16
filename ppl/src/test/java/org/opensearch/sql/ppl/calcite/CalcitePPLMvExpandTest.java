@@ -51,6 +51,9 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
                 .add(
                     "EMPNOS",
                     factory.createArrayType(factory.createSqlType(SqlTypeName.INTEGER), -1))
+                .add(
+                    "TAGS",
+                    factory.createMultisetType(factory.createSqlType(SqlTypeName.VARCHAR), -1))
                 .build();
 
     @Override
@@ -100,7 +103,7 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
     String ppl = "source=DEPT | mvexpand EMPNOS";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(DEPTNO=[$0], EMPNOS=[$2])\n"
+        "LogicalProject(DEPTNO=[$0], TAGS=[$2], EMPNOS=[$3])\n"
             + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])\n"
             + "    LogicalTableScan(table=[[scott, DEPT]])\n"
             + "    Uncollect\n"
@@ -109,7 +112,7 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `$cor0`.`DEPTNO`, `t00`.`EMPNOS`\n"
+        "SELECT `$cor0`.`DEPTNO`, `$cor0`.`TAGS`, `t00`.`EMPNOS`\n"
             + "FROM `scott`.`DEPT` `$cor0`,\n"
             + "LATERAL UNNEST((SELECT `$cor0`.`EMPNOS`\n"
             + "FROM (VALUES (0)) `t` (`ZERO`))) `t00` (`EMPNOS`)";
@@ -126,7 +129,7 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
     assertAnyContains(root, "fetch=", "LIMIT", "RowNumber", "Window");
 
     String expectedSparkSql =
-        "SELECT `$cor0`.`DEPTNO`, `t1`.`EMPNOS`\n"
+        "SELECT `$cor0`.`DEPTNO`, `$cor0`.`TAGS`, `t1`.`EMPNOS`\n"
             + "FROM `scott`.`DEPT` `$cor0`,\n"
             + "LATERAL (SELECT `EMPNOS`\n"
             + "FROM UNNEST((SELECT `$cor0`.`EMPNOS`\n"
@@ -216,6 +219,45 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
 
     Assert.assertFalse(
         "Non-array field should not generate Uncollect operation", plan.contains("Uncollect"));
+  }
+
+  @Test
+  public void testMvExpandMultisetField() {
+    // Test that MULTISET types are handled the same as ARRAY types
+    // This verifies the fix for the MULTISET handling issue identified in code review
+    String ppl = "source=DEPT | mvexpand TAGS";
+    RelNode root = getRelNode(ppl);
+
+    // MULTISET fields should generate the same plan structure as ARRAY fields
+    assertContains(root, "LogicalCorrelate");
+    assertContains(root, "Uncollect");
+
+    String expectedSparkSql =
+        "SELECT `$cor0`.`DEPTNO`, `$cor0`.`EMPNOS`, `t00`.`TAGS`\n"
+            + "FROM `scott`.`DEPT` `$cor0`,\n"
+            + "LATERAL UNNEST((SELECT `$cor0`.`TAGS`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t00` (`TAGS`)";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvExpandMultisetWithLimit() {
+    // Test that MULTISET types work correctly with limit parameter
+    String ppl = "source=DEPT | mvexpand TAGS limit=3";
+    RelNode root = getRelNode(ppl);
+
+    assertContains(root, "LogicalCorrelate");
+    assertContains(root, "Uncollect");
+    assertAnyContains(root, "fetch=", "LIMIT", "RowNumber", "Window");
+
+    String expectedSparkSql =
+        "SELECT `$cor0`.`DEPTNO`, `$cor0`.`EMPNOS`, `t1`.`TAGS`\n"
+            + "FROM `scott`.`DEPT` `$cor0`,\n"
+            + "LATERAL (SELECT `TAGS`\n"
+            + "FROM UNNEST((SELECT `$cor0`.`TAGS`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t0` (`TAGS`)\n"
+            + "LIMIT 3) `t1`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   private static void assertContains(RelNode root, String token) {
