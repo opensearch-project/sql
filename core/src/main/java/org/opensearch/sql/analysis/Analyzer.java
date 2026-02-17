@@ -555,7 +555,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitMvExpand(MvExpand node, AnalysisContext context) {
-    throw getOnlyForCalciteException("MvExpand");
+    throw getOnlyForCalciteException("mvexpand");
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */
