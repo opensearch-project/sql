@@ -23,20 +23,25 @@ public class BackticksUnquoterTest {
   public void assertNotQuotedStringShouldKeepTheSame() {
     assertThat(unquoteSingleField("identifier"), equalTo("identifier"));
     assertThat(unquoteFullColumn("identifier"), equalTo("identifier"));
+    assertThat(unquoteFullColumn(".identifier"), equalTo(".identifier"));
   }
 
   @Test
   public void assertStringWithOneBackTickShouldKeepTheSame() {
     assertThat(unquoteSingleField("`identifier"), equalTo("`identifier"));
     assertThat(unquoteFullColumn("`identifier"), equalTo("`identifier"));
+    assertThat(unquoteFullColumn("`.identifier"), equalTo("`.identifier"));
   }
 
   @Test
   public void assertBackticksQuotedStringShouldBeUnquoted() {
     assertThat("identifier", equalTo(unquoteSingleField("`identifier`")));
+    assertThat(".identifier", equalTo(unquoteSingleField("`.identifier`")));
 
     assertThat(
         "identifier1.identifier2", equalTo(unquoteFullColumn("`identifier1`.`identifier2`")));
     assertThat("identifier1.identifier2", equalTo(unquoteFullColumn("`identifier1`.identifier2")));
+    assertThat(
+        ".identifier1.identifier2", equalTo(unquoteFullColumn("`.identifier1`.`identifier2`")));
   }
 }
