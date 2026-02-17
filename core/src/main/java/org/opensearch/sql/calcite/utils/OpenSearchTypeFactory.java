@@ -380,10 +380,18 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /**
    * Preserves OpenSearch UDT types through set operations (UNION, INTERSECT, EXCEPT). When all
-   * input types share the same UDT (e.g., all are EXPR_TIMESTAMP), the result retains the UDT
-   * wrapper instead of being downgraded to the underlying SQL type (e.g., VARCHAR). This is
-   * critical for operations like multisearch that use UNION ALL, where downstream operators (bin,
-   * span) rely on the UDT type to determine how to process the field.
+   * input types share the same {@link AbstractExprRelDataType} with the same {@link
+   * AbstractExprRelDataType#getUdt() UDT}, the result retains the UDT wrapper instead of being
+   * downgraded to the underlying SQL type (e.g., VARCHAR). This is critical for operations like
+   * multisearch that use UNION ALL, where downstream operators (bin, span) rely on the UDT type to
+   * determine how to process the field. When inputs include non-UDT types or different UDTs, this
+   * method falls back to {@link super#leastRestrictive}.
+   *
+   * @param types the list of input {@link RelDataType} instances to find the least restrictive
+   *     common type for
+   * @return the least restrictive {@link RelDataType} preserving the UDT wrapper when all inputs
+   *     share the same UDT, or {@code null} if no common type exists (as determined by {@link
+   *     super#leastRestrictive})
    */
   @Override
   public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
