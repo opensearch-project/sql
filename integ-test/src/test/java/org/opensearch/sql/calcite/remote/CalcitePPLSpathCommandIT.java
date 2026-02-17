@@ -51,11 +51,13 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
 
     // Auto-extract mode: 2-doc index for spath + command (eval/where/stats/sort) tests
     Request cmdDoc1 = new Request("PUT", "/test_spath_cmd/_doc/1?refresh=true");
-    cmdDoc1.setJsonEntity("{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\"}}\"}");
+    cmdDoc1.setJsonEntity(
+        "{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\",\\\"age\\\":30}}\"}");
     client().performRequest(cmdDoc1);
 
     Request cmdDoc2 = new Request("PUT", "/test_spath_cmd/_doc/2?refresh=true");
-    cmdDoc2.setJsonEntity("{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"Alice\\\"}}\"}");
+    cmdDoc2.setJsonEntity(
+        "{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"Alice\\\",\\\"age\\\":25}}\"}");
     client().performRequest(cmdDoc2);
 
     // Auto-extract mode: null input handling (doc 1 establishes mapping, doc 2 has null)
@@ -178,8 +180,8 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   public void testSpathAutoExtractWithEval() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_spath_cmd | spath input=doc output=result"
-                + " | eval name = result.user.name | fields name");
+            "source=test_spath_cmd | spath input=doc"
+                + " | eval name = doc.user.name | fields name");
     verifySchema(result, schema("name", "string"));
     verifyDataRows(result, rows("Alice"), rows("John"));
   }
@@ -188,9 +190,9 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   public void testSpathAutoExtractWithWhere() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_spath_cmd | spath input=doc output=result"
-                + " | where result.user.name = 'John' | fields result.user.name");
-    verifySchema(result, schema("result.user.name", "string"));
+            "source=test_spath_cmd | spath input=doc"
+                + " | where doc.user.name = 'John' | fields doc.user.name");
+    verifySchema(result, schema("doc.user.name", "string"));
     verifyDataRows(result, rows("John"));
   }
 
@@ -198,10 +200,10 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   public void testSpathAutoExtractWithStats() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_spath_cmd | spath input=doc output=result"
-                + " | stats count() by result.user.name");
-    verifySchema(result, schema("count()", "bigint"), schema("result.user.name", "string"));
-    verifyDataRows(result, rows(1, "Alice"), rows(1, "John"));
+            "source=test_spath_cmd | spath input=doc"
+                + " | stats sum(doc.user.age) by doc.user.name");
+    verifySchema(result, schema("sum(doc.user.age)", "double"), schema("doc.user.name", "string"));
+    verifyDataRows(result, rows(25, "Alice"), rows(30, "John"));
   }
 
   @Test
@@ -209,9 +211,9 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     // spath auto-extract + sort by path navigation on result
     JSONObject result =
         executeQuery(
-            "source=test_spath_cmd | spath input=doc output=result"
-                + " | sort result.user.name | fields result.user.name");
-    verifySchema(result, schema("result.user.name", "string"));
+            "source=test_spath_cmd | spath input=doc"
+                + " | sort doc.user.name | fields doc.user.name");
+    verifySchema(result, schema("doc.user.name", "string"));
     verifyDataRowsInOrder(result, rows("Alice"), rows("John"));
   }
 }

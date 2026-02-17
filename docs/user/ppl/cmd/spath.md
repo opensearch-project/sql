@@ -171,4 +171,3 @@ The flattening rules demonstrated in this example:
 - Duplicate logical keys merge into arrays: in the third row, both `"user": {"name": "Bob"}` (nested) and `"user.name": "Bobby"` (direct dotted key) resolve to the same key `user.name`, so their values merge into `'[Bob, Bobby]'`
 - All values are strings: numeric `30` becomes `'30'`, boolean `true` becomes `'true'`, and arrays become strings like `'[java, sql]'`
 - Null values are preserved: in the second row, `"active": null` is kept as `'active': 'null'` in the map
-- Path navigation works in any command that accepts field expressions, including `eval`, `where`, `stats`, `fields`, and `sort`
