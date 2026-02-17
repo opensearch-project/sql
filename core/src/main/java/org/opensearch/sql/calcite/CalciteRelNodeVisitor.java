@@ -453,7 +453,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             }
             matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
           } else if (addedFields.add(fieldName)) {
-            expandedFields.add(rexVisitor.analyze(field, context));
+            RexNode resolved = rexVisitor.analyze(field, context);
+            /*
+             * Dotted path access is resolved into ITEM(map, path) function call without aliasing.
+             * Re-apply the alias so the projected column retains the user-visible name.
+             * TODO: Introduce path navigation semantics without relying on projection-time aliasing.
+             */
+            if (resolved.getKind() == SqlKind.ITEM) {
+              resolved = context.relBuilder.alias(resolved, fieldName);
+            }
+            expandedFields.add(resolved);
           }
         }
         case AllFields ignored -> {

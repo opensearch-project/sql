@@ -143,25 +143,25 @@ fetched rows / total rows = 3/3
 
 ## Example 5: Auto-extract mode  
 
-When `path` is omitted, `spath` extracts all fields from the JSON into a map. All values are stringified, and null values are preserved:
+When `path` is omitted, `spath` extracts all fields from the JSON into a map. You can access individual values using dotted path navigation, where `doc.user.name` resolves to the map key `user.name`. For keys containing special characters like `{}`, use backtick quoting:
   
 ```ppl
 source=structured
-| spath input=doc_auto output=result
-| fields doc_auto result
+| spath input=doc_auto output=doc
+| fields doc_auto, doc.user.name, doc.user.age, doc.`tags{}`, doc.active
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+---------------------------------------------------------------------------------+------------------------------------------------------------------------------------+
-| doc_auto                                                                        | result                                                                             |
-|---------------------------------------------------------------------------------+------------------------------------------------------------------------------------|
-| {"user":{"name":"John","age":30},"tags":["java","sql"],"active":true}           | {'user.age': '30', 'tags{}': '[java, sql]', 'user.name': 'John', 'active': 'true'} |
-| {"user":{"name":"Jane","age":25},"tags":["python"],"active":null}               | {'user.age': '25', 'tags{}': 'python', 'user.name': 'Jane', 'active': 'null'}      |
-| {"user":{"name":"Bob","age":35},"tags":["go","rust","sql"],"user.name":"Bobby"} | {'user.age': '35', 'tags{}': '[go, rust, sql]', 'user.name': '[Bob, Bobby]'}       |
-+---------------------------------------------------------------------------------+------------------------------------------------------------------------------------+
++---------------------------------------------------------------------------------+---------------+--------------+-----------------+------------+
+| doc_auto                                                                        | doc.user.name | doc.user.age | doc.tags{}      | doc.active |
+|---------------------------------------------------------------------------------+---------------+--------------+-----------------+------------|
+| {"user":{"name":"John","age":30},"tags":["java","sql"],"active":true}           | John          | 30           | [java, sql]     | true       |
+| {"user":{"name":"Jane","age":25},"tags":["python"],"active":null}               | Jane          | 25           | python          | null       |
+| {"user":{"name":"Bob","age":35},"tags":["go","rust","sql"],"user.name":"Bobby"} | [Bob, Bobby]  | 35           | [go, rust, sql] | null       |
++---------------------------------------------------------------------------------+---------------+--------------+-----------------+------------+
 ```
   
 The flattening rules demonstrated in this example:
@@ -171,4 +171,3 @@ The flattening rules demonstrated in this example:
 - Duplicate logical keys merge into arrays: in the third row, both `"user": {"name": "Bob"}` (nested) and `"user.name": "Bobby"` (direct dotted key) resolve to the same key `user.name`, so their values merge into `'[Bob, Bobby]'`
 - All values are strings: numeric `30` becomes `'30'`, boolean `true` becomes `'true'`, and arrays become strings like `'[java, sql]'`
 - Null values are preserved: in the second row, `"active": null` is kept as `'active': 'null'` in the map
-  

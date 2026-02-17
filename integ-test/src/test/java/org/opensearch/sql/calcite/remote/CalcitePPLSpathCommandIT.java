@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -47,6 +48,17 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
             + " \"empty_doc\": \"{}\","
             + " \"malformed_doc\": \"{\\\"user\\\":{\\\"name\\\":\"}");
     client().performRequest(autoExtractDoc);
+
+    // Auto-extract mode: 2-doc index for spath + command (eval/where/stats/sort) tests
+    Request cmdDoc1 = new Request("PUT", "/test_spath_cmd/_doc/1?refresh=true");
+    cmdDoc1.setJsonEntity(
+        "{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\",\\\"age\\\":30}}\"}");
+    client().performRequest(cmdDoc1);
+
+    Request cmdDoc2 = new Request("PUT", "/test_spath_cmd/_doc/2?refresh=true");
+    cmdDoc2.setJsonEntity(
+        "{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"Alice\\\",\\\"age\\\":25}}\"}");
+    client().performRequest(cmdDoc2);
 
     // Auto-extract mode: null input handling (doc 1 establishes mapping, doc 2 has null)
     Request nullDoc1 = new Request("PUT", "/test_spath_null/_doc/1?refresh=true");
@@ -162,5 +174,46 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     // Malformed JSON returns partial results parsed before the error
     verifySchema(result, schema("result", "struct"));
     verifyDataRows(result, rows(new JSONObject("{}")));
+  }
+
+  @Test
+  public void testSpathAutoExtractWithEval() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc"
+                + " | eval name = doc.user.name | fields name");
+    verifySchema(result, schema("name", "string"));
+    verifyDataRows(result, rows("Alice"), rows("John"));
+  }
+
+  @Test
+  public void testSpathAutoExtractWithWhere() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc"
+                + " | where doc.user.name = 'John' | fields doc.user.name");
+    verifySchema(result, schema("doc.user.name", "string"));
+    verifyDataRows(result, rows("John"));
+  }
+
+  @Test
+  public void testSpathAutoExtractWithStats() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc"
+                + " | stats sum(doc.user.age) by doc.user.name");
+    verifySchema(result, schema("sum(doc.user.age)", "double"), schema("doc.user.name", "string"));
+    verifyDataRows(result, rows(25, "Alice"), rows(30, "John"));
+  }
+
+  @Test
+  public void testSpathAutoExtractWithSort() throws IOException {
+    // spath auto-extract + sort by path navigation on result
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc"
+                + " | sort doc.user.name | fields doc.user.name");
+    verifySchema(result, schema("doc.user.name", "string"));
+    verifyDataRowsInOrder(result, rows("Alice"), rows("John"));
   }
 }
