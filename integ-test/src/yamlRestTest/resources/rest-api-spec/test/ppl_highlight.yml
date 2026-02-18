@@ -1,0 +1,100 @@
+setup:
+  - do:
+      indices.create:
+        index: ppl_highlight_test
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              message:
+                type: text
+              status:
+                type: text
+              code:
+                type: integer
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+  - do:
+      bulk:
+        index: ppl_highlight_test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"message": "Connection error occurred", "status": "error response", "code": 500}'
+          - '{"index": {}}'
+          - '{"message": "Request completed successfully", "status": "ok", "code": 200}'
+          - '{"index": {}}'
+          - '{"message": "Timeout error in service", "status": "error timeout", "code": 504}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"PPL search with wildcard highlight":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'search source=ppl_highlight_test "error"'
+          highlight:
+            fields:
+              "*": {}
+            pre_tags:
+              - "<em>"
+            post_tags:
+              - "</em>"
+
+  - match: {"size": 2}
+  - is_true: highlights
+
+---
+"PPL search without highlight is backward compatible":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'search source=ppl_highlight_test "error"'
+
+  - match: {"size": 2}
+  - is_false: highlights
+
+---
+"PPL search with custom tags":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'search source=ppl_highlight_test "error"'
+          highlight:
+            fields:
+              "*": {}
+            pre_tags:
+              - "<mark>"
+            post_tags:
+              - "</mark>"
+
+  - match: {"size": 2}
+  - is_true: highlights
