@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.executor.execution;
 
+import java.util.Map;
 import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
@@ -34,7 +36,19 @@ public class ExplainPlan extends AbstractPlan {
 
   @Override
   public void execute() {
-    plan.explain(explainListener, mode);
+    setHighlightThreadLocal();
+    try {
+      plan.explain(explainListener, mode);
+    } finally {
+      CalcitePlanContext.clearHighlightConfig();
+    }
+  }
+
+  private void setHighlightThreadLocal() {
+    Map<String, Object> config = getHighlightConfig();
+    if (config != null) {
+      CalcitePlanContext.setHighlightConfig(config);
+    }
   }
 
   @Override

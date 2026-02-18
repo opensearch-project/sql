@@ -45,15 +45,18 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.ScriptSortBuilder.ScriptSortType;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.context.AbstractAction;
@@ -106,11 +109,53 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
   public RelWriter explainTerms(RelWriter pw) {
     String explainString = String.valueOf(pushDownContext);
     if (pw instanceof RelWriterImpl) {
-      // Only add request builder to the explain plan
-      explainString += ", " + pushDownContext.createRequestBuilder();
+      OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
+      applyHighlightConfig(requestBuilder);
+      explainString += ", " + requestBuilder;
     }
     return super.explainTerms(pw)
         .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
+  }
+
+  /**
+   * Apply highlight configuration from the ThreadLocal to the OpenSearch request builder. The
+   * highlight config is set on a ThreadLocal by the plan's execute() method (on the worker thread)
+   * and forwarded as-is to OpenSearch.
+   *
+   * @param requestBuilder the OpenSearch request builder to attach the highlight clause to
+   */
+  @SuppressWarnings("unchecked")
+  protected static void applyHighlightConfig(OpenSearchRequestBuilder requestBuilder) {
+    Map<String, Object> config = CalcitePlanContext.getHighlightConfig();
+    if (config == null) {
+      return;
+    }
+    HighlightBuilder highlightBuilder = new HighlightBuilder();
+    Object fieldsObj = config.get("fields");
+    if (fieldsObj instanceof Map) {
+      Map<String, Object> fields = (Map<String, Object>) fieldsObj;
+      for (String fieldName : fields.keySet()) {
+        highlightBuilder.field(new HighlightBuilder.Field(fieldName));
+      }
+    }
+    Object preTagsObj = config.get("pre_tags");
+    if (preTagsObj instanceof List) {
+      List<String> preTags = (List<String>) preTagsObj;
+      highlightBuilder.preTags(preTags.toArray(new String[0]));
+    }
+    Object postTagsObj = config.get("post_tags");
+    if (postTagsObj instanceof List) {
+      List<String> postTags = (List<String>) postTagsObj;
+      highlightBuilder.postTags(postTags.toArray(new String[0]));
+    }
+    Object fragmentSizeObj = config.get("fragment_size");
+    if (fragmentSizeObj instanceof Number) {
+      int fragmentSize = ((Number) fragmentSizeObj).intValue();
+      for (HighlightBuilder.Field field : highlightBuilder.fields()) {
+        field.fragmentSize(fragmentSize);
+      }
+    }
+    requestBuilder.getSourceBuilder().highlighter(highlightBuilder);
   }
 
   protected Integer getQuerySizeLimit() {
