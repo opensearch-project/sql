@@ -6,7 +6,11 @@
 package org.opensearch.sql.protocol.response.format;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
+import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -17,6 +21,7 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -177,5 +182,39 @@ class SimpleJsonResponseFormatterTest {
             + "  \"reason\": \"This is an exception\"\n"
             + "}",
         formatter.format(new RuntimeException("This is an exception")));
+  }
+
+  @Test
+  void formatResponseWithHighlights() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Collections.singletonList(
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "firstname",
+                        stringValue("John"),
+                        "age",
+                        integerValue(20),
+                        "_highlight",
+                        ExprTupleValue.fromExprValueMap(
+                            ImmutableMap.of(
+                                "firstname",
+                                collectionValue(ImmutableList.of("<em>John</em>"))))))));
+    SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
+    String result = formatter.format(response);
+    assertTrue(result.contains("\"highlights\""));
+    assertTrue(result.contains("\"firstname\":[\"<em>John</em>\"]"));
+  }
+
+  @Test
+  void formatResponseWithoutHighlightsOmitsField() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Collections.singletonList(tupleValue(ImmutableMap.of("firstname", "John", "age", 20))));
+    SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
+    String result = formatter.format(response);
+    assertFalse(result.contains("\"highlights\""));
   }
 }

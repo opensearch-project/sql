@@ -6,17 +6,22 @@
 package org.opensearch.sql.executor.execution;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
@@ -55,5 +60,37 @@ public class ExplainPlanTest {
               explainPlan.explain(explainListener, mode);
             });
     assertEquals("explain query can not been explained.", unsupportedExplainException.getMessage());
+  }
+
+  @Test
+  public void execute_sets_highlight_threadlocal_for_explain() {
+    Map<String, Object> highlightConfig = Map.of("fields", Map.of("*", Map.of()));
+    AtomicReference<Map<String, Object>> captured = new AtomicReference<>();
+
+    doAnswer(
+            invocation -> {
+              captured.set(CalcitePlanContext.getHighlightConfig());
+              return null;
+            })
+        .when(queryPlan)
+        .explain(any(), any());
+
+    ExplainPlan explainPlan = new ExplainPlan(queryId, queryType, queryPlan, mode, explainListener);
+    explainPlan.setHighlightConfig(highlightConfig);
+    explainPlan.execute();
+
+    assertEquals(highlightConfig, captured.get());
+  }
+
+  @Test
+  public void execute_clears_highlight_threadlocal_after_explain() {
+    Map<String, Object> highlightConfig = Map.of("fields", Map.of("*", Map.of()));
+    doNothing().when(queryPlan).explain(any(), any());
+
+    ExplainPlan explainPlan = new ExplainPlan(queryId, queryType, queryPlan, mode, explainListener);
+    explainPlan.setHighlightConfig(highlightConfig);
+    explainPlan.execute();
+
+    assertNull(CalcitePlanContext.getHighlightConfig());
   }
 }

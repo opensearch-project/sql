@@ -5,14 +5,19 @@
 
 package org.opensearch.sql.executor.execution;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -22,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.DefaultExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -125,5 +131,36 @@ class QueryPlanTest {
               }
             },
             mode);
+  }
+
+  @Test
+  public void execute_sets_highlight_threadlocal() {
+    Map<String, Object> highlightConfig = Map.of("fields", Map.of("*", Map.of()));
+    AtomicReference<Map<String, Object>> captured = new AtomicReference<>();
+
+    doAnswer(
+            invocation -> {
+              captured.set(CalcitePlanContext.getHighlightConfig());
+              return null;
+            })
+        .when(queryService)
+        .execute(any(), any(), any());
+
+    QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
+    query.setHighlightConfig(highlightConfig);
+    query.execute();
+
+    assertEquals(highlightConfig, captured.get());
+  }
+
+  @Test
+  public void execute_clears_highlight_threadlocal_after_execution() {
+    Map<String, Object> highlightConfig = Map.of("fields", Map.of("*", Map.of()));
+
+    QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
+    query.setHighlightConfig(highlightConfig);
+    query.execute();
+
+    assertNull(CalcitePlanContext.getHighlightConfig());
   }
 }
