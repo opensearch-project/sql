@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
+import org.apache.calcite.adapter.enumerable.EnumerableLimitSort;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelFieldCollation.Direction;
@@ -47,6 +48,11 @@ public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexSca
   @Override
   protected void onMatchImpl(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
+    // EnumerableLimitSort carries fetch semantics; this rule doesn't preserve it on physical
+    // scans because limit pushdown path is logical-only.
+    if (sort instanceof EnumerableLimitSort) {
+      return;
+    }
     final Project project = call.rel(1);
     final AbstractCalciteIndexScan scan = call.rel(2);
 
