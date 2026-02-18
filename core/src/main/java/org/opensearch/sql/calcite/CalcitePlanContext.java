@@ -45,6 +45,26 @@ public class CalcitePlanContext {
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
 
+  /**
+   * Thread-local highlight configuration from the PPL request body. Set by PPLService before query
+   * execution and read by CalciteEnumerableIndexScan when building the OpenSearch request. The map
+   * represents the highlight JSON object (fields, pre_tags, post_tags, fragment_size) that the
+   * caller provides and the backend forwards as-is to OpenSearch.
+   */
+  private static final ThreadLocal<Map<String, Object>> highlightConfig = new ThreadLocal<>();
+
+  public static void setHighlightConfig(Map<String, Object> config) {
+    highlightConfig.set(config);
+  }
+
+  public static Map<String, Object> getHighlightConfig() {
+    return highlightConfig.get();
+  }
+
+  public static void clearHighlightConfig() {
+    highlightConfig.remove();
+  }
+
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
   @Getter @Setter private boolean inCoalesceFunction = false;

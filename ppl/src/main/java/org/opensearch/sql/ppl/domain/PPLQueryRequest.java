@@ -109,4 +109,18 @@ public class PPLQueryRequest {
     }
     return jsonContent.optInt(FETCH_SIZE_FIELD, 0);
   }
+
+  /**
+   * Get the highlight configuration from the request body. The caller (OSD, API, CLI) controls
+   * highlighting by providing a highlight object in the PPL request. The backend forwards this
+   * config as-is to OpenSearch.
+   *
+   * @return highlight JSONObject from request, or null if not specified
+   */
+  public JSONObject getHighlight() {
+    if (jsonContent == null) {
+      return null;
+    }
+    return jsonContent.optJSONObject("highlight");
+  }
 }
