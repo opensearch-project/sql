@@ -1,0 +1,45 @@
+setup:
+  - do:
+      indices.create:
+        index: test-idx-5065
+        body:
+          settings:
+            number_of_shards: 1
+          mappings:
+            properties:
+              nums:
+                type: long
+  - do:
+      index:
+        index: test-idx-5065
+        id: 1
+        refresh: true
+        body:
+          nums: [1, 2, 3]
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+  - do:
+      indices.delete:
+        index: test-idx-5065
+        ignore_unavailable: true
+
+---
+"Expand on scalar type should fail with clear error message":
+  - do:
+      catch: bad_request
+      ppl:
+        body:
+          query: 'source=test-idx-5065 | expand nums'
+  - match: { error.type: "UnsupportedOperationException" }
+  - match: { error.reason: "/.*Expand command only works on array types.*/" }
+  - match: { error.details: "/.*nums.*BIGINT.*/" }

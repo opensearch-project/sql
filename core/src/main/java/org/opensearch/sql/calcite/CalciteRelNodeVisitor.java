@@ -3565,6 +3565,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private void buildExpandRelNode(
       RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
+    // Validate that the field is an array type.
+    // Only nested array fields are supported by expand command.
+    RelDataType fieldType = arrayFieldRex.getType();
+    if (fieldType.getSqlTypeName() != SqlTypeName.ARRAY) {
+      throw new UnsupportedOperationException(
+          String.format(
+              "Expand command only supports nested array fields. "
+                  + "Field '%s' has type '%s' which is not a nested array.",
+              arrayFieldName, fieldType.getSqlTypeName()));
+    }
+
     // 3. Capture the outer row in a CorrelationId
     Holder<RexCorrelVariable> correlVariable = Holder.empty();
     context.relBuilder.variable(correlVariable::set);
