@@ -16,8 +16,8 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.sql.executor.autocomplete.AutocompleteArtifact;
-import org.opensearch.sql.ppl.autocomplete.PPLAutocompleteArtifactBuilder;
+import org.opensearch.sql.executor.autocomplete.GrammarBundle;
+import org.opensearch.sql.ppl.autocomplete.PPLGrammarBundleBuilder;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
@@ -40,9 +40,9 @@ public class RestPPLGrammarAction extends BaseRestHandler {
 
   private static final String ENDPOINT_PATH = "/_plugins/_ppl/_grammar";
 
-  // Lazy-initialized singleton artifact (built once per JVM lifecycle)
-  private volatile AutocompleteArtifact cachedArtifact;
-  private final Object artifactLock = new Object();
+  // Lazy-initialized singleton bundle (built once per JVM lifecycle)
+  private volatile GrammarBundle cachedBundle;
+  private final Object bundleLock = new Object();
 
   @Override
   public String getName() {
@@ -62,11 +62,10 @@ public class RestPPLGrammarAction extends BaseRestHandler {
 
     return channel -> {
       try {
-        // Get or build artifact (lazy initialization)
-        AutocompleteArtifact artifact = getOrBuildArtifact();
+        GrammarBundle bundle = getOrBuildBundle();
 
         XContentBuilder builder = channel.newBuilder();
-        serializeArtifact(builder, artifact);
+        serializeBundle(builder, bundle);
 
         BytesRestResponse response = new BytesRestResponse(RestStatus.OK, builder);
         log.info("Returning PPL grammar (size: {} bytes)", response.content().length());
@@ -80,95 +79,93 @@ public class RestPPLGrammarAction extends BaseRestHandler {
   }
 
   /**
-   * Get cached artifact or build it if not initialized.
+   * Get cached bundle or build it if not yet initialized.
    *
    * <p>Thread-safe lazy initialization with double-checked locking.
    */
-  private AutocompleteArtifact getOrBuildArtifact() {
+  private GrammarBundle getOrBuildBundle() {
     // First check without lock (common case: already initialized)
-    if (cachedArtifact != null) {
-      return cachedArtifact;
+    if (cachedBundle != null) {
+      return cachedBundle;
     }
 
     // Acquire lock for initialization
-    synchronized (artifactLock) {
+    synchronized (bundleLock) {
       // Double-check after acquiring lock
-      if (cachedArtifact == null) {
-        log.info("Building PPL grammar artifact (first request)...");
+      if (cachedBundle == null) {
+        log.info("Building PPL grammar bundle (first request)...");
         long startTime = System.currentTimeMillis();
 
-        PPLAutocompleteArtifactBuilder builder = new PPLAutocompleteArtifactBuilder();
-        cachedArtifact = builder.buildArtifact();
+        PPLGrammarBundleBuilder builder = new PPLGrammarBundleBuilder();
+        cachedBundle = builder.build();
 
         long elapsed = System.currentTimeMillis() - startTime;
-        log.info("Built PPL grammar in {}ms (hash: {})", elapsed, cachedArtifact.getGrammarHash());
+        log.info("Built PPL grammar in {}ms (hash: {})", elapsed, cachedBundle.getGrammarHash());
       }
-      return cachedArtifact;
+      return cachedBundle;
     }
   }
 
   /**
-   * Invalidate cached artifact (for testing or grammar updates).
+   * Invalidate cached bundle (for testing or grammar updates).
    *
    * <p>Note: This only affects the current node. In a multi-node cluster, each node maintains its
    * own cache.
    */
   public void invalidateCache() {
-    synchronized (artifactLock) {
-      log.info("Invalidating cached PPL grammar");
-      cachedArtifact = null;
+    synchronized (bundleLock) {
+      log.info("Invalidating cached PPL grammar bundle");
+      cachedBundle = null;
     }
   }
 
   /**
-   * Manually serialize AutocompleteArtifact to JSON.
-   *
-   * <p>Outputs ATN data and arrays as standard JSON arrays.
+   * Serialize {@link GrammarBundle} to JSON.
    */
-  private void serializeArtifact(XContentBuilder builder, AutocompleteArtifact artifact)
+  private void serializeBundle(XContentBuilder builder, GrammarBundle bundle)
       throws IOException {
     builder.startObject();
 
     // Identity & versioning
-    builder.field("bundleVersion", artifact.getBundleVersion());
-    builder.field("grammarHash", artifact.getGrammarHash());
-    builder.field("startRuleIndex", artifact.getStartRuleIndex());
+    builder.field("bundleVersion", bundle.getBundleVersion());
+    builder.field("grammarHash", bundle.getGrammarHash());
+    builder.field("startRuleIndex", bundle.getStartRuleIndex());
 
     // Lexer ATN & metadata
-    if (artifact.getLexerSerializedATN() != null) {
-      builder.field("lexerSerializedATN", artifact.getLexerSerializedATN());
-      log.debug("Lexer ATN: {} elements", artifact.getLexerSerializedATN().length);
+    if (bundle.getLexerSerializedATN() != null) {
+      builder.field("lexerSerializedATN", bundle.getLexerSerializedATN());
+      log.debug("Lexer ATN: {} elements", bundle.getLexerSerializedATN().length);
     }
 
-    if (artifact.getLexerRuleNames() != null) {
-      builder.field("lexerRuleNames", artifact.getLexerRuleNames());
+    if (bundle.getLexerRuleNames() != null) {
+      builder.field("lexerRuleNames", bundle.getLexerRuleNames());
     }
 
-    if (artifact.getChannelNames() != null) {
-      builder.field("channelNames", artifact.getChannelNames());
+    if (bundle.getChannelNames() != null) {
+      builder.field("channelNames", bundle.getChannelNames());
     }
 
-    if (artifact.getModeNames() != null) {
-      builder.field("modeNames", artifact.getModeNames());
+    if (bundle.getModeNames() != null) {
+      builder.field("modeNames", bundle.getModeNames());
     }
 
     // Parser ATN & metadata
-    if (artifact.getParserSerializedATN() != null) {
-      builder.field("parserSerializedATN", artifact.getParserSerializedATN());
-      log.debug("Parser ATN: {} elements", artifact.getParserSerializedATN().length);
+    if (bundle.getParserSerializedATN() != null) {
+      builder.field("parserSerializedATN", bundle.getParserSerializedATN());
+      log.debug("Parser ATN: {} elements", bundle.getParserSerializedATN().length);
     }
 
-    if (artifact.getParserRuleNames() != null) {
-      builder.field("parserRuleNames", artifact.getParserRuleNames());
+    if (bundle.getParserRuleNames() != null) {
+      builder.field("parserRuleNames", bundle.getParserRuleNames());
     }
 
     // Vocabulary
-    if (artifact.getLiteralNames() != null) {
-      builder.field("literalNames", artifact.getLiteralNames());
+    if (bundle.getLiteralNames() != null) {
+      builder.field("literalNames", bundle.getLiteralNames());
     }
 
-    if (artifact.getSymbolicNames() != null) {
-      builder.field("symbolicNames", artifact.getSymbolicNames());
+    if (bundle.getSymbolicNames() != null) {
+      builder.field("symbolicNames", bundle.getSymbolicNames());
     }
 
     builder.endObject();
