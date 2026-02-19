@@ -175,4 +175,25 @@ class QueryResultTest {
     assertEquals(1, highlights.size());
     assertNull(highlights.get(0));
   }
+
+  @Test
+  void highlights_returns_null_when_highlight_is_missing() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Collections.singletonList(
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "name",
+                        ExprValueUtils.stringValue("John"),
+                        "age",
+                        ExprValueUtils.integerValue(20),
+                        "_highlight",
+                        ExprValueUtils.LITERAL_MISSING))),
+            Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(1, highlights.size());
+    assertNull(highlights.get(0));
+  }
 }
