@@ -43,7 +43,7 @@ configurations {
 }
 
 dependencies {
-    antlr "org.antlr:antlr4:4.7.1"
+    antlr "org.antlr:antlr4:4.13.2"
 
     implementation project(':core')
     implementation 'org.json:json:20231013'
