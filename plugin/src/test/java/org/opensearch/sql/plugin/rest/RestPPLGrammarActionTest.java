@@ -108,7 +108,7 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
     action.prepareRequest(request2, client).accept(channel2);
     long elapsed2 = System.currentTimeMillis() - startTime2;
 
-    // Second request should be faster (artifact cached)
+    // Second request should be faster (bundle cached)
     assertTrue(
         "Second request should be faster due to caching (elapsed1="
             + elapsed1
