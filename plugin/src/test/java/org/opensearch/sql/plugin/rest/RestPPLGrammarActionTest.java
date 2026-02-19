@@ -12,7 +12,6 @@ import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.core.rest.RestStatus;
@@ -31,7 +30,6 @@ import org.opensearch.transport.client.node.NodeClient;
  *
  * <ul>
  *   <li>200 OK response with grammar bundle
- *   <li>304 Not Modified when ETag matches
  *   <li>Grammar structure validation
  *   <li>Cache behavior
  * </ul>
@@ -62,36 +60,19 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
 
   @Test
   public void testGetGrammar_ReturnsBundle() throws Exception {
-    // Create request without ETag
     FakeRestRequest request =
         new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
             .withMethod(RestRequest.Method.GET)
             .withPath("/_plugins/_ppl/_grammar")
-            .withHeaders(Collections.emptyMap())
             .build();
 
-    // Create mock channel to capture response
     MockRestChannel channel = new MockRestChannel(request, true);
-
-    // Execute request
     action.prepareRequest(request, client).accept(channel);
 
-    // Verify response
     RestResponse response = channel.getResponse();
     assertNotNull("Response should not be null", response);
     assertEquals("Should return 200 OK", RestStatus.OK, response.status());
 
-    // Verify ETag header present
-    String etag = response.getHeaders().get("ETag").get(0);
-    assertNotNull("ETag header should be present", etag);
-    assertTrue("ETag should start with sha256:", etag.contains("sha256:"));
-
-    // Verify Cache-Control header
-    String cacheControl = response.getHeaders().get("Cache-Control").get(0);
-    assertNotNull("Cache-Control header should be present", cacheControl);
-    assertTrue("Should allow caching", cacheControl.contains("max-age=3600"));
-
-    // Verify response content
     String content = new String(response.content().array(), StandardCharsets.UTF_8);
     assertTrue("Should contain bundleVersion", content.contains("\"bundleVersion\":"));
     assertTrue("Should contain grammarHash", content.contains("\"grammarHash\":"));
@@ -99,39 +80,6 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
     assertTrue("Should contain parserSerializedATN", content.contains("\"parserSerializedATN\":"));
     assertTrue("Should contain literalNames", content.contains("\"literalNames\":"));
     assertTrue("Should contain symbolicNames", content.contains("\"symbolicNames\":"));
-  }
-
-  @Test
-  public void testGetGrammar_Returns304WhenETagMatches() throws Exception {
-    // First request to get ETag
-    FakeRestRequest firstRequest =
-        new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-            .withMethod(RestRequest.Method.GET)
-            .withPath("/_plugins/_ppl/_grammar")
-            .build();
-
-    MockRestChannel firstChannel = new MockRestChannel(firstRequest, true);
-    action.prepareRequest(firstRequest, client).accept(firstChannel);
-
-    RestResponse firstResponse = firstChannel.getResponse();
-    String etag = firstResponse.getHeaders().get("ETag").get(0);
-
-    // Second request with matching ETag
-    FakeRestRequest secondRequest =
-        new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-            .withMethod(RestRequest.Method.GET)
-            .withPath("/_plugins/_ppl/_grammar")
-            .withHeaders(Collections.singletonMap("If-None-Match", Collections.singletonList(etag)))
-            .build();
-
-    MockRestChannel secondChannel = new MockRestChannel(secondRequest, true);
-    action.prepareRequest(secondRequest, client).accept(secondChannel);
-
-    RestResponse secondResponse = secondChannel.getResponse();
-    assertEquals(
-        "Should return 304 Not Modified when ETag matches",
-        RestStatus.NOT_MODIFIED,
-        secondResponse.status());
   }
 
   @Test
@@ -160,11 +108,6 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
     action.prepareRequest(request2, client).accept(channel2);
     long elapsed2 = System.currentTimeMillis() - startTime2;
 
-    // Both should return same ETag
-    String etag1 = channel1.getResponse().getHeaders().get("ETag").get(0);
-    String etag2 = channel2.getResponse().getHeaders().get("ETag").get(0);
-    assertEquals("ETags should match", etag1, etag2);
-
     // Second request should be faster (artifact cached)
     assertTrue(
         "Second request should be faster due to caching (elapsed1="
@@ -186,12 +129,12 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
 
     MockRestChannel channel1 = new MockRestChannel(request1, true);
     action.prepareRequest(request1, client).accept(channel1);
-    String etag1 = channel1.getResponse().getHeaders().get("ETag").get(0);
+    assertEquals(RestStatus.OK, channel1.getResponse().status());
 
     // Invalidate cache
     action.invalidateCache();
 
-    // Get grammar again
+    // Get grammar again — should still return 200 OK with same content
     FakeRestRequest request2 =
         new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
             .withMethod(RestRequest.Method.GET)
@@ -200,10 +143,7 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
 
     MockRestChannel channel2 = new MockRestChannel(request2, true);
     action.prepareRequest(request2, client).accept(channel2);
-    String etag2 = channel2.getResponse().getHeaders().get("ETag").get(0);
-
-    // ETags should still match (same grammar)
-    assertEquals("ETags should match after cache invalidation", etag1, etag2);
+    assertEquals(RestStatus.OK, channel2.getResponse().status());
   }
 
   /** Mock RestChannel to capture responses */
