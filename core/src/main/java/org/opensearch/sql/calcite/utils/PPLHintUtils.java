@@ -19,6 +19,7 @@ public class PPLHintUtils {
   private static final String HINT_AGG_ARGUMENTS = "AGG_ARGS";
   private static final String KEY_IGNORE_NULL_BUCKET = "ignoreNullBucket";
   private static final String KEY_HAS_NESTED_AGG_CALL = "hasNestedAggCall";
+
   private static final Supplier<HintStrategyTable> HINT_STRATEGY_TABLE =
       Suppliers.memoize(
           () ->
@@ -28,6 +29,7 @@ public class PPLHintUtils {
                       (hint, rel) -> {
                         return rel instanceof LogicalAggregate;
                       })
+                  // add more here
                   .build());
 
   /**
