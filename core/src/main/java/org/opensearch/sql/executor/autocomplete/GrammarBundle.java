@@ -8,17 +8,12 @@ package org.opensearch.sql.executor.autocomplete;
 import lombok.Builder;
 import lombok.Data;
 
-/**
- * Grammar bundle containing everything needed for client-side ANTLR-based parsing.
- *
- * <p>Includes serialized ATN data (lexer + parser), vocabulary, and rule/channel/mode names.
- * Language-agnostic — usable for PPL, SQL, or any ANTLR4 grammar.
- */
+/** Response payload for the {@code GET /_plugins/_ppl/_grammar} endpoint. */
 @Data
 @Builder
 public class GrammarBundle {
 
-  /** Bundle format version. Increment when the schema changes. */
+  /** Bundle format version. */
   private String bundleVersion;
 
   /** SHA-256 hash of the serialized ATN data. Clients may use this to detect grammar changes. */
