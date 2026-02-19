@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.common.io.stream.BytesStreamOutput;
@@ -22,6 +23,7 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestResponse;
+import org.opensearch.sql.ppl.autocomplete.GrammarBundle;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -78,13 +80,23 @@ public class RestPPLGrammarActionTest {
 
   @Test
   public void testGetGrammar_BundleIsCached() throws Exception {
+    AtomicInteger buildCount = new AtomicInteger(0);
+    RestPPLGrammarAction countingAction =
+        new RestPPLGrammarAction() {
+          @Override
+          protected GrammarBundle buildBundle() {
+            buildCount.incrementAndGet();
+            return super.buildBundle();
+          }
+        };
+
     FakeRestRequest request1 =
         new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
             .withMethod(RestRequest.Method.GET)
             .withPath("/_plugins/_ppl/_grammar")
             .build();
     MockRestChannel channel1 = new MockRestChannel(request1, true);
-    action.handleRequest(request1, channel1, client);
+    countingAction.handleRequest(request1, channel1, client);
 
     FakeRestRequest request2 =
         new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
@@ -92,11 +104,13 @@ public class RestPPLGrammarActionTest {
             .withPath("/_plugins/_ppl/_grammar")
             .build();
     MockRestChannel channel2 = new MockRestChannel(request2, true);
-    action.handleRequest(request2, channel2, client);
+    countingAction.handleRequest(request2, channel2, client);
 
-    String content1 = channel1.getResponse().content().utf8ToString();
-    String content2 = channel2.getResponse().content().utf8ToString();
-    assertEquals("Consecutive requests should return identical content", content1, content2);
+    assertEquals("Bundle should be built exactly once", 1, buildCount.get());
+    assertEquals(
+        "Consecutive requests should return identical content",
+        channel1.getResponse().content().utf8ToString(),
+        channel2.getResponse().content().utf8ToString());
   }
 
   @Test
@@ -123,7 +137,29 @@ public class RestPPLGrammarActionTest {
 
     String content1 = channel1.getResponse().content().utf8ToString();
     String content2 = channel2.getResponse().content().utf8ToString();
-    assertEquals("Grammar hash should be identical after cache invalidation and rebuild", content1, content2);
+    assertEquals(
+        "Grammar hash should be identical after cache invalidation and rebuild", content1, content2);
+  }
+
+  @Test
+  public void testGetGrammar_ErrorPath_Returns500() throws Exception {
+    RestPPLGrammarAction failingAction =
+        new RestPPLGrammarAction() {
+          @Override
+          protected GrammarBundle buildBundle() {
+            throw new RuntimeException("simulated build failure");
+          }
+        };
+
+    FakeRestRequest request =
+        new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+            .withMethod(RestRequest.Method.GET)
+            .withPath("/_plugins/_ppl/_grammar")
+            .build();
+    MockRestChannel channel = new MockRestChannel(request, true);
+    failingAction.handleRequest(request, channel, client);
+
+    assertEquals(RestStatus.INTERNAL_SERVER_ERROR, channel.getResponse().status());
   }
 
   /** Mock RestChannel to capture responses */

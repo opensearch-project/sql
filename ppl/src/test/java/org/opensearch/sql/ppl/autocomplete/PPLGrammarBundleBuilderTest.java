@@ -11,7 +11,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.opensearch.sql.executor.autocomplete.GrammarBundle;
 
 public class PPLGrammarBundleBuilderTest {
 
@@ -37,7 +36,7 @@ public class PPLGrammarBundleBuilderTest {
     String hash = bundle.getGrammarHash();
     assertNotNull(hash);
     assertTrue("grammarHash should start with 'sha256:'", hash.startsWith("sha256:"));
-    assertTrue("grammarHash should be 71 chars (sha256: + 64 hex)", hash.length() == 71);
+    assertEquals("grammarHash should be 71 chars (sha256: + 64 hex)", 71, hash.length());
   }
 
   @Test

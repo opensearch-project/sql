@@ -7,6 +7,7 @@ package org.opensearch.sql.plugin.rest;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.List;
@@ -16,7 +17,7 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.sql.executor.autocomplete.GrammarBundle;
+import org.opensearch.sql.ppl.autocomplete.GrammarBundle;
 import org.opensearch.sql.ppl.autocomplete.PPLGrammarBundleBuilder;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -47,12 +48,9 @@ public class RestPPLGrammarAction extends BaseRestHandler {
     return channel -> {
       try {
         GrammarBundle bundle = getOrBuildBundle();
-
         XContentBuilder builder = channel.newBuilder();
         serializeBundle(builder, bundle);
-
         channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
-
       } catch (Exception e) {
         log.error("Error building or serializing PPL grammar", e);
         channel.sendResponse(new BytesRestResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, e));
@@ -68,29 +66,27 @@ public class RestPPLGrammarAction extends BaseRestHandler {
     synchronized (bundleLock) {
       // double-check after acquiring lock
       if (cachedBundle == null) {
-        log.info("Building PPL grammar bundle (first request)...");
-        long startTime = System.currentTimeMillis();
-
-        PPLGrammarBundleBuilder builder = new PPLGrammarBundleBuilder();
-        cachedBundle = builder.build();
-
-        long elapsed = System.currentTimeMillis() - startTime;
-        log.info("Built PPL grammar in {}ms (hash: {})", elapsed, cachedBundle.getGrammarHash());
+        cachedBundle = buildBundle();
       }
       return cachedBundle;
     }
   }
 
+  /** Constructs the grammar bundle. Override in tests to inject a custom or failing builder. */
+  @VisibleForTesting
+  protected GrammarBundle buildBundle() {
+    return new PPLGrammarBundleBuilder().build();
+  }
+
   /** Invalidate the cached bundle, forcing a rebuild on the next request. */
+  @VisibleForTesting
   public void invalidateCache() {
     synchronized (bundleLock) {
-      log.info("Invalidating cached PPL grammar bundle");
       cachedBundle = null;
     }
   }
 
-  private void serializeBundle(XContentBuilder builder, GrammarBundle bundle)
-      throws IOException {
+  private void serializeBundle(XContentBuilder builder, GrammarBundle bundle) throws IOException {
     builder.startObject();
 
     // Identity & versioning
@@ -99,39 +95,18 @@ public class RestPPLGrammarAction extends BaseRestHandler {
     builder.field("startRuleIndex", bundle.getStartRuleIndex());
 
     // Lexer ATN & metadata
-    if (bundle.getLexerSerializedATN() != null) {
-      builder.field("lexerSerializedATN", bundle.getLexerSerializedATN());
-    }
-
-    if (bundle.getLexerRuleNames() != null) {
-      builder.field("lexerRuleNames", bundle.getLexerRuleNames());
-    }
-
-    if (bundle.getChannelNames() != null) {
-      builder.field("channelNames", bundle.getChannelNames());
-    }
-
-    if (bundle.getModeNames() != null) {
-      builder.field("modeNames", bundle.getModeNames());
-    }
+    builder.field("lexerSerializedATN", bundle.getLexerSerializedATN());
+    builder.field("lexerRuleNames", bundle.getLexerRuleNames());
+    builder.field("channelNames", bundle.getChannelNames());
+    builder.field("modeNames", bundle.getModeNames());
 
     // Parser ATN & metadata
-    if (bundle.getParserSerializedATN() != null) {
-      builder.field("parserSerializedATN", bundle.getParserSerializedATN());
-    }
-
-    if (bundle.getParserRuleNames() != null) {
-      builder.field("parserRuleNames", bundle.getParserRuleNames());
-    }
+    builder.field("parserSerializedATN", bundle.getParserSerializedATN());
+    builder.field("parserRuleNames", bundle.getParserRuleNames());
 
     // Vocabulary
-    if (bundle.getLiteralNames() != null) {
-      builder.field("literalNames", bundle.getLiteralNames());
-    }
-
-    if (bundle.getSymbolicNames() != null) {
-      builder.field("symbolicNames", bundle.getSymbolicNames());
-    }
+    builder.field("literalNames", bundle.getLiteralNames());
+    builder.field("symbolicNames", bundle.getSymbolicNames());
 
     builder.endObject();
   }
