@@ -34,31 +34,6 @@ import org.opensearch.transport.client.node.NodeClient;
  *   <li>Channel and mode names
  * </ul>
  *
- * <p>The bundle is cached in memory and versioned via ETag (grammar hash). Clients should cache
- * locally and only refetch when ETag changes.
- *
- * <p>Example request:
- *
- * <pre>
- * GET /_plugins/_ppl/_grammar
- * If-None-Match: "sha256:abc123..."
- * </pre>
- *
- * <p>Response headers:
- *
- * <pre>
- * HTTP/1.1 200 OK
- * ETag: "sha256:abc123..."
- * Cache-Control: public, max-age=3600
- * Content-Type: application/json
- * </pre>
- *
- * <p>Or if client has latest:
- *
- * <pre>
- * HTTP/1.1 304 Not Modified
- * ETag: "sha256:abc123..."
- * </pre>
  */
 @Log4j2
 public class RestPPLGrammarAction extends BaseRestHandler {
@@ -90,37 +65,10 @@ public class RestPPLGrammarAction extends BaseRestHandler {
         // Get or build artifact (lazy initialization)
         AutocompleteArtifact artifact = getOrBuildArtifact();
 
-        String grammarHash = artifact.getGrammarHash();
-        String ifNoneMatch = request.header("If-None-Match");
-
-        // Strip quotes from ETag if present ("sha256:..." → sha256:...)
-        if (ifNoneMatch != null && ifNoneMatch.startsWith("\"") && ifNoneMatch.endsWith("\"")) {
-          ifNoneMatch = ifNoneMatch.substring(1, ifNoneMatch.length() - 1);
-        }
-
-        // Return 304 Not Modified if client has latest version
-        if (grammarHash.equals(ifNoneMatch)) {
-          log.debug("Client has latest grammar (ETag match), returning 304");
-          BytesRestResponse response =
-              new BytesRestResponse(RestStatus.NOT_MODIFIED, "application/json", "");
-          response.addHeader("ETag", "\"" + grammarHash + "\"");
-          response.addHeader("Cache-Control", "public, max-age=3600");
-          channel.sendResponse(response);
-          return;
-        }
-
-        // Serialize artifact to JSON
-        log.debug("Serializing grammar to JSON (hash: {})", grammarHash);
         XContentBuilder builder = channel.newBuilder();
         serializeArtifact(builder, artifact);
 
         BytesRestResponse response = new BytesRestResponse(RestStatus.OK, builder);
-
-        // Add caching headers
-        response.addHeader("ETag", "\"" + grammarHash + "\"");
-        response.addHeader("Cache-Control", "public, max-age=3600");
-        response.addHeader("Content-Type", "application/json; charset=UTF-8");
-
         log.info("Returning PPL grammar (size: {} bytes)", response.content().length());
         channel.sendResponse(response);
 
