@@ -43,9 +43,9 @@ configurations {
 }
 
 dependencies {
-    antlr "org.antlr:antlr4:4.7.1"
+    antlr "org.antlr:antlr4:4.13.2"
 
-    implementation "org.antlr:antlr4-runtime:4.7.1"
+    implementation "org.antlr:antlr4-runtime:4.13.2"
     implementation group: 'com.google.guava', name: 'guava', version: "${guava_version}"
     implementation group: 'org.json', name: 'json', version:'20231013'
     implementation project(':common')
