@@ -10,28 +10,29 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
+import org.opensearch.common.io.stream.BytesStreamOutput;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestResponse;
-import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 /** Unit tests for {@link RestPPLGrammarAction}. */
-public class RestPPLGrammarActionTest extends OpenSearchTestCase {
+public class RestPPLGrammarActionTest {
 
   private RestPPLGrammarAction action;
   private NodeClient client;
 
   @Before
-  public void setUp() throws Exception {
-    super.setUp();
+  public void setUp() {
     action = new RestPPLGrammarAction();
     client = mock(NodeClient.class);
   }
@@ -57,19 +58,22 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
             .build();
 
     MockRestChannel channel = new MockRestChannel(request, true);
-    action.prepareRequest(request, client).accept(channel);
+    action.handleRequest(request, channel, client);
 
     RestResponse response = channel.getResponse();
     assertNotNull("Response should not be null", response);
     assertEquals("Should return 200 OK", RestStatus.OK, response.status());
 
-    String content = new String(response.content().array(), StandardCharsets.UTF_8);
-    assertTrue("Should contain bundleVersion", content.contains("\"bundleVersion\":"));
-    assertTrue("Should contain grammarHash", content.contains("\"grammarHash\":"));
-    assertTrue("Should contain lexerSerializedATN", content.contains("\"lexerSerializedATN\":"));
-    assertTrue("Should contain parserSerializedATN", content.contains("\"parserSerializedATN\":"));
-    assertTrue("Should contain literalNames", content.contains("\"literalNames\":"));
-    assertTrue("Should contain symbolicNames", content.contains("\"symbolicNames\":"));
+    String content = response.content().utf8ToString();
+    assertTrue(content.contains("\"bundleVersion\":\"1.0\""));
+    assertTrue(content.contains("\"grammarHash\":\"sha256:"));
+    assertTrue(content.contains("\"startRuleIndex\":0"));
+    assertTrue(content.contains("\"lexerSerializedATN\":"));
+    assertTrue(content.contains("\"parserSerializedATN\":"));
+    assertTrue(content.contains("\"lexerRuleNames\":"));
+    assertTrue(content.contains("\"parserRuleNames\":"));
+    assertTrue(content.contains("\"literalNames\":"));
+    assertTrue(content.contains("\"symbolicNames\":"));
   }
 
   @Test
@@ -79,30 +83,20 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
             .withMethod(RestRequest.Method.GET)
             .withPath("/_plugins/_ppl/_grammar")
             .build();
-
     MockRestChannel channel1 = new MockRestChannel(request1, true);
-    long startTime1 = System.currentTimeMillis();
-    action.prepareRequest(request1, client).accept(channel1);
-    long elapsed1 = System.currentTimeMillis() - startTime1;
+    action.handleRequest(request1, channel1, client);
 
     FakeRestRequest request2 =
         new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
             .withMethod(RestRequest.Method.GET)
             .withPath("/_plugins/_ppl/_grammar")
             .build();
-
     MockRestChannel channel2 = new MockRestChannel(request2, true);
-    long startTime2 = System.currentTimeMillis();
-    action.prepareRequest(request2, client).accept(channel2);
-    long elapsed2 = System.currentTimeMillis() - startTime2;
+    action.handleRequest(request2, channel2, client);
 
-    assertTrue(
-        "Second request should be faster due to caching (elapsed1="
-            + elapsed1
-            + "ms, elapsed2="
-            + elapsed2
-            + "ms)",
-        elapsed2 < elapsed1 || elapsed2 < 50); // Allow some variance
+    String content1 = channel1.getResponse().content().utf8ToString();
+    String content2 = channel2.getResponse().content().utf8ToString();
+    assertEquals("Consecutive requests should return identical content", content1, content2);
   }
 
   @Test
@@ -112,9 +106,8 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
             .withMethod(RestRequest.Method.GET)
             .withPath("/_plugins/_ppl/_grammar")
             .build();
-
     MockRestChannel channel1 = new MockRestChannel(request1, true);
-    action.prepareRequest(request1, client).accept(channel1);
+    action.handleRequest(request1, channel1, client);
     assertEquals(RestStatus.OK, channel1.getResponse().status());
 
     action.invalidateCache();
@@ -124,10 +117,13 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
             .withMethod(RestRequest.Method.GET)
             .withPath("/_plugins/_ppl/_grammar")
             .build();
-
     MockRestChannel channel2 = new MockRestChannel(request2, true);
-    action.prepareRequest(request2, client).accept(channel2);
+    action.handleRequest(request2, channel2, client);
     assertEquals(RestStatus.OK, channel2.getResponse().status());
+
+    String content1 = channel1.getResponse().content().utf8ToString();
+    String content2 = channel2.getResponse().content().utf8ToString();
+    assertEquals("Grammar hash should be identical after cache invalidation and rebuild", content1, content2);
   }
 
   /** Mock RestChannel to capture responses */
@@ -161,23 +157,34 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
     }
 
     @Override
-    public org.opensearch.core.xcontent.XContentBuilder newBuilder() {
-      return null;
+    public boolean detailedErrorStackTraceEnabled() {
+      return false;
     }
 
     @Override
-    public org.opensearch.core.xcontent.XContentBuilder newErrorBuilder() {
-      return null;
+    public XContentBuilder newBuilder() throws IOException {
+      return XContentBuilder.builder(XContentType.JSON.xContent());
     }
 
     @Override
-    public org.opensearch.core.xcontent.XContentBuilder newBuilder(
-        org.opensearch.core.xcontent.MediaType mediaType, boolean useFiltering) {
-      return null;
+    public XContentBuilder newErrorBuilder() throws IOException {
+      return XContentBuilder.builder(XContentType.JSON.xContent());
     }
 
     @Override
-    public ByteArrayOutputStream bytesOutput() {
+    public XContentBuilder newBuilder(MediaType mediaType, boolean useFiltering) throws IOException {
+      return XContentBuilder.builder(XContentType.JSON.xContent());
+    }
+
+    @Override
+    public XContentBuilder newBuilder(
+        MediaType requestContentType, MediaType responseContentType, boolean useFiltering)
+        throws IOException {
+      return XContentBuilder.builder(XContentType.JSON.xContent());
+    }
+
+    @Override
+    public BytesStreamOutput bytesOutput() {
       return null;
     }
   }
