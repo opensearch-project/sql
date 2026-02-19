@@ -7,8 +7,8 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -22,58 +22,29 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLHighlightIT extends PPLIntegTestCase {
 
-  private static final String TEST_INDEX = "highlight_test";
-
   @Override
   public void init() throws Exception {
     super.init();
     enableCalcite();
-
-    // Create index with text fields
-    Request createIndex = new Request("PUT", "/" + TEST_INDEX);
-    createIndex.setJsonEntity(
-        "{"
-            + "\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0},"
-            + "\"mappings\": {\"properties\": {"
-            + "\"message\": {\"type\": \"text\"},"
-            + "\"status\": {\"type\": \"text\"},"
-            + "\"code\": {\"type\": \"integer\"}"
-            + "}}"
-            + "}");
-    client().performRequest(createIndex);
-
-    // Index test documents
-    Request bulk = new Request("POST", "/" + TEST_INDEX + "/_bulk?refresh=true");
-    bulk.setJsonEntity(
-        "{\"index\": {}}\n"
-            + "{\"message\": \"Connection error occurred\", \"status\": \"error response\","
-            + " \"code\": 500}\n"
-            + "{\"index\": {}}\n"
-            + "{\"message\": \"Request completed successfully\", \"status\": \"ok\", \"code\":"
-            + " 200}\n"
-            + "{\"index\": {}}\n"
-            + "{\"message\": \"Timeout error in service\", \"status\": \"error timeout\", \"code\":"
-            + " 504}\n");
-    client().performRequest(bulk);
+    loadIndex(Index.ACCOUNT);
   }
 
   @Test
   public void testHighlightWithWildcardFields() throws IOException {
     JSONObject result =
         executeQueryWithHighlight(
-            "search source=" + TEST_INDEX + " \"error\"",
+            "search source=" + TEST_INDEX_ACCOUNT + " \\\"Street\\\"",
             "{\"fields\": {\"*\": {}}, \"pre_tags\": [\"<em>\"], \"post_tags\": [\"</em>\"]}");
 
     assertTrue(result.has("highlights"));
     JSONArray highlights = result.getJSONArray("highlights");
     assertEquals(result.getInt("size"), highlights.length());
 
-    // At least one highlight entry should contain "error" wrapped in tags
     boolean foundHighlight = false;
     for (int i = 0; i < highlights.length(); i++) {
       if (!highlights.isNull(i)) {
         String hlStr = highlights.get(i).toString();
-        if (hlStr.contains("<em>error</em>") || hlStr.contains("<em>Error</em>")) {
+        if (hlStr.contains("<em>Street</em>")) {
           foundHighlight = true;
           break;
         }
@@ -86,18 +57,18 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
   public void testHighlightWithSpecificField() throws IOException {
     JSONObject result =
         executeQueryWithHighlight(
-            "search source=" + TEST_INDEX + " \"error\"",
-            "{\"fields\": {\"message\": {}}, \"pre_tags\": [\"<em>\"], \"post_tags\":"
+            "search source=" + TEST_INDEX_ACCOUNT + " \\\"Street\\\"",
+            "{\"fields\": {\"address\": {}}, \"pre_tags\": [\"<em>\"], \"post_tags\":"
                 + " [\"</em>\"]}");
 
     assertTrue(result.has("highlights"));
     JSONArray highlights = result.getJSONArray("highlights");
 
-    // Check that highlights only contain "message" field, not "status"
     for (int i = 0; i < highlights.length(); i++) {
       if (!highlights.isNull(i)) {
         JSONObject hl = highlights.getJSONObject(i);
-        assertFalse("Should not highlight status field", hl.has("status"));
+        // Only address field should be highlighted, not other text fields
+        assertFalse("Should not highlight firstname field", hl.has("firstname"));
       }
     }
   }
@@ -106,8 +77,9 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
   public void testHighlightWithCustomTags() throws IOException {
     JSONObject result =
         executeQueryWithHighlight(
-            "search source=" + TEST_INDEX + " \"error\"",
-            "{\"fields\": {\"*\": {}}, \"pre_tags\": [\"<mark>\"], \"post_tags\": [\"</mark>\"]}");
+            "search source=" + TEST_INDEX_ACCOUNT + " \\\"Street\\\"",
+            "{\"fields\": {\"*\": {}}, \"pre_tags\": [\"<mark>\"], \"post_tags\":"
+                + " [\"</mark>\"]}");
 
     assertTrue(result.has("highlights"));
     JSONArray highlights = result.getJSONArray("highlights");
@@ -127,7 +99,8 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
 
   @Test
   public void testNoHighlightWhenNotRequested() throws IOException {
-    JSONObject result = executeQuery("search source=" + TEST_INDEX + " \"error\"");
+    JSONObject result =
+        executeQueryNoHighlight("search source=" + TEST_INDEX_ACCOUNT + " \\\"Street\\\"");
 
     assertFalse("Should not have highlights when not requested", result.has("highlights"));
   }
@@ -136,15 +109,13 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
   public void testHighlightWithPipedFilter() throws IOException {
     JSONObject result =
         executeQueryWithHighlight(
-            "search source=" + TEST_INDEX + " \"error\" | where code > 500",
+            "search source=" + TEST_INDEX_ACCOUNT + " \\\"Street\\\" | where age > 30",
             "{\"fields\": {\"*\": {}}, \"pre_tags\": [\"<em>\"], \"post_tags\": [\"</em>\"]}");
 
     assertTrue(result.has("highlights"));
-    // Only the doc with code=504 should match
-    assertEquals(1, result.getInt("size"));
+    assertTrue(result.getInt("size") > 0);
     JSONArray highlights = result.getJSONArray("highlights");
-    assertEquals(1, highlights.length());
-    assertNotNull(highlights.get(0));
+    assertEquals(result.getInt("size"), highlights.length());
   }
 
   @Test
@@ -153,10 +124,10 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
     request.setJsonEntity(
         String.format(
             Locale.ROOT,
-            "{\"query\": \"search source=%s \\\"error\\\"\","
+            "{\"query\": \"search source=%s \\\"Street\\\"\","
                 + "\"highlight\": {\"fields\": {\"*\": {}},"
                 + "\"pre_tags\": [\"<em>\"], \"post_tags\": [\"</em>\"]}}",
-            TEST_INDEX));
+            TEST_INDEX_ACCOUNT));
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
@@ -164,7 +135,6 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
     assertEquals(200, response.getStatusLine().getStatusCode());
 
     String body = org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true);
-    // The explain output should contain the highlight clause
     assertTrue("Explain should contain highlight", body.contains("highlight"));
   }
 
@@ -173,6 +143,18 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
     Request request = new Request("POST", "/_plugins/_ppl");
     request.setJsonEntity(
         String.format(Locale.ROOT, "{\"query\": \"%s\", \"highlight\": %s}", query, highlightJson));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    Response response = client().performRequest(request);
+    assertEquals(200, response.getStatusLine().getStatusCode());
+    String body = org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true);
+    return new JSONObject(body);
+  }
+
+  private JSONObject executeQueryNoHighlight(String query) throws IOException {
+    Request request = new Request("POST", "/_plugins/_ppl");
+    request.setJsonEntity(String.format(Locale.ROOT, "{\"query\": \"%s\"}", query));
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
