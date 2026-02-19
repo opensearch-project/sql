@@ -12,13 +12,13 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Vocabulary;
 import org.antlr.v4.runtime.atn.ATNSerializer;
-import org.opensearch.sql.executor.autocomplete.GrammarBundle;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLLexer;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 
 /** Builds the {@link GrammarBundle} for the PPL language from the generated ANTLR lexer/parser. */
 public class PPLGrammarBundleBuilder {
 
+  // Keep in sync with the antlr4 version in ppl/build.gradle.
   private static final String ANTLR_VERSION = "4.13.2";
   private static final String BUNDLE_VERSION = "1.0";
 
@@ -60,6 +60,8 @@ public class PPLGrammarBundleBuilder {
   private static String computeGrammarHash(int[] lexerATN, int[] parserATN) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      // ANTLR4 serialized ATN values are bounded to 16 bits (unicode char range), so hashing
+      // 2 bytes per element captures the full value without loss.
       for (int v : lexerATN) {
         digest.update((byte) (v >> 8));
         digest.update((byte) v);
@@ -70,7 +72,9 @@ public class PPLGrammarBundleBuilder {
       }
       digest.update(ANTLR_VERSION.getBytes(StandardCharsets.UTF_8));
       byte[] hash = digest.digest();
-      StringBuilder sb = new StringBuilder("sha256:");
+      // Output is always "sha256:" (7 chars) + 64 hex chars = 71 chars.
+      StringBuilder sb = new StringBuilder(71);
+      sb.append("sha256:");
       for (byte b : hash) {
         sb.append(String.format("%02x", b & 0xFF));
       }
