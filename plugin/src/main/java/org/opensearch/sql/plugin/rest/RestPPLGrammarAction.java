@@ -20,21 +20,7 @@ import org.opensearch.sql.executor.autocomplete.GrammarBundle;
 import org.opensearch.sql.ppl.autocomplete.PPLGrammarBundleBuilder;
 import org.opensearch.transport.client.node.NodeClient;
 
-/**
- * REST handler for PPL grammar metadata endpoint.
- *
- * <p>Endpoint: GET /_plugins/_ppl/_grammar
- *
- * <p>Returns grammar data for client-side parsing, autocomplete, syntax highlighting, etc:
- *
- * <ul>
- *   <li>Serialized ANTLR ATN data (lexer + parser)
- *   <li>Vocabulary (literal and symbolic names)
- *   <li>Rule names (parser and lexer)
- *   <li>Channel and mode names
- * </ul>
- *
- */
+/** REST handler for {@code GET /_plugins/_ppl/_grammar}. */
 @Log4j2
 public class RestPPLGrammarAction extends BaseRestHandler {
 
@@ -58,8 +44,6 @@ public class RestPPLGrammarAction extends BaseRestHandler {
   protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
       throws IOException {
 
-    log.debug("Received PPL grammar request");
-
     return channel -> {
       try {
         GrammarBundle bundle = getOrBuildBundle();
@@ -67,9 +51,7 @@ public class RestPPLGrammarAction extends BaseRestHandler {
         XContentBuilder builder = channel.newBuilder();
         serializeBundle(builder, bundle);
 
-        BytesRestResponse response = new BytesRestResponse(RestStatus.OK, builder);
-        log.info("Returning PPL grammar (size: {} bytes)", response.content().length());
-        channel.sendResponse(response);
+        channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
 
       } catch (Exception e) {
         log.error("Error building or serializing PPL grammar", e);
@@ -78,20 +60,13 @@ public class RestPPLGrammarAction extends BaseRestHandler {
     };
   }
 
-  /**
-   * Get cached bundle or build it if not yet initialized.
-   *
-   * <p>Thread-safe lazy initialization with double-checked locking.
-   */
+  // Thread-safe lazy initialization with double-checked locking.
   private GrammarBundle getOrBuildBundle() {
-    // First check without lock (common case: already initialized)
     if (cachedBundle != null) {
       return cachedBundle;
     }
-
-    // Acquire lock for initialization
     synchronized (bundleLock) {
-      // Double-check after acquiring lock
+      // double-check after acquiring lock
       if (cachedBundle == null) {
         log.info("Building PPL grammar bundle (first request)...");
         long startTime = System.currentTimeMillis();
@@ -106,12 +81,7 @@ public class RestPPLGrammarAction extends BaseRestHandler {
     }
   }
 
-  /**
-   * Invalidate cached bundle (for testing or grammar updates).
-   *
-   * <p>Note: This only affects the current node. In a multi-node cluster, each node maintains its
-   * own cache.
-   */
+  /** Invalidate the cached bundle, forcing a rebuild on the next request. */
   public void invalidateCache() {
     synchronized (bundleLock) {
       log.info("Invalidating cached PPL grammar bundle");
@@ -119,9 +89,6 @@ public class RestPPLGrammarAction extends BaseRestHandler {
     }
   }
 
-  /**
-   * Serialize {@link GrammarBundle} to JSON.
-   */
   private void serializeBundle(XContentBuilder builder, GrammarBundle bundle)
       throws IOException {
     builder.startObject();
@@ -134,7 +101,6 @@ public class RestPPLGrammarAction extends BaseRestHandler {
     // Lexer ATN & metadata
     if (bundle.getLexerSerializedATN() != null) {
       builder.field("lexerSerializedATN", bundle.getLexerSerializedATN());
-      log.debug("Lexer ATN: {} elements", bundle.getLexerSerializedATN().length);
     }
 
     if (bundle.getLexerRuleNames() != null) {
@@ -152,7 +118,6 @@ public class RestPPLGrammarAction extends BaseRestHandler {
     // Parser ATN & metadata
     if (bundle.getParserSerializedATN() != null) {
       builder.field("parserSerializedATN", bundle.getParserSerializedATN());
-      log.debug("Parser ATN: {} elements", bundle.getParserSerializedATN().length);
     }
 
     if (bundle.getParserRuleNames() != null) {

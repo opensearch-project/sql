@@ -23,17 +23,7 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
-/**
- * Unit tests for RestPPLGrammarAction.
- *
- * <p>Tests:
- *
- * <ul>
- *   <li>200 OK response with grammar bundle
- *   <li>Grammar structure validation
- *   <li>Cache behavior
- * </ul>
- */
+/** Unit tests for {@link RestPPLGrammarAction}. */
 public class RestPPLGrammarActionTest extends OpenSearchTestCase {
 
   private RestPPLGrammarAction action;
@@ -83,8 +73,7 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
   }
 
   @Test
-  public void testGetGrammar_ArtifactIsCached() throws Exception {
-    // Make two requests
+  public void testGetGrammar_BundleIsCached() throws Exception {
     FakeRestRequest request1 =
         new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
             .withMethod(RestRequest.Method.GET)
@@ -96,7 +85,6 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
     action.prepareRequest(request1, client).accept(channel1);
     long elapsed1 = System.currentTimeMillis() - startTime1;
 
-    // Second request should be faster (cached)
     FakeRestRequest request2 =
         new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
             .withMethod(RestRequest.Method.GET)
@@ -108,7 +96,6 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
     action.prepareRequest(request2, client).accept(channel2);
     long elapsed2 = System.currentTimeMillis() - startTime2;
 
-    // Second request should be faster (bundle cached)
     assertTrue(
         "Second request should be faster due to caching (elapsed1="
             + elapsed1
@@ -120,7 +107,6 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
 
   @Test
   public void testInvalidateCache() throws Exception {
-    // Get grammar
     FakeRestRequest request1 =
         new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
             .withMethod(RestRequest.Method.GET)
@@ -131,10 +117,8 @@ public class RestPPLGrammarActionTest extends OpenSearchTestCase {
     action.prepareRequest(request1, client).accept(channel1);
     assertEquals(RestStatus.OK, channel1.getResponse().status());
 
-    // Invalidate cache
     action.invalidateCache();
 
-    // Get grammar again — should still return 200 OK with same content
     FakeRestRequest request2 =
         new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
             .withMethod(RestRequest.Method.GET)
