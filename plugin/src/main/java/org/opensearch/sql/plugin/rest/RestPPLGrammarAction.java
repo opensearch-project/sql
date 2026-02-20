@@ -91,6 +91,7 @@ public class RestPPLGrammarAction extends BaseRestHandler {
 
     // Identity & versioning
     builder.field("bundleVersion", bundle.getBundleVersion());
+    builder.field("antlrVersion", bundle.getAntlrVersion());
     builder.field("grammarHash", bundle.getGrammarHash());
     builder.field("startRuleIndex", bundle.getStartRuleIndex());
 

@@ -17,6 +17,9 @@ public class GrammarBundle {
   /** Bundle format version. */
   @NonNull private String bundleVersion;
 
+  /** ANTLR runtime version used to generate the grammar. */
+  @NonNull private String antlrVersion;
+
   /** SHA-256 hash of the serialized ATN data. Clients may use this to detect grammar changes. */
   @NonNull private String grammarHash;
 
