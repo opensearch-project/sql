@@ -155,11 +155,12 @@ Only the `address` field is highlighted. Rows where "Holmes" appears in other fi
 - Entries are `null` when a row has no highlight data for the requested fields.
 - The `highlights` array is **omitted entirely** when no `highlight` config is provided in the request (backward compatible).
 
-### Notes
+### Limitations
 
 - Highlighting is supported only in the Calcite engine.
 - The backend forwards the highlight config as-is to OpenSearch. The same highlighting behavior and limitations as [OpenSearch's highlighting API](https://opensearch.org/docs/latest/search-plugins/searching-data/highlight/) apply.
 - Piped commands (`where`, `sort`, `head`, `dedup`) narrow or reorder the result set but do not affect which terms are highlighted.
+- Highlighting works with **single-source queries only**. Joins (`| join`), subqueries, and multi-source queries are not supported — the `highlight` config is ignored in these cases.
 
 ## Explain
 
