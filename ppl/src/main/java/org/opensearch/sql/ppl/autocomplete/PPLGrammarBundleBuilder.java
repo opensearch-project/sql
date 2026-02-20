@@ -45,6 +45,7 @@ public class PPLGrammarBundleBuilder {
 
     return GrammarBundle.builder()
         .bundleVersion(BUNDLE_VERSION)
+        .antlrVersion(ANTLR_VERSION)
         .grammarHash(computeGrammarHash(lexerATN, parserATN))
         .lexerSerializedATN(lexerATN)
         .parserSerializedATN(parserATN)
