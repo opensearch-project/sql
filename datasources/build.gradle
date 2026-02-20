@@ -29,6 +29,7 @@ dependencies {
 
     // bc-fips is provided by OpenSearch core at runtime since opensearch 3.6.0
     compileOnly "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+    testImplementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
