@@ -68,6 +68,7 @@ public class RestPPLGrammarActionTest {
 
     String content = response.content().utf8ToString();
     assertTrue(content.contains("\"bundleVersion\":\"1.0\""));
+    assertTrue(content.contains("\"antlrVersion\":"));
     assertTrue(content.contains("\"grammarHash\":\"sha256:"));
     assertTrue(content.contains("\"startRuleIndex\":0"));
     assertTrue(content.contains("\"lexerSerializedATN\":"));
