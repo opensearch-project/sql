@@ -3553,31 +3553,74 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return new RexInputRef(((RexInputRef) origin).getIndex(), newMapType);
   }
 
+  /**
+   * Flattens the parsed pattern result into individual fields for projection.
+   *
+   * <p>This method handles two scenarios:
+   *
+   * <ul>
+   *   <li>Label mode: extracts pattern (and optionally tokens) from parsedNode
+   *   <li>Aggregation mode: extracts pattern, pattern_count, tokens (optional), and sample_logs
+   * </ul>
+   *
+   * <p>When both flattenPatternAggResult and showNumberedToken are true, the pattern and tokens
+   * need transformation via evalAggSamples (converting wildcards to numbered tokens).
+   *
+   * @param originalPatternResultAlias alias for the pattern field
+   * @param parsedNode the source RexNode containing parsed pattern data
+   * @param context the Calcite plan context
+   * @param flattenPatternAggResult true if in aggregation mode (includes pattern_count,
+   *     sample_logs)
+   * @param showNumberedToken true if tokens should be extracted and pattern transformed
+   */
   private void flattenParsedPattern(
       String originalPatternResultAlias,
       RexNode parsedNode,
       CalcitePlanContext context,
       boolean flattenPatternAggResult,
-      Boolean showNumberedToken) {
-    List<RexNode> fattenedNodes = new ArrayList<>();
+      boolean showNumberedToken) {
+    List<RexNode> flattenedNodes = new ArrayList<>();
     List<String> projectNames = new ArrayList<>();
-    // Flatten map struct fields
+
+    RelDataType varcharType =
+        context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+
+    // For aggregation mode with numbered tokens, we need to compute tokens locally
+    // using evalAggSamples. The UDAF returns pattern with wildcards and sample_logs,
+    // but NOT tokens (to avoid XContent serialization issues with nested Maps).
+    // The transformed result contains: pattern (with numbered tokens) and tokens map.
+    RexNode transformedPatternResult = null;
+    if (flattenPatternAggResult && showNumberedToken) {
+      transformedPatternResult = buildEvalAggSamplesCall(parsedNode, context);
+    }
+
+    // Determine source for pattern and tokens:
+    // - When transformedPatternResult exists, use it (pattern/tokens need transformation)
+    // - pattern_count and sample_logs always come from the original parsedNode
+    RexNode patternAndTokensSource =
+        transformedPatternResult != null ? transformedPatternResult : parsedNode;
+
+    // 1. Always add pattern field
     RexNode patternExpr =
         context.rexBuilder.makeCast(
-            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+            varcharType,
             PPLFuncImpTable.INSTANCE.resolve(
                 context.rexBuilder,
                 BuiltinFunctionName.INTERNAL_ITEM,
-                parsedNode,
+                patternAndTokensSource,
                 context.rexBuilder.makeLiteral(PatternUtils.PATTERN)),
             true,
             true);
-    fattenedNodes.add(context.relBuilder.alias(patternExpr, originalPatternResultAlias));
+    flattenedNodes.add(context.relBuilder.alias(patternExpr, originalPatternResultAlias));
     projectNames.add(originalPatternResultAlias);
+
+    // 2. Add pattern_count when in aggregation mode (from original parsedNode)
     if (flattenPatternAggResult) {
+      RelDataType bigintType =
+          context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
       RexNode patternCountExpr =
           context.rexBuilder.makeCast(
-              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT),
+              bigintType,
               PPLFuncImpTable.INSTANCE.resolve(
                   context.rexBuilder,
                   BuiltinFunctionName.INTERNAL_ITEM,
@@ -3585,31 +3628,40 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                   context.rexBuilder.makeLiteral(PatternUtils.PATTERN_COUNT)),
               true,
               true);
-      fattenedNodes.add(context.relBuilder.alias(patternCountExpr, PatternUtils.PATTERN_COUNT));
+      flattenedNodes.add(context.relBuilder.alias(patternCountExpr, PatternUtils.PATTERN_COUNT));
       projectNames.add(PatternUtils.PATTERN_COUNT);
     }
+
+    // 3. Add tokens when showNumberedToken is enabled
     if (showNumberedToken) {
+      RelDataType tokensType =
+          context
+              .rexBuilder
+              .getTypeFactory()
+              .createMapType(
+                  varcharType,
+                  context.rexBuilder.getTypeFactory().createArrayType(varcharType, -1));
       RexNode tokensExpr =
           context.rexBuilder.makeCast(
-              UserDefinedFunctionUtils.tokensMap,
+              tokensType,
               PPLFuncImpTable.INSTANCE.resolve(
                   context.rexBuilder,
                   BuiltinFunctionName.INTERNAL_ITEM,
-                  parsedNode,
+                  patternAndTokensSource,
                   context.rexBuilder.makeLiteral(PatternUtils.TOKENS)),
               true,
               true);
-      fattenedNodes.add(context.relBuilder.alias(tokensExpr, PatternUtils.TOKENS));
+      flattenedNodes.add(context.relBuilder.alias(tokensExpr, PatternUtils.TOKENS));
       projectNames.add(PatternUtils.TOKENS);
     }
+
+    // 4. Add sample_logs when in aggregation mode (from original parsedNode)
     if (flattenPatternAggResult) {
+      RelDataType sampleLogsArrayType =
+          context.rexBuilder.getTypeFactory().createArrayType(varcharType, -1);
       RexNode sampleLogsExpr =
           context.rexBuilder.makeCast(
-              context
-                  .rexBuilder
-                  .getTypeFactory()
-                  .createArrayType(
-                      context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), -1),
+              sampleLogsArrayType,
               PPLFuncImpTable.INSTANCE.resolve(
                   context.rexBuilder,
                   BuiltinFunctionName.INTERNAL_ITEM,
@@ -3617,10 +3669,45 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                   context.rexBuilder.makeLiteral(PatternUtils.SAMPLE_LOGS)),
               true,
               true);
-      fattenedNodes.add(context.relBuilder.alias(sampleLogsExpr, PatternUtils.SAMPLE_LOGS));
+      flattenedNodes.add(context.relBuilder.alias(sampleLogsExpr, PatternUtils.SAMPLE_LOGS));
       projectNames.add(PatternUtils.SAMPLE_LOGS);
     }
-    projectPlusOverriding(fattenedNodes, projectNames, context);
+
+    projectPlusOverriding(flattenedNodes, projectNames, context);
+  }
+
+  /**
+   * Builds the evalAggSamples call to transform pattern with wildcards to numbered tokens and
+   * compute the tokens map from sample logs.
+   *
+   * @param parsedNode The UDAF result containing pattern and sample_logs
+   * @param context The Calcite plan context
+   * @return RexNode representing the evalAggSamples call result
+   */
+  private RexNode buildEvalAggSamplesCall(RexNode parsedNode, CalcitePlanContext context) {
+    // Extract pattern string (with wildcards) from UDAF result
+    RexNode patternStr =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.INTERNAL_ITEM,
+            parsedNode,
+            context.rexBuilder.makeLiteral(PatternUtils.PATTERN));
+
+    // Extract sample_logs from UDAF result
+    RexNode sampleLogs =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.INTERNAL_ITEM,
+            explicitMapType(context, parsedNode, SqlTypeName.VARCHAR),
+            context.rexBuilder.makeLiteral(PatternUtils.SAMPLE_LOGS));
+
+    // Call evalAggSamples to transform pattern (wildcards -> numbered tokens) and compute tokens
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
+        patternStr,
+        sampleLogs,
+        context.rexBuilder.makeLiteral(true));
   }
 
   private void buildExpandRelNode(

@@ -153,7 +153,8 @@ class AggregateAnalyzerTest {
             List.of(countCall, avgCall, sumCall, minCall, maxCall), ImmutableBitSet.of());
     Project project = createMockProject(List.of(0));
     AggregateAnalyzer.AggregateBuilderHelper helper =
-        new AggregateAnalyzer.AggregateBuilderHelper(rowType, fieldTypes, null, true, BUCKET_SIZE);
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, null, true, BUCKET_SIZE, false);
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
     assertEquals(
@@ -236,7 +237,8 @@ class AggregateAnalyzerTest {
             List.of(varSampCall, varPopCall, stddevSampCall, stddevPopCall), ImmutableBitSet.of());
     Project project = createMockProject(List.of(0));
     AggregateAnalyzer.AggregateBuilderHelper helper =
-        new AggregateAnalyzer.AggregateBuilderHelper(rowType, fieldTypes, null, true, BUCKET_SIZE);
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, null, true, BUCKET_SIZE, false);
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
     assertEquals(
@@ -277,7 +279,8 @@ class AggregateAnalyzerTest {
     Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of(0, 1));
     Project project = createMockProject(List.of(0, 1));
     AggregateAnalyzer.AggregateBuilderHelper helper =
-        new AggregateAnalyzer.AggregateBuilderHelper(rowType, fieldTypes, null, true, BUCKET_SIZE);
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, null, true, BUCKET_SIZE, false);
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
 
@@ -318,7 +321,8 @@ class AggregateAnalyzerTest {
     Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of());
     Project project = createMockProject(List.of(2));
     AggregateAnalyzer.AggregateBuilderHelper helper =
-        new AggregateAnalyzer.AggregateBuilderHelper(rowType, fieldTypes, null, true, BUCKET_SIZE);
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, null, true, BUCKET_SIZE, false);
     ExpressionNotAnalyzableException exception =
         assertThrows(
             ExpressionNotAnalyzableException.class,
@@ -345,7 +349,8 @@ class AggregateAnalyzerTest {
     Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of(0));
     Project project = createMockProject(List.of(2));
     AggregateAnalyzer.AggregateBuilderHelper helper =
-        new AggregateAnalyzer.AggregateBuilderHelper(rowType, fieldTypes, null, true, BUCKET_SIZE);
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, null, true, BUCKET_SIZE, false);
     ExpressionNotAnalyzableException exception =
         assertThrows(
             ExpressionNotAnalyzableException.class,
@@ -701,7 +706,7 @@ class AggregateAnalyzerTest {
       }
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
-              rowType, fieldTypes, agg.getCluster(), true, BUCKET_SIZE);
+              rowType, fieldTypes, agg.getCluster(), true, BUCKET_SIZE, false);
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
           AggregateAnalyzer.analyze(agg, project, outputFields, helper);
 

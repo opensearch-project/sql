@@ -75,12 +75,17 @@ import org.opensearch.script.FilterScript;
 import org.opensearch.script.NumberSortScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
+import org.opensearch.script.ScriptedMetricAggContexts;
 import org.opensearch.script.StringSortScript;
 import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.field.CalciteFieldScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
+import org.opensearch.sql.opensearch.storage.script.scriptedmetric.CalciteScriptedMetricCombineScriptFactory;
+import org.opensearch.sql.opensearch.storage.script.scriptedmetric.CalciteScriptedMetricInitScriptFactory;
+import org.opensearch.sql.opensearch.storage.script.scriptedmetric.CalciteScriptedMetricMapScriptFactory;
+import org.opensearch.sql.opensearch.storage.script.scriptedmetric.CalciteScriptedMetricReduceScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.sort.CalciteNumberSortScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.sort.CalciteStringSortScriptFactory;
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
@@ -113,6 +118,18 @@ public class CalciteScriptEngine implements ScriptEngine {
               .put(NumberSortScript.CONTEXT, CalciteNumberSortScriptFactory::new)
               .put(StringSortScript.CONTEXT, CalciteStringSortScriptFactory::new)
               .put(FieldScript.CONTEXT, CalciteFieldScriptFactory::new)
+              .put(
+                  ScriptedMetricAggContexts.InitScript.CONTEXT,
+                  (func, type) -> new CalciteScriptedMetricInitScriptFactory(func))
+              .put(
+                  ScriptedMetricAggContexts.MapScript.CONTEXT,
+                  (func, type) -> new CalciteScriptedMetricMapScriptFactory(func))
+              .put(
+                  ScriptedMetricAggContexts.CombineScript.CONTEXT,
+                  (func, type) -> new CalciteScriptedMetricCombineScriptFactory(func))
+              .put(
+                  ScriptedMetricAggContexts.ReduceScript.CONTEXT,
+                  (func, type) -> new CalciteScriptedMetricReduceScriptFactory(func))
               .build();
 
   @Override
@@ -214,6 +231,11 @@ public class CalciteScriptEngine implements ScriptEngine {
           case DOC_VALUE -> getFromDocValue((String) digests.get(index));
           case SOURCE -> getFromSource((String) digests.get(index));
           case LITERAL -> digests.get(index);
+          case SPECIAL_VARIABLE ->
+              // Special variables (state, states) are not in this context
+              // They should be handled by ScriptedMetricDataContext
+              throw new IllegalStateException(
+                  "SPECIAL_VARIABLE " + digests.get(index) + " not supported in this context");
         };
       } catch (Exception e) {
         throw new IllegalStateException("Failed to get value for parameter " + name);
@@ -245,7 +267,8 @@ public class CalciteScriptEngine implements ScriptEngine {
   public enum Source {
     DOC_VALUE(0),
     SOURCE(1),
-    LITERAL(2);
+    LITERAL(2),
+    SPECIAL_VARIABLE(3); // For scripted metric state/states variables
 
     private final int value;
 
