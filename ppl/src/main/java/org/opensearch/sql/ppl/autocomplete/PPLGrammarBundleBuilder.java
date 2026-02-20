@@ -17,19 +17,20 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 
 /** Builds the {@link GrammarBundle} for the PPL language from the generated ANTLR lexer/parser. */
 public class PPLGrammarBundleBuilder {
-
-  // Keep in sync with the antlr4 version in ppl/build.gradle.
-  private static final String ANTLR_VERSION = "4.13.2";
+  private static final String ANTLR_VERSION = getAntlrVersion();
   private static final String BUNDLE_VERSION = "1.0";
+
+  private static String getAntlrVersion() {
+    Package antlrPackage = org.antlr.v4.runtime.RuntimeMetaData.class.getPackage();
+    String version = antlrPackage.getImplementationVersion();
+    return version != null ? version : "unknown";
+  }
 
   public GrammarBundle build() {
     OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(CharStreams.fromString(""));
     CommonTokenStream tokens = new CommonTokenStream(lexer);
     OpenSearchPPLParser parser = new OpenSearchPPLParser(tokens);
 
-    // ATNSerializer re-serializes the ATN into the int[] format expected by antlr4ng.
-    // Do not use lexer.getSerializedATN().chars().toArray() — that yields raw UTF-16 char values
-    // which cause "state type 65535 is not valid" errors in the frontend deserializer.
     int[] lexerATN = new ATNSerializer(lexer.getATN()).serialize().toArray();
     int[] parserATN = new ATNSerializer(parser.getATN()).serialize().toArray();
 
@@ -60,8 +61,6 @@ public class PPLGrammarBundleBuilder {
   private static String computeGrammarHash(int[] lexerATN, int[] parserATN) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      // ANTLR4 serialized ATN values are bounded to 16 bits (unicode char range), so hashing
-      // 2 bytes per element captures the full value without loss.
       for (int v : lexerATN) {
         digest.update((byte) (v >> 8));
         digest.update((byte) v);
