@@ -72,7 +72,6 @@ The `highlight` object supports the following parameters:
 
 - **Full-text search terms only.** The search term in `search source=logs "error"` is translated to a `query_string` query, and OpenSearch's highlighter identifies matches. Structured filters (`where`, `stats`, comparison operators) do not produce highlights.
 - **`text` and `keyword` fields only.** Numeric, date, boolean, and other non-string field types never produce highlight fragments.
-- **Wildcard field matching.** `"*": {}` matches all eligible fields, including `.keyword` subfields.
 
 ### Example 1: Wildcard highlight
 
@@ -153,13 +152,17 @@ Only the `address` field is highlighted. Rows where "Holmes" appears in other fi
 
 - The `highlights` array is parallel to `datarows` — each entry corresponds to the row at the same index.
 - Entries are `null` when a row has no highlight data for the requested fields.
-- The `highlights` array is **omitted entirely** when no `highlight` config is provided in the request (backward compatible).
+- The `highlights` array is **omitted entirely** when no `highlight` config is provided in the request (backward compatible). When no highlight config is provided, there is zero impact on query processing — no extra columns, no extra overhead.
+
+### Behavior with piped commands
+
+- Piped commands (`where`, `sort`, `head`, `dedup`) narrow or reorder the result set but do not affect which terms are highlighted. Only the full-text search term produces highlights.
+- Explicit field projection (`| fields name, age`) preserves highlight data, consistent with DSL where `_source` filtering does not affect highlights.
 
 ### Limitations
 
 - Highlighting is supported only in the Calcite engine.
 - The backend forwards the highlight config as-is to OpenSearch. The same highlighting behavior and limitations as [OpenSearch's highlighting API](https://opensearch.org/docs/latest/search-plugins/searching-data/highlight/) apply.
-- Piped commands (`where`, `sort`, `head`, `dedup`) narrow or reorder the result set but do not affect which terms are highlighted.
 - Highlighting works with **single-source queries only**, consistent with DSL where highlighting is inherently single-index per request. Behavior with joins (`| join`), subqueries, and multi-source queries is not validated.
 
 ## Explain
