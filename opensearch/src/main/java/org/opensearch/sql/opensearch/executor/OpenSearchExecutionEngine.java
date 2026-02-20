@@ -63,7 +63,6 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
-import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexEnumerator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.transport.client.node.NodeClient;
@@ -212,7 +211,6 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     client.schedule(
         () -> {
           try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
-            OpenSearchIndexEnumerator.clearCollectedHighlights();
             ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
             long execTime = System.nanoTime();
             ResultSet result = statement.executeQuery();
@@ -269,10 +267,19 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     List<ExprValue> values = new ArrayList<>();
     // Iterate through the ResultSet
     while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
-      Map<String, ExprValue> row = new LinkedHashMap<String, ExprValue>();
+      Map<String, ExprValue> row = new LinkedHashMap<>();
       // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
         String columnName = metaData.getColumnName(i);
+        // _highlight flows through the Calcite pipeline as a hidden column (SqlTypeName.ANY).
+        // Extract it as an opaque ExprValue and embed it in the row tuple directly.
+        if (HighlightExpression.HIGHLIGHT_FIELD.equals(columnName)) {
+          Object value = resultSet.getObject(i);
+          if (value instanceof ExprValue hl && !hl.isMissing()) {
+            row.put(HighlightExpression.HIGHLIGHT_FIELD, hl);
+          }
+          continue;
+        }
         Object value = resultSet.getObject(columnName);
         Object converted = processValue(value);
         ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
@@ -281,24 +288,13 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       values.add(ExprTupleValue.fromExprValueMap(row));
     }
 
-    // Merge highlight data collected by the enumerator back into ExprTupleValues.
-    // The Calcite row pipeline only carries schema column values, so highlight metadata
-    // is collected as a side channel in OpenSearchIndexEnumerator and merged here.
-    List<ExprValue> collectedHighlights =
-        OpenSearchIndexEnumerator.getAndClearCollectedHighlights();
-    for (int i = 0; i < Math.min(values.size(), collectedHighlights.size()); i++) {
-      ExprValue hl = collectedHighlights.get(i);
-      if (hl != null) {
-        Map<String, ExprValue> rowWithHighlight =
-            new LinkedHashMap<>(ExprValueUtils.getTupleValue(values.get(i)));
-        rowWithHighlight.put(HighlightExpression.HIGHLIGHT_FIELD, hl);
-        values.set(i, ExprTupleValue.fromExprValueMap(rowWithHighlight));
-      }
-    }
-
     List<Column> columns = new ArrayList<>(metaData.getColumnCount());
     for (int i = 1; i <= columnCount; ++i) {
       String columnName = metaData.getColumnName(i);
+      // Exclude _highlight from the response schema — it's a hidden column.
+      if (HighlightExpression.HIGHLIGHT_FIELD.equals(columnName)) {
+        continue;
+      }
       RelDataType fieldType = fieldTypes.get(i - 1);
       // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
       //  The element type of struct and array is currently set to ANY.
@@ -317,8 +313,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       columns.add(new Column(columnName, null, exprType));
     }
     Schema schema = new Schema(columns);
-    QueryResponse response = new QueryResponse(schema, values, null);
-    return response;
+    return new QueryResponse(schema, values, null);
   }
 
   /** Registers opensearch-dependent functions */
