@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import static org.opensearch.sql.expression.HighlightExpression.HIGHLIGHT_FIELD;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -30,27 +29,6 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequest;
  * it and throws a {@link java.util.ConcurrentModificationException}.
  */
 public class OpenSearchIndexEnumerator implements Enumerator<Object> {
-
-  /**
-   * Thread-local collector for highlight data. Since the Calcite row pipeline only carries schema
-   * column values, highlight metadata from OpenSearch hits is collected here as a side channel.
-   * After execution, {@link #getAndClearCollectedHighlights()} retrieves the collected data so it
-   * can be merged back into the ExprTupleValues for the JDBC response.
-   */
-  private static final ThreadLocal<List<ExprValue>> COLLECTED_HIGHLIGHTS =
-      ThreadLocal.withInitial(ArrayList::new);
-
-  /** Retrieve collected highlights and clear the ThreadLocal. */
-  public static List<ExprValue> getAndClearCollectedHighlights() {
-    List<ExprValue> result = new ArrayList<>(COLLECTED_HIGHLIGHTS.get());
-    COLLECTED_HIGHLIGHTS.get().clear();
-    return result;
-  }
-
-  /** Clear collected highlights (call before starting a new execution). */
-  public static void clearCollectedHighlights() {
-    COLLECTED_HIGHLIGHTS.get().clear();
-  }
 
   /** OpenSearch client. */
   private final OpenSearchClient client;
@@ -113,7 +91,19 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     if (fields.size() == 1) {
       return resolveForCalcite(current, fields.getFirst());
     }
-    return fields.stream().map(field -> resolveForCalcite(current, field)).toArray();
+    return fields.stream()
+        .map(
+            field -> {
+              // _highlight is carried as an opaque ExprValue through the Calcite row pipeline.
+              // It uses SqlTypeName.ANY so Calcite passes it through without conversion.
+              if (HIGHLIGHT_FIELD.equals(field)) {
+                Map<String, ExprValue> tuple = ExprValueUtils.getTupleValue(current);
+                ExprValue hl = tuple.get(HIGHLIGHT_FIELD);
+                return (hl != null && !hl.isMissing()) ? (Object) hl : null;
+              }
+              return resolveForCalcite(current, field);
+            })
+        .toArray();
   }
 
   private Object resolveForCalcite(ExprValue value, String rawPath) {
@@ -136,12 +126,6 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     }
     if (iterator.hasNext()) {
       current = iterator.next();
-      // Collect highlight data as a side channel for the JDBC response.
-      // The Calcite row (from current()) only carries schema column values,
-      // so _highlight must be preserved separately.
-      Map<String, ExprValue> tuple = ExprValueUtils.getTupleValue(current);
-      ExprValue hl = tuple.get(HIGHLIGHT_FIELD);
-      COLLECTED_HIGHLIGHTS.get().add(hl != null && !hl.isMissing() ? hl : null);
       queryCount++;
       return true;
     } else {
@@ -154,7 +138,6 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     bgScanner.reset(request);
     iterator = bgScanner.fetchNextBatch(request).iterator();
     queryCount = 0;
-    COLLECTED_HIGHLIGHTS.get().clear();
   }
 
   @Override

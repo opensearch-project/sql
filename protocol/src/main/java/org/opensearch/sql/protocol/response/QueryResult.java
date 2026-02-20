@@ -111,7 +111,7 @@ public class QueryResult implements Iterable<Object[]> {
         .map(
             tuple -> {
               ExprValue hl = tuple.get(HIGHLIGHT_FIELD);
-              if (hl == null || hl.isMissing()) {
+              if (hl == null || hl.isMissing() || hl.isNull()) {
                 return null;
               }
               Map<String, Object> hlMap = new LinkedHashMap<>();
