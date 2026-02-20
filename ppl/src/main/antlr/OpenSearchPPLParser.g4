@@ -90,6 +90,8 @@ commands
    | appendPipeCommand
    | replaceCommand
    | mvcombineCommand
+   | fieldformatCommand
+   | nomvCommand
    ;
 
 commandName
@@ -107,6 +109,7 @@ commandName
    | DEDUP
    | SORT
    | EVAL
+   | FIELDFORMAT
    | HEAD
    | BIN
    | TOP
@@ -134,6 +137,7 @@ commandName
    | APPENDPIPE
    | REPLACE
    | MVCOMBINE
+   | NOMV
    | TRANSPOSE
    ;
 
@@ -361,6 +365,10 @@ evalCommand
    : EVAL evalClause (COMMA evalClause)*
    ;
 
+fieldformatCommand
+   : FIELDFORMAT fieldFormatEvalClause (COMMA fieldFormatEvalClause)*
+   ;
+
 headCommand
    : HEAD (number = integerLiteral)? (FROM from = integerLiteral)?
    ;
@@ -547,6 +555,10 @@ expandCommand
 
 mvcombineCommand
   : MVCOMBINE fieldExpression (DELIM EQUAL stringLiteral)?
+  ;
+
+nomvCommand
+  : NOMV fieldExpression
   ;
 
 flattenCommand
@@ -738,6 +750,10 @@ evalClause
    : fieldExpression EQUAL logicalExpression
    ;
 
+fieldFormatEvalClause
+   : fieldExpression EQUAL ffLogicalExpression
+   ;
+
 eventstatsAggTerm
    : windowFunction (AS alias = wcFieldExpression)?
    ;
@@ -831,6 +847,13 @@ numericLiteral
     | floatLiteral
     ;
 
+ffLogicalExpression
+   : stringLiteral DOT logicalExpression   # stringDotlogicalExpression
+   | stringLiteral DOT logicalExpression  DOT stringLiteral # stringDotlogicalExpressionDotString
+   | logicalExpression DOT stringLiteral   # logicalExpressionDotString
+   | logicalExpression                     # ffStandardLogicalExpression
+   ;
+
 // predicates
 logicalExpression
    : NOT logicalExpression                                      # logicalNot
@@ -847,6 +870,7 @@ expression
    | expression NOT? IN valueList                               # inExpr
    | expression NOT? BETWEEN expression AND expression          # between
    ;
+
 
 valueExpression
    : left = valueExpression binaryOperator = (STAR | DIVIDE | MODULE) right = valueExpression                   # binaryArithmetic

@@ -15,6 +15,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupComma
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DynamicSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldformatCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
@@ -92,6 +93,7 @@ import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -822,6 +824,18 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             .collect(Collectors.toList()));
   }
 
+  @Override
+  public UnresolvedPlan visitFieldformatCommand(FieldformatCommandContext ctx) {
+    // Use the new fieldFormatEvalClause instead of evalClause
+    org.opensearch.sql.ast.tree.Eval eval =
+        new org.opensearch.sql.ast.tree.Eval(
+            ctx.fieldFormatEvalClause().stream()
+                .map(ct -> (Let) internalVisitExpression(ct))
+                .collect(Collectors.toList()));
+
+    return eval;
+  }
+
   private List<UnresolvedExpression> getGroupByList(ByClauseContext ctx) {
     return ctx.fieldList().fieldExpression().stream()
         .map(this::internalVisitExpression)
@@ -896,6 +910,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
+  public UnresolvedPlan visitNomvCommand(OpenSearchPPLParser.NomvCommandContext ctx) {
+    Field field = (Field) internalVisitExpression(ctx.fieldExpression());
+    return new NoMv(field);
+  }
+
+  @Override
   public UnresolvedPlan visitGrokCommand(OpenSearchPPLParser.GrokCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
     Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
@@ -931,11 +951,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     if (inField == null) {
       throw new IllegalArgumentException("`input` parameter is required for `spath`");
-    }
-
-    if (outField != null && path == null) {
-      throw new IllegalArgumentException(
-          "`path` parameter is required for `spath` when `output` is specified");
     }
 
     return new SPath(inField, outField, path);

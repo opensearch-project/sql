@@ -1010,6 +1010,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testSpathNoPath() {
+    assertEquals(
+        "source=table | spath input=identifier",
+        anonymize("search source=t | spath input=json_attr"));
+  }
+
+  @Test
   public void testMvfind() {
     assertEquals(
         "source=table | eval identifier=mvfind(array(***,***,***),***) | fields + identifier",
@@ -1029,5 +1036,10 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | mvcombine delim=*** identifier",
         anonymize("source=t | mvcombine age delim=','"));
+  }
+
+  @Test
+  public void testNoMvCommand() {
+    assertEquals("source=table | nomv identifier", anonymize("source=t | nomv firstname"));
   }
 }

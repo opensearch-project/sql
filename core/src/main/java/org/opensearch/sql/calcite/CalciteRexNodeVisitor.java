@@ -398,6 +398,28 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitLet(Let node, CalcitePlanContext context) {
     RexNode expr = analyze(node.getExpression(), context);
+    if (node.getConcatPrefix() != null) {
+
+      expr =
+          context.rexBuilder.makeCall(
+              SqlStdOperatorTable.CONCAT,
+              context.rexBuilder.makeLiteral(
+                  node.getConcatPrefix().getValue(),
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                  true),
+              expr);
+    }
+    if (node.getConcatSuffix() != null) {
+
+      expr =
+          context.rexBuilder.makeCall(
+              SqlStdOperatorTable.CONCAT,
+              expr,
+              context.rexBuilder.makeLiteral(
+                  node.getConcatSuffix().getValue(),
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                  true));
+    }
     return context.relBuilder.alias(expr, node.getVar().getField().toString());
   }
 

@@ -26,6 +26,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import java.io.IOException;
 import java.util.Locale;
+import org.apache.commons.text.StringEscapeUtils;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -2033,6 +2034,17 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testIssue5114SortExprHeadExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account | eval a = rand() | sort a | fields"
+            + " account_number | head 5";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_issue_5114_sort_expr_head_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testGeoIpPushedInAgg() throws IOException {
     // This explain IT verifies that externally registered UDF can be properly pushed down
     assertYamlEqualsIgnoreId(
@@ -2390,21 +2402,6 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testSpathWithoutPathExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_spath_without_path.yaml");
-    assertYamlEqualsIgnoreId(
-        expected, explainQueryYaml(source(TEST_INDEX_LOGS, "spath input=message | fields test")));
-  }
-
-  @Test
-  public void testSpathWithDynamicFieldsExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_spath_with_dynamic_fields.yaml");
-    assertYamlEqualsIgnoreId(
-        expected,
-        explainQueryYaml(source(TEST_INDEX_LOGS, "spath input=message | where status = '200'")));
-  }
-
-  @Test
   public void testExplainInVariousModeAndFormat() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
@@ -2517,6 +2514,21 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testFieldFormatExplain() throws Exception {
+
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_field_format.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            StringEscapeUtils.escapeJson(
+                StringUtils.format(
+                    "source=%s | head 5| fieldformat formatted_balance ="
+                        + " \"$\".tostring(balance,\"commas\") ",
+                    TEST_INDEX_ACCOUNT))));
+  }
+
+  @Test
   public void testExplainMvCombine() throws IOException {
     String query =
         "source=opensearch-sql_test_index_account "
@@ -2525,6 +2537,19 @@ public class CalciteExplainIT extends ExplainIT {
 
     String actual = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_mvcombine.yaml");
+    assertYamlEqualsIgnoreId(expected, actual);
+  }
+
+  @Test
+  public void testExplainNoMv() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account "
+            + "| fields state, city, age "
+            + "| eval location = array(state, city) "
+            + "| nomv location";
+
+    String actual = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_nomv.yaml");
     assertYamlEqualsIgnoreId(expected, actual);
   }
 
@@ -2704,5 +2729,31 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_filter_boolean_only_not_true.yaml");
     assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testNoMvBasic() throws IOException {
+    String query =
+        StringUtils.format(
+            "source=%s | fields firstname, age | eval names = array(firstname) | nomv names |"
+                + " fields names",
+            TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    Assert.assertTrue(
+        "Expected explain to contain ARRAY_JOIN function",
+        result.toLowerCase().contains("array_join"));
+  }
+
+  @Test
+  public void testNoMvWithEval() throws IOException {
+    String query =
+        StringUtils.format(
+            "source=%s | eval full_name = concat(firstname, ' J.') | eval name_array ="
+                + " array(full_name) | nomv name_array | fields name_array",
+            TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    Assert.assertTrue(
+        "Expected explain to contain both CONCAT and ARRAY_JOIN",
+        result.toLowerCase().contains("concat") && result.toLowerCase().contains("array_join"));
   }
 }
