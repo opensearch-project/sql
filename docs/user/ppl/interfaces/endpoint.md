@@ -53,7 +53,115 @@ Expected output:
 }
 ```
   
-## Explain  
+## Highlight
+
+### Description
+
+You can include an optional `highlight` object in the request body to request search result highlighting. When a PPL query contains a full-text search (e.g., `search source=logs "error"`), OpenSearch identifies where the search terms appear in document fields and returns the matching fragments wrapped in the specified tags.
+
+The `highlight` object supports the following parameters:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `fields` | Object | Yes | Map of field names to per-field configuration. Use `"*"` to highlight all `text` and `keyword` fields that match. |
+| `pre_tags` | Array of strings | No | Tags inserted before each highlighted term. Default: `["<em>"]`. |
+| `post_tags` | Array of strings | No | Tags inserted after each highlighted term. Default: `["</em>"]`. |
+| `fragment_size` | Integer | No | Maximum character length of each highlight fragment. Default is OpenSearch's default (100). Set to `2147483647` to return the entire field value without truncation. |
+
+### What gets highlighted
+
+- **Full-text search terms only.** The search term in `search source=logs "error"` is translated to a `query_string` query, and OpenSearch's highlighter identifies matches. Structured filters (`where`, `stats`, comparison operators) do not produce highlights.
+- **`text` and `keyword` fields only.** Numeric, date, boolean, and other non-string field types never produce highlight fragments.
+- **Wildcard field matching.** `"*": {}` matches all eligible fields, including `.keyword` subfields.
+
+### Example 1: Wildcard highlight
+
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+-X POST localhost:9200/_plugins/_ppl \
+-d '{
+  "query": "search source=accounts \"Holmes\"",
+  "highlight": {
+    "fields": { "*": {} },
+    "pre_tags": ["<em>"],
+    "post_tags": ["</em>"],
+    "fragment_size": 2147483647
+  }
+}'
+```
+
+Expected output:
+
+```json
+{
+  "schema": [
+    { "name": "firstname", "type": "string" },
+    { "name": "lastname", "type": "string" },
+    { "name": "address", "type": "string" }
+  ],
+  "datarows": [
+    ["Holmes", "Morgan", "123 Main St"],
+    ["Jane", "Holmes", "456 Oak Ave"],
+    ["John", "Smith", "880 Holmes Lane"]
+  ],
+  "highlights": [
+    { "firstname": ["<em>Holmes</em>"], "firstname.keyword": ["<em>Holmes</em>"] },
+    { "lastname": ["<em>Holmes</em>"], "lastname.keyword": ["<em>Holmes</em>"] },
+    { "address": ["880 <em>Holmes</em> Lane"] }
+  ],
+  "total": 3,
+  "size": 3,
+  "status": 200
+}
+```
+
+### Example 2: Specific field with custom tags
+
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+-X POST localhost:9200/_plugins/_ppl \
+-d '{
+  "query": "search source=accounts \"Holmes\"",
+  "highlight": {
+    "fields": { "address": {} },
+    "pre_tags": ["<mark>"],
+    "post_tags": ["</mark>"]
+  }
+}'
+```
+
+Expected output:
+
+```json
+{
+  "schema": [ ... ],
+  "datarows": [ ... ],
+  "highlights": [
+    null,
+    null,
+    { "address": ["880 <mark>Holmes</mark> Lane"] }
+  ],
+  "total": 3,
+  "size": 3,
+  "status": 200
+}
+```
+
+Only the `address` field is highlighted. Rows where "Holmes" appears in other fields have `null` highlight entries.
+
+### Response format
+
+- The `highlights` array is parallel to `datarows` — each entry corresponds to the row at the same index.
+- Entries are `null` when a row has no highlight data for the requested fields.
+- The `highlights` array is **omitted entirely** when no `highlight` config is provided in the request (backward compatible).
+
+### Notes
+
+- Highlighting is supported only in the Calcite engine.
+- The backend forwards the highlight config as-is to OpenSearch. The same highlighting behavior and limitations as [OpenSearch's highlighting API](https://opensearch.org/docs/latest/search-plugins/searching-data/highlight/) apply.
+- Piped commands (`where`, `sort`, `head`, `dedup`) narrow or reorder the result set but do not affect which terms are highlighted.
+
+## Explain
 
 ### Description  
 
