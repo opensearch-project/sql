@@ -1,0 +1,19 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(skills=[$0], skills_int=[$3], skills_not_array=[$4], username=[$5], skills_arr=[$13])
+        LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{12}])
+          LogicalProject(skills=[$0], skills.level=[$1], skills.name=[$2], skills_int=[$3], skills_not_array=[$4], username=[$5], _id=[$6], _index=[$7], _score=[$8], _maxscore=[$9], _sort=[$10], _routing=[$11], skills_arr=[array(1, 2, 3)])
+            CalciteLogicalIndexScan(table=[[OpenSearch, mvexpand_edge_cases]])
+          Uncollect
+            LogicalProject(skills_arr=[$cor0.skills_arr])
+              LogicalValues(tuples=[[{ 0 }]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..5=[{inputs}], proj#0..3=[{exprs}], skills_arr=[$t5])
+        EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{4}])
+          EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[2], expr#6=[3], expr#7=[array($t4, $t5, $t6)], proj#0..3=[{exprs}], skills_arr=[$t7])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, mvexpand_edge_cases]], PushDownContext=[[PROJECT->[skills, skills_int, skills_not_array, username]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["skills","skills_int","skills_not_array","username"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+          EnumerableUncollect
+            EnumerableCalc(expr#0=[{inputs}], expr#1=[$cor0], expr#2=[$t1.skills_arr], skills_arr=[$t2])
+              EnumerableValues(tuples=[[{ 0 }]])

@@ -126,6 +126,7 @@ import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
 import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
@@ -930,7 +931,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 .toList();
         context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCall);
         buildExpandRelNode(
-            context.relBuilder.field(node.getAlias()), node.getAlias(), node.getAlias(), context);
+            context.relBuilder.field(node.getAlias()),
+            node.getAlias(),
+            node.getAlias(),
+            null,
+            context);
         flattenParsedPattern(
             node.getAlias(),
             context.relBuilder.field(node.getAlias()),
@@ -3127,7 +3132,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
     String alias = expand.getAlias();
 
-    buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);
+    buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, null, context);
 
     return context.relBuilder.peek();
   }
@@ -3318,6 +3323,61 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitNoMv(NoMv node, CalcitePlanContext context) {
     return visitEval((Eval) node.rewriteAsEval(), context);
+  }
+
+  /**
+   * MVExpand command visitor.
+   *
+   * <p>Expands a multi-value (array) field into separate rows using Calcite's CORRELATE join with
+   * UNCOLLECT. Each element of the array becomes a separate row while preserving all other fields
+   * from the original row.
+   *
+   * <p>Implementation uses {@link #buildExpandRelNode} to create a correlate join between the
+   * original relation and an uncollected (unnested) version of the target array field.
+   *
+   * <p>Behavior:
+   *
+   * <ul>
+   *   <li>Array fields: Each array element is expanded into a separate row
+   *   <li>Non-array fields: Treated as single-element arrays (returns original row unchanged)
+   *   <li>Missing fields: Throws {@link SemanticCheckException}
+   *   <li>Optional limit parameter: Limits the number of expanded elements per document
+   * </ul>
+   *
+   * @param mvExpand MVExpand command containing the field to expand and optional limit
+   * @param context CalcitePlanContext containing the RelBuilder and planning context
+   * @return RelNode representing the relation with the expanded multi-value field
+   * @throws SemanticCheckException if the target field does not exist in the schema
+   */
+  @Override
+  public RelNode visitMvExpand(MvExpand mvExpand, CalcitePlanContext context) {
+    visitChildren(mvExpand, context);
+
+    final RelBuilder relBuilder = context.relBuilder;
+    final Field field = mvExpand.getField();
+    final String fieldName = field.getField().toString();
+
+    final RelDataType inputType = relBuilder.peek().getRowType();
+    final RelDataTypeField inputField =
+        inputType.getField(fieldName, /*caseSensitive*/ true, /*elideRecord*/ false);
+
+    if (inputField == null) {
+      throw new SemanticCheckException(
+          String.format("Field '%s' not found in the schema", fieldName));
+    }
+
+    final RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(field, context);
+
+    final RelDataType fieldType = arrayFieldRex.getType();
+    if (!(SqlTypeUtil.isArray(fieldType) || SqlTypeUtil.isMultiset(fieldType))) {
+      // For non-array/multiset fields (scalars), mvexpand just returns the field unchanged.
+      // This treats single-value fields as if they were arrays with one element.
+      return relBuilder.peek();
+    }
+
+    buildExpandRelNode(arrayFieldRex, fieldName, fieldName, mvExpand.getLimit(), context);
+
+    return relBuilder.peek();
   }
 
   @Override
@@ -3564,7 +3624,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private void buildExpandRelNode(
-      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
+      RexInputRef arrayFieldRex,
+      String arrayFieldName,
+      String alias,
+      @Nullable Integer perDocLimit,
+      CalcitePlanContext context) {
     // 3. Capture the outer row in a CorrelationId
     Holder<RexCorrelVariable> correlVariable = Holder.empty();
     context.relBuilder.variable(correlVariable::set);
@@ -3579,14 +3643,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelNode leftNode = context.relBuilder.build();
 
     // 5. Build join right node and expand the array field using uncollect
-    RelNode rightNode =
-        context
-            .relBuilder
-            // fake input, see convertUnnest and convertExpression in Calcite SqlToRelConverter
-            .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
-            .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
-            .uncollect(List.of(), false)
-            .build();
+    context
+        .relBuilder
+        // fake input, see convertUnnest and convertExpression in Calcite SqlToRelConverter
+        .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
+        .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
+        .uncollect(List.of(), false);
+
+    if (perDocLimit != null) {
+      context.relBuilder.limit(0, perDocLimit);
+    }
+    RelNode rightNode = context.relBuilder.build();
 
     // 6. Perform a nested-loop join (correlate) between the original table and the expanded
     // array field.

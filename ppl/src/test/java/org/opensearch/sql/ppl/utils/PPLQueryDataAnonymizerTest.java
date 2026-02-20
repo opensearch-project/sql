@@ -1042,4 +1042,16 @@ public class PPLQueryDataAnonymizerTest {
   public void testNoMvCommand() {
     assertEquals("source=table | nomv identifier", anonymize("source=t | nomv firstname"));
   }
+
+  @Test
+  public void testMvexpandCommand() {
+    assertEquals("source=table | mvexpand identifier", anonymize("source=t | mvexpand skills"));
+  }
+
+  @Test
+  public void testMvexpandCommandWithLimit() {
+    assertEquals(
+        "source=table | mvexpand identifier limit=***",
+        anonymize("source=t | mvexpand skills limit=5"));
+  }
 }

@@ -56,6 +56,7 @@ ADDCOLTOTALS:                       'ADDCOLTOTALS';
 ROW:                                'ROW';
 COL:                                'COL';
 EXPAND:                             'EXPAND';
+MVEXPAND:                           'MVEXPAND';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
 BRAIN:                              'BRAIN';
 VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
