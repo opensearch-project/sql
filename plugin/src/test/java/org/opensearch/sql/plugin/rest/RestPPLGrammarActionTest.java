@@ -139,7 +139,9 @@ public class RestPPLGrammarActionTest {
     String content1 = channel1.getResponse().content().utf8ToString();
     String content2 = channel2.getResponse().content().utf8ToString();
     assertEquals(
-        "Grammar hash should be identical after cache invalidation and rebuild", content1, content2);
+        "Grammar hash should be identical after cache invalidation and rebuild",
+        content1,
+        content2);
   }
 
   @Test
@@ -209,7 +211,8 @@ public class RestPPLGrammarActionTest {
     }
 
     @Override
-    public XContentBuilder newBuilder(MediaType mediaType, boolean useFiltering) throws IOException {
+    public XContentBuilder newBuilder(MediaType mediaType, boolean useFiltering)
+        throws IOException {
       return XContentBuilder.builder(XContentType.JSON.xContent());
     }
 
