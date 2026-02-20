@@ -10,6 +10,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.monitor.ResourceStatus;
 
 /** OpenSearch Memory Monitor. */
 @Log4j2
@@ -60,6 +61,41 @@ public class OpenSearchMemoryHealthy {
       } else {
         throw new MemoryUsageExceedException();
       }
+    }
+  }
+
+  /**
+   * Get detailed memory health status with usage metrics.
+   *
+   * @param limitBytes Memory limit in bytes
+   * @return ResourceStatus with detailed memory information
+   */
+  public ResourceStatus getMemoryStatus(long limitBytes) {
+    final long currentMemoryUsage = this.memoryUsage.usage();
+    log.debug("Memory usage:{}, limit:{}", currentMemoryUsage, limitBytes);
+
+    if (currentMemoryUsage < limitBytes) {
+      return ResourceStatus.builder()
+          .healthy(true)
+          .type(ResourceStatus.ResourceType.MEMORY)
+          .currentUsage(currentMemoryUsage)
+          .maxLimit(limitBytes)
+          .description("Memory usage is within limits")
+          .build();
+    } else {
+      log.warn("Memory usage:{} exceed limit:{}", currentMemoryUsage, limitBytes);
+      String description =
+          String.format(
+              "Memory usage exceeds limit: %d bytes used, %d bytes limit",
+              currentMemoryUsage, limitBytes);
+
+      return ResourceStatus.builder()
+          .healthy(false)
+          .type(ResourceStatus.ResourceType.MEMORY)
+          .currentUsage(currentMemoryUsage)
+          .maxLimit(limitBytes)
+          .description(description)
+          .build();
     }
   }
 
