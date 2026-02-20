@@ -160,7 +160,7 @@ Only the `address` field is highlighted. Rows where "Holmes" appears in other fi
 - Highlighting is supported only in the Calcite engine.
 - The backend forwards the highlight config as-is to OpenSearch. The same highlighting behavior and limitations as [OpenSearch's highlighting API](https://opensearch.org/docs/latest/search-plugins/searching-data/highlight/) apply.
 - Piped commands (`where`, `sort`, `head`, `dedup`) narrow or reorder the result set but do not affect which terms are highlighted.
-- Highlighting works with **single-source queries only**. Joins (`| join`), subqueries, and multi-source queries are not supported — the `highlight` config is ignored in these cases.
+- Highlighting works with **single-source queries only**, consistent with DSL where highlighting is inherently single-index per request. Behavior with joins (`| join`), subqueries, and multi-source queries is not validated.
 
 ## Explain
 
