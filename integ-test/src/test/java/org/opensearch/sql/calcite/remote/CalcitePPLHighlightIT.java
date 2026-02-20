@@ -43,11 +43,15 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
     boolean foundHighlight = false;
     for (int i = 0; i < highlights.length(); i++) {
       if (!highlights.isNull(i)) {
-        String hlStr = highlights.get(i).toString();
-        if (hlStr.contains("<em>Street</em>")) {
-          foundHighlight = true;
-          break;
+        JSONObject hl = highlights.getJSONObject(i);
+        for (String key : hl.keySet()) {
+          String fragment = hl.getJSONArray(key).getString(0);
+          if (fragment.contains("<em>") && fragment.contains("Street")) {
+            foundHighlight = true;
+            break;
+          }
         }
+        if (foundHighlight) break;
       }
     }
     assertTrue("Expected at least one highlight with <em> tags", foundHighlight);
@@ -87,11 +91,15 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
     boolean foundCustomTag = false;
     for (int i = 0; i < highlights.length(); i++) {
       if (!highlights.isNull(i)) {
-        String hlStr = highlights.get(i).toString();
-        if (hlStr.contains("<mark>")) {
-          foundCustomTag = true;
-          break;
+        JSONObject hl = highlights.getJSONObject(i);
+        for (String key : hl.keySet()) {
+          String fragment = hl.getJSONArray(key).getString(0);
+          if (fragment.contains("<mark>")) {
+            foundCustomTag = true;
+            break;
+          }
         }
+        if (foundCustomTag) break;
       }
     }
     assertTrue("Expected custom <mark> tags in highlights", foundCustomTag);
