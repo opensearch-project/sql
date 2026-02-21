@@ -74,6 +74,7 @@ commands
    | adCommand
    | mlCommand
    | fillnullCommand
+   | convertCommand
    | trendlineCommand
    | appendcolCommand
    | addtotalsCommand
@@ -123,6 +124,7 @@ commandName
    | AD
    | ML
    | FILLNULL
+   | CONVERT
    | EXPAND
     | MVEXPAND
    | FLATTEN
@@ -536,6 +538,14 @@ fillNullUsing
 
 replacementPair
    : fieldExpression EQUAL replacement = valueExpression
+   ;
+
+convertCommand
+   : CONVERT convertFunction (COMMA? convertFunction)*
+   ;
+
+convertFunction
+   : functionName = ident LT_PRTHS fieldExpression RT_PRTHS (AS alias = fieldExpression)?
    ;
 
 trendlineCommand
@@ -1707,4 +1717,3 @@ searchableKeyWord
    | COL
    | COLUMN_NAME
    ;
-

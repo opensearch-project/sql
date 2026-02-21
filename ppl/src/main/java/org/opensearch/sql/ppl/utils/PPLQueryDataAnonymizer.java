@@ -68,6 +68,7 @@ import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DefaultBin;
@@ -457,6 +458,40 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
             .map(pair -> StringUtils.format("%s" + "=%s", MASK_COLUMN, pair.getRight()))
             .collect(Collectors.joining(" "));
     return StringUtils.format("%s | eval %s", child, expressions);
+  }
+
+  @Override
+  public String visitConvert(Convert node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String conversions =
+        node.getConversions().stream()
+            .map(
+                conversion -> {
+                  String functionName = "";
+                  String fields = MASK_COLUMN;
+                  String actualSourceField = "";
+
+                  if (conversion.getExpression() instanceof Function) {
+                    Function func = (Function) conversion.getExpression();
+                    functionName = func.getFuncName().toLowerCase(Locale.ROOT);
+                    if (!func.getFuncArgs().isEmpty()
+                        && func.getFuncArgs().get(0) instanceof Field) {
+                      actualSourceField = ((Field) func.getFuncArgs().get(0)).getField().toString();
+                    }
+                    fields =
+                        func.getFuncArgs().stream()
+                            .map(arg -> MASK_COLUMN)
+                            .collect(Collectors.joining(","));
+                  }
+
+                  String targetField = conversion.getVar().getField().toString();
+
+                  String asClause =
+                      !targetField.equals(actualSourceField) ? " AS " + MASK_COLUMN : "";
+                  return StringUtils.format("%s(%s)%s", functionName, fields, asClause);
+                })
+            .collect(Collectors.joining(","));
+    return StringUtils.format("%s | convert %s", child, conversions);
   }
 
   @Override

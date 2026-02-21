@@ -43,6 +43,7 @@ source=accounts
 | [fields command](cmd/fields.md) | 1.0 | stable (since 1.0) | Keep or remove fields from the search result. |
 | [rename command](cmd/rename.md) | 1.0 | stable (since 1.0) | Rename one or more fields in the search result. |
 | [eval command](cmd/eval.md) | 1.0 | stable (since 1.0) | Evaluate an expression and append the result to the search result. |
+| [convert command](cmd/convert.md) | 3.5 | experimental (since 3.5) | Transform field values to numeric values using specialized conversion functions. |
 | [replace command](cmd/replace.md) | 3.4 | experimental (since 3.4) | Replace text in one or more fields in the search result |
 | [fillnull command](cmd/fillnull.md) | 3.0 | experimental (since 3.0) | Fill null with provided value in one or more fields in the search result. |
 | [expand command](cmd/expand.md) | 3.1 | experimental (since 3.1) | Transform a single document into multiple documents by expanding a nested array field. |
@@ -103,4 +104,4 @@ source=accounts
 * **Optimization**  
   - [Optimization](../../user/optimization/optimization.rst)  
 * **Limitations**  
-  - [Limitations](limitations/limitations.md)  
+  - [Limitations](limitations/limitations.md)
