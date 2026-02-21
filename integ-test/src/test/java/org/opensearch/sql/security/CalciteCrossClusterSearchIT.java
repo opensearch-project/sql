@@ -31,6 +31,8 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
     loadIndex(Index.ACCOUNT, remoteClient());
     loadIndex(Index.TIME_TEST_DATA);
     loadIndex(Index.TIME_TEST_DATA, remoteClient());
+    loadIndex(Index.MVEXPAND_EDGE_CASES);
+    loadIndex(Index.MVEXPAND_EDGE_CASES, remoteClient());
     enableCalcite();
   }
 
@@ -456,5 +458,26 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
                 TEST_INDEX_BANK_REMOTE));
     verifyColumn(result, columnName("balance_num"));
     verifySchema(result, schema("balance_num", "double"));
+  public void testCrossClusterMvExpandBasic() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | mvexpand skills | where username='happy' | fields username,"
+                    + " skills.name | sort skills.name",
+                TEST_INDEX_MVEXPAND_REMOTE));
+    verifySchema(result, schema("username", "string"), schema("skills.name", "string"));
+    verifyDataRows(result, rows("happy", "java"), rows("happy", "python"), rows("happy", "sql"));
+  }
+
+  @Test
+  public void testCrossClusterMvExpandWithLimit() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | mvexpand skills limit=2 | where username='limituser' | fields"
+                    + " username, skills.name | sort skills.name",
+                TEST_INDEX_MVEXPAND_REMOTE));
+    verifySchema(result, schema("username", "string"), schema("skills.name", "string"));
+    verifyDataRows(result, rows("limituser", "a"), rows("limituser", "b"));
   }
 }

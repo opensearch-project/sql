@@ -84,6 +84,7 @@ source=accounts
 | [transpose command](cmd/transpose.md) | 3.5 | stable (since 3.5) | Transpose rows to columns. |
 | [mvcombine command](cmd/mvcombine.md) | 3.5 | stable (since 3.4) | Combines values of a specified field across rows identical on all other fields. |
 | [nomv command](cmd/nomv.md) | 3.6 | stable (since 3.6) | Converts a multivalue field to a single-value string by joining elements with newlines. |
+| [mvexpand command](cmd/mvexpand.md) | 3.6                | stable (since 3.6)       | Expand a multi-valued field into separate documents (one per value). |
 
   - [Syntax](cmd/syntax.md) - PPL query structure and command syntax formatting  
 * **Functions**  

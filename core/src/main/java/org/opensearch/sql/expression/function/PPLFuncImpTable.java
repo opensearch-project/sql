@@ -1119,6 +1119,10 @@ public class PPLFuncImpTable {
                       .or(OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.ANY)),
               false));
       registerOperator(
+          INTERNAL_ITEM,
+          SqlStdOperatorTable.ITEM,
+          PPLTypeChecker.family(SqlTypeFamily.IGNORE, SqlTypeFamily.CHARACTER));
+      registerOperator(
           XOR,
           SqlStdOperatorTable.NOT_EQUALS,
           PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.BOOLEAN));

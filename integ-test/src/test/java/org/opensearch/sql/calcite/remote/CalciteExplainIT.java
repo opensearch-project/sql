@@ -59,6 +59,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.DATA_TYPE_ALIAS);
     loadIndex(Index.DEEP_NESTED);
     loadIndex(Index.CASCADED_NESTED);
+    loadIndex(Index.MVEXPAND_EDGE_CASES);
   }
 
   @Override
@@ -2579,6 +2580,15 @@ public class CalciteExplainIT extends ExplainIT {
 
     String actual = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_nomv.yaml");
+    assertYamlEqualsIgnoreId(expected, actual);
+  }
+
+  @Test
+  public void testMvexpandExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_mvexpand.yaml");
+    String actual =
+        explainQueryYaml(
+            "source=mvexpand_edge_cases | eval skills_arr = array(1, 2, 3) | mvexpand skills_arr");
     assertYamlEqualsIgnoreId(expected, actual);
   }
 

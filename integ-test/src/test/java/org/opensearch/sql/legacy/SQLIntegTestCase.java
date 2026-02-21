@@ -686,6 +686,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getNestedSimpleIndexMapping(),
         "src/test/resources/nested_simple.json"),
+    MVEXPAND_EDGE_CASES(
+        "mvexpand_edge_cases",
+        "mvexpand_edge_cases",
+        getMappingFile("mvexpand_edge_cases_mapping.json"),
+        "src/test/resources/mvexpand_edge_cases.json"),
     DEEP_NESTED(
         TestsConstants.TEST_INDEX_DEEP_NESTED,
         "_doc",
