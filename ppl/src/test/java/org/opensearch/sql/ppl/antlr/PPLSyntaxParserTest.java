@@ -946,4 +946,45 @@ public class PPLSyntaxParserTest {
             .parse("source=t | addtotals price, quantity label='Total' labelfield='type'");
     assertNotEquals(null, tree);
   }
+
+  @Test
+  public void testQueryWithMultipleTrailingPipesShouldPass() {
+    // Multiple consecutive trailing pipes should be handled gracefully
+    // by allowing one optional trailing pipe
+    ParseTree tree = new PPLSyntaxParser().parse("search source=t a=1 b=2 | fields a,b | |");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testQueryWithTrailingPipeAndWhitespaceShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("search source=t a=1 b=2 | fields a,b |   ");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testQueryWithMiddleEmptyPipe() {
+    ParseTree tree = new PPLSyntaxParser().parse("search source=t a=1 b=2 | | fields a,b");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testQueryWithMiddleEmptyPipeAndTrailingPipe() {
+    ParseTree tree = new PPLSyntaxParser().parse("search source=t a=1 b=2 | | fields a,b |   ");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testComplexQueryWithTrailingPipeShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser()
+            .parse("source=t | where x > 5 | stats count() by status | sort -count |");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testSubSearchWithTrailingPipeShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser().parse("source=outer | join a [source=inner | fields x,y |]");
+    assertNotEquals(null, tree);
+  }
 }
