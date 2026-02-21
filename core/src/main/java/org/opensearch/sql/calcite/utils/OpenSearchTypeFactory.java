@@ -45,6 +45,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
@@ -375,6 +376,44 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     }
 
     return false;
+  }
+
+  /**
+   * Preserves OpenSearch UDT types through set operations (UNION, INTERSECT, EXCEPT). When all
+   * input types share the same {@link AbstractExprRelDataType} with the same {@link
+   * AbstractExprRelDataType#getUdt() UDT}, the result retains the UDT wrapper instead of being
+   * downgraded to the underlying SQL type (e.g., VARCHAR). This is critical for operations like
+   * multisearch that use UNION ALL, where downstream operators (bin, span) rely on the UDT type to
+   * determine how to process the field. When inputs include non-UDT types or different UDTs, this
+   * method falls back to {@link super#leastRestrictive}.
+   *
+   * @param types the list of input {@link RelDataType} instances to find the least restrictive
+   *     common type for
+   * @return the least restrictive {@link RelDataType} preserving the UDT wrapper when all inputs
+   *     share the same UDT, or {@code null} if no common type exists (as determined by {@link
+   *     super#leastRestrictive})
+   */
+  @Override
+  public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
+    if (types.size() > 1) {
+      RelDataType first = types.get(0);
+      if (first instanceof AbstractExprRelDataType<?> firstUdt) {
+        boolean allSameUdt =
+            types.stream()
+                .allMatch(
+                    t ->
+                        t instanceof AbstractExprRelDataType<?> udt
+                            && udt.getUdt() == firstUdt.getUdt());
+        if (allSameUdt) {
+          boolean anyNullable = types.stream().anyMatch(RelDataType::isNullable);
+          if (anyNullable && !first.isNullable()) {
+            return firstUdt.createWithNullability(this, true);
+          }
+          return first;
+        }
+      }
+    }
+    return super.leastRestrictive(types);
   }
 
   /**
