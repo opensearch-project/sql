@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import static org.opensearch.sql.expression.HighlightExpression.HIGHLIGHT_FIELD;
+
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,11 +37,13 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.common.setting.Settings;
@@ -78,8 +82,24 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         ImmutableList.of(),
         table,
         osIndex,
-        table.getRowType(),
+        buildInitialSchema(cluster, table),
         new PushDownContext(osIndex));
+  }
+
+  /**
+   * Build the initial schema for the scan, conditionally adding a hidden {@code _highlight} column
+   * when highlight configuration is present. This allows highlight data to flow through all Calcite
+   * operators (filter, sort, dedup) as a regular column, avoiding positional misalignment issues.
+   */
+  private static RelDataType buildInitialSchema(RelOptCluster cluster, RelOptTable table) {
+    RelDataType base = table.getRowType();
+    if (CalcitePlanContext.getHighlightConfig() == null) {
+      return base;
+    }
+    RelDataTypeFactory.Builder builder = cluster.getTypeFactory().builder();
+    builder.addAll(base.getFieldList());
+    builder.add(HIGHLIGHT_FIELD, SqlTypeName.ANY);
+    return builder.build();
   }
 
   protected CalciteLogicalIndexScan(
@@ -276,10 +296,13 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       // For aggregate, we do nothing on query builder but only change the schema of the scan.
       action = (AggregationBuilderAction) aggAction -> {};
     } else {
+      // Filter _highlight from _source includes — it's not a source field in OpenSearch.
       action =
           (OSRequestBuilderAction)
               requestBuilder ->
-                  requestBuilder.pushDownProjectStream(newSchema.getFieldNames().stream());
+                  requestBuilder.pushDownProjectStream(
+                      newSchema.getFieldNames().stream()
+                          .filter(name -> !HIGHLIGHT_FIELD.equals(name)));
     }
     newScan.pushDownContext.add(
         PushDownType.PROJECT,

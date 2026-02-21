@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.response;
 
+import static org.opensearch.sql.expression.HighlightExpression.HIGHLIGHT_FIELD;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATAFIELD_TYPE_MAP;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_INDEX;
@@ -200,7 +201,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
                     .map(Text::toString)
                     .collect(Collectors.toList())));
       }
-      builder.put("_highlight", ExprTupleValue.fromExprValueMap(hlBuilder.build()));
+      builder.put(HIGHLIGHT_FIELD, ExprTupleValue.fromExprValueMap(hlBuilder.build()));
     }
   }
 

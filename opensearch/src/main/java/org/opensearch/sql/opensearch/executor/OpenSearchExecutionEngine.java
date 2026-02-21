@@ -52,6 +52,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
 import org.opensearch.sql.executor.Explain;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.monitor.profile.MetricName;
@@ -266,10 +267,19 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     List<ExprValue> values = new ArrayList<>();
     // Iterate through the ResultSet
     while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
-      Map<String, ExprValue> row = new LinkedHashMap<String, ExprValue>();
+      Map<String, ExprValue> row = new LinkedHashMap<>();
       // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
         String columnName = metaData.getColumnName(i);
+        // _highlight flows through the Calcite pipeline as a hidden column (SqlTypeName.ANY).
+        // Extract it as an opaque ExprValue and embed it in the row tuple directly.
+        if (HighlightExpression.HIGHLIGHT_FIELD.equals(columnName)) {
+          Object value = resultSet.getObject(i);
+          if (value instanceof ExprValue hl && !hl.isMissing()) {
+            row.put(HighlightExpression.HIGHLIGHT_FIELD, hl);
+          }
+          continue;
+        }
         Object value = resultSet.getObject(columnName);
         Object converted = processValue(value);
         ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
@@ -281,6 +291,10 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     List<Column> columns = new ArrayList<>(metaData.getColumnCount());
     for (int i = 1; i <= columnCount; ++i) {
       String columnName = metaData.getColumnName(i);
+      // Exclude _highlight from the response schema — it's a hidden column.
+      if (HighlightExpression.HIGHLIGHT_FIELD.equals(columnName)) {
+        continue;
+      }
       RelDataType fieldType = fieldTypes.get(i - 1);
       // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
       //  The element type of struct and array is currently set to ANY.
@@ -299,8 +313,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       columns.add(new Column(columnName, null, exprType));
     }
     Schema schema = new Schema(columns);
-    QueryResponse response = new QueryResponse(schema, values, null);
-    return response;
+    return new QueryResponse(schema, values, null);
   }
 
   /** Registers opensearch-dependent functions */
