@@ -32,6 +32,15 @@ public class PPLGrammarBundleBuilderTest {
   }
 
   @Test
+  public void antlrVersionIsSet() {
+    String version = bundle.getAntlrVersion();
+    assertNotNull("antlrVersion should not be null", version);
+    assertTrue(
+        "antlrVersion should look like a version string, got: " + version,
+        version.matches("\\d+\\.\\d+.*"));
+  }
+
+  @Test
   public void grammarHashHasExpectedFormat() {
     String hash = bundle.getGrammarHash();
     assertNotNull(hash);

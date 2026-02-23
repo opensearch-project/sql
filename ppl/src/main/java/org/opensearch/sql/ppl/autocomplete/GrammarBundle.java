@@ -6,11 +6,11 @@
 package org.opensearch.sql.ppl.autocomplete;
 
 import lombok.Builder;
-import lombok.Data;
 import lombok.NonNull;
+import lombok.Value;
 
 /** Serialized ANTLR grammar data served by {@code GET /_plugins/_ppl/_grammar}. */
-@Data
+@Value
 @Builder
 public class GrammarBundle {
 
