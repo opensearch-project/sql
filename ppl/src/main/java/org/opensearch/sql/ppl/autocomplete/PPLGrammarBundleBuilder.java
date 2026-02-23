@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.autocomplete;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Vocabulary;
@@ -48,10 +49,15 @@ public class PPLGrammarBundleBuilder {
         .parserRuleNames(parser.getRuleNames())
         .channelNames(lexer.getChannelNames())
         .modeNames(lexer.getModeNames())
-        .startRuleIndex(0)
+        .startRuleIndex(resolveStartRuleIndex(parser.getRuleNames()))
         .literalNames(literalNames)
         .symbolicNames(symbolicNames)
         .build();
+  }
+
+  private static int resolveStartRuleIndex(String[] ruleNames) {
+    int idx = Arrays.asList(ruleNames).indexOf("root");
+    return Math.max(idx, 0);
   }
 
   private static String computeGrammarHash(int[] lexerATN, int[] parserATN) {

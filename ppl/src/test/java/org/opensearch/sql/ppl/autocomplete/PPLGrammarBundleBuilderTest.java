@@ -14,6 +14,8 @@ import org.junit.Test;
 
 public class PPLGrammarBundleBuilderTest {
 
+  private static final int EXPECTED_ATN_SERIALIZATION_VERSION = 4;
+
   private static GrammarBundle bundle;
 
   @BeforeClass
@@ -22,17 +24,17 @@ public class PPLGrammarBundleBuilderTest {
   }
 
   @Test
-  public void bundleIsNotNull() {
+  public void testBuildBundleNotNull() {
     assertNotNull(bundle);
   }
 
   @Test
-  public void bundleVersionIsSet() {
+  public void testBuildBundleVersionIsSet() {
     assertEquals("1.0", bundle.getBundleVersion());
   }
 
   @Test
-  public void antlrVersionIsSet() {
+  public void testBuildAntlrVersionIsSet() {
     String version = bundle.getAntlrVersion();
     assertNotNull("antlrVersion should not be null", version);
     assertTrue(
@@ -41,7 +43,7 @@ public class PPLGrammarBundleBuilderTest {
   }
 
   @Test
-  public void grammarHashHasExpectedFormat() {
+  public void testBuildGrammarHashHasSha256Format() {
     String hash = bundle.getGrammarHash();
     assertNotNull(hash);
     assertTrue("grammarHash should start with 'sha256:'", hash.startsWith("sha256:"));
@@ -49,48 +51,64 @@ public class PPLGrammarBundleBuilderTest {
   }
 
   @Test
-  public void startRuleIndexIsZero() {
+  public void testBuildStartRuleIndexIsZero() {
     assertEquals(0, bundle.getStartRuleIndex());
   }
 
   @Test
-  public void lexerATNIsNonEmpty() {
+  public void testBuildLexerATNIsNonEmpty() {
     assertNotNull(bundle.getLexerSerializedATN());
     assertTrue(bundle.getLexerSerializedATN().length > 0);
   }
 
   @Test
-  public void parserATNIsNonEmpty() {
+  public void testBuildLexerATNIsSerializationVersion4() {
+    assertEquals(
+        "Lexer ATN must be serialization version 4 for antlr4ng compatibility",
+        EXPECTED_ATN_SERIALIZATION_VERSION,
+        bundle.getLexerSerializedATN()[0]);
+  }
+
+  @Test
+  public void testBuildParserATNIsNonEmpty() {
     assertNotNull(bundle.getParserSerializedATN());
     assertTrue(bundle.getParserSerializedATN().length > 0);
   }
 
   @Test
-  public void lexerRuleNamesAreNonEmpty() {
+  public void testBuildParserATNIsSerializationVersion4() {
+    assertEquals(
+        "Parser ATN must be serialization version 4 for antlr4ng compatibility",
+        EXPECTED_ATN_SERIALIZATION_VERSION,
+        bundle.getParserSerializedATN()[0]);
+  }
+
+  @Test
+  public void testBuildLexerRuleNamesAreNonEmpty() {
     assertNotNull(bundle.getLexerRuleNames());
     assertTrue(bundle.getLexerRuleNames().length > 0);
   }
 
   @Test
-  public void parserRuleNamesAreNonEmpty() {
+  public void testBuildParserRuleNamesAreNonEmpty() {
     assertNotNull(bundle.getParserRuleNames());
     assertTrue(bundle.getParserRuleNames().length > 0);
   }
 
   @Test
-  public void channelNamesAreNonEmpty() {
+  public void testBuildChannelNamesAreNonEmpty() {
     assertNotNull(bundle.getChannelNames());
     assertTrue(bundle.getChannelNames().length > 0);
   }
 
   @Test
-  public void modeNamesAreNonEmpty() {
+  public void testBuildModeNamesAreNonEmpty() {
     assertNotNull(bundle.getModeNames());
     assertTrue(bundle.getModeNames().length > 0);
   }
 
   @Test
-  public void vocabularyIsNonEmpty() {
+  public void testBuildVocabularyIsNonEmpty() {
     assertNotNull(bundle.getLiteralNames());
     assertNotNull(bundle.getSymbolicNames());
     assertTrue(bundle.getLiteralNames().length > 0);
@@ -98,7 +116,7 @@ public class PPLGrammarBundleBuilderTest {
   }
 
   @Test
-  public void buildIsDeterministic() {
+  public void testBuildIsDeterministic() {
     GrammarBundle second = new PPLGrammarBundleBuilder().build();
     assertEquals(
         "Two builds of the same grammar should produce the same hash",

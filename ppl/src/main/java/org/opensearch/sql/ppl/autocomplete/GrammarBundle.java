@@ -44,9 +44,15 @@ public class GrammarBundle {
   /** Start rule index (0 = root rule). */
   private int startRuleIndex;
 
-  /** Literal token names indexed by token type (e.g. "'search'", "'|'"). */
+  /**
+   * Literal token names indexed by token type (e.g. "'search'", "'|'"). Elements may be null for
+   * tokens with no literal form; clients must handle sparse arrays.
+   */
   @NonNull private String[] literalNames;
 
-  /** Symbolic token names indexed by token type (e.g. "SEARCH", "PIPE"). */
+  /**
+   * Symbolic token names indexed by token type (e.g. "SEARCH", "PIPE"). Elements may be null for
+   * tokens with no symbolic name; clients must handle sparse arrays.
+   */
   @NonNull private String[] symbolicNames;
 }
