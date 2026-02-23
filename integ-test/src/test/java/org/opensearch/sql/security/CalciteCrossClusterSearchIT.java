@@ -459,7 +459,8 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
     verifyColumn(result, columnName("balance_num"));
     verifySchema(result, schema("balance_num", "double"));
   }
-  
+
+  @Test
   public void testCrossClusterMvExpandBasic() throws IOException {
     JSONObject result =
         executeQuery(
