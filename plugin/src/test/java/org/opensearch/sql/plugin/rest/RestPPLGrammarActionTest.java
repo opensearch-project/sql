@@ -12,6 +12,7 @@ import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.common.io.stream.BytesStreamOutput;
@@ -67,16 +68,31 @@ public class RestPPLGrammarActionTest {
     assertEquals("Should return 200 OK", RestStatus.OK, response.status());
 
     String content = response.content().utf8ToString();
-    assertTrue(content.contains("\"bundleVersion\":\"1.0\""));
-    assertTrue(content.contains("\"antlrVersion\":"));
-    assertTrue(content.contains("\"grammarHash\":\"sha256:"));
-    assertTrue(content.contains("\"startRuleIndex\":0"));
-    assertTrue(content.contains("\"lexerSerializedATN\":"));
-    assertTrue(content.contains("\"parserSerializedATN\":"));
-    assertTrue(content.contains("\"lexerRuleNames\":"));
-    assertTrue(content.contains("\"parserRuleNames\":"));
-    assertTrue(content.contains("\"literalNames\":"));
-    assertTrue(content.contains("\"symbolicNames\":"));
+    JSONObject json = new JSONObject(content);
+
+    // Identity & versioning
+    assertEquals("1.0", json.getString("bundleVersion"));
+    assertTrue(
+        "antlrVersion should be a version string",
+        json.getString("antlrVersion").matches("\\d+\\.\\d+.*"));
+    assertTrue(
+        "grammarHash should start with sha256:",
+        json.getString("grammarHash").startsWith("sha256:"));
+    assertEquals(0, json.getInt("startRuleIndex"));
+
+    // Lexer ATN & metadata (non-empty arrays)
+    assertTrue(json.getJSONArray("lexerSerializedATN").length() > 0);
+    assertTrue(json.getJSONArray("lexerRuleNames").length() > 0);
+    assertTrue(json.getJSONArray("channelNames").length() > 0);
+    assertTrue(json.getJSONArray("modeNames").length() > 0);
+
+    // Parser ATN & metadata (non-empty arrays)
+    assertTrue(json.getJSONArray("parserSerializedATN").length() > 0);
+    assertTrue(json.getJSONArray("parserRuleNames").length() > 0);
+
+    // Vocabulary (non-empty arrays)
+    assertTrue(json.getJSONArray("literalNames").length() > 0);
+    assertTrue(json.getJSONArray("symbolicNames").length() > 0);
   }
 
   @Test

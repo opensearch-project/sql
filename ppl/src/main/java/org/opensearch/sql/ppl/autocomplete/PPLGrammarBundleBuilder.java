@@ -17,14 +17,9 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 
 /** Builds the {@link GrammarBundle} for the PPL language from the generated ANTLR lexer/parser. */
 public class PPLGrammarBundleBuilder {
-  private static final String ANTLR_VERSION = getAntlrVersion();
+  private static final String ANTLR_VERSION =
+      org.antlr.v4.runtime.RuntimeMetaData.getRuntimeVersion();
   private static final String BUNDLE_VERSION = "1.0";
-
-  private static String getAntlrVersion() {
-    Package antlrPackage = org.antlr.v4.runtime.RuntimeMetaData.class.getPackage();
-    String version = antlrPackage.getImplementationVersion();
-    return version != null ? version : "unknown";
-  }
 
   public GrammarBundle build() {
     OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(CharStreams.fromString(""));
@@ -62,14 +57,8 @@ public class PPLGrammarBundleBuilder {
   private static String computeGrammarHash(int[] lexerATN, int[] parserATN) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      for (int v : lexerATN) {
-        digest.update((byte) (v >> 8));
-        digest.update((byte) v);
-      }
-      for (int v : parserATN) {
-        digest.update((byte) (v >> 8));
-        digest.update((byte) v);
-      }
+      updateDigest(digest, lexerATN);
+      updateDigest(digest, parserATN);
       digest.update(ANTLR_VERSION.getBytes(StandardCharsets.UTF_8));
       byte[] hash = digest.digest();
       // Output is always "sha256:" (7 chars) + 64 hex chars = 71 chars.
@@ -81,6 +70,15 @@ public class PPLGrammarBundleBuilder {
       return sb.toString();
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("SHA-256 not available", e);
+    }
+  }
+
+  private static void updateDigest(MessageDigest digest, int[] data) {
+    for (int v : data) {
+      digest.update((byte) (v >>> 24));
+      digest.update((byte) (v >>> 16));
+      digest.update((byte) (v >>> 8));
+      digest.update((byte) (v));
     }
   }
 }
