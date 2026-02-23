@@ -241,7 +241,7 @@ public class RestPPLGrammarActionTest {
 
     @Override
     public BytesStreamOutput bytesOutput() {
-      return null;
+      return new BytesStreamOutput();
     }
   }
 }
