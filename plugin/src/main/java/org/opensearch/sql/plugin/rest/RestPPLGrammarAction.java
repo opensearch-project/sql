@@ -86,7 +86,7 @@ public class RestPPLGrammarAction extends BaseRestHandler {
 
   /** Invalidate the cached bundle, forcing a rebuild on the next request. */
   @VisibleForTesting
-  public void invalidateCache() {
+  protected void invalidateCache() {
     synchronized (bundleLock) {
       cachedBundle = null;
     }
