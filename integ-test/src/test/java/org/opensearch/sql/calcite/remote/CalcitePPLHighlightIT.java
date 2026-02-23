@@ -68,13 +68,21 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
     assertTrue(result.has("highlights"));
     JSONArray highlights = result.getJSONArray("highlights");
 
+    boolean foundAddressHighlight = false;
     for (int i = 0; i < highlights.length(); i++) {
       if (!highlights.isNull(i)) {
         JSONObject hl = highlights.getJSONObject(i);
         // Only address field should be highlighted, not other text fields
         assertFalse("Should not highlight firstname field", hl.has("firstname"));
+        if (hl.has("address")) {
+          String fragment = hl.getJSONArray("address").getString(0);
+          assertTrue("address highlight should contain <em> tags", fragment.contains("<em>"));
+          assertTrue("address highlight should contain Street", fragment.contains("Street"));
+          foundAddressHighlight = true;
+        }
       }
     }
+    assertTrue("Expected at least one row with address highlighted", foundAddressHighlight);
   }
 
   @Test
