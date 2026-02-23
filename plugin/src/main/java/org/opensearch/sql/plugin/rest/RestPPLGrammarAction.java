@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.List;
 import lombok.extern.log4j.Log4j2;
+import org.opensearch.common.annotation.ExperimentalApi;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
@@ -21,7 +22,12 @@ import org.opensearch.sql.ppl.autocomplete.GrammarBundle;
 import org.opensearch.sql.ppl.autocomplete.PPLGrammarBundleBuilder;
 import org.opensearch.transport.client.node.NodeClient;
 
-/** REST handler for {@code GET /_plugins/_ppl/_grammar}. */
+/*
+ * REST handler for {@code GET /_plugins/_ppl/_grammar}.
+ *
+ * @opensearch.experimental
+ */
+@ExperimentalApi
 @Log4j2
 public class RestPPLGrammarAction extends BaseRestHandler {
 
