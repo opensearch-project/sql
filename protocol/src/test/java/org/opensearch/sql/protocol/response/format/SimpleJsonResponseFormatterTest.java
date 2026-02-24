@@ -185,7 +185,7 @@ class SimpleJsonResponseFormatterTest {
   }
 
   @Test
-  void formatResponseWithHighlights() {
+  void testFormatResponseHighlightsPresent() {
     QueryResult response =
         new QueryResult(
             schema,
@@ -208,7 +208,7 @@ class SimpleJsonResponseFormatterTest {
   }
 
   @Test
-  void formatResponseWithoutHighlightsOmitsField() {
+  void testFormatResponseHighlightsOmittedWhenAbsent() {
     QueryResult response =
         new QueryResult(
             schema,

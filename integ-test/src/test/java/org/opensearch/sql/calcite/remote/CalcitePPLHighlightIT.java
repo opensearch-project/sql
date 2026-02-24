@@ -30,7 +30,7 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testHighlightWithWildcardFields() throws IOException {
+  public void testHighlightWildcardFieldsPresent() throws IOException {
     JSONObject result =
         executeQueryWithHighlight(
             "search source=" + TEST_INDEX_ACCOUNT + " \\\"Street\\\"",
@@ -58,7 +58,7 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testHighlightWithSpecificField() throws IOException {
+  public void testHighlightSpecificFieldOnly() throws IOException {
     JSONObject result =
         executeQueryWithHighlight(
             "search source=" + TEST_INDEX_ACCOUNT + " \\\"Street\\\"",
@@ -86,7 +86,7 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testHighlightWithCustomTags() throws IOException {
+  public void testHighlightCustomTagsApplied() throws IOException {
     JSONObject result =
         executeQueryWithHighlight(
             "search source=" + TEST_INDEX_ACCOUNT + " \\\"Street\\\"",
@@ -114,7 +114,7 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoHighlightWhenNotRequested() throws IOException {
+  public void testHighlightOmittedWhenNotRequested() throws IOException {
     JSONObject result =
         executeQueryNoHighlight("search source=" + TEST_INDEX_ACCOUNT + " \\\"Street\\\"");
 
@@ -122,7 +122,7 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testHighlightWithPipedFilter() throws IOException {
+  public void testHighlightAlignedAfterPipedFilter() throws IOException {
     JSONObject result =
         executeQueryWithHighlight(
             "search source=" + TEST_INDEX_ACCOUNT + " \\\"Street\\\" | where age > 30",
@@ -135,7 +135,7 @@ public class CalcitePPLHighlightIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testExplainWithHighlight() throws IOException {
+  public void testExplainContainsHighlightClause() throws IOException {
     Request request = new Request("POST", "/_plugins/_ppl/_explain");
     request.setJsonEntity(
         String.format(
