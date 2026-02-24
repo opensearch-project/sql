@@ -212,27 +212,32 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
             "Source must be Scannable, got: " + graphLookup.getSource().getClass());
       }
 
-      List<String> sourceFields = graphLookup.getSource().getRowType().getFieldNames();
-      this.lookupFields = graphLookup.getLookup().getRowType().getFieldNames();
-      this.startFieldIndex = sourceFields.indexOf(graphLookup.getStartField());
-      this.fromFieldIdx = lookupFields.indexOf(graphLookup.fromField);
-      this.toFieldIdx = lookupFields.indexOf(graphLookup.toField);
+      try {
+        List<String> sourceFields = graphLookup.getSource().getRowType().getFieldNames();
+        this.lookupFields = graphLookup.getLookup().getRowType().getFieldNames();
+        this.startFieldIndex = sourceFields.indexOf(graphLookup.getStartField());
+        this.fromFieldIdx = lookupFields.indexOf(graphLookup.fromField);
+        this.toFieldIdx = lookupFields.indexOf(graphLookup.toField);
 
-      // Push down user-specified filter to the lookup scan
-      if (graphLookup.filter != null) {
-        List<String> schema = graphLookup.getLookup().getRowType().getFieldNames();
-        Map<String, ExprType> fieldTypes = this.lookupScan.getOsIndex().getAllFieldTypes();
-        try {
-          QueryBuilder filterQuery =
-              PredicateAnalyzer.analyze(graphLookup.filter, schema, fieldTypes);
-          this.lookupScan.pushDownContext.add(
-              PushDownType.FILTER,
-              null,
-              (OSRequestBuilderAction) rb -> rb.pushDownFilterForCalcite(filterQuery));
-        } catch (PredicateAnalyzer.ExpressionNotAnalyzableException e) {
-          throw new RuntimeException(
-              "Cannot push down filter for graphLookup: " + e.getMessage(), e);
+        // Push down user-specified filter to the lookup scan
+        if (graphLookup.filter != null) {
+          List<String> schema = graphLookup.getLookup().getRowType().getFieldNames();
+          Map<String, ExprType> fieldTypes = this.lookupScan.getOsIndex().getAllFieldTypes();
+          try {
+            QueryBuilder filterQuery =
+                PredicateAnalyzer.analyze(graphLookup.filter, schema, fieldTypes);
+            this.lookupScan.pushDownContext.add(
+                PushDownType.FILTER,
+                null,
+                (OSRequestBuilderAction) rb -> rb.pushDownFilterForCalcite(filterQuery));
+          } catch (PredicateAnalyzer.ExpressionNotAnalyzableException e) {
+            throw new RuntimeException(
+                "Cannot push down filter for graphLookup: " + e.getMessage(), e);
+          }
         }
+      } catch (Exception e) {
+        sourceEnumerator.close();
+        throw e;
       }
     }
 
@@ -478,12 +483,15 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
           (OSRequestBuilderAction)
               requestBuilder -> requestBuilder.pushDownFilterForCalcite(finalQuery));
       Iterator<@Nullable Object> res = newScan.scan().iterator();
-      List<Object> results = new ArrayList<>();
-      while (res.hasNext()) {
-        results.add(res.next());
+      try {
+        List<Object> results = new ArrayList<>();
+        while (res.hasNext()) {
+          results.add(res.next());
+        }
+        return results;
+      } finally {
+        closeIterator(res);
       }
-      closeIterator(res);
-      return results;
     }
 
     private static <T> void closeIterator(@Nullable Iterator<? extends T> iterator) {

@@ -95,7 +95,7 @@ public class QualifiedNameResolver {
   private static String joinParts(List<String> parts, int start, int length) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < length; i++) {
-      if (start < i) {
+      if (i > 0) {
         sb.append(".");
       }
       sb.append(parts.get(start + i));
@@ -289,9 +289,7 @@ public class QualifiedNameResolver {
       return field;
     } else {
       String itemName = joinParts(parts, length + start, parts.size() - length);
-      return context.relBuilder.alias(
-          createItemAccess(field, itemName, context),
-          String.join(QualifiedName.DELIMITER, parts.subList(start, parts.size())));
+      return createItemAccess(field, itemName, context);
     }
   }
 

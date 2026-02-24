@@ -10,6 +10,9 @@
       "doc_escape": {
         "type": "text"
       },
+      "doc_auto": {
+        "type": "text"
+      },
       "obj_field": {
         "properties": {
           "field": { "type": "text" }

@@ -71,6 +71,7 @@ public enum BuiltinFunctionName {
   ARRAY(FunctionName.of("array")),
   ARRAY_LENGTH(FunctionName.of("array_length")),
   ARRAY_SLICE(FunctionName.of("array_slice"), true),
+  ARRAY_COMPACT(FunctionName.of("array_compact")),
   MAP_APPEND(FunctionName.of("map_append"), true),
   MAP_CONCAT(FunctionName.of("map_concat"), true),
   MAP_REMOVE(FunctionName.of("map_remove"), true),
