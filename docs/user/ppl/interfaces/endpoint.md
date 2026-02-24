@@ -79,7 +79,7 @@ The `highlight` object supports the following parameters:
 curl -sS -H 'Content-Type: application/json' \
 -X POST localhost:9200/_plugins/_ppl \
 -d '{
-  "query": "search source=accounts \"Holmes\"",
+  "query": "search source=accounts \\\"Street\\\" | fields firstname, address",
   "highlight": {
     "fields": { "*": {} },
     "pre_tags": ["<em>"],
@@ -94,23 +94,39 @@ Expected output:
 ```json
 {
   "schema": [
-    { "name": "firstname", "type": "string" },
-    { "name": "lastname", "type": "string" },
-    { "name": "address", "type": "string" }
+    {
+      "name": "firstname",
+      "type": "string"
+    },
+    {
+      "name": "address",
+      "type": "string"
+    }
   ],
   "datarows": [
-    ["Holmes", "Morgan", "123 Main St"],
-    ["Jane", "Holmes", "456 Oak Ave"],
-    ["John", "Smith", "880 Holmes Lane"]
+    [
+      "Hattie",
+      "671 Bristol Street"
+    ],
+    [
+      "Nanette",
+      "789 Madison Street"
+    ]
   ],
   "highlights": [
-    { "firstname": ["<em>Holmes</em>"], "firstname.keyword": ["<em>Holmes</em>"] },
-    { "lastname": ["<em>Holmes</em>"], "lastname.keyword": ["<em>Holmes</em>"] },
-    { "address": ["880 <em>Holmes</em> Lane"] }
+    {
+      "address": [
+        "671 Bristol <em>Street</em>"
+      ]
+    },
+    {
+      "address": [
+        "789 Madison <em>Street</em>"
+      ]
+    }
   ],
-  "total": 3,
-  "size": 3,
-  "status": 200
+  "total": 2,
+  "size": 2
 }
 ```
 
@@ -120,7 +136,7 @@ Expected output:
 curl -sS -H 'Content-Type: application/json' \
 -X POST localhost:9200/_plugins/_ppl \
 -d '{
-  "query": "search source=accounts \"Holmes\"",
+  "query": "search source=accounts \\\"Street\\\" | fields firstname, address",
   "highlight": {
     "fields": { "address": {} },
     "pre_tags": ["<mark>"],
@@ -133,20 +149,44 @@ Expected output:
 
 ```json
 {
-  "schema": [ ... ],
-  "datarows": [ ... ],
-  "highlights": [
-    null,
-    null,
-    { "address": ["880 <mark>Holmes</mark> Lane"] }
+  "schema": [
+    {
+      "name": "firstname",
+      "type": "string"
+    },
+    {
+      "name": "address",
+      "type": "string"
+    }
   ],
-  "total": 3,
-  "size": 3,
-  "status": 200
+  "datarows": [
+    [
+      "Hattie",
+      "671 Bristol Street"
+    ],
+    [
+      "Nanette",
+      "789 Madison Street"
+    ]
+  ],
+  "highlights": [
+    {
+      "address": [
+        "671 Bristol <mark>Street</mark>"
+      ]
+    },
+    {
+      "address": [
+        "789 Madison <mark>Street</mark>"
+      ]
+    }
+  ],
+  "total": 2,
+  "size": 2
 }
 ```
 
-Only the `address` field is highlighted. Rows where "Holmes" appears in other fields have `null` highlight entries.
+Only the `address` field is highlighted. The `<mark>` custom tags are used instead of the default `<em>` tags.
 
 ### Response format
 
