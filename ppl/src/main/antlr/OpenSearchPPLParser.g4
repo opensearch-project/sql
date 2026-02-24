@@ -80,7 +80,6 @@ commands
    | addcoltotalsCommand
    | appendCommand
    | expandCommand
-    | mvexpandCommand
    | flattenCommand
    | reverseCommand
    | regexCommand
@@ -92,7 +91,6 @@ commands
    | replaceCommand
    | mvcombineCommand
    | fieldformatCommand
-   | nomvCommand
    | graphLookupCommand
    ;
 
@@ -125,7 +123,6 @@ commandName
    | ML
    | FILLNULL
    | EXPAND
-    | MVEXPAND
    | FLATTEN
    | TRENDLINE
    | TIMECHART
@@ -140,7 +137,6 @@ commandName
    | APPENDPIPE
    | REPLACE
    | MVCOMBINE
-   | NOMV
    | TRANSPOSE
    | GRAPHLOOKUP
    ;
@@ -560,14 +556,6 @@ expandCommand
 mvcombineCommand
   : MVCOMBINE fieldExpression (DELIM EQUAL stringLiteral)?
   ;
-
-nomvCommand
-  : NOMV fieldExpression
-  ;
-
-mvexpandCommand
-    : MVEXPAND fieldExpression (LIMIT EQUAL INTEGER_LITERAL)?
-    ;
 
 flattenCommand
    : FLATTEN fieldExpression (AS aliases = identifierSeq)?

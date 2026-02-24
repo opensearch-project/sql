@@ -16,7 +16,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDFUNC
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.AND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_COMPACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_LENGTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_SLICE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
@@ -991,7 +990,12 @@ public class PPLFuncImpTable {
           PPLTypeChecker.family(SqlTypeFamily.ANY));
 
       // Register MVJOIN to use Calcite's ARRAY_JOIN
-      registerOperator(MVJOIN, SqlLibraryOperators.ARRAY_JOIN);
+      register(
+          MVJOIN,
+          (FunctionImp2)
+              (builder, array, delimiter) ->
+                  builder.makeCall(SqlLibraryOperators.ARRAY_JOIN, array, delimiter),
+          PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
 
       // Register SPLIT with custom logic for empty delimiter
       // Case 1: Delimiter is not empty string, use SPLIT
@@ -1044,7 +1048,6 @@ public class PPLFuncImpTable {
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
       registerOperator(ARRAY_SLICE, SqlLibraryOperators.ARRAY_SLICE);
-      registerOperator(ARRAY_COMPACT, SqlLibraryOperators.ARRAY_COMPACT);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
       registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
       registerOperator(FILTER, PPLBuiltinOperators.FILTER);
@@ -1105,10 +1108,6 @@ public class PPLFuncImpTable {
                   OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)
                       .or(OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.ANY)),
               false));
-      registerOperator(
-          INTERNAL_ITEM,
-          SqlStdOperatorTable.ITEM,
-          PPLTypeChecker.family(SqlTypeFamily.IGNORE, SqlTypeFamily.CHARACTER));
       registerOperator(
           XOR,
           SqlStdOperatorTable.NOT_EQUALS,

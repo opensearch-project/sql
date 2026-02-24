@@ -95,8 +95,6 @@ import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
-import org.opensearch.sql.ast.tree.MvExpand;
-import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -913,25 +911,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
-  public UnresolvedPlan visitNomvCommand(OpenSearchPPLParser.NomvCommandContext ctx) {
-    Field field = (Field) internalVisitExpression(ctx.fieldExpression());
-    return new NoMv(field);
-  }
-
-  @Override
-  public UnresolvedPlan visitMvexpandCommand(OpenSearchPPLParser.MvexpandCommandContext ctx) {
-    Field field = (Field) expressionBuilder.visit(ctx.fieldExpression());
-    Integer limit =
-        ctx.INTEGER_LITERAL() != null ? Integer.parseInt(ctx.INTEGER_LITERAL().getText()) : null;
-
-    if (limit != null && limit <= 0) {
-      throw new IllegalArgumentException("Limit must be a positive number, got: " + limit);
-    }
-
-    return new MvExpand(field, limit);
-  }
-
-  @Override
   public UnresolvedPlan visitGrokCommand(OpenSearchPPLParser.GrokCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
     Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
@@ -967,6 +946,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     if (inField == null) {
       throw new IllegalArgumentException("`input` parameter is required for `spath`");
+    }
+    if (path == null) {
+      throw new IllegalArgumentException("`path` parameter is required for `spath`");
     }
 
     return new SPath(inField, outField, path);

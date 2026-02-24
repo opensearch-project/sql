@@ -68,7 +68,6 @@ USE_PIT:                            'USEPIT';
 ROW:                                'ROW';
 COL:                                'COL';
 EXPAND:                             'EXPAND';
-MVEXPAND:                           'MVEXPAND';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
 BRAIN:                              'BRAIN';
 VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
@@ -87,7 +86,6 @@ AGGREGATION:                        'AGGREGATION';
 APPENDPIPE:                         'APPENDPIPE';
 COLUMN_NAME:                        'COLUMN_NAME';
 MVCOMBINE:                          'MVCOMBINE';
-NOMV:                               'NOMV';
 
 
 //Native JOIN KEYWORDS

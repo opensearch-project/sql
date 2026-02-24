@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import static java.util.stream.Collectors.toMap;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -52,7 +51,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     return ReturnTypes.explicit(
         TYPE_FACTORY.createMapType(
             TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
-            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+            TYPE_FACTORY.createSqlType(SqlTypeName.ANY),
             true));
   }
 
@@ -73,11 +72,6 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     }
   }
 
-  /**
-   * Evaluate the JSON extract-all function. Returns a {@code Map<String, String>} where keys are
-   * dot-separated JSON paths (with {@code {}} suffix for arrays) and all values are strings. Merged
-   * array values use {@code [a, b, c]} format.
-   */
   public static Object eval(Object... args) {
     if (args.length < 1) {
       return null;
@@ -88,18 +82,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
       return null;
     }
 
-    Map<String, Object> parsed = parseJson(jsonStr);
-    return parsed == null ? null : stringifyMap(parsed);
-  }
-
-  // TODO: JSON parsing dominates cost; consider stringify scalars in place during parsing
-  //  to avoid this extra pass.
-  private static Map<String, String> stringifyMap(Map<String, Object> map) {
-    return map.entrySet().stream()
-        .collect(
-            toMap(
-                Map.Entry::getKey,
-                e -> String.valueOf(e.getValue()))); // relies on List.toString() for [a, b, c]
+    return parseJson(jsonStr);
   }
 
   private static Map<String, Object> parseJson(String jsonStr) {
@@ -167,7 +150,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
   @SuppressWarnings("unchecked")
   private static void appendValue(Map<String, Object> resultMap, String path, Object value) {
     Object existingValue = resultMap.get(path);
-    if (existingValue == null && !resultMap.containsKey(path)) { // key absent, not null value
+    if (existingValue == null) {
       resultMap.put(path, value);
     } else if (existingValue instanceof List) {
       ((List<Object>) existingValue).add(value);

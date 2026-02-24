@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.standalone;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -70,19 +71,19 @@ public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           assertTrue(resultSet.next());
           verifyColumns(resultSet, RESULT_FIELD);
 
-          Map<String, String> map = getMap(resultSet, 1);
+          Map<String, Object> map = getMap(resultSet, 1);
           assertEquals("John", map.get("name"));
-          assertEquals("30", map.get("age"));
+          assertEquals(30, map.get("age"));
           assertEquals(2, map.size());
         });
   }
 
-  private Map<String, String> getMap(ResultSet resultSet, int columnIndex) throws SQLException {
+  private Map<String, Object> getMap(ResultSet resultSet, int columnIndex) throws SQLException {
     Object result = resultSet.getObject(columnIndex);
     assertNotNull(result);
     assertTrue(result instanceof Map);
 
-    return (Map<String, String>) result;
+    return (Map<String, Object>) result;
   }
 
   @Test
@@ -108,10 +109,10 @@ public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           assertTrue(resultSet.next());
           verifyColumns(resultSet, RESULT_FIELD);
 
-          Map<String, String> map = getMap(resultSet, 1);
+          Map<String, Object> map = getMap(resultSet, 1);
           assertEquals("John", map.get("user.name"));
-          assertEquals("30", map.get("user.age"));
-          assertEquals("true", map.get("active"));
+          assertEquals(30, map.get("user.age"));
+          assertEquals(true, map.get("active"));
           assertEquals(3, map.size());
         });
   }
@@ -139,9 +140,13 @@ public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           assertTrue(resultSet.next());
           verifyColumns(resultSet, RESULT_FIELD);
 
-          Map<String, String> map = getMap(resultSet, 1);
-          assertEquals("[java, sql, opensearch]", map.get("tags{}"));
-          assertEquals(1, map.size());
+          Map<String, Object> map = getMap(resultSet, 1);
+          List<Object> tags = getList(map, "tags{}");
+
+          assertEquals(3, tags.size());
+          assertEquals("java", tags.get(0));
+          assertEquals("sql", tags.get(1));
+          assertEquals("opensearch", tags.get(2));
         });
   }
 
@@ -168,8 +173,11 @@ public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           assertTrue(resultSet.next());
           verifyColumns(resultSet, RESULT_FIELD);
 
-          Map<String, String> map = getMap(resultSet, 1);
-          assertEquals("[John, Jane]", map.get("users{}.name"));
+          Map<String, Object> map = getMap(resultSet, 1);
+          List<Object> names = getList(map, "users{}.name");
+          assertEquals(2, names.size());
+          assertEquals("John", names.get(0));
+          assertEquals("Jane", names.get(1));
           assertEquals(1, map.size()); // Only flattened key should exist
         });
   }
@@ -197,10 +205,22 @@ public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           assertTrue(resultSet.next());
           verifyColumns(resultSet, RESULT_FIELD);
 
-          Map<String, String> map = getMap(resultSet, 1);
-          assertEquals("[1, 2]", map.get("{}.id"));
+          Map<String, Object> map = getMap(resultSet, 1);
+          List<Object> ids = getList(map, "{}.id");
+          assertEquals(2, ids.size());
+          assertEquals(1, ids.get(0));
+          assertEquals(2, ids.get(1));
           assertEquals(1, map.size());
         });
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<Object> getList(Map<String, Object> map, String key) {
+    Object value = map.get(key);
+    assertNotNull(value);
+    assertTrue(value instanceof List);
+
+    return (List<Object>) value;
   }
 
   @Test
@@ -226,7 +246,7 @@ public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           assertTrue(resultSet.next());
           verifyColumns(resultSet, RESULT_FIELD);
 
-          Map<String, String> map = getMap(resultSet, 1);
+          Map<String, Object> map = getMap(resultSet, 1);
           assertTrue(map.isEmpty());
         });
   }
@@ -254,7 +274,7 @@ public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           assertTrue(resultSet.next());
           verifyColumns(resultSet, RESULT_FIELD);
 
-          Map<String, String> map = getMap(resultSet, 1);
+          Map<String, Object> map = getMap(resultSet, 1);
           assertEquals("John", map.get("name"));
           assertEquals(1, map.size());
         });
