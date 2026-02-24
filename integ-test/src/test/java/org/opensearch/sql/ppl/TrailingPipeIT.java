@@ -38,7 +38,7 @@ public class TrailingPipeIT extends PPLIntegTestCase {
     JSONObject resultWith = executeQuery(String.format("source=%s |", TEST_INDEX_ACCOUNT));
 
     // Both should return the same data
-    assertEquals(resultWithout.toString(), resultWith.toString());
+    assertTrue(resultWithout.similar(resultWith));
   }
 
   /**
@@ -58,7 +58,7 @@ public class TrailingPipeIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | where age > 30 | fields firstname, age |", TEST_INDEX_ACCOUNT));
 
-    assertEquals(resultWithout.toString(), resultWith.toString());
+    assertTrue(resultWithout.similar(resultWith));
   }
 
   /**
@@ -76,7 +76,7 @@ public class TrailingPipeIT extends PPLIntegTestCase {
         executeQuery(
             String.format("source=%s | fields firstname, age | head 3 |", TEST_INDEX_ACCOUNT));
 
-    assertEquals(resultWithout.toString(), resultWith.toString());
+    assertTrue(resultWithout.similar(resultWith));
   }
 
   /**
@@ -100,7 +100,7 @@ public class TrailingPipeIT extends PPLIntegTestCase {
                     + " state | sort state |",
                 TEST_INDEX_ACCOUNT));
 
-    assertEquals(resultWithout.toString(), resultWith.toString());
+    assertTrue(resultWithout.similar(resultWith));
   }
 
   /**
@@ -121,7 +121,7 @@ public class TrailingPipeIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | | where age > 30 | fields firstname, age", TEST_INDEX_ACCOUNT));
 
-    assertEquals(resultNormal.toString(), resultWithEmpty.toString());
+    assertTrue(resultNormal.similar(resultWithEmpty));
   }
 
   /**
@@ -144,7 +144,7 @@ public class TrailingPipeIT extends PPLIntegTestCase {
                 "source=%s | | where age > 30 | | fields firstname, age | sort age",
                 TEST_INDEX_ACCOUNT));
 
-    assertEquals(resultNormal.toString(), resultWithEmpty.toString());
+    assertTrue(resultNormal.similar(resultWithEmpty));
   }
 
   /**
@@ -167,6 +167,6 @@ public class TrailingPipeIT extends PPLIntegTestCase {
                 "source=%s | | where age > 30 | fields firstname, age | sort age |",
                 TEST_INDEX_ACCOUNT));
 
-    assertEquals(resultNormal.toString(), resultWithEmpty.toString());
+    assertTrue(resultNormal.similar(resultWithEmpty));
   }
 }
