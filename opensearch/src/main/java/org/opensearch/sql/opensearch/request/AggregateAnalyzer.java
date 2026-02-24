@@ -32,6 +32,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_BUCKET;
+import static org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression.getScriptSortType;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -77,6 +78,8 @@ import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.sort.ScriptSortBuilder;
+import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -491,16 +494,12 @@ public class AggregateAnalyzer {
               helper.build(args.getFirst().getKey(), AggregationBuilders.min(aggName)),
               new SingleValueParser(aggName));
         } else {
-          yield Pair.of(
-              AggregationBuilders.topHits(aggName)
-                  .fetchField(
-                      helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery())
-                  .size(1)
-                  .from(0)
-                  .sort(
-                      helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery(),
-                      SortOrder.ASC),
-              new TopHitsParser(aggName, true, false));
+          String sortField =
+              helper.inferNamedField(args.get(0).getKey()).getReferenceForTermQuery();
+          TopHitsAggregationBuilder minBuilder =
+              createTopHitsBuilder(
+                  aggCall, args, aggName, helper, 1, true, true, sortField, SortOrder.ASC);
+          yield Pair.of(minBuilder, new TopHitsParser(aggName, true, false));
         }
       }
       case MAX -> {
@@ -511,16 +510,12 @@ public class AggregateAnalyzer {
               helper.build(args.getFirst().getKey(), AggregationBuilders.max(aggName)),
               new SingleValueParser(aggName));
         } else {
-          yield Pair.of(
-              AggregationBuilders.topHits(aggName)
-                  .fetchField(
-                      helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery())
-                  .size(1)
-                  .from(0)
-                  .sort(
-                      helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery(),
-                      SortOrder.DESC),
-              new TopHitsParser(aggName, true, false));
+          String sortField =
+              helper.inferNamedField(args.get(0).getKey()).getReferenceForTermQuery();
+          TopHitsAggregationBuilder maxBuilder =
+              createTopHitsBuilder(
+                  aggCall, args, aggName, helper, 1, true, true, sortField, SortOrder.DESC);
+          yield Pair.of(maxBuilder, new TopHitsParser(aggName, true, false));
         }
       }
       case VAR_SAMP ->
@@ -539,61 +534,39 @@ public class AggregateAnalyzer {
           Pair.of(
               helper.build(args.getFirst().getKey(), AggregationBuilders.extendedStats(aggName)),
               new StatsParser(ExtendedStats::getStdDeviationPopulation, aggName));
-      case ARG_MAX ->
-          Pair.of(
-              AggregationBuilders.topHits(aggName)
-                  .fetchField(
-                      helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery())
-                  .size(1)
-                  .from(0)
-                  .sort(
-                      helper.inferNamedField(args.get(1).getKey()).getReferenceForTermQuery(),
-                      org.opensearch.search.sort.SortOrder.DESC),
-              new ArgMaxMinParser(aggName));
-      case ARG_MIN ->
-          Pair.of(
-              AggregationBuilders.topHits(aggName)
-                  .fetchField(
-                      helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery())
-                  .size(1)
-                  .from(0)
-                  .sort(
-                      helper.inferNamedField(args.get(1).getKey()).getReferenceForTermQuery(),
-                      org.opensearch.search.sort.SortOrder.ASC),
-              new ArgMaxMinParser(aggName));
+      case ARG_MAX -> {
+        String sortField = helper.inferNamedField(args.get(1).getKey()).getReferenceForTermQuery();
+        TopHitsAggregationBuilder maxBuilder =
+            createTopHitsBuilder(
+                aggCall, args, aggName, helper, 1, true, true, sortField, SortOrder.DESC);
+        yield Pair.of(maxBuilder, new ArgMaxMinParser(aggName));
+      }
+      case ARG_MIN -> {
+        String sortField = helper.inferNamedField(args.get(1).getKey()).getReferenceForTermQuery();
+        TopHitsAggregationBuilder minBuilder =
+            createTopHitsBuilder(
+                aggCall, args, aggName, helper, 1, true, true, sortField, SortOrder.ASC);
+        yield Pair.of(minBuilder, new ArgMaxMinParser(aggName));
+      }
       case OTHER_FUNCTION -> {
         BuiltinFunctionName functionName =
             BuiltinFunctionName.ofAggregation(aggCall.getAggregation().getName()).get();
         yield switch (functionName) {
-          case TAKE ->
-              Pair.of(
-                  AggregationBuilders.topHits(aggName)
-                      .fetchField(
-                          helper
-                              .inferNamedField(args.getFirst().getKey())
-                              .getReferenceForTermQuery())
-                      .size(helper.inferValue(args.getLast().getKey(), Integer.class))
-                      .from(0),
-                  new TopHitsParser(aggName, false, true));
+          case TAKE -> {
+            int size = helper.inferValue(args.getLast().getKey(), Integer.class);
+            TopHitsAggregationBuilder takeBuilder =
+                createTopHitsBuilder(aggCall, args, aggName, helper, size, true, false, null, null);
+            yield Pair.of(takeBuilder, new TopHitsParser(aggName, false, true));
+          }
           case FIRST -> {
             TopHitsAggregationBuilder firstBuilder =
-                AggregationBuilders.topHits(aggName).size(1).from(0);
-            if (!args.isEmpty()) {
-              firstBuilder.fetchField(
-                  helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery());
-            }
+                createTopHitsBuilder(aggCall, args, aggName, helper, 1, true, false, null, null);
             yield Pair.of(firstBuilder, new TopHitsParser(aggName, true, false));
           }
           case LAST -> {
             TopHitsAggregationBuilder lastBuilder =
-                AggregationBuilders.topHits(aggName)
-                    .size(1)
-                    .from(0)
-                    .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
-            if (!args.isEmpty()) {
-              lastBuilder.fetchField(
-                  helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery());
-            }
+                createTopHitsBuilder(
+                    aggCall, args, aggName, helper, 1, true, true, "_doc", SortOrder.DESC);
             yield Pair.of(lastBuilder, new TopHitsParser(aggName, true, false));
           }
           case PERCENTILE_APPROX -> {
@@ -625,29 +598,9 @@ public class AggregateAnalyzer {
               String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         }
         Integer dedupNumber = literal.getValueAs(Integer.class);
-        // Disable fetchSource since TopHitsParser only parses fetchField currently.
         TopHitsAggregationBuilder topHitsAggregationBuilder =
-            AggregationBuilders.topHits(aggName).from(0).size(dedupNumber);
-        List<String> sources = new ArrayList<>();
-        List<SearchSourceBuilder.ScriptField> scripts = new ArrayList<>();
-        args.forEach(
-            rex -> {
-              if (rex.getKey() instanceof RexInputRef) {
-                sources.add(helper.inferNamedField(rex.getKey()).getReference());
-              } else if (rex.getKey() instanceof RexCall || rex.getKey() instanceof RexLiteral) {
-                scripts.add(
-                    new SearchSourceBuilder.ScriptField(
-                        rex.getValue(), helper.inferScript(rex.getKey()).getScript(), false));
-              } else {
-                throw new AggregateAnalyzer.AggregateAnalyzerException(
-                    String.format(
-                        "Unsupported push-down aggregator %s due to rex type is %s",
-                        aggCall.getAggregation(), rex.getKey().getKind()));
-              }
-            });
-        topHitsAggregationBuilder.fetchSource(
-            sources.stream().distinct().toArray(String[]::new), new String[0]);
-        topHitsAggregationBuilder.scriptFields(scripts);
+            createTopHitsBuilder(
+                aggCall, args, aggName, helper, dedupNumber, false, false, null, null);
         yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggName, false, false));
       }
       default ->
@@ -832,6 +785,86 @@ public class AggregateAnalyzer {
         sourceBuilder::userValuetypeHint,
         group.getType(),
         group instanceof RexInputRef);
+  }
+
+  /**
+   * Create TopHits Aggregation builder.
+   *
+   * @param aggCall create a TopHits Aggregation for this aggCall
+   * @param args the arguments used to create a TopHits Aggregation
+   * @param aggName the TopHits aggregation name
+   * @param helper the Helper for create aggregation builder
+   * @param size the aggregation size
+   * @param useSingleColumn true if only one column/field will return in TopHits
+   * @param sortNeeded true if sort is required in the TopHits
+   * @param sortField the specific sort field, could be null
+   * @param sortOrder the specific sort order, could be null
+   */
+  private static TopHitsAggregationBuilder createTopHitsBuilder(
+      AggregateCall aggCall,
+      List<Pair<RexNode, String>> args,
+      String aggName,
+      AggregateBuilderHelper helper,
+      int size,
+      boolean useSingleColumn,
+      boolean sortNeeded,
+      @Nullable String sortField,
+      @Nullable SortOrder sortOrder) {
+    // numHits in Lucene TotalHitCountCollectorManager must > 0, set to -1 to disable pushdown
+    if (size == 0) size = -1;
+    TopHitsAggregationBuilder builder = AggregationBuilders.topHits(aggName).from(0).size(size);
+    if (sortNeeded && sortField != null && sortOrder != null) {
+      builder.sort(sortField, sortOrder);
+    }
+    List<String> sourceSpecific = new ArrayList<>();
+    List<String> fields = new ArrayList<>();
+    List<SearchSourceBuilder.ScriptField> scripts = new ArrayList<>();
+    (useSingleColumn ? args.stream().findFirst().stream() : args.stream())
+        .forEach(
+            rex -> {
+              if (rex.getKey() instanceof RexInputRef) {
+                NamedFieldExpression fieldExpression = helper.inferNamedField(rex.getKey());
+                String name = fieldExpression.getRootName();
+                if (fieldExpression.isAliasField()) {
+                  // alias type cannot use fetchSource and must use alias name
+                  fields.add(name);
+                } else if (fieldExpression.isStructField()) {
+                  // struct type cannot use fetchField
+                  sourceSpecific.add(name);
+                } else {
+                  fields.add(name);
+                  // text or struct type cannot apply sort
+                  if (sortNeeded && sortField == null) {
+                    String keyword = fieldExpression.getReferenceForTermQuery();
+                    if (keyword != null) {
+                      builder.sort(keyword, sortOrder);
+                    }
+                  }
+                }
+              } else if (rex.getKey() instanceof RexCall || rex.getKey() instanceof RexLiteral) {
+                Script script = helper.inferScript(rex.getKey()).getScript();
+                scripts.add(new SearchSourceBuilder.ScriptField(rex.getValue(), script, false));
+                if (sortNeeded && sortField == null) {
+                  ScriptSortBuilder.ScriptSortType sortType =
+                      getScriptSortType(rex.getKey().getType());
+                  builder.sort(SortBuilders.scriptSort(script, sortType));
+                }
+              } else {
+                throw new AggregateAnalyzer.AggregateAnalyzerException(
+                    String.format(
+                        "Unsupported push-down aggregator %s due to rex type is %s",
+                        aggCall.getAggregation(), rex.getKey().getKind()));
+              }
+            });
+    if (useSingleColumn && sourceSpecific.isEmpty()) {
+      // disable _source when use single column in TopHits and no specific source
+      builder.fetchSource(false);
+    }
+    fields.stream().distinct().forEach(builder::fetchField);
+    if (!scripts.isEmpty()) {
+      builder.scriptFields(scripts);
+    }
+    return builder;
   }
 
   private static ValuesSourceAggregationBuilder<?> createTermsAggregationBuilder(

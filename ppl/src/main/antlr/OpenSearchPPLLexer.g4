@@ -26,6 +26,7 @@ STREAMSTATS:                        'STREAMSTATS';
 DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
+FIELDFORMAT:                        'FIELDFORMAT';
 HEAD:                               'HEAD';
 BIN:                                'BIN';
 TOP:                                'TOP';
@@ -172,7 +173,6 @@ TIMEFIELD:                          'TIMEFIELD';
 INPUT:                              'INPUT';
 OUTPUT:                             'OUTPUT';
 PATH:                               'PATH';
-
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';

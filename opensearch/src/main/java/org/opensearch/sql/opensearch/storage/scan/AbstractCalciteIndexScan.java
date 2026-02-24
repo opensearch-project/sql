@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
+import static org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression.getScriptSortType;
 import static org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper.MISSING_MAX;
 
 import java.util.ArrayList;
@@ -40,7 +41,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -54,7 +54,6 @@ import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.PushDownUnSupportedException;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.context.AbstractAction;
@@ -495,23 +494,5 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
 
   public boolean isProjectPushed() {
     return this.getPushDownContext().isProjectPushed();
-  }
-
-  /**
-   * Determine the appropriate ScriptSortType based on the expression's return type.
-   *
-   * @param relDataType the return type of the expression
-   * @return the appropriate ScriptSortType
-   */
-  private ScriptSortType getScriptSortType(RelDataType relDataType) {
-    if (SqlTypeName.CHAR_TYPES.contains(relDataType.getSqlTypeName())) {
-      return ScriptSortType.STRING;
-    } else if (SqlTypeName.INT_TYPES.contains(relDataType.getSqlTypeName())
-        || SqlTypeName.APPROX_TYPES.contains(relDataType.getSqlTypeName())) {
-      return ScriptSortType.NUMBER;
-    } else {
-      throw new PushDownUnSupportedException(
-          "Unsupported type for sort expression pushdown: " + relDataType);
-    }
   }
 }

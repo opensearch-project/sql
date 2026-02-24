@@ -107,7 +107,6 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -525,6 +524,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       typeEnvironment.define(ref);
     }
     return new LogicalEval(child, expressionsBuilder.build());
+  }
+
+  /** Build {@link LogicalEval}. */
+  @Override
+  public LogicalPlan visitFieldFormat(Eval node, AnalysisContext context) {
+    throw getOnlyForCalciteException("fieldformat");
   }
 
   @Override
@@ -972,10 +977,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     List<UnresolvedExpression> aggExprs =
         Stream.of(
                 new Alias(
-                    PatternUtils.PATTERN_COUNT,
+                    "pattern_count",
                     new AggregateFunction(BuiltinFunctionName.COUNT.name(), AllFields.of())),
                 new Alias(
-                    PatternUtils.SAMPLE_LOGS,
+                    "sample_logs",
                     new AggregateFunction(
                         BuiltinFunctionName.TAKE.name(),
                         node.getSourceField(),
