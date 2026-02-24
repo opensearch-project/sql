@@ -8,12 +8,14 @@ package org.opensearch.sql.expression.function.udf;
 /** PPL auto() conversion function. */
 public class AutoConvertFunction extends BaseConversionUDF {
 
+  private static final AutoConvertFunction INSTANCE = new AutoConvertFunction();
+
   public AutoConvertFunction() {
     super(AutoConvertFunction.class);
   }
 
   public static Object convert(Object value) {
-    return new AutoConvertFunction().convertValue(value);
+    return INSTANCE.convertValue(value);
   }
 
   @Override
@@ -23,6 +25,6 @@ public class AutoConvertFunction extends BaseConversionUDF {
       return result;
     }
 
-    return new NumConvertFunction().applyConversion(preprocessedValue);
+    return NumConvertFunction.INSTANCE.applyConversion(preprocessedValue);
   }
 }

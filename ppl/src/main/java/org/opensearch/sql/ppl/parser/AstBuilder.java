@@ -1213,12 +1213,25 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Convert(conversions);
   }
 
+  /** Supported PPL convert function names (case-insensitive). */
+  private static final Set<String> SUPPORTED_CONVERSION_FUNCTIONS =
+      Set.of("auto", "num", "rmcomma", "rmunit", "memk", "none");
+
   private Let buildConversion(OpenSearchPPLParser.ConvertFunctionContext funcCtx) {
     if (funcCtx.fieldExpression().isEmpty()) {
       throw new IllegalArgumentException("Convert function requires a field argument");
     }
 
     String functionName = funcCtx.functionName.getText();
+
+    // Validate function name against supported conversion functions
+    if (!SUPPORTED_CONVERSION_FUNCTIONS.contains(functionName.toLowerCase())) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Unsupported conversion function '%s'. Supported functions are: %s",
+              functionName, SUPPORTED_CONVERSION_FUNCTIONS));
+    }
+
     UnresolvedExpression fieldArg = internalVisitExpression(funcCtx.fieldExpression(0));
     Field targetField = determineTargetField(funcCtx, fieldArg);
 

@@ -8,12 +8,14 @@ package org.opensearch.sql.expression.function.udf;
 /** PPL rmunit() conversion function. */
 public class RmunitConvertFunction extends BaseConversionUDF {
 
+  private static final RmunitConvertFunction INSTANCE = new RmunitConvertFunction();
+
   public RmunitConvertFunction() {
     super(RmunitConvertFunction.class);
   }
 
   public static Object convert(Object value) {
-    return new RmunitConvertFunction().convertValue(value);
+    return INSTANCE.convertValue(value);
   }
 
   @Override

@@ -8,12 +8,14 @@ package org.opensearch.sql.expression.function.udf;
 /** PPL memk() conversion function. */
 public class MemkConvertFunction extends BaseConversionUDF {
 
+  private static final MemkConvertFunction INSTANCE = new MemkConvertFunction();
+
   public MemkConvertFunction() {
     super(MemkConvertFunction.class);
   }
 
   public static Object convert(Object value) {
-    return new MemkConvertFunction().convertValue(value);
+    return INSTANCE.convertValue(value);
   }
 
   @Override

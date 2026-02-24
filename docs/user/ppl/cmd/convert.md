@@ -17,7 +17,7 @@ The `convert` command supports the following parameters.
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `<convert-function>` | Required | One of the conversion functions: `auto()`, `num()`, `rmcomma()`, `rmunit()`, `memk()`, or `none()`. |
-| `<field>` | Required | Single field name to convert, or `*` to convert all fields. |
+| `<field>` | Required | Single field name to convert. |
 | `AS <field>` | Optional | Create new field with converted value, preserving original field. |
 
 ## Conversion Functions

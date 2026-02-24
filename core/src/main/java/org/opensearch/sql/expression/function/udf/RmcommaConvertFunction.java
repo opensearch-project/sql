@@ -8,12 +8,14 @@ package org.opensearch.sql.expression.function.udf;
 /** PPL rmcomma() conversion function. */
 public class RmcommaConvertFunction extends BaseConversionUDF {
 
+  private static final RmcommaConvertFunction INSTANCE = new RmcommaConvertFunction();
+
   public RmcommaConvertFunction() {
     super(RmcommaConvertFunction.class);
   }
 
   public static Object convert(Object value) {
-    return new RmcommaConvertFunction().convertValue(value);
+    return INSTANCE.convertValue(value);
   }
 
   @Override
