@@ -1712,6 +1712,10 @@ public class AstBuilderTest {
             field("b")));
   }
 
+  /**
+   * Tests that a combination of empty pipes in the middle and a trailing pipe at the end are
+   * properly handled and produce the same AST as a query without these extraneous pipes.
+   */
   @Test
   public void testEmptyPipeAndTrailingPipeTogether() {
     // Test both empty pipe in middle and trailing pipe at end
@@ -1721,5 +1725,14 @@ public class AstBuilderTest {
             filter(relation("t"), compare("=", field("a"), intLiteral(1))),
             defaultFieldsArgs(),
             field("b")));
+  }
+
+  /**
+   * Tests that the parser correctly rejects queries with invalid command tokens after a pipe,
+   * ensuring proper error detection for malformed queries.
+   */
+  @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
+  public void testMalformedPipeProducesSyntaxError() {
+    plan("source=t | invalidCmd |");
   }
 }

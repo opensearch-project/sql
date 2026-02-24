@@ -950,7 +950,6 @@ public class PPLSyntaxParserTest {
   @Test
   public void testQueryWithMultipleTrailingPipesShouldPass() {
     // Multiple consecutive trailing pipes should be handled gracefully
-    // by allowing one optional trailing pipe
     ParseTree tree = new PPLSyntaxParser().parse("search source=t a=1 b=2 | fields a,b | |");
     assertNotEquals(null, tree);
   }
@@ -986,5 +985,16 @@ public class PPLSyntaxParserTest {
     ParseTree tree =
         new PPLSyntaxParser().parse("source=outer | join a [source=inner | fields x,y |]");
     assertNotEquals(null, tree);
+  }
+
+  /**
+   * Tests that the parser correctly rejects queries with invalid command tokens after a pipe,
+   * ensuring proper error detection for malformed queries.
+   */
+  @Test
+  public void testPipeWithInvalidCommandShouldFail() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> new PPLSyntaxParser().parse("source=t | | 123invalidcommand"));
   }
 }
