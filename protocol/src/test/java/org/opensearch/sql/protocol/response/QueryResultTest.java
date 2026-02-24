@@ -113,7 +113,7 @@ class QueryResultTest {
   }
 
   @Test
-  void iterate_excludes_highlight_from_datarows() {
+  void testIterateExcludesHighlightFromDatarows() {
     QueryResult response =
         new QueryResult(
             schema,
@@ -139,7 +139,7 @@ class QueryResultTest {
   }
 
   @Test
-  void highlights_returns_highlight_data() {
+  void testHighlightsReturnsSingleRowData() {
     QueryResult response =
         new QueryResult(
             schema,
@@ -164,7 +164,7 @@ class QueryResultTest {
   }
 
   @Test
-  void highlights_returns_null_when_no_highlight_data() {
+  void testHighlightsReturnsNullWhenNoHighlightField() {
     QueryResult response =
         new QueryResult(
             schema,
@@ -177,7 +177,7 @@ class QueryResultTest {
   }
 
   @Test
-  void highlights_returns_null_when_highlight_is_missing() {
+  void testHighlightsReturnsNullWhenHighlightIsMissing() {
     QueryResult response =
         new QueryResult(
             schema,
@@ -195,5 +195,80 @@ class QueryResultTest {
     List<Map<String, Object>> highlights = response.highlights();
     assertEquals(1, highlights.size());
     assertNull(highlights.get(0));
+  }
+
+  @Test
+  void testHighlightsReturnsEmptyListWhenNoRows() {
+    QueryResult response = new QueryResult(schema, Collections.emptyList(), Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(0, highlights.size());
+  }
+
+  @Test
+  void testHighlightsReturnsNullWhenHighlightIsNull() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Collections.singletonList(
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "name",
+                        ExprValueUtils.stringValue("John"),
+                        "age",
+                        ExprValueUtils.integerValue(20),
+                        "_highlight",
+                        ExprValueUtils.LITERAL_NULL))),
+            Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(1, highlights.size());
+    assertNull(highlights.get(0));
+  }
+
+  @Test
+  void testHighlightsMultiRowAlignment() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Arrays.asList(
+                // Row 0: has highlight on name
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "name",
+                        ExprValueUtils.stringValue("John"),
+                        "age",
+                        ExprValueUtils.integerValue(20),
+                        "_highlight",
+                        ExprTupleValue.fromExprValueMap(
+                            ImmutableMap.of(
+                                "name",
+                                ExprValueUtils.collectionValue(
+                                    ImmutableList.of("<em>John</em>")))))),
+                // Row 1: no highlight
+                tupleValue(ImmutableMap.of("name", "Allen", "age", 30)),
+                // Row 2: has highlight on age (as string field)
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "name",
+                        ExprValueUtils.stringValue("Smith"),
+                        "age",
+                        ExprValueUtils.integerValue(40),
+                        "_highlight",
+                        ExprTupleValue.fromExprValueMap(
+                            ImmutableMap.of(
+                                "name",
+                                ExprValueUtils.collectionValue(
+                                    ImmutableList.of("<em>Smith</em>"))))))),
+            Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(3, highlights.size());
+    // Row 0: highlight present
+    assertEquals(ImmutableMap.of("name", ImmutableList.of("<em>John</em>")), highlights.get(0));
+    // Row 1: no highlight → null
+    assertNull(highlights.get(1));
+    // Row 2: highlight present
+    assertEquals(ImmutableMap.of("name", ImmutableList.of("<em>Smith</em>")), highlights.get(2));
   }
 }
