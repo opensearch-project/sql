@@ -981,10 +981,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private void projectPlusOverriding(
       List<RexNode> newFields, List<String> newNames, CalcitePlanContext context) {
-    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    RelDataType rowType = context.relBuilder.peek().getRowType();
+    List<String> originalFieldNames = rowType.getFieldNames();
     List<RexNode> toOverrideList =
         originalFieldNames.stream()
-            .filter(originalName -> shouldOverrideField(originalName, newNames))
+            .filter(originalName -> shouldOverrideField(originalName, newNames, rowType))
             .map(a -> (RexNode) context.relBuilder.field(a))
             .toList();
     // 1. add the new fields, For example "age0, country0"
@@ -1004,15 +1005,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.rename(expectedRenameFields);
   }
 
-  private boolean shouldOverrideField(String originalName, List<String> newNames) {
+  private boolean shouldOverrideField(
+      String originalName, List<String> newNames, RelDataType rowType) {
+    RelDataTypeField field = rowType.getField(originalName, true, false);
+    boolean isMapType = field != null && field.getType().getSqlTypeName() == SqlTypeName.MAP;
     return newNames.stream()
         .anyMatch(
             newName ->
                 // Match exact field names (e.g., "age" == "age") for flat fields
                 newName.equals(originalName)
                     // OR match nested paths (e.g., "resource.attributes..." starts with
-                    // "resource.")
-                    || newName.startsWith(originalName + "."));
+                    // "resource."), but not for MAP fields where dotted names are flat
+                    // columns rather than real sub-fields (e.g. spath-produced MAP columns)
+                    || (!isMapType && newName.startsWith(originalName + ".")));
   }
 
   private List<List<RexInputRef>> extractInputRefList(List<RelBuilder.AggCall> aggCalls) {

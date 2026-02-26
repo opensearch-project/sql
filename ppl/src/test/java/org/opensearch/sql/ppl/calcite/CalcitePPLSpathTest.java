@@ -144,4 +144,33 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
                 + "FROM `scott`.`EMP`\n"
                 + "ORDER BY 10) `t0`");
   }
+
+  @Test
+  public void testSpathAutoExtractModeWithMultipleDottedEval() {
+    // Regression test: eval with multiple dotted-path assignments from the same MAP root
+    // must not drop the MAP column after the first assignment (#5185)
+    withPPLQuery(
+            "source=EMP | spath input=ENAME output=result"
+                + " | eval result.user.name=result.user.name, result.user.age=result.user.age"
+                + " | fields result.user.name, result.user.age")
+        .expectLogical(
+            "LogicalProject(result.user.name=[ITEM(JSON_EXTRACT_ALL($1), 'user.name')],"
+                + " result.user.age=[ITEM(JSON_EXTRACT_ALL($1), 'user.age')])\n"
+                + "  LogicalTableScan(table=[[scott, EMP]])\n");
+  }
+
+  @Test
+  public void testSpathAutoExtractModeWithConsecutiveDottedEval() {
+    // Regression test: chained eval commands with dotted-path assignments from the same MAP root
+    // must not drop the MAP column between evals (#5185)
+    withPPLQuery(
+            "source=EMP | spath input=ENAME output=result"
+                + " | eval result.user.name=result.user.name"
+                + " | eval result.user.age=result.user.age"
+                + " | fields result.user.name, result.user.age")
+        .expectLogical(
+            "LogicalProject(result.user.name=[ITEM(JSON_EXTRACT_ALL($1), 'user.name')],"
+                + " result.user.age=[ITEM(JSON_EXTRACT_ALL($1), 'user.age')])\n"
+                + "  LogicalTableScan(table=[[scott, EMP]])\n");
+  }
 }
