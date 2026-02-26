@@ -32,6 +32,7 @@ import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.StatsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.support.MultiTermsValuesSourceConfig;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
@@ -124,25 +125,26 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     }
     if (builder instanceof CompositeAggregationBuilder composite) {
       boolean asc = collations.get(0).getDirection() == RelFieldCollation.Direction.ASCENDING;
-      String path = getAggregationPath(collations, fieldNames, composite);
+      String aggName = getAggregationPath(collations, fieldNames, composite);
+      String orderPath = resolveOrderPath(aggName, composite);
       BucketOrder bucketOrder =
           composite.getSubAggregations().isEmpty()
               ? BucketOrder.count(asc)
-              : BucketOrder.aggregation(path, asc);
+              : BucketOrder.aggregation(orderPath, asc);
       AggregationBuilder aggregationBuilder = null;
       if (composite.sources().size() == 1) {
         if (composite.sources().get(0) instanceof TermsValuesSourceBuilder terms
             && !terms.missingBucket()) {
           aggregationBuilder = buildTermsAggregationBuilder(terms, bucketOrder, composite.size());
-          attachSubAggregations(composite.getSubAggregations(), path, aggregationBuilder);
+          attachSubAggregations(composite.getSubAggregations(), aggName, aggregationBuilder);
         } else if (composite.sources().get(0)
             instanceof DateHistogramValuesSourceBuilder dateHisto) {
           aggregationBuilder = buildDateHistogramAggregationBuilder(dateHisto, bucketOrder);
-          attachSubAggregations(composite.getSubAggregations(), path, aggregationBuilder);
+          attachSubAggregations(composite.getSubAggregations(), aggName, aggregationBuilder);
         } else if (composite.sources().get(0) instanceof HistogramValuesSourceBuilder histo
             && !histo.missingBucket()) {
           aggregationBuilder = buildHistogramAggregationBuilder(histo, bucketOrder);
-          attachSubAggregations(composite.getSubAggregations(), path, aggregationBuilder);
+          attachSubAggregations(composite.getSubAggregations(), aggName, aggregationBuilder);
         } else {
           throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
               "Cannot pushdown sort aggregate measure");
@@ -153,7 +155,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
                 src -> src instanceof TermsValuesSourceBuilder terms && !terms.missingBucket())) {
           // multi-term agg
           aggregationBuilder = buildMultiTermsAggregationBuilder(composite, bucketOrder);
-          attachSubAggregations(composite.getSubAggregations(), path, aggregationBuilder);
+          attachSubAggregations(composite.getSubAggregations(), aggName, aggregationBuilder);
         } else {
           throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
               "Cannot pushdown sort aggregate measure");
@@ -334,6 +336,23 @@ public class AggPushDownAction implements OSRequestBuilderAction {
               + " LeafOnly");
     }
     return fieldNames.get(collations.get(0).getFieldIndex());
+  }
+
+  /**
+   * Resolve the order path for a bucket order. Stats aggregation is a multi-value metrics
+   * aggregation, so when ordering on it, the sort path must specify the sub-metric name (e.g.,
+   * "sum(balance).sum").
+   */
+  private String resolveOrderPath(String aggName, CompositeAggregationBuilder composite) {
+    AggregationBuilder sortMetric =
+        composite.getSubAggregations().stream()
+            .filter(sub -> sub.getName().equals(aggName))
+            .findFirst()
+            .orElse(null);
+    if (sortMetric instanceof StatsAggregationBuilder) {
+      return aggName + ".sum";
+    }
+    return aggName;
   }
 
   private AggregationBuilder attachSubAggregations(
