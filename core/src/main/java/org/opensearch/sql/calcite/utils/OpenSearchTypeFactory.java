@@ -223,7 +223,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case BIGINT -> LONG;
       case FLOAT, REAL -> FLOAT;
       case DOUBLE, DECIMAL -> DOUBLE; // TODO the decimal is only used for literal
-      case CHAR, VARCHAR -> STRING;
+      case CHAR, VARCHAR, MULTISET -> STRING; // call toString() for MULTISET
       case BOOLEAN -> BOOLEAN;
       case DATE -> DATE;
       case TIME, TIME_TZ, TIME_WITH_LOCAL_TIME_ZONE -> TIME;

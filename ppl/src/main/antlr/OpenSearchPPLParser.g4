@@ -80,6 +80,7 @@ commands
    | addcoltotalsCommand
    | appendCommand
    | expandCommand
+    | mvexpandCommand
    | flattenCommand
    | reverseCommand
    | regexCommand
@@ -92,6 +93,7 @@ commands
    | mvcombineCommand
    | fieldformatCommand
    | nomvCommand
+   | graphLookupCommand
    ;
 
 commandName
@@ -123,6 +125,7 @@ commandName
    | ML
    | FILLNULL
    | EXPAND
+    | MVEXPAND
    | FLATTEN
    | TRENDLINE
    | TIMECHART
@@ -139,6 +142,7 @@ commandName
    | MVCOMBINE
    | NOMV
    | TRANSPOSE
+   | GRAPHLOOKUP
    ;
 
 searchCommand
@@ -561,6 +565,10 @@ nomvCommand
   : NOMV fieldExpression
   ;
 
+mvexpandCommand
+    : MVEXPAND fieldExpression (LIMIT EQUAL INTEGER_LITERAL)?
+    ;
+
 flattenCommand
    : FLATTEN fieldExpression (AS aliases = identifierSeq)?
    ;
@@ -635,6 +643,23 @@ addcoltotalsCommand
 addcoltotalsOption
    : (LABEL EQUAL stringLiteral)
    | (LABELFIELD EQUAL stringLiteral)
+   ;
+
+graphLookupCommand
+   : GRAPHLOOKUP lookupTable = tableSourceClause graphLookupOption* AS outputField = fieldExpression
+   ;
+
+graphLookupOption
+   : (START_FIELD EQUAL fieldExpression)
+   | (FROM_FIELD EQUAL fieldExpression)
+   | (TO_FIELD EQUAL fieldExpression)
+   | (MAX_DEPTH EQUAL integerLiteral)
+   | (DEPTH_FIELD EQUAL fieldExpression)
+   | (DIRECTION EQUAL (UNI | BI))
+   | (SUPPORT_ARRAY EQUAL booleanLiteral)
+   | (BATCH_MODE EQUAL booleanLiteral)
+   | (USE_PIT EQUAL booleanLiteral)
+   | (FILTER EQUAL LT_PRTHS logicalExpression RT_PRTHS)
    ;
 
 // clauses
@@ -1700,5 +1725,11 @@ searchableKeyWord
    | ROW
    | COL
    | COLUMN_NAME
+   | FROM_FIELD
+   | TO_FIELD
+   | MAX_DEPTH
+   | DEPTH_FIELD
+   | DIRECTION
+   | UNI
+   | BI
    ;
-
