@@ -8,10 +8,9 @@ package org.opensearch.sql.opensearch.storage.scan;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,29 +22,29 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 
 @ExtendWith(MockitoExtension.class)
-class AbstractCalciteIndexScanHighlightTest {
+class AbstractCalciteIndexScanExtraSearchSourceTest {
 
   @Mock private OpenSearchRequestBuilder requestBuilder;
 
   @AfterEach
   void cleanup() {
-    CalcitePlanContext.clearHighlightConfig();
+    CalcitePlanContext.clearExtraSearchSource();
   }
 
   @Test
-  void applyHighlightConfig_withNullConfig_doesNothing() {
+  void applyExtraSearchSource_withNullConfig_doesNothing() {
     // No ThreadLocal set — config is null, requestBuilder should not be called
-    AbstractCalciteIndexScan.applyHighlightConfig(requestBuilder);
+    AbstractCalciteIndexScan.applyExtraSearchSource(requestBuilder);
     // If config is null, method returns early — no interaction with requestBuilder
   }
 
   @Test
-  void applyHighlightConfig_withWildcardFields_setsHighlighter() {
+  void applyExtraSearchSource_withWildcardFields_setsHighlighter() {
     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
     when(requestBuilder.getSourceBuilder()).thenReturn(sourceBuilder);
 
-    CalcitePlanContext.setHighlightConfig(Map.of("fields", Map.of("*", Map.of())));
-    AbstractCalciteIndexScan.applyHighlightConfig(requestBuilder);
+    CalcitePlanContext.setExtraSearchSource("{\"highlight\":{\"fields\":{\"*\":{}}}}");
+    AbstractCalciteIndexScan.applyExtraSearchSource(requestBuilder);
 
     HighlightBuilder highlighter = sourceBuilder.highlighter();
     assertNotNull(highlighter);
@@ -54,16 +53,13 @@ class AbstractCalciteIndexScanHighlightTest {
   }
 
   @Test
-  void applyHighlightConfig_withCustomTags_setsTags() {
+  void applyExtraSearchSource_withCustomTags_setsTags() {
     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
     when(requestBuilder.getSourceBuilder()).thenReturn(sourceBuilder);
 
-    CalcitePlanContext.setHighlightConfig(
-        Map.of(
-            "fields", Map.of("message", Map.of()),
-            "pre_tags", List.of("<em>"),
-            "post_tags", List.of("</em>")));
-    AbstractCalciteIndexScan.applyHighlightConfig(requestBuilder);
+    CalcitePlanContext.setExtraSearchSource(
+        "{\"highlight\":{\"fields\":{\"message\":{}},\"pre_tags\":[\"<em>\"],\"post_tags\":[\"</em>\"]}}");
+    AbstractCalciteIndexScan.applyExtraSearchSource(requestBuilder);
 
     HighlightBuilder highlighter = sourceBuilder.highlighter();
     assertArrayEquals(new String[] {"<em>"}, highlighter.preTags());
@@ -71,31 +67,34 @@ class AbstractCalciteIndexScanHighlightTest {
   }
 
   @Test
-  void applyHighlightConfig_withFragmentSize_setsPerField() {
+  void applyExtraSearchSource_withFragmentSize_setsOnHighlighter() {
     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
     when(requestBuilder.getSourceBuilder()).thenReturn(sourceBuilder);
 
-    CalcitePlanContext.setHighlightConfig(
-        Map.of("fields", Map.of("*", Map.of()), "fragment_size", 2147483647));
-    AbstractCalciteIndexScan.applyHighlightConfig(requestBuilder);
+    CalcitePlanContext.setExtraSearchSource(
+        "{\"highlight\":{\"fields\":{\"*\":{}},\"fragment_size\":2147483647}}");
+    AbstractCalciteIndexScan.applyExtraSearchSource(requestBuilder);
 
     HighlightBuilder highlighter = sourceBuilder.highlighter();
     assertEquals(1, highlighter.fields().size());
-    assertEquals(Integer.valueOf(2147483647), highlighter.fields().get(0).fragmentSize());
+    // fragment_size is parsed as a top-level HighlightBuilder setting by native XContent parsing
+    assertEquals(Integer.valueOf(2147483647), highlighter.fragmentSize());
   }
 
   @Test
-  void applyHighlightConfig_withMalformedConfig_handlesGracefully() {
+  void applyExtraSearchSource_withMalformedJson_handlesGracefully() {
+    // Malformed JSON — should not throw, just log warning and skip
+    CalcitePlanContext.setExtraSearchSource("{not valid json}}}");
+    AbstractCalciteIndexScan.applyExtraSearchSource(requestBuilder);
+    // No exception thrown — method handles gracefully
+  }
+
+  @Test
+  void applyExtraSearchSource_withNoHighlight_doesNotSetHighlighter() {
     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-    when(requestBuilder.getSourceBuilder()).thenReturn(sourceBuilder);
-
-    // "fields" is a String instead of Map — should not throw NPE
-    CalcitePlanContext.setHighlightConfig(Map.of("fields", "not_a_map"));
-    AbstractCalciteIndexScan.applyHighlightConfig(requestBuilder);
-
-    // Should still create a highlighter (just with no fields)
-    HighlightBuilder highlighter = sourceBuilder.highlighter();
-    assertNotNull(highlighter);
-    assertEquals(0, highlighter.fields().size());
+    // JSON with no highlight clause — nothing to merge
+    CalcitePlanContext.setExtraSearchSource("{\"size\":10}");
+    AbstractCalciteIndexScan.applyExtraSearchSource(requestBuilder);
+    assertNull(sourceBuilder.highlighter());
   }
 }

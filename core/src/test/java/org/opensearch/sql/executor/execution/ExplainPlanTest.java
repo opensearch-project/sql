@@ -14,7 +14,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,34 +62,34 @@ public class ExplainPlanTest {
   }
 
   @Test
-  public void execute_sets_highlight_threadlocal_for_explain() {
-    Map<String, Object> highlightConfig = Map.of("fields", Map.of("*", Map.of()));
-    AtomicReference<Map<String, Object>> captured = new AtomicReference<>();
+  public void execute_sets_extra_search_source_threadlocal_for_explain() {
+    String extraSearchSource = "{\"highlight\":{\"fields\":{\"*\":{}}}}";
+    AtomicReference<String> captured = new AtomicReference<>();
 
     doAnswer(
             invocation -> {
-              captured.set(CalcitePlanContext.getHighlightConfig());
+              captured.set(CalcitePlanContext.getExtraSearchSource());
               return null;
             })
         .when(queryPlan)
         .explain(any(), any());
 
     ExplainPlan explainPlan = new ExplainPlan(queryId, queryType, queryPlan, mode, explainListener);
-    explainPlan.setHighlightConfig(highlightConfig);
+    explainPlan.setExtraSearchSource(extraSearchSource);
     explainPlan.execute();
 
-    assertEquals(highlightConfig, captured.get());
+    assertEquals(extraSearchSource, captured.get());
   }
 
   @Test
-  public void execute_clears_highlight_threadlocal_after_explain() {
-    Map<String, Object> highlightConfig = Map.of("fields", Map.of("*", Map.of()));
+  public void execute_clears_extra_search_source_threadlocal_after_explain() {
+    String extraSearchSource = "{\"highlight\":{\"fields\":{\"*\":{}}}}";
     doNothing().when(queryPlan).explain(any(), any());
 
     ExplainPlan explainPlan = new ExplainPlan(queryId, queryType, queryPlan, mode, explainListener);
-    explainPlan.setHighlightConfig(highlightConfig);
+    explainPlan.setExtraSearchSource(extraSearchSource);
     explainPlan.execute();
 
-    assertNull(CalcitePlanContext.getHighlightConfig());
+    assertNull(CalcitePlanContext.getExtraSearchSource());
   }
 }

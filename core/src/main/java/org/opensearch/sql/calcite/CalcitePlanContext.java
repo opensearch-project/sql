@@ -46,23 +46,29 @@ public class CalcitePlanContext {
       ThreadLocal.withInitial(() -> true);
 
   /**
-   * Thread-local highlight configuration from the PPL request body. Set by PPLService before query
-   * execution and read by CalciteEnumerableIndexScan when building the OpenSearch request. The map
-   * represents the highlight JSON object (fields, pre_tags, post_tags, fragment_size) that the
-   * caller provides and the backend forwards as-is to OpenSearch.
+   * Thread-local extra search-source JSON from the PPL request body. Set by PPLService before query
+   * execution and read by AbstractCalciteIndexScan when building the OpenSearch request. The JSON
+   * string is parsed via {@code SearchSourceBuilder.fromXContent()} and selectively merged into the
+   * index scan request.
    */
-  private static final ThreadLocal<Map<String, Object>> highlightConfig = new ThreadLocal<>();
+  private static final ThreadLocal<String> extraSearchSource = new ThreadLocal<>();
 
-  public static void setHighlightConfig(Map<String, Object> config) {
-    highlightConfig.set(config);
+  public static void setExtraSearchSource(String json) {
+    extraSearchSource.set(json);
   }
 
-  public static Map<String, Object> getHighlightConfig() {
-    return highlightConfig.get();
+  public static String getExtraSearchSource() {
+    return extraSearchSource.get();
   }
 
-  public static void clearHighlightConfig() {
-    highlightConfig.remove();
+  public static void clearExtraSearchSource() {
+    extraSearchSource.remove();
+  }
+
+  /** Convenience check: does the extra search source contain a highlight clause? */
+  public static boolean hasHighlightInExtraSearchSource() {
+    String extra = extraSearchSource.get();
+    return extra != null && extra.contains("\"highlight\"");
   }
 
   @Getter @Setter private boolean isResolvingJoinCondition = false;

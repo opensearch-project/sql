@@ -93,7 +93,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
    */
   private static RelDataType buildInitialSchema(RelOptCluster cluster, RelOptTable table) {
     RelDataType base = table.getRowType();
-    if (CalcitePlanContext.getHighlightConfig() == null) {
+    if (!CalcitePlanContext.hasHighlightInExtraSearchSource()) {
       return base;
     }
     RelDataTypeFactory.Builder builder = cluster.getTypeFactory().builder();

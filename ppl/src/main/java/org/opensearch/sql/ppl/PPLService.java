@@ -10,7 +10,6 @@ import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER
 
 import lombok.extern.log4j.Log4j2;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.json.JSONObject;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
@@ -66,7 +65,7 @@ public class PPLService {
       ResponseListener<ExplainResponse> explainListener) {
     try {
       AbstractPlan plan = plan(request, queryListener, explainListener);
-      setHighlightOnPlan(plan, request);
+      setExtraSearchSourceOnPlan(plan, request);
       queryManager.submit(plan);
     } catch (Exception e) {
       queryListener.onFailure(e);
@@ -83,7 +82,7 @@ public class PPLService {
   public void explain(PPLQueryRequest request, ResponseListener<ExplainResponse> listener) {
     try {
       AbstractPlan plan = plan(request, NO_CONSUMER_RESPONSE_LISTENER, listener);
-      setHighlightOnPlan(plan, request);
+      setExtraSearchSourceOnPlan(plan, request);
       queryManager.submit(plan);
     } catch (Exception e) {
       listener.onFailure(e);
@@ -91,13 +90,13 @@ public class PPLService {
   }
 
   /**
-   * Set highlight configuration on the plan so it can be carried across the thread boundary. The
-   * plan's execute() method will set the ThreadLocal on the worker thread.
+   * Set extra search source on the plan so it can be carried across the thread boundary. The plan's
+   * execute() method will set the ThreadLocal on the worker thread.
    */
-  private void setHighlightOnPlan(AbstractPlan plan, PPLQueryRequest request) {
-    JSONObject highlight = request.getHighlight();
-    if (highlight != null) {
-      plan.setHighlightConfig(highlight.toMap());
+  private void setExtraSearchSourceOnPlan(AbstractPlan plan, PPLQueryRequest request) {
+    String extra = request.getExtraSearchSource();
+    if (extra != null) {
+      plan.setExtraSearchSource(extra);
     }
   }
 
