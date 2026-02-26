@@ -95,11 +95,11 @@ public class MetricAggregationBuilder
             new SingleValueParser(name));
       case "sum":
         return make(
-            AggregationBuilders.sum(name),
+            AggregationBuilders.stats(name),
             expression,
             condition,
             name,
-            new SingleValueParser(name));
+            new SumStatsParser(name));
       case "count":
         return make(
             AggregationBuilders.count(name),

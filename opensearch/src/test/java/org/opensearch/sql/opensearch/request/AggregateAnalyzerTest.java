@@ -53,6 +53,7 @@ import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
+import org.opensearch.sql.opensearch.response.agg.SumStatsParser;
 import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 
 class AggregateAnalyzerTest {
@@ -159,7 +160,7 @@ class AggregateAnalyzerTest {
     assertEquals(
         "[{\"cnt\":{\"value_count\":{\"field\":\"_index\"}}},"
             + " {\"avg\":{\"avg\":{\"field\":\"a\"}}},"
-            + " {\"sum\":{\"sum\":{\"field\":\"a\"}}},"
+            + " {\"sum\":{\"stats\":{\"field\":\"a\"}}},"
             + " {\"min\":{\"min\":{\"field\":\"a\"}}},"
             + " {\"max\":{\"max\":{\"field\":\"a\"}}}]",
         result.getLeft().toString());
@@ -172,7 +173,11 @@ class AggregateAnalyzerTest {
         .forEach(
             (k, v) -> {
               assertTrue(outputFields.contains(k));
-              assertInstanceOf(SingleValueParser.class, v);
+              if ("sum".equals(k)) {
+                assertInstanceOf(SumStatsParser.class, v);
+              } else {
+                assertInstanceOf(SingleValueParser.class, v);
+              }
             });
   }
 
@@ -558,7 +563,7 @@ class AggregateAnalyzerTest {
             "[{\"filter_avg\":{\"filter\":{\"term\":{\"a\":{\"value\":10,\"boost\":1.0}}},"
                 + "\"aggregations\":{\"filter_avg\":{\"avg\":{\"field\":\"a\"}}}}},"
                 + " {\"filter_sum\":{\"filter\":{\"term\":{\"a\":{\"value\":20,\"boost\":1.0}}},"
-                + "\"aggregations\":{\"filter_sum\":{\"sum\":{\"field\":\"a\"}}}}},"
+                + "\"aggregations\":{\"filter_sum\":{\"stats\":{\"field\":\"a\"}}}}},"
                 + " {\"filter_min\":{\"filter\":{\"term\":{\"b.keyword\":{\"value\":\"test1\",\"boost\":1.0}}},"
                 + "\"aggregations\":{\"filter_min\":{\"min\":{\"field\":\"a\"}}}}},"
                 + " {\"filter_max\":{\"filter\":{\"term\":{\"b.keyword\":{\"value\":\"test2\",\"boost\":1.0}}},"
@@ -572,7 +577,7 @@ class AggregateAnalyzerTest {
                         .build(),
                     FilterParser.builder()
                         .name("filter_sum")
-                        .metricsParser(new SingleValueParser("filter_sum"))
+                        .metricsParser(new SumStatsParser("filter_sum"))
                         .build(),
                     FilterParser.builder()
                         .name("filter_min")
