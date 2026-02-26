@@ -112,13 +112,15 @@ public class OpenSearchPluginModule extends AbstractModule {
 
   /**
    * Provides a singleton {@link DialectRegistry} initialized with all built-in dialect plugins.
-   * The registry is populated at startup so that dialect queries can be routed immediately.
+   * The registry is populated at startup and then frozen so that no new registrations are accepted
+   * and all lookups are lock-free.
    */
   @Provides
   @Singleton
   public DialectRegistry dialectRegistry() {
     DialectRegistry registry = new DialectRegistry();
     registry.register(ClickHouseDialectPlugin.INSTANCE);
+    registry.freeze();
     return registry;
   }
 }

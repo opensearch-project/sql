@@ -10,6 +10,7 @@ import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.opensearch.sql.api.dialect.DialectNames;
 import org.opensearch.sql.api.dialect.DialectPlugin;
 import org.opensearch.sql.api.dialect.QueryPreprocessor;
 
@@ -23,7 +24,7 @@ public class ClickHouseDialectPlugin implements DialectPlugin {
 
   @Override
   public String dialectName() {
-    return "clickhouse";
+    return DialectNames.CLICKHOUSE;
   }
 
   @Override

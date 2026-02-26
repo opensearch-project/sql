@@ -12,18 +12,22 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -33,6 +37,7 @@ import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
@@ -58,6 +63,7 @@ import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.legacy.metrics.NumericMetric;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CommandResponseFormatter;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
@@ -126,7 +132,19 @@ public class RestSQLQueryAction extends BaseRestHandler {
     // Check for dialect parameter and route to dialect pipeline if present
     Optional<String> dialectParam = request.getDialect();
     if (dialectParam.isPresent()) {
-      return prepareDialectRequest(request, dialectParam.get(), executionErrorHandler);
+      String sanitized = sanitizeDialectParam(dialectParam.get());
+      if (sanitized.isEmpty()) {
+        return channel -> {
+            LOG.warn(
+                "[{}] Dialect query rejected: empty dialect parameter",
+                QueryContext.getRequestId());
+            sendErrorResponse(
+                channel,
+                "Dialect parameter must be non-empty.",
+                RestStatus.BAD_REQUEST);
+        };
+      }
+      return prepareDialectRequest(request, sanitized, executionErrorHandler);
     }
 
     SQLService sqlService = injector.getInstance(SQLService.class);
@@ -175,6 +193,9 @@ public class RestSQLQueryAction extends BaseRestHandler {
         String errorMsg =
             "Dialect query support requires the Calcite engine to be enabled. "
                 + "Set plugins.calcite.enabled=true to use dialect queries.";
+        LOG.warn(
+            "[{}] Dialect query rejected: Calcite engine is disabled",
+            QueryContext.getRequestId());
         sendErrorResponse(channel, errorMsg, RestStatus.BAD_REQUEST);
       };
     }
@@ -183,13 +204,23 @@ public class RestSQLQueryAction extends BaseRestHandler {
     Optional<DialectPlugin> dialectPlugin = dialectRegistry.resolve(dialectName);
     if (dialectPlugin.isEmpty()) {
       return channel -> {
-        String errorMsg =
+        String message =
             String.format(
                 Locale.ROOT,
-                "Unsupported dialect '%s'. Available dialects: %s",
+                "Unknown SQL dialect '%s'. Supported dialects: %s",
                 dialectName,
                 dialectRegistry.availableDialects());
-        sendErrorResponse(channel, errorMsg, RestStatus.BAD_REQUEST);
+        LOG.warn(
+            "[{}] Unknown dialect requested: '{}'", QueryContext.getRequestId(), dialectName);
+        String errorJson =
+            new JSONObject()
+                .put("error_type", "UNKNOWN_DIALECT")
+                .put("message", message)
+                .put("dialect_requested", dialectName)
+                .toString();
+        channel.sendResponse(
+            new BytesRestResponse(
+                RestStatus.BAD_REQUEST, "application/json; charset=UTF-8", errorJson));
       };
     }
 
@@ -199,6 +230,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
         "[{}] Routing query to dialect '{}' pipeline",
         QueryContext.getRequestId(),
         dialectName);
+    incrementMetric(MetricName.DIALECT_REQUESTS_TOTAL);
     return channel ->
         executeDialectQuery(plugin, request, settings, channel, executionErrorHandler);
   }
@@ -223,13 +255,16 @@ public class RestSQLQueryAction extends BaseRestHandler {
       RestChannel channel,
       BiConsumer<RestChannel, Exception> executionErrorHandler) {
     try {
+      long startNanos = System.nanoTime();
+
       // 1. Preprocess the query to strip dialect-specific clauses
       String preprocessedQuery = plugin.preprocessor().preprocess(request.getQuery());
-      LOG.debug(
-          "[{}] Dialect query preprocessed: original='{}', result='{}'",
-          QueryContext.getRequestId(),
-          request.getQuery(),
-          preprocessedQuery);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(
+            "[{}] Preprocessed query: {}",
+            QueryContext.getRequestId(),
+            preprocessedQuery);
+      }
 
       // 2. Build FrameworkConfig with dialect-specific parser config and operator table
       DataSourceService dataSourceService = injector.getInstance(DataSourceService.class);
@@ -241,6 +276,12 @@ public class RestSQLQueryAction extends BaseRestHandler {
       SqlNode validated = planner.validate(parsed);
       RelRoot relRoot = planner.rel(validated);
       RelNode relNode = relRoot.rel;
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(
+            "[{}] Calcite plan: {}",
+            QueryContext.getRequestId(),
+            RelOptUtil.toString(relNode));
+      }
       planner.close();
 
       // 4. Create CalcitePlanContext and execute via the execution engine
@@ -254,40 +295,72 @@ public class RestSQLQueryAction extends BaseRestHandler {
 
       executionEngine.execute(relNode, context, queryListener);
 
+      // Record dialect execution latency
+      long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+      addToMetric(MetricName.DIALECT_UNPARSE_LATENCY_MS, elapsedMs);
+
     } catch (SqlParseException e) {
+      incrementMetric(MetricName.DIALECT_TRANSLATION_ERRORS_TOTAL);
       // Parse errors: return 400 with position info from Calcite's SqlParseException.
-      // Calcite's message already includes position (e.g., "at line 1, column 5").
-      String errorMsg = String.format(Locale.ROOT, "SQL parse error: %s", e.getMessage());
-      sendErrorResponse(channel, errorMsg, RestStatus.BAD_REQUEST);
+      // Extract line/column from getPos() for structured position reporting.
+      // Sanitize the message to remove any internal class names or package paths.
+      String sanitizedMsg = sanitizeErrorMessage(e.getMessage());
+      String errorMsg = String.format(Locale.ROOT, "SQL parse error: %s", sanitizedMsg);
+      LOG.warn("[{}] Dialect query parse error: {}", QueryContext.getRequestId(), e.getMessage());
+      SqlParserPos pos = e.getPos();
+      if (pos != null && pos.getLineNum() > 0) {
+        sendErrorResponseWithPosition(
+            channel, errorMsg, RestStatus.BAD_REQUEST, pos.getLineNum(), pos.getColumnNum());
+      } else {
+        sendErrorResponse(channel, errorMsg, RestStatus.BAD_REQUEST);
+      }
     } catch (ValidationException e) {
-      // Validation errors: unsupported function or type.
-      // Extract function/type name from the Calcite validation message.
-      String details = extractValidationErrorDetails(e);
-      sendErrorResponse(channel, details, RestStatus.BAD_REQUEST);
+      incrementMetric(MetricName.DIALECT_TRANSLATION_ERRORS_TOTAL);
+      // Validation errors (unsupported function or type): return 422 Unprocessable Entity.
+      // Extract function/type name from the Calcite validation message and include suggestions.
+      LOG.warn(
+          "[{}] Dialect query validation error: {}",
+          QueryContext.getRequestId(),
+          e.getMessage());
+      String details = extractValidationErrorDetails(e, plugin);
+      sendErrorResponse(channel, details, RestStatus.UNPROCESSABLE_ENTITY);
     } catch (RelConversionException e) {
-      sendErrorResponse(channel, "SQL conversion error: " + e.getMessage(), RestStatus.BAD_REQUEST);
+      incrementMetric(MetricName.DIALECT_TRANSLATION_ERRORS_TOTAL);
+      // Sanitize the conversion error message to remove internal class names or package paths.
+      String sanitizedMsg = sanitizeErrorMessage(e.getMessage());
+      LOG.warn(
+          "[{}] Dialect query conversion error: {}",
+          QueryContext.getRequestId(),
+          e.getMessage());
+      sendErrorResponse(
+          channel,
+          "SQL conversion error: " + sanitizedMsg,
+          RestStatus.BAD_REQUEST);
     } catch (IndexNotFoundException e) {
       // Missing index: return 404 with the index name
       String indexName = e.getIndex() != null ? e.getIndex().getName() : "unknown";
       String errorMsg = String.format(Locale.ROOT, "Index not found: %s", indexName);
+      LOG.warn("[{}] Dialect query index not found: {}", QueryContext.getRequestId(), indexName);
       sendErrorResponse(channel, errorMsg, RestStatus.NOT_FOUND);
     } catch (Exception e) {
-      // Internal errors: return 500 with generic message, log full stack trace.
+      incrementMetric(MetricName.DIALECT_TRANSLATION_ERRORS_TOTAL);
+      // Internal errors: return 500 with generic message and internal_id for log correlation.
       // Never expose Java class names, package paths, or stack traces in the response.
-      LOG.error("Internal error during dialect query execution", e);
-      sendErrorResponse(
-          channel,
-          "An internal server error occurred during query execution. "
-              + "Check server logs for details.",
-          RestStatus.INTERNAL_SERVER_ERROR);
+      String internalId = UUID.randomUUID().toString();
+      LOG.error("Internal error during dialect query execution [internal_id={}]", internalId, e);
+      sendInternalErrorResponse(channel, internalId);
     }
   }
 
   /**
    * Extract meaningful error details from a Calcite ValidationException. Identifies unsupported
-   * function names and unsupported type names from the message.
+   * function names and unsupported type names from the message. For unsupported functions, includes
+   * available alternatives from the dialect's operator table.
+   *
+   * @param e the validation exception
+   * @param plugin the dialect plugin (used to retrieve available function names for suggestions)
    */
-  private String extractValidationErrorDetails(ValidationException e) {
+  private String extractValidationErrorDetails(ValidationException e, DialectPlugin plugin) {
     String message = e.getMessage() != null ? e.getMessage() : "";
     // Calcite wraps the real cause; check the cause chain for more details
     Throwable cause = e.getCause();
@@ -299,6 +372,15 @@ public class RestSQLQueryAction extends BaseRestHandler {
     Matcher funcMatcher = UNSUPPORTED_FUNCTION_PATTERN.matcher(causeMessage);
     if (funcMatcher.find()) {
       String funcName = funcMatcher.group(1);
+      // Build suggestion list from the dialect's operator table
+      String suggestions = buildFunctionSuggestions(plugin);
+      if (!suggestions.isEmpty()) {
+        return String.format(
+            Locale.ROOT,
+            "Unsupported function: %s. Available alternatives: %s",
+            funcName,
+            suggestions);
+      }
       return String.format(Locale.ROOT, "Unsupported function: %s", funcName);
     }
 
@@ -310,8 +392,31 @@ public class RestSQLQueryAction extends BaseRestHandler {
       return String.format(Locale.ROOT, "Unsupported type: %s", typeName);
     }
 
-    // Fallback: return the validation message as-is
-    return String.format(Locale.ROOT, "SQL validation error: %s", causeMessage);
+    // Fallback: sanitize the validation message to remove internal class names or package paths
+    return String.format(
+        Locale.ROOT, "SQL validation error: %s", sanitizeErrorMessage(causeMessage));
+  }
+
+  /**
+   * Build a comma-separated list of available function names from the dialect's operator table. Used
+   * to suggest alternatives when an unsupported function is encountered.
+   */
+  private String buildFunctionSuggestions(DialectPlugin plugin) {
+    try {
+      SqlOperatorTable operatorTable = plugin.operatorTable();
+      List<org.apache.calcite.sql.SqlOperator> operators = operatorTable.getOperatorList();
+      if (operators == null || operators.isEmpty()) {
+        return "";
+      }
+      return operators.stream()
+          .map(op -> op.getName().toLowerCase(Locale.ROOT))
+          .distinct()
+          .sorted()
+          .collect(Collectors.joining(", "));
+    } catch (Exception ex) {
+      // If we can't retrieve function names, return empty (no suggestions)
+      return "";
+    }
   }
 
   /** Pattern to extract function name from Calcite validation error messages. */
@@ -374,15 +479,16 @@ public class RestSQLQueryAction extends BaseRestHandler {
       IndexNotFoundException infe = (IndexNotFoundException) cause;
       String indexName = infe.getIndex() != null ? infe.getIndex().getName() : "unknown";
       String errorMsg = String.format(Locale.ROOT, "Index not found: %s", indexName);
+      LOG.warn(
+          "[{}] Dialect query execution - index not found: {}",
+          QueryContext.getRequestId(),
+          indexName);
       sendErrorResponse(channel, errorMsg, RestStatus.NOT_FOUND);
     } else {
-      // Internal error: log full stack trace, return generic message
-      LOG.error("Internal error during dialect query execution", e);
-      sendErrorResponse(
-          channel,
-          "An internal server error occurred during query execution. "
-              + "Check server logs for details.",
-          RestStatus.INTERNAL_SERVER_ERROR);
+      // Internal error: log full stack trace with internal_id, return generic message
+      String internalId = UUID.randomUUID().toString();
+      LOG.error("Internal error during dialect query execution [internal_id={}]", internalId, e);
+      sendInternalErrorResponse(channel, internalId);
     }
   }
 
@@ -420,6 +526,25 @@ public class RestSQLQueryAction extends BaseRestHandler {
         .build();
   }
 
+  /**
+   * Sanitize the dialect parameter to prevent injection and reflection attacks.
+   *
+   * <ul>
+   *   <li>Truncate to max 64 characters
+   *   <li>Strip control characters (chars &lt; 0x20 except tab)
+   *   <li>Strip non-ASCII characters (chars &gt;= 0x7f)
+   * </ul>
+   *
+   * @param raw the raw dialect parameter value
+   * @return the sanitized string (may be empty if input was entirely invalid)
+   */
+  String sanitizeDialectParam(String raw) {
+    if (raw.length() > 64) {
+      raw = raw.substring(0, 64);
+    }
+    return raw.replaceAll("[\\x00-\\x1f\\x7f-\\xff]", "").trim();
+  }
+
   private boolean isCalciteEnabled(Settings settings) {
     if (settings != null) {
       Boolean enabled = settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
@@ -429,6 +554,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
   }
 
   private void sendErrorResponse(RestChannel channel, String message, RestStatus status) {
+    String escapedMessage = escapeJsonString(message);
     String errorJson =
         String.format(
             Locale.ROOT,
@@ -436,11 +562,108 @@ public class RestSQLQueryAction extends BaseRestHandler {
                 + "\"details\":\"%s\","
                 + "\"type\":\"DialectQueryException\"},"
                 + "\"status\":%d}",
-            message.replace("\"", "\\\""),
+            escapedMessage,
             status.getStatus());
     channel.sendResponse(
         new BytesRestResponse(status, "application/json; charset=UTF-8", errorJson));
   }
+
+  private void sendErrorResponseWithPosition(
+      RestChannel channel, String message, RestStatus status, int line, int column) {
+    String escapedMessage = escapeJsonString(message);
+    String errorJson =
+        String.format(
+            Locale.ROOT,
+            "{\"error\":{\"reason\":\"Invalid Query\","
+                + "\"details\":\"%s\","
+                + "\"type\":\"DialectQueryException\","
+                + "\"position\":{\"line\":%d,\"column\":%d}},"
+                + "\"status\":%d}",
+            escapedMessage,
+            line,
+            column,
+            status.getStatus());
+    channel.sendResponse(
+        new BytesRestResponse(status, "application/json; charset=UTF-8", errorJson));
+  }
+
+  /**
+   * Send a 500 Internal Error response with a sanitized message and an internal_id for log
+   * correlation. The internal_id is a UUID that is also included in the ERROR log entry, allowing
+   * operators to correlate client-visible error responses with server-side log entries.
+   *
+   * @param channel the REST channel to send the response on
+   * @param internalId the UUID string for log correlation
+   */
+  private void sendInternalErrorResponse(RestChannel channel, String internalId) {
+    String errorJson =
+        String.format(
+            Locale.ROOT,
+            "{\"error\":{\"reason\":\"Internal Error\","
+                + "\"details\":\"An internal error occurred processing the dialect query.\","
+                + "\"type\":\"InternalError\","
+                + "\"internal_id\":\"%s\"},"
+                + "\"status\":500}",
+            escapeJsonString(internalId));
+    channel.sendResponse(
+        new BytesRestResponse(
+            RestStatus.INTERNAL_SERVER_ERROR, "application/json; charset=UTF-8", errorJson));
+  }
+
+  /** Escape a string for safe inclusion in a JSON string value. */
+  private static String escapeJsonString(String value) {
+    return value
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t");
+  }
+
+  /**
+   * Sanitize an error message to remove internal implementation details before including it in an
+   * HTTP response. Strips:
+   *
+   * <ul>
+   *   <li>Java fully-qualified class names (e.g., {@code org.apache.calcite.sql.SomeClass})
+   *   <li>Stack trace lines (e.g., {@code at org.opensearch.sql.SomeClass.method(File.java:42)})
+   *   <li>Exception class name prefixes (e.g., {@code java.lang.NullPointerException:})
+   * </ul>
+   *
+   * @param message the raw error message
+   * @return the sanitized message safe for client-facing responses
+   */
+  static String sanitizeErrorMessage(String message) {
+    if (message == null) {
+      return "";
+    }
+    // Remove stack trace lines: "at org.package.Class.method(File.java:123)"
+    String sanitized = STACK_TRACE_PATTERN.matcher(message).replaceAll("");
+    // Remove exception class name prefixes: "java.lang.NullPointerException: ..."
+    sanitized = EXCEPTION_PREFIX_PATTERN.matcher(sanitized).replaceAll("");
+    // Remove remaining fully-qualified Java class/package references
+    sanitized = PACKAGE_PATH_PATTERN.matcher(sanitized).replaceAll("");
+    // Collapse multiple spaces and trim
+    return sanitized.replaceAll("\\s+", " ").trim();
+  }
+
+  /** Pattern matching stack trace lines like "at org.package.Class.method(File.java:123)". */
+  private static final Pattern STACK_TRACE_PATTERN =
+      Pattern.compile("\\bat\\s+[a-zA-Z_][a-zA-Z0-9_.]*\\([^)]*\\)");
+
+  /**
+   * Pattern matching exception class name prefixes like "java.lang.NullPointerException:" or
+   * "org.apache.calcite.SomeException:".
+   */
+  private static final Pattern EXCEPTION_PREFIX_PATTERN =
+      Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*){2,}(?:Exception|Error)\\s*:?\\s*");
+
+  /**
+   * Pattern matching fully-qualified Java package/class paths like "org.apache.calcite.sql.SomeClass"
+   * (at least 3 dot-separated segments where the last starts with uppercase).
+   */
+  private static final Pattern PACKAGE_PATH_PATTERN =
+      Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*){2,}\\.[A-Z][a-zA-Z0-9_]*");
 
   private <T> ResponseListener<T> fallBackListener(
       RestChannel channel,
@@ -528,5 +751,28 @@ public class RestSQLQueryAction extends BaseRestHandler {
   private static void logAndPublishMetrics(Exception e) {
     LOG.error("Server side error during query execution", e);
     Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+  }
+
+  /**
+   * Safely increment a metric counter. If the metric is not registered (e.g., in unit tests
+   * that don't call {@code Metrics.getInstance().registerDefaultMetrics()}), the increment
+   * is silently skipped.
+   */
+  private static void incrementMetric(MetricName metricName) {
+    NumericMetric metric = Metrics.getInstance().getNumericalMetric(metricName);
+    if (metric != null) {
+      metric.increment();
+    }
+  }
+
+  /**
+   * Safely add a value to a metric counter. If the metric is not registered, the add
+   * is silently skipped.
+   */
+  private static void addToMetric(MetricName metricName, long value) {
+    NumericMetric metric = Metrics.getInstance().getNumericalMetric(metricName);
+    if (metric != null) {
+      metric.increment(value);
+    }
   }
 }

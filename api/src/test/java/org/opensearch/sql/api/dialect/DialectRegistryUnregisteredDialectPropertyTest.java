@@ -6,6 +6,7 @@
 package org.opensearch.sql.api.dialect;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.opensearch.sql.api.dialect.DialectNames.CLICKHOUSE;
 
 import java.util.Locale;
 import java.util.Optional;
@@ -48,7 +49,7 @@ class DialectRegistryUnregisteredDialectPropertyTest {
       @ForAll("unregisteredDialectNames") String requestedDialect) {
     // Set up registry with ClickHouseDialectPlugin registered
     DialectRegistry registry = new DialectRegistry();
-    DialectPlugin clickhousePlugin = stubPlugin("clickhouse");
+    DialectPlugin clickhousePlugin = stubPlugin(CLICKHOUSE);
     registry.register(clickhousePlugin);
 
     // Verify resolve returns empty for the unregistered dialect
@@ -58,25 +59,25 @@ class DialectRegistryUnregisteredDialectPropertyTest {
     // Verify availableDialects returns the registered dialects
     Set<String> available = registry.availableDialects();
     assertFalse(available.isEmpty(), "Available dialects should not be empty");
-    assertTrue(available.contains("clickhouse"), "Available dialects should contain 'clickhouse'");
+    assertTrue(available.contains(CLICKHOUSE), "Available dialects should contain 'clickhouse'");
 
     // Construct the error message as RestSQLQueryAction would
-    String errorMsg =
+    String message =
         String.format(
             Locale.ROOT,
-            "Unsupported dialect '%s'. Available dialects: %s",
+            "Unknown SQL dialect '%s'. Supported dialects: %s",
             requestedDialect,
             available);
 
     // Verify the error message contains the requested dialect name
     assertTrue(
-        errorMsg.contains(requestedDialect),
+        message.contains(requestedDialect),
         "Error message should contain the requested dialect name: " + requestedDialect);
 
     // Verify the error message contains all available dialect names
     for (String dialectName : available) {
       assertTrue(
-          errorMsg.contains(dialectName),
+          message.contains(dialectName),
           "Error message should contain available dialect: " + dialectName);
     }
   }
@@ -91,7 +92,7 @@ class DialectRegistryUnregisteredDialectPropertyTest {
         .alpha()
         .ofMinLength(1)
         .ofMaxLength(50)
-        .filter(name -> !name.equalsIgnoreCase("clickhouse"));
+        .filter(name -> !name.equalsIgnoreCase(CLICKHOUSE));
   }
 
   /** Creates a minimal stub DialectPlugin with the given dialect name. */

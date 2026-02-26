@@ -30,6 +30,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.sql.api.dialect.DialectNames;
 import org.opensearch.sql.api.dialect.DialectPlugin;
 import org.opensearch.sql.api.dialect.DialectRegistry;
 import org.opensearch.sql.common.setting.Settings;
@@ -66,8 +67,9 @@ public class RestSQLQueryActionDialectRoutingTest extends BaseRestHandler {
 
     // Register a mock ClickHouse dialect plugin
     DialectPlugin mockPlugin = Mockito.mock(DialectPlugin.class);
-    when(mockPlugin.dialectName()).thenReturn("clickhouse");
+    when(mockPlugin.dialectName()).thenReturn(DialectNames.CLICKHOUSE);
     dialectRegistry.register(mockPlugin);
+    dialectRegistry.freeze();
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(
@@ -124,7 +126,7 @@ public class RestSQLQueryActionDialectRoutingTest extends BaseRestHandler {
             new JSONObject("{\"query\": \"SELECT 1\"}"),
             "SELECT 1",
             QUERY_API_ENDPOINT,
-            Map.of("dialect", "clickhouse"),
+            Map.of("dialect", DialectNames.CLICKHOUSE),
             null);
 
     RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
@@ -179,7 +181,7 @@ public class RestSQLQueryActionDialectRoutingTest extends BaseRestHandler {
             new JSONObject("{\"query\": \"SELECT 1\"}"),
             "SELECT 1",
             QUERY_API_ENDPOINT,
-            Map.of("dialect", "clickhouse"),
+            Map.of("dialect", DialectNames.CLICKHOUSE),
             null);
 
     RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);

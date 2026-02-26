@@ -29,6 +29,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.sql.api.dialect.DialectNames;
 import org.opensearch.sql.api.dialect.DialectPlugin;
 import org.opensearch.sql.api.dialect.DialectRegistry;
 import org.opensearch.sql.common.setting.Settings;
@@ -64,6 +65,7 @@ public class RestSQLQueryActionDialectErrorHandlingTest extends BaseRestHandler 
   public void setup() {
     dialectRegistry = new DialectRegistry();
     dialectRegistry.register(ClickHouseDialectPlugin.INSTANCE);
+    dialectRegistry.freeze();
 
     when(settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
 
@@ -105,6 +107,16 @@ public class RestSQLQueryActionDialectErrorHandlingTest extends BaseRestHandler 
         content.toLowerCase().contains("line")
             || content.toLowerCase().contains("column")
             || content.toLowerCase().contains("pos"));
+
+    // Verify structured position field in JSON response
+    JSONObject json = new JSONObject(content);
+    JSONObject error = json.getJSONObject("error");
+    assertTrue("Error should have 'position' field", error.has("position"));
+    JSONObject position = error.getJSONObject("position");
+    assertTrue("Position should have 'line' field", position.has("line"));
+    assertTrue("Position should have 'column' field", position.has("column"));
+    assertTrue("Line should be positive", position.getInt("line") > 0);
+    assertTrue("Column should be positive", position.getInt("column") > 0);
   }
 
   /** Test that a completely invalid SQL returns 400 with parse error. Validates Requirement 4.4. */
@@ -147,8 +159,9 @@ public class RestSQLQueryActionDialectErrorHandlingTest extends BaseRestHandler 
   }
 
   /**
-   * Test that internal errors return 500 with a generic message. Validates Requirement 8.3: generic
-   * error message, no internal details exposed.
+   * Test that internal errors return 500 with a generic message and internal_id. Validates
+   * Requirements 8.3, 14.3, 14.4: generic error message, no internal details exposed, internal_id
+   * for log correlation.
    */
   @Test
   public void internalErrorReturns500WithGenericMessage() throws Exception {
@@ -161,6 +174,7 @@ public class RestSQLQueryActionDialectErrorHandlingTest extends BaseRestHandler 
 
     DialectRegistry failingRegistry = new DialectRegistry();
     failingRegistry.register(failingPlugin);
+    failingRegistry.freeze();
 
     // Create a new injector with the failing registry
     ModulesBuilder modules = new ModulesBuilder();
@@ -194,7 +208,8 @@ public class RestSQLQueryActionDialectErrorHandlingTest extends BaseRestHandler 
 
     // Verify generic message
     assertTrue(
-        "Response should contain generic error message", content.contains("internal server error"));
+        "Response should contain generic error message",
+        content.contains("An internal error occurred processing the dialect query."));
 
     // Verify no Java class names, package paths, or stack traces are exposed
     assertTrue(
@@ -203,11 +218,27 @@ public class RestSQLQueryActionDialectErrorHandlingTest extends BaseRestHandler 
     assertTrue(
         "Response should NOT contain package paths", !content.contains("some.internal.Class"));
     assertTrue("Response should NOT contain 'at ' stack trace lines", !content.contains("at org."));
+
+    // Verify internal_id is present for log correlation (Requirement 14.3, 14.4)
+    JSONObject json = new JSONObject(content);
+    JSONObject error = json.getJSONObject("error");
+    assertTrue("Error should have 'internal_id' field", error.has("internal_id"));
+    String internalId = error.getString("internal_id");
+    assertNotNull("internal_id should not be null", internalId);
+    assertTrue("internal_id should not be empty", !internalId.isEmpty());
+    // Verify it looks like a UUID (contains hyphens, reasonable length)
+    assertTrue("internal_id should be a UUID format", internalId.contains("-"));
+    assertEquals("internal_id should be a valid UUID length", 36, internalId.length());
+
+    // Verify the response structure matches the design spec
+    assertEquals("Reason should be 'Internal Error'", "Internal Error", error.getString("reason"));
+    assertEquals("Type should be 'InternalError'", "InternalError", error.getString("type"));
+    assertEquals("Status should be 500", 500, json.getInt("status"));
   }
 
   /**
-   * Test that the 500 response does not expose Java exception type names. Validates Requirement
-   * 8.3.
+   * Test that the 500 response does not expose Java exception type names and includes internal_id.
+   * Validates Requirements 8.3, 14.3, 14.4.
    */
   @Test
   public void internalErrorDoesNotExposeExceptionClassName() throws Exception {
@@ -219,6 +250,7 @@ public class RestSQLQueryActionDialectErrorHandlingTest extends BaseRestHandler 
 
     DialectRegistry failingRegistry = new DialectRegistry();
     failingRegistry.register(failingPlugin);
+    failingRegistry.freeze();
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(
@@ -255,6 +287,15 @@ public class RestSQLQueryActionDialectErrorHandlingTest extends BaseRestHandler 
     assertTrue(
         "Response should NOT contain internal package path",
         !content.contains("org.opensearch.sql.internal"));
+
+    // Verify internal_id is present for log correlation (Requirement 14.3, 14.4)
+    JSONObject json = new JSONObject(content);
+    JSONObject error = json.getJSONObject("error");
+    assertTrue("Error should have 'internal_id' field", error.has("internal_id"));
+    String internalId = error.getString("internal_id");
+    assertNotNull("internal_id should not be null", internalId);
+    assertTrue("internal_id should be a UUID format", internalId.contains("-"));
+    assertEquals("internal_id should be a valid UUID length", 36, internalId.length());
   }
 
   // -------------------------------------------------------------------------
@@ -266,7 +307,7 @@ public class RestSQLQueryActionDialectErrorHandlingTest extends BaseRestHandler 
         new JSONObject("{\"query\": \"" + query.replace("\"", "\\\"") + "\"}"),
         query,
         QUERY_API_ENDPOINT,
-        Map.of("dialect", "clickhouse"),
+        Map.of("dialect", DialectNames.CLICKHOUSE),
         null);
   }
 

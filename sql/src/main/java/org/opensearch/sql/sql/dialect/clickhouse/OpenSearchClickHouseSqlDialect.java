@@ -16,6 +16,14 @@ import org.apache.calcite.sql.dialect.ClickHouseSqlDialect;
  * OpenSearch-specific function translations. This dialect ensures that Calcite-internal function
  * names are mapped back to their ClickHouse equivalents during RelNode-to-SQL unparsing.
  *
+ * <p>Quoting: Uses backtick quoting for identifiers (inherited from parent DEFAULT_CONTEXT).
+ *
+ * <p>Escaping: String literals use single quotes with backslash escaping per ClickHouse rules.
+ * Backslashes are escaped as {@code \\} and single quotes as {@code \'}.
+ *
+ * <p>Date/time literals: Uses ClickHouse function-style syntax (e.g., {@code toDateTime('...')},
+ * {@code toDate('...')}), inherited from the parent ClickHouseSqlDialect.
+ *
  * <p>Follows the same singleton pattern as {@code OpenSearchSparkSqlDialect}.
  */
 public class OpenSearchClickHouseSqlDialect extends ClickHouseSqlDialect {
@@ -37,6 +45,37 @@ public class OpenSearchClickHouseSqlDialect extends ClickHouseSqlDialect {
 
   private OpenSearchClickHouseSqlDialect() {
     super(DEFAULT_CONTEXT);
+  }
+
+  /**
+   * Quotes a string literal using ClickHouse escaping rules. ClickHouse uses single-quoted string
+   * literals with backslash escaping:
+   *
+   * <ul>
+   *   <li>Backslash ({@code \}) is escaped as {@code \\}
+   *   <li>Single quote ({@code '}) is escaped as {@code \'}
+   * </ul>
+   *
+   * <p>This differs from the default Calcite behavior which doubles single quotes ({@code ''}).
+   *
+   * @param buf the buffer to append to
+   * @param charsetName the charset name (ignored, ClickHouse does not support charset prefixes)
+   * @param val the string value to quote
+   */
+  @Override
+  public void quoteStringLiteral(StringBuilder buf, String charsetName, String val) {
+    buf.append('\'');
+    for (int i = 0; i < val.length(); i++) {
+      char c = val.charAt(i);
+      if (c == '\\') {
+        buf.append("\\\\");
+      } else if (c == '\'') {
+        buf.append("\\'");
+      } else {
+        buf.append(c);
+      }
+    }
+    buf.append('\'');
   }
 
   @Override

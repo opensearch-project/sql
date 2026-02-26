@@ -24,7 +24,6 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.sql.api.dialect.DialectNames;
 import org.opensearch.sql.api.dialect.DialectPlugin;
 import org.opensearch.sql.api.dialect.DialectRegistry;
 import org.opensearch.sql.common.setting.Settings;
@@ -39,123 +38,20 @@ import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
- * Property-based tests for error handling in the dialect query execution path. Validates:
- * Requirements 4.4, 8.2, 8.3
+ * Property-based test for error classification with HTTP status and internal_id.
+ *
+ * <p>Property 26: Error classification with HTTP status and internal_id
+ *
+ * <p>For any internal exception thrown during dialect query processing, the HTTP response SHALL have
+ * status 500, the body SHALL contain an {@code internal_id} field, and the body SHALL NOT contain
+ * Java class names, package names, or stack trace lines. For any unsupported function error, the
+ * HTTP response SHALL have status 422 and SHALL contain the function name.
+ *
+ * <p>Validates: Requirements 14.2, 14.3
  *
  * <p>Uses jqwik for property-based testing with a minimum of 100 iterations per property.
  */
-class RestSQLQueryActionDialectErrorHandlingPropertyTest {
-
-  // -------------------------------------------------------------------------
-  // Property 5: Syntax error position reporting
-  // -------------------------------------------------------------------------
-
-  /**
-   * Property 5: Syntax error position reporting — For any query containing a syntax error, the
-   * error message returned by the Dialect_Handler SHALL contain a numeric position or line/column
-   * indicator.
-   *
-   * <p>Validates: Requirements 4.4
-   */
-  @Property(tries = 100)
-  @Tag("Feature: clickhouse-sql-dialect, Property 5: Syntax error position reporting")
-  void syntaxErrorResponseContainsPositionInfo(
-      @ForAll("queriesWithSyntaxErrors") String brokenQuery) throws Exception {
-    TestHarness harness = new TestHarness();
-    BytesRestResponse response = harness.executeDialectQuery(DialectNames.CLICKHOUSE, brokenQuery);
-
-    assertNotNull(response, "Should have captured a response");
-    assertEquals(RestStatus.BAD_REQUEST, response.status(), "Syntax errors should return 400");
-
-    String content = response.content().utf8ToString();
-    assertTrue(
-        content.contains("SQL parse error"),
-        "Response should indicate a parse error. Content: " + content);
-
-    // Verify structured position field in JSON response
-    JSONObject json = new JSONObject(content);
-    JSONObject error = json.getJSONObject("error");
-    assertTrue(
-        error.has("position"),
-        "Error should have 'position' field with line/column. Content: " + content);
-    JSONObject position = error.getJSONObject("position");
-    assertTrue(position.has("line"), "Position should have 'line' field. Content: " + content);
-    assertTrue(position.has("column"), "Position should have 'column' field. Content: " + content);
-    assertTrue(
-        position.getInt("line") > 0,
-        "Line should be positive. Content: " + content);
-    assertTrue(
-        position.getInt("column") > 0,
-        "Column should be positive. Content: " + content);
-  }
-
-  // -------------------------------------------------------------------------
-  // Property 12: Internal errors do not expose details
-  // -------------------------------------------------------------------------
-
-  /**
-   * Property 12: Internal errors do not expose details — For any internal exception thrown during
-   * dialect query processing, the HTTP response body SHALL not contain Java class names, package
-   * names, or stack trace lines.
-   *
-   * <p>Validates: Requirements 8.3
-   */
-  @Property(tries = 100)
-  @Tag("Feature: clickhouse-sql-dialect, Property 12: Internal errors do not expose details")
-  void internalErrorResponseDoesNotExposeDetails(
-      @ForAll("internalExceptionMessages") String exceptionMessage) throws Exception {
-    // Create a mock plugin that throws a RuntimeException with the generated message
-    DialectPlugin failingPlugin = Mockito.mock(DialectPlugin.class);
-    when(failingPlugin.dialectName()).thenReturn("failing");
-    when(failingPlugin.preprocessor()).thenThrow(new RuntimeException(exceptionMessage));
-
-    TestHarness harness = new TestHarness(failingPlugin);
-    BytesRestResponse response = harness.executeDialectQuery("failing", "SELECT 1");
-
-    assertNotNull(response, "Should have captured a response");
-    assertEquals(
-        RestStatus.INTERNAL_SERVER_ERROR, response.status(), "Internal errors should return 500");
-
-    String content = response.content().utf8ToString();
-
-    // Parse the JSON to extract the details field specifically.
-    // The "type" field is expected to contain "InternalError" — that's by design.
-    // We only check the "details" field for leaked internal information.
-    JSONObject json = new JSONObject(content);
-    JSONObject error = json.getJSONObject("error");
-    String details = error.getString("details");
-
-    // Verify generic error message is present
-    assertTrue(
-        details.contains("internal error occurred"),
-        "Details should contain generic error message. Details: " + details);
-
-    // Verify internal_id is present for log correlation (Requirement 14.3, 14.4)
-    assertTrue(
-        error.has("internal_id"),
-        "Error should have 'internal_id' field for log correlation. Content: " + content);
-    String internalId = error.getString("internal_id");
-    assertNotNull(internalId, "internal_id should not be null");
-    assertFalse(internalId.isEmpty(), "internal_id should not be empty");
-    assertTrue(
-        internalId.contains("-"),
-        "internal_id should be a UUID format. Value: " + internalId);
-
-    // Verify no Java class names (e.g., NullPointerException, IllegalStateException)
-    assertFalse(
-        JAVA_CLASS_NAME_PATTERN.matcher(details).find(),
-        "Details should NOT contain Java class names. Details: " + details);
-
-    // Verify no Java package paths (e.g., org.opensearch.sql.internal)
-    assertFalse(
-        JAVA_PACKAGE_PATTERN.matcher(details).find(),
-        "Details should NOT contain Java package paths. Details: " + details);
-
-    // Verify no stack trace lines (e.g., "at org.opensearch.sql.SomeClass.method(File.java:42)")
-    assertFalse(
-        STACK_TRACE_PATTERN.matcher(details).find(),
-        "Details should NOT contain stack trace lines. Details: " + details);
-  }
+class RestSQLQueryActionErrorClassificationPropertyTest {
 
   /** Pattern to detect Java exception class names (e.g., NullPointerException). */
   private static final Pattern JAVA_CLASS_NAME_PATTERN =
@@ -166,49 +62,168 @@ class RestSQLQueryActionDialectErrorHandlingPropertyTest {
       Pattern.compile("\\b[a-z]+\\.[a-z]+\\.[a-z]+\\.\\w+");
 
   /** Pattern to detect stack trace lines (e.g., "at org.foo.Bar.method(File.java:42)"). */
-  private static final Pattern STACK_TRACE_PATTERN = Pattern.compile("\\bat\\s+[a-z]\\w*\\.\\w+");
+  private static final Pattern STACK_TRACE_PATTERN =
+      Pattern.compile("\\bat\\s+[a-z]\\w*\\.\\w+");
 
   // -------------------------------------------------------------------------
-  // Property 13: Unsupported type error identification
+  // Property 26 — Part 1: Internal exceptions → 500 with internal_id, no leaks
   // -------------------------------------------------------------------------
 
   /**
-   * Property 13: Unsupported type error identification — For any data type name that has no
-   * OpenSearch mapping, the error message SHALL contain the unsupported type name.
+   * Property 26 (internal errors): For any internal exception thrown during dialect query
+   * processing, the HTTP response SHALL have status 500, the body SHALL contain an
+   * {@code internal_id} field, and the body SHALL NOT contain Java class names, package names, or
+   * stack trace lines.
    *
-   * <p>Validates: Requirements 8.2
+   * <p>Validates: Requirements 14.3
    */
   @Property(tries = 100)
-  @Tag("Feature: clickhouse-sql-dialect, Property 13: Unsupported type error identification")
-  void unsupportedTypeErrorContainsTypeName(@ForAll("unsupportedTypeNames") String typeName)
-      throws Exception {
-    // Test the extractValidationErrorDetails method directly via reflection.
-    // This method is the core logic that extracts type names from Calcite's ValidationException.
-    RestSQLQueryAction queryAction = new RestSQLQueryAction(createInjector());
+  @Tag(
+      "Feature: clickhouse-sql-dialect, Property 26: Error classification with HTTP status and"
+          + " internal_id")
+  void internalExceptionReturns500WithInternalIdAndNoLeaks(
+      @ForAll("internalExceptionMessages") String exceptionMessage) throws Exception {
+    // Create a mock plugin that throws a RuntimeException with the generated message
+    DialectPlugin failingPlugin = Mockito.mock(DialectPlugin.class);
+    when(failingPlugin.dialectName()).thenReturn("failing");
+    when(failingPlugin.preprocessor()).thenThrow(new RuntimeException(exceptionMessage));
 
-    // Simulate Calcite's error message format: "Unknown datatype name '<TYPE>'"
-    String causeMessage = "Unknown datatype name '" + typeName + "'";
+    TestHarness harness = new TestHarness(failingPlugin);
+    BytesRestResponse response = harness.executeDialectQuery("failing", "SELECT 1");
+
+    assertNotNull(response, "Should have captured a response");
+
+    // Status MUST be 500
+    assertEquals(
+        RestStatus.INTERNAL_SERVER_ERROR,
+        response.status(),
+        "Internal exception should return HTTP 500");
+
+    String content = response.content().utf8ToString();
+    JSONObject json = new JSONObject(content);
+    JSONObject error = json.getJSONObject("error");
+
+    // Must contain internal_id field
+    assertTrue(
+        error.has("internal_id"),
+        "Error body must contain 'internal_id' field. Content: " + content);
+    String internalId = error.getString("internal_id");
+    assertNotNull(internalId, "internal_id should not be null");
+    assertFalse(internalId.isEmpty(), "internal_id should not be empty");
+    // UUID format: 8-4-4-4-12 hex digits
+    assertTrue(
+        internalId.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"),
+        "internal_id should be a valid UUID. Value: " + internalId);
+
+    // Extract the details field — this is the only field that could leak internals
+    String details = error.getString("details");
+
+    // Must NOT contain Java class names
+    assertFalse(
+        JAVA_CLASS_NAME_PATTERN.matcher(details).find(),
+        "Details should NOT contain Java class names. Details: " + details);
+
+    // Must NOT contain Java package paths
+    assertFalse(
+        JAVA_PACKAGE_PATTERN.matcher(details).find(),
+        "Details should NOT contain Java package paths. Details: " + details);
+
+    // Must NOT contain stack trace lines
+    assertFalse(
+        STACK_TRACE_PATTERN.matcher(details).find(),
+        "Details should NOT contain stack trace lines. Details: " + details);
+
+    // Verify status field in JSON body
+    assertEquals(500, json.getInt("status"), "JSON status field should be 500");
+  }
+
+  // -------------------------------------------------------------------------
+  // Property 26 — Part 2: Unsupported function → 422 with function name
+  // -------------------------------------------------------------------------
+
+  /**
+   * Property 26 (unsupported function): For any unsupported function error, the HTTP response SHALL
+   * have status 422 and SHALL contain the function name. This test verifies the error classification
+   * logic by:
+   * 1. Testing that extractValidationErrorDetails correctly extracts the function name from
+   *    Calcite's ValidationException message format.
+   * 2. Testing that ValidationException is classified as 422 through the full error handling path.
+   *
+   * <p>Validates: Requirements 14.2
+   */
+  @Property(tries = 100)
+  @Tag(
+      "Feature: clickhouse-sql-dialect, Property 26: Error classification with HTTP status and"
+          + " internal_id")
+  void unsupportedFunctionReturns422WithFunctionName(
+      @ForAll("unsupportedFunctionNames") String functionName) throws Exception {
+    // Part 1: Verify extractValidationErrorDetails extracts the function name
+    // Simulate Calcite's ValidationException message format for unsupported functions.
+    // Calcite reports: "No match found for function signature <NAME>(...)"
+    String causeMessage =
+        "No match found for function signature " + functionName + "(<NUMERIC>)";
     org.apache.calcite.tools.ValidationException ve =
         new org.apache.calcite.tools.ValidationException(
             "Validation failed", new RuntimeException(causeMessage));
 
-    // Use reflection to call the private extractValidationErrorDetails method
+    Injector injector = createInjector();
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
     Method extractMethod =
         RestSQLQueryAction.class.getDeclaredMethod(
             "extractValidationErrorDetails",
             org.apache.calcite.tools.ValidationException.class,
             org.opensearch.sql.api.dialect.DialectPlugin.class);
     extractMethod.setAccessible(true);
-    String result =
+    String details =
         (String) extractMethod.invoke(queryAction, ve, ClickHouseDialectPlugin.INSTANCE);
 
-    // The extracted error message should contain the unsupported type name
+    // The extracted details should contain the unsupported function name
     assertTrue(
-        result.contains(typeName),
-        "Error message should contain the unsupported type name '"
-            + typeName
-            + "'. Result: "
-            + result);
+        details.toLowerCase().contains(functionName.toLowerCase()),
+        "Error details should contain the unsupported function name '"
+            + functionName
+            + "'. Details: "
+            + details);
+
+    // Part 2: Verify the full HTTP response path produces 422 for ValidationException.
+    // Use sendErrorResponse with UNPROCESSABLE_ENTITY to verify the response format.
+    // We simulate what executeDialectQuery does when it catches ValidationException.
+    AtomicReference<BytesRestResponse> capturedResponse = new AtomicReference<>();
+    RestChannel mockChannel = Mockito.mock(RestChannel.class);
+    Mockito.doAnswer(
+            invocation -> {
+              capturedResponse.set(invocation.getArgument(0));
+              return null;
+            })
+        .when(mockChannel)
+        .sendResponse(Mockito.any(BytesRestResponse.class));
+
+    // Call sendErrorResponse with the extracted details and 422 status
+    // (this is exactly what executeDialectQuery does in the ValidationException catch block)
+    Method sendErrorMethod =
+        RestSQLQueryAction.class.getDeclaredMethod(
+            "sendErrorResponse", RestChannel.class, String.class, RestStatus.class);
+    sendErrorMethod.setAccessible(true);
+    sendErrorMethod.invoke(queryAction, mockChannel, details, RestStatus.UNPROCESSABLE_ENTITY);
+
+    BytesRestResponse response = capturedResponse.get();
+    assertNotNull(response, "Should have captured a response");
+    assertEquals(
+        RestStatus.UNPROCESSABLE_ENTITY,
+        response.status(),
+        "Unsupported function should return HTTP 422");
+
+    String content = response.content().utf8ToString();
+    JSONObject json = new JSONObject(content);
+    assertEquals(422, json.getInt("status"), "JSON status field should be 422");
+
+    // Verify the function name appears in the response body
+    assertTrue(
+        content.toLowerCase().contains(functionName.toLowerCase()),
+        "Response should contain the unsupported function name '"
+            + functionName
+            + "'. Content: "
+            + content);
   }
 
   // -------------------------------------------------------------------------
@@ -216,29 +231,8 @@ class RestSQLQueryActionDialectErrorHandlingPropertyTest {
   // -------------------------------------------------------------------------
 
   @Provide
-  Arbitrary<String> queriesWithSyntaxErrors() {
-    // Generate queries that will definitely fail Calcite parsing with position info
-    return Arbitraries.of(
-        "SELECT * FORM my_table",
-        "SELECT a, FROM my_table",
-        "SELECT a FROM",
-        "SELECT a FROM t WHERE",
-        "SELECT SELECT a FROM t",
-        "SELECT COUNT( FROM t",
-        "SELECT a FROM t ORDER",
-        "SELECT a FROM t WHERE a = !!!",
-        "SELECT a FROM t GROUP",
-        "SELECT a FROM t LIMIT abc",
-        "SELECT a FROM t WHERE a >",
-        "SELECT 'unclosed FROM t",
-        "SELECT a FROM t HAVING ??? > 1",
-        "SELECT a FROM t JOIN",
-        "SELECT a AS FROM t");
-  }
-
-  @Provide
   Arbitrary<String> internalExceptionMessages() {
-    // Generate exception messages that contain Java internals that should NOT leak
+    // Generate exception messages containing Java internals that should NOT leak
     Arbitrary<String> classNames =
         Arbitraries.of(
             "java.lang.NullPointerException",
@@ -249,55 +243,67 @@ class RestSQLQueryActionDialectErrorHandlingPropertyTest {
             "java.util.ConcurrentModificationException",
             "org.opensearch.sql.legacy.plugin.RestSQLQueryAction.executeDialectQuery",
             "java.lang.OutOfMemoryError: Java heap space",
-            "org.opensearch.OpenSearchException: shard failure");
+            "org.opensearch.OpenSearchException: shard failure",
+            "java.lang.ClassCastException: cannot cast",
+            "java.lang.ArrayIndexOutOfBoundsException: 5",
+            "org.apache.calcite.plan.RelOptPlanner$CannotPlanException: plan failed");
 
     Arbitrary<String> stackTraces =
         Arbitraries.of(
             "at org.opensearch.sql.legacy.plugin.RestSQLQueryAction.executeDialectQuery"
                 + "(RestSQLQueryAction.java:214)",
             "at java.base/java.lang.Thread.run(Thread.java:829)",
-            "at org.apache.calcite.tools.Frameworks.getPlanner(Frameworks.java:100)");
+            "at org.apache.calcite.tools.Frameworks.getPlanner(Frameworks.java:100)",
+            "at org.opensearch.sql.sql.dialect.clickhouse.ClickHouseOperatorTable"
+                + ".lookupOperatorOverloads(ClickHouseOperatorTable.java:55)");
 
     Arbitrary<String> packagePaths =
         Arbitraries.of(
             "org.opensearch.sql.internal.SomeClass",
             "org.apache.calcite.sql.parser.SqlParser",
-            "java.lang.reflect.Method.invoke");
+            "java.lang.reflect.Method.invoke",
+            "org.opensearch.sql.sql.dialect.clickhouse.ClickHouseDialectPlugin");
 
-    // Combine different types of internal details
-    return Arbitraries.oneOf(
-        classNames,
-        stackTraces,
-        packagePaths,
-        Combinators.combine(classNames, stackTraces).as((cls, st) -> cls + "\n\t" + st));
+    Arbitrary<String> combined =
+        Combinators.combine(classNames, stackTraces)
+            .as((cls, st) -> cls + "\n\t" + st);
+
+    return Arbitraries.oneOf(classNames, stackTraces, packagePaths, combined);
   }
 
   @Provide
-  Arbitrary<String> unsupportedTypeNames() {
-    // Generate type names that have no OpenSearch mapping
+  Arbitrary<String> unsupportedFunctionNames() {
+    // Generate function names that are NOT registered in the ClickHouse operator table
+    // and are NOT standard Calcite functions, but are valid SQL identifiers
     return Arbitraries.of(
-        "UUID",
-        "Decimal128",
-        "FixedString",
-        "Enum8",
-        "Enum16",
-        "Array",
-        "Tuple",
-        "Nested",
-        "LowCardinality",
-        "SimpleAggregateFunction",
-        "AggregateFunction",
-        "IPv4",
-        "IPv6",
-        "Nullable",
-        "Nothing",
-        "Ring",
-        "Polygon",
-        "MultiPolygon");
+        "arraySort",
+        "arrayReverse",
+        "arrayMap",
+        "arrayFilter",
+        "dictGet",
+        "dictHas",
+        "JSONExtract",
+        "JSONLength",
+        "topK",
+        "windowFunnel",
+        "retention",
+        "sequenceMatch",
+        "sequenceCount",
+        "simpleLinearRegression",
+        "stochasticLinearRegression",
+        "entropy",
+        "meanZTest",
+        "mannWhitneyUTest",
+        "welchTTest",
+        "studentTTest",
+        "kolmogorovSmirnovTest",
+        "cramersV",
+        "contingency",
+        "theilsU");
   }
 
   // -------------------------------------------------------------------------
-  // Test Harness
+  // Helpers
   // -------------------------------------------------------------------------
 
   /** Creates a minimal Guice injector with mocked dependencies. */
@@ -327,16 +333,16 @@ class RestSQLQueryActionDialectErrorHandlingPropertyTest {
     return modules.createInjector();
   }
 
+  // -------------------------------------------------------------------------
+  // Test Harness
+  // -------------------------------------------------------------------------
+
   /**
    * Test harness that sets up the RestSQLQueryAction with mocked dependencies and captures the
    * response. Extends BaseRestHandler to access the protected RestChannelConsumer type.
    */
   private static class TestHarness extends BaseRestHandler {
     private final Injector injector;
-
-    TestHarness() {
-      this(null);
-    }
 
     TestHarness(DialectPlugin additionalPlugin) {
       DialectRegistry dialectRegistry = new DialectRegistry();
