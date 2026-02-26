@@ -20,11 +20,11 @@ pplStatement
    ;
 
 subPipeline
-   : PIPE? commands (PIPE commands)*
+   : PIPE? commands (PIPE commands?)*
    ;
 
 queryStatement
-   : (PIPE)? pplCommands (PIPE commands)*
+   : (PIPE)? pplCommands (PIPE commands?)*
    ;
 
 explainStatement
@@ -39,7 +39,7 @@ explainMode
     ;
 
 subSearch
-   : searchCommand (PIPE commands)*
+   : searchCommand (PIPE commands?)*
    ;
 
 // commands

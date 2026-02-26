@@ -1726,4 +1726,86 @@ public class AstBuilderTest {
         SemanticCheckException.class,
         () -> plan("source=t | graphLookup employees fromField=manager as reportingHierarchy"));
   }
+
+  @Test
+  public void testTrailingPipeAfterSource() {
+    // Test that trailing pipe after source produces same AST
+    assertEqual("source=t |", relation("t"));
+  }
+
+  @Test
+  public void testTrailingPipeAfterStats() {
+    // Test trailing pipe after stats command
+    assertEqual(
+        "source=t | stats count(a) by b |",
+        agg(
+            relation("t"),
+            exprList(alias("count(a)", aggregate("count", field("a")))),
+            emptyList(),
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testTrailingPipeWithComplexQuery() {
+    // Test trailing pipe with complex query including where, stats, and sort
+    assertEqual(
+        "source=t | where a > 1 | stats count(b) by c | sort c |",
+        sort(
+            agg(
+                filter(relation("t"), compare(">", field("a"), intLiteral(1))),
+                exprList(alias("count(b)", aggregate("count", field("b")))),
+                emptyList(),
+                exprList(alias("c", field("c"))),
+                defaultStatsArgs()),
+            field("c", defaultSortFieldArgs())));
+  }
+
+  @Test
+  public void testEmptyPipeAfterSource() {
+    // Test that empty pipe after source is ignored
+    assertEqual("source=t | |", relation("t"));
+  }
+
+  @Test
+  public void testEmptyPipeInMiddle() {
+    // Test that empty pipe in middle is ignored
+    assertEqual(
+        "source=t | | where a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+  }
+
+  @Test
+  public void testMultipleEmptyPipes() {
+    // Test multiple empty pipes are ignored
+    assertEqual(
+        "source=t | | where a=1 | | fields b | |",
+        projectWithArg(
+            filter(relation("t"), compare("=", field("a"), intLiteral(1))),
+            defaultFieldsArgs(),
+            field("b")));
+  }
+
+  /**
+   * Tests that a combination of empty pipes in the middle and a trailing pipe at the end are
+   * properly handled and produce the same AST as a query without these extraneous pipes.
+   */
+  @Test
+  public void testEmptyPipeAndTrailingPipeTogether() {
+    // Test both empty pipe in middle and trailing pipe at end
+    assertEqual(
+        "source=t | | where a=1 | fields b |",
+        projectWithArg(
+            filter(relation("t"), compare("=", field("a"), intLiteral(1))),
+            defaultFieldsArgs(),
+            field("b")));
+  }
+
+  /**
+   * Tests that the parser correctly rejects queries with invalid command tokens after a pipe,
+   * ensuring proper error detection for malformed queries.
+   */
+  @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
+  public void testMalformedPipeProducesSyntaxError() {
+    plan("source=t | invalidCmd |");
+  }
 }
