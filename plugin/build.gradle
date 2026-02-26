@@ -162,6 +162,7 @@ dependencies {
     api project(":ppl")
     api project(':legacy')
     api project(':opensearch')
+    api project(':api')
     api project(':prometheus')
     api project(':datasources')
     api project(':async-query')

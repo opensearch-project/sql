@@ -11,6 +11,7 @@ import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
+import org.opensearch.sql.api.dialect.DialectRegistry;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -35,6 +36,7 @@ import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
+import org.opensearch.sql.sql.dialect.clickhouse.ClickHouseDialectPlugin;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -106,5 +108,17 @@ public class OpenSearchPluginModule extends AbstractModule {
     QueryService queryService =
         new QueryService(analyzer, executionEngine, planner, dataSourceService, settings);
     return new QueryPlanFactory(queryService);
+  }
+
+  /**
+   * Provides a singleton {@link DialectRegistry} initialized with all built-in dialect plugins.
+   * The registry is populated at startup so that dialect queries can be routed immediately.
+   */
+  @Provides
+  @Singleton
+  public DialectRegistry dialectRegistry() {
+    DialectRegistry registry = new DialectRegistry();
+    registry.register(ClickHouseDialectPlugin.INSTANCE);
+    return registry;
   }
 }
