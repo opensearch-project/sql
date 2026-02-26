@@ -50,7 +50,7 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: 'search source=ppl_highlight_test "error"'
+          query: 'search source=ppl_highlight_test "error" | sort code'
           highlight:
             fields:
               "*": {}
@@ -60,7 +60,11 @@ teardown:
               - "</em>"
 
   - match: {"size": 2}
-  - is_true: highlights
+  - length: {highlights: 2}
+  - match: {highlights.0.message.0: "Connection <em>error</em> occurred"}
+  - match: {highlights.0.status.0: "<em>error</em> response"}
+  - match: {highlights.1.message.0: "Timeout <em>error</em> in service"}
+  - match: {highlights.1.status.0: "<em>error</em> timeout"}
 
 ---
 "PPL search without highlight is backward compatible":
@@ -87,7 +91,7 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: 'search source=ppl_highlight_test "error"'
+          query: 'search source=ppl_highlight_test "error" | sort code'
           highlight:
             fields:
               "*": {}
@@ -97,4 +101,8 @@ teardown:
               - "</mark>"
 
   - match: {"size": 2}
-  - is_true: highlights
+  - length: {highlights: 2}
+  - match: {highlights.0.message.0: "Connection <mark>error</mark> occurred"}
+  - match: {highlights.0.status.0: "<mark>error</mark> response"}
+  - match: {highlights.1.message.0: "Timeout <mark>error</mark> in service"}
+  - match: {highlights.1.status.0: "<mark>error</mark> timeout"}
