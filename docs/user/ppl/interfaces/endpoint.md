@@ -59,14 +59,7 @@ Expected output:
 
 You can include an optional `highlight` object in the request body to request search result highlighting. When a PPL query contains a full-text search (e.g., `search source=logs "error"`), OpenSearch identifies where the search terms appear in document fields and returns the matching fragments wrapped in the specified tags.
 
-The `highlight` object supports the following parameters:
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `fields` | Object | Yes | Map of field names to per-field configuration. Use `"*"` to highlight all `text` and `keyword` fields that match. |
-| `pre_tags` | Array of strings | No | Tags inserted before each highlighted term. Default: `["<em>"]`. |
-| `post_tags` | Array of strings | No | Tags inserted after each highlighted term. Default: `["</em>"]`. |
-| `fragment_size` | Integer | No | Maximum character length of each highlight fragment. Default is OpenSearch's default (100). Set to `2147483647` to return the entire field value without truncation. |
+The `highlight` object is passed as-is to OpenSearch. See the [OpenSearch highlighting documentation](https://docs.opensearch.org/latest/search-plugins/searching-data/highlight/) for all supported parameters.
 
 ### What gets highlighted
 
@@ -202,7 +195,7 @@ Only the `address` field is highlighted. The `<mark>` custom tags are used inste
 ### Limitations
 
 - Highlighting is supported only in the Calcite engine.
-- The backend forwards the highlight config as-is to OpenSearch. The same highlighting behavior and limitations as [OpenSearch's highlighting API](https://opensearch.org/docs/latest/search-plugins/searching-data/highlight/) apply.
+- The backend forwards the highlight config as-is to OpenSearch. The same highlighting behavior and limitations as [OpenSearch's highlighting API](https://docs.opensearch.org/latest/search-plugins/searching-data/highlight/) apply.
 - Highlighting works with **single-source queries only**, consistent with DSL where highlighting is inherently single-index per request. Behavior with joins (`| join`), subqueries, and multi-source queries is not validated.
 
 ## Explain
