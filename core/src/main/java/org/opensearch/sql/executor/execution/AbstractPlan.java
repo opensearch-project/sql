@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.executor.execution;
 
-import java.util.Map;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -25,12 +24,13 @@ public abstract class AbstractPlan {
   @Getter protected final QueryType queryType;
 
   /**
-   * Highlight configuration from the PPL request body. Set by PPLService before submitting the plan
-   * to the query manager. The plan carries this config across the thread boundary (REST handler
+   * Extra search-source JSON from the PPL request body. Set by PPLService before submitting the
+   * plan to the query manager. The plan carries this across the thread boundary (REST handler
    * thread → sql-worker thread), and the worker thread sets it as a ThreadLocal before Calcite
-   * planning and execution begin.
+   * planning and execution begin. The JSON is later parsed via {@code
+   * SearchSourceBuilder.fromXContent()} and selectively merged into the index scan request.
    */
-  @Getter @Setter private Map<String, Object> highlightConfig;
+  @Getter @Setter private String extraSearchSource;
 
   /** Start query execution. */
   public abstract void execute();

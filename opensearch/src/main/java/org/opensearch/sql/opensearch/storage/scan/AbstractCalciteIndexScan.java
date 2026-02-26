@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
+import static org.opensearch.core.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
 import static org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression.getScriptSortType;
 import static org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper.MISSING_MAX;
@@ -45,7 +47,12 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.search.SearchModule;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.ScriptSortBuilder.ScriptSortType;
 import org.opensearch.search.sort.SortBuilder;
@@ -75,6 +82,9 @@ import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 @Getter
 public abstract class AbstractCalciteIndexScan extends TableScan implements AliasFieldsWrappable {
   private static final Logger LOG = LogManager.getLogger(AbstractCalciteIndexScan.class);
+
+  private static final NamedXContentRegistry X_CONTENT_REGISTRY =
+      new NamedXContentRegistry(new SearchModule(Settings.EMPTY, emptyList()).getNamedXContents());
   public final OpenSearchIndex osIndex;
   // The schema of this scan operator, it's initialized with the row type of the table, but may be
   // changed by push down operations.
@@ -110,7 +120,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
     String explainString = String.valueOf(pushDownContext);
     if (pw instanceof RelWriterImpl) {
       OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
-      applyHighlightConfig(requestBuilder);
+      applyExtraSearchSource(requestBuilder);
       explainString += ", " + requestBuilder;
     }
     return super.explainTerms(pw)
@@ -118,44 +128,28 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
   }
 
   /**
-   * Apply highlight configuration from the ThreadLocal to the OpenSearch request builder. The
-   * highlight config is set on a ThreadLocal by the plan's execute() method (on the worker thread)
-   * and forwarded as-is to OpenSearch.
+   * Apply extra search-source JSON from the ThreadLocal to the OpenSearch request builder. The JSON
+   * is parsed via {@code SearchSourceBuilder.fromXContent()} and any recognized clauses (highlight,
+   * suggest, rescore, etc.) are selectively merged into the target request.
    *
-   * @param requestBuilder the OpenSearch request builder to attach the highlight clause to
+   * @param requestBuilder the OpenSearch request builder to merge extra clauses into
    */
-  @SuppressWarnings("unchecked")
-  protected static void applyHighlightConfig(OpenSearchRequestBuilder requestBuilder) {
-    Map<String, Object> config = CalcitePlanContext.getHighlightConfig();
-    if (config == null) {
+  protected static void applyExtraSearchSource(OpenSearchRequestBuilder requestBuilder) {
+    String json = CalcitePlanContext.getExtraSearchSource();
+    if (json == null) {
       return;
     }
-    HighlightBuilder highlightBuilder = new HighlightBuilder();
-    Object fieldsObj = config.get("fields");
-    if (fieldsObj instanceof Map) {
-      Map<String, Object> fields = (Map<String, Object>) fieldsObj;
-      for (String fieldName : fields.keySet()) {
-        highlightBuilder.field(new HighlightBuilder.Field(fieldName));
+    try {
+      XContentParser parser =
+          XContentType.JSON.xContent().createParser(X_CONTENT_REGISTRY, IGNORE_DEPRECATIONS, json);
+      SearchSourceBuilder extra = SearchSourceBuilder.fromXContent(parser);
+      SearchSourceBuilder target = requestBuilder.getSourceBuilder();
+      if (extra.highlighter() != null) {
+        target.highlighter(extra.highlighter());
       }
+    } catch (Exception e) {
+      LOG.warn("Failed to parse extra search source JSON, skipping: {}", e.getMessage());
     }
-    Object preTagsObj = config.get("pre_tags");
-    if (preTagsObj instanceof List) {
-      List<String> preTags = (List<String>) preTagsObj;
-      highlightBuilder.preTags(preTags.toArray(new String[0]));
-    }
-    Object postTagsObj = config.get("post_tags");
-    if (postTagsObj instanceof List) {
-      List<String> postTags = (List<String>) postTagsObj;
-      highlightBuilder.postTags(postTags.toArray(new String[0]));
-    }
-    Object fragmentSizeObj = config.get("fragment_size");
-    if (fragmentSizeObj instanceof Number) {
-      int fragmentSize = ((Number) fragmentSizeObj).intValue();
-      for (HighlightBuilder.Field field : highlightBuilder.fields()) {
-        field.fragmentSize(fragmentSize);
-      }
-    }
-    requestBuilder.getSourceBuilder().highlighter(highlightBuilder);
   }
 
   protected Integer getQuerySizeLimit() {

@@ -96,7 +96,7 @@ public class PPLQueryRequestTest {
   }
 
   @Test
-  public void testGetHighlightReturnsHighlightObject() {
+  public void testGetExtraSearchSourceReturnsHighlightWrapper() {
     JSONObject json = new JSONObject();
     json.put("query", "source=t \"error\"");
     json.put(
@@ -104,23 +104,25 @@ public class PPLQueryRequestTest {
         new JSONObject(
             "{\"fields\": {\"*\": {}}, \"pre_tags\": [\"<em>\"], \"post_tags\": [\"</em>\"]}"));
     PPLQueryRequest request = new PPLQueryRequest("source=t \"error\"", json, "/_plugins/_ppl");
-    JSONObject highlight = request.getHighlight();
-    assertNotNull(highlight);
-    assertTrue(highlight.has("fields"));
-    assertTrue(highlight.has("pre_tags"));
-    assertTrue(highlight.has("post_tags"));
+    String extra = request.getExtraSearchSource();
+    assertNotNull(extra);
+    JSONObject parsed = new JSONObject(extra);
+    assertTrue(parsed.has("highlight"));
+    assertTrue(parsed.getJSONObject("highlight").has("fields"));
+    assertTrue(parsed.getJSONObject("highlight").has("pre_tags"));
+    assertTrue(parsed.getJSONObject("highlight").has("post_tags"));
   }
 
   @Test
-  public void testGetHighlightReturnsNullWhenNotSpecified() {
+  public void testGetExtraSearchSourceReturnsNullWhenNotSpecified() {
     JSONObject json = new JSONObject("{\"query\": \"source=t\"}");
     PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
-    assertNull(request.getHighlight());
+    assertNull(request.getExtraSearchSource());
   }
 
   @Test
-  public void testGetHighlightReturnsNullWhenJsonContentIsNull() {
+  public void testGetExtraSearchSourceReturnsNullWhenJsonContentIsNull() {
     PPLQueryRequest request = new PPLQueryRequest("source=t", null, "/_plugins/_ppl");
-    assertNull(request.getHighlight());
+    assertNull(request.getExtraSearchSource());
   }
 }

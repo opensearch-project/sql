@@ -16,7 +16,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -134,33 +133,33 @@ class QueryPlanTest {
   }
 
   @Test
-  public void execute_sets_highlight_threadlocal() {
-    Map<String, Object> highlightConfig = Map.of("fields", Map.of("*", Map.of()));
-    AtomicReference<Map<String, Object>> captured = new AtomicReference<>();
+  public void execute_sets_extra_search_source_threadlocal() {
+    String extraSearchSource = "{\"highlight\":{\"fields\":{\"*\":{}}}}";
+    AtomicReference<String> captured = new AtomicReference<>();
 
     doAnswer(
             invocation -> {
-              captured.set(CalcitePlanContext.getHighlightConfig());
+              captured.set(CalcitePlanContext.getExtraSearchSource());
               return null;
             })
         .when(queryService)
         .execute(any(), any(), any());
 
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
-    query.setHighlightConfig(highlightConfig);
+    query.setExtraSearchSource(extraSearchSource);
     query.execute();
 
-    assertEquals(highlightConfig, captured.get());
+    assertEquals(extraSearchSource, captured.get());
   }
 
   @Test
-  public void execute_clears_highlight_threadlocal_after_execution() {
-    Map<String, Object> highlightConfig = Map.of("fields", Map.of("*", Map.of()));
+  public void execute_clears_extra_search_source_threadlocal_after_execution() {
+    String extraSearchSource = "{\"highlight\":{\"fields\":{\"*\":{}}}}";
 
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
-    query.setHighlightConfig(highlightConfig);
+    query.setExtraSearchSource(extraSearchSource);
     query.execute();
 
-    assertNull(CalcitePlanContext.getHighlightConfig());
+    assertNull(CalcitePlanContext.getExtraSearchSource());
   }
 }

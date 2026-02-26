@@ -111,16 +111,21 @@ public class PPLQueryRequest {
   }
 
   /**
-   * Get the highlight configuration from the request body. The caller (OSD, API, CLI) controls
-   * highlighting by providing a highlight object in the PPL request. The backend forwards this
-   * config as-is to OpenSearch.
+   * Get extra search-source-compatible JSON from the request body. Currently wraps the {@code
+   * highlight} field; future extensions (suggest, rescore, post_filter, etc.) can be added here.
    *
-   * @return highlight JSONObject from request, or null if not specified
+   * @return search-source JSON string, or null if no extra fields are present
    */
-  public JSONObject getHighlight() {
+  public String getExtraSearchSource() {
     if (jsonContent == null) {
       return null;
     }
-    return jsonContent.optJSONObject("highlight");
+    JSONObject highlight = jsonContent.optJSONObject("highlight");
+    if (highlight == null) {
+      return null;
+    }
+    JSONObject wrapper = new JSONObject();
+    wrapper.put("highlight", highlight);
+    return wrapper.toString();
   }
 }

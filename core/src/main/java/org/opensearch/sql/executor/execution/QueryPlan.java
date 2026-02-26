@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.executor.execution;
 
-import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.NotImplementedException;
 import org.opensearch.sql.ast.statement.ExplainMode;
@@ -62,7 +61,7 @@ public class QueryPlan extends AbstractPlan {
 
   @Override
   public void execute() {
-    setHighlightThreadLocal();
+    setExtraSearchSourceThreadLocal();
     try {
       if (pageSize.isPresent()) {
         queryService.execute(new Paginate(pageSize.get(), plan), getQueryType(), listener);
@@ -70,7 +69,7 @@ public class QueryPlan extends AbstractPlan {
         queryService.execute(plan, getQueryType(), listener);
       }
     } finally {
-      CalcitePlanContext.clearHighlightConfig();
+      CalcitePlanContext.clearExtraSearchSource();
     }
   }
 
@@ -86,10 +85,10 @@ public class QueryPlan extends AbstractPlan {
     }
   }
 
-  private void setHighlightThreadLocal() {
-    Map<String, Object> config = getHighlightConfig();
-    if (config != null) {
-      CalcitePlanContext.setHighlightConfig(config);
+  private void setExtraSearchSourceThreadLocal() {
+    String extra = getExtraSearchSource();
+    if (extra != null) {
+      CalcitePlanContext.setExtraSearchSource(extra);
     }
   }
 }

@@ -430,7 +430,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // When highlight is active, include _highlight in the projection so it survives
       // through the Calcite pipeline. This matches DSL behavior where _source filtering
       // does not affect highlights.
-      if (CalcitePlanContext.getHighlightConfig() != null) {
+      if (CalcitePlanContext.hasHighlightInExtraSearchSource()) {
         int hlIndex = currentFields.indexOf(HIGHLIGHT_FIELD);
         if (hlIndex >= 0) {
           expandedFields.add(context.relBuilder.field(hlIndex));
