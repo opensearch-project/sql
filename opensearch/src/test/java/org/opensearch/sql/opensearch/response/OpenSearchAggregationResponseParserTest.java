@@ -31,6 +31,7 @@ import org.opensearch.sql.opensearch.response.agg.PercentilesParser;
 import org.opensearch.sql.opensearch.response.agg.SinglePercentileParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
+import org.opensearch.sql.opensearch.response.agg.SumStatsParser;
 import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -568,6 +569,44 @@ class OpenSearchAggregationResponseParserTest {
                 ImmutableMap.of("percentiles", List.of(21.0, 27.0, 30.0, 35.0, 55.0, 58.0, 60.0)),
             ImmutableMap.of("type", "sale", "region", "uk"),
                 ImmutableMap.of("percentiles", List.of(21.0, 27.0, 30.0, 35.0, 55.0, 58.0, 60.0))));
+  }
+
+  /** SELECT SUM(num_field) as total_sum FROM accounts -- all values are null. */
+  @Test
+  void no_bucket_sum_all_nulls_should_return_null() {
+    String response =
+        "{\n"
+            + "  \"stats#total_sum\": {\n"
+            + "    \"count\": 0,\n"
+            + "    \"min\": null,\n"
+            + "    \"max\": null,\n"
+            + "    \"avg\": null,\n"
+            + "    \"sum\": 0.0\n"
+            + "  }\n"
+            + "}";
+    NoBucketAggregationParser parser =
+        new NoBucketAggregationParser(new SumStatsParser("total_sum"));
+    List<Map<String, Object>> result = parse(parser, response);
+    assertEquals(1, result.size());
+    assertNull(result.get(0).get("total_sum"));
+  }
+
+  /** SELECT SUM(num_field) as total_sum FROM accounts -- some values are non-null. */
+  @Test
+  void no_bucket_sum_with_values_should_return_sum() {
+    String response =
+        "{\n"
+            + "  \"stats#total_sum\": {\n"
+            + "    \"count\": 3,\n"
+            + "    \"min\": 10.0,\n"
+            + "    \"max\": 30.0,\n"
+            + "    \"avg\": 20.0,\n"
+            + "    \"sum\": 60.0\n"
+            + "  }\n"
+            + "}";
+    NoBucketAggregationParser parser =
+        new NoBucketAggregationParser(new SumStatsParser("total_sum"));
+    assertThat(parse(parser, response), contains(entry("total_sum", 60d)));
   }
 
   public List<Map<String, Object>> parse(OpenSearchAggregationResponseParser parser, String json) {

@@ -42,11 +42,13 @@ import org.opensearch.search.aggregations.metrics.ParsedAvg;
 import org.opensearch.search.aggregations.metrics.ParsedExtendedStats;
 import org.opensearch.search.aggregations.metrics.ParsedMax;
 import org.opensearch.search.aggregations.metrics.ParsedMin;
+import org.opensearch.search.aggregations.metrics.ParsedStats;
 import org.opensearch.search.aggregations.metrics.ParsedSum;
 import org.opensearch.search.aggregations.metrics.ParsedTDigestPercentiles;
 import org.opensearch.search.aggregations.metrics.ParsedTopHits;
 import org.opensearch.search.aggregations.metrics.ParsedValueCount;
 import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.StatsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.SumAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
@@ -59,6 +61,7 @@ public class AggregationResponseUtils {
               .put(MinAggregationBuilder.NAME, (p, c) -> ParsedMin.fromXContent(p, (String) c))
               .put(MaxAggregationBuilder.NAME, (p, c) -> ParsedMax.fromXContent(p, (String) c))
               .put(SumAggregationBuilder.NAME, (p, c) -> ParsedSum.fromXContent(p, (String) c))
+              .put(StatsAggregationBuilder.NAME, (p, c) -> ParsedStats.fromXContent(p, (String) c))
               .put(AvgAggregationBuilder.NAME, (p, c) -> ParsedAvg.fromXContent(p, (String) c))
               .put(
                   PercentilesAggregationBuilder.NAME,

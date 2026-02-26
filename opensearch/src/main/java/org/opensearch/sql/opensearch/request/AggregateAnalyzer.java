@@ -99,6 +99,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 import org.opensearch.sql.opensearch.response.agg.SinglePercentileParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
+import org.opensearch.sql.opensearch.response.agg.SumStatsParser;
 import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.CompositeAggregationBuilder;
 import org.opensearch.sql.utils.Utils;
@@ -476,10 +477,11 @@ public class AggregateAnalyzer {
               new SingleValueParser(aggName));
       // 1. Only case SUM, skip SUM0 / COUNT since calling avg() in DSL should be faster.
       // 2. To align with databases, SUM0 is not preferred now.
+      // Use stats aggregation instead of sum to detect all-null input (count == 0 -> null).
       case SUM ->
           Pair.of(
-              helper.build(args.getFirst().getKey(), AggregationBuilders.sum(aggName)),
-              new SingleValueParser(aggName));
+              helper.build(args.getFirst().getKey(), AggregationBuilders.stats(aggName)),
+              new SumStatsParser(aggName));
       case COUNT ->
           Pair.of(
               helper.build(

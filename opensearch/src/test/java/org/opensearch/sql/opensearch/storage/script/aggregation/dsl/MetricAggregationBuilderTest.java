@@ -84,7 +84,7 @@ class MetricAggregationBuilderTest {
         format(
             "{%n"
                 + "  \"sum(age)\" : {%n"
-                + "    \"sum\" : {%n"
+                + "    \"stats\" : {%n"
                 + "      \"field\" : \"age\"%n"
                 + "    }%n"
                 + "  }%n"
