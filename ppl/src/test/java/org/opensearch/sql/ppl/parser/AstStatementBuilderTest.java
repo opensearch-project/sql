@@ -114,6 +114,18 @@ public class AstStatementBuilderTest {
         new Query(project(head(relation("t"), 3, 1), AllFields.of()), 0, PPL));
   }
 
+  @Test
+  public void buildQueryStatementWithFetchSizeAndMultipleHeads() {
+    // User query has head 3 | head 500, fetchSize=10
+    // containsHead() finds the existing Head nodes, so no Head(10) is injected
+    // Effective limit is min(3, 500) = 3 since inner head 3 limits first
+    assertEqualWithFetchSize(
+        "source=t | head 3 | head 500",
+        10,
+        new Query(
+            project(head(head(relation("t"), 3, 0), 500, 0), AllFields.of()), 0, PPL));
+  }
+
   private void assertEqualWithFetchSize(String query, int fetchSize, Statement expectedStatement) {
     Node actualPlan = planWithFetchSize(query, fetchSize);
     assertEquals(expectedStatement, actualPlan);
