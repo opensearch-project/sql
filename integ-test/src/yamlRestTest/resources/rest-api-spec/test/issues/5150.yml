@@ -48,9 +48,10 @@ teardown:
   - match: { total: 2 }
   - match: { schema: [{"name": "category", "type": "string"}, {"name": "val", "type": "bigint"}] }
   - length: { datarows: 2 }
-  # Each row should have non-null val
-  - is_true: datarows.0.1
-  - is_true: datarows.1.1
+  - match: { datarows.0.0: "X" }
+  - match: { datarows.0.1: 100 }
+  - match: { datarows.1.0: "Y" }
+  - match: { datarows.1.1: 300 }
 
 ---
 "5150: Eval new field then dedup on different field retains eval values":
@@ -69,6 +70,9 @@ teardown:
 
   - match: { total: 2 }
   - length: { datarows: 2 }
-  # Each row should have non-null doubled
-  - is_true: datarows.0.2
-  - is_true: datarows.1.2
+  - match: { datarows.0.0: "X" }
+  - match: { datarows.0.1: 100 }
+  - match: { datarows.0.2: 200 }
+  - match: { datarows.1.0: "Y" }
+  - match: { datarows.1.1: 300 }
+  - match: { datarows.1.2: 600 }
