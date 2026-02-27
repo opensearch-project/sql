@@ -2579,8 +2579,8 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainFetchSizeWithSmallerHead() throws IOException {
     // fetch_size=10 with user's | head 3
-    // Two LogicalSort nodes: inner fetch=[3] from user head, outer fetch=[10] from fetch_size
-    // Effective limit = min(3, 10) = 3
+    // Explicit head takes precedence: only one LogicalSort(fetch=[3]) from user head
+    // fetch_size does not inject an additional Head when user already has one
     String expected = loadExpectedPlan("explain_fetch_size_with_head_push.yaml");
     assertYamlEqualsIgnoreId(
         expected,
@@ -2591,8 +2591,8 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainFetchSizeSmallerThanHead() throws IOException {
     // fetch_size=5 with user's | head 100
-    // Two LogicalSort nodes: inner fetch=[100] from user head, outer fetch=[5] from fetch_size
-    // Effective limit = min(100, 5) = 5
+    // Explicit head takes precedence: only one LogicalSort(fetch=[100]) from user head
+    // fetch_size does not inject an additional Head when user already has one
     String expected = loadExpectedPlan("explain_fetch_size_smaller_than_head_push.yaml");
     assertYamlEqualsIgnoreId(
         expected,
