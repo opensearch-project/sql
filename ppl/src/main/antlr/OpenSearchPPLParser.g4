@@ -1378,6 +1378,7 @@ conditionFunctionName
    | JSON_VALID
    | ISPRESENT
    | ISEMPTY
+   | ISNOTEMPTY
    | ISBLANK
    | EARLIEST
    | LATEST

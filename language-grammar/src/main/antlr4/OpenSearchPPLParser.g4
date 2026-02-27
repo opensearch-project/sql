@@ -851,6 +851,7 @@ conditionFunctionBase
    | EARLIEST
    | LATEST
    | ISEMPTY
+   | ISNOTEMPTY
    | ISBLANK
    ;
 
@@ -877,6 +878,7 @@ textFunctionName
    | REPLACE
    | REVERSE
    | ISEMPTY
+   | ISNOTEMPTY
    | ISBLANK
    ;
 

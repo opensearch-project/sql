@@ -283,6 +283,28 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testIsNotEmpty() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where isnotempty(name) | fields name, age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"), schema("age", "int"));
+
+    // isnotempty = NOT isempty. isempty returns (null,10) and ("",57).
+    // So isnotempty returns everything else: Jake, Hello, John, Jane, Kevin, whitespace.
+    verifyDataRows(
+        actual,
+        rows("Jake", 70),
+        rows("Hello", 30),
+        rows("John", 25),
+        rows("Jane", 20),
+        rows("Kevin", null),
+        rows("    ", 27));
+  }
+
+  @Test
   public void testIsBlank() throws IOException {
     JSONObject actual =
         executeQuery(

@@ -642,8 +642,40 @@ fetched rows / total rows = 4/4
 | False         |         | True              | null     |
 +---------------+---------+-------------------+----------+
 ```
-  
-## EARLIEST  
+
+## ISNOTEMPTY
+
+### Description
+
+Usage: `isnotempty(field)` returns true if the field is not null and is not an empty string.
+
+**Argument type:** All supported data types.
+**Return type:** `BOOLEAN`
+
+### Example
+
+```ppl
+source=accounts
+| eval temp = ifnull(employer, '   ')
+| eval `isnotempty(employer)` = isnotempty(employer), `isnotempty(temp)` = isnotempty(temp)
+| fields `isnotempty(temp)`, temp, `isnotempty(employer)`, employer
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 4/4
++------------------+---------+----------------------+----------+
+| isnotempty(temp) | temp    | isnotempty(employer) | employer |
+|------------------+---------+----------------------+----------|
+| True             | Pyrami  | True                 | Pyrami   |
+| True             | Netagy  | True                 | Netagy   |
+| True             | Quility | True                 | Quility  |
+| True             |         | False                | null     |
++------------------+---------+----------------------+----------+
+```
+
+## EARLIEST
 
 ### Description  
 

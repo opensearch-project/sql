@@ -373,6 +373,7 @@ REPLACE:                            'REPLACE';
 REVERSE:                            'REVERSE';
 CAST:                               'CAST';
 ISEMPTY:                            'ISEMPTY';
+ISNOTEMPTY:                         'ISNOTEMPTY';
 ISBLANK:                            'ISBLANK';
 
 // JSON TEXT FUNCTIONS

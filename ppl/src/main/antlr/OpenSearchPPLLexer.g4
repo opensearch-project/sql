@@ -463,6 +463,7 @@ CIDRMATCH:                          'CIDRMATCH';
 BETWEEN:                            'BETWEEN';
 ISPRESENT:                          'ISPRESENT';
 ISEMPTY:                            'ISEMPTY';
+ISNOTEMPTY:                         'ISNOTEMPTY';
 ISBLANK:                            'ISBLANK';
 
 // COLLECTION FUNCTIONS

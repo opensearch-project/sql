@@ -289,6 +289,7 @@ public enum BuiltinFunctionName {
 
   IS_PRESENT(FunctionName.of("ispresent")),
   IS_EMPTY(FunctionName.of("isempty")),
+  IS_NOT_EMPTY(FunctionName.of("isnotempty")),
   IS_BLANK(FunctionName.of("isblank")),
 
   ROW_NUMBER(FunctionName.of("row_number")),

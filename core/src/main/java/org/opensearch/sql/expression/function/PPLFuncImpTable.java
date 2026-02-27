@@ -91,6 +91,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_TRANSLATE3;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_BLANK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_EMPTY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_EMPTY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_PRESENT;
@@ -1251,6 +1252,17 @@ public class PPLFuncImpTable {
                       SqlStdOperatorTable.OR,
                       builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
                       builder.makeCall(SqlStdOperatorTable.IS_EMPTY, arg)),
+          PPLTypeChecker.family(SqlTypeFamily.ANY));
+      register(
+          IS_NOT_EMPTY,
+          (FunctionImp1)
+              (builder, arg) ->
+                  builder.makeCall(
+                      SqlStdOperatorTable.NOT,
+                      builder.makeCall(
+                          SqlStdOperatorTable.OR,
+                          builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
+                          builder.makeCall(SqlStdOperatorTable.IS_EMPTY, arg))),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
       register(
           IS_BLANK,

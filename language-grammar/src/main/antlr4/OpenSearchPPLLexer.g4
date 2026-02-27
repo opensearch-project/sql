@@ -419,6 +419,7 @@ BETWEEN:                            'BETWEEN';
 CIDRMATCH:                          'CIDRMATCH';
 ISPRESENT:                          'ISPRESENT';
 ISEMPTY:                            'ISEMPTY';
+ISNOTEMPTY:                         'ISNOTEMPTY';
 ISBLANK:                            'ISBLANK';
 
 // FLOWCONTROL FUNCTIONS

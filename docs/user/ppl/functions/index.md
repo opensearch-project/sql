@@ -54,6 +54,7 @@ PPL supports a wide range of built-in functions for data processing and analysis
   - [ISPRESENT](condition.md/#ispresent)
   - [ISBLANK](condition.md/#isblank)
   - [ISEMPTY](condition.md/#isempty)
+  - [ISNOTEMPTY](condition.md/#isnotempty)
   - [EARLIEST](condition.md/#earliest)
   - [LATEST](condition.md/#latest)
   - [REGEXP_MATCH](condition.md/#regexp_match)
