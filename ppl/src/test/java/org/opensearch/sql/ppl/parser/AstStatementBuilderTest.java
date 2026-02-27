@@ -122,8 +122,7 @@ public class AstStatementBuilderTest {
     assertEqualWithFetchSize(
         "source=t | head 3 | head 500",
         10,
-        new Query(
-            project(head(head(relation("t"), 3, 0), 500, 0), AllFields.of()), 0, PPL));
+        new Query(project(head(head(relation("t"), 3, 0), 500, 0), AllFields.of()), 0, PPL));
   }
 
   private void assertEqualWithFetchSize(String query, int fetchSize, Statement expectedStatement) {
