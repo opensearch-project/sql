@@ -60,6 +60,8 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
@@ -109,6 +111,8 @@ import org.opensearch.sql.utils.Utils;
  * related Parser {@link OpenSearchAggregationResponseParser}.
  */
 public class AggregateAnalyzer {
+
+  private static final Logger LOG = LogManager.getLogger();
 
   /** metadata field used when there is no argument. Only apply to COUNT. */
   private static final String METADATA_FIELD = "_index";
@@ -605,13 +609,24 @@ public class AggregateAnalyzer {
         // Build field name mapping for renamed fields (e.g., rename value as val).
         // The top_hits response uses original OS field names, but the output schema expects
         // the renamed names from the project.
+        // Known limitation: if multiple project args reference the same original field with
+        // different output names (e.g., eval pay2 = salary | rename salary as pay | dedup
+        // dept_id), the later mapping will overwrite the earlier one in this HashMap.
         Map<String, String> fieldNameMapping = new HashMap<>();
         for (Pair<RexNode, String> arg : args) {
           if (arg.getKey() instanceof RexInputRef) {
             String originalName = helper.inferNamedField(arg.getKey()).getRootName();
             String outputName = arg.getValue();
             if (!originalName.equals(outputName)) {
-              fieldNameMapping.put(originalName, outputName);
+              String previousMapping = fieldNameMapping.put(originalName, outputName);
+              if (previousMapping != null) {
+                LOG.warn(
+                    "Field name mapping collision: field '{}' was mapped to '{}', now"
+                        + " overwritten by '{}'",
+                    originalName,
+                    previousMapping,
+                    outputName);
+              }
             }
           }
         }

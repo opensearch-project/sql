@@ -60,6 +60,9 @@ public class TopHitsParser implements MetricParser {
           new HashMap<>(Collections.singletonMap(agg.getName(), null)));
     }
 
+    // Field name mapping is not applied in returnSingleValue or returnMergeValue paths
+    // because they use the aggregation name (agg.getName()) as the map key, not field names.
+    // Only the multi-row path below uses actual field names as keys and needs mapping.
     if (returnSingleValue) {
       Object value = null;
       if (!isSourceEmpty(hits)) {
