@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
+import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.setting.Settings;
@@ -33,21 +34,43 @@ public class OpenSearchQueryManager implements QueryManager {
   public static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
   public static final String SQL_BACKGROUND_THREAD_POOL_NAME = "sql_background_io";
 
+  public interface CancellationCallBack {
+        void onExecutionThreadAvailable(Thread thread);
+        void onExecutionComplete();
+        boolean isCancelled();
+  }
+
+  public static ThreadLocal<CancellationCallBack> cancellationCallBackThreadLocal = new ThreadLocal<>();
+
+  public static void setCancellationCallback(CancellationCallBack value) {
+      cancellationCallBackThreadLocal.set(value);
+  }
+
+  public static void clearCancellationCallback() {
+      cancellationCallBackThreadLocal.remove();
+  }
+
   @Override
   public QueryId submit(AbstractPlan queryPlan) {
     TimeValue timeout = settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT);
-    schedule(nodeClient, queryPlan::execute, timeout);
+    CancellationCallBack callBack = cancellationCallBackThreadLocal.get();
+    cancellationCallBackThreadLocal.remove();
+    schedule(nodeClient, queryPlan::execute, timeout, callBack);
 
     return queryPlan.getQueryId();
   }
 
-  private void schedule(NodeClient client, Runnable task, TimeValue timeout) {
+  private void schedule(NodeClient client, Runnable task, TimeValue timeout, CancellationCallBack callBack) {
     ThreadPool threadPool = client.threadPool();
 
     Runnable wrappedTask =
         withCurrentContext(
             () -> {
               final Thread executionThread = Thread.currentThread();
+
+              if (callBack != null) {
+                  callBack.onExecutionThreadAvailable(executionThread);
+              }
 
               Scheduler.ScheduledCancellable timeoutTask =
                   threadPool.schedule(
@@ -70,12 +93,21 @@ public class OpenSearchQueryManager implements QueryManager {
 
                 // Special-case handling of timeout-related interruptions
                 if (Thread.interrupted() || e.getCause() instanceof InterruptedException) {
+                    if (callBack != null && callBack.isCancelled()) {
+                        LOG.info("Query was cancelled");
+                        throw new OpenSearchException("Query was cancelled.");
+                    }
                   LOG.error("Query was interrupted due to timeout after {}", timeout);
                   throw new OpenSearchTimeoutException(
                       "Query execution timed out after " + timeout);
                 }
 
                 throw e;
+              }
+              finally {
+                  if (callBack != null) {
+                      callBack.onExecutionComplete();
+                  }
               }
             });
 
