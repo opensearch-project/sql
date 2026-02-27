@@ -419,7 +419,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     child = processNestedAnalysis(node.getProjectList(), namedExpressions, child, context);
 
-    context.push();
+    context.pushIsolated();
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(
         expr ->
