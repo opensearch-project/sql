@@ -1,0 +1,74 @@
+setup:
+  - do:
+      indices.create:
+        index: test_5150
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+  - do:
+      bulk:
+        index: test_5150
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"category":"X","value":100}'
+          - '{"index": {}}'
+          - '{"category":"X","value":200}'
+          - '{"index": {}}'
+          - '{"category":"Y","value":300}'
+          - '{"index": {}}'
+          - '{"category":"Y","value":400}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"5150: Rename non-dedup field then dedup retains renamed values":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_5150 | rename value as val | dedup category | sort category | fields category, val
+
+  - match: { total: 2 }
+  - match: { schema: [{"name": "category", "type": "string"}, {"name": "val", "type": "bigint"}] }
+  - length: { datarows: 2 }
+  # Each row should have non-null val
+  - is_true: datarows.0.1
+  - is_true: datarows.1.1
+
+---
+"5150: Eval new field then dedup on different field retains eval values":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_5150 | eval doubled = value * 2 | dedup category | sort category | fields category, value, doubled
+
+  - match: { total: 2 }
+  - length: { datarows: 2 }
+  # Each row should have non-null doubled
+  - is_true: datarows.0.2
+  - is_true: datarows.1.2
