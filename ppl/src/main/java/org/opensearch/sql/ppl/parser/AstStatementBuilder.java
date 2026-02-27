@@ -32,7 +32,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   @Override
   public Statement visitPplStatement(OpenSearchPPLParser.PplStatementContext ctx) {
     UnresolvedPlan rawPlan = astBuilder.visit(ctx);
-    if (context.getFetchSize() > 0) {
+    if (context.getFetchSize() > 0 && !containsHead(rawPlan)) {
       rawPlan = new Head(context.getFetchSize(), 0).attach(rawPlan);
     }
     UnresolvedPlan plan = addSelectAll(rawPlan);
@@ -67,6 +67,23 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
 
     private final String format;
     private final String explainMode;
+  }
+
+  /**
+   * Recursively checks if the AST contains a {@link Head} node. When the user's query already
+   * includes an explicit {@code head} command, we should not inject an additional Head for
+   * fetch_size so that the user's explicit limit takes precedence.
+   */
+  private boolean containsHead(UnresolvedPlan plan) {
+    if (plan instanceof Head) {
+      return true;
+    }
+    for (var child : plan.getChild()) {
+      if (child instanceof UnresolvedPlan && containsHead((UnresolvedPlan) child)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private UnresolvedPlan addSelectAll(UnresolvedPlan plan) {

@@ -87,33 +87,31 @@ public class AstStatementBuilderTest {
   @Test
   public void buildQueryStatementWithFetchSizeAndSmallerHead() {
     // User query has head 3, fetchSize=10
-    // Head(10) wraps Head(3), then Project(*) wraps on top
-    // The inner head 3 limits first, so only 3 rows are returned
+    // Explicit head takes precedence over fetch_size, so no outer Head(10) is injected
     assertEqualWithFetchSize(
         "source=t | head 3",
         10,
-        new Query(project(head(head(relation("t"), 3, 0), 10, 0), AllFields.of()), 0, PPL));
+        new Query(project(head(relation("t"), 3, 0), AllFields.of()), 0, PPL));
   }
 
   @Test
   public void buildQueryStatementWithFetchSizeSmallerThanHead() {
     // User query has head 100, fetchSize=5
-    // Head(5) wraps Head(100), then Project(*) wraps on top
-    // The outer head 5 limits, so only 5 rows are returned
+    // Explicit head takes precedence over fetch_size, so no outer Head(5) is injected
     assertEqualWithFetchSize(
         "source=t | head 100",
         5,
-        new Query(project(head(head(relation("t"), 100, 0), 5, 0), AllFields.of()), 0, PPL));
+        new Query(project(head(relation("t"), 100, 0), AllFields.of()), 0, PPL));
   }
 
   @Test
   public void buildQueryStatementWithFetchSizeAndHeadWithOffset() {
     // User query has head 3 from 1 (with offset), fetchSize=10
-    // The inner head offset is preserved, outer Head always has offset 0
+    // Explicit head takes precedence over fetch_size, so no outer Head(10) is injected
     assertEqualWithFetchSize(
         "source=t | head 3 from 1",
         10,
-        new Query(project(head(head(relation("t"), 3, 1), 10, 0), AllFields.of()), 0, PPL));
+        new Query(project(head(relation("t"), 3, 1), AllFields.of()), 0, PPL));
   }
 
   private void assertEqualWithFetchSize(String query, int fetchSize, Statement expectedStatement) {
