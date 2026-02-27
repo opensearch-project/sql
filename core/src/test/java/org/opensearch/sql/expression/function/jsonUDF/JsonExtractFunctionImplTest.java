@@ -64,4 +64,16 @@ public class JsonExtractFunctionImplTest {
     Object result = JsonExtractFunctionImpl.eval("{\"active\": true}", "active");
     assertEquals("true", result);
   }
+
+  @Test
+  public void testMultiPathWithMissingPath() {
+    Object result = JsonExtractFunctionImpl.eval("{\"name\": \"John\"}", "name", "age");
+    assertEquals("[\"John\",null]", result);
+  }
+
+  @Test
+  public void testMultiPathAllMissing() {
+    Object result = JsonExtractFunctionImpl.eval("{}", "name", "age");
+    assertEquals("[null,null]", result);
+  }
 }
