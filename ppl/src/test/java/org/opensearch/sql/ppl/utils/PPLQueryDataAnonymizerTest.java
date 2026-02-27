@@ -644,6 +644,74 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testGraphLookup() {
+    // Basic graphLookup with required parameters
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=uni as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " as reportingHierarchy"));
+    // graphLookup with maxDepth
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " maxDepth=*** direction=uni as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " maxDepth=3 as reportingHierarchy"));
+    // graphLookup with depthField
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " depthField=identifier direction=uni as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " depthField=level as reportingHierarchy"));
+    // graphLookup with bidirectional mode
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=bi as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " direction=bi as reportingHierarchy"));
+    // graphLookup with all optional parameters
+    assertEquals(
+        "source=table | graphlookup table startField=identifier fromField=identifier"
+            + " toField=identifier maxDepth=*** depthField=identifier direction=bi"
+            + " as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " startField=id maxDepth=5 depthField=level direction=bi as reportingHierarchy"));
+    // graphLookup with supportArray
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=uni supportArray=true as identifier",
+        anonymize(
+            "source=t | graphLookup airports fromField=connects toField=airport"
+                + " supportArray=true as reachableAirports"));
+    // graphLookup with batchMode
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=uni batchMode=true as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " batchMode=true as reportingHierarchy"));
+    // graphLookup with filter
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=uni filter=(identifier = ***) as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " filter=(status = 'active') as reportingHierarchy"));
+    // graphLookup with compound filter
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=uni filter=(identifier = *** and identifier > ***) as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " filter=(status = 'active' AND id > 2) as reportingHierarchy"));
+  }
+
+  @Test
   public void testInSubquery() {
     assertEquals(
         "source=table | where (identifier) in [ source=table | fields + identifier ] | fields +"
