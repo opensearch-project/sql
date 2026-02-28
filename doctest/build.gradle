@@ -22,14 +22,13 @@ def plugin_path = project(':doctest').projectDir
 
 task cloneSqlCli(type: Exec) {
     def repoDir = new File("${project.projectDir}/sql-cli")
-    
+
     if (repoDir.exists()) {
-        // Repository already exists, fetch and checkout latest
-        commandLine 'git', '-C', repoDir.absolutePath, 'fetch', 'origin', 'main'
-        commandLine 'git', '-C', repoDir.absolutePath, 'checkout', 'origin/main'
+        // Repository already exists, fetch and checkout stable branch
+        commandLine 'git', '-C', repoDir.absolutePath, 'fetch', 'origin', '1.0-legacy'
     } else {
-        // Repository doesn't exist, clone it
-        commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
+        // Repository doesn't exist, clone the stable branch
+        commandLine 'git', 'clone', '-b', '1.0-legacy', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
     }
 }
 
