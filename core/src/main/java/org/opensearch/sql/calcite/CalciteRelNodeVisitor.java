@@ -180,15 +180,27 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final CalciteRexNodeVisitor rexVisitor;
   private final CalciteAggCallVisitor aggVisitor;
   private final DataSourceService dataSourceService;
+  private final MapPathMaterializer mapPathMaterializer;
 
   public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
     this.dataSourceService = dataSourceService;
+    this.mapPathMaterializer = new MapPathMaterializer(rexVisitor);
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
     return unresolved.accept(this, context);
+  }
+
+  /**
+   * Override visitChildren to auto-materialize MAP dotted paths after children are visited. When a
+   * command references dotted paths into MAP columns, they are materialized as flat columns before
+   * the command's own logic runs.
+   */
+  @Override
+  public RelNode visitChildren(Node node, CalcitePlanContext context) {
+    return mapPathMaterializer.materializePaths(super.visitChildren(node, context), node, context);
   }
 
   @Override

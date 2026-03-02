@@ -1,0 +1,9 @@
+{
+  "mappings": {
+    "properties": {
+      "doc": {
+        "type": "text"
+      }
+    }
+  }
+}
