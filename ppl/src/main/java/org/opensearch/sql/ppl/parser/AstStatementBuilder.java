@@ -8,9 +8,11 @@ package org.opensearch.sql.ppl.parser;
 import static org.opensearch.sql.executor.QueryType.PPL;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
@@ -70,18 +72,22 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   }
 
   /**
-   * Recursively checks if the AST contains a {@link Head} node. When the user's query already
-   * includes an explicit {@code head} command, we should not inject an additional Head for
-   * fetch_size so that the user's explicit limit takes precedence.
+   * Checks if the main pipeline contains a {@link Head} node by walking the first-child chain. Only
+   * the main pipeline is checked — subqueries in joins or nested structures are not traversed. When
+   * the user's query already includes an explicit {@code head} command, we should not inject an
+   * additional Head for fetch_size so that the user's explicit limit takes precedence.
    */
   private boolean containsHead(UnresolvedPlan plan) {
-    if (plan instanceof Head) {
-      return true;
-    }
-    for (var child : plan.getChild()) {
-      if (child instanceof UnresolvedPlan && containsHead((UnresolvedPlan) child)) {
+    UnresolvedPlan current = plan;
+    while (current != null) {
+      if (current instanceof Head) {
         return true;
       }
+      List<? extends Node> children = current.getChild();
+      if (children.isEmpty() || !(children.get(0) instanceof UnresolvedPlan)) {
+        break;
+      }
+      current = (UnresolvedPlan) children.get(0);
     }
     return false;
   }
