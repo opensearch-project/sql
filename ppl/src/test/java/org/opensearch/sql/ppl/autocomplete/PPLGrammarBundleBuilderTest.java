@@ -9,8 +9,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 
 public class PPLGrammarBundleBuilderTest {
 
@@ -122,5 +124,39 @@ public class PPLGrammarBundleBuilderTest {
         "Two builds of the same grammar should produce the same hash",
         bundle.getGrammarHash(),
         second.getGrammarHash());
+  }
+
+  @Test
+  public void testTokenDictionaryContainsExpectedEntries() {
+    Map<String, Integer> dict = bundle.getTokenDictionary();
+    assertNotNull(dict);
+    assertEquals((Integer) OpenSearchPPLParser.PIPE, dict.get("PIPE"));
+    assertEquals((Integer) OpenSearchPPLParser.SOURCE, dict.get("SOURCE"));
+    assertEquals((Integer) OpenSearchPPLParser.FROM, dict.get("FROM"));
+    assertEquals((Integer) OpenSearchPPLParser.EQUAL, dict.get("EQUAL"));
+    assertEquals((Integer) OpenSearchPPLParser.ID, dict.get("ID"));
+  }
+
+  @Test
+  public void testIgnoredTokensAreNonEmpty() {
+    assertNotNull(bundle.getIgnoredTokens());
+    assertTrue("ignoredTokens should not be empty", bundle.getIgnoredTokens().length > 0);
+  }
+
+  @Test
+  public void testRulesToVisitAreNonEmpty() {
+    assertNotNull(bundle.getRulesToVisit());
+    assertTrue("rulesToVisit should not be empty", bundle.getRulesToVisit().length > 0);
+  }
+
+  @Test
+  public void testIgnoredRangeBoundariesMatchGrammar() {
+    // These assertions mirror the runtime assertions in buildIgnoredTokens().
+    // If the grammar changes token ordinals, both this test and the builder assertions
+    // will flag the issue.
+    assertEquals("MATCH token ID", 427, OpenSearchPPLParser.MATCH);
+    assertEquals("ERROR_RECOGNITION token ID", 488, OpenSearchPPLParser.ERROR_RECOGNITION);
+    assertEquals("CASE token ID", 142, OpenSearchPPLParser.CASE);
+    assertEquals("CAST token ID", 387, OpenSearchPPLParser.CAST);
   }
 }
