@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl.autocomplete;
 
+import java.util.Map;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
@@ -55,4 +56,26 @@ public class GrammarBundle {
    * tokens with no symbolic name; clients must handle sparse arrays.
    */
   @NonNull private String[] symbolicNames;
+
+  /**
+   * Autocomplete token dictionary — maps semantic names used by the autocomplete enrichment logic
+   * (e.g. "SPACE", "PIPE", "SOURCE") to their token type IDs in this grammar. Clients use this
+   * to configure token-aware enrichment without hardcoding token IDs.
+   */
+  @NonNull private Map<String, Integer> tokenDictionary;
+
+  /**
+   * Token type IDs that should be ignored by CodeCompletionCore during candidate collection.
+   * These are tokens like functions, operators, and internal tokens that should not appear
+   * as direct keyword suggestions (e.g. AVG, COUNT, PIPE operators).
+   */
+  @NonNull private int[] ignoredTokens;
+
+  /**
+   * Parser rule indices that CodeCompletionCore should treat as preferred rules.
+   * When these rules are candidate alternatives, CodeCompletionCore reports them as rule
+   * candidates instead of expanding into their child tokens. The autocomplete enrichment
+   * uses these to trigger semantic suggestions (e.g. suggest fields, suggest tables).
+   */
+  @NonNull private int[] rulesToVisit;
 }

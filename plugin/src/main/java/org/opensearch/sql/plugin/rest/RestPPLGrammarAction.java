@@ -115,6 +115,11 @@ public class RestPPLGrammarAction extends BaseRestHandler {
     builder.field("literalNames", bundle.getLiteralNames());
     builder.field("symbolicNames", bundle.getSymbolicNames());
 
+    // Autocomplete configuration
+    builder.field("tokenDictionary", bundle.getTokenDictionary());
+    builder.field("ignoredTokens", bundle.getIgnoredTokens());
+    builder.field("rulesToVisit", bundle.getRulesToVisit());
+
     builder.endObject();
   }
 }

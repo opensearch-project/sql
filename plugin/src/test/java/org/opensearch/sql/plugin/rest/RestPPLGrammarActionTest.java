@@ -93,6 +93,11 @@ public class RestPPLGrammarActionTest {
     // Vocabulary (non-empty arrays)
     assertTrue(json.getJSONArray("literalNames").length() > 0);
     assertTrue(json.getJSONArray("symbolicNames").length() > 0);
+
+    // Autocomplete configuration
+    assertTrue(json.getJSONObject("tokenDictionary").length() > 0);
+    assertTrue(json.getJSONArray("ignoredTokens").length() > 0);
+    assertTrue(json.getJSONArray("rulesToVisit").length() > 0);
   }
 
   @Test
