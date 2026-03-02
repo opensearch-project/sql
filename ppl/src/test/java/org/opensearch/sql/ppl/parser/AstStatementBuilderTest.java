@@ -115,6 +115,20 @@ public class AstStatementBuilderTest {
   }
 
   @Test
+  public void buildQueryStatementWithFetchSizeAndHeadFollowedByFields() {
+    // User query has head 100 | fields age, fetchSize=5
+    // head is not the outermost node (Project from fields is), but containsHead walks the
+    // pipeline chain and finds it, so no Head(5) is injected
+    assertEqualWithFetchSize(
+        "source=t | head 100 | fields age",
+        5,
+        new Query(
+            projectWithArg(head(relation("t"), 100, 0), defaultFieldsArgs(), field("age")),
+            0,
+            PPL));
+  }
+
+  @Test
   public void buildQueryStatementWithFetchSizeAndMultipleHeads() {
     // User query has head 3 | head 500, fetchSize=10
     // containsHead() finds the existing Head nodes, so no Head(10) is injected
