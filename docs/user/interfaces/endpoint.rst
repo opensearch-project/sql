@@ -304,11 +304,11 @@ If the query does **not** contain a ``head`` command in the main pipeline, ``fet
 +-----------------------------------------------+---------------------------------------------------+
 | Query                                         | Behavior with ``fetch_size=5``                    |
 +===============================================+===================================================+
-| ``source=t \| fields age``                    | ``fetch_size`` applies — returns 5 rows           |
+| ``source=t | fields age``                     | ``fetch_size`` applies — returns 5 rows           |
 +-----------------------------------------------+---------------------------------------------------+
-| ``source=t \| head 100 \| fields age``        | ``head`` takes precedence — returns 100 rows      |
+| ``source=t | head 100 | fields age``          | ``head`` takes precedence — returns 100 rows      |
 +-----------------------------------------------+---------------------------------------------------+
-| ``source=t1 \| join (source=t2 \| head 100)`` | ``head`` is in subquery — ``fetch_size`` applies  |
+| ``source=t1 | join (source=t2 | head 100)``   | ``head`` is in subquery — ``fetch_size`` applies  |
 +-----------------------------------------------+---------------------------------------------------+
 
 Examples::
