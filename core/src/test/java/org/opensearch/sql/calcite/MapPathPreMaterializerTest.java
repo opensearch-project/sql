@@ -50,15 +50,13 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.QueryType;
 
 /**
- * Unit tests for {@link MapPathMaterializer}.
+ * Unit tests for {@link MapPathPreMaterializer}.
  *
- * <p>Input schema: {@code [id INTEGER, doc MAP<VARCHAR, ANY>]}. When a command references a dotted
- * path like {@code doc.user.name}, the materializer should inject a {@link LogicalProject} that
- * adds {@code ITEM($1, 'user.name')} as a flat column named {@code doc.user.name}.
+ * <p>Tests the three-step pipeline: extractOperands → collectMapPaths → materialize.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class MapPathMaterializerTest {
+public class MapPathPreMaterializerTest {
 
   @Mock DataSourceService dataSourceService;
   @Mock RelOptCluster cluster;
@@ -71,9 +69,10 @@ public class MapPathMaterializerTest {
   RexBuilder rexBuilder = new RexBuilder(TYPE_FACTORY);
   OpenSearchRelBuilder relBuilder;
   CalcitePlanContext context;
-  MapPathMaterializer materializer;
+  MapPathPreMaterializer materializer;
   MockedStatic<CalciteToolsHelper> mockedStatic;
   RelDataType mapType;
+  CalciteRexNodeVisitor spyRexVisitor;
 
   @BeforeEach
   public void setUp() {
@@ -104,9 +103,7 @@ public class MapPathMaterializerTest {
     mockedStatic.when(() -> CalciteToolsHelper.create(any(), any(), any())).thenReturn(relBuilder);
     context = CalcitePlanContext.create(frameworkConfig, SysLimit.DEFAULT, QueryType.PPL);
 
-    // Spy rexVisitor: resolves "doc.x.y" to real ITEM($1, 'x.y') RexCall
-    CalciteRexNodeVisitor spyRexVisitor =
-        spy(new CalciteRexNodeVisitor(new CalciteRelNodeVisitor(dataSourceService)));
+    spyRexVisitor = spy(new CalciteRexNodeVisitor(new CalciteRelNodeVisitor(dataSourceService)));
     doAnswer(
             inv -> {
               UnresolvedExpression expr = inv.getArgument(0);
@@ -122,7 +119,7 @@ public class MapPathMaterializerTest {
             })
         .when(spyRexVisitor)
         .analyze(any(UnresolvedExpression.class), any(CalcitePlanContext.class));
-    materializer = new MapPathMaterializer(spyRexVisitor);
+    materializer = new MapPathPreMaterializer(spyRexVisitor);
   }
 
   @AfterEach
@@ -134,125 +131,48 @@ public class MapPathMaterializerTest {
     return new Field(QualifiedName.of(name));
   }
 
-  /** Dummy child plan for DSL methods that require an input. */
   private static final UnresolvedPlan DUMMY_CHILD = new Relation(QualifiedName.of("dummy"));
 
-  /** Asserts the relBuilder top is a LogicalProject matching the expected explain string. */
-  private void assertProjectEquals(String expected, RelNode actual) {
-    assertInstanceOf(LogicalProject.class, actual, "Expected LogicalProject");
-    assertEquals(expected, actual.explain().replaceAll("\\r\\n", "\n"));
-  }
+  // ---- End-to-end: materializePaths ----
 
-  // ---- No materialization ----
-
-  @Test
-  public void testNonUnresolvedPlanPassesThrough() {
-    relBuilder.push(input);
-    assertSame(
-        input,
-        materializer.materializePaths(input, mock(org.opensearch.sql.ast.Node.class), context));
-  }
-
-  @Test
-  public void testExpressionBasedCommandPassesThrough() {
-    // Filter resolves fields via expressions, not by name — no materialization needed
-    relBuilder.push(input);
-    assertSame(input, materializer.materializePaths(input, new Filter(field("x")), context));
-  }
-
-  @Test
-  public void testProjectNotExcludedSkipped() {
-    // Non-excluded Project resolves fields as expressions, not by name
-    relBuilder.push(input);
-    assertSame(
-        input,
-        materializer.materializePaths(
-            input, new Project(List.of(field("doc.user.name"))), context));
-  }
-
-  @Test
-  public void testFieldAlreadyInSchemaIsSkipped() {
-    // Schema already has "doc.user.name" — no materialization needed
-    RelDataType rowWithField =
-        TYPE_FACTORY.createStructType(
-            List.of(
-                TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
-                mapType,
-                TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR)),
-            List.of("id", "doc", "doc.user.name"));
-    RelNode inputWithField = mock(RelNode.class);
-    when(inputWithField.getCluster()).thenReturn(cluster);
-    when(inputWithField.getRowType()).thenReturn(rowWithField);
-    relBuilder.push(inputWithField);
-
-    assertSame(
-        inputWithField,
-        materializer.materializePaths(
-            inputWithField,
-            new Replace(
-                List.of(new ReplacePair(stringLiteral("a"), stringLiteral("b"))),
-                Set.of(field("doc.user.name"))),
-            context));
-  }
-
-  @Test
-  public void testFieldNotResolvableIsSkipped() {
-    // rexVisitor throws — materialization silently skipped, command handles the error
-    relBuilder.push(input);
-    CalciteRexNodeVisitor failingVisitor =
-        spy(new CalciteRexNodeVisitor(new CalciteRelNodeVisitor(dataSourceService)));
-    doThrow(new IllegalArgumentException("Field not found"))
-        .when(failingVisitor)
-        .analyze(any(UnresolvedExpression.class), any(CalcitePlanContext.class));
-
-    assertSame(
-        input,
-        new MapPathMaterializer(failingVisitor)
-            .materializePaths(
-                input,
-                new Replace(
-                    List.of(new ReplacePair(stringLiteral("a"), stringLiteral("b"))),
-                    Set.of(field("nonexistent.path"))),
-                context));
-  }
-
-  // ---- Materialization per command ----
-  // Each command that does symbol-based field matching should trigger materialization
-  // when a dotted MAP path is referenced. The expected project is always:
-  //   LogicalProject(id=[$0], doc=[$1], <path>=[ITEM($1, '<nested>')])
-
-  static Stream<Arguments> singleFieldCommands() {
+  static Stream<Arguments> materializationCases() {
     return Stream.of(
+        Arguments.of("rename", rename(DUMMY_CHILD, map("doc.user.name", "username"))),
         Arguments.of(
-            "rename doc.user.name as username",
-            rename(DUMMY_CHILD, map("doc.user.name", "username"))),
-        Arguments.of(
-            "fillnull using doc.user.name = 'N/A'",
+            "fillnull",
             fillNull(DUMMY_CHILD, List.of(Pair.of(field("doc.user.name"), stringLiteral("N/A"))))),
         Arguments.of(
-            "replace 'a' WITH 'b' IN doc.user.name",
+            "replace",
             new Replace(
                 List.of(new ReplacePair(stringLiteral("a"), stringLiteral("b"))),
                 Set.of(field("doc.user.name")))),
         Arguments.of(
-            "fields - doc.user.name",
+            "fields -",
             projectWithArg(
                 DUMMY_CHILD,
                 List.of(argument("exclude", booleanLiteral(true))),
                 field("doc.user.name"))),
         Arguments.of(
-            "addtotals doc.user.name",
-            new AddTotals(List.of(field("doc.user.name")), java.util.Map.of())),
-        Arguments.of("mvcombine doc.user.name", mvcombine(field("doc.user.name"))));
+            "addtotals", new AddTotals(List.of(field("doc.user.name")), java.util.Map.of())),
+        Arguments.of("mvcombine", mvcombine(field("doc.user.name"))));
   }
 
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("singleFieldCommands")
-  public void testMaterializesDocUserName(String description, UnresolvedPlan command) {
+  @ParameterizedTest(name = "materialize: {0}")
+  @MethodSource("materializationCases")
+  public void testMaterializeProjectsMapPath(String desc, UnresolvedPlan command) {
     relBuilder.push(input);
-    materializer.materializePaths(input, command, context);
-    assertProjectEquals(
+    materializer.materializePaths(command, context);
+    RelNode top = relBuilder.peek();
+    assertInstanceOf(LogicalProject.class, top);
+    assertEquals(
         "LogicalProject(id=[$0], doc=[$1], doc.user.name=[ITEM($1, 'user.name')])\n",
-        relBuilder.peek());
+        top.explain().replaceAll("\\r\\n", "\n"));
+  }
+
+  @Test
+  public void testMaterializeNoOpForNonCategoryA() {
+    relBuilder.push(input);
+    materializer.materializePaths(new Filter(field("x")), context);
+    assertSame(input, relBuilder.peek());
   }
 }

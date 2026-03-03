@@ -180,13 +180,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final CalciteRexNodeVisitor rexVisitor;
   private final CalciteAggCallVisitor aggVisitor;
   private final DataSourceService dataSourceService;
-  private final MapPathMaterializer mapPathMaterializer;
+  private final MapPathPreMaterializer mapPathMaterializer;
 
   public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
     this.dataSourceService = dataSourceService;
-    this.mapPathMaterializer = new MapPathMaterializer(rexVisitor);
+    this.mapPathMaterializer = new MapPathPreMaterializer(rexVisitor);
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
@@ -200,7 +200,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    */
   @Override
   public RelNode visitChildren(Node node, CalcitePlanContext context) {
-    return mapPathMaterializer.materializePaths(super.visitChildren(node, context), node, context);
+    RelNode result = super.visitChildren(node, context);
+    mapPathMaterializer.materializePaths(node, context);
+    return result;
   }
 
   @Override
