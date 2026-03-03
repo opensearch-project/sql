@@ -81,7 +81,7 @@ public class PPLGrammarBundleBuilder {
         .startRuleIndex(resolveStartRuleIndex(parser.getRuleNames()))
         .literalNames(literalNames)
         .symbolicNames(symbolicNames)
-        .tokenDictionary(buildTokenDictionary(vocabulary))
+        .tokenDictionary(buildTokenDictionary())
         .ignoredTokens(buildIgnoredTokens(vocabulary))
         .rulesToVisit(buildRulesToVisit(parser.getRuleNames()))
         .build();
@@ -90,12 +90,10 @@ public class PPLGrammarBundleBuilder {
   /**
    * Build the token dictionary — semantic name → token type ID mapping. Uses lexer constants since
    * token type IDs are defined by the lexer. The frontend autocomplete enrichment uses these to
-   * identify tokens like SPACE, PIPE, SOURCE by name.
+   * identify tokens like PIPE and SOURCE by name.
    */
-  private static Map<String, Integer> buildTokenDictionary(Vocabulary vocabulary) {
+  private static Map<String, Integer> buildTokenDictionary() {
     Map<String, Integer> dict = new LinkedHashMap<>();
-    // SPACE token may not exist in this grammar (whitespace may be implicitly skipped).
-    // Resolve by searching symbolic names; use -1 if not found.
     dict.put("WHITESPACE", OpenSearchPPLLexer.WHITESPACE);
     dict.put("FROM", OpenSearchPPLLexer.FROM);
     dict.put("OPENING_BRACKET", OpenSearchPPLLexer.LT_PRTHS);
@@ -180,16 +178,6 @@ public class PPLGrammarBundleBuilder {
       indices[i] = idx;
     }
     return indices;
-  }
-
-  /** Resolve a token type ID from the vocabulary by symbolic name. Returns -1 if not found. */
-  private static int resolveTokenType(Vocabulary vocabulary, String name) {
-    for (int i = 0; i <= vocabulary.getMaxTokenType(); i++) {
-      if (name.equals(vocabulary.getSymbolicName(i))) {
-        return i;
-      }
-    }
-    return -1;
   }
 
   private static int resolveStartRuleIndex(String[] ruleNames) {
