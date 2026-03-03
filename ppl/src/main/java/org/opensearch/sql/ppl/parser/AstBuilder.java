@@ -15,6 +15,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupComma
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DynamicSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldformatCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
@@ -84,6 +85,8 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
+import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -92,6 +95,8 @@ import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
+import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -822,6 +827,18 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             .collect(Collectors.toList()));
   }
 
+  @Override
+  public UnresolvedPlan visitFieldformatCommand(FieldformatCommandContext ctx) {
+    // Use the new fieldFormatEvalClause instead of evalClause
+    org.opensearch.sql.ast.tree.Eval eval =
+        new org.opensearch.sql.ast.tree.Eval(
+            ctx.fieldFormatEvalClause().stream()
+                .map(ct -> (Let) internalVisitExpression(ct))
+                .collect(Collectors.toList()));
+
+    return eval;
+  }
+
   private List<UnresolvedExpression> getGroupByList(ByClauseContext ctx) {
     return ctx.fieldList().fieldExpression().stream()
         .map(this::internalVisitExpression)
@@ -896,6 +913,25 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
+  public UnresolvedPlan visitNomvCommand(OpenSearchPPLParser.NomvCommandContext ctx) {
+    Field field = (Field) internalVisitExpression(ctx.fieldExpression());
+    return new NoMv(field);
+  }
+
+  @Override
+  public UnresolvedPlan visitMvexpandCommand(OpenSearchPPLParser.MvexpandCommandContext ctx) {
+    Field field = (Field) expressionBuilder.visit(ctx.fieldExpression());
+    Integer limit =
+        ctx.INTEGER_LITERAL() != null ? Integer.parseInt(ctx.INTEGER_LITERAL().getText()) : null;
+
+    if (limit != null && limit <= 0) {
+      throw new IllegalArgumentException("Limit must be a positive number, got: " + limit);
+    }
+
+    return new MvExpand(field, limit);
+  }
+
+  @Override
   public UnresolvedPlan visitGrokCommand(OpenSearchPPLParser.GrokCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
     Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
@@ -931,11 +967,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     if (inField == null) {
       throw new IllegalArgumentException("`input` parameter is required for `spath`");
-    }
-
-    if (outField != null && path == null) {
-      throw new IllegalArgumentException(
-          "`path` parameter is required for `spath` when `output` is specified");
     }
 
     return new SPath(inField, outField, path);
@@ -1480,5 +1511,80 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             });
     java.util.Map<String, Literal> options = cmdOptionsBuilder.build();
     return new AddColTotals(fieldList, options);
+  }
+
+  @Override
+  public UnresolvedPlan visitGraphLookupCommand(OpenSearchPPLParser.GraphLookupCommandContext ctx) {
+    // Parse lookup table
+    UnresolvedPlan fromTable = visitTableSourceClause(ctx.lookupTable);
+
+    // Parse options with defaults
+    Field fromField = null;
+    Field toField = null;
+    Literal maxDepth = Literal.ZERO;
+    Field startField = null;
+    Field depthField = null;
+    Direction direction = Direction.UNI;
+    boolean supportArray = false;
+    boolean batchMode = false;
+    boolean usePIT = false;
+    UnresolvedExpression filter = null;
+
+    for (OpenSearchPPLParser.GraphLookupOptionContext option : ctx.graphLookupOption()) {
+      if (option.FROM_FIELD() != null) {
+        fromField = (Field) internalVisitExpression(option.fieldExpression());
+      }
+      if (option.TO_FIELD() != null) {
+        toField = (Field) internalVisitExpression(option.fieldExpression());
+      }
+      if (option.MAX_DEPTH() != null) {
+        maxDepth = (Literal) internalVisitExpression(option.integerLiteral());
+      }
+      if (option.START_FIELD() != null) {
+        startField = (Field) internalVisitExpression(option.fieldExpression());
+      }
+      if (option.DEPTH_FIELD() != null) {
+        depthField = (Field) internalVisitExpression(option.fieldExpression());
+      }
+      if (option.DIRECTION() != null) {
+        direction = option.BI() != null ? Direction.BI : Direction.UNI;
+      }
+      if (option.SUPPORT_ARRAY() != null) {
+        Literal literal = (Literal) internalVisitExpression(option.booleanLiteral());
+        supportArray = Boolean.TRUE.equals(literal.getValue());
+      }
+      if (option.BATCH_MODE() != null) {
+        Literal literal = (Literal) internalVisitExpression(option.booleanLiteral());
+        batchMode = Boolean.TRUE.equals(literal.getValue());
+      }
+      if (option.USE_PIT() != null) {
+        Literal literal = (Literal) internalVisitExpression(option.booleanLiteral());
+        usePIT = Boolean.TRUE.equals(literal.getValue());
+      }
+      if (option.FILTER() != null) {
+        filter = internalVisitExpression(option.logicalExpression());
+      }
+    }
+
+    Field as = (Field) internalVisitExpression(ctx.outputField);
+
+    if (fromField == null || toField == null) {
+      throw new SemanticCheckException("fromField and toField must be specified for graphLookup");
+    }
+
+    return GraphLookup.builder()
+        .fromTable(fromTable)
+        .fromField(fromField)
+        .toField(toField)
+        .as(as)
+        .maxDepth(maxDepth)
+        .startField(startField)
+        .depthField(depthField)
+        .direction(direction)
+        .supportArray(supportArray)
+        .batchMode(batchMode)
+        .usePIT(usePIT)
+        .filter(filter)
+        .build();
   }
 }

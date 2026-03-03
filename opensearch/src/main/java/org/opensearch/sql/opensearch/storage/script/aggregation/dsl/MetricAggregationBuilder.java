@@ -215,8 +215,7 @@ public class MetricAggregationBuilder
       String name,
       MetricParser parser) {
     String fieldName = ((ReferenceExpression) expression).getAttr();
-    builder.fetchField(fieldName);
-    builder.fetchSource(false);
+    builder.fetchSource(fieldName, null);
     builder.size(size.valueOf().integerValue());
     builder.from(0);
     if (condition != null) {

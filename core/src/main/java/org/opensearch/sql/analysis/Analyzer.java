@@ -73,6 +73,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -81,6 +82,8 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
+import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -106,7 +109,6 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -526,6 +528,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalEval(child, expressionsBuilder.build());
   }
 
+  /** Build {@link LogicalEval}. */
+  @Override
+  public LogicalPlan visitFieldFormat(Eval node, AnalysisContext context) {
+    throw getOnlyForCalciteException("fieldformat");
+  }
+
   @Override
   public LogicalPlan visitAddTotals(AddTotals node, AnalysisContext context) {
     throw getOnlyForCalciteException("addtotals");
@@ -539,6 +547,21 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitMvCombine(MvCombine node, AnalysisContext context) {
     throw getOnlyForCalciteException("mvcombine");
+  }
+
+  @Override
+  public LogicalPlan visitNoMv(NoMv node, AnalysisContext context) {
+    throw getOnlyForCalciteException("nomv");
+  }
+
+  @Override
+  public LogicalPlan visitMvExpand(MvExpand node, AnalysisContext context) {
+    throw getOnlyForCalciteException("mvexpand");
+  }
+
+  @Override
+  public LogicalPlan visitGraphLookup(GraphLookup node, AnalysisContext context) {
+    throw getOnlyForCalciteException("graphlookup");
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */
@@ -966,10 +989,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     List<UnresolvedExpression> aggExprs =
         Stream.of(
                 new Alias(
-                    PatternUtils.PATTERN_COUNT,
+                    "pattern_count",
                     new AggregateFunction(BuiltinFunctionName.COUNT.name(), AllFields.of())),
                 new Alias(
-                    PatternUtils.SAMPLE_LOGS,
+                    "sample_logs",
                     new AggregateFunction(
                         BuiltinFunctionName.TAKE.name(),
                         node.getSourceField(),

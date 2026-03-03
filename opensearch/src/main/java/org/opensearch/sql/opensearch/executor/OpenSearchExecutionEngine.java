@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import org.apache.calcite.avatica.util.StructImpl;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -39,7 +41,6 @@ import org.locationtech.jts.geom.Point;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
-import org.opensearch.sql.calcite.utils.DynamicFieldsResultProcessor;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -229,7 +230,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
    * Process values recursively, handling geo points and nested maps. Geo points are converted to
    * OpenSearchExprGeoPointValue. Maps are recursively processed to handle nested structures.
    */
-  private static Object processValue(Object value) {
+  private static Object processValue(Object value) throws SQLException {
     if (value == null) {
       return null;
     }
@@ -244,6 +245,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         convertedMap.put(entry.getKey(), processValue(entry.getValue()));
       }
       return convertedMap;
+    }
+    if (value instanceof StructImpl) {
+      return Arrays.asList(((StructImpl) value).getAttributes());
     }
     if (value instanceof List) {
       List<Object> list = (List<Object>) value;
@@ -301,9 +305,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     }
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
-    QueryResponse processedResponse = DynamicFieldsResultProcessor.expandDynamicFields(response);
-
-    return processedResponse;
+    return response;
   }
 
   /** Registers opensearch-dependent functions */
@@ -330,6 +332,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
     OperatorTable.addOperator(
         BuiltinFunctionName.DISTINCT_COUNT_APPROX.name(), approxDistinctCountFunction);
+
+    // Note: GraphLookup is now implemented as a custom RelNode (LogicalGraphLookup)
+    // instead of a UDF, so no registration is needed here.
   }
 
   /**

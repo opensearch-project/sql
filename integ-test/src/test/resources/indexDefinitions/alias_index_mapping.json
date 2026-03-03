@@ -4,9 +4,23 @@
       "original_col": {
         "type": "integer"
       },
+      "original_text": {
+        "type": "text"
+      },
+      "original_date": {
+        "type": "date"
+      },
       "alias_col": {
         "type": "alias",
         "path": "original_col"
+      },
+      "alias_text": {
+        "type": "alias",
+        "path": "original_text"
+      },
+      "@timestamp": {
+        "type": "alias",
+        "path": "original_date"
       }
     }
   }

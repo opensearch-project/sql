@@ -61,6 +61,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -69,6 +70,8 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
+import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -261,6 +264,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitEval(Eval node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitFieldFormat(Eval node, C context) {
     return visitChildren(node, context);
   }
 
@@ -469,6 +476,18 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitMvCombine(MvCombine node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitNoMv(NoMv node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitMvExpand(MvExpand node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitGraphLookup(GraphLookup node, C context) {
     return visitChildren(node, context);
   }
 }

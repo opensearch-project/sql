@@ -62,7 +62,7 @@ For the following functionalities, the query will be forwarded to the V2 query e
     * ML  
     * Kmeans  
 * `show datasources` and command  
-* Commands with `fetch_size` parameter  
+* SQL queries with `fetch_size` parameter (cursor-based pagination). Note: PPL's `fetch_size` (response size limiting, no cursor) is supported in Calcite Engine.
 
 
 ## Malformed Field Names in Object Fields

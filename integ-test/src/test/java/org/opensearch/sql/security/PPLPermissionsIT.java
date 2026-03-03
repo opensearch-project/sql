@@ -14,10 +14,8 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import java.util.Locale;
-import lombok.SneakyThrows;
 import org.json.JSONObject;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
@@ -59,21 +57,12 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
   private static final String NO_PIT_USER = "no_pit_user";
   private static final String NO_PIT_ROLE = "no_pit_role";
 
-  private static boolean initialized = false;
-
-  @SneakyThrows
-  @BeforeEach
-  public void initialize() {
-    if (!initialized) {
-      setUpIndices();
-      createSecurityRolesAndUsers();
-      initialized = true;
-    }
-  }
+  private boolean initialized = false;
 
   @Override
   protected void init() throws Exception {
     super.init();
+    createSecurityRolesAndUsers();
     loadIndex(Index.BANK);
     loadIndex(Index.DOG);
     // Enable Calcite engine to test PIT behavior with Calcite
@@ -87,24 +76,27 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
    * access to their specific index.
    */
   private void createSecurityRolesAndUsers() throws IOException {
-    // Create role for bank index access
-    createRole(BANK_ROLE, TEST_INDEX_BANK);
+    if (!initialized) {
+      // Create role for bank index access
+      createRole(BANK_ROLE, TEST_INDEX_BANK);
 
-    // Create role for dog index access
-    createRole(DOG_ROLE, TEST_INDEX_DOG);
+      // Create role for dog index access
+      createRole(DOG_ROLE, TEST_INDEX_DOG);
 
-    // Create users and map them to roles
-    createUser(BANK_USER, BANK_ROLE);
-    createUser(DOG_USER, DOG_ROLE);
+      // Create users and map them to roles
+      createUser(BANK_USER, BANK_ROLE);
+      createUser(DOG_USER, DOG_ROLE);
 
-    // Create roles for testing missing permissions
-    createRoleWithMissingPermissions();
+      // Create roles for testing missing permissions
+      createRoleWithMissingPermissions();
 
-    // Create user with minimal permissions for plugin-based PIT testing
-    createMinimalUserForPitTesting();
+      // Create user with minimal permissions for plugin-based PIT testing
+      createMinimalUserForPitTesting();
 
-    // Create user without PIT permissions to test PIT requirement
-    createNoPitUserForTesting();
+      // Create user without PIT permissions to test PIT requirement
+      createNoPitUserForTesting();
+      initialized = true;
+    }
   }
 
   private void createRole(String roleName, String indexPattern) throws IOException {

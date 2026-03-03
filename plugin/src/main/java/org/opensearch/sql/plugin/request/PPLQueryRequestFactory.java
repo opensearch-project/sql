@@ -30,6 +30,7 @@ public class PPLQueryRequestFactory {
   private static final String DEFAULT_EXPLAIN_MODE = "standard";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
   private static final String QUERY_PARAMS_PROFILE = "profile";
+  private static final String QUERY_PARAMS_FETCH_SIZE = "fetch_size";
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
@@ -84,6 +85,18 @@ public class PPLQueryRequestFactory {
       String queryString = jsonContent.optString(PPL_FIELD_NAME, "");
       boolean enableProfile =
           profileRequested && isProfileSupported(restRequest.path(), format, queryString);
+      // Support fetch_size as a URL parameter if not already in the JSON body
+      if (!jsonContent.has(QUERY_PARAMS_FETCH_SIZE)
+          && restRequest.params().containsKey(QUERY_PARAMS_FETCH_SIZE)) {
+        try {
+          jsonContent.put(
+              QUERY_PARAMS_FETCH_SIZE,
+              Integer.parseInt(restRequest.params().get(QUERY_PARAMS_FETCH_SIZE)));
+        } catch (NumberFormatException e) {
+          throw new IllegalArgumentException(
+              "Invalid fetch_size parameter: must be a valid integer", e);
+        }
+      }
       PPLQueryRequest pplRequest =
           new PPLQueryRequest(
               jsonContent.getString(PPL_FIELD_NAME),

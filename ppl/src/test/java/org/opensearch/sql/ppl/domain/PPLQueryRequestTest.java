@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.domain;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -54,5 +55,41 @@ public class PPLQueryRequestTest {
     exceptionRule.expect(IllegalArgumentException.class);
     exceptionRule.expectMessage("response in " + format + " format is not supported.");
     request.format();
+  }
+
+  @Test
+  public void testGetFetchSizeReturnsValueFromJson() {
+    JSONObject json = new JSONObject("{\"query\": \"source=t\", \"fetch_size\": 100}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    assertEquals(100, request.getFetchSize());
+  }
+
+  @Test
+  public void testGetFetchSizeReturnsZeroWhenNotSpecified() {
+    JSONObject json = new JSONObject("{\"query\": \"source=t\"}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    assertEquals(0, request.getFetchSize());
+  }
+
+  @Test
+  public void testGetFetchSizeReturnsZeroWhenJsonContentIsNull() {
+    PPLQueryRequest request = new PPLQueryRequest("source=t", null, "/_plugins/_ppl");
+    assertEquals(0, request.getFetchSize());
+  }
+
+  @Test
+  public void testGetFetchSizeHandlesExplicitNull() {
+    JSONObject json = new JSONObject();
+    json.put("query", "source=t");
+    json.put("fetch_size", JSONObject.NULL);
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    assertEquals(0, request.getFetchSize());
+  }
+
+  @Test
+  public void testGetFetchSizeWithLargeValue() {
+    JSONObject json = new JSONObject("{\"query\": \"source=t\", \"fetch_size\": 15000}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    assertEquals(15000, request.getFetchSize());
   }
 }

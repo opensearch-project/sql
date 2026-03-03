@@ -26,6 +26,7 @@ STREAMSTATS:                        'STREAMSTATS';
 DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
+FIELDFORMAT:                        'FIELDFORMAT';
 HEAD:                               'HEAD';
 BIN:                                'BIN';
 TOP:                                'TOP';
@@ -52,9 +53,22 @@ TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
 ADDTOTALS:                          'ADDTOTALS';
 ADDCOLTOTALS:                       'ADDCOLTOTALS';
+GRAPHLOOKUP:                        'GRAPHLOOKUP';
+START_FIELD:                        'STARTFIELD';
+FROM_FIELD:                         'FROMFIELD';
+TO_FIELD:                           'TOFIELD';
+MAX_DEPTH:                          'MAXDEPTH';
+DEPTH_FIELD:                        'DEPTHFIELD';
+DIRECTION:                          'DIRECTION';
+UNI:                                'UNI';
+BI:                                 'BI';
+SUPPORT_ARRAY:                      'SUPPORTARRAY';
+BATCH_MODE:                         'BATCHMODE';
+USE_PIT:                            'USEPIT';
 ROW:                                'ROW';
 COL:                                'COL';
 EXPAND:                             'EXPAND';
+MVEXPAND:                           'MVEXPAND';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
 BRAIN:                              'BRAIN';
 VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
@@ -73,6 +87,7 @@ AGGREGATION:                        'AGGREGATION';
 APPENDPIPE:                         'APPENDPIPE';
 COLUMN_NAME:                        'COLUMN_NAME';
 MVCOMBINE:                          'MVCOMBINE';
+NOMV:                               'NOMV';
 
 
 //Native JOIN KEYWORDS
@@ -160,7 +175,6 @@ TIMEFIELD:                          'TIMEFIELD';
 INPUT:                              'INPUT';
 OUTPUT:                             'OUTPUT';
 PATH:                               'PATH';
-
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';

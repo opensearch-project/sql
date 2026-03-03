@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.standalone;
 
-import static org.hamcrest.Matchers.*;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -43,14 +41,11 @@ public class MapAppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
         relNode,
         resultSet -> {
           Map<String, Object> result = getResultMapField(resultSet);
-          assertThat(
-              result,
-              allOf(
-                  hasEntry("key1", "value1"),
-                  hasEntry("key2", "value2"),
-                  hasEntry("key3", "value3"),
-                  hasEntry("key4", "value4"),
-                  aMapWithSize(4)));
+          assertEquals(4, result.size());
+          assertMapListValue(result, "key1", "value1");
+          assertMapListValue(result, "key2", "value2");
+          assertMapListValue(result, "key3", "value3");
+          assertMapListValue(result, "key4", "value4");
         });
   }
 
@@ -73,13 +68,10 @@ public class MapAppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
         relNode,
         resultSet -> {
           Map<String, Object> result = getResultMapField(resultSet);
-          assertThat(
-              result,
-              allOf(
-                  aMapWithSize(3),
-                  hasEntry("key1", (Object) "value1"),
-                  hasEntry("key2", (Object) List.of("value2", "value3")),
-                  hasEntry("key3", (Object) "value4")));
+          assertEquals(3, result.size());
+          assertMapListValue(result, "key1", "value1");
+          assertMapListValue(result, "key2", "value2", "value3");
+          assertMapListValue(result, "key3", "value4");
         });
   }
 
@@ -108,7 +100,8 @@ public class MapAppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
         relNode,
         resultSet -> {
           Map<String, Object> result = getResultMapField(resultSet);
-          assertThat(result, allOf(hasEntry("key1", "value1"), aMapWithSize(1)));
+          assertEquals(1, result.size());
+          assertMapListValue(result, "key1", "value1");
         });
   }
 
@@ -149,5 +142,17 @@ public class MapAppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
     verifyColumns(resultSet, MAP_FIELD);
     Map<String, Object> result = (Map<String, Object>) resultSet.getObject(1);
     return result;
+  }
+
+  @SuppressWarnings("unchecked")
+  private void assertMapListValue(Map<String, Object> map, String key, Object... expectedValues) {
+    map.containsKey(key);
+    Object value = map.get(key);
+    assertTrue(value instanceof List);
+    List<Object> list = (List<Object>) value;
+    assertEquals(expectedValues.length, list.size());
+    for (int i = 0; i < expectedValues.length; i++) {
+      assertEquals(expectedValues[i], list.get(i));
+    }
   }
 }
