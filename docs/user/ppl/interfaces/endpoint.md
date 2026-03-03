@@ -303,25 +303,15 @@ You can send an HTTP GET request to endpoint **/_plugins/_ppl/_grammar** to fetc
 ### Example
 
 ```bash
-curl -sS -X GET localhost:9200/_plugins/_ppl/_grammar
+curl -sS -X GET localhost:9200/_plugins/_ppl/_grammar | python3 -m json.tool | grep -E '"bundleVersion"|"antlrVersion"|"startRuleIndex"|"ignoredTokens"|"rulesToVisit"'
 ```
 
 Expected output (trimmed):
 
-```json
-{
-  "bundleVersion": "1.0",
-  "antlrVersion": "4.13.2",
-  "grammarHash": "sha256:...",
-  "startRuleIndex": 0,
-  "lexerSerializedATN": [4, ...],
-  "parserSerializedATN": [4, ...],
-  "lexerRuleNames": ["SEARCH", "..."],
-  "parserRuleNames": ["root", "..."],
-  "literalNames": [null, "'SEARCH'", "..."],
-  "symbolicNames": [null, "SEARCH", "..."],
-  "tokenDictionary": {"PIPE": 196, "...": 0},
-  "ignoredTokens": [472, 473, "..."],
-  "rulesToVisit": [200, 201, "..."]
-}
+```text
+"bundleVersion": "1.0",
+"antlrVersion": "4.13.2",
+"startRuleIndex": 0,
+"ignoredTokens": [
+"rulesToVisit": [
 ```
