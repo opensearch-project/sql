@@ -64,7 +64,14 @@ public class PPLGrammarBundleBuilder {
     return GrammarBundle.builder()
         .bundleVersion(BUNDLE_VERSION)
         .antlrVersion(ANTLR_VERSION)
-        .grammarHash(computeGrammarHash(lexerATN, parserATN))
+        .grammarHash(
+            computeGrammarHash(
+                lexerATN,
+                parserATN,
+                lexer.getRuleNames(),
+                parser.getRuleNames(),
+                literalNames,
+                symbolicNames))
         .lexerSerializedATN(lexerATN)
         .parserSerializedATN(parserATN)
         .lexerRuleNames(lexer.getRuleNames())
@@ -81,9 +88,9 @@ public class PPLGrammarBundleBuilder {
   }
 
   /**
-   * Build the token dictionary — semantic name → token type ID mapping. Uses lexer constants
-   * since token type IDs are defined by the lexer. The frontend autocomplete enrichment uses
-   * these to identify tokens like SPACE, PIPE, SOURCE by name.
+   * Build the token dictionary — semantic name → token type ID mapping. Uses lexer constants since
+   * token type IDs are defined by the lexer. The frontend autocomplete enrichment uses these to
+   * identify tokens like SPACE, PIPE, SOURCE by name.
    */
   private static Map<String, Integer> buildTokenDictionary(Vocabulary vocabulary) {
     Map<String, Integer> dict = new LinkedHashMap<>();
@@ -133,18 +140,30 @@ public class PPLGrammarBundleBuilder {
   }
 
   /**
-   * Build the list of parser rule indices for CodeCompletionCore preferredRules.
-   * These rules trigger semantic suggestions (suggest fields, tables, functions, etc.).
+   * Build the list of parser rule indices for CodeCompletionCore preferredRules. These rules
+   * trigger semantic suggestions (suggest fields, tables, functions, etc.).
    *
    * @throws IllegalStateException if any expected rule name is not found in the parser grammar
    */
   private static int[] buildRulesToVisit(String[] ruleNames) {
-    List<String> ruleNamesToVisit = Arrays.asList(
-        "statsFunctionName", "takeAggFunction", "integerLiteral", "decimalLiteral",
-        "keywordsCanBeId", "renameClasue", "qualifiedName", "tableQualifiedName",
-        "wcQualifiedName", "positionFunctionName", "searchableKeyWord", "stringLiteral",
-        "searchCommand", "searchComparisonOperator", "comparisonOperator", "sqlLikeJoinType"
-    );
+    List<String> ruleNamesToVisit =
+        Arrays.asList(
+            "statsFunctionName",
+            "takeAggFunction",
+            "integerLiteral",
+            "decimalLiteral",
+            "keywordsCanBeId",
+            "renameClasue",
+            "qualifiedName",
+            "tableQualifiedName",
+            "wcQualifiedName",
+            "positionFunctionName",
+            "searchableKeyWord",
+            "stringLiteral",
+            "searchCommand",
+            "searchComparisonOperator",
+            "comparisonOperator",
+            "sqlLikeJoinType");
 
     List<String> ruleNamesList = Arrays.asList(ruleNames);
     int[] indices = new int[ruleNamesToVisit.size()];
@@ -153,7 +172,9 @@ public class PPLGrammarBundleBuilder {
       int idx = ruleNamesList.indexOf(name);
       if (idx < 0) {
         throw new IllegalStateException(
-            "Parser rule '" + name + "' not found in grammar — "
+            "Parser rule '"
+                + name
+                + "' not found in grammar — "
                 + "was it renamed or removed from OpenSearchPPLParser.g4?");
       }
       indices[i] = idx;
@@ -176,11 +197,21 @@ public class PPLGrammarBundleBuilder {
     return Math.max(idx, 0);
   }
 
-  private static String computeGrammarHash(int[] lexerATN, int[] parserATN) {
+  private static String computeGrammarHash(
+      int[] lexerATN,
+      int[] parserATN,
+      String[] lexerRuleNames,
+      String[] parserRuleNames,
+      String[] literalNames,
+      String[] symbolicNames) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
       updateDigest(digest, lexerATN);
       updateDigest(digest, parserATN);
+      updateDigest(digest, lexerRuleNames);
+      updateDigest(digest, parserRuleNames);
+      updateDigest(digest, literalNames);
+      updateDigest(digest, symbolicNames);
       digest.update(ANTLR_VERSION.getBytes(StandardCharsets.UTF_8));
       byte[] hash = digest.digest();
       // Output is always "sha256:" (7 chars) + 64 hex chars = 71 chars.
@@ -201,6 +232,19 @@ public class PPLGrammarBundleBuilder {
       digest.update((byte) (v >>> 16));
       digest.update((byte) (v >>> 8));
       digest.update((byte) (v));
+    }
+  }
+
+  private static void updateDigest(MessageDigest digest, String[] data) {
+    for (String value : data) {
+      if (value == null) {
+        digest.update((byte) 0);
+      } else {
+        digest.update((byte) 1);
+        digest.update(value.getBytes(StandardCharsets.UTF_8));
+      }
+      // field separator to avoid concatenation ambiguities
+      digest.update((byte) 0xFF);
     }
   }
 }

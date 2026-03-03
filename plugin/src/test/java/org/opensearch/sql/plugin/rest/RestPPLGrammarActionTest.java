@@ -137,16 +137,27 @@ public class RestPPLGrammarActionTest {
 
   @Test
   public void testInvalidateCache() throws Exception {
+    AtomicInteger buildCount = new AtomicInteger(0);
+    RestPPLGrammarAction countingAction =
+        new RestPPLGrammarAction() {
+          @Override
+          protected GrammarBundle buildBundle() {
+            buildCount.incrementAndGet();
+            return super.buildBundle();
+          }
+        };
+
     FakeRestRequest request1 =
         new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
             .withMethod(RestRequest.Method.GET)
             .withPath("/_plugins/_ppl/_grammar")
             .build();
     MockRestChannel channel1 = new MockRestChannel(request1, true);
-    action.handleRequest(request1, channel1, client);
+    countingAction.handleRequest(request1, channel1, client);
     assertEquals(RestStatus.OK, channel1.getResponse().status());
+    assertEquals("Bundle should be built on first request", 1, buildCount.get());
 
-    action.invalidateCache();
+    countingAction.invalidateCache();
 
     FakeRestRequest request2 =
         new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
@@ -154,15 +165,9 @@ public class RestPPLGrammarActionTest {
             .withPath("/_plugins/_ppl/_grammar")
             .build();
     MockRestChannel channel2 = new MockRestChannel(request2, true);
-    action.handleRequest(request2, channel2, client);
+    countingAction.handleRequest(request2, channel2, client);
     assertEquals(RestStatus.OK, channel2.getResponse().status());
-
-    String content1 = channel1.getResponse().content().utf8ToString();
-    String content2 = channel2.getResponse().content().utf8ToString();
-    assertEquals(
-        "Grammar hash should be identical after cache invalidation and rebuild",
-        content1,
-        content2);
+    assertEquals("Bundle should be rebuilt after cache invalidation", 2, buildCount.get());
   }
 
   @Test
@@ -182,6 +187,27 @@ public class RestPPLGrammarActionTest {
             .build();
     MockRestChannel channel = new MockRestChannel(request, true);
     failingAction.handleRequest(request, channel, client);
+
+    assertEquals(RestStatus.INTERNAL_SERVER_ERROR, channel.getResponse().status());
+  }
+
+  @Test
+  public void testGetGrammar_NullBundle_Returns500() throws Exception {
+    RestPPLGrammarAction nullBundleAction =
+        new RestPPLGrammarAction() {
+          @Override
+          protected GrammarBundle buildBundle() {
+            return null;
+          }
+        };
+
+    FakeRestRequest request =
+        new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+            .withMethod(RestRequest.Method.GET)
+            .withPath("/_plugins/_ppl/_grammar")
+            .build();
+    MockRestChannel channel = new MockRestChannel(request, true);
+    nullBundleAction.handleRequest(request, channel, client);
 
     assertEquals(RestStatus.INTERNAL_SERVER_ERROR, channel.getResponse().status());
   }
