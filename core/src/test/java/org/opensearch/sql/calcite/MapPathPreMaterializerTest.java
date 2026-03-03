@@ -5,174 +5,248 @@
 
 package org.opensearch.sql.calcite;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.opensearch.sql.ast.dsl.AstDSL.*;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.opensearch.sql.ast.dsl.AstDSL.argument;
+import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.field;
+import static org.opensearch.sql.ast.dsl.AstDSL.fillNull;
+import static org.opensearch.sql.ast.dsl.AstDSL.filter;
+import static org.opensearch.sql.ast.dsl.AstDSL.map;
+import static org.opensearch.sql.ast.dsl.AstDSL.mvcombine;
+import static org.opensearch.sql.ast.dsl.AstDSL.project;
+import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
+import static org.opensearch.sql.ast.dsl.AstDSL.relation;
+import static org.opensearch.sql.ast.dsl.AstDSL.rename;
+import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 
 import java.sql.Connection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
-import org.opensearch.sql.ast.tree.*;
+import org.opensearch.sql.ast.tree.AddTotals;
+import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.ReplacePair;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
-import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.executor.QueryType;
 
-/**
- * Unit tests for {@link MapPathPreMaterializer}.
- *
- * <p>Tests the three-step pipeline: extractOperands → collectMapPaths → materialize.
- */
+/** Unit tests for {@link MapPathPreMaterializer}. */
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class MapPathPreMaterializerTest {
 
-  @Mock DataSourceService dataSourceService;
-  @Mock RelOptCluster cluster;
-  @Mock RelOptPlanner planner;
-  @Mock RelMetadataQuery mq;
-  @Mock RelNode input;
-  @Mock Connection connection;
-  @Mock FrameworkConfig frameworkConfig;
+  @Mock private CalciteRexNodeVisitor rexVisitor;
+  @Mock private OpenSearchRelBuilder relBuilder;
 
-  RexBuilder rexBuilder = new RexBuilder(TYPE_FACTORY);
-  OpenSearchRelBuilder relBuilder;
-  CalcitePlanContext context;
-  MapPathPreMaterializer materializer;
-  MockedStatic<CalciteToolsHelper> mockedStatic;
-  RelDataType mapType;
-  CalciteRexNodeVisitor spyRexVisitor;
+  /** Intercepts static factory methods in {@link CalciteToolsHelper} during context creation. */
+  @Mock private MockedStatic<CalciteToolsHelper> mockedToolsHelper;
+
+  /** Placeholder child plan node required by commands like rename and fillnull. */
+  private static final UnresolvedPlan DUMMY_CHILD = relation("t");
+
+  private CalcitePlanContext context;
+  private MapPathPreMaterializer materializer;
 
   @BeforeEach
-  public void setUp() {
-    when(cluster.getTypeFactory()).thenReturn(TYPE_FACTORY);
-    when(cluster.getRexBuilder()).thenReturn(rexBuilder);
-    when(mq.isVisibleInExplain(any(), any())).thenReturn(true);
-    when(cluster.getMetadataQuery()).thenReturn(mq);
-    when(cluster.traitSet()).thenReturn(RelTraitSet.createEmpty());
-    when(cluster.traitSetOf(Convention.NONE))
-        .thenReturn(RelTraitSet.createEmpty().replace(Convention.NONE));
-    when(cluster.getPlanner()).thenReturn(planner);
-    when(planner.getExecutor()).thenReturn(null);
-
-    RelDataType intType = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
-    mapType =
-        TYPE_FACTORY.createMapType(
-            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
-            TYPE_FACTORY.createTypeWithNullability(
-                TYPE_FACTORY.createSqlType(SqlTypeName.ANY), true));
-    RelDataType inputRowType =
-        TYPE_FACTORY.createStructType(List.of(intType, mapType), List.of("id", "doc"));
-    when(input.getCluster()).thenReturn(cluster);
-    when(input.getRowType()).thenReturn(inputRowType);
-
-    relBuilder = new OpenSearchRelBuilder(null, cluster, null);
-    mockedStatic = Mockito.mockStatic(CalciteToolsHelper.class);
-    mockedStatic.when(() -> CalciteToolsHelper.connect(any(), any())).thenReturn(connection);
-    mockedStatic.when(() -> CalciteToolsHelper.create(any(), any(), any())).thenReturn(relBuilder);
-    context = CalcitePlanContext.create(frameworkConfig, SysLimit.DEFAULT, QueryType.PPL);
-
-    spyRexVisitor = spy(new CalciteRexNodeVisitor(new CalciteRelNodeVisitor(dataSourceService)));
-    doAnswer(
-            inv -> {
-              UnresolvedExpression expr = inv.getArgument(0);
-              if (expr instanceof Field f) {
-                String path = f.getField().toString();
-                String nested = path.contains(".") ? path.substring(path.indexOf('.') + 1) : path;
-                return rexBuilder.makeCall(
-                    org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM,
-                    rexBuilder.makeInputRef(mapType, 1),
-                    rexBuilder.makeLiteral(nested));
-              }
-              throw new IllegalArgumentException("Cannot resolve: " + expr);
-            })
-        .when(spyRexVisitor)
-        .analyze(any(UnresolvedExpression.class), any(CalcitePlanContext.class));
-    materializer = new MapPathPreMaterializer(spyRexVisitor);
+  void setUp() {
+    materializer = new MapPathPreMaterializer(rexVisitor);
+    mockedToolsHelper
+        .when(() -> CalciteToolsHelper.connect(any(), any()))
+        .thenReturn(mock(Connection.class));
+    mockedToolsHelper
+        .when(() -> CalciteToolsHelper.create(any(), any(), any()))
+        .thenReturn(relBuilder);
+    when(relBuilder.getRexBuilder())
+        .thenReturn(new org.apache.calcite.rex.RexBuilder(OpenSearchTypeFactory.TYPE_FACTORY));
+    context =
+        CalcitePlanContext.create(mock(FrameworkConfig.class), SysLimit.DEFAULT, QueryType.PPL);
+    lenient().when(relBuilder.size()).thenReturn(1);
   }
 
-  @AfterEach
-  public void tearDown() {
-    mockedStatic.close();
-  }
+  // ---- Symbol-based commands ----
 
-  private static Field field(String name) {
-    return new Field(QualifiedName.of(name));
-  }
-
-  private static final UnresolvedPlan DUMMY_CHILD = new Relation(QualifiedName.of("dummy"));
-
-  // ---- End-to-end: materializePaths ----
-
-  static Stream<Arguments> materializationCases() {
-    return Stream.of(
-        Arguments.of("rename", rename(DUMMY_CHILD, map("doc.user.name", "username"))),
-        Arguments.of(
-            "fillnull",
-            fillNull(DUMMY_CHILD, List.of(Pair.of(field("doc.user.name"), stringLiteral("N/A"))))),
-        Arguments.of(
-            "replace",
-            new Replace(
-                List.of(new ReplacePair(stringLiteral("a"), stringLiteral("b"))),
-                Set.of(field("doc.user.name")))),
-        Arguments.of(
-            "fields -",
-            projectWithArg(
-                DUMMY_CHILD,
-                List.of(argument("exclude", booleanLiteral(true))),
-                field("doc.user.name"))),
-        Arguments.of(
-            "addtotals", new AddTotals(List.of(field("doc.user.name")), java.util.Map.of())),
-        Arguments.of("mvcombine", mvcombine(field("doc.user.name"))));
-  }
-
-  @ParameterizedTest(name = "materialize: {0}")
-  @MethodSource("materializationCases")
-  public void testMaterializeProjectsMapPath(String desc, UnresolvedPlan command) {
-    relBuilder.push(input);
-    materializer.materializePaths(command, context);
-    RelNode top = relBuilder.peek();
-    assertInstanceOf(LogicalProject.class, top);
-    assertEquals(
-        "LogicalProject(id=[$0], doc=[$1], doc.user.name=[ITEM($1, 'user.name')])\n",
-        top.explain().replaceAll("\\r\\n", "\n"));
+  @Test
+  void testRename() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(rename(DUMMY_CHILD, map("doc.user.name", "username")))
+        .shouldProject("doc.user.name");
   }
 
   @Test
-  public void testMaterializeNoOpForNonCategoryA() {
-    relBuilder.push(input);
-    materializer.materializePaths(new Filter(field("x")), context);
-    assertSame(input, relBuilder.peek());
+  void testFillnull() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(
+            fillNull(DUMMY_CHILD, List.of(Pair.of(field("doc.user.name"), stringLiteral("N/A")))))
+        .shouldProject("doc.user.name");
+  }
+
+  @Test
+  void testReplace() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(
+            new Replace(
+                List.of(new ReplacePair(stringLiteral("a"), stringLiteral("b"))),
+                Set.of(field("doc.user.name"))))
+        .shouldProject("doc.user.name");
+  }
+
+  @Test
+  void testFieldsExclusion() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(
+            projectWithArg(
+                DUMMY_CHILD,
+                List.of(argument("exclude", booleanLiteral(true))),
+                field("doc.user.name")))
+        .shouldProject("doc.user.name");
+  }
+
+  @Test
+  void testAddtotals() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(new AddTotals(List.of(field("doc.user.name")), java.util.Map.of()))
+        .shouldProject("doc.user.name");
+  }
+
+  @Test
+  void testMvcombine() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(mvcombine(field("doc.user.name")))
+        .shouldProject("doc.user.name");
+  }
+
+  // ---- Multiple fields cases ----
+
+  @Test
+  void testMultipleMapPaths() {
+    givenMapPaths("doc.user.name", "doc.user.age")
+        .whenCommand(
+            fillNull(
+                DUMMY_CHILD,
+                List.of(
+                    Pair.of(field("doc.user.name"), stringLiteral("N/A")),
+                    Pair.of(field("doc.user.age"), stringLiteral("0")))))
+        .shouldProject("doc.user.name", "doc.user.age");
+  }
+
+  @Test
+  void testMixedMapAndNonMapFields() {
+    givenMapPaths("doc.user.name")
+        .givenNonMapPaths("regular_field")
+        .whenCommand(
+            fillNull(
+                DUMMY_CHILD,
+                List.of(
+                    Pair.of(field("doc.user.name"), stringLiteral("N/A")),
+                    Pair.of(field("regular_field"), stringLiteral("0")))))
+        .shouldProject("doc.user.name");
+  }
+
+  // ---- No-op cases ----
+
+  @Test
+  void testNoOpForFilter() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(filter(DUMMY_CHILD, field("doc.user.name")))
+        .shouldNotProject();
+  }
+
+  @Test
+  void testNoOpForNonExcludedProject() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(project(DUMMY_CHILD, field("doc.user.name")))
+        .shouldNotProject();
+  }
+
+  @Test
+  void testNoOpWhenRelBuilderStackEmpty() {
+    when(relBuilder.size()).thenReturn(0);
+    givenMapPaths("doc.user.name")
+        .whenCommand(rename(DUMMY_CHILD, map("doc.user.name", "u")))
+        .shouldNotProject();
+  }
+
+  @Test
+  void testNoOpForNonUnresolvedPlan() {
+    materializer.materializePaths(mock(org.opensearch.sql.ast.Node.class), context);
+    verify(relBuilder, never()).projectPlus(any(List.class));
+  }
+
+  @Test
+  void testNoOpWhenFieldResolvesToNonItemAccess() {
+    givenMapPaths()
+        .givenNonMapPaths("regular_field")
+        .whenCommand(rename(DUMMY_CHILD, map("regular_field", "alias")))
+        .shouldNotProject();
+  }
+
+  // ---- Fluent test helper ----
+
+  private MapPathAssertion givenMapPaths(String... fieldNames) {
+    return new MapPathAssertion(fieldNames);
+  }
+
+  private class MapPathAssertion {
+    private final Map<String, RexNode> aliasedNodes = new LinkedHashMap<>();
+
+    MapPathAssertion(String... mapFieldNames) {
+      for (String name : mapFieldNames) {
+        RexNode item = mock(RexNode.class, "item:" + name);
+        RexNode aliased = mock(RexNode.class, "aliased:" + name);
+        lenient().when(item.getKind()).thenReturn(SqlKind.ITEM);
+        lenient().when(rexVisitor.analyze(fieldMatching(name), eq(context))).thenReturn(item);
+        lenient().when(relBuilder.alias(item, name)).thenReturn(aliased);
+        aliasedNodes.put(name, aliased);
+      }
+    }
+
+    MapPathAssertion givenNonMapPaths(String... fieldNames) {
+      for (String name : fieldNames) {
+        RexNode ref = mock(RexNode.class, "ref:" + name);
+        when(ref.getKind()).thenReturn(SqlKind.INPUT_REF);
+        when(rexVisitor.analyze(fieldMatching(name), eq(context))).thenReturn(ref);
+      }
+      return this;
+    }
+
+    MapPathAssertion whenCommand(UnresolvedPlan command) {
+      materializer.materializePaths(command, context);
+      return this;
+    }
+
+    void shouldProject(String... expectedFields) {
+      List<RexNode> expected = Stream.of(expectedFields).map(aliasedNodes::get).toList();
+      verify(relBuilder).projectPlus(expected);
+    }
+
+    void shouldNotProject() {
+      verify(relBuilder, never()).projectPlus(any(List.class));
+    }
+
+    private static UnresolvedExpression fieldMatching(String name) {
+      return argThat(expr -> expr instanceof Field f && f.getField().toString().equals(name));
+    }
   }
 }

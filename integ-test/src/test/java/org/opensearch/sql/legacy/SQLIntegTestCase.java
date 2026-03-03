@@ -929,11 +929,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "otel_logs",
         getOtelLogsIndexMapping(),
         "src/test/resources/otellogs.json"),
-    SPATH(
-        TestsConstants.TEST_INDEX_SPATH,
-        "_doc",
-        getSpathIndexMapping(),
-        "src/test/resources/spath.json"),
     TIME_TEST_DATA(
         "opensearch-sql_test_index_time_data",
         "time_data",
