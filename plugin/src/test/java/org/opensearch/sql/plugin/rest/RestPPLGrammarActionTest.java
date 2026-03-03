@@ -54,11 +54,7 @@ public class RestPPLGrammarActionTest {
 
   @Test
   public void testGetGrammar_ReturnsBundle() throws Exception {
-    FakeRestRequest request =
-        new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-            .withMethod(RestRequest.Method.GET)
-            .withPath("/_plugins/_ppl/_grammar")
-            .build();
+    FakeRestRequest request = newGrammarGetRequest();
 
     MockRestChannel channel = new MockRestChannel(request, true);
     action.handleRequest(request, channel, client);
@@ -112,19 +108,11 @@ public class RestPPLGrammarActionTest {
           }
         };
 
-    FakeRestRequest request1 =
-        new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-            .withMethod(RestRequest.Method.GET)
-            .withPath("/_plugins/_ppl/_grammar")
-            .build();
+    FakeRestRequest request1 = newGrammarGetRequest();
     MockRestChannel channel1 = new MockRestChannel(request1, true);
     countingAction.handleRequest(request1, channel1, client);
 
-    FakeRestRequest request2 =
-        new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-            .withMethod(RestRequest.Method.GET)
-            .withPath("/_plugins/_ppl/_grammar")
-            .build();
+    FakeRestRequest request2 = newGrammarGetRequest();
     MockRestChannel channel2 = new MockRestChannel(request2, true);
     countingAction.handleRequest(request2, channel2, client);
 
@@ -147,11 +135,7 @@ public class RestPPLGrammarActionTest {
           }
         };
 
-    FakeRestRequest request1 =
-        new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-            .withMethod(RestRequest.Method.GET)
-            .withPath("/_plugins/_ppl/_grammar")
-            .build();
+    FakeRestRequest request1 = newGrammarGetRequest();
     MockRestChannel channel1 = new MockRestChannel(request1, true);
     countingAction.handleRequest(request1, channel1, client);
     assertEquals(RestStatus.OK, channel1.getResponse().status());
@@ -159,11 +143,7 @@ public class RestPPLGrammarActionTest {
 
     countingAction.invalidateCache();
 
-    FakeRestRequest request2 =
-        new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-            .withMethod(RestRequest.Method.GET)
-            .withPath("/_plugins/_ppl/_grammar")
-            .build();
+    FakeRestRequest request2 = newGrammarGetRequest();
     MockRestChannel channel2 = new MockRestChannel(request2, true);
     countingAction.handleRequest(request2, channel2, client);
     assertEquals(RestStatus.OK, channel2.getResponse().status());
@@ -180,11 +160,7 @@ public class RestPPLGrammarActionTest {
           }
         };
 
-    FakeRestRequest request =
-        new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-            .withMethod(RestRequest.Method.GET)
-            .withPath("/_plugins/_ppl/_grammar")
-            .build();
+    FakeRestRequest request = newGrammarGetRequest();
     MockRestChannel channel = new MockRestChannel(request, true);
     failingAction.handleRequest(request, channel, client);
 
@@ -201,15 +177,18 @@ public class RestPPLGrammarActionTest {
           }
         };
 
-    FakeRestRequest request =
-        new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-            .withMethod(RestRequest.Method.GET)
-            .withPath("/_plugins/_ppl/_grammar")
-            .build();
+    FakeRestRequest request = newGrammarGetRequest();
     MockRestChannel channel = new MockRestChannel(request, true);
     nullBundleAction.handleRequest(request, channel, client);
 
     assertEquals(RestStatus.INTERNAL_SERVER_ERROR, channel.getResponse().status());
+  }
+
+  private static FakeRestRequest newGrammarGetRequest() {
+    return new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+        .withMethod(RestRequest.Method.GET)
+        .withPath("/_plugins/_ppl/_grammar")
+        .build();
   }
 
   /** Mock RestChannel to capture responses */
