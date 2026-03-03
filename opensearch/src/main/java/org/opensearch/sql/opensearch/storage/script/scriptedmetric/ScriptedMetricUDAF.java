@@ -190,7 +190,10 @@ public interface ScriptedMetricUDAF {
     // Extract RexNodes from args
     List<RexNode> argRefs = args.stream().map(Pair::getKey).toList();
 
-    // Build scripts
+    // Build scripts. Note: each buildXxxScript must call addSpecialVariableRef() before
+    // adding any RexLiteral operands, because special variables are assigned a param index
+    // immediately while literals get their index later during RexStandardizer serialization.
+    // The indices must stay in sync with the paramHelper's sources/digests arrays.
     RexNode initRex = buildInitScript(initContext);
     RexNode mapRex = buildMapScript(mapContext, argRefs);
     RexNode combineRex = buildCombineScript(combineContext, argRefs);

@@ -37,13 +37,16 @@ public class ScriptedMetricParser implements MetricParser {
       // which represents the array of results. We wrap this in a single Map with
       // the aggregation field name as key, so the response is 1 row containing
       // the array that can be expanded by Uncollect in the query plan.
+      if (result == null) {
+        return List.of(Map.of(name, List.of()));
+      }
       if (result instanceof List) {
         return List.of(Map.of(name, result));
       }
       throw new IllegalArgumentException(
           String.format(
               "Expected List<Map<String, Object>> from scripted metric but got %s",
-              result == null ? "null" : result.getClass().getSimpleName()));
+              result.getClass().getSimpleName()));
     }
     throw new IllegalArgumentException(
         String.format(

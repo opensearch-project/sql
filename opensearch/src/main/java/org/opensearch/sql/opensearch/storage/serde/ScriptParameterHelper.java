@@ -18,6 +18,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Hook;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.Source;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 
 @Getter
@@ -107,7 +108,7 @@ public class ScriptParameterHelper {
    */
   public int addSpecialVariable(String variableName) {
     int index = sources.size();
-    sources.add(3); // SPECIAL_VARIABLE = 3
+    sources.add(Source.SPECIAL_VARIABLE.getValue()); // SPECIAL_VARIABLE = 3
     digests.add(variableName);
     return index;
   }
