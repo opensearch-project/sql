@@ -293,3 +293,35 @@ Exceeding these limits returns an error.
 - In the simple array format, `["*"]` highlights all fields. Specific field names like `["firstname", "lastname"]` scope highlighting to those fields only.
 - In the object format, each key in the `fields` object is a field name or wildcard. Each value is an object of per-field highlight options. Supported per-field options: `fragment_size`, `number_of_fragments`, `type` (`plain`, `unified`, `fvh`), `pre_tags`, `post_tags`, `require_field_match`, `no_match_size`, `order`. Use `{}` for defaults. Example: `{"title": {"fragment_size": 200}, "body": {"type": "plain"}}`.
 - Highlights may include fields that are not explicitly projected in the other columns. For example, using `{"*": {}}` highlights all fields that matched the search query, including fields not selected by `| fields`. In the example above, the `address` field appears in `_highlight` because it contains a match ("880 Holmes Lane") even though only `account_number`, `firstname`, and `lastname` are projected as separate columns.
+
+## Grammar (Experimental)
+
+### Description
+
+You can send an HTTP GET request to endpoint **/_plugins/_ppl/_grammar** to fetch serialized PPL grammar metadata used by autocomplete clients.
+
+### Example
+
+```bash
+curl -sS -X GET localhost:9200/_plugins/_ppl/_grammar
+```
+
+Expected output (trimmed):
+
+```json
+{
+  "bundleVersion": "1.0",
+  "antlrVersion": "4.13.2",
+  "grammarHash": "sha256:...",
+  "startRuleIndex": 0,
+  "lexerSerializedATN": [4, ...],
+  "parserSerializedATN": [4, ...],
+  "lexerRuleNames": ["SEARCH", "..."],
+  "parserRuleNames": ["root", "..."],
+  "literalNames": [null, "'SEARCH'", "..."],
+  "symbolicNames": [null, "SEARCH", "..."],
+  "tokenDictionary": {"PIPE": 196, "...": 0},
+  "ignoredTokens": [472, 473, "..."],
+  "rulesToVisit": [200, 201, "..."]
+}
+```

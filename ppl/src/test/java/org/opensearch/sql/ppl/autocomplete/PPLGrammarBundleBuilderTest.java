@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -226,6 +227,40 @@ public class PPLGrammarBundleBuilderTest {
     assertTokenNotIgnoredIfPresent("USE_PIT");
   }
 
+  @Test
+  public void testArrayGettersAreDefensiveCopies() {
+    int[] ignoredBefore = bundle.getIgnoredTokens();
+    int original = ignoredBefore[0];
+    ignoredBefore[0] = -1;
+    assertEquals(
+        "ignoredTokens getter should return a defensive copy",
+        original,
+        bundle.getIgnoredTokens()[0]);
+
+    String[] symbolsBefore = bundle.getSymbolicNames();
+    String originalSymbol = symbolsBefore[1];
+    symbolsBefore[1] = "MUTATED";
+    assertEquals(
+        "symbolicNames getter should return a defensive copy",
+        originalSymbol,
+        bundle.getSymbolicNames()[1]);
+  }
+
+  @Test
+  public void testTokenDictionaryGetterIsUnmodifiableCopy() {
+    Map<String, Integer> dict = bundle.getTokenDictionary();
+    Integer pipeBefore = dict.get("PIPE");
+
+    try {
+      dict.put("PIPE", -1);
+      fail("tokenDictionary getter should return an unmodifiable map");
+    } catch (UnsupportedOperationException expected) {
+      // expected
+    }
+
+    assertEquals(pipeBefore, bundle.getTokenDictionary().get("PIPE"));
+  }
+
   private static Set<Integer> ignoredTokenSet() {
     Set<Integer> ignored = new HashSet<>();
     for (int tokenType : bundle.getIgnoredTokens()) {
@@ -237,7 +272,8 @@ public class PPLGrammarBundleBuilderTest {
   private static void assertTokenNotIgnoredIfPresent(String symbolicTokenName) {
     int tokenType = tokenTypeBySymbolicName(symbolicTokenName);
     if (tokenType >= 0) {
-      assertFalse(symbolicTokenName + " should not be ignored", ignoredTokenSet().contains(tokenType));
+      assertFalse(
+          symbolicTokenName + " should not be ignored", ignoredTokenSet().contains(tokenType));
     }
   }
 

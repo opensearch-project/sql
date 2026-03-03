@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.ppl.autocomplete;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.Builder;
 import lombok.NonNull;
@@ -21,7 +24,10 @@ public class GrammarBundle {
   /** ANTLR runtime version used to generate the grammar. */
   @NonNull private String antlrVersion;
 
-  /** SHA-256 hash of the serialized ATN data. Clients may use this to detect grammar changes. */
+  /**
+   * SHA-256 hash of grammar metadata used by autocomplete (ATN, rule names, vocabulary, ANTLR
+   * version). Clients may use this to detect grammar changes.
+   */
   @NonNull private String grammarHash;
 
   /** Serialized lexer ATN as int array (ATNSerializer output). */
@@ -59,23 +65,95 @@ public class GrammarBundle {
 
   /**
    * Autocomplete token dictionary — maps semantic names used by the autocomplete enrichment logic
-   * (e.g. "SPACE", "PIPE", "SOURCE") to their token type IDs in this grammar. Clients use this
-   * to configure token-aware enrichment without hardcoding token IDs.
+   * (e.g. "SPACE", "PIPE", "SOURCE") to their token type IDs in this grammar. Clients use this to
+   * configure token-aware enrichment without hardcoding token IDs.
    */
   @NonNull private Map<String, Integer> tokenDictionary;
 
   /**
-   * Token type IDs that should be ignored by CodeCompletionCore during candidate collection.
-   * These are tokens like functions, operators, and internal tokens that should not appear
-   * as direct keyword suggestions (e.g. AVG, COUNT, PIPE operators).
+   * Token type IDs that should be ignored by CodeCompletionCore during candidate collection. These
+   * are lexical/internal tokens that should not appear as direct keyword suggestions.
    */
   @NonNull private int[] ignoredTokens;
 
   /**
-   * Parser rule indices that CodeCompletionCore should treat as preferred rules.
-   * When these rules are candidate alternatives, CodeCompletionCore reports them as rule
-   * candidates instead of expanding into their child tokens. The autocomplete enrichment
-   * uses these to trigger semantic suggestions (e.g. suggest fields, suggest tables).
+   * Parser rule indices that CodeCompletionCore should treat as preferred rules. When these rules
+   * are candidate alternatives, CodeCompletionCore reports them as rule candidates instead of
+   * expanding into their child tokens. The autocomplete enrichment uses these to trigger semantic
+   * suggestions (e.g. suggest fields, suggest tables).
    */
   @NonNull private int[] rulesToVisit;
+
+  public int[] getLexerSerializedATN() {
+    return copy(lexerSerializedATN);
+  }
+
+  public String[] getLexerRuleNames() {
+    return copy(lexerRuleNames);
+  }
+
+  public String[] getChannelNames() {
+    return copy(channelNames);
+  }
+
+  public String[] getModeNames() {
+    return copy(modeNames);
+  }
+
+  public int[] getParserSerializedATN() {
+    return copy(parserSerializedATN);
+  }
+
+  public String[] getParserRuleNames() {
+    return copy(parserRuleNames);
+  }
+
+  public String[] getLiteralNames() {
+    return copy(literalNames);
+  }
+
+  public String[] getSymbolicNames() {
+    return copy(symbolicNames);
+  }
+
+  public Map<String, Integer> getTokenDictionary() {
+    return Collections.unmodifiableMap(new LinkedHashMap<>(tokenDictionary));
+  }
+
+  public int[] getIgnoredTokens() {
+    return copy(ignoredTokens);
+  }
+
+  public int[] getRulesToVisit() {
+    return copy(rulesToVisit);
+  }
+
+  public static class GrammarBundleBuilder {
+    public GrammarBundle build() {
+      return new GrammarBundle(
+          bundleVersion,
+          antlrVersion,
+          grammarHash,
+          copy(lexerSerializedATN),
+          copy(lexerRuleNames),
+          copy(channelNames),
+          copy(modeNames),
+          copy(parserSerializedATN),
+          copy(parserRuleNames),
+          startRuleIndex,
+          copy(literalNames),
+          copy(symbolicNames),
+          Collections.unmodifiableMap(new LinkedHashMap<>(tokenDictionary)),
+          copy(ignoredTokens),
+          copy(rulesToVisit));
+    }
+  }
+
+  private static int[] copy(int[] values) {
+    return Arrays.copyOf(values, values.length);
+  }
+
+  private static String[] copy(String[] values) {
+    return Arrays.copyOf(values, values.length);
+  }
 }

@@ -34,8 +34,7 @@ public class RestPPLGrammarAction extends BaseRestHandler {
   private static final String ENDPOINT_PATH = "/_plugins/_ppl/_grammar";
 
   // Lazy-initialized singleton bundle (built once per JVM lifecycle)
-  private volatile GrammarBundle cachedBundle;
-  private final Object bundleLock = new Object();
+  private GrammarBundle cachedBundle;
 
   @Override
   public String getName() {
@@ -59,23 +58,17 @@ public class RestPPLGrammarAction extends BaseRestHandler {
         channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
       } catch (Exception e) {
         log.error("Error building or serializing PPL grammar", e);
-        channel.sendResponse(new BytesRestResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, e));
+        channel.sendResponse(new BytesRestResponse(channel, e));
       }
     };
   }
 
-  // Thread-safe lazy initialization with double-checked locking.
-  private GrammarBundle getOrBuildBundle() {
-    if (cachedBundle != null) {
-      return cachedBundle;
+  // Thread-safe lazy initialization.
+  private synchronized GrammarBundle getOrBuildBundle() {
+    if (cachedBundle == null) {
+      cachedBundle = buildBundle();
     }
-    synchronized (bundleLock) {
-      // double-check after acquiring lock
-      if (cachedBundle == null) {
-        cachedBundle = buildBundle();
-      }
-      return cachedBundle;
-    }
+    return cachedBundle;
   }
 
   /** Constructs the grammar bundle. Override in tests to inject a custom or failing builder. */
@@ -86,10 +79,8 @@ public class RestPPLGrammarAction extends BaseRestHandler {
 
   /** Invalidate the cached bundle, forcing a rebuild on the next request. */
   @VisibleForTesting
-  protected void invalidateCache() {
-    synchronized (bundleLock) {
-      cachedBundle = null;
-    }
+  protected synchronized void invalidateCache() {
+    cachedBundle = null;
   }
 
   private void serializeBundle(XContentBuilder builder, GrammarBundle bundle) throws IOException {
