@@ -201,7 +201,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitChildren(Node node, CalcitePlanContext context) {
     RelNode result = super.visitChildren(node, context);
-    mapPathMaterializer.materializePaths(node, context);
+    if (node instanceof UnresolvedPlan plan) {
+      mapPathMaterializer.materializePaths(plan, context);
+    }
     return result;
   }
 

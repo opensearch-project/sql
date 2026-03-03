@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -83,6 +85,7 @@ public class MapPathPreMaterializerTest {
     context =
         CalcitePlanContext.create(mock(FrameworkConfig.class), SysLimit.DEFAULT, QueryType.PPL);
     lenient().when(relBuilder.size()).thenReturn(1);
+    lenient().when(relBuilder.peek()).thenReturn(mock(RelNode.class, RETURNS_DEEP_STUBS));
   }
 
   // ---- Symbol-based commands ----
@@ -186,12 +189,6 @@ public class MapPathPreMaterializerTest {
     givenMapPaths("doc.user.name")
         .whenCommand(rename(DUMMY_CHILD, map("doc.user.name", "u")))
         .shouldNotProject();
-  }
-
-  @Test
-  void testNoOpForNonUnresolvedPlan() {
-    materializer.materializePaths(mock(org.opensearch.sql.ast.Node.class), context);
-    verify(relBuilder, never()).projectPlus(any(List.class));
   }
 
   @Test

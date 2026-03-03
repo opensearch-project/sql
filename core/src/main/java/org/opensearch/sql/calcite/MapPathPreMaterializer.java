@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.FillNull;
@@ -40,18 +40,22 @@ public class MapPathPreMaterializer {
   private final CalciteRexNodeVisitor rexVisitor;
 
   /**
-   * Materializes MAP dotted paths referenced by the given AST node. For each field operand that
+   * Materializes MAP dotted paths referenced by the given command. For each field operand that
    * resolves to an {@code ITEM()} access on a MAP column, projects it as a flat named column via
    * {@code relBuilder.projectPlus()}.
    *
-   * @param node the AST node being visited
+   * @param plan the AST command being visited
    * @param context the current plan context with relBuilder state
    */
-  public void materializePaths(Node node, CalcitePlanContext context) {
-    if (!(node instanceof UnresolvedPlan plan) || context.relBuilder.size() == 0) {
+  public void materializePaths(UnresolvedPlan plan, CalcitePlanContext context) {
+    if (context.relBuilder.size() == 0) {
       return;
     }
-    projectMapPaths(resolveMapPaths(extractFieldOperands(plan), context), context);
+
+    List<Field> fields = extractFieldOperands(plan);
+    if (!fields.isEmpty()) {
+      projectMapPaths(resolveMapPaths(fields, context), context);
+    }
   }
 
   private List<Field> extractFieldOperands(UnresolvedPlan node) {
@@ -69,9 +73,13 @@ public class MapPathPreMaterializer {
   private Map<String, RexNode> resolveMapPaths(List<Field> fields, CalcitePlanContext context) {
     Map<String, RexNode> paths = new LinkedHashMap<>();
     for (Field f : fields) {
-      RexNode resolved = rexVisitor.analyze(f, context);
-      if (resolved.getKind() == SqlKind.ITEM) {
-        paths.put(f.getField().toString(), resolved);
+      try {
+        RexNode resolved = rexVisitor.analyze(f, context);
+        if (resolved.getKind() == SqlKind.ITEM) {
+          paths.put(f.getField().toString(), resolved);
+        }
+      } catch (RuntimeException e) {
+        // Field cannot be resolved (e.g., not in schema) — skip silently
       }
     }
     return paths;
@@ -82,11 +90,17 @@ public class MapPathPreMaterializer {
       return;
     }
 
-    List<RexNode> aliased =
-        mapPaths.entrySet().stream()
-            .map(e -> context.relBuilder.alias(e.getValue(), e.getKey()))
-            .toList();
-    context.relBuilder.projectPlus(aliased);
+    List<String> existingFields = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> newColumns = new ArrayList<>();
+    mapPaths.forEach(
+        (name, itemAccess) -> {
+          if (!existingFields.contains(name)) {
+            newColumns.add(context.relBuilder.alias(itemAccess, name));
+          }
+        });
+    if (!newColumns.isEmpty()) {
+      context.relBuilder.projectPlus(newColumns);
+    }
   }
 
   private static <T> List<Field> toFields(Collection<T> items) {

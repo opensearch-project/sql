@@ -166,6 +166,40 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
         rows(null, null));
   }
 
+  // ---- Edge cases ----
+
+  /** Dotted field that resolves to a regular column (not MAP) should not cause errors. */
+  @Test
+  public void testNonMapDottedFieldSkippedGracefully() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | rename doc.user.name as username
+            | fields - username
+            | fields doc.user.age\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.age", "string"));
+    verifyDataRows(result, rows("30"), rows("25"), rows("35"), rows("40"), rows((Object) null));
+  }
+
+  /** Same MAP path referenced by two commands should not produce duplicate columns. */
+  @Test
+  public void testSameMapPathAcrossMultipleCommands() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | fillnull using doc.user.name = 'N/A'
+            | rename doc.user.name as username
+            | fields username\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("username", "string"));
+    verifyDataRows(result, rows("John"), rows("Alice"), rows("John"), rows("Bob"), rows("N/A"));
+  }
+
   private void createJsonTestIndex() {
     if (isIndexExist(client(), TEST_INDEX)) {
       return;
