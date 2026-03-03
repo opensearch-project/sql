@@ -985,11 +985,6 @@ public class PPLFuncImpTable {
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
-      // Register pattern aggregation helper UDFs for scripted metric pushdown
-      registerOperator(PATTERN_INIT_UDF, PPLBuiltinOperators.PATTERN_INIT_UDF);
-      registerOperator(PATTERN_ADD_UDF, PPLBuiltinOperators.PATTERN_ADD_UDF);
-      registerOperator(PATTERN_COMBINE_UDF, PPLBuiltinOperators.PATTERN_COMBINE_UDF);
-      registerOperator(PATTERN_RESULT_UDF, PPLBuiltinOperators.PATTERN_RESULT_UDF);
       registerOperator(TONUMBER, PPLBuiltinOperators.TONUMBER);
       registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
       register(

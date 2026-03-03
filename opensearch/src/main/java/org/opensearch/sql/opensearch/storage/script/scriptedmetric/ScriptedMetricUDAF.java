@@ -72,9 +72,10 @@ public interface ScriptedMetricUDAF {
    * Build the combine_script RexNode for combining shard-level states.
    *
    * @param context The script context containing builders and utilities
+   * @param args The arguments from the aggregate call
    * @return RexNode representing the combine script expression
    */
-  RexNode buildCombineScript(ScriptContext context);
+  RexNode buildCombineScript(ScriptContext context, List<RexNode> args);
 
   /**
    * Build the reduce_script RexNode for producing final result.
@@ -192,7 +193,7 @@ public interface ScriptedMetricUDAF {
     // Build scripts
     RexNode initRex = buildInitScript(initContext);
     RexNode mapRex = buildMapScript(mapContext, argRefs);
-    RexNode combineRex = buildCombineScript(combineContext);
+    RexNode combineRex = buildCombineScript(combineContext, argRefs);
     RexNode reduceRex = buildReduceScript(reduceContext, argRefs);
 
     // Create Script objects

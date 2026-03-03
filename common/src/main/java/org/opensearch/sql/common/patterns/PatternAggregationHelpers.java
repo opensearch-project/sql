@@ -52,36 +52,6 @@ public final class PatternAggregationHelpers {
   }
 
   /**
-   * Add a log message to the accumulator (overload for Object acc and int thresholdPercentage).
-   * This overload handles the case when the accumulator is passed as a generic Object and
-   * thresholdPercentage is passed as an integer at runtime (from the script engine).
-   *
-   * @param acc Current accumulator state (as Object, will be cast to Map)
-   * @param logMessage The log message to process
-   * @param maxSampleCount Maximum samples to keep per pattern
-   * @param bufferLimit Maximum buffer size before triggering partial merge
-   * @param variableCountThreshold Brain parser variable count threshold
-   * @param thresholdPercentage Brain parser frequency threshold percentage (as int)
-   * @return Updated accumulator
-   */
-  @SuppressWarnings("unchecked")
-  public static Map<String, Object> addLogToPattern(
-      Object acc,
-      String logMessage,
-      int maxSampleCount,
-      int bufferLimit,
-      int variableCountThreshold,
-      int thresholdPercentage) {
-    return addLogToPattern(
-        (Map<String, Object>) acc,
-        logMessage,
-        maxSampleCount,
-        bufferLimit,
-        variableCountThreshold,
-        (double) thresholdPercentage);
-  }
-
-  /**
    * Add a log message to the accumulator (overload for Object acc and BigDecimal
    * thresholdPercentage). This overload handles the case when the accumulator is passed as a
    * generic Object and thresholdPercentage is passed as BigDecimal at runtime.
@@ -143,33 +113,6 @@ public final class PatternAggregationHelpers {
         thresholdPercentage);
   }
 
-  /**
-   * Add a log message to the accumulator (overload for int thresholdPercentage). This overload
-   * handles the case when thresholdPercentage is passed as an integer at runtime.
-   *
-   * @param acc Current accumulator state
-   * @param logMessage The log message to process
-   * @param maxSampleCount Maximum samples to keep per pattern
-   * @param bufferLimit Maximum buffer size before triggering partial merge
-   * @param variableCountThreshold Brain parser variable count threshold
-   * @param thresholdPercentage Brain parser frequency threshold percentage (as int)
-   * @return Updated accumulator
-   */
-  public static Map<String, Object> addLogToPattern(
-      Map<String, Object> acc,
-      String logMessage,
-      int maxSampleCount,
-      int bufferLimit,
-      int variableCountThreshold,
-      int thresholdPercentage) {
-    return addLogToPattern(
-        acc,
-        logMessage,
-        maxSampleCount,
-        bufferLimit,
-        variableCountThreshold,
-        (double) thresholdPercentage);
-  }
 
   /**
    * Add a log message to the accumulator (overload for BigDecimal thresholdPercentage). This
@@ -249,6 +192,62 @@ public final class PatternAggregationHelpers {
   }
 
   /**
+   * Flush the logMessages buffer in the accumulator by parsing remaining logs into patterns. This
+   * is designed for the combine_script phase to avoid sending raw log messages across the network to
+   * the coordinating node.
+   *
+   * @param state Current accumulator state (as Object, will be cast to Map)
+   * @param maxSampleCount Maximum samples to keep per pattern
+   * @param variableCountThreshold Brain parser variable count threshold
+   * @param thresholdPercentage Brain parser frequency threshold percentage
+   * @return Updated accumulator with flushed buffer
+   */
+  @SuppressWarnings("unchecked")
+  public static Map<String, Object> flushPatternAccumulator(
+      Object state, int maxSampleCount, int variableCountThreshold, double thresholdPercentage) {
+    Map<String, Object> stateMap = (Map<String, Object>) state;
+    List<String> logMessages = (List<String>) stateMap.get("logMessages");
+    Map<String, Map<String, Object>> patternGroupMap =
+        (Map<String, Map<String, Object>>) stateMap.get("patternGroupMap");
+
+    if (logMessages != null && !logMessages.isEmpty()) {
+      BrainLogParser parser =
+          new BrainLogParser(variableCountThreshold, (float) thresholdPercentage);
+      Map<String, Map<String, Object>> partialPatterns =
+          parser.parseAllLogPatterns(logMessages, maxSampleCount);
+      patternGroupMap =
+          PatternUtils.mergePatternGroups(patternGroupMap, partialPatterns, maxSampleCount);
+      stateMap.put("patternGroupMap", patternGroupMap);
+      logMessages.clear();
+    }
+
+    return stateMap;
+  }
+
+  /**
+   * Flush the logMessages buffer (overload for BigDecimal thresholdPercentage).
+   *
+   * @param state Current accumulator state (as Object, will be cast to Map)
+   * @param maxSampleCount Maximum samples to keep per pattern
+   * @param variableCountThreshold Brain parser variable count threshold
+   * @param thresholdPercentage Brain parser frequency threshold percentage (as BigDecimal)
+   * @return Updated accumulator with flushed buffer
+   */
+  public static Map<String, Object> flushPatternAccumulator(
+      Object state,
+      int maxSampleCount,
+      int variableCountThreshold,
+      java.math.BigDecimal thresholdPercentage) {
+    return flushPatternAccumulator(
+        state,
+        maxSampleCount,
+        variableCountThreshold,
+        thresholdPercentage != null
+            ? thresholdPercentage.doubleValue()
+            : BrainLogParser.DEFAULT_FREQUENCY_THRESHOLD_PERCENTAGE);
+  }
+
+  /**
    * Combine two accumulators (for combine_script phase).
    *
    * @param acc1 First accumulator
@@ -325,31 +324,6 @@ public final class PatternAggregationHelpers {
                 Comparator.nullsLast(Comparator.reverseOrder())))
         .map(m -> formatPatternOutput(m, showNumberedToken))
         .collect(Collectors.toList());
-  }
-
-  /**
-   * Produce final pattern result from states array (overload for int thresholdPercentage). This
-   * overload handles the case when thresholdPercentage is passed as an integer at runtime.
-   *
-   * @param states List of shard-level accumulator states
-   * @param maxSampleCount Maximum samples per pattern
-   * @param variableCountThreshold Brain parser variable count threshold
-   * @param thresholdPercentage Brain parser frequency threshold percentage (as int)
-   * @param showNumberedToken Whether to show numbered tokens in output
-   * @return List of pattern result objects sorted by count
-   */
-  public static List<Map<String, Object>> producePatternResultFromStates(
-      List<Object> states,
-      int maxSampleCount,
-      int variableCountThreshold,
-      int thresholdPercentage,
-      boolean showNumberedToken) {
-    return producePatternResultFromStates(
-        states,
-        maxSampleCount,
-        variableCountThreshold,
-        (double) thresholdPercentage,
-        showNumberedToken);
   }
 
   /**

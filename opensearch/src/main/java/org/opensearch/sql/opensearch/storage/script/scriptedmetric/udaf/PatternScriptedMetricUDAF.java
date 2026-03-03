@@ -25,7 +25,8 @@ import org.opensearch.sql.opensearch.storage.script.scriptedmetric.ScriptedMetri
  *   <li><b>init_script</b>: Initializes state with logMessages buffer and patternGroupMap
  *   <li><b>map_script</b>: Adds log messages to accumulator, triggers partial merge when buffer is
  *       full
- *   <li><b>combine_script</b>: Returns shard-level state for the reduce phase
+ *   <li><b>combine_script</b>: Flushes remaining log buffer into patterns and returns shard-level
+ *       state
  *   <li><b>reduce_script</b>: Combines all shard states and produces final pattern results
  * </ul>
  */
@@ -85,9 +86,27 @@ public class PatternScriptedMetricUDAF implements ScriptedMetricUDAF {
   }
 
   @Override
-  public RexNode buildCombineScript(ScriptContext context) {
-    // Combine script simply returns the shard-level state
-    return context.addSpecialVariableRef("state", SqlTypeName.ANY);
+  public RexNode buildCombineScript(ScriptContext context, List<RexNode> args) {
+    RexBuilder rexBuilder = context.getRexBuilder();
+    List<RexNode> combineArgs = new ArrayList<>();
+
+    // Add state variable reference
+    RexNode stateRef = context.addSpecialVariableRef("state", SqlTypeName.ANY);
+    combineArgs.add(stateRef);
+
+    // maxSampleCount
+    combineArgs.add(
+        getArgOrDefault(args, 1, makeIntLiteral(rexBuilder, DEFAULT_MAX_SAMPLE_COUNT)));
+
+    // variableCountThreshold
+    combineArgs.add(
+        getArgOrDefault(args, 5, makeIntLiteral(rexBuilder, DEFAULT_VARIABLE_COUNT_THRESHOLD)));
+
+    // thresholdPercentage
+    combineArgs.add(
+        getArgOrDefault(args, 4, makeDoubleLiteral(rexBuilder, DEFAULT_THRESHOLD_PERCENTAGE)));
+
+    return rexBuilder.makeCall(PPLBuiltinOperators.PATTERN_FLUSH_UDF, combineArgs);
   }
 
   @Override
