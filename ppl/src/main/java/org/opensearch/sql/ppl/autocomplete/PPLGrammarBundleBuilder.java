@@ -23,7 +23,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLLexer;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 
 /** Builds the {@link GrammarBundle} for the PPL language from the generated ANTLR lexer/parser. */
-public class PPLGrammarBundleBuilder {
+public final class PPLGrammarBundleBuilder {
   private static final String ANTLR_VERSION =
       org.antlr.v4.runtime.RuntimeMetaData.getRuntimeVersion();
   private static final String BUNDLE_VERSION = "1.0";
@@ -44,7 +44,18 @@ public class PPLGrammarBundleBuilder {
               "BLOCK_COMMENT",
               "ERROR_RECOGNITION"));
 
-  public GrammarBundle build() {
+  private PPLGrammarBundleBuilder() {}
+
+  private static class BundleHolder {
+    private static final GrammarBundle INSTANCE = build();
+  }
+
+  /** Lazily builds and returns the singleton grammar bundle for this JVM. */
+  public static GrammarBundle getBundle() {
+    return BundleHolder.INSTANCE;
+  }
+
+  private static GrammarBundle build() {
     OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(CharStreams.fromString(""));
     CommonTokenStream tokens = new CommonTokenStream(lexer);
     OpenSearchPPLParser parser = new OpenSearchPPLParser(tokens);

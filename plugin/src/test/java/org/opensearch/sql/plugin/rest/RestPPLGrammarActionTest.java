@@ -11,7 +11,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -107,9 +106,9 @@ public class RestPPLGrammarActionTest {
   }
 
   @Test
-  public void testGetGrammar_BundleIsCached() throws Exception {
-    AtomicInteger buildCount = new AtomicInteger(0);
-    RestPPLGrammarAction countingAction =
+  public void testGetGrammar_UsesBundleProvider() throws Exception {
+    int[] calls = {0};
+    RestPPLGrammarAction providerAction =
         new RestPPLGrammarAction() {
           @Override
           protected void authorizeRequest(
@@ -118,58 +117,21 @@ public class RestPPLGrammarActionTest {
           }
 
           @Override
-          protected GrammarBundle buildBundle() {
-            buildCount.incrementAndGet();
-            return super.buildBundle();
+          protected GrammarBundle getBundle() {
+            calls[0]++;
+            return super.getBundle();
           }
         };
 
     FakeRestRequest request1 = newGrammarGetRequest();
     MockRestChannel channel1 = new MockRestChannel(request1, true);
-    countingAction.handleRequest(request1, channel1, client);
+    providerAction.handleRequest(request1, channel1, client);
 
     FakeRestRequest request2 = newGrammarGetRequest();
     MockRestChannel channel2 = new MockRestChannel(request2, true);
-    countingAction.handleRequest(request2, channel2, client);
+    providerAction.handleRequest(request2, channel2, client);
 
-    assertEquals("Bundle should be built exactly once", 1, buildCount.get());
-    assertEquals(
-        "Consecutive requests should return identical content",
-        channel1.getResponse().content().utf8ToString(),
-        channel2.getResponse().content().utf8ToString());
-  }
-
-  @Test
-  public void testInvalidateCache() throws Exception {
-    AtomicInteger buildCount = new AtomicInteger(0);
-    RestPPLGrammarAction countingAction =
-        new RestPPLGrammarAction() {
-          @Override
-          protected void authorizeRequest(
-              NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
-            listener.onResponse(new TransportPPLQueryResponse("{}"));
-          }
-
-          @Override
-          protected GrammarBundle buildBundle() {
-            buildCount.incrementAndGet();
-            return super.buildBundle();
-          }
-        };
-
-    FakeRestRequest request1 = newGrammarGetRequest();
-    MockRestChannel channel1 = new MockRestChannel(request1, true);
-    countingAction.handleRequest(request1, channel1, client);
-    assertEquals(RestStatus.OK, channel1.getResponse().status());
-    assertEquals("Bundle should be built on first request", 1, buildCount.get());
-
-    countingAction.invalidateCache();
-
-    FakeRestRequest request2 = newGrammarGetRequest();
-    MockRestChannel channel2 = new MockRestChannel(request2, true);
-    countingAction.handleRequest(request2, channel2, client);
-    assertEquals(RestStatus.OK, channel2.getResponse().status());
-    assertEquals("Bundle should be rebuilt after cache invalidation", 2, buildCount.get());
+    assertEquals("Bundle provider should be invoked once per request", 2, calls[0]);
   }
 
   @Test
@@ -183,7 +145,7 @@ public class RestPPLGrammarActionTest {
           }
 
           @Override
-          protected GrammarBundle buildBundle() {
+          protected GrammarBundle getBundle() {
             throw new RuntimeException("simulated build failure");
           }
         };
@@ -206,7 +168,7 @@ public class RestPPLGrammarActionTest {
           }
 
           @Override
-          protected GrammarBundle buildBundle() {
+          protected GrammarBundle getBundle() {
             return null;
           }
         };

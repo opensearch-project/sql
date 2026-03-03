@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.autocomplete;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -43,7 +44,7 @@ public class PPLGrammarBundleBuilderTest {
 
   @BeforeClass
   public static void buildBundle() {
-    bundle = new PPLGrammarBundleBuilder().build();
+    bundle = PPLGrammarBundleBuilder.getBundle();
   }
 
   @Test
@@ -140,9 +141,10 @@ public class PPLGrammarBundleBuilderTest {
 
   @Test
   public void testBuildIsDeterministic() {
-    GrammarBundle second = new PPLGrammarBundleBuilder().build();
+    GrammarBundle second = PPLGrammarBundleBuilder.getBundle();
+    assertSame("Bundle accessor should return the same singleton instance", bundle, second);
     assertEquals(
-        "Two builds of the same grammar should produce the same hash",
+        "Repeated accesses should produce the same hash",
         bundle.getGrammarHash(),
         second.getGrammarHash());
   }
