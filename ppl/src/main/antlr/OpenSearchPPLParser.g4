@@ -20,11 +20,11 @@ pplStatement
    ;
 
 subPipeline
-   : PIPE? commands (PIPE commands)*
+   : PIPE? commands (PIPE commands?)*
    ;
 
 queryStatement
-   : (PIPE)? pplCommands (PIPE commands)*
+   : (PIPE)? pplCommands (PIPE commands?)*
    ;
 
 explainStatement
@@ -39,7 +39,7 @@ explainMode
     ;
 
 subSearch
-   : searchCommand (PIPE commands)*
+   : searchCommand (PIPE commands?)*
    ;
 
 // commands
@@ -80,14 +80,20 @@ commands
    | addcoltotalsCommand
    | appendCommand
    | expandCommand
+    | mvexpandCommand
    | flattenCommand
    | reverseCommand
    | regexCommand
    | chartCommand
    | timechartCommand
+   | transposeCommand
    | rexCommand
    | appendPipeCommand
    | replaceCommand
+   | mvcombineCommand
+   | fieldformatCommand
+   | nomvCommand
+   | graphLookupCommand
    ;
 
 commandName
@@ -105,6 +111,7 @@ commandName
    | DEDUP
    | SORT
    | EVAL
+   | FIELDFORMAT
    | HEAD
    | BIN
    | TOP
@@ -118,6 +125,7 @@ commandName
    | ML
    | FILLNULL
    | EXPAND
+    | MVEXPAND
    | FLATTEN
    | TRENDLINE
    | TIMECHART
@@ -131,6 +139,10 @@ commandName
    | REX
    | APPENDPIPE
    | REPLACE
+   | MVCOMBINE
+   | NOMV
+   | TRANSPOSE
+   | GRAPHLOOKUP
    ;
 
 searchCommand
@@ -328,6 +340,16 @@ timechartCommand
    : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)? timechartParameter*
    ;
 
+transposeCommand
+   : TRANSPOSE transposeParameter*
+   ;
+
+transposeParameter
+   : (number = integerLiteral)
+   | (COLUMN_NAME EQUAL stringLiteral)
+   ;
+
+
 timechartParameter
    : LIMIT EQUAL integerLiteral
    | SPAN EQUAL spanLiteral
@@ -345,6 +367,10 @@ spanLiteral
 
 evalCommand
    : EVAL evalClause (COMMA evalClause)*
+   ;
+
+fieldformatCommand
+   : FIELDFORMAT fieldFormatEvalClause (COMMA fieldFormatEvalClause)*
    ;
 
 headCommand
@@ -531,6 +557,18 @@ expandCommand
     : EXPAND fieldExpression (AS alias = qualifiedName)?
     ;
 
+mvcombineCommand
+  : MVCOMBINE fieldExpression (DELIM EQUAL stringLiteral)?
+  ;
+
+nomvCommand
+  : NOMV fieldExpression
+  ;
+
+mvexpandCommand
+    : MVEXPAND fieldExpression (LIMIT EQUAL INTEGER_LITERAL)?
+    ;
+
 flattenCommand
    : FLATTEN fieldExpression (AS aliases = identifierSeq)?
    ;
@@ -605,6 +643,23 @@ addcoltotalsCommand
 addcoltotalsOption
    : (LABEL EQUAL stringLiteral)
    | (LABELFIELD EQUAL stringLiteral)
+   ;
+
+graphLookupCommand
+   : GRAPHLOOKUP lookupTable = tableSourceClause graphLookupOption* AS outputField = fieldExpression
+   ;
+
+graphLookupOption
+   : (START_FIELD EQUAL fieldExpression)
+   | (FROM_FIELD EQUAL fieldExpression)
+   | (TO_FIELD EQUAL fieldExpression)
+   | (MAX_DEPTH EQUAL integerLiteral)
+   | (DEPTH_FIELD EQUAL fieldExpression)
+   | (DIRECTION EQUAL (UNI | BI))
+   | (SUPPORT_ARRAY EQUAL booleanLiteral)
+   | (BATCH_MODE EQUAL booleanLiteral)
+   | (USE_PIT EQUAL booleanLiteral)
+   | (FILTER EQUAL LT_PRTHS logicalExpression RT_PRTHS)
    ;
 
 // clauses
@@ -720,6 +775,10 @@ evalClause
    : fieldExpression EQUAL logicalExpression
    ;
 
+fieldFormatEvalClause
+   : fieldExpression EQUAL ffLogicalExpression
+   ;
+
 eventstatsAggTerm
    : windowFunction (AS alias = wcFieldExpression)?
    ;
@@ -813,6 +872,13 @@ numericLiteral
     | floatLiteral
     ;
 
+ffLogicalExpression
+   : stringLiteral DOT logicalExpression   # stringDotlogicalExpression
+   | stringLiteral DOT logicalExpression  DOT stringLiteral # stringDotlogicalExpressionDotString
+   | logicalExpression DOT stringLiteral   # logicalExpressionDotString
+   | logicalExpression                     # ffStandardLogicalExpression
+   ;
+
 // predicates
 logicalExpression
    : NOT logicalExpression                                      # logicalNot
@@ -829,6 +895,7 @@ expression
    | expression NOT? IN valueList                               # inExpr
    | expression NOT? BETWEEN expression AND expression          # between
    ;
+
 
 valueExpression
    : left = valueExpression binaryOperator = (STAR | DIVIDE | MODULE) right = valueExpression                   # binaryArithmetic
@@ -1657,5 +1724,12 @@ searchableKeyWord
    | FIELDNAME
    | ROW
    | COL
+   | COLUMN_NAME
+   | FROM_FIELD
+   | TO_FIELD
+   | MAX_DEPTH
+   | DEPTH_FIELD
+   | DIRECTION
+   | UNI
+   | BI
    ;
-

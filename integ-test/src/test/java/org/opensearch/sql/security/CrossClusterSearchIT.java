@@ -5,60 +5,23 @@
 
 package org.opensearch.sql.security;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
-import lombok.SneakyThrows;
 import org.json.JSONObject;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.opensearch.client.ResponseException;
-import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /** Cross Cluster Search tests to be executed with security plugin. */
-public class CrossClusterSearchIT extends PPLIntegTestCase {
-
-  static {
-    // find a remote cluster
-    String[] clusterNames = System.getProperty("cluster.names").split(",");
-    var remote = "remoteCluster";
-    for (var cluster : clusterNames) {
-      if (cluster.startsWith("remote")) {
-        remote = cluster;
-        break;
-      }
-    }
-    REMOTE_CLUSTER = remote;
-  }
-
-  public static final String REMOTE_CLUSTER;
-
-  private static final String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
-  private static final String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
-  private static final String TEST_INDEX_DOG_MATCH_ALL_REMOTE =
-      MATCH_ALL_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
-  private static final String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
-
-  private static boolean initialized = false;
-
-  @SneakyThrows
-  @BeforeEach
-  public void initialize() {
-    if (!initialized) {
-      setUpIndices();
-      initialized = true;
-    }
-  }
+public class CrossClusterSearchIT extends CrossClusterTestBase {
 
   @Override
   protected void init() throws Exception {
-    configureMultiClusters(REMOTE_CLUSTER);
+    super.init();
     loadIndex(Index.BANK);
     loadIndex(Index.BANK, remoteClient());
     loadIndex(Index.DOG);
@@ -245,46 +208,5 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
                 "search source=%s | where query_string('Hattie') | fields firstname",
                 TEST_INDEX_BANK_REMOTE));
     verifyDataRows(result, rows("Hattie"));
-  }
-
-  @Test
-  public void testCrossClusterAddTotals() throws IOException {
-    // Test query_string without fields parameter on remote cluster
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s| sort 1 age | fields firstname, age | addtotals age",
-                TEST_INDEX_BANK_REMOTE));
-    verifyDataRows(result, rows("Nanette", 28, 28));
-  }
-
-  /** CrossClusterSearchIT Test for addcoltotals. */
-  @Test
-  public void testCrossClusterAddColTotals() throws IOException {
-    // Test query_string without fields parameter on remote cluster
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | where  firstname='Hattie' or firstname ='Nanette'|fields"
-                    + " firstname,age,balance | addcoltotals age balance",
-                TEST_INDEX_BANK_REMOTE));
-    verifyDataRows(
-        result, rows("Hattie", 36, 5686), rows("Nanette", 28, 32838), rows(null, 64, 38524));
-  }
-
-  @Test
-  public void testCrossClusterAppend() throws IOException {
-    // TODO: We should enable calcite by default in CrossClusterSearchIT?
-    enableCalcite();
-
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | stats count() as cnt by gender | append [ search source=%s |"
-                    + " stats count() as cnt ]",
-                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
-    verifyDataRows(result, rows(3, "F"), rows(4, "M"), rows(7, null));
-
-    disableCalcite();
   }
 }

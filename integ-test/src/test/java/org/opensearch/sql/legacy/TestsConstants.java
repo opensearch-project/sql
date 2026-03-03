@@ -84,6 +84,9 @@ public class TestsConstants {
   public static final String TEST_INDEX_WORKER = TEST_INDEX + "_worker";
   public static final String TEST_INDEX_WORK_INFORMATION = TEST_INDEX + "_work_information";
   public static final String TEST_INDEX_DUPLICATION_NULLABLE = TEST_INDEX + "_duplication_nullable";
+  public static final String TEST_INDEX_GRAPH_EMPLOYEES = TEST_INDEX + "_graph_employees";
+  public static final String TEST_INDEX_GRAPH_TRAVELERS = TEST_INDEX + "_graph_travelers";
+  public static final String TEST_INDEX_GRAPH_AIRPORTS = TEST_INDEX + "_graph_airports";
   public static final String TEST_INDEX_MERGE_TEST_1 = TEST_INDEX + "_merge_test_1";
   public static final String TEST_INDEX_MERGE_TEST_2 = TEST_INDEX + "_merge_test_2";
   public static final String TEST_INDEX_MERGE_TEST_WILDCARD = TEST_INDEX + "_merge_test_*";
@@ -92,6 +95,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_LOGS = TEST_INDEX + "_logs";
   public static final String TEST_INDEX_OTEL_LOGS = TEST_INDEX + "_otel_logs";
   public static final String TEST_INDEX_TIME_DATE_NULL = TEST_INDEX + "_time_date_null";
+  public static final String TEST_INDEX_MVEXPAND_EDGE_CASES = "mvexpand_edge_cases";
 
   public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
   public static final String TS_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";

@@ -301,10 +301,6 @@ public class MatcherUtils {
     };
   }
 
-  public static JSONArray array(Object... objects) {
-    return new JSONArray(objects);
-  }
-
   public static TypeSafeMatcher<JSONArray> closeTo(Object... values) {
     final double error = 1e-10;
     return new TypeSafeMatcher<JSONArray>() {
@@ -324,7 +320,7 @@ public class MatcherUtils {
 
       @Override
       public void describeTo(Description description) {
-        description.appendText(String.join(",", Arrays.asList().toString()));
+        description.appendText(Arrays.toString(values));
       }
 
       private boolean valuesAreClose(Number v1, Number v2) {

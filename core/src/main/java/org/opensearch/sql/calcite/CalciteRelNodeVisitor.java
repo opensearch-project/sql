@@ -53,6 +53,7 @@ import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
@@ -61,7 +62,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -75,9 +78,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.AstNodeUtils;
 import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
-import org.opensearch.sql.ast.analysis.FieldResolutionResult;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
@@ -87,6 +89,7 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
@@ -97,6 +100,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFrame.FrameType;
 import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.AddColTotals;
 import org.opensearch.sql.ast.tree.AddTotals;
@@ -114,6 +118,8 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
+import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -121,6 +127,9 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
+import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -146,6 +155,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.plan.rel.LogicalGraphLookup;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.BinUtils;
@@ -235,8 +245,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitFilter(Filter node, CalcitePlanContext context) {
     visitChildren(node, context);
-    boolean containsSubqueryExpression =
-        AstNodeUtils.containsSubqueryExpression(node.getCondition());
+    boolean containsSubqueryExpression = containsSubqueryExpression(node.getCondition());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     if (containsSubqueryExpression) {
       context.relBuilder.variable(v::set);
@@ -365,6 +374,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  private boolean containsSubqueryExpression(Node expr) {
+    if (expr == null) {
+      return false;
+    }
+    if (expr instanceof SubqueryExpression) {
+      return true;
+    }
+    if (expr instanceof Let l) {
+      return containsSubqueryExpression(l.getExpression());
+    }
+    for (Node child : expr.getChild()) {
+      if (containsSubqueryExpression(child)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @Override
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
@@ -430,7 +457,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             }
             matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
           } else if (addedFields.add(fieldName)) {
-            expandedFields.add(rexVisitor.analyze(field, context));
+            RexNode resolved = rexVisitor.analyze(field, context);
+            /*
+             * Dotted path access is resolved into ITEM(map, path) function call without aliasing.
+             * Re-apply the alias so the projected column retains the user-visible name.
+             * TODO: Introduce path navigation semantics without relying on projection-time aliasing.
+             */
+            if (resolved.getKind() == SqlKind.ITEM) {
+              resolved = context.relBuilder.alias(resolved, fieldName);
+            }
+            expandedFields.add(resolved);
           }
         }
         case AllFields ignored -> {
@@ -680,6 +716,76 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
+  public RelNode visitTranspose(
+      org.opensearch.sql.ast.tree.Transpose node, CalcitePlanContext context) {
+
+    visitChildren(node, context);
+
+    int maxRows =
+        Optional.ofNullable(node.getMaxRows())
+            .filter(r -> r > 0)
+            .orElseThrow(() -> new IllegalArgumentException("maxRows must be positive"));
+
+    String columnName = node.getColumnName();
+    List<String> fieldNames =
+        context.relBuilder.peek().getRowType().getFieldNames().stream()
+            .filter(fieldName -> !isMetadataField(fieldName))
+            .toList();
+
+    RelBuilder b = context.relBuilder;
+    RexBuilder rx = context.rexBuilder;
+    RelDataType varchar = rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+
+    // Step 1: ROW_NUMBER
+    b.projectPlus(
+        b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+            .over()
+            .rowsTo(RexWindowBounds.CURRENT_ROW)
+            .as(PlanUtils.ROW_NUMBER_COLUMN_FOR_TRANSPOSE));
+
+    // Step 2: UNPIVOT
+    b.unpivot(
+        false,
+        ImmutableList.of("value"),
+        ImmutableList.of(columnName),
+        fieldNames.stream()
+            .map(
+                f ->
+                    Map.entry(
+                        ImmutableList.of(rx.makeLiteral(f)),
+                        ImmutableList.of((RexNode) rx.makeCast(varchar, b.field(f), true))))
+            .collect(Collectors.toList()));
+
+    // Step 3: Trim spaces from columnName column before pivot
+
+    RexNode trimmedColumnName =
+        context.rexBuilder.makeCall(
+            SqlStdOperatorTable.TRIM,
+            context.rexBuilder.makeFlag(SqlTrimFunction.Flag.BOTH),
+            context.rexBuilder.makeLiteral(" "),
+            b.field(columnName));
+
+    // Step 4: PIVOT
+    b.pivot(
+        b.groupKey(trimmedColumnName),
+        ImmutableList.of(b.max(b.field("value"))),
+        ImmutableList.of(b.field(PlanUtils.ROW_NUMBER_COLUMN_FOR_TRANSPOSE)),
+        IntStream.rangeClosed(1, maxRows)
+            .mapToObj(i -> Map.entry("row " + i, ImmutableList.of((RexNode) b.literal(i))))
+            .collect(Collectors.toList()));
+
+    // Step 4: RENAME
+    List<String> cleanNames = new ArrayList<>();
+    cleanNames.add(columnName);
+    for (int i = 1; i <= maxRows; i++) {
+      cleanNames.add("row " + i);
+    }
+    b.rename(cleanNames);
+
+    return b.peek();
+  }
+
+  @Override
   public RelNode visitBin(Bin node, CalcitePlanContext context) {
     visitChildren(node, context);
 
@@ -703,63 +809,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitSpath(SPath node, CalcitePlanContext context) {
-    if (node.getPath() != null) {
-      return visitEval(node.rewriteAsEval(), context);
-    } else {
-      return spathExtractAll(node, context);
-    }
-  }
-
-  private RelNode spathExtractAll(SPath node, CalcitePlanContext context) {
-    visitChildren(node, context);
-
-    FieldResolutionResult resolutionResult = context.resolveFields(node);
-    if (resolutionResult.hasWildcards()) {
-      // Logic for handling wildcards (dynamic fields) will be implemented later.
-      throw new IllegalArgumentException(
-          "spath command failed to identify fields to extract. Use fields/stats command to specify"
-              + " output fields.");
-    }
-
-    // 1. Extract all fields from JSON in `inField`
-    RexNode inField = rexVisitor.analyze(AstDSL.field(node.getInField()), context);
-    RexNode map = makeCall(context, BuiltinFunctionName.JSON_EXTRACT_ALL, inField);
-
-    // 2. Project items from FieldResolutionResult
-    Set<String> existingFields =
-        new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
-    List<String> fieldNames =
-        resolutionResult.getRegularFields().stream().sorted().collect(Collectors.toList());
-    List<RexNode> fields = new ArrayList<>();
-    for (String fieldName : fieldNames) {
-      RexNode item = itemCall(map, fieldName, context);
-      // Cast to string for type consistency. (This cast will be removed once functions are adopted
-      // to ANY type)
-      item = context.relBuilder.cast(item, SqlTypeName.VARCHAR);
-      // Append if field already exist
-      if (existingFields.contains(fieldName)) {
-        item =
-            makeCall(
-                context,
-                BuiltinFunctionName.INTERNAL_APPEND,
-                context.relBuilder.field(fieldName),
-                item);
-      }
-      fields.add(context.relBuilder.alias(item, fieldName));
-    }
-
-    context.relBuilder.project(fields);
-    return context.relBuilder.peek();
-  }
-
-  private RexNode itemCall(RexNode node, String key, CalcitePlanContext context) {
-    return makeCall(
-        context, BuiltinFunctionName.INTERNAL_ITEM, node, context.rexBuilder.makeLiteral(key));
-  }
-
-  private RexNode makeCall(
-      CalcitePlanContext context, BuiltinFunctionName functionName, RexNode... args) {
-    return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, args);
+    return visitEval(node.rewriteAsEval(), context);
   }
 
   @Override
@@ -884,7 +934,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 .toList();
         context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCall);
         buildExpandRelNode(
-            context.relBuilder.field(node.getAlias()), node.getAlias(), node.getAlias(), context);
+            context.relBuilder.field(node.getAlias()),
+            node.getAlias(),
+            node.getAlias(),
+            null,
+            context);
         flattenParsedPattern(
             node.getAlias(),
             context.relBuilder.field(node.getAlias()),
@@ -902,7 +956,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     node.getExpressionList()
         .forEach(
             expr -> {
-              boolean containsSubqueryExpression = AstNodeUtils.containsSubqueryExpression(expr);
+              boolean containsSubqueryExpression = containsSubqueryExpression(expr);
               final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
               if (containsSubqueryExpression) {
                 context.relBuilder.variable(v::set);
@@ -2488,6 +2542,67 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context, fieldsToAggregate, false, true, null, labelField, label);
   }
 
+  @Override
+  public RelNode visitGraphLookup(GraphLookup node, CalcitePlanContext context) {
+    // 1. Visit source (child) table
+    visitChildren(node, context);
+    RelBuilder builder = context.relBuilder;
+    // TODO: Limit the number of source rows to 100 for now, make it configurable.
+    builder.limit(0, 100);
+    if (node.isBatchMode()) {
+      tryToRemoveMetaFields(context, true);
+    }
+    RelNode sourceTable = builder.build();
+
+    // 2. Extract parameters
+    String startFieldName = node.getStartField().getField().toString();
+    String fromFieldName = node.getFromField().getField().toString();
+    String toFieldName = node.getToField().getField().toString();
+    String outputFieldName = node.getAs().getField().toString();
+    String depthFieldName = node.getDepthFieldName();
+    boolean bidirectional = node.getDirection() == Direction.BI;
+
+    RexLiteral maxDepthNode = (RexLiteral) rexVisitor.analyze(node.getMaxDepth(), context);
+    Integer maxDepthValue = maxDepthNode.getValueAs(Integer.class);
+    maxDepthValue = maxDepthValue == null ? 0 : maxDepthValue;
+    boolean supportArray = node.isSupportArray();
+    boolean batchMode = node.isBatchMode();
+    boolean usePIT = node.isUsePIT();
+
+    // 3. Visit and materialize lookup table
+    analyze(node.getFromTable(), context);
+    tryToRemoveMetaFields(context, true);
+
+    // 4. Convert filter expression to RexNode against lookup table schema
+    RexNode filterRex = null;
+    if (node.getFilter() != null) {
+      filterRex = rexVisitor.analyze(node.getFilter(), context);
+    }
+
+    RelNode lookupTable = builder.build();
+
+    // 5. Create LogicalGraphLookup RelNode
+    // The conversion rule will extract the OpenSearchIndex from the lookup table
+    RelNode graphLookup =
+        LogicalGraphLookup.create(
+            sourceTable,
+            lookupTable,
+            startFieldName,
+            fromFieldName,
+            toFieldName,
+            outputFieldName,
+            depthFieldName,
+            maxDepthValue,
+            bidirectional,
+            supportArray,
+            batchMode,
+            usePIT,
+            filterRex);
+
+    builder.push(graphLookup);
+    return builder.peek();
+  }
+
   /**
    * Cast integer sum to long, real/float to double to avoid ClassCastException
    *
@@ -3081,9 +3196,252 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
     String alias = expand.getAlias();
 
-    buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);
+    buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, null, context);
 
     return context.relBuilder.peek();
+  }
+
+  /**
+   * mvcombine command visitor to collapse rows that are identical on all non-target fields.
+   *
+   * <p>Grouping semantics:
+   *
+   * <ul>
+   *   <li>The target field is always excluded from the GROUP BY keys.
+   *   <li>Metadata fields (for example {@code _id}, {@code _index}, {@code _score}) are excluded
+   *       from GROUP BY keys <strong>unless</strong> they were explicitly projected earlier (for
+   *       example, via {@code fields}).
+   * </ul>
+   *
+   * <p>The target field values are aggregated using {@code ARRAY_AGG}, with {@code NULL} values
+   * filtered out. The aggregation result replaces the original target column and produces an {@code
+   * ARRAY<T>} output.
+   *
+   * <p>The original output column order is preserved. Metadata fields are projected as typed {@code
+   * NULL} literals after aggregation only when they are not part of grouping (since they were
+   * skipped).
+   *
+   * @param node mvcombine command to be visited
+   * @param context CalcitePlanContext containing the RelBuilder and planning context
+   * @return RelNode representing collapsed records with the target combined into a multivalue array
+   * @throws SemanticCheckException if the mvcombine target is not a direct field reference
+   */
+  @Override
+  public RelNode visitMvCombine(MvCombine node, CalcitePlanContext context) {
+    // 1) Lower the child plan first so the RelBuilder has the input schema on the stack.
+    visitChildren(node, context);
+
+    final RelBuilder relBuilder = context.relBuilder;
+
+    final RelNode input = relBuilder.peek();
+    final List<String> inputFieldNames = input.getRowType().getFieldNames();
+    final List<RelDataType> inputFieldTypes =
+        input.getRowType().getFieldList().stream().map(RelDataTypeField::getType).toList();
+
+    // If true, we should NOT auto-skip meta fields (because user explicitly projected them)
+    final boolean includeMetaFields = context.isProjectVisited();
+
+    // 2) Resolve the mvcombine target to an input column index (must be a direct field reference).
+    final Field targetField = node.getField();
+    final int targetIndex = resolveTargetIndex(targetField, context);
+    final String targetName = inputFieldNames.get(targetIndex);
+
+    // 3) Group by all non-target fields, skipping meta fields unless explicitly projected.
+    final List<RexNode> groupExprs =
+        buildGroupExpressionsExcludingTarget(
+            targetIndex, inputFieldNames, relBuilder, includeMetaFields);
+
+    // 4) Aggregate target values using ARRAY_AGG, filtering out NULLs.
+    performArrayAggAggregation(relBuilder, targetIndex, targetName, groupExprs);
+
+    // 5) Restore original output column order (ARRAY_AGG already returns ARRAY<T>).
+    restoreColumnOrderAfterArrayAgg(
+        relBuilder, inputFieldNames, inputFieldTypes, targetIndex, groupExprs, includeMetaFields);
+
+    return relBuilder.peek();
+  }
+
+  /** Resolves the mvcombine target expression to an input field index. */
+  private int resolveTargetIndex(Field targetField, CalcitePlanContext context) {
+    final RexNode targetRex;
+    try {
+      targetRex = rexVisitor.analyze(targetField, context);
+    } catch (IllegalArgumentException e) {
+      // Make missing-field behavior deterministic (and consistently mapped to 4xx)
+      // instead of leaking RelBuilder/rexVisitor exception wording.
+      throw new SemanticCheckException(
+          "mvcombine target field not found: " + targetField.getField().toString(), e);
+    }
+
+    if (!isInputRef(targetRex)) {
+      throw new SemanticCheckException(
+          "mvcombine target must be a direct field reference, but got: " + targetField);
+    }
+
+    final int index = ((RexInputRef) targetRex).getIndex();
+
+    final RelDataType fieldType =
+        context.relBuilder.peek().getRowType().getFieldList().get(index).getType();
+
+    if (SqlTypeUtil.isArray(fieldType) || SqlTypeUtil.isMultiset(fieldType)) {
+      throw new SemanticCheckException(
+          "mvcombine target cannot be an array/multivalue type, but got: " + fieldType);
+    }
+
+    return index;
+  }
+
+  /**
+   * Builds group-by expressions for mvcombine: all non-target input fields; meta fields are skipped
+   * unless includeMetaFields is true.
+   */
+  private List<RexNode> buildGroupExpressionsExcludingTarget(
+      int targetIndex,
+      List<String> inputFieldNames,
+      RelBuilder relBuilder,
+      boolean includeMetaFields) {
+
+    final List<RexNode> groupExprs = new ArrayList<>(Math.max(0, inputFieldNames.size() - 1));
+    for (int i = 0; i < inputFieldNames.size(); i++) {
+      if (i == targetIndex) {
+        continue;
+      }
+      if (isMetadataField(inputFieldNames.get(i)) && !includeMetaFields) {
+        continue;
+      }
+      groupExprs.add(relBuilder.field(i));
+    }
+    return groupExprs;
+  }
+
+  /** Applies mvcombine aggregation. */
+  private void performArrayAggAggregation(
+      RelBuilder relBuilder, int targetIndex, String targetName, List<RexNode> groupExprs) {
+
+    final RexNode targetRef = relBuilder.field(targetIndex);
+    final RexNode notNullTarget = relBuilder.isNotNull(targetRef);
+
+    final RelBuilder.AggCall aggCall =
+        relBuilder
+            .aggregateCall(SqlLibraryOperators.ARRAY_AGG, targetRef)
+            .filter(notNullTarget)
+            .as(targetName);
+
+    relBuilder.aggregate(relBuilder.groupKey(groupExprs), aggCall);
+  }
+
+  /**
+   * Restores the original output column order after the aggregate step. Meta fields are set to
+   * typed NULL only when they were skipped from grouping (includeMetaFields=false).
+   */
+  private void restoreColumnOrderAfterArrayAgg(
+      RelBuilder relBuilder,
+      List<String> inputFieldNames,
+      List<RelDataType> inputFieldTypes,
+      int targetIndex,
+      List<RexNode> groupExprs,
+      boolean includeMetaFields) {
+
+    final int aggregatedTargetPos = groupExprs.size();
+
+    final List<RexNode> projections = new ArrayList<>(inputFieldNames.size());
+    final List<String> projectionNames = new ArrayList<>(inputFieldNames.size());
+
+    int groupPos = 0;
+    for (int i = 0; i < inputFieldNames.size(); i++) {
+      final String fieldName = inputFieldNames.get(i);
+      projectionNames.add(fieldName);
+
+      if (i == targetIndex) {
+        // aggregated target is always the last field in the aggregate output
+        projections.add(relBuilder.field(aggregatedTargetPos));
+      } else if (isMetadataField(fieldName) && !includeMetaFields) {
+        // meta fields were skipped from grouping => not present in aggregate output => keep schema
+        // stable
+        projections.add(relBuilder.getRexBuilder().makeNullLiteral(inputFieldTypes.get(i)));
+      } else {
+        // grouped field (including meta fields when includeMetaFields=true)
+        projections.add(relBuilder.field(groupPos));
+        groupPos++;
+      }
+    }
+
+    relBuilder.project(projections, projectionNames, /* force= */ true);
+  }
+
+  /**
+   * Visits a NoMv (no multivalue) node by rewriting it as an Eval node.
+   *
+   * <p>The NoMv command converts multivalue (array) fields to single-value strings by joining array
+   * elements with newline delimiters. Internally, NoMv rewrites itself to an Eval node containing a
+   * mvjoin function call: {@code eval field = mvjoin(field, "\n")}.
+   *
+   * <p>The explicit cast to Eval is safe because {@link NoMv#rewriteAsEval()} always returns a
+   * newly constructed Eval instance and never returns null or other types.
+   *
+   * @param node the NoMv node to visit
+   * @param context the Calcite plan context containing schema and optimization information
+   * @return the RelNode resulting from visiting the rewritten Eval node
+   * @see NoMv#rewriteAsEval()
+   */
+  @Override
+  public RelNode visitNoMv(NoMv node, CalcitePlanContext context) {
+    return visitEval((Eval) node.rewriteAsEval(), context);
+  }
+
+  /**
+   * MVExpand command visitor.
+   *
+   * <p>Expands a multi-value (array) field into separate rows using Calcite's CORRELATE join with
+   * UNCOLLECT. Each element of the array becomes a separate row while preserving all other fields
+   * from the original row.
+   *
+   * <p>Implementation uses {@link #buildExpandRelNode} to create a correlate join between the
+   * original relation and an uncollected (unnested) version of the target array field.
+   *
+   * <p>Behavior:
+   *
+   * <ul>
+   *   <li>Array fields: Each array element is expanded into a separate row
+   *   <li>Non-array fields: Treated as single-element arrays (returns original row unchanged)
+   *   <li>Missing fields: Throws {@link SemanticCheckException}
+   *   <li>Optional limit parameter: Limits the number of expanded elements per document
+   * </ul>
+   *
+   * @param mvExpand MVExpand command containing the field to expand and optional limit
+   * @param context CalcitePlanContext containing the RelBuilder and planning context
+   * @return RelNode representing the relation with the expanded multi-value field
+   * @throws SemanticCheckException if the target field does not exist in the schema
+   */
+  @Override
+  public RelNode visitMvExpand(MvExpand mvExpand, CalcitePlanContext context) {
+    visitChildren(mvExpand, context);
+
+    final RelBuilder relBuilder = context.relBuilder;
+    final Field field = mvExpand.getField();
+    final String fieldName = field.getField().toString();
+
+    final RelDataType inputType = relBuilder.peek().getRowType();
+    final RelDataTypeField inputField =
+        inputType.getField(fieldName, /*caseSensitive*/ true, /*elideRecord*/ false);
+
+    if (inputField == null) {
+      throw new SemanticCheckException(
+          String.format("Field '%s' not found in the schema", fieldName));
+    }
+
+    final RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(field, context);
+
+    final RelDataType fieldType = arrayFieldRex.getType();
+    if (!(SqlTypeUtil.isArray(fieldType) || SqlTypeUtil.isMultiset(fieldType))) {
+      // For non-array/multiset fields (scalars), mvexpand just returns the field unchanged.
+      // This treats single-value fields as if they were arrays with one element.
+      return relBuilder.peek();
+    }
+
+    buildExpandRelNode(arrayFieldRex, fieldName, fieldName, mvExpand.getLimit(), context);
+
+    return relBuilder.peek();
   }
 
   @Override
@@ -3417,7 +3775,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private void buildExpandRelNode(
-      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
+      RexInputRef arrayFieldRex,
+      String arrayFieldName,
+      String alias,
+      @Nullable Integer perDocLimit,
+      CalcitePlanContext context) {
     // 3. Capture the outer row in a CorrelationId
     Holder<RexCorrelVariable> correlVariable = Holder.empty();
     context.relBuilder.variable(correlVariable::set);
@@ -3432,14 +3794,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelNode leftNode = context.relBuilder.build();
 
     // 5. Build join right node and expand the array field using uncollect
-    RelNode rightNode =
-        context
-            .relBuilder
-            // fake input, see convertUnnest and convertExpression in Calcite SqlToRelConverter
-            .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
-            .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
-            .uncollect(List.of(), false)
-            .build();
+    context
+        .relBuilder
+        // fake input, see convertUnnest and convertExpression in Calcite SqlToRelConverter
+        .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
+        .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
+        .uncollect(List.of(), false);
+
+    if (perDocLimit != null) {
+      context.relBuilder.limit(0, perDocLimit);
+    }
+    RelNode rightNode = context.relBuilder.build();
 
     // 6. Perform a nested-loop join (correlate) between the original table and the expanded
     // array field.

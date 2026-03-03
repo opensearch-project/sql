@@ -10,7 +10,18 @@ The microbenchmark suite is also handy for ad-hoc microbenchmarks but please rem
 
 ## Getting Started
 
-Just run `./gradlew :benchmarks:jmh` from the project root directory or run specific benchmark via your IDE. It will build all microbenchmarks, execute them and print the result.
+Run all benchmarks from the project root directory:
+
+```bash
+./gradlew :benchmarks:jmh
+```
+
+Run specific benchmarks using the `-Pjmh.includes` parameter:
+
+```bash
+./gradlew :benchmarks:jmh -Pjmh.includes='UnifiedQueryBenchmark'
+./gradlew :benchmarks:jmh -Pjmh.includes='UnifiedQueryBenchmark.plan.*'
+```
 
 ## Adding Microbenchmarks
 

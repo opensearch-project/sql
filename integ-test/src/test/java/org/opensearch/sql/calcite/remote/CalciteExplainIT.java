@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -25,9 +26,15 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import java.io.IOException;
 import java.util.Locale;
+import org.apache.commons.text.StringEscapeUtils;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
 import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.ExplainIT;
@@ -52,6 +59,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.DATA_TYPE_ALIAS);
     loadIndex(Index.DEEP_NESTED);
     loadIndex(Index.CASCADED_NESTED);
+    loadIndex(Index.MVEXPAND_EDGE_CASES);
   }
 
   @Override
@@ -111,6 +119,26 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_join_with_fields_max_option.yaml");
     assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testJoinWhenLegacyNotPreferred() throws IOException {
+    withSettings(
+        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        "false",
+        () -> {
+          String query =
+              "source=opensearch-sql_test_index_bank | join type=inner account_number"
+                  + " opensearch-sql_test_index_bank";
+          String result = null;
+          try {
+            result = explainQueryYaml(query);
+            String expected = loadExpectedPlan("explain_join_with_fields_max_option.yaml");
+            assertYamlEqualsIgnoreId(expected, result);
+          } catch (IOException e) {
+            fail();
+          }
+        });
   }
 
   // Only for Calcite
@@ -811,6 +839,31 @@ public class CalciteExplainIT extends ExplainIT {
             String.format(
                 "source=%s | stats first(firstname) as first_name, last(firstname) as"
                     + " last_name by gender",
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testExplainOnTextFirstLast() throws IOException {
+    String expected = loadExpectedPlan("explain_first_last_text.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats first(employer) as first_employer, last(employer) as"
+                    + " last_employer by gender",
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testExplainTakeAggregationWithNegative() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // without agg pushdown
+    String expected = loadExpectedPlan("explain_take_negative.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats take(employer, 0), take(balance, -2) by gender",
                 TEST_INDEX_BANK)));
   }
 
@@ -1982,6 +2035,17 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testIssue5114SortExprHeadExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account | eval a = rand() | sort a | fields"
+            + " account_number | head 5";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_issue_5114_sort_expr_head_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testGeoIpPushedInAgg() throws IOException {
     // This explain IT verifies that externally registered UDF can be properly pushed down
     assertYamlEqualsIgnoreId(
@@ -2027,6 +2091,18 @@ public class CalciteExplainIT extends ExplainIT {
             "source=opensearch-sql_test_index_account"
                 + "| head 5 "
                 + "|  addcoltotals balance age label='GrandTotal'"));
+  }
+
+  @Test
+  public void testTransposeExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_transpose.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "|  transpose 4 column_name='column_names'"));
   }
 
   public void testComplexDedup() throws IOException {
@@ -2327,13 +2403,6 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testSpathWithoutPathExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_spath_without_path.yaml");
-    assertYamlEqualsIgnoreId(
-        expected, explainQueryYaml(source(TEST_INDEX_LOGS, "spath input=message | fields test")));
-  }
-
-  @Test
   public void testExplainInVariousModeAndFormat() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
@@ -2443,5 +2512,258 @@ public class CalciteExplainIT extends ExplainIT {
             StringUtils.format(
                 "source=%s | stats count(eval(author.name < 'K')) as george_and_jk",
                 TEST_INDEX_CASCADED_NESTED)));
+  }
+
+  @Test
+  public void testFieldFormatExplain() throws Exception {
+
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_field_format.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            StringEscapeUtils.escapeJson(
+                StringUtils.format(
+                    "source=%s | head 5| fieldformat formatted_balance ="
+                        + " \"$\".tostring(balance,\"commas\") ",
+                    TEST_INDEX_ACCOUNT))));
+  }
+
+  @Test
+  public void testExplainMvCombine() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account "
+            + "| fields state, city, age "
+            + "| mvcombine age delim=','";
+
+    String actual = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_mvcombine.yaml");
+    assertYamlEqualsIgnoreId(expected, actual);
+  }
+
+  @Test
+  public void testExplainNoMv() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account "
+            + "| fields state, city, age "
+            + "| eval location = array(state, city) "
+            + "| nomv location";
+
+    String actual = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_nomv.yaml");
+    assertYamlEqualsIgnoreId(expected, actual);
+  }
+
+  @Test
+  public void testMvexpandExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_mvexpand.yaml");
+    String actual =
+        explainQueryYaml(
+            "source=mvexpand_edge_cases | eval skills_arr = array(1, 2, 3) | mvexpand skills_arr");
+    assertYamlEqualsIgnoreId(expected, actual);
+  }
+
+  // ==================== fetch_size explain tests ====================
+
+  @Test
+  public void testExplainFetchSizePushDown() throws IOException {
+    // fetch_size=5 injects Head(5, 0) on top of the plan
+    // Logical plan: LogicalSort(fetch=[5]) wraps the Project
+    String expected = loadExpectedPlan("explain_fetch_size_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryWithFetchSizeYaml(
+            String.format("source=%s | fields age", TEST_INDEX_ACCOUNT), 5));
+  }
+
+  @Test
+  public void testExplainFetchSizeWithSmallerHead() throws IOException {
+    // fetch_size=10 with user's | head 3
+    // Two LogicalSort nodes: inner fetch=[3] from user head, outer fetch=[10] from fetch_size
+    // Effective limit = min(3, 10) = 3
+    String expected = loadExpectedPlan("explain_fetch_size_with_head_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryWithFetchSizeYaml(
+            String.format("source=%s | head 3 | fields age", TEST_INDEX_ACCOUNT), 10));
+  }
+
+  @Test
+  public void testExplainFetchSizeSmallerThanHead() throws IOException {
+    // fetch_size=5 with user's | head 100
+    // Two LogicalSort nodes: inner fetch=[100] from user head, outer fetch=[5] from fetch_size
+    // Effective limit = min(100, 5) = 5
+    String expected = loadExpectedPlan("explain_fetch_size_smaller_than_head_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryWithFetchSizeYaml(
+            String.format("source=%s | head 100 | fields age", TEST_INDEX_ACCOUNT), 5));
+  }
+
+  /**
+   * Send an explain request with fetch_size in the JSON body and return YAML output.
+   *
+   * @param query the PPL query string
+   * @param fetchSize the fetch_size parameter value
+   * @return the explain output as YAML string
+   */
+  private String explainQueryWithFetchSizeYaml(String query, int fetchSize) throws IOException {
+    Request request =
+        new Request(
+            "POST",
+            String.format(
+                "/_plugins/_ppl/_explain?format=%s&mode=%s", Format.YAML, ExplainMode.STANDARD));
+    String jsonBody =
+        String.format(
+            Locale.ROOT, "{\n  \"query\": \"%s\",\n  \"fetch_size\": %d\n}", query, fetchSize);
+    request.setJsonEntity(jsonBody);
+
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+
+    Response response = client().performRequest(request);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    return getResponseBody(response, true);
+  }
+
+  // Only for Calcite - Test for issue #5054: query_string combined with boolean comparison
+  // This mimics the query pattern: "source=test url=http | where is_internal=true"
+  // where query_string search is combined with boolean field comparison.
+  @Test
+  public void testFilterQueryStringWithBooleanFieldPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Verifies that query_string combined with boolean field comparison produces pure DSL query
+    // without embedded script. The boolean comparison should be pushed down as a term query.
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where male = true | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldWithTRUE() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test boolean literal with uppercase TRUE
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where male = TRUE | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldWithStringLiteral() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test boolean field with string literal 'TRUE' - Calcite converts to boolean true
+    // and generates same term query as boolean literal
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where male = 'TRUE' | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldFalse() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // male = false is converted to IS_FALSE(male) which generates term query {value: false}.
+    // This only matches documents where male is explicitly false (not null or missing).
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where male = false | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean_false.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldNotTrue() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // NOT(male = true) generates IS_NOT_TRUE which produces mustNot(term query {value: true})
+    // This matches documents where male is false, null, or missing
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where NOT male = true | fields firstname",
+            TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean_not_true.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldNotEquals() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // male != true generates IS_NOT_TRUE which produces mustNot(term query {value: true})
+    // This matches documents where male is false, null, or missing
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where male != true | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean_not_true.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldOnlyTrue() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test single boolean filter without query_string
+    String query =
+        StringUtils.format("source=%s | where male = true | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_boolean_only_true.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldOnlyFalse() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test single boolean filter with false value without query_string
+    String query =
+        StringUtils.format("source=%s | where male = false | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_boolean_only_false.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldOnlyNotTrue() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test single NOT boolean filter without query_string
+    String query =
+        StringUtils.format("source=%s | where NOT male = true | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_boolean_only_not_true.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testNoMvBasic() throws IOException {
+    String query =
+        StringUtils.format(
+            "source=%s | fields firstname, age | eval names = array(firstname) | nomv names |"
+                + " fields names",
+            TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    Assert.assertTrue(
+        "Expected explain to contain ARRAY_JOIN function",
+        result.toLowerCase().contains("array_join"));
+  }
+
+  @Test
+  public void testNoMvWithEval() throws IOException {
+    String query =
+        StringUtils.format(
+            "source=%s | eval full_name = concat(firstname, ' J.') | eval name_array ="
+                + " array(full_name) | nomv name_array | fields name_array",
+            TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    Assert.assertTrue(
+        "Expected explain to contain both CONCAT and ARRAY_JOIN",
+        result.toLowerCase().contains("concat") && result.toLowerCase().contains("array_join"));
   }
 }

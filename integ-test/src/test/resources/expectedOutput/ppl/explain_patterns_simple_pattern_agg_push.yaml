@@ -14,6 +14,6 @@ root:
           missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\":{\"pattern_count\"\
           :{\"value_count\":{\"field\":\"_index\"}},\"sample_logs\":{\"top_hits\"\
           :{\"from\":0,\"size\":10,\"version\":false,\"seq_no_primary_term\":false,\"\
-          explain\":false,\"fields\":[{\"field\":\"email\"}]}}}}}}, pitId=*, cursorKeepAlive=null,\
-          \ searchAfter=null, searchResponse=null)"
+          explain\":false,\"_source\":{\"includes\":[\"email\"],\"excludes\":[]}}}}}}},\
+          \ pitId=*, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
       children: []

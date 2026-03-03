@@ -1,0 +1,12 @@
+{
+  "mappings": {
+    "properties": {
+      "case": { "type": "keyword" },
+      "ip": { "type": "ip" },
+      "bytes": { "type": "long" },
+      "tags": { "type": "keyword" },
+      "packets_str": { "type": "keyword" },
+      "letters": { "type": "keyword" }
+    }
+  }
+}

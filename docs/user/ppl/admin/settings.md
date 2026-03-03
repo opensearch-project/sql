@@ -266,7 +266,8 @@ This configuration is introduced since 3.3.0 which is used to switch some behavi
 The behaviours it controlled includes:
 - The default value of argument `bucket_nullable` in `stats` command. Check [stats command](../cmd/stats.md) for details.
 - The return value of `divide` and `/` operator. Check [expressions](../functions/expressions.md) for details.
-- The default value of argument `usenull` in `top` and `rare` commands. Check [top command](../cmd/top.md) and [rare command](../cmd/rare.md) for details.  
+- The default value of argument `usenull` in `top` and `rare` commands. Check [top command](../cmd/top.md) and [rare command](../cmd/rare.md) for details.
+- The default value of argument `max` in `join` command. Check [join command](../cmd/join.md) for details.
   
 ### Example 1  
 

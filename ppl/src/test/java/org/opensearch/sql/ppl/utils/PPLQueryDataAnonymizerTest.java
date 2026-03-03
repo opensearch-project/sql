@@ -248,6 +248,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testTransposeCommand() {
+    assertEquals(
+        "source=table | transpose 5 column_name=***",
+        anonymize("source=t | transpose 5 column_name='column_names'"));
+  }
+
+  @Test
   public void testTrendlineCommand() {
     assertEquals(
         "source=table | trendline sma(2, identifier) as identifier sma(3, identifier) as"
@@ -637,6 +644,74 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testGraphLookup() {
+    // Basic graphLookup with required parameters
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=uni as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " as reportingHierarchy"));
+    // graphLookup with maxDepth
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " maxDepth=*** direction=uni as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " maxDepth=3 as reportingHierarchy"));
+    // graphLookup with depthField
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " depthField=identifier direction=uni as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " depthField=level as reportingHierarchy"));
+    // graphLookup with bidirectional mode
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=bi as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " direction=bi as reportingHierarchy"));
+    // graphLookup with all optional parameters
+    assertEquals(
+        "source=table | graphlookup table startField=identifier fromField=identifier"
+            + " toField=identifier maxDepth=*** depthField=identifier direction=bi"
+            + " as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " startField=id maxDepth=5 depthField=level direction=bi as reportingHierarchy"));
+    // graphLookup with supportArray
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=uni supportArray=true as identifier",
+        anonymize(
+            "source=t | graphLookup airports fromField=connects toField=airport"
+                + " supportArray=true as reachableAirports"));
+    // graphLookup with batchMode
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=uni batchMode=true as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " batchMode=true as reportingHierarchy"));
+    // graphLookup with filter
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=uni filter=(identifier = ***) as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " filter=(status = 'active') as reportingHierarchy"));
+    // graphLookup with compound filter
+    assertEquals(
+        "source=table | graphlookup table fromField=identifier toField=identifier"
+            + " direction=uni filter=(identifier = *** and identifier > ***) as identifier",
+        anonymize(
+            "source=t | graphLookup employees fromField=manager toField=name"
+                + " filter=(status = 'active' AND id > 2) as reportingHierarchy"));
+  }
+
+  @Test
   public void testInSubquery() {
     assertEquals(
         "source=table | where (identifier) in [ source=table | fields + identifier ] | fields +"
@@ -1003,11 +1078,48 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testSpathNoPath() {
+    assertEquals(
+        "source=table | spath input=identifier",
+        anonymize("search source=t | spath input=json_attr"));
+  }
+
+  @Test
   public void testMvfind() {
     assertEquals(
         "source=table | eval identifier=mvfind(array(***,***,***),***) | fields + identifier",
         anonymize(
             "source=t | eval result=mvfind(array('apple', 'banana', 'apricot'), 'ban.*') | fields"
                 + " result"));
+  }
+
+  @Test
+  public void testMvcombineCommand() {
+    assertEquals(
+        "source=table | mvcombine delim=*** identifier", anonymize("source=t | mvcombine age"));
+  }
+
+  @Test
+  public void testMvcombineCommandWithDelim() {
+    assertEquals(
+        "source=table | mvcombine delim=*** identifier",
+        anonymize("source=t | mvcombine age delim=','"));
+  }
+
+  @Test
+  public void testNoMvCommand() {
+    assertEquals("source=table | nomv identifier", anonymize("source=t | nomv firstname"));
+  }
+
+  @Test
+  public void testMvexpandCommand() {
+    assertEquals("source=table | mvexpand identifier", anonymize("source=t | mvexpand skills"));
+  }
+
+  @Test
+  public void testMvexpandCommandWithLimit() {
+    assertEquals(
+        "source=table | mvexpand identifier limit=***",
+        anonymize("source=t | mvexpand skills limit=5"));
   }
 }
