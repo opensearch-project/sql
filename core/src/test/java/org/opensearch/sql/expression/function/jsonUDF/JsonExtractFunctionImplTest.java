@@ -48,8 +48,7 @@ public class JsonExtractFunctionImplTest {
 
   @Test
   public void testExtractNestedObject() {
-    Object result =
-        JsonExtractFunctionImpl.eval("{\"user\": {\"name\": \"John\"}}", "user");
+    Object result = JsonExtractFunctionImpl.eval("{\"user\": {\"name\": \"John\"}}", "user");
     assertEquals("{\"name\":\"John\"}", result);
   }
 
