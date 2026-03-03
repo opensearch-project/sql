@@ -6,10 +6,14 @@
 package org.opensearch.sql.ppl.autocomplete;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -17,6 +21,22 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 public class PPLGrammarBundleBuilderTest {
 
   private static final int EXPECTED_ATN_SERIALIZATION_VERSION = 4;
+  private static final Set<String> EXPECTED_IGNORED_NON_LITERAL_SYMBOLS =
+      new HashSet<>(
+          Arrays.asList(
+              "ID",
+              "NUMERIC_ID",
+              "ID_DATE_SUFFIX",
+              "CLUSTER",
+              "TIME_SNAP",
+              "SPANLENGTH",
+              "DECIMAL_SPANLENGTH",
+              "DQUOTA_STRING",
+              "SQUOTA_STRING",
+              "BQUOTA_STRING",
+              "LINE_COMMENT",
+              "BLOCK_COMMENT",
+              "ERROR_RECOGNITION"));
 
   private static GrammarBundle bundle;
 
@@ -150,13 +170,84 @@ public class PPLGrammarBundleBuilderTest {
   }
 
   @Test
-  public void testIgnoredRangeBoundariesMatchGrammar() {
-    // These assertions mirror the runtime assertions in buildIgnoredTokens().
-    // If the grammar changes token ordinals, both this test and the builder assertions
-    // will flag the issue.
-    assertEquals("MATCH token ID", 427, OpenSearchPPLParser.MATCH);
-    assertEquals("ERROR_RECOGNITION token ID", 488, OpenSearchPPLParser.ERROR_RECOGNITION);
-    assertEquals("CASE token ID", 142, OpenSearchPPLParser.CASE);
-    assertEquals("CAST token ID", 387, OpenSearchPPLParser.CAST);
+  public void testIgnoredTokensContainOnlyLexicalInternalTokens() {
+    Set<Integer> ignored = ignoredTokenSet();
+    for (Integer tokenType : ignored) {
+      String symbol = bundle.getSymbolicNames()[tokenType];
+      assertTrue(
+          "ignoredTokens should contain only lexical/internal tokens, got: "
+              + symbol
+              + " ("
+              + tokenType
+              + ")",
+          symbol != null
+              && (symbol.endsWith("_LITERAL")
+                  || EXPECTED_IGNORED_NON_LITERAL_SYMBOLS.contains(symbol)));
+    }
+  }
+
+  @Test
+  public void testCommandAndKeywordTokensAreNotIgnored() {
+    Set<Integer> ignored = ignoredTokenSet();
+    assertFalse("LOOKUP should not be ignored", ignored.contains(OpenSearchPPLParser.LOOKUP));
+    assertFalse("REPLACE should not be ignored", ignored.contains(OpenSearchPPLParser.REPLACE));
+    assertFalse("REVERSE should not be ignored", ignored.contains(OpenSearchPPLParser.REVERSE));
+    assertFalse("MVCOMBINE should not be ignored", ignored.contains(OpenSearchPPLParser.MVCOMBINE));
+    assertFalse("MVEXPAND should not be ignored", ignored.contains(OpenSearchPPLParser.MVEXPAND));
+    assertFalse("LEFT should not be ignored", ignored.contains(OpenSearchPPLParser.LEFT));
+    assertFalse("RIGHT should not be ignored", ignored.contains(OpenSearchPPLParser.RIGHT));
+    assertFalse("AS should not be ignored", ignored.contains(OpenSearchPPLParser.AS));
+    assertFalse("IN should not be ignored", ignored.contains(OpenSearchPPLParser.IN));
+  }
+
+  @Test
+  public void testExpressionFunctionTokensAreNotIgnored() {
+    Set<Integer> ignored = ignoredTokenSet();
+    assertFalse("MVAPPEND should not be ignored", ignored.contains(OpenSearchPPLParser.MVAPPEND));
+    assertFalse("MVJOIN should not be ignored", ignored.contains(OpenSearchPPLParser.MVJOIN));
+    assertFalse("MVINDEX should not be ignored", ignored.contains(OpenSearchPPLParser.MVINDEX));
+  }
+
+  @Test
+  public void testNewerGrammarKeywordsAreNotIgnoredWhenPresent() {
+    // These tokens exist in newer grammar variants (for example graph lookup support).
+    // Keep this test tolerant so it works across branches with different grammar revisions.
+    assertTokenNotIgnoredIfPresent("GRAPHLOOKUP");
+    assertTokenNotIgnoredIfPresent("START_FIELD");
+    assertTokenNotIgnoredIfPresent("FROM_FIELD");
+    assertTokenNotIgnoredIfPresent("TO_FIELD");
+    assertTokenNotIgnoredIfPresent("MAX_DEPTH");
+    assertTokenNotIgnoredIfPresent("DEPTH_FIELD");
+    assertTokenNotIgnoredIfPresent("DIRECTION");
+    assertTokenNotIgnoredIfPresent("UNI");
+    assertTokenNotIgnoredIfPresent("BI");
+    assertTokenNotIgnoredIfPresent("SUPPORT_ARRAY");
+    assertTokenNotIgnoredIfPresent("BATCH_MODE");
+    assertTokenNotIgnoredIfPresent("USE_PIT");
+  }
+
+  private static Set<Integer> ignoredTokenSet() {
+    Set<Integer> ignored = new HashSet<>();
+    for (int tokenType : bundle.getIgnoredTokens()) {
+      ignored.add(tokenType);
+    }
+    return ignored;
+  }
+
+  private static void assertTokenNotIgnoredIfPresent(String symbolicTokenName) {
+    int tokenType = tokenTypeBySymbolicName(symbolicTokenName);
+    if (tokenType >= 0) {
+      assertFalse(symbolicTokenName + " should not be ignored", ignoredTokenSet().contains(tokenType));
+    }
+  }
+
+  private static int tokenTypeBySymbolicName(String symbolicTokenName) {
+    String[] symbols = bundle.getSymbolicNames();
+    for (int i = 0; i < symbols.length; i++) {
+      if (symbolicTokenName.equals(symbols[i])) {
+        return i;
+      }
+    }
+    return -1;
   }
 }
