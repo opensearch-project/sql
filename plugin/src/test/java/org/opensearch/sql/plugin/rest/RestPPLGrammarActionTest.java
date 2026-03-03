@@ -15,8 +15,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -24,6 +26,7 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestResponse;
+import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.ppl.autocomplete.GrammarBundle;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.node.NodeClient;
@@ -36,7 +39,14 @@ public class RestPPLGrammarActionTest {
 
   @Before
   public void setUp() {
-    action = new RestPPLGrammarAction();
+    action =
+        new RestPPLGrammarAction() {
+          @Override
+          protected void authorizeRequest(
+              NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
+            listener.onResponse(new TransportPPLQueryResponse("{}"));
+          }
+        };
     client = mock(NodeClient.class);
   }
 
@@ -102,6 +112,12 @@ public class RestPPLGrammarActionTest {
     RestPPLGrammarAction countingAction =
         new RestPPLGrammarAction() {
           @Override
+          protected void authorizeRequest(
+              NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
+            listener.onResponse(new TransportPPLQueryResponse("{}"));
+          }
+
+          @Override
           protected GrammarBundle buildBundle() {
             buildCount.incrementAndGet();
             return super.buildBundle();
@@ -129,6 +145,12 @@ public class RestPPLGrammarActionTest {
     RestPPLGrammarAction countingAction =
         new RestPPLGrammarAction() {
           @Override
+          protected void authorizeRequest(
+              NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
+            listener.onResponse(new TransportPPLQueryResponse("{}"));
+          }
+
+          @Override
           protected GrammarBundle buildBundle() {
             buildCount.incrementAndGet();
             return super.buildBundle();
@@ -155,6 +177,12 @@ public class RestPPLGrammarActionTest {
     RestPPLGrammarAction failingAction =
         new RestPPLGrammarAction() {
           @Override
+          protected void authorizeRequest(
+              NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
+            listener.onResponse(new TransportPPLQueryResponse("{}"));
+          }
+
+          @Override
           protected GrammarBundle buildBundle() {
             throw new RuntimeException("simulated build failure");
           }
@@ -172,6 +200,12 @@ public class RestPPLGrammarActionTest {
     RestPPLGrammarAction nullBundleAction =
         new RestPPLGrammarAction() {
           @Override
+          protected void authorizeRequest(
+              NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
+            listener.onResponse(new TransportPPLQueryResponse("{}"));
+          }
+
+          @Override
           protected GrammarBundle buildBundle() {
             return null;
           }
@@ -182,6 +216,24 @@ public class RestPPLGrammarActionTest {
     nullBundleAction.handleRequest(request, channel, client);
 
     assertEquals(RestStatus.INTERNAL_SERVER_ERROR, channel.getResponse().status());
+  }
+
+  @Test
+  public void testGetGrammar_AuthorizationFailure_Returns403() throws Exception {
+    RestPPLGrammarAction unauthorizedAction =
+        new RestPPLGrammarAction() {
+          @Override
+          protected void authorizeRequest(
+              NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
+            listener.onFailure(new OpenSearchStatusException("forbidden", RestStatus.FORBIDDEN));
+          }
+        };
+
+    FakeRestRequest request = newGrammarGetRequest();
+    MockRestChannel channel = new MockRestChannel(request, true);
+    unauthorizedAction.handleRequest(request, channel, client);
+
+    assertEquals(RestStatus.FORBIDDEN, channel.getResponse().status());
   }
 
   private static FakeRestRequest newGrammarGetRequest() {
