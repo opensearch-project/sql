@@ -5,9 +5,11 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_HOBBIES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
+import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -17,9 +19,13 @@ import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
+import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -1074,5 +1080,33 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
         rows("David", "USA", "Washington", 4, 2023, 40, "a"),
         rows("Jake", "USA", "California", 4, 2023, 70, "a"),
         rows("Hello", "USA", "New York", 4, 2023, 30, "e"));
+  }
+
+  @Test
+  public void testFetchSizeAppliesWhenHeadOnlyInJoinSubquery() throws IOException {
+    // head inside a join subquery should NOT suppress fetch_size on the outer query.
+    // The subquery's head operates at a different scope.
+    // Self-join STATE_COUNTRY on name, right side limited to head 3.
+    // fetch_size=2 should still cap the outer result to 2 rows.
+    String query =
+        String.format(
+            Locale.ROOT,
+            "source=%s | inner join left=a, right=b ON a.name = b.name"
+                + " [source=%s | sort name | head 3] | sort a.name | fields a.name, a.age",
+            TEST_INDEX_STATE_COUNTRY,
+            TEST_INDEX_STATE_COUNTRY);
+    Request request = new Request("POST", QUERY_API_ENDPOINT);
+    request.setJsonEntity(
+        String.format(Locale.ROOT, "{\"query\": \"%s\", \"fetch_size\": 2}", query));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    Response response = client().performRequest(request);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    JSONObject result = new JSONObject(getResponseBody(response, true));
+    verifySchema(result, schema("name", "string"), schema("age", "int"));
+    // Right side after sort+head 3: David, Hello, Jake. Self-join matches all 3.
+    // Outer sort by name + fetch_size=2 caps to first 2: David, Hello
+    verifyDataRows(result, rows("David", 40), rows("Hello", 30));
   }
 }
