@@ -609,9 +609,10 @@ public class AggregateAnalyzer {
         // Build field name mapping for renamed fields (e.g., rename value as val).
         // The top_hits response uses original OS field names, but the output schema expects
         // the renamed names from the project.
-        // Known limitation: if multiple project args reference the same original field with
-        // different output names (e.g., eval pay2 = salary | rename salary as pay | dedup
-        // dept_id), the later mapping will overwrite the earlier one in this HashMap.
+        // Known limitation (https://github.com/opensearch-project/sql/issues/5197): if multiple
+        // project args reference the same original field with different output names (e.g.,
+        // eval pay2 = salary | rename salary as pay | dedup dept_id), the later mapping will
+        // overwrite the earlier one in this HashMap.
         Map<String, String> fieldNameMapping = new HashMap<>();
         for (Pair<RexNode, String> arg : args) {
           if (arg.getKey() instanceof RexInputRef) {
