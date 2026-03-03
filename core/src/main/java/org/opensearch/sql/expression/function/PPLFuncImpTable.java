@@ -163,10 +163,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NULLIF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.OR;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.PATTERN_ADD_UDF;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.PATTERN_COMBINE_UDF;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.PATTERN_INIT_UDF;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.PATTERN_RESULT_UDF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERCENTILE_APPROX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_ADD;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_DIFF;

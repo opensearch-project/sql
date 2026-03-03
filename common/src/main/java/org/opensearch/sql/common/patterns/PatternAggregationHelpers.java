@@ -113,7 +113,6 @@ public final class PatternAggregationHelpers {
         thresholdPercentage);
   }
 
-
   /**
    * Add a log message to the accumulator (overload for BigDecimal thresholdPercentage). This
    * overload handles the case when thresholdPercentage is passed as BigDecimal at runtime.
@@ -193,8 +192,8 @@ public final class PatternAggregationHelpers {
 
   /**
    * Flush the logMessages buffer in the accumulator by parsing remaining logs into patterns. This
-   * is designed for the combine_script phase to avoid sending raw log messages across the network to
-   * the coordinating node.
+   * is designed for the combine_script phase to avoid sending raw log messages across the network
+   * to the coordinating node.
    *
    * @param state Current accumulator state (as Object, will be cast to Map)
    * @param maxSampleCount Maximum samples to keep per pattern

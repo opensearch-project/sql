@@ -95,8 +95,7 @@ public class PatternScriptedMetricUDAF implements ScriptedMetricUDAF {
     combineArgs.add(stateRef);
 
     // maxSampleCount
-    combineArgs.add(
-        getArgOrDefault(args, 1, makeIntLiteral(rexBuilder, DEFAULT_MAX_SAMPLE_COUNT)));
+    combineArgs.add(getArgOrDefault(args, 1, makeIntLiteral(rexBuilder, DEFAULT_MAX_SAMPLE_COUNT)));
 
     // variableCountThreshold
     combineArgs.add(
