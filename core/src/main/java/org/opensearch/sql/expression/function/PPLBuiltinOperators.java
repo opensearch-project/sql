@@ -505,15 +505,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               null) // TODO: Add proper operand type checking
           .toUDF("PATTERN_ADD_UDF");
 
-  public static final SqlOperator PATTERN_COMBINE_UDF =
-      UserDefinedFunctionUtils.adaptStaticMethodToUDF(
-              PatternAggregationHelpers.class,
-              "combinePatternAccumulators",
-              ReturnTypes.explicit(SqlTypeName.ANY), // Returns Map<String, Object>
-              NullPolicy.ANY,
-              null) // TODO: Add proper operand type checking
-          .toUDF("PATTERN_COMBINE_UDF");
-
   public static final SqlOperator PATTERN_FLUSH_UDF =
       UserDefinedFunctionUtils.adaptStaticMethodToUDF(
               PatternAggregationHelpers.class,

@@ -73,14 +73,13 @@ public class PatternScriptedMetricUDAF implements ScriptedMetricUDAF {
     // args[1] = maxSampleCount
     // args[2] = bufferLimit
     // args[3] = showNumberedToken (not used in map script)
-    // args[4] = thresholdPercentage (optional)
-    // args[5] = variableCountThreshold (optional)
+    // args[4..5] = optional brain params sorted alphabetically:
+    //   frequency_threshold_percentage before variable_count_threshold
     mapArgs.add(getArgOrDefault(args, 1, makeIntLiteral(rexBuilder, DEFAULT_MAX_SAMPLE_COUNT)));
     mapArgs.add(getArgOrDefault(args, 2, makeIntLiteral(rexBuilder, DEFAULT_BUFFER_LIMIT)));
-    mapArgs.add(
-        getArgOrDefault(args, 5, makeIntLiteral(rexBuilder, DEFAULT_VARIABLE_COUNT_THRESHOLD)));
-    mapArgs.add(
-        getArgOrDefault(args, 4, makeDoubleLiteral(rexBuilder, DEFAULT_THRESHOLD_PERCENTAGE)));
+    RexNode[] brainParams = resolveBrainParams(args, rexBuilder);
+    mapArgs.add(brainParams[0]); // variableCountThreshold
+    mapArgs.add(brainParams[1]); // thresholdPercentage
 
     return rexBuilder.makeCall(PPLBuiltinOperators.PATTERN_ADD_UDF, mapArgs);
   }
@@ -97,13 +96,9 @@ public class PatternScriptedMetricUDAF implements ScriptedMetricUDAF {
     // maxSampleCount
     combineArgs.add(getArgOrDefault(args, 1, makeIntLiteral(rexBuilder, DEFAULT_MAX_SAMPLE_COUNT)));
 
-    // variableCountThreshold
-    combineArgs.add(
-        getArgOrDefault(args, 5, makeIntLiteral(rexBuilder, DEFAULT_VARIABLE_COUNT_THRESHOLD)));
-
-    // thresholdPercentage
-    combineArgs.add(
-        getArgOrDefault(args, 4, makeDoubleLiteral(rexBuilder, DEFAULT_THRESHOLD_PERCENTAGE)));
+    RexNode[] brainParams = resolveBrainParams(args, rexBuilder);
+    combineArgs.add(brainParams[0]); // variableCountThreshold
+    combineArgs.add(brainParams[1]); // thresholdPercentage
 
     return rexBuilder.makeCall(PPLBuiltinOperators.PATTERN_FLUSH_UDF, combineArgs);
   }
@@ -119,14 +114,36 @@ public class PatternScriptedMetricUDAF implements ScriptedMetricUDAF {
     // maxSampleCount
     reduceArgs.add(getArgOrDefault(args, 1, makeIntLiteral(rexBuilder, DEFAULT_MAX_SAMPLE_COUNT)));
 
-    // Determine variableCountThreshold and thresholdPercentage
+    RexNode[] brainParams = resolveBrainParams(args, rexBuilder);
+    reduceArgs.add(brainParams[0]); // variableCountThreshold
+    reduceArgs.add(brainParams[1]); // thresholdPercentage
+
+    // showNumberedToken (default false)
+    reduceArgs.add(getArgOrDefault(args, 3, rexBuilder.makeLiteral(false)));
+
+    return rexBuilder.makeCall(PPLBuiltinOperators.PATTERN_RESULT_UDF, reduceArgs);
+  }
+
+  /**
+   * Resolve variableCountThreshold and thresholdPercentage from optional brain parameters.
+   *
+   * <p>The optional brain parameters at args[4..5] are sorted alphabetically by the caller:
+   * frequency_threshold_percentage (DOUBLE/DECIMAL) comes before variable_count_threshold
+   * (INTEGER). When only one is present at args[4], its type determines which parameter it is.
+   *
+   * @return array of [variableCountThreshold, thresholdPercentage]
+   */
+  private static RexNode[] resolveBrainParams(List<RexNode> args, RexBuilder rexBuilder) {
     RexNode variableCountThreshold = makeIntLiteral(rexBuilder, DEFAULT_VARIABLE_COUNT_THRESHOLD);
     RexNode thresholdPercentage = makeDoubleLiteral(rexBuilder, DEFAULT_THRESHOLD_PERCENTAGE);
 
     if (args.size() > 5) {
+      // Both present: alphabetical order means args[4]=frequency_threshold_percentage,
+      // args[5]=variable_count_threshold
       thresholdPercentage = args.get(4);
       variableCountThreshold = args.get(5);
     } else if (args.size() > 4) {
+      // Only one present: determine by type
       RexNode arg4 = args.get(4);
       SqlTypeName arg4Type = arg4.getType().getSqlTypeName();
       if (arg4Type == SqlTypeName.DOUBLE
@@ -138,13 +155,7 @@ public class PatternScriptedMetricUDAF implements ScriptedMetricUDAF {
       }
     }
 
-    reduceArgs.add(variableCountThreshold);
-    reduceArgs.add(thresholdPercentage);
-
-    // showNumberedToken (default false)
-    reduceArgs.add(getArgOrDefault(args, 3, rexBuilder.makeLiteral(false)));
-
-    return rexBuilder.makeCall(PPLBuiltinOperators.PATTERN_RESULT_UDF, reduceArgs);
+    return new RexNode[] {variableCountThreshold, thresholdPercentage};
   }
 
   /** Get argument from list or return default value. */
