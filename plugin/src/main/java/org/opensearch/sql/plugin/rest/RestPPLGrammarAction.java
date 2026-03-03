@@ -13,11 +13,16 @@ import java.io.IOException;
 import java.util.List;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.common.annotation.ExperimentalApi;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.sql.plugin.transport.PPLQueryAction;
+import org.opensearch.sql.plugin.transport.TransportPPLQueryRequest;
+import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.ppl.autocomplete.GrammarBundle;
 import org.opensearch.sql.ppl.autocomplete.PPLGrammarBundleBuilder;
 import org.opensearch.transport.client.node.NodeClient;
@@ -52,15 +57,48 @@ public class RestPPLGrammarAction extends BaseRestHandler {
 
     return channel -> {
       try {
-        GrammarBundle bundle = getOrBuildBundle();
-        XContentBuilder builder = channel.newBuilder();
-        serializeBundle(builder, bundle);
-        channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
+        authorizeRequest(
+            client,
+            new ActionListener<>() {
+              @Override
+              public void onResponse(TransportPPLQueryResponse ignored) {
+                try {
+                  GrammarBundle bundle = getOrBuildBundle();
+                  XContentBuilder builder = channel.newBuilder();
+                  serializeBundle(builder, bundle);
+                  channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
+                } catch (Exception e) {
+                  log.error("Error building or serializing PPL grammar", e);
+                  sendErrorResponse(channel, e);
+                }
+              }
+
+              @Override
+              public void onFailure(Exception e) {
+                log.error("PPL grammar authorization failed", e);
+                sendErrorResponse(channel, e);
+              }
+            });
       } catch (Exception e) {
-        log.error("Error building or serializing PPL grammar", e);
-        channel.sendResponse(new BytesRestResponse(channel, e));
+        log.error("Error authorizing PPL grammar request", e);
+        sendErrorResponse(channel, e);
       }
     };
+  }
+
+  @VisibleForTesting
+  protected void authorizeRequest(
+      NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
+    client.execute(
+        PPLQueryAction.INSTANCE, new TransportPPLQueryRequest("", null, ENDPOINT_PATH), listener);
+  }
+
+  private void sendErrorResponse(RestChannel channel, Exception e) {
+    try {
+      channel.sendResponse(new BytesRestResponse(channel, e));
+    } catch (IOException ioException) {
+      log.error("Failed to send PPL grammar error response", ioException);
+    }
   }
 
   // Thread-safe lazy initialization.
