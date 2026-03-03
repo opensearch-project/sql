@@ -27,6 +27,22 @@ public class PPLGrammarBundleBuilder {
   private static final String ANTLR_VERSION =
       org.antlr.v4.runtime.RuntimeMetaData.getRuntimeVersion();
   private static final String BUNDLE_VERSION = "1.0";
+  private static final Set<String> INTERNAL_NON_LITERAL_TOKENS =
+      new HashSet<>(
+          Arrays.asList(
+              "ID",
+              "NUMERIC_ID",
+              "ID_DATE_SUFFIX",
+              "CLUSTER",
+              "TIME_SNAP",
+              "SPANLENGTH",
+              "DECIMAL_SPANLENGTH",
+              "DQUOTA_STRING",
+              "SQUOTA_STRING",
+              "BQUOTA_STRING",
+              "LINE_COMMENT",
+              "BLOCK_COMMENT",
+              "ERROR_RECOGNITION"));
 
   public GrammarBundle build() {
     OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(CharStreams.fromString(""));
@@ -59,7 +75,7 @@ public class PPLGrammarBundleBuilder {
         .literalNames(literalNames)
         .symbolicNames(symbolicNames)
         .tokenDictionary(buildTokenDictionary(vocabulary))
-        .ignoredTokens(buildIgnoredTokens())
+        .ignoredTokens(buildIgnoredTokens(vocabulary))
         .rulesToVisit(buildRulesToVisit(parser.getRuleNames()))
         .build();
   }
@@ -90,63 +106,30 @@ public class PPLGrammarBundleBuilder {
   }
 
   /**
-   * Build the list of token type IDs to ignore for autocomplete. Mirrors the frontend
-   * getIgnoredTokens() logic: explicitly ignore AS/IN, then ignore two contiguous token ranges
-   * minus operatorsToInclude.
+   * Build token type IDs to ignore for autocomplete.
    *
-   * <p>Range 1 (relevance/internal tokens): MATCH .. ERROR_RECOGNITION — covers relevance
-   * functions, search parameters, span literals, IDs, quoted strings, and error tokens.
-   *
-   * <p>Range 2 (keywords/functions/operators): CASE .. CAST — covers CASE/ELSE, IN, EXISTS,
-   * NOT/OR/AND/XOR, TRUE/FALSE, REGEXP, datetime parts, data type keywords, punctuation,
-   * aggregate functions, math/text/date functions, and CAST.
-   *
-   * <p>Tokens in {@code operatorsToInclude} are kept as suggestions even if they fall within
-   * an ignored range.
+   * <p>Only lexical/internal tokens are ignored (identifiers, literals, quoted-string tokens,
+   * comments, and error token). User-facing commands/functions/operators are intentionally kept so
+   * completion dynamically reflects grammar changes.
    */
-  private static int[] buildIgnoredTokens() {
-    // Verify range boundaries match expected token IDs. If the grammar changes and
-    // shifts token ordinals, these assertions surface the problem at build time.
-    assert OpenSearchPPLParser.MATCH == 427
-        : "MATCH token ID shifted — update ignored range start";
-    assert OpenSearchPPLParser.ERROR_RECOGNITION == 488
-        : "ERROR_RECOGNITION token ID shifted — update ignored range end";
-    assert OpenSearchPPLParser.CASE == 142
-        : "CASE token ID shifted — update ignored range start";
-    assert OpenSearchPPLParser.CAST == 387
-        : "CAST token ID shifted — update ignored range end";
-
-    Set<Integer> operatorsToInclude = new HashSet<>(Arrays.asList(
-        OpenSearchPPLParser.PIPE, OpenSearchPPLParser.EQUAL, OpenSearchPPLParser.COMMA,
-        OpenSearchPPLParser.NOT_EQUAL, OpenSearchPPLParser.LESS, OpenSearchPPLParser.NOT_LESS,
-        OpenSearchPPLParser.GREATER, OpenSearchPPLParser.NOT_GREATER,
-        OpenSearchPPLParser.OR, OpenSearchPPLParser.AND,
-        OpenSearchPPLParser.LT_PRTHS, OpenSearchPPLParser.RT_PRTHS,
-        OpenSearchPPLParser.SPAN,
-        OpenSearchPPLParser.MATCH, OpenSearchPPLParser.MATCH_PHRASE,
-        OpenSearchPPLParser.MATCH_BOOL_PREFIX, OpenSearchPPLParser.MATCH_PHRASE_PREFIX,
-        OpenSearchPPLParser.SQUOTA_STRING
-    ));
-
+  private static int[] buildIgnoredTokens(Vocabulary vocabulary) {
     List<Integer> ignored = new ArrayList<>();
-    ignored.add(OpenSearchPPLParser.AS);
-    ignored.add(OpenSearchPPLParser.IN);
 
-    // Range 1: MATCH .. ERROR_RECOGNITION
-    for (int i = OpenSearchPPLParser.MATCH; i <= OpenSearchPPLParser.ERROR_RECOGNITION; i++) {
-      if (!operatorsToInclude.contains(i)) {
-        ignored.add(i);
-      }
-    }
-
-    // Range 2: CASE .. CAST
-    for (int i = OpenSearchPPLParser.CASE; i <= OpenSearchPPLParser.CAST; i++) {
-      if (!operatorsToInclude.contains(i)) {
-        ignored.add(i);
+    for (int tokenType = 0; tokenType <= vocabulary.getMaxTokenType(); tokenType++) {
+      String symbolicName = vocabulary.getSymbolicName(tokenType);
+      if (isLexicalInternalToken(symbolicName)) {
+        ignored.add(tokenType);
       }
     }
 
     return ignored.stream().mapToInt(Integer::intValue).toArray();
+  }
+
+  private static boolean isLexicalInternalToken(String symbolicName) {
+    if (symbolicName == null) {
+      return false;
+    }
+    return symbolicName.endsWith("_LITERAL") || INTERNAL_NON_LITERAL_TOKENS.contains(symbolicName);
   }
 
   /**
