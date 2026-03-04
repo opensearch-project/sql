@@ -374,15 +374,11 @@ public class ArithmeticFunctions {
 
   /** Returns null if the double result is Infinite or NaN, otherwise wraps in ExprDoubleValue. */
   private static ExprValue doubleOrNull(double value) {
-    return Double.isInfinite(value) || Double.isNaN(value)
-        ? ExprNullValue.of()
-        : new ExprDoubleValue(value);
+    return Double.isFinite(value) ? new ExprDoubleValue(value) : ExprNullValue.of();
   }
 
   /** Returns null if the float result is Infinite or NaN, otherwise wraps in ExprFloatValue. */
   private static ExprValue floatOrNull(float value) {
-    return Float.isInfinite(value) || Float.isNaN(value)
-        ? ExprNullValue.of()
-        : new ExprFloatValue(value);
+    return Float.isFinite(value) ? new ExprFloatValue(value) : ExprNullValue.of();
   }
 }

@@ -239,11 +239,65 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
   }
 
   @Test
+  public void divide_double_overflow_returns_null() {
+    FunctionExpression expression =
+        DSL.divide(
+            literal(new ExprDoubleValue(Double.MAX_VALUE)),
+            literal(new ExprDoubleValue(0.5D)));
+    assertTrue(expression.valueOf(valueEnv()).isNull());
+  }
+
+  @Test
+  public void modulus_double_nan_returns_null() {
+    FunctionExpression expression =
+        DSL.modulus(
+            literal(new ExprDoubleValue(Double.POSITIVE_INFINITY)),
+            literal(new ExprDoubleValue(1.0D)));
+    assertTrue(expression.valueOf(valueEnv()).isNull());
+  }
+
+  @Test
   public void multiply_float_overflow_returns_null() {
     FunctionExpression expression =
         DSL.multiply(
             literal(new ExprFloatValue(Float.MAX_VALUE)),
             literal(new ExprFloatValue(2f)));
+    assertTrue(expression.valueOf(valueEnv()).isNull());
+  }
+
+  @Test
+  public void add_float_overflow_returns_null() {
+    FunctionExpression expression =
+        DSL.add(
+            literal(new ExprFloatValue(Float.MAX_VALUE)),
+            literal(new ExprFloatValue(Float.MAX_VALUE)));
+    assertTrue(expression.valueOf(valueEnv()).isNull());
+  }
+
+  @Test
+  public void subtract_float_overflow_returns_null() {
+    FunctionExpression expression =
+        DSL.subtract(
+            literal(new ExprFloatValue(-Float.MAX_VALUE)),
+            literal(new ExprFloatValue(Float.MAX_VALUE)));
+    assertTrue(expression.valueOf(valueEnv()).isNull());
+  }
+
+  @Test
+  public void divide_float_overflow_returns_null() {
+    FunctionExpression expression =
+        DSL.divide(
+            literal(new ExprFloatValue(Float.MAX_VALUE)),
+            literal(new ExprFloatValue(0.5f)));
+    assertTrue(expression.valueOf(valueEnv()).isNull());
+  }
+
+  @Test
+  public void modulus_float_nan_returns_null() {
+    FunctionExpression expression =
+        DSL.modulus(
+            literal(new ExprFloatValue(Float.POSITIVE_INFINITY)),
+            literal(new ExprFloatValue(1.0f)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
   }
 

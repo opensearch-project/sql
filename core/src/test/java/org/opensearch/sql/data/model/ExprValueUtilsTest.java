@@ -257,6 +257,16 @@ public class ExprValueUtilsTest {
   }
 
   @Test
+  public void fromObjectValue_double_nan_returns_null() {
+    assertTrue(ExprValueUtils.fromObjectValue(Double.NaN).isNull());
+  }
+
+  @Test
+  public void fromObjectValue_float_nan_returns_null() {
+    assertTrue(ExprValueUtils.fromObjectValue(Float.NaN).isNull());
+  }
+
+  @Test
   public void hashCodeTest() {
     assertEquals(new ExprByteValue(1).hashCode(), new ExprByteValue(1).hashCode());
     assertEquals(new ExprShortValue(1).hashCode(), new ExprShortValue(1).hashCode());
