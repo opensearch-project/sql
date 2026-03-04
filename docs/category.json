@@ -65,7 +65,8 @@
     "user/ppl/functions/system.md",
     "user/ppl/general/comments.md",
     "user/ppl/general/datatypes.md",
-    "user/ppl/general/identifiers.md"
+    "user/ppl/general/identifiers.md",
+    "user/ppl/tutorials/getting-started.md"
   ],
   "sql_cli": [
     "user/dql/expressions.rst",

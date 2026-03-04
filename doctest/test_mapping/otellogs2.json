@@ -1,0 +1,40 @@
+{
+  "mappings": {
+    "properties": {
+      "@timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "severity": {
+        "type": "keyword"
+      },
+      "service.name": {
+        "type": "keyword"
+      },
+      "message": {
+        "type": "text"
+      },
+      "trace_id": {
+        "type": "keyword"
+      },
+      "span_id": {
+        "type": "keyword"
+      },
+      "http.method": {
+        "type": "keyword"
+      },
+      "http.status_code": {
+        "type": "integer"
+      },
+      "http.route": {
+        "type": "keyword"
+      },
+      "user.id": {
+        "type": "keyword"
+      },
+      "duration_ms": {
+        "type": "integer"
+      }
+    }
+  }
+}
