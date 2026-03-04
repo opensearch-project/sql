@@ -33,7 +33,7 @@ While OpenSearch also supports SQL, PPL offers advantages for exploratory analys
 
 ```ppl
 // PPL: Read left to right, like a story
-source=otellogs2
+source=otel_logs
 | where severity = "ERROR"
 | stats count() by service.name
 ```
@@ -41,7 +41,7 @@ source=otellogs2
 ```sql
 -- SQL: More verbose with explicit GROUP BY clause
 SELECT service.name, COUNT(*) 
-FROM otellogs2 
+FROM otel_logs 
 WHERE severity = 'ERROR' 
 GROUP BY service.name
 ```
@@ -54,7 +54,7 @@ Throughout this tutorial, we'll use OpenTelemetry (OTEL) observability data. OTE
 
 ### Sample Log Structure
 
-Our `otellogs2` index contains application logs with these key fields:
+Our `otel_logs` index contains application logs with these key fields:
 
 | Field | Description | Example |
 |-------|-------------|---------|
@@ -72,7 +72,7 @@ Our `otellogs2` index contains application logs with these key fields:
 
 ### Sample Document
 
-Here's an example document from the `otellogs2` index:
+Here's an example document from the `otel_logs` index:
 
 ```json
 {
@@ -103,7 +103,7 @@ Let's start by looking at some sample data to understand what we're working with
 The simplest PPL query retrieves data from a source:
 
 ```ppl
-source=otellogs2 | fields @timestamp, severity, service.name, message | head 5
+source=otel_logs | fields @timestamp, severity, service.name, message | head 5
 ```
 
 ```text
@@ -120,7 +120,7 @@ fetched rows / total rows = 5/5
 ```
 
 **What this does:**
-- `source=otellogs2` - Specifies which index to query
+- `source=otel_logs` - Specifies which index to query
 - `fields` - Selects specific fields to display
 - `head 5` - Returns only the first 5 results
 
@@ -137,7 +137,7 @@ Now that we've seen the data, let's find specific information. The `where` comma
 Let's find all error logs to investigate issues:
 
 ```ppl
-source=otellogs2 | where severity = "ERROR" | fields @timestamp, service.name, message | head 5
+source=otel_logs | where severity = "ERROR" | fields @timestamp, service.name, message | head 5
 ```
 
 ```text
@@ -163,7 +163,7 @@ fetched rows / total rows = 5/5
 Let's narrow down to errors from a specific service:
 
 ```ppl
-source=otellogs2 | where severity = "ERROR" AND service.name = "checkout-service" | fields @timestamp, service.name, message
+source=otel_logs | where severity = "ERROR" AND service.name = "checkout-service" | fields @timestamp, service.name, message
 ```
 
 **What this does:**
@@ -199,7 +199,7 @@ fetched rows / total rows = 523/523
 Most log analysis focuses on recent data. Let's find errors from a specific time period:
 
 ```ppl
-source=otellogs2
+source=otel_logs
 | where severity = "ERROR" 
   AND @timestamp >= "2024-03-15 11:30:00"
   AND @timestamp < "2024-03-15 11:31:00"
@@ -238,7 +238,7 @@ Aggregation helps you understand trends and patterns in your data.
 How many errors occurred?
 
 ```ppl
-source=otellogs2
+source=otel_logs
 | where severity = "ERROR"
 | stats count()
 ```
@@ -263,7 +263,7 @@ fetched rows / total rows = 1/1
 Which services have the most errors?
 
 ```ppl
-source=otellogs2
+source=otel_logs
 | where severity = "ERROR"
 | stats count() by service.name
 ```
@@ -291,7 +291,7 @@ fetched rows / total rows = 4/4
 Let's get more insights with multiple aggregations:
 
 ```ppl
-source=otellogs2
+source=otel_logs
 | where severity = "ERROR"
 | stats count() as error_count, 
         avg(duration_ms) as avg_duration,
@@ -333,7 +333,7 @@ fetched rows / total rows = 4/4
 Let's find which services have the most errors:
 
 ```ppl
-source=otellogs2
+source=otel_logs
 | where severity = "ERROR"
 | stats count() as error_count by service.name
 | sort error_count desc
@@ -362,7 +362,7 @@ fetched rows / total rows = 4/4
 Focus on the top problem areas:
 
 ```ppl
-source=otellogs2
+source=otel_logs
 | where severity = "ERROR"
 | stats count() as error_count by service.name
 | sort error_count desc
@@ -393,7 +393,7 @@ fetched rows / total rows = 3/3
 Let's combine everything we've learned to answer: "What are the top error patterns by service and HTTP status code?"
 
 ```ppl
-source=otellogs2
+source=otel_logs
 | where severity = "ERROR" 
   AND http.status_code >= 400
 | stats count() as error_count,
@@ -449,7 +449,7 @@ fetched rows / total rows = 10/10
 
 ### Start Simple, Then Refine
 
-1. **Start broad**: `source=otellogs2 | head 10`
+1. **Start broad**: `source=otel_logs | head 10`
 2. **Add filters**: `| where severity = "ERROR"`
 3. **Select fields**: `| fields @timestamp, service.name, message`
 4. **Aggregate**: `| stats count() by service.name`
@@ -459,7 +459,7 @@ fetched rows / total rows = 10/10
 
 **Pattern 1: Error Investigation**
 ```ppl
-source=otellogs2
+source=otel_logs
 | where severity = "ERROR" AND service.name = "my-service"
 | fields @timestamp, message, trace_id
 | sort @timestamp desc
@@ -467,7 +467,7 @@ source=otellogs2
 
 **Pattern 2: Performance Analysis**
 ```ppl
-source=otellogs2
+source=otel_logs
 | where duration_ms > 1000
 | stats avg(duration_ms), max(duration_ms), count() by http.route
 | sort avg(duration_ms) desc
@@ -475,7 +475,7 @@ source=otellogs2
 
 **Pattern 3: Traffic Analysis**
 ```ppl
-source=otellogs2
+source=otel_logs
 | where http.method = "POST"
 | stats count() by http.route, http.status_code
 | sort count() desc
