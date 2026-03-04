@@ -97,8 +97,7 @@ public class ArithmeticFunctions {
             FLOAT,
             FLOAT),
         impl(
-            nullMissingHandling(
-                (v1, v2) -> doubleOrNull(v1.doubleValue() + v2.doubleValue())),
+            nullMissingHandling((v1, v2) -> doubleOrNull(v1.doubleValue() + v2.doubleValue())),
             DOUBLE,
             DOUBLE,
             DOUBLE));
@@ -303,8 +302,7 @@ public class ArithmeticFunctions {
             FLOAT,
             FLOAT),
         impl(
-            nullMissingHandling(
-                (v1, v2) -> doubleOrNull(v1.doubleValue() * v2.doubleValue())),
+            nullMissingHandling((v1, v2) -> doubleOrNull(v1.doubleValue() * v2.doubleValue())),
             DOUBLE,
             DOUBLE,
             DOUBLE));
@@ -357,8 +355,7 @@ public class ArithmeticFunctions {
             FLOAT,
             FLOAT),
         impl(
-            nullMissingHandling(
-                (v1, v2) -> doubleOrNull(v1.doubleValue() - v2.doubleValue())),
+            nullMissingHandling((v1, v2) -> doubleOrNull(v1.doubleValue() - v2.doubleValue())),
             DOUBLE,
             DOUBLE,
             DOUBLE));

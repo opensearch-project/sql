@@ -215,8 +215,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
   public void multiply_double_overflow_returns_null() {
     FunctionExpression expression =
         DSL.multiply(
-            literal(new ExprDoubleValue(Double.MAX_VALUE)),
-            literal(new ExprDoubleValue(2D)));
+            literal(new ExprDoubleValue(Double.MAX_VALUE)), literal(new ExprDoubleValue(2D)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
   }
 
@@ -242,8 +241,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
   public void divide_double_overflow_returns_null() {
     FunctionExpression expression =
         DSL.divide(
-            literal(new ExprDoubleValue(Double.MAX_VALUE)),
-            literal(new ExprDoubleValue(0.5D)));
+            literal(new ExprDoubleValue(Double.MAX_VALUE)), literal(new ExprDoubleValue(0.5D)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
   }
 
@@ -259,9 +257,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
   @Test
   public void multiply_float_overflow_returns_null() {
     FunctionExpression expression =
-        DSL.multiply(
-            literal(new ExprFloatValue(Float.MAX_VALUE)),
-            literal(new ExprFloatValue(2f)));
+        DSL.multiply(literal(new ExprFloatValue(Float.MAX_VALUE)), literal(new ExprFloatValue(2f)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
   }
 
@@ -286,9 +282,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
   @Test
   public void divide_float_overflow_returns_null() {
     FunctionExpression expression =
-        DSL.divide(
-            literal(new ExprFloatValue(Float.MAX_VALUE)),
-            literal(new ExprFloatValue(0.5f)));
+        DSL.divide(literal(new ExprFloatValue(Float.MAX_VALUE)), literal(new ExprFloatValue(0.5f)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
   }
 
