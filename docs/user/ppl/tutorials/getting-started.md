@@ -357,35 +357,6 @@ fetched rows / total rows = 4/4
 +-------------+------------------+
 ```
 
-### Step 9: Top N Results
-
-Focus on the top problem areas:
-
-```ppl
-source=otel_logs
-| where severity = "ERROR"
-| stats count() as error_count by service.name
-| sort error_count desc
-| head 3
-```
-
-**What this does:**
-- Shows only the top 3 services with the most errors
-- Perfect for prioritizing investigation efforts
-
-**Expected output:**
-
-```text
-fetched rows / total rows = 3/3
-+-------------+------------------+
-| error_count | service.name     |
-|-------------+------------------|
-| 523         | checkout-service |
-| 412         | payment-api      |
-| 198         | inventory-svc    |
-+-------------+------------------+
-```
-
 ---
 
 ## Putting It All Together: A Real-World Query
@@ -401,9 +372,9 @@ source=otel_logs
         max(duration_ms) as max_response_time
   by service.name, http.status_code
 | eval avg_response_time = round(avg_response_time, 2)
+| fields service.name, http.status_code, error_count, avg_response_time, max_response_time
 | sort error_count desc
 | head 10
-| fields service.name, http.status_code, error_count, avg_response_time, max_response_time
 ```
 
 **What this query does:**
@@ -411,9 +382,9 @@ source=otel_logs
 1. **Filters** to errors with HTTP status codes 400+
 2. **Aggregates** error counts and response times by service and status code
 3. **Rounds** average response time to 2 decimal places
-4. **Sorts** by error count to find the biggest problems
-5. **Limits** to top 10 results
-6. **Selects** fields in a logical order for analysis
+4. **Selects** fields in a logical order for analysis
+5. **Sorts** by error count to find the biggest problems
+6. **Limits** to top 10 results
 
 **Expected output:**
 
@@ -451,8 +422,8 @@ fetched rows / total rows = 10/10
 
 1. **Start broad**: `source=otel_logs | head 10`
 2. **Add filters**: `| where severity = "ERROR"`
-3. **Select fields**: `| fields @timestamp, service.name, message`
-4. **Aggregate**: `| stats count() by service.name`
+3. **Aggregate**: `| stats count() by service.name`
+4. **Select fields**: `| fields @timestamp, service.name, message`
 5. **Sort and limit**: `| sort count() desc | head 5`
 
 ### Common Patterns
