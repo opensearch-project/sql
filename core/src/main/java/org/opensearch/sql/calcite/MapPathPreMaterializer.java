@@ -73,15 +73,17 @@ public class MapPathPreMaterializer {
     Set<String> existingFields =
         new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
     List<RexNode> newColumns = new ArrayList<>();
-    for (Field f : fields) {
+    for (Field field : fields) {
       try {
-        RexNode resolved = rexVisitor.analyze(f, context);
-        String name = f.getField().toString();
+        RexNode resolved = rexVisitor.analyze(field, context);
+        String name = field.getField().toString();
         if (resolved.getKind() == SqlKind.ITEM && !existingFields.contains(name)) {
           newColumns.add(context.relBuilder.alias(resolved, name));
+          existingFields.add(name);
         }
       } catch (RuntimeException e) {
-        log.debug("Skipping field resolution for '{}': {}", f.getField(), e.getMessage(), e);
+        // Skip unresolvable fields (e.g. wildcards); let the command itself handle them
+        log.debug("Skipping field resolution for '{}': {}", field.getField(), e.getMessage(), e);
       }
     }
 

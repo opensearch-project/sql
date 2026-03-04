@@ -56,7 +56,6 @@ import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.executor.QueryType;
 
-/** Unit tests for {@link MapPathPreMaterializer}. */
 @ExtendWith(MockitoExtension.class)
 public class MapPathPreMaterializerTest {
 
