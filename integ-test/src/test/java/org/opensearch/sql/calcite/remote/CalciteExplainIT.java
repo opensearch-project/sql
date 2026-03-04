@@ -2766,4 +2766,15 @@ public class CalciteExplainIT extends ExplainIT {
         "Expected explain to contain both CONCAT and ARRAY_JOIN",
         result.toLowerCase().contains("concat") && result.toLowerCase().contains("array_join"));
   }
+
+  @Test
+  public void testExplainConsecutiveSortsAfterAgg() throws IOException {
+    String expected = loadExpectedPlan("explain_agg_consecutive_sorts_issue_5125.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats count() as c by gender | sort gender | sort - gender",
+                TEST_INDEX_BANK)));
+  }
 }

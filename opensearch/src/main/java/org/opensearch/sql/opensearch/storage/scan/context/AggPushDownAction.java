@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -27,6 +28,7 @@ import org.opensearch.search.aggregations.bucket.composite.DateHistogramValuesSo
 import org.opensearch.search.aggregations.bucket.composite.HistogramValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.DateHistogramInterval;
 import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
@@ -62,6 +64,127 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     this.scriptCount =
         builderAndParser.getLeft().stream().mapToInt(AggPushDownAction::getScriptCount).sum();
     this.bucketNames = bucketNames;
+  }
+
+  private static AggregatorFactories.Builder copySubAggregations(AggregationBuilder source) {
+    AggregatorFactories.Builder copiedFactories = new AggregatorFactories.Builder();
+    source.getSubAggregations().forEach(copiedFactories::addAggregator);
+    source.getPipelineAggregations().forEach(copiedFactories::addPipelineAggregator);
+    return copiedFactories;
+  }
+
+  private static Map<String, Object> copyMetadataOrNull(AggregationBuilder source) {
+    Map<String, Object> metadata = source.getMetadata();
+    return metadata == null || metadata.isEmpty() ? null : metadata;
+  }
+
+  private static final class CompositeAggregationBuilderCopy extends CompositeAggregationBuilder {
+    private CompositeAggregationBuilderCopy(CompositeAggregationBuilder source) {
+      super(source, copySubAggregations(source), copyMetadataOrNull(source));
+    }
+  }
+
+  private static final class TermsAggregationBuilderCopy extends TermsAggregationBuilder {
+    private TermsAggregationBuilderCopy(TermsAggregationBuilder source) {
+      super(source, copySubAggregations(source), copyMetadataOrNull(source));
+    }
+  }
+
+  private static final class MultiTermsAggregationBuilderCopy extends MultiTermsAggregationBuilder {
+    private MultiTermsAggregationBuilderCopy(MultiTermsAggregationBuilder source) {
+      super(source, copySubAggregations(source), copyMetadataOrNull(source));
+    }
+  }
+
+  private static final class TopHitsAggregationBuilderCopy extends TopHitsAggregationBuilder {
+    private TopHitsAggregationBuilderCopy(TopHitsAggregationBuilder source) {
+      super(source, copySubAggregations(source), copyMetadataOrNull(source));
+    }
+  }
+
+  private static final class NestedAggregationBuilderCopy extends NestedAggregationBuilder {
+    private NestedAggregationBuilderCopy(NestedAggregationBuilder source) {
+      super(source, copySubAggregations(source), copyMetadataOrNull(source));
+    }
+  }
+
+  private static CompositeAggregationBuilder copyCompositeAggregationBuilder(
+      CompositeAggregationBuilder source) {
+    return new CompositeAggregationBuilderCopy(source);
+  }
+
+  private static TermsAggregationBuilder copyTermsAggregationBuilder(
+      TermsAggregationBuilder source) {
+    return new TermsAggregationBuilderCopy(source);
+  }
+
+  private static MultiTermsAggregationBuilder copyMultiTermsAggregationBuilder(
+      MultiTermsAggregationBuilder source) {
+    return new MultiTermsAggregationBuilderCopy(source);
+  }
+
+  private static TopHitsAggregationBuilder copyTopHitsAggregationBuilder(
+      TopHitsAggregationBuilder source) {
+    return new TopHitsAggregationBuilderCopy(source);
+  }
+
+  private static NestedAggregationBuilder copyNestedAggregationBuilder(
+      NestedAggregationBuilder source) {
+    return new NestedAggregationBuilderCopy(source);
+  }
+
+  private static AggregationBuilder copyAggregationBuilder(AggregationBuilder builder) {
+    if (builder instanceof CompositeAggregationBuilder composite) {
+      return copyCompositeAggregationBuilder(composite);
+    }
+    if (builder instanceof TermsAggregationBuilder terms) {
+      return copyTermsAggregationBuilder(terms);
+    }
+    if (builder instanceof MultiTermsAggregationBuilder multiTerms) {
+      return copyMultiTermsAggregationBuilder(multiTerms);
+    }
+    if (builder instanceof TopHitsAggregationBuilder topHits) {
+      return copyTopHitsAggregationBuilder(topHits);
+    }
+    if (builder instanceof NestedAggregationBuilder nested) {
+      return copyNestedAggregationBuilder(nested);
+    }
+    return builder;
+  }
+
+  private static AggregationBuilder unwrapNestedBuilder(AggregationBuilder rootBuilder) {
+    if (rootBuilder instanceof NestedAggregationBuilder nested
+        && !nested.getSubAggregations().isEmpty()) {
+      return nested.getSubAggregations().iterator().next();
+    }
+    return rootBuilder;
+  }
+
+  private void replaceRootBuilder(
+      AggregationBuilder originalRoot, AggregationBuilder newInnerBuilder) {
+    AggregationBuilder finalBuilder = newInnerBuilder;
+    if (originalRoot instanceof NestedAggregationBuilder nested) {
+      finalBuilder =
+          AggregationBuilders.nested(nested.getName(), nested.path())
+              .subAggregation(newInnerBuilder);
+    }
+    builderAndParser =
+        Pair.of(Collections.singletonList(finalBuilder), builderAndParser.getRight());
+  }
+
+  /**
+   * Create a deep copy of this action. New lists are created for builders and bucketNames so that
+   * mutations (sort/limit pushdown) on the copy do not affect the original.
+   */
+  public AggPushDownAction copy() {
+    List<AggregationBuilder> copiedBuilders =
+        builderAndParser.getLeft().stream()
+            .map(AggPushDownAction::copyAggregationBuilder)
+            .collect(Collectors.toCollection(ArrayList::new));
+    return new AggPushDownAction(
+        Pair.of(copiedBuilders, builderAndParser.getRight()),
+        extendedTypeMapping,
+        new ArrayList<>(bucketNames));
   }
 
   private static int getScriptCount(AggregationBuilder aggBuilder) {
@@ -256,6 +379,36 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     return termsBuilder;
   }
 
+  /**
+   * Build a new {@link TermsAggregationBuilder} by copying from an existing one with a new size.
+   * This keeps all existing terms options (e.g. include/exclude, collect mode, shard sizing).
+   */
+  private static TermsAggregationBuilder buildTermsAggregationBuilder(
+      TermsAggregationBuilder source, int newSize) {
+    TermsAggregationBuilder termsBuilder = copyTermsAggregationBuilder(source);
+    termsBuilder.size(newSize);
+    return termsBuilder;
+  }
+
+  private static void copyDateHistogramInterval(
+      DateHistogramValuesSourceBuilder source,
+      Consumer<DateHistogramInterval> fixedIntervalSetter,
+      Consumer<DateHistogramInterval> calendarIntervalSetter) {
+    try {
+      fixedIntervalSetter.accept(source.getIntervalAsFixed());
+      return;
+    } catch (IllegalArgumentException | IllegalStateException ignored) {
+      // Fallback to calendar interval.
+    }
+    try {
+      calendarIntervalSetter.accept(source.getIntervalAsCalendar());
+      return;
+    } catch (IllegalArgumentException | IllegalStateException ignored) {
+      throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+          "Cannot copy interval for date histogram bucket " + source.name());
+    }
+  }
+
   /** Build a {@link DateHistogramAggregationBuilder} by {@link DateHistogramValuesSourceBuilder} */
   private DateHistogramAggregationBuilder buildDateHistogramAggregationBuilder(
       DateHistogramValuesSourceBuilder dateHisto, BucketOrder bucketOrder) {
@@ -267,11 +420,8 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     if (dateHisto.script() != null) {
       dateHistoBuilder.script(dateHisto.script());
     }
-    try {
-      dateHistoBuilder.fixedInterval(dateHisto.getIntervalAsFixed());
-    } catch (IllegalArgumentException e) {
-      dateHistoBuilder.calendarInterval(dateHisto.getIntervalAsCalendar());
-    }
+    copyDateHistogramInterval(
+        dateHisto, dateHistoBuilder::fixedInterval, dateHistoBuilder::calendarInterval);
     if (dateHisto.userValuetypeHint() != null) {
       dateHistoBuilder.userValueTypeHint(dateHisto.userValuetypeHint());
     }
@@ -352,81 +502,136 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     return aggregationBuilder;
   }
 
+  /**
+   * Create a copy of a {@link CompositeValuesSourceBuilder} to avoid in-place mutation of shared
+   * bucket objects across different PushDownContext instances.
+   */
+  @SuppressWarnings("unchecked")
+  private static CompositeValuesSourceBuilder<?> copyCompositeBucket(
+      CompositeValuesSourceBuilder<?> bucket) {
+    CompositeValuesSourceBuilder<?> copy;
+    if (bucket instanceof TermsValuesSourceBuilder terms) {
+      TermsValuesSourceBuilder termsCopy = new TermsValuesSourceBuilder(terms.name());
+      if (terms.field() != null) termsCopy.field(terms.field());
+      if (terms.script() != null) termsCopy.script(terms.script());
+      if (terms.userValuetypeHint() != null) termsCopy.userValuetypeHint(terms.userValuetypeHint());
+      if (terms.format() != null) termsCopy.format(terms.format());
+      copy = termsCopy;
+    } else if (bucket instanceof DateHistogramValuesSourceBuilder dateHisto) {
+      DateHistogramValuesSourceBuilder dhCopy =
+          new DateHistogramValuesSourceBuilder(dateHisto.name());
+      if (dateHisto.field() != null) dhCopy.field(dateHisto.field());
+      if (dateHisto.script() != null) dhCopy.script(dateHisto.script());
+      if (dateHisto.userValuetypeHint() != null)
+        dhCopy.userValuetypeHint(dateHisto.userValuetypeHint());
+      copyDateHistogramInterval(dateHisto, dhCopy::fixedInterval, dhCopy::calendarInterval);
+      if (dateHisto.timeZone() != null) dhCopy.timeZone(dateHisto.timeZone());
+      if (dateHisto.offset() != 0) dhCopy.offset(dateHisto.offset());
+      if (dateHisto.format() != null) dhCopy.format(dateHisto.format());
+      copy = dhCopy;
+    } else if (bucket instanceof HistogramValuesSourceBuilder histo) {
+      HistogramValuesSourceBuilder hCopy = new HistogramValuesSourceBuilder(histo.name());
+      if (histo.field() != null) hCopy.field(histo.field());
+      if (histo.script() != null) hCopy.script(histo.script());
+      if (histo.userValuetypeHint() != null) hCopy.userValuetypeHint(histo.userValuetypeHint());
+      hCopy.interval(histo.interval());
+      if (histo.format() != null) hCopy.format(histo.format());
+      copy = hCopy;
+    } else {
+      throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+          "Unsupported CompositeValuesSourceBuilder: " + bucket.getClass());
+    }
+    copy.missingBucket(bucket.missingBucket());
+    copy.missingOrder(bucket.missingOrder());
+    copy.order(bucket.order());
+    return copy;
+  }
+
   public void pushDownSortIntoAggBucket(
       List<RelFieldCollation> collations, List<String> fieldNames) {
     // aggregationBuilder.getLeft() could be empty when count agg optimization works
     if (builderAndParser.getLeft().isEmpty()) return;
     AggregationBuilder original = builderAndParser.getLeft().getFirst();
-    AggregationBuilder builder;
-    if (original instanceof NestedAggregationBuilder) {
-      builder = original.getSubAggregations().iterator().next();
-    } else {
-      builder = original;
-    }
-    List<String> selected = new ArrayList<>(collations.size());
+    AggregationBuilder builder = unwrapNestedBuilder(original);
     if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
-      // It will always use a single CompositeAggregationBuilder for the aggregation with GroupBy
-      // See {@link AggregateAnalyzer}
-      List<CompositeValuesSourceBuilder<?>> buckets = compositeAggBuilder.sources();
-      List<CompositeValuesSourceBuilder<?>> newBuckets = new ArrayList<>(buckets.size());
-      List<String> newBucketNames = new ArrayList<>(buckets.size());
-      // Have to put the collation required buckets first, then the rest of buckets.
-      collations.forEach(
-          collation -> {
-            /*
-             Must find the bucket by field name because:
-               1. The sequence of buckets may have changed after sort push-down.
-               2. The schema of scan operator may be inconsistent with the sequence of buckets
-               after project push-down.
-            */
-            String bucketName = fieldNames.get(collation.getFieldIndex());
-            CompositeValuesSourceBuilder<?> bucket = buckets.get(bucketNames.indexOf(bucketName));
-            RelFieldCollation.Direction direction = collation.getDirection();
-            RelFieldCollation.NullDirection nullDirection = collation.nullDirection;
-            SortOrder order =
-                RelFieldCollation.Direction.DESCENDING.equals(direction)
-                    ? SortOrder.DESC
-                    : SortOrder.ASC;
-            if (bucket.missingBucket()) {
-              MissingOrder missingOrder =
-                  switch (nullDirection) {
-                    case FIRST -> MissingOrder.FIRST;
-                    case LAST -> MissingOrder.LAST;
-                    default -> MissingOrder.DEFAULT;
-                  };
-              bucket.missingOrder(missingOrder);
-            }
-            newBuckets.add(bucket.order(order));
-            newBucketNames.add(bucketName);
-            selected.add(bucketName);
-          });
-      buckets.stream()
-          .map(CompositeValuesSourceBuilder::name)
-          .filter(name -> !selected.contains(name))
-          .forEach(
-              name -> {
-                newBuckets.add(buckets.get(bucketNames.indexOf(name)));
-                newBucketNames.add(name);
-              });
-      AggregatorFactories.Builder newAggBuilder = new AggregatorFactories.Builder();
-      compositeAggBuilder.getSubAggregations().forEach(newAggBuilder::addAggregator);
-      AggregationBuilder finalBuilder =
-          AggregationBuilders.composite("composite_buckets", newBuckets)
-              .subAggregations(newAggBuilder)
-              .size(compositeAggBuilder.size());
-      if (original instanceof NestedAggregationBuilder nested) {
-        finalBuilder =
-            AggregationBuilders.nested(nested.getName(), nested.path())
-                .subAggregation(finalBuilder);
-      }
-      builderAndParser =
-          Pair.of(Collections.singletonList(finalBuilder), builderAndParser.getRight());
-      bucketNames = newBucketNames;
+      pushDownSortIntoCompositeBucket(original, compositeAggBuilder, collations, fieldNames);
+      return;
     }
     if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
-      termsAggBuilder.order(BucketOrder.key(!collations.getFirst().getDirection().isDescending()));
+      pushDownSortIntoTermsBucket(original, termsAggBuilder, collations);
     }
     // TODO for MultiTermsAggregationBuilder
+  }
+
+  private void pushDownSortIntoCompositeBucket(
+      AggregationBuilder original,
+      CompositeAggregationBuilder compositeAggBuilder,
+      List<RelFieldCollation> collations,
+      List<String> fieldNames) {
+    // It will always use a single CompositeAggregationBuilder for the aggregation with GroupBy.
+    // See {@link AggregateAnalyzer}
+    List<CompositeValuesSourceBuilder<?>> buckets = compositeAggBuilder.sources();
+    List<CompositeValuesSourceBuilder<?>> newBuckets = new ArrayList<>(buckets.size());
+    List<String> newBucketNames = new ArrayList<>(buckets.size());
+    List<String> selected = new ArrayList<>(collations.size());
+
+    // Have to put the collation required buckets first, then the rest of buckets.
+    collations.forEach(
+        collation -> {
+          /*
+           Must find the bucket by field name because:
+             1. The sequence of buckets may have changed after sort push-down.
+             2. The schema of scan operator may be inconsistent with the sequence of buckets
+             after project push-down.
+          */
+          String bucketName = fieldNames.get(collation.getFieldIndex());
+          CompositeValuesSourceBuilder<?> bucket = buckets.get(bucketNames.indexOf(bucketName));
+          RelFieldCollation.Direction direction = collation.getDirection();
+          RelFieldCollation.NullDirection nullDirection = collation.nullDirection;
+          SortOrder order =
+              RelFieldCollation.Direction.DESCENDING.equals(direction)
+                  ? SortOrder.DESC
+                  : SortOrder.ASC;
+          CompositeValuesSourceBuilder<?> newBucket = copyCompositeBucket(bucket);
+          if (newBucket.missingBucket()) {
+            MissingOrder missingOrder =
+                switch (nullDirection) {
+                  case FIRST -> MissingOrder.FIRST;
+                  case LAST -> MissingOrder.LAST;
+                  default -> MissingOrder.DEFAULT;
+                };
+            newBucket.missingOrder(missingOrder);
+          }
+          newBuckets.add(newBucket.order(order));
+          newBucketNames.add(bucketName);
+          selected.add(bucketName);
+        });
+
+    buckets.stream()
+        .map(CompositeValuesSourceBuilder::name)
+        .filter(name -> !selected.contains(name))
+        .forEach(
+            name -> {
+              newBuckets.add(buckets.get(bucketNames.indexOf(name)));
+              newBucketNames.add(name);
+            });
+
+    AggregationBuilder finalBuilder =
+        AggregationBuilders.composite(compositeAggBuilder.getName(), newBuckets)
+            .subAggregations(copySubAggregations(compositeAggBuilder))
+            .size(compositeAggBuilder.size());
+    replaceRootBuilder(original, finalBuilder);
+    bucketNames = newBucketNames;
+  }
+
+  private void pushDownSortIntoTermsBucket(
+      AggregationBuilder original,
+      TermsAggregationBuilder termsAggBuilder,
+      List<RelFieldCollation> collations) {
+    TermsAggregationBuilder newTermsBuilder =
+        buildTermsAggregationBuilder(termsAggBuilder, termsAggBuilder.size());
+    newTermsBuilder.order(BucketOrder.key(!collations.getFirst().getDirection().isDescending()));
+    replaceRootBuilder(original, newTermsBuilder);
   }
 
   public boolean isCompositeAggregation() {
@@ -439,6 +644,92 @@ public class AggPushDownAction implements OSRequestBuilderAction {
                             instanceof CompositeAggregationBuilder));
   }
 
+  private static CompositeAggregationBuilder copyAndResizeCompositeAggregationBuilder(
+      CompositeAggregationBuilder source, int size) {
+    CompositeAggregationBuilder copy = copyCompositeAggregationBuilder(source);
+    copy.size(size);
+    return copy;
+  }
+
+  private static MultiTermsAggregationBuilder copyAndResizeMultiTermsAggregationBuilder(
+      MultiTermsAggregationBuilder source, int size) {
+    MultiTermsAggregationBuilder copy = copyMultiTermsAggregationBuilder(source);
+    copy.size(size);
+    return copy;
+  }
+
+  private static TopHitsAggregationBuilder copyAndResizeTopHitsAggregationBuilder(
+      TopHitsAggregationBuilder source, int size) {
+    TopHitsAggregationBuilder copy = copyTopHitsAggregationBuilder(source);
+    copy.size(size);
+    return copy;
+  }
+
+  private static Integer getBucketSize(AggregationBuilder builder) {
+    if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
+      return compositeAggBuilder.size();
+    }
+    if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
+      return termsAggBuilder.size();
+    }
+    if (builder instanceof MultiTermsAggregationBuilder multiTermsAggBuilder) {
+      return multiTermsAggBuilder.size();
+    }
+    if (builder instanceof TopHitsAggregationBuilder topHitsAggBuilder) {
+      return topHitsAggBuilder.size();
+    }
+    return null;
+  }
+
+  private static AggregationBuilder copyAndResizeBucketBuilder(
+      AggregationBuilder builder, int size) {
+    if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
+      return copyAndResizeCompositeAggregationBuilder(compositeAggBuilder, size);
+    }
+    if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
+      return buildTermsAggregationBuilder(termsAggBuilder, size);
+    }
+    if (builder instanceof MultiTermsAggregationBuilder multiTermsAggBuilder) {
+      return copyAndResizeMultiTermsAggregationBuilder(multiTermsAggBuilder, size);
+    }
+    if (builder instanceof TopHitsAggregationBuilder topHitsAggBuilder) {
+      return copyAndResizeTopHitsAggregationBuilder(topHitsAggBuilder, size);
+    }
+    throw new IllegalStateException(
+        "Not a resizable bucket aggregation builder: " + builder.getClass().getSimpleName());
+  }
+
+  private AggregationBuilder resizeAggregationForLimit(AggregationBuilder builder, int size) {
+    Integer bucketSize = getBucketSize(builder);
+    if (bucketSize != null) {
+      return size < bucketSize ? copyAndResizeBucketBuilder(builder, size) : null;
+    }
+    if (builder instanceof ValuesSourceAggregationBuilder.LeafOnly<?, ?>) {
+      // all metric aggregations generate one row and are effectively already limited.
+      return builder;
+    }
+    throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+        "Unknown aggregation builder " + builder.getClass().getSimpleName());
+  }
+
+  /**
+   * Read-only probe: check if the limit can be pushed down into aggregation bucket without
+   * modifying any builder state.
+   */
+  public boolean canPushDownLimitIntoBucketSize(Integer size) {
+    if (builderAndParser.getLeft().isEmpty()) return false;
+    AggregationBuilder builder = unwrapNestedBuilder(builderAndParser.getLeft().getFirst());
+    Integer bucketSize = getBucketSize(builder);
+    if (bucketSize != null) {
+      return size < bucketSize;
+    }
+    if (builder instanceof ValuesSourceAggregationBuilder.LeafOnly<?, ?>) {
+      return true;
+    }
+    throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+        "Unknown aggregation builder " + builder.getClass().getSimpleName());
+  }
+
   /**
    * Check if the limit can be pushed down into aggregation bucket when the limit size is less than
    * bucket number.
@@ -446,49 +737,15 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   public boolean pushDownLimitIntoBucketSize(Integer size) {
     // aggregationBuilder.getLeft() could be empty when count agg optimization works
     if (builderAndParser.getLeft().isEmpty()) return false;
-    AggregationBuilder builder = builderAndParser.getLeft().getFirst();
-    if (builder instanceof NestedAggregationBuilder) {
-      builder = builder.getSubAggregations().iterator().next();
+    AggregationBuilder original = builderAndParser.getLeft().getFirst();
+    AggregationBuilder builder = unwrapNestedBuilder(original);
+    AggregationBuilder resizedBuilder = resizeAggregationForLimit(builder, size);
+    if (resizedBuilder == null) {
+      return false;
     }
-    if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
-      if (size < compositeAggBuilder.size()) {
-        compositeAggBuilder.size(size);
-        return true;
-      } else {
-        return false;
-      }
+    if (resizedBuilder != builder) {
+      replaceRootBuilder(original, resizedBuilder);
     }
-    if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
-      if (size < termsAggBuilder.size()) {
-        termsAggBuilder.size(size);
-        return true;
-      } else {
-        return false;
-      }
-    }
-    if (builder instanceof MultiTermsAggregationBuilder multiTermsAggBuilder) {
-      if (size < multiTermsAggBuilder.size()) {
-        multiTermsAggBuilder.size(size);
-        return true;
-      } else {
-        return false;
-      }
-    }
-    if (builder instanceof TopHitsAggregationBuilder topHitsAggBuilder) {
-      if (size < topHitsAggBuilder.size()) {
-        topHitsAggBuilder.size(size);
-        return true;
-      } else {
-        return false;
-      }
-    }
-    // now we only have Composite, Terms and MultiTerms bucket aggregations,
-    // add code here when we could support more in the future.
-    if (builder instanceof ValuesSourceAggregationBuilder.LeafOnly<?, ?>) {
-      // Note: all metric aggregations will be treated as pushed since it generates only one row.
-      return true;
-    }
-    throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
-        "Unknown aggregation builder " + builder.getClass().getSimpleName());
+    return true;
   }
 }
