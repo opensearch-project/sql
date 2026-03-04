@@ -460,9 +460,11 @@ Congratulations! You now know the fundamentals of PPL. Here's what to explore ne
 
 ### Continue Learning
 
-- **[Learn Common Commands](learn-common-commands.md)** - Master the 10 most-used PPL commands
-- **[Quick Reference](../quick-reference.md)** - Handy cheat sheet for all commands
+- **[PPL Command Reference](../cmd/index.md)** - Complete command documentation
 - **[Functions Reference](../functions/index.md)** - Explore available functions for calculations
+- **[PPL Syntax Guide](../cmd/syntax.md)** - Detailed syntax rules
+- **[Data Types](../general/datatypes.md)** - Understanding PPL data types
+- **[Limitations](../limitations/limitations.md)** - Known limitations and workarounds
 
 ### Explore Advanced Features
 
@@ -485,9 +487,6 @@ Try these queries on your own data:
 
 ## Getting Help
 
-- **[PPL Command Reference](../cmd/index.md)** - Complete command documentation
-- **[PPL Syntax Guide](../cmd/syntax.md)** - Detailed syntax rules
-- **[Data Types](../general/datatypes.md)** - Understanding PPL data types
 - **[Limitations](../limitations/limitations.md)** - Known limitations and workarounds
 - **Have questions or issues?** 
   - Submit issues to the [OpenSearch SQL repository](https://github.com/opensearch-project/sql/issues)
