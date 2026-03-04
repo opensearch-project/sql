@@ -57,8 +57,7 @@ This query:
 
 New to PPL? Start here:
 
-- **[Getting Started Tutorial](tutorials/getting-started.md)** - Learn PPL basics in 15 minutes with hands-on examples
-- **[Learn Common Commands](tutorials/learn-common-commands.md)** *(Coming Soon)* - Master the most-used PPL commands
+**[Getting Started Tutorial](tutorials/getting-started.md)** - Learn PPL basics in 15 minutes with hands-on examples
 
 ---
 
@@ -200,47 +199,6 @@ PPL provides a rich set of functions for data manipulation and analysis:
 
 ---
 
-## Common Query Patterns
-
-### Log Analysis
-```ppl
-source=application-logs
-| where severity = "ERROR" AND @timestamp >= now() - 1h
-| stats count() by service.name, error.type
-| sort count() desc
-```
-
-### Performance Monitoring
-```ppl
-source=metrics
-| where response_time > 1000
-| stats avg(response_time), max(response_time) by endpoint
-| sort avg(response_time) desc
-```
-
-### Security Investigation
-```ppl
-source=security-logs
-| where event.action = "login_failed"
-| stats count() by source.ip, user.name
-| where count() > 5
-```
-
-### Time-Series Analysis
-```ppl
-source=metrics
-| timechart span=5m avg(cpu_usage) by host
-```
-
-### Pattern Discovery
-```ppl
-source=application-logs
-| where severity = "ERROR"
-| patterns message
-```
-
----
-
 ## Documentation & Resources
 
 - **[Optimization Guide](../../user/optimization/optimization.rst)** - Query performance tuning
@@ -252,6 +210,8 @@ source=application-logs
 ## Need Help?
 
 - **New to PPL?** Start with the [Getting Started Tutorial](tutorials/getting-started.md)
-- **Looking for a specific command?** Check the [Quick Reference](quick-reference.md) *(Coming Soon)*
-- **Need detailed syntax?** Browse the [Command Reference](cmd/index.md)
-- **Have questions?** Visit the [OpenSearch Forums](https://forum.opensearch.org/)  
+- **Looking for a specific command?** Browse the [Quick Command Reference](#quick-command-reference) above
+- **Need detailed syntax?** Check individual command pages linked in the reference tables
+- **Have questions or issues?** 
+  - Submit issues to the [OpenSearch SQL repository](https://github.com/opensearch-project/sql/issues)
+  - Join our [public Slack channel](https://opensearch.org/slack.html) for community support  
