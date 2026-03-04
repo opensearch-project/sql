@@ -750,7 +750,7 @@ public class AstBuilderTest {
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
                 argument("useNull", booleanLiteral(true))),
-            exprList(field("b")),
+            exprList(alias("b", field("b"))),
             field("a")));
   }
 
@@ -766,7 +766,7 @@ public class AstBuilderTest {
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
                 argument("useNull", booleanLiteral(true))),
-            exprList(field("c")),
+            exprList(alias("c", field("c"))),
             field("a"),
             field("b")));
   }
@@ -815,7 +815,7 @@ public class AstBuilderTest {
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
                 argument("useNull", booleanLiteral(true))),
-            exprList(field("b")),
+            exprList(alias("b", field("b"))),
             field("a")));
   }
 
@@ -831,7 +831,7 @@ public class AstBuilderTest {
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
                 argument("useNull", booleanLiteral(true))),
-            exprList(field("c")),
+            exprList(alias("c", field("c"))),
             field("a"),
             field("b")));
   }
@@ -848,7 +848,7 @@ public class AstBuilderTest {
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
                 argument("useNull", booleanLiteral(false))),
-            exprList(field("b")),
+            exprList(alias("b", field("b"))),
             field("a")));
   }
 
@@ -865,7 +865,7 @@ public class AstBuilderTest {
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
                 argument("useNull", booleanLiteral(false))),
-            exprList(field("b")),
+            exprList(alias("b", field("b"))),
             field("a")));
   }
 

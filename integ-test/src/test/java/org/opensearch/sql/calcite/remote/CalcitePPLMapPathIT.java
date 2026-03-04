@@ -380,6 +380,78 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testTopOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | top 1 doc.user.name\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.name", "string"), schema("count", "bigint"));
+    verifyDataRows(result, rows("John", 2));
+  }
+
+  @Test
+  public void testTopByOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | top 2 doc.user.name by doc.user.city\
+            """,
+            TEST_INDEX);
+    verifySchema(
+        result,
+        schema("doc.user.city", "string"),
+        schema("doc.user.name", "string"),
+        schema("count", "bigint"));
+    verifyDataRows(
+        result,
+        rows(null, null, 1),
+        rows("LA", "Alice", 1),
+        rows("NYC", "Bob", 1),
+        rows("NYC", "John", 1),
+        rows("SF", "John", 1));
+  }
+
+  @Test
+  public void testRareOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | rare 2 doc.user.name\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.name", "string"), schema("count", "bigint"));
+    verifyNumOfRows(result, 2);
+  }
+
+  @Test
+  public void testRareByOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | rare 2 doc.user.name by doc.user.city\
+            """,
+            TEST_INDEX);
+    verifySchema(
+        result,
+        schema("doc.user.city", "string"),
+        schema("doc.user.name", "string"),
+        schema("count", "bigint"));
+    verifyDataRows(
+        result,
+        rows(null, null, 1),
+        rows("LA", "Alice", 1),
+        rows("NYC", "Bob", 1),
+        rows("NYC", "John", 1),
+        rows("SF", "John", 1));
+  }
+
+  @Test
   public void testBinOnMapPath() throws IOException {
     JSONObject result =
         ppl(

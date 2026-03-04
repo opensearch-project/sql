@@ -841,7 +841,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   private List<UnresolvedExpression> getGroupByList(ByClauseContext ctx) {
     return ctx.fieldList().fieldExpression().stream()
-        .map(this::internalVisitExpression)
+        .map(
+            fieldCtx ->
+                (UnresolvedExpression)
+                    new Alias(
+                        StringUtils.unquoteIdentifier(getTextInQuery(fieldCtx)),
+                        internalVisitExpression(fieldCtx)))
         .collect(Collectors.toList());
   }
 

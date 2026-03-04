@@ -2377,7 +2377,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 1. group the group-by list + field list and add a count() aggregation
     List<UnresolvedExpression> groupExprList = new ArrayList<>(node.getGroupExprList());
     List<UnresolvedExpression> fieldList =
-        node.getFields().stream().map(f -> (UnresolvedExpression) f).toList();
+        node.getFields().stream()
+            .map(f -> (UnresolvedExpression) new Alias(f.getField().toString(), f))
+            .toList();
     groupExprList.addAll(fieldList);
     List<UnresolvedExpression> aggExprList =
         List.of(AstDSL.alias(countFieldName, AstDSL.aggregate("count", null)));
@@ -2399,7 +2401,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     aggregateWithTrimming(groupExprList, aggExprList, context, hintIgnoreNullBucket);
 
     // 2. add count() column with sort direction
-    List<RexNode> partitionKeys = rexVisitor.analyze(node.getGroupExprList(), context);
+    List<RexNode> partitionKeys =
+        rexVisitor.analyze(
+            node.getGroupExprList().stream()
+                .map(expr -> expr instanceof Alias ? ((Alias) expr).getDelegated() : expr)
+                .toList(),
+            context);
     RexNode countField;
     if (node.getCommandType() == RareTopN.CommandType.TOP) {
       countField = context.relBuilder.desc(context.relBuilder.field(countFieldName));
