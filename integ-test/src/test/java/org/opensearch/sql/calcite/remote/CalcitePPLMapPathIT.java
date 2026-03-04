@@ -8,12 +8,15 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.util.TestUtils.isIndexExist;
 import static org.opensearch.sql.util.TestUtils.performRequest;
 
 import java.io.IOException;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -28,7 +31,6 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
 
   private static final String TEST_INDEX = "opensearch-sql_test_index_spath";
 
-  /** Bulk request body: 4 docs with nested JSON user object + 1 null doc. */
   private static final String TEST_BULK_DATA =
       """
       {"index":{"_id":"1"}}
@@ -51,7 +53,7 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMapPathWithRename() throws IOException {
+  public void testRenameOnMapPath() throws IOException {
     JSONObject result =
         ppl(
             """
@@ -71,7 +73,7 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMapPathWithFillnull() throws IOException {
+  public void testFillnullOnMapPath() throws IOException {
     JSONObject result =
         ppl(
             """
@@ -85,7 +87,7 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMapPathWithReplace() throws IOException {
+  public void testReplaceOnMapPath() throws IOException {
     JSONObject result =
         ppl(
             """
@@ -105,7 +107,7 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMapPathWithFieldsExclusion() throws IOException {
+  public void testFieldsExclusionOnMapPath() throws IOException {
     JSONObject result =
         ppl(
             """
@@ -125,7 +127,7 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMapPathWithAddtotals() throws IOException {
+  public void testAddtotalsOnMapPath() throws IOException {
     JSONObject result =
         ppl(
             """
@@ -147,7 +149,7 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMapPathWithMvcombine() throws IOException {
+  public void testMvcombineOnMapPath() throws IOException {
     JSONObject result =
         ppl(
             """
@@ -159,34 +161,42 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
     verifySchema(result, schema("doc.user.name", "array"), schema("doc.user.city", "string"));
     verifyDataRows(
         result,
-        rows(new org.json.JSONArray("[\"John\"]"), "NYC"),
-        rows(new org.json.JSONArray("[\"Alice\"]"), "LA"),
-        rows(new org.json.JSONArray("[\"John\"]"), "SF"),
-        rows(new org.json.JSONArray("[\"Bob\"]"), "NYC"),
+        rows(new JSONArray("[\"John\"]"), "NYC"),
+        rows(new JSONArray("[\"Alice\"]"), "LA"),
+        rows(new JSONArray("[\"John\"]"), "SF"),
+        rows(new JSONArray("[\"Bob\"]"), "NYC"),
         rows(null, null));
   }
 
-  // ---- Edge cases ----
-
-  /** Dotted field that resolves to a regular column (not MAP) should not cause errors. */
   @Test
-  public void testNonMapDottedFieldSkippedGracefully() throws IOException {
-    JSONObject result =
+  public void testRenameWildcardOnMapPath() throws IOException {
+    verifySchema(
         ppl(
             """
             source=%s | spath input=doc
-            | rename doc.user.name as username
-            | fields - username
-            | fields doc.user.age\
+            | rename d* as test_*
+            | fields test_oc\
             """,
-            TEST_INDEX);
-    verifySchema(result, schema("doc.user.age", "string"));
-    verifyDataRows(result, rows("30"), rows("25"), rows("35"), rows("40"), rows((Object) null));
+            TEST_INDEX),
+        schema("test_oc", "struct"));
   }
 
-  /** Same MAP path referenced by two commands should not produce duplicate columns. */
   @Test
-  public void testSameMapPathAcrossMultipleCommands() throws IOException {
+  public void testFieldsExclusionWildcardOnMapPath() throws IOException {
+    verifySchema(
+        ppl(
+            """
+            source=%s | spath input=doc
+            | fields - doc.user.na*
+            | fields doc.user.age, doc.user.city\
+            """,
+            TEST_INDEX),
+        schema("doc.user.age", "string"),
+        schema("doc.user.city", "string"));
+  }
+
+  @Test
+  public void testMultipleCommandsOnSameMapPath() throws IOException {
     JSONObject result =
         ppl(
             """
@@ -198,6 +208,191 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
             TEST_INDEX);
     verifySchema(result, schema("username", "string"));
     verifyDataRows(result, rows("John"), rows("Alice"), rows("John"), rows("Bob"), rows("N/A"));
+  }
+
+  @Test
+  public void testWhereOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | where doc.user.name = 'John'
+            | fields doc.user.name, doc.user.city\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.name", "string"), schema("doc.user.city", "string"));
+    verifyDataRows(result, rows("John", "NYC"), rows("John", "SF"));
+  }
+
+  @Test
+  public void testEvalOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | eval name = doc.user.name
+            | fields name\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("name", "string"));
+    verifyDataRows(
+        result, rows("John"), rows("Alice"), rows("John"), rows("Bob"), rows((Object) null));
+  }
+
+  @Test
+  public void testStatsOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | stats count() as cnt by doc.user.city\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("cnt", "bigint"), schema("doc.user.city", "string"));
+    verifyDataRows(result, rows(1, null), rows(1, "LA"), rows(2, "NYC"), rows(1, "SF"));
+  }
+
+  @Test
+  public void testSortOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | sort doc.user.name
+            | fields doc.user.name\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.name", "string"));
+    verifyDataRowsInOrder(
+        result, rows((Object) null), rows("Alice"), rows("Bob"), rows("John"), rows("John"));
+  }
+
+  @Test
+  public void testDedupOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | dedup 1 doc.user.name
+            | fields doc.user.name\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.name", "string"));
+    verifyDataRows(result, rows("John"), rows("Alice"), rows("Bob"));
+  }
+
+  @Test
+  public void testEventstatsOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | eventstats count() as cnt by doc.user.city
+            | where doc.user.city = 'NYC'
+            | fields doc.user.name, cnt\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.name", "string"), schema("cnt", "bigint"));
+    verifyDataRows(result, rows("John", 2), rows("Bob", 2));
+  }
+
+  @Test
+  public void testChartOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | chart count() by doc.user.city\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.city", "string"), schema("count()", "bigint"));
+    verifyDataRows(result, rows("LA", 1), rows("NYC", 2), rows("SF", 1));
+  }
+
+  @Test
+  public void testTrendlineOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | eval age_num = cast(doc.user.age as double)
+            | where isnotnull(age_num)
+            | trendline sma(2, age_num) as trend
+            | fields doc.user.name, trend\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.name", "string"), schema("trend", "double"));
+    verifyNumOfRows(result, 4);
+  }
+
+  @Test
+  public void testParseOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | parse doc.user.city '(?<firstchar>.).*'
+            | fields doc.user.city, firstchar\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.city", "string"), schema("firstchar", "string"));
+    verifyDataRows(
+        result,
+        rows("NYC", "N"),
+        rows("LA", "L"),
+        rows("SF", "S"),
+        rows("NYC", "N"),
+        rows(null, ""));
+  }
+
+  @Test
+  public void testRexOnMapPath() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | spath input=doc"
+                    + " | rex field=doc.user.city \\\"(?<firstchar>.).*\\\""
+                    + " | fields doc.user.city, firstchar",
+                TEST_INDEX));
+    verifySchema(result, schema("doc.user.city", "string"), schema("firstchar", "string"));
+    verifyDataRows(
+        result,
+        rows("NYC", "N"),
+        rows("LA", "L"),
+        rows("SF", "S"),
+        rows("NYC", "N"),
+        rows(null, null));
+  }
+
+  @Test
+  public void testPatternsOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | patterns doc.user.city
+            | head 1
+            | fields doc.user.city, patterns_field\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.city", "string"), schema("patterns_field", "string"));
+    verifyNumOfRows(result, 1);
+  }
+
+  @Test
+  public void testBinOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | eval age_num = cast(doc.user.age as integer)
+            | where isnotnull(age_num)
+            | stats count() as cnt by span(age_num, 10) as age_bin
+            | fields age_bin, cnt\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("age_bin", "int"), schema("cnt", "bigint"));
+    verifyDataRows(result, rows(20, 1), rows(30, 2), rows(40, 1));
   }
 
   private void createJsonTestIndex() {

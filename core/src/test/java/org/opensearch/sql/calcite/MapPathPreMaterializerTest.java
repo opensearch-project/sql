@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -80,8 +81,7 @@ public class MapPathPreMaterializerTest {
     mockedToolsHelper
         .when(() -> CalciteToolsHelper.create(any(), any(), any()))
         .thenReturn(relBuilder);
-    when(relBuilder.getRexBuilder())
-        .thenReturn(new org.apache.calcite.rex.RexBuilder(OpenSearchTypeFactory.TYPE_FACTORY));
+    when(relBuilder.getRexBuilder()).thenReturn(new RexBuilder(OpenSearchTypeFactory.TYPE_FACTORY));
     context =
         CalcitePlanContext.create(mock(FrameworkConfig.class), SysLimit.DEFAULT, QueryType.PPL);
     lenient().when(relBuilder.size()).thenReturn(1);
@@ -129,7 +129,7 @@ public class MapPathPreMaterializerTest {
   @Test
   void testAddtotals() {
     givenMapPaths("doc.user.name")
-        .whenCommand(new AddTotals(List.of(field("doc.user.name")), java.util.Map.of()))
+        .whenCommand(new AddTotals(List.of(field("doc.user.name")), Map.of()))
         .shouldProject("doc.user.name");
   }
 
@@ -185,7 +185,7 @@ public class MapPathPreMaterializerTest {
 
   @Test
   void testNoOpWhenRelBuilderStackEmpty() {
-    when(relBuilder.size()).thenReturn(0);
+    lenient().when(relBuilder.size()).thenReturn(0);
     givenMapPaths("doc.user.name")
         .whenCommand(rename(DUMMY_CHILD, map("doc.user.name", "u")))
         .shouldNotProject();
@@ -223,7 +223,7 @@ public class MapPathPreMaterializerTest {
       for (String name : fieldNames) {
         RexNode ref = mock(RexNode.class, "ref:" + name);
         when(ref.getKind()).thenReturn(SqlKind.INPUT_REF);
-        when(rexVisitor.analyze(fieldMatching(name), eq(context))).thenReturn(ref);
+        lenient().when(rexVisitor.analyze(fieldMatching(name), eq(context))).thenReturn(ref);
       }
       return this;
     }
