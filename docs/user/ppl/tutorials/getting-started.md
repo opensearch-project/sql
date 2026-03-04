@@ -460,7 +460,7 @@ Congratulations! You now know the fundamentals of PPL. Here's what to explore ne
 
 ### Continue Learning
 
-- **[PPL Command Reference](../cmd/index.md)** - Complete command documentation
+- **[PPL Quick Reference](../index.md)** - Quick command/functions reference
 - **[Functions Reference](../functions/index.md)** - Explore available functions for calculations
 - **[PPL Syntax Guide](../cmd/syntax.md)** - Detailed syntax rules
 - **[Data Types](../general/datatypes.md)** - Understanding PPL data types
