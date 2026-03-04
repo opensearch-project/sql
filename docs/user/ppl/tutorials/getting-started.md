@@ -518,5 +518,6 @@ Try these queries on your own data:
 - **[PPL Syntax Guide](../cmd/syntax.md)** - Detailed syntax rules
 - **[Data Types](../general/datatypes.md)** - Understanding PPL data types
 - **[Limitations](../limitations/limitations.md)** - Known limitations and workarounds
-
-**Need more help?** Check the [OpenSearch documentation](https://opensearch.org/docs/latest/) or join the community forums.
+- **Have questions or issues?** 
+  - Submit issues to the [OpenSearch SQL repository](https://github.com/opensearch-project/sql/issues)
+  - Join our [public Slack channel](https://opensearch.org/slack.html) for community support  

@@ -210,8 +210,6 @@ PPL provides a rich set of functions for data manipulation and analysis:
 ## Need Help?
 
 - **New to PPL?** Start with the [Getting Started Tutorial](tutorials/getting-started.md)
-- **Looking for a specific command?** Browse the [Quick Command Reference](#quick-command-reference) above
-- **Need detailed syntax?** Check individual command pages linked in the reference tables
 - **Have questions or issues?** 
   - Submit issues to the [OpenSearch SQL repository](https://github.com/opensearch-project/sql/issues)
   - Join our [public Slack channel](https://opensearch.org/slack.html) for community support  
