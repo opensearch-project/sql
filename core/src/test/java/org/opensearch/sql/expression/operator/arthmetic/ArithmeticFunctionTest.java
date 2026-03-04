@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -208,6 +209,42 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     expression = DSL.divideFunction(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
     assertEquals(String.format("divide(%s, 0)", op1.toString()), expression.toString());
+  }
+
+  @Test
+  public void multiply_double_overflow_returns_null() {
+    FunctionExpression expression =
+        DSL.multiply(
+            literal(new ExprDoubleValue(Double.MAX_VALUE)),
+            literal(new ExprDoubleValue(2D)));
+    assertTrue(expression.valueOf(valueEnv()).isNull());
+  }
+
+  @Test
+  public void add_double_overflow_returns_null() {
+    FunctionExpression expression =
+        DSL.add(
+            literal(new ExprDoubleValue(Double.MAX_VALUE)),
+            literal(new ExprDoubleValue(Double.MAX_VALUE)));
+    assertTrue(expression.valueOf(valueEnv()).isNull());
+  }
+
+  @Test
+  public void subtract_double_overflow_returns_null() {
+    FunctionExpression expression =
+        DSL.subtract(
+            literal(new ExprDoubleValue(-Double.MAX_VALUE)),
+            literal(new ExprDoubleValue(Double.MAX_VALUE)));
+    assertTrue(expression.valueOf(valueEnv()).isNull());
+  }
+
+  @Test
+  public void multiply_float_overflow_returns_null() {
+    FunctionExpression expression =
+        DSL.multiply(
+            literal(new ExprFloatValue(Float.MAX_VALUE)),
+            literal(new ExprFloatValue(2f)));
+    assertTrue(expression.valueOf(valueEnv()).isNull());
   }
 
   @ParameterizedTest(name = "multipleParameters({1},{2})")

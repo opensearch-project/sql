@@ -23,6 +23,7 @@ import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprShortValue;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
@@ -91,13 +92,13 @@ public class ArithmeticFunctions {
             LONG,
             LONG),
         impl(
-            nullMissingHandling((v1, v2) -> new ExprFloatValue(v1.floatValue() + v2.floatValue())),
+            nullMissingHandling((v1, v2) -> floatOrNull(v1.floatValue() + v2.floatValue())),
             FLOAT,
             FLOAT,
             FLOAT),
         impl(
             nullMissingHandling(
-                (v1, v2) -> new ExprDoubleValue(v1.doubleValue() + v2.doubleValue())),
+                (v1, v2) -> doubleOrNull(v1.doubleValue() + v2.doubleValue())),
             DOUBLE,
             DOUBLE,
             DOUBLE));
@@ -162,7 +163,7 @@ public class ArithmeticFunctions {
                 (v1, v2) ->
                     v2.floatValue() == 0
                         ? ExprNullValue.of()
-                        : new ExprFloatValue(v1.floatValue() / v2.floatValue())),
+                        : floatOrNull(v1.floatValue() / v2.floatValue())),
             FLOAT,
             FLOAT,
             FLOAT),
@@ -171,7 +172,7 @@ public class ArithmeticFunctions {
                 (v1, v2) ->
                     v2.doubleValue() == 0
                         ? ExprNullValue.of()
-                        : new ExprDoubleValue(v1.doubleValue() / v2.doubleValue())),
+                        : doubleOrNull(v1.doubleValue() / v2.doubleValue())),
             DOUBLE,
             DOUBLE,
             DOUBLE));
@@ -236,7 +237,7 @@ public class ArithmeticFunctions {
                 (v1, v2) ->
                     v2.floatValue() == 0
                         ? ExprNullValue.of()
-                        : new ExprFloatValue(v1.floatValue() % v2.floatValue())),
+                        : floatOrNull(v1.floatValue() % v2.floatValue())),
             FLOAT,
             FLOAT,
             FLOAT),
@@ -245,7 +246,7 @@ public class ArithmeticFunctions {
                 (v1, v2) ->
                     v2.doubleValue() == 0
                         ? ExprNullValue.of()
-                        : new ExprDoubleValue(v1.doubleValue() % v2.doubleValue())),
+                        : doubleOrNull(v1.doubleValue() % v2.doubleValue())),
             DOUBLE,
             DOUBLE,
             DOUBLE));
@@ -297,13 +298,13 @@ public class ArithmeticFunctions {
             LONG,
             LONG),
         impl(
-            nullMissingHandling((v1, v2) -> new ExprFloatValue(v1.floatValue() * v2.floatValue())),
+            nullMissingHandling((v1, v2) -> floatOrNull(v1.floatValue() * v2.floatValue())),
             FLOAT,
             FLOAT,
             FLOAT),
         impl(
             nullMissingHandling(
-                (v1, v2) -> new ExprDoubleValue(v1.doubleValue() * v2.doubleValue())),
+                (v1, v2) -> doubleOrNull(v1.doubleValue() * v2.doubleValue())),
             DOUBLE,
             DOUBLE,
             DOUBLE));
@@ -351,13 +352,13 @@ public class ArithmeticFunctions {
             LONG,
             LONG),
         impl(
-            nullMissingHandling((v1, v2) -> new ExprFloatValue(v1.floatValue() - v2.floatValue())),
+            nullMissingHandling((v1, v2) -> floatOrNull(v1.floatValue() - v2.floatValue())),
             FLOAT,
             FLOAT,
             FLOAT),
         impl(
             nullMissingHandling(
-                (v1, v2) -> new ExprDoubleValue(v1.doubleValue() - v2.doubleValue())),
+                (v1, v2) -> doubleOrNull(v1.doubleValue() - v2.doubleValue())),
             DOUBLE,
             DOUBLE,
             DOUBLE));
@@ -369,5 +370,19 @@ public class ArithmeticFunctions {
 
   private static DefaultFunctionResolver subtractFunction() {
     return subtractBase(BuiltinFunctionName.SUBTRACTFUNCTION.getName());
+  }
+
+  /** Returns null if the double result is Infinite or NaN, otherwise wraps in ExprDoubleValue. */
+  private static ExprValue doubleOrNull(double value) {
+    return Double.isInfinite(value) || Double.isNaN(value)
+        ? ExprNullValue.of()
+        : new ExprDoubleValue(value);
+  }
+
+  /** Returns null if the float result is Infinite or NaN, otherwise wraps in ExprFloatValue. */
+  private static ExprValue floatOrNull(float value) {
+    return Float.isInfinite(value) || Float.isNaN(value)
+        ? ExprNullValue.of()
+        : new ExprFloatValue(value);
   }
 }
