@@ -21,6 +21,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.ConvertToChecked;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
@@ -105,8 +106,14 @@ public class QueryService {
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
             RelNode relNode = analyze(plan, context);
             RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+            if (isCheckedArithmeticEnabled()) {
+              calcitePlan = new ConvertToChecked(context.rexBuilder).visit(calcitePlan);
+            }
             analyzeMetric.set(System.nanoTime() - analyzeStart);
             executionEngine.execute(calcitePlan, context, listener);
+          } catch (ArithmeticException e) {
+            listener.onFailure(
+                new NonFallbackCalciteException("Arithmetic overflow: " + e.getMessage(), e));
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
@@ -146,6 +153,9 @@ public class QueryService {
                 () -> {
                   RelNode relNode = analyze(plan, context);
                   RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+                  if (isCheckedArithmeticEnabled()) {
+                    calcitePlan = new ConvertToChecked(context.rexBuilder).visit(calcitePlan);
+                  }
                   executionEngine.explain(calcitePlan, mode, context, listener);
                 },
                 settings);
@@ -282,6 +292,14 @@ public class QueryService {
         return true;
       }
     }
+  }
+
+  private boolean isCheckedArithmeticEnabled() {
+    if (settings != null) {
+      Boolean enabled = settings.getSettingValue(Settings.Key.CALCITE_CHECKED_ARITHMETIC);
+      return enabled != null && enabled;
+    }
+    return true; // default: overflow checking enabled
   }
 
   private boolean isCalciteEnabled(Settings settings) {

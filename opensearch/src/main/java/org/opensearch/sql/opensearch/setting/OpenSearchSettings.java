@@ -186,6 +186,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> CALCITE_CHECKED_ARITHMETIC_SETTING =
+      Setting.boolSetting(
+          Key.CALCITE_CHECKED_ARITHMETIC.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> QUERY_MEMORY_LIMIT_SETTING =
       Setting.memorySizeSetting(
           Key.QUERY_MEMORY_LIMIT.getKeyValue(),
@@ -470,6 +477,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.CALCITE_CHECKED_ARITHMETIC,
+        CALCITE_CHECKED_ARITHMETIC_SETTING,
+        new Updater(Key.CALCITE_CHECKED_ARITHMETIC));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.QUERY_MEMORY_LIMIT,
         QUERY_MEMORY_LIMIT_SETTING,
         new Updater(Key.QUERY_MEMORY_LIMIT));
@@ -658,6 +671,7 @@ public class OpenSearchSettings extends Settings {
         .add(CALCITE_PUSHDOWN_ENABLED_SETTING)
         .add(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING)
         .add(CALCITE_SUPPORT_ALL_JOIN_TYPES_SETTING)
+        .add(CALCITE_CHECKED_ARITHMETIC_SETTING)
         .add(DEFAULT_PATTERN_METHOD_SETTING)
         .add(DEFAULT_PATTERN_MODE_SETTING)
         .add(DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING)
