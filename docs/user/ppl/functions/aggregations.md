@@ -787,12 +787,7 @@ Collects all unique values from the specified expression into a sorted array. Va
 > The `plugins.ppl.values.max.limit` setting controls the maximum number of unique values returned:
 > - The default value is 0, which returns an unlimited number of values.
 > - Setting this to any positive integer limits the number of unique values.
-{: .note}
-
-<!-- temporarily commented out because the admin section is not ported
-
-* See the [PPL Settings]({{site.url}}{{site.baseurl}}/sql-and-ppl/ppl/admin/settings#plugins-ppl-values-max-limit) documentation for more details
--->
+> - See the [PPL Settings](../admin/settings.md#plugins-ppl-values-max-limit) documentation for more details
 
 #### Example
 

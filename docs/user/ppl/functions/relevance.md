@@ -620,7 +620,4 @@ search source = people
 | stats count() by city
 ```
 
-<!-- temporarily commented out because the optimization section is not ported
-See [Optimization]({{site.url}}{{site.baseurl}}/sql-and-ppl/ppl/optimization/optimization/) to get more details about the query engine op
-timization.
--->
+See [Optimization](../../optimization/optimization.rst) to get more details about the query engine optimization.
