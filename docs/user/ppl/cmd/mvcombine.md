@@ -29,7 +29,7 @@ mvcombine <field>
 
 ## Configuration
 
-The mvcombine command leverages OpenSearch's top hits aggregation pushdown, which requires increasing the `index.max_inner_result_window` setting to 10000 or larger.
+The mvcombine command leverages OpenSearch's top hits aggregation pushdown, which requires increasing the index setting `index.max_inner_result_window` to `plugins.query.buckets` (default: 10000) or larger.
 
 Change the `index.max_inner_result_window` to `10000`:
 

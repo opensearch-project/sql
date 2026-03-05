@@ -112,8 +112,6 @@ public class AggregateAnalyzer {
   /** metadata field used when there is no argument. Only apply to COUNT. */
   private static final String METADATA_FIELD = "_index";
 
-  private static final int MAX_TOP_HITS_RESULT_WINDOW = 10000;
-
   /** Internal exception. */
   @SuppressWarnings("serial")
   public static final class AggregateAnalyzerException extends RuntimeException {
@@ -608,15 +606,7 @@ public class AggregateAnalyzer {
       case COLLECT, ARRAY_AGG -> {
         TopHitsAggregationBuilder topHitsBuilder =
             createTopHitsBuilder(
-                aggCall,
-                args,
-                aggName,
-                helper,
-                MAX_TOP_HITS_RESULT_WINDOW,
-                false,
-                false,
-                null,
-                null);
+                aggCall, args, aggName, helper, helper.queryBucketSize, false, false, null, null);
         yield Pair.of(topHitsBuilder, new TopHitsParser(aggName, false, true));
       }
       default ->
