@@ -69,6 +69,36 @@ public class ConvertCommandIT extends PPLIntegTestCase {
         "source=%s | convert auto(balance) | stats avg(balance) by gender");
   }
 
+  @Test
+  public void testConvertMktimeFunction() {
+    verifyQueryThrowsCalciteError(
+        "source=%s | eval date_str = '2003-10-18 20:07:13' | convert mktime(date_str) | fields date_str");
+  }
+
+  @Test
+  public void testConvertCtimeFunction() {
+    verifyQueryThrowsCalciteError(
+        "source=%s | eval timestamp = 1066507633 | convert ctime(timestamp) | fields timestamp");
+  }
+
+  @Test
+  public void testConvertDur2secFunction() {
+    verifyQueryThrowsCalciteError(
+        "source=%s | eval duration = '01:23:45' | convert dur2sec(duration) | fields duration");
+  }
+
+  @Test
+  public void testConvertMstimeFunction() {
+    verifyQueryThrowsCalciteError(
+        "source=%s | eval time_str = '03:45' | convert mstime(time_str) | fields time_str");
+  }
+
+  @Test
+  public void testConvertWithTimeformat() {
+    verifyQueryThrowsCalciteError(
+        "source=%s | eval date_str = '18/10/2003 20:07:13' | convert timeformat=\"dd/MM/yyyy HH:mm:ss\" mktime(date_str) | fields date_str");
+  }
+
   private void verifyQueryThrowsCalciteError(String query) {
     Exception e =
         assertThrows(Exception.class, () -> executeQuery(String.format(query, TEST_INDEX_BANK)));
