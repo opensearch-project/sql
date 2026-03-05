@@ -28,7 +28,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  * Uses {@code spath} to parse a JSON text field into a MAP column, then verifies various PPL
  * commands work correctly on the resulting nested paths.
  */
-public class CalcitePPLFieldPathIT extends PPLIntegTestCase {
+public class CalcitePPLMapPathIT extends PPLIntegTestCase {
 
   private static final String TEST_INDEX = "opensearch-sql_test_index_spath";
 
@@ -482,18 +482,18 @@ public class CalcitePPLFieldPathIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testJoinFieldListOnMapPath() throws IOException {
-    // join-with-field-list grammar: eval creates 'name' from MAP sub-path, then join on it
+  public void testJoinOnMapPath() throws IOException {
+    // join ON condition references MAP sub-path through table alias (l.doc.user.name),
+    // and fields clause also references MAP sub-path after join.
     JSONObject result =
         ppl(
             """
             source=%s | spath input=doc
-            | eval name = doc.user.name
-            | inner join left=l, right=r ON l.name = r.name %s
-            | fields l.name, r.title\
+            | inner join left=l, right=r ON l.doc.user.name = r.name %s
+            | fields doc.user.name, r.title\
             """,
             TEST_INDEX, LOOKUP_INDEX);
-    verifySchema(result, schema("name", "string"), schema("title", "string"));
+    verifySchema(result, schema("doc.user.name", "string"), schema("title", "string"));
     verifyDataRows(
         result,
         rows("John", "Engineer"),
@@ -552,7 +552,7 @@ public class CalcitePPLFieldPathIT extends PPLIntegTestCase {
   public void testDottedPathOnTextField() {
     // Without spath, doc is a VARCHAR field. Referencing doc.user.name should produce
     // a clear error, not an AssertionError from Calcite's SqlItemOperator via
-    // FieldPathPreMaterializer.
+    // MapPathPreMaterializer.
     Throwable e =
         assertThrowsWithReplace(
             IllegalArgumentException.class,

@@ -11,7 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
+import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.lang3.tuple.Pair;
@@ -31,32 +31,20 @@ import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 
 /**
- * Resolves dotted field paths (e.g. {@code doc.user.name}) referenced by a PPL command and projects
- * them as flat named columns. Each dotted path that passes the {@link #shouldMaterialize} predicate
- * is added to the current row type so downstream command logic can reference it by name.
+ * Resolves MAP dotted paths (e.g. {@code doc.user.name}) referenced by a PPL command and projects
+ * them as flat named columns. Each dotted path that resolves to an {@code ITEM()} expression is
+ * added to the current row type so downstream command logic can reference it by name.
  */
-public class FieldPathPreMaterializer {
+@RequiredArgsConstructor
+public class MapPathPreMaterializer {
 
-  private static final Logger log = LogManager.getLogger(FieldPathPreMaterializer.class);
+  private static final Logger log = LogManager.getLogger(MapPathPreMaterializer.class);
 
   /** Visitor used to resolve field expressions to Calcite {@link RexNode}. */
   private final CalciteRexNodeVisitor rexVisitor;
 
-  /** Predicate that determines whether a resolved field path should be materialized. */
-  private final Predicate<RexNode> shouldMaterialize;
-
-  public FieldPathPreMaterializer(CalciteRexNodeVisitor rexVisitor) {
-    this(rexVisitor, rex -> rex.getKind() == SqlKind.ITEM);
-  }
-
-  public FieldPathPreMaterializer(
-      CalciteRexNodeVisitor rexVisitor, Predicate<RexNode> shouldMaterialize) {
-    this.rexVisitor = rexVisitor;
-    this.shouldMaterialize = shouldMaterialize;
-  }
-
   /**
-   * Resolves and projects dotted field paths referenced by the given command as flat named columns.
+   * Resolves and projects MAP dotted paths referenced by the given command as flat named columns.
    *
    * @param plan the AST command being visited
    * @param context the current plan context with relBuilder state
@@ -68,7 +56,7 @@ public class FieldPathPreMaterializer {
 
     List<Field> fields = extractFieldOperands(plan);
     if (!fields.isEmpty()) {
-      doMaterializeFieldPaths(fields, context);
+      doMaterializeMapPaths(fields, context);
     }
   }
 
@@ -94,24 +82,22 @@ public class FieldPathPreMaterializer {
     };
   }
 
-  private void doMaterializeFieldPaths(List<Field> fields, CalcitePlanContext context) {
+  private void doMaterializeMapPaths(List<Field> fields, CalcitePlanContext context) {
     Set<String> existingFields =
         new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
-
     List<RexNode> newColumns = new ArrayList<>();
     for (Field field : fields) {
       try {
         RexNode resolved = rexVisitor.analyze(field, context);
         String name = field.getField().toString();
-
-        if (shouldMaterialize.test(resolved) && !existingFields.contains(name)) {
+        if (resolved.getKind() == SqlKind.ITEM && !existingFields.contains(name)) {
           newColumns.add(context.relBuilder.alias(resolved, name));
           existingFields.add(name);
         }
       } catch (Throwable e) {
         // Skip unresolvable fields (e.g. wildcards, dotted paths on non-MAP types);
         // let the command itself handle them and throw its own error.
-        log.debug("Skipping field resolution for '{}': {}", field.getField(), e.getMessage());
+        log.debug("Skipping field resolution for '{}': {}", field.getField(), e.getMessage(), e);
       }
     }
 

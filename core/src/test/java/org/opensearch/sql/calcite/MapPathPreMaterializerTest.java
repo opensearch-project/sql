@@ -62,7 +62,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.executor.QueryType;
 
 @ExtendWith(MockitoExtension.class)
-public class FieldPathPreMaterializerTest {
+public class MapPathPreMaterializerTest {
 
   @Mock private CalciteRexNodeVisitor rexVisitor;
   @Mock private OpenSearchRelBuilder relBuilder;
@@ -74,11 +74,11 @@ public class FieldPathPreMaterializerTest {
   private static final UnresolvedPlan DUMMY_CHILD = relation("t");
 
   private CalcitePlanContext context;
-  private FieldPathPreMaterializer materializer;
+  private MapPathPreMaterializer materializer;
 
   @BeforeEach
   void setUp() {
-    materializer = new FieldPathPreMaterializer(rexVisitor);
+    materializer = new MapPathPreMaterializer(rexVisitor);
     mockedToolsHelper
         .when(() -> CalciteToolsHelper.connect(any(), any()))
         .thenReturn(mock(Connection.class));

@@ -180,13 +180,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final CalciteRexNodeVisitor rexVisitor;
   private final CalciteAggCallVisitor aggVisitor;
   private final DataSourceService dataSourceService;
-  private final FieldPathPreMaterializer fieldPathMaterializer;
+  private final MapPathPreMaterializer mapPathMaterializer;
 
   public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
     this.dataSourceService = dataSourceService;
-    this.fieldPathMaterializer = new FieldPathPreMaterializer(rexVisitor);
+    this.mapPathMaterializer = new MapPathPreMaterializer(rexVisitor);
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
@@ -200,7 +200,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (node instanceof UnresolvedPlan plan) {
       // Pre-materialize dotted field paths as flat columns after children are analyzed
       // (so MAP/struct types are known) but before the command's own visit logic runs.
-      fieldPathMaterializer.materializePaths(plan, context);
+      mapPathMaterializer.materializePaths(plan, context);
     }
     return result;
   }
@@ -1382,7 +1382,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
-    fieldPathMaterializer.materializePaths(node, context);
+    mapPathMaterializer.materializePaths(node, context);
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
       List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
