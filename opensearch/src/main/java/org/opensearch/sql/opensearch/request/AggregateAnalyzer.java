@@ -625,38 +625,6 @@ public class AggregateAnalyzer {
     };
   }
 
-  private static TopHitsAggregationBuilder getTopHitsAggregationBuilder(
-      AggregateCall aggCall,
-      List<Pair<RexNode, String>> args,
-      String aggName,
-      AggregateBuilderHelper helper,
-      Integer topHitsSize) {
-    // Disable fetchSource since TopHitsParser only parses fetchField currently.
-    TopHitsAggregationBuilder topHitsAggregationBuilder =
-        AggregationBuilders.topHits(aggName).from(0).size(topHitsSize);
-    List<String> sources = new ArrayList<>();
-    List<SearchSourceBuilder.ScriptField> scripts = new ArrayList<>();
-    args.forEach(
-        rex -> {
-          if (rex.getKey() instanceof RexInputRef) {
-            sources.add(helper.inferNamedField(rex.getKey()).getReference());
-          } else if (rex.getKey() instanceof RexCall || rex.getKey() instanceof RexLiteral) {
-            scripts.add(
-                new SearchSourceBuilder.ScriptField(
-                    rex.getValue(), helper.inferScript(rex.getKey()).getScript(), false));
-          } else {
-            throw new AggregateAnalyzerException(
-                String.format(
-                    "Unsupported push-down aggregator %s due to rex type is %s",
-                    aggCall.getAggregation(), rex.getKey().getKind()));
-          }
-        });
-    topHitsAggregationBuilder.fetchSource(
-        sources.stream().distinct().toArray(String[]::new), new String[0]);
-    topHitsAggregationBuilder.scriptFields(scripts);
-    return topHitsAggregationBuilder;
-  }
-
   private static boolean supportsMaxMinAggregation(ExprType fieldType) {
     ExprType coreType =
         (fieldType instanceof OpenSearchDataType)

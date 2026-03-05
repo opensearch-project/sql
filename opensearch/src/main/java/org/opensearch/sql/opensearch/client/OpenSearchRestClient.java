@@ -129,7 +129,7 @@ public class OpenSearchRestClient implements OpenSearchClient {
       return response.isAcknowledged();
     } catch (IOException e) {
       throw new IllegalStateException(
-          String.format("Failed to update index settings %s for %s", settings, indexExpression, e));
+          String.format("Failed to update index settings %s for %s", settings, indexExpression), e);
     }
   }
 
