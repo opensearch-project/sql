@@ -391,7 +391,9 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
   public void testCrossClusterMvcombine() throws IOException {
     try {
       updateIndexSettings(
-          TEST_INDEX_BANK_REMOTE, "{ \"index\": { \"max_inner_result_window\":" + 10000 + " } }");
+          TEST_INDEX_BANK_REMOTE,
+          "{ \"index\": { \"max_inner_result_window\":" + 10000 + " } }",
+          remoteClient());
       JSONObject result =
           executeQuery(
               String.format(
@@ -407,7 +409,9 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
           rows("Nanette", new org.json.JSONArray().put(28)));
     } finally {
       updateIndexSettings(
-          TEST_INDEX_BANK_REMOTE, "{ \"index\": { \"max_inner_result_window\":" + 100 + " } }");
+          TEST_INDEX_BANK_REMOTE,
+          "{ \"index\": { \"max_inner_result_window\":" + 100 + " } }",
+          remoteClient());
     }
   }
 

@@ -430,6 +430,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected static JSONObject updateIndexSettings(String indexName, String setting)
       throws IOException {
+    return updateIndexSettings(indexName, setting, client());
+  }
+
+  protected static JSONObject updateIndexSettings(
+      String indexName, String setting, RestClient client) throws IOException {
     Request request = new Request("PUT", "/" + indexName + "/_settings");
     if (!isNullOrEmpty(setting)) {
       request.setJsonEntity(setting);
@@ -437,7 +442,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
-    return new JSONObject(executeRequest(request));
+    return new JSONObject(executeRequest(request, client));
   }
 
   protected String makeRequest(String query) {
