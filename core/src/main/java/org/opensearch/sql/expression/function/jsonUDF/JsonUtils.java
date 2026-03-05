@@ -23,6 +23,14 @@ public class JsonUtils {
   public static String convertToJsonPath(String input) {
     if (input == null || input.isEmpty()) return "$";
 
+    // If the input already starts with "$.", it's already in JSONPath notation.
+    // Strip the "$." prefix and normalize the rest.
+    if (input.startsWith("$.")) {
+      input = input.substring(2);
+    } else if (input.equals("$")) {
+      return "$";
+    }
+
     StringBuilder sb = new StringBuilder("$.");
     int i = 0;
     while (i < input.length()) {

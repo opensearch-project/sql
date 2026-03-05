@@ -66,6 +66,15 @@ public class JsonFunctionsTest {
   }
 
   @Test
+  void test_convertToJsonPathWithDollarPrefix() {
+    // Issue #5166: paths starting with "$." should not get double-prefixed
+    assertEquals("$.name", convertToJsonPath("$.name"));
+    assertEquals("$.user.name", convertToJsonPath("$.user.name"));
+    assertEquals("$.scores", convertToJsonPath("$.scores"));
+    assertEquals("$", convertToJsonPath("$"));
+  }
+
+  @Test
   void test_convertToJsonPathWithWrongPath() {
     IllegalArgumentException e =
         assertThrows(IllegalArgumentException.class, () -> convertToJsonPath("a.{"));

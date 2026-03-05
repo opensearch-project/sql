@@ -1,0 +1,87 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  - do:
+      indices.create:
+        index: issue5166
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              int_field:
+                type: integer
+              json_data:
+                type: keyword
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5166", "_id": "1"}}'
+          - '{"int_field": 42, "json_data": "{\"name\":\"alice\",\"scores\":[90,85,92]}"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5166
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5166: json_extract with dollar-prefix path extracts value from field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5166 | eval name = json_extract(json_data, '$.name') | fields name"
+
+  - match: { total: 1 }
+  - match: { schema: [ { name: name, type: string } ] }
+  - match: { datarows: [ [ "alice" ] ] }
+
+---
+"Issue 5166: json_extract with dollar-prefix path extracts array from field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5166 | eval scores = json_extract(json_data, '$.scores') | fields scores"
+
+  - match: { total: 1 }
+  - match: { schema: [ { name: scores, type: string } ] }
+  - match: { datarows: [ [ "[90,85,92]" ] ] }
+
+---
+"Issue 5166: json_extract without dollar-prefix still works":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5166 | eval name = json_extract(json_data, 'name') | fields name"
+
+  - match: { total: 1 }
+  - match: { schema: [ { name: name, type: string } ] }
+  - match: { datarows: [ [ "alice" ] ] }

@@ -75,4 +75,26 @@ public class JsonExtractFunctionImplTest {
     Object result = JsonExtractFunctionImpl.eval("{}", "name", "age");
     assertEquals("[null,null]", result);
   }
+
+  @Test
+  public void testExtractWithDollarPrefixPath() {
+    // Issue #5166: paths starting with "$." should work correctly
+    String json = "{\"name\":\"alice\",\"scores\":[90,85,92]}";
+    Object result = JsonExtractFunctionImpl.eval(json, "$.name");
+    assertEquals("alice", result);
+  }
+
+  @Test
+  public void testExtractNestedWithDollarPrefixPath() {
+    String json = "{\"user\":{\"name\":\"alice\"}}";
+    Object result = JsonExtractFunctionImpl.eval(json, "$.user.name");
+    assertEquals("alice", result);
+  }
+
+  @Test
+  public void testExtractArrayWithDollarPrefixPath() {
+    String json = "{\"name\":\"alice\",\"scores\":[90,85,92]}";
+    Object result = JsonExtractFunctionImpl.eval(json, "$.scores");
+    assertEquals("[90,85,92]", result);
+  }
 }
