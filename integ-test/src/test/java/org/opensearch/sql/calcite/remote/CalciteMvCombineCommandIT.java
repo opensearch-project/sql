@@ -32,7 +32,7 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
     loadIndex(Index.MVCOMBINE);
-    updateIndexSettings(INDEX, "{ \"index\": { \"max_inner_result_window\":" + 10000 + " } }");
+    updateIndexSettings(INDEX, "{ \"index\": { \"max_inner_result_window\":" + 1000 + " } }");
   }
 
   @After
