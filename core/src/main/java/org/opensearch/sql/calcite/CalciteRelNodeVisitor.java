@@ -2377,7 +2377,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     // 1. group the group-by list + field list and add a count() aggregation
-    List<UnresolvedExpression> groupExprList = new ArrayList<>(node.getGroupExprList());
+    List<UnresolvedExpression> groupExprList =
+        new ArrayList<>(
+            node.getGroupExprList().stream()
+                .map(
+                    expr ->
+                        expr instanceof Field f
+                            ? (UnresolvedExpression) new Alias(f.getField().toString(), f)
+                            : expr)
+                .toList());
     List<UnresolvedExpression> fieldList =
         node.getFields().stream()
             .map(f -> (UnresolvedExpression) new Alias(f.getField().toString(), f))
