@@ -429,11 +429,11 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+----------------------+
-| jsonAppend           |
-|----------------------|
-| {"a":[{"b":1},3]}    |
-+----------------------+
++-------------------+
+| jsonAppend        |
+|-------------------|
+| {"a":[{"b":1},3]} |
++-------------------+
 ```
 
 The following example shows paths to non-array targets are skipped:
