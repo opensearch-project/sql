@@ -1,31 +1,36 @@
-# JSON Functions  
+# JSON functions
 
-## JSON Path  
+PPL supports the following JSON functions for creating, parsing, and manipulating JSON data.
 
-### Description  
+## JSON path 
 
 All JSON paths used in JSON functions follow the format `<key1>{<index1>}.<key2>{<index2>}...`.
-Each `<key>` represents a field name. The `{<index>}` part is optional and is only applicable when the corresponding key refers to an array.
-For example
+Each `<key>` represents a field name. The `{<index>}` part is optional and is used only when the corresponding key refers to an array.
+For example:
   
 ```bash
 a{2}.b{0}
-
 ```
   
-This refers to the element at index 0 of the `b` array, which is nested inside the element at index 2 of the `a` array.
-Notes:
-1. The `{<index>}` notation applies **only when** the associated key points to an array.  
-2. `{}` (without a specific index) is interpreted as a **wildcard**, equivalent to `{*}`, meaning "all elements" in the array at that level.  
+This path accesses the element at index `0` in the `b` array, which is located within the element at index `2` of the `a` array.
+
+**Notes**:
+1. The `{<index>}` notation applies only when the associated key points to an array.
+2. `{}` (without a specific index) is interpreted as a wildcard, equivalent to `{*}`, meaning `all elements` in the array at that level.
   
 ## JSON  
 
-### Description  
+**Usage**: `JSON(value)`
 
-Usage: `json(value)` Evaluates whether a string can be parsed as a json-encoded string. Returns the value if valid, null otherwise.
-**Argument type:** `STRING`
-**Return type:** `STRING`
-### Example
+Validates and parses a JSON string. Returns the parsed JSON value if the string is valid JSON, or `NULL` if invalid.
+
+**Parameters**:
+
+- `value` (Required): The string to validate and parse as JSON.
+
+**Return type**: `STRING`
+
+#### Example
   
 ```ppl
 source=json_test
@@ -34,7 +39,7 @@ source=json_test
 | fields test_name, json_string, json
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -48,17 +53,23 @@ fetched rows / total rows = 4/4
 +--------------------+---------------------------------+---------------------------------+
 ```
   
-## JSON_VALID  
+## JSON_VALID
 
-### Description  
+**Usage**: `JSON_VALID(value)`
 
-Version: 3.1.0  
-Limitation: Only works when `plugins.calcite.enabled=true`  
-Usage: `json_valid(value)` Evaluates whether a string uses valid JSON syntax. Returns TRUE if valid, FALSE if invalid. NULL input returns NULL.  
-**Argument type:** `STRING  `
-**Return type:** `BOOLEAN  `
-Example  
-  
+Evaluates whether a string uses valid JSON syntax. Returns `TRUE` if valid, `FALSE` if invalid. `NULL` input returns `NULL`.
+
+**Version**: 3.1.0
+**Limitation**: Only works when `plugins.calcite.enabled=true`
+
+**Parameters**:
+
+- `value` (Required): The string to validate as JSON.
+
+**Return type**: `BOOLEAN`
+
+#### Example
+
 ```ppl
 source=people
 | eval is_valid_json = json_valid('[1,2,3,4]'), is_invalid_json = json_valid('{invalid}')
@@ -66,7 +77,7 @@ source=people
 | head 1
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -77,15 +88,21 @@ fetched rows / total rows = 1/1
 +---------------+-----------------+
 ```
   
-## JSON_OBJECT  
+## JSON_OBJECT
 
-### Description  
+**Usage**: `JSON_OBJECT(key1, value1, key2, value2, ...)`
 
-Usage: `json_object(key1, value1, key2, value2...)` create a json object string with key value pairs. The key must be string.
-**Argument type:** `key1: STRING, value1: ANY, key2: STRING, value2: ANY ...`
-**Return type:** `STRING`
-### Example
-  
+Creates a JSON object string from the specified key-value pairs. All keys must be strings.
+
+**Parameters**:
+
+- `key1`, `value1` (Required): The first key-value pair. The key must be a string.
+- `key2`, `value2`, `...` (Optional): Additional key-value pairs.
+
+**Return type**: `STRING`
+
+#### Example
+
 ```ppl
 source=json_test
 | eval test_json = json_object('key', 123.45)
@@ -93,7 +110,7 @@ source=json_test
 | fields test_json
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -104,15 +121,20 @@ fetched rows / total rows = 1/1
 +----------------+
 ```
   
-## JSON_ARRAY  
+## JSON_ARRAY
 
-### Description  
+**Usage**: `JSON_ARRAY(element1, element2, ...)`
 
-Usage: `json_array(element1, element2, ...)` create a json array string with elements.
-**Argument type:** `element1: ANY, element2: ANY ...`
-**Return type:** `STRING`
-### Example
-  
+Creates a JSON array string from the specified elements.
+
+**Parameters**:
+
+- `element1`, `element2`, `...` (Optional): The elements to include in the array. Can be any data type.
+
+**Return type**: `STRING`
+
+#### Example
+
 ```ppl
 source=json_test
 | eval test_json_array = json_array('key', 123.45)
@@ -120,7 +142,7 @@ source=json_test
 | fields test_json_array
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -131,15 +153,22 @@ fetched rows / total rows = 1/1
 +-----------------+
 ```
   
-## JSON_ARRAY_LENGTH  
+## JSON_ARRAY_LENGTH
 
-### Description  
+**Usage**: `JSON_ARRAY_LENGTH(value)`
 
-Usage: `json_array_length(value)` parse the string to json array and return size,, null is returned in case of any other valid JSON string, null or an invalid JSON.
-**Argument type:** `value: A JSON STRING`
-**Return type:** `INTEGER`
-### Example
-  
+Returns the number of elements in a JSON array. Returns `NULL` if the input is not a valid JSON array, is `NULL`, or contains invalid JSON.
+
+**Parameters**:
+
+- `value` (Required): A string containing a JSON array.
+
+**Return type**: `INTEGER`
+
+#### Examples
+
+The following example returns the length of a valid JSON array:
+
 ```ppl
 source=json_test
 | eval array_length = json_array_length("[1,2,3]")
@@ -147,7 +176,7 @@ source=json_test
 | fields array_length
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -157,6 +186,8 @@ fetched rows / total rows = 1/1
 | 3            |
 +--------------+
 ```
+
+The following example returns `NULL` for non-array JSON values:
   
 ```ppl
 source=json_test
@@ -165,7 +196,7 @@ source=json_test
 | fields array_length
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -176,15 +207,30 @@ fetched rows / total rows = 1/1
 +--------------+
 ```
   
-## JSON_EXTRACT  
+## JSON_EXTRACT
 
-### Description  
+**Usage**: `JSON_EXTRACT(json_string, path1, path2, ...)`
 
-Usage: `json_extract(json_string, path1, path2, ...)` Extracts values using the specified JSON paths. If only one path is provided, it returns a single value. If multiple paths are provided, it returns a JSON Array in the order of the paths. If one path cannot find value, return null as the result for this path. The path use "{<index>}" to represent index for array, "{}" means "{*}".
-**Argument type:** `json_string: STRING, path1: STRING, path2: STRING ...`
-**Return type:** `STRING`
-### Example
-  
+Extracts values from a JSON string using the specified JSON paths.
+
+**Behavior**:
+- **Single path**: Returns the extracted value directly.
+- **Multiple paths**: Returns a JSON array containing the extracted values in path order.
+- **Invalid path**: Returns `NULL` for that path in the result.
+
+For path syntax details, see the [JSON path](#json-path) section.
+
+**Parameters**:
+
+- `json_string` (Required): The JSON string to extract values from.
+- `path1`, `path2`, `...` (Required): One or more JSON paths specifying which values to extract.
+
+**Return type**: `STRING`
+
+#### Examples
+
+The following example extracts values using a single JSON path:
+
 ```ppl
 source=json_test
 | eval extract = json_extract('{"a": [{"b": 1}, {"b": 2}]}', 'a{}.b')
@@ -192,7 +238,7 @@ source=json_test
 | fields extract
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -202,6 +248,8 @@ fetched rows / total rows = 1/1
 | [1,2]   |
 +---------+
 ```
+
+The following example extracts values using multiple JSON paths:
   
 ```ppl
 source=json_test
@@ -210,7 +258,7 @@ source=json_test
 | fields extract
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -221,15 +269,23 @@ fetched rows / total rows = 1/1
 +---------------------------+
 ```
   
-## JSON_DELETE  
+## JSON_DELETE
 
-### Description  
+**Usage**: `JSON_DELETE(json_string, path1, path2, ...)`
 
-Usage: `json_delete(json_string, path1, path2, ...)` Delete values using the specified JSON paths. Return the json string after deleting. If one path cannot find value, do nothing.
-**Argument type:** `json_string: STRING, path1: STRING, path2: STRING ...`
-**Return type:** `STRING`
-### Example
-  
+Deletes values from a JSON string at the specified JSON paths. Returns the modified JSON string. If a path cannot find a value, no changes are made for that path.
+
+**Parameters**:
+
+- `json_string` (Required): The JSON string to delete values from.
+- `path1`, `path2`, `...` (Required): One or more JSON paths specifying which values to delete.
+
+**Return type**: `STRING`
+
+#### Examples
+
+The following example deletes a value using a single JSON path:
+
 ```ppl
 source=json_test
 | eval delete = json_delete('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b')
@@ -237,7 +293,7 @@ source=json_test
 | fields delete
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -247,6 +303,8 @@ fetched rows / total rows = 1/1
 | {"a":[{},{"b":2}]} |
 +--------------------+
 ```
+
+The following example deletes values using multiple JSON paths:
   
 ```ppl
 source=json_test
@@ -255,7 +313,7 @@ source=json_test
 | fields delete
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -265,6 +323,8 @@ fetched rows / total rows = 1/1
 | {"a":[{},{}]} |
 +---------------+
 ```
+
+The following example shows no changes occur when trying to delete a non-existent path:
   
 ```ppl
 source=json_test
@@ -273,7 +333,7 @@ source=json_test
 | fields delete
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -284,15 +344,24 @@ fetched rows / total rows = 1/1
 +-------------------------+
 ```
   
-## JSON_SET  
+## JSON_SET
 
-### Description  
+**Usage**: `JSON_SET(json_string, path1, value1, path2, value2, ...)`
 
-Usage: `json_set(json_string, path1, value1,  path2, value2...)` Set values to corresponding paths using the specified JSON paths. If one path's parent node is not a json object, skip the path. Return the json string after setting.
-**Argument type:** `json_string: STRING, path1: STRING, value1: ANY, path2: STRING, value2: ANY ...`
-**Return type:** `STRING`
-### Example
-  
+Sets values in a JSON string at the specified JSON paths. Returns the modified JSON string. If a path's parent node is not a JSON object, that path is skipped.
+
+**Parameters**:
+
+- `json_string` (Required): The JSON string to modify.
+- `path1`, `value1` (Required): The first path-value pair to set.
+- `path2`, `value2`, `...` (Optional): Additional path-value pairs.
+
+**Return type**: `STRING`
+
+#### Examples
+
+The following example sets a single value at a JSON path:
+
 ```ppl
 source=json_test
 | eval jsonSet = json_set('{"a": [{"b": 1}]}', 'a{0}.b', 3)
@@ -300,7 +369,7 @@ source=json_test
 | fields jsonSet
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -310,6 +379,8 @@ fetched rows / total rows = 1/1
 | {"a":[{"b":3}]} |
 +-----------------+
 ```
+
+
   
 ```ppl
 source=json_test
@@ -318,7 +389,7 @@ source=json_test
 | fields jsonSet
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -329,23 +400,32 @@ fetched rows / total rows = 1/1
 +-------------------------+
 ```
   
-## JSON_APPEND  
+## JSON_APPEND
 
-### Description  
+**Usage**: `JSON_APPEND(json_string, path1, value1, path2, value2, ...)`
 
-Usage: `json_append(json_string, path1, value1,  path2, value2...)` Append values to corresponding paths using the specified JSON paths. If one path's target node is not an array, skip the path. Return the json string after setting.
-**Argument type:** `json_string: STRING, path1: STRING, value1: ANY, path2: STRING, value2: ANY ...`
-**Return type:** `STRING`
-### Example
-  
+Appends values to arrays in a JSON string at the specified JSON paths. Returns the modified JSON string. If a path's target node is not an array, that path is skipped.
+
+**Parameters**:
+
+- `json_string` (Required): The JSON string to modify.
+- `path1`, `value1` (Required): The first path-value pair to append.
+- `path2`, `value2`, `...` (Optional): Additional path-value pairs.
+
+**Return type**: `STRING`
+
+#### Examples
+
+The following example appends a value to an array:
+
 ```ppl
 source=json_test
-| eval jsonAppend = json_set('{"a": [{"b": 1}]}', 'a', 3)
+| eval jsonAppend = json_append('{"a": [{"b": 1}]}', 'a', 3)
 | head 1
 | fields jsonAppend
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -355,6 +435,8 @@ fetched rows / total rows = 1/1
 | {"a":3}    |
 +------------+
 ```
+
+The following example shows paths to non-array targets are skipped:
   
 ```ppl
 source=json_test
@@ -363,7 +445,7 @@ source=json_test
 | fields jsonAppend
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -373,6 +455,8 @@ fetched rows / total rows = 1/1
 | {"a":[{"b":1},{"b":2}]} |
 +-------------------------+
 ```
+
+The following example appends values using mixed path types:
   
 ```ppl
 source=json_test
@@ -381,7 +465,7 @@ source=json_test
 | fields jsonAppend
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -392,15 +476,28 @@ fetched rows / total rows = 1/1
 +-------------------------+
 ```
   
-## JSON_EXTEND  
+## JSON_EXTEND
 
-### Description  
+**Usage**: `JSON_EXTEND(json_string, path1, value1, path2, value2, ...)`
 
-Usage: `json_extend(json_string, path1, value1,  path2, value2...)` Extend values to corresponding paths using the specified JSON paths. If one path's target node is not an array, skip the path. The function will try to parse the value as an array. If it can be parsed, extend it to the target array. Otherwise, regard the value a single one. Return the json string after setting.
-**Argument type:** `json_string: STRING, path1: STRING, value1: ANY, path2: STRING, value2: ANY ...`
-**Return type:** `STRING`
-### Example
-  
+Extends arrays in a JSON string at the specified JSON paths with new values. Returns the modified JSON string. If a path's target node is not an array, that path is skipped.
+
+The function attempts to parse each value as an array:
+- If parsing succeeds: The parsed array elements are added to the target array.
+- If parsing fails: The value is treated as a single element and added to the target array.
+
+**Parameters**:
+
+- `json_string` (Required): The JSON string to modify.
+- `path1`, `value1` (Required): The first path-value pair to extend.
+- `path2`, `value2`, `...` (Optional): Additional path-value pairs.
+
+**Return type**: `STRING`
+
+#### Examples
+
+The following example extends an array with a single value:
+
 ```ppl
 source=json_test
 | eval jsonExtend = json_extend('{"a": [{"b": 1}]}', 'a', 3)
@@ -408,7 +505,7 @@ source=json_test
 | fields jsonExtend
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -418,6 +515,8 @@ fetched rows / total rows = 1/1
 | {"a":[{"b":1},3]} |
 +-------------------+
 ```
+
+The following example shows paths to non-array targets are skipped:
   
 ```ppl
 source=json_test
@@ -426,7 +525,7 @@ source=json_test
 | fields jsonExtend
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -436,6 +535,8 @@ fetched rows / total rows = 1/1
 | {"a":[{"b":1},{"b":2}]} |
 +-------------------------+
 ```
+
+The following example extends an array by parsing the value as an array:
   
 ```ppl
 source=json_test
@@ -444,7 +545,7 @@ source=json_test
 | fields jsonExtend
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -455,15 +556,22 @@ fetched rows / total rows = 1/1
 +-------------------------+
 ```
   
-## JSON_KEYS  
+## JSON_KEYS
 
-### Description  
+**Usage**: `JSON_KEYS(json_string)`
 
-Usage: `json_keys(json_string)` Return the key list of the Json object as a Json array. Otherwise, return null.
-**Argument type:** `json_string: A JSON STRING`
-**Return type:** `STRING`
-### Example
-  
+Returns the keys of a JSON object as a JSON array. Returns `NULL` if the input is not a valid JSON object.
+
+**Parameters**:
+
+- `json_string` (Required): A string containing a JSON object.
+
+**Return type**: `STRING`
+
+#### Examples
+
+The following example gets keys from a simple JSON object:
+
 ```ppl
 source=json_test
 | eval jsonKeys = json_keys('{"a": 1, "b": 2}')
@@ -471,7 +579,7 @@ source=json_test
 | fields jsonKeys
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -481,6 +589,8 @@ fetched rows / total rows = 1/1
 | ["a","b"] |
 +-----------+
 ```
+
+The following example gets keys from a nested JSON object:
   
 ```ppl
 source=json_test
@@ -489,7 +599,7 @@ source=json_test
 | fields jsonKeys
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
