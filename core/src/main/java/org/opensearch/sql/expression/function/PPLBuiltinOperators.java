@@ -73,6 +73,10 @@ import org.opensearch.sql.expression.function.udf.RexExtractMultiFunction;
 import org.opensearch.sql.expression.function.udf.RexOffsetFunction;
 import org.opensearch.sql.expression.function.udf.RmcommaConvertFunction;
 import org.opensearch.sql.expression.function.udf.RmunitConvertFunction;
+import org.opensearch.sql.expression.function.udf.CTimeConvertFunction;
+import org.opensearch.sql.expression.function.udf.MkTimeConvertFunction;
+import org.opensearch.sql.expression.function.udf.MsTimeConvertFunction;
+import org.opensearch.sql.expression.function.udf.Dur2SecConvertFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
 import org.opensearch.sql.expression.function.udf.ToNumberFunction;
 import org.opensearch.sql.expression.function.udf.ToStringFunction;
@@ -431,6 +435,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator RMCOMMA = new RmcommaConvertFunction().toUDF("RMCOMMA");
   public static final SqlOperator RMUNIT = new RmunitConvertFunction().toUDF("RMUNIT");
   public static final SqlOperator MEMK = new MemkConvertFunction().toUDF("MEMK");
+  public static final SqlOperator CTIME = new CTimeConvertFunction().toUDF("CTIME");
+  public static final SqlOperator MKTIME = new MkTimeConvertFunction().toUDF("MKTIME");
+  public static final SqlOperator MSTIME = new MsTimeConvertFunction().toUDF("MSTIME");
+  public static final SqlOperator DUR2SEC = new Dur2SecConvertFunction().toUDF("DUR2SEC");
 
   public static final SqlOperator WIDTH_BUCKET =
       new org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction()

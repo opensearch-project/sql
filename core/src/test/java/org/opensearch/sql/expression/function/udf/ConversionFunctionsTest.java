@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function.udf;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -335,5 +336,141 @@ public class ConversionFunctionsTest {
     assertEquals(Double.NEGATIVE_INFINITY, RmunitConvertFunction.convert("-1e309"));
     assertEquals(1.7e308, RmunitConvertFunction.convert("1.7e308"));
     assertEquals(-1.7e308, RmunitConvertFunction.convert("-1.7e308"));
+  }
+
+  // ctime() Function Tests
+  @Test
+  public void testCtimeConvertBasic() {
+    String result = (String) CTimeConvertFunction.convert(1066507633);
+    assertTrue(result != null && result.contains("2003"));
+
+    result = (String) CTimeConvertFunction.convert(0);
+    assertTrue(result != null && result.contains("1970"));
+
+    result = (String) CTimeConvertFunction.convert("1066507633");
+    assertTrue(result != null && result.contains("2003"));
+  }
+
+  @Test
+  public void testCtimeConvertInvalid() {
+    assertNull(CTimeConvertFunction.convert("invalid"));
+    assertNull(CTimeConvertFunction.convert(null));
+    assertNull(CTimeConvertFunction.convert(""));
+    assertNull(CTimeConvertFunction.convert("abc123"));
+  }
+
+  // mktime() Function Tests
+  @Test
+  public void testMktimeConvertBasic() {
+    assertEquals(1066507633.0, MkTimeConvertFunction.convert("2003-10-18 20:07:13"));
+    assertEquals(1066507633.0, MkTimeConvertFunction.convert("2003-10-18T20:07:13"));
+    assertEquals(946684800.0, MkTimeConvertFunction.convert("2000-01-01 00:00:00"));
+    assertEquals(1066473433.0, MkTimeConvertFunction.convert(1066473433));
+    assertEquals(1066473433.0, MkTimeConvertFunction.convert("1066473433"));
+  }
+
+  @Test
+  public void testMktimeConvertInvalid() {
+    assertNull(MkTimeConvertFunction.convert("invalid"));
+    assertNull(MkTimeConvertFunction.convert(null));
+    assertNull(MkTimeConvertFunction.convert(""));
+    assertNull(MkTimeConvertFunction.convert("not-a-date"));
+  }
+
+  // mstime() Function Tests
+  @Test
+  public void testMstimeConvertBasic() {
+    assertEquals(225.0, MsTimeConvertFunction.convert("03:45"));
+    assertEquals(225.123, MsTimeConvertFunction.convert("03:45.123"));
+    assertEquals(90.5, MsTimeConvertFunction.convert("01:30.5"));
+    assertEquals(3661.0, MsTimeConvertFunction.convert("61:01"));
+
+    // Test already numeric
+    assertEquals(225.0, MsTimeConvertFunction.convert(225));
+    assertEquals(225.0, MsTimeConvertFunction.convert("225"));
+  }
+
+  @Test
+  public void testMstimeConvertEdgeCases() {
+    assertEquals(0.0, MsTimeConvertFunction.convert("00:00"));
+    assertEquals(0.001, MsTimeConvertFunction.convert("00:00.001"));
+    assertEquals(59.999, MsTimeConvertFunction.convert("00:59.999"));
+  }
+
+  @Test
+  public void testMstimeConvertInvalid() {
+    assertNull(MsTimeConvertFunction.convert("invalid"));
+    assertNull(MsTimeConvertFunction.convert(null));
+    assertNull(MsTimeConvertFunction.convert(""));
+    assertNull(MsTimeConvertFunction.convert("25:70"));
+    assertNull(MsTimeConvertFunction.convert("1:2:3"));
+  }
+
+  // dur2sec() Function Tests
+  @Test
+  public void testDur2secConvertBasic() {
+    assertEquals(5025.0, Dur2SecConvertFunction.convert("01:23:45"));
+    assertEquals(3661.0, Dur2SecConvertFunction.convert("01:01:01"));
+    assertEquals(217815.0, Dur2SecConvertFunction.convert("2+12:30:15"));
+    assertEquals(90061.0, Dur2SecConvertFunction.convert("1+01:01:01"));
+    assertEquals(5025.0, Dur2SecConvertFunction.convert(5025));
+    assertEquals(5025.0, Dur2SecConvertFunction.convert("5025"));
+  }
+
+  @Test
+  public void testDur2secConvertEdgeCases() {
+    assertEquals(0.0, Dur2SecConvertFunction.convert("00:00:00"));
+    assertEquals(86400.0, Dur2SecConvertFunction.convert("1+00:00:00"));
+    assertEquals(3599.0, Dur2SecConvertFunction.convert("00:59:59"));
+  }
+
+  @Test
+  public void testDur2secConvertInvalid() {
+    assertNull(Dur2SecConvertFunction.convert("invalid"));
+    assertNull(Dur2SecConvertFunction.convert(null));
+    assertNull(Dur2SecConvertFunction.convert(""));
+    assertNull(Dur2SecConvertFunction.convert("25:70:80"));
+    assertNull(Dur2SecConvertFunction.convert("1:2"));
+    assertNull(Dur2SecConvertFunction.convert("1+2"));
+  }
+
+  // timeformat tests for mktime() and ctime()
+  @Test
+  public void testMktimeWithCustomTimeformat() {
+    // Test mktime with custom timeformat
+    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("18/10/2003 20:07:13", "dd/MM/yyyy HH:mm:ss"));
+    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", "yyyy-MM-dd HH:mm:ss"));
+    assertEquals(946684800.0, MkTimeConvertFunction.convertWithFormat("01/01/2000 00:00:00", "dd/MM/yyyy HH:mm:ss"));
+
+    // Test fallback to default formats when custom format fails
+    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", "invalid format"));
+
+    // Test null/empty timeformat
+    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", null));
+    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", ""));
+  }
+
+  @Test
+  public void testCtimeWithCustomTimeformat() {
+    // Test ctime with custom timeformat
+    String result1 = (String) CTimeConvertFunction.convertWithFormat(1066507633, "yyyy-MM-dd HH:mm:ss");
+    assertTrue(result1 != null && result1.contains("2003-10-18"));
+
+    String result2 = (String) CTimeConvertFunction.convertWithFormat(1066507633, "dd/MM/yyyy");
+    assertTrue(result2 != null && result2.contains("18/10/2003"));
+
+    String result3 = (String) CTimeConvertFunction.convertWithFormat(0, "yyyy");
+    assertTrue(result3 != null && result3.contains("1970"));
+
+    // Test fallback to default format when custom format fails
+    String result4 = (String) CTimeConvertFunction.convertWithFormat(1066507633, "invalid format");
+    assertTrue(result4 != null && result4.contains("2003"));
+
+    // Test null/empty timeformat
+    String result5 = (String) CTimeConvertFunction.convertWithFormat(1066507633, null);
+    assertTrue(result5 != null && result5.contains("2003"));
+
+    String result6 = (String) CTimeConvertFunction.convertWithFormat(1066507633, "");
+    assertTrue(result6 != null && result6.contains("2003"));
   }
 }
