@@ -31,6 +31,7 @@ import java.sql.Connection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.calcite.rel.RelNode;
@@ -45,6 +46,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AddTotals;
@@ -168,13 +170,13 @@ public class FieldPathPreMaterializerTest {
         .whenCommand(
             new Join(
                 DUMMY_CHILD,
-                java.util.Optional.empty(),
-                java.util.Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
                 Join.JoinType.INNER,
-                java.util.Optional.empty(),
+                Optional.empty(),
                 new Join.JoinHint(),
-                java.util.Optional.of(List.of(field("doc.user.name"))),
-                new org.opensearch.sql.ast.expression.Argument.ArgumentMap(List.of())))
+                Optional.of(List.of(field("doc.user.name"))),
+                new ArgumentMap(List.of())))
         .shouldProject("doc.user.name");
   }
 
@@ -184,13 +186,13 @@ public class FieldPathPreMaterializerTest {
         .whenCommand(
             new Join(
                 DUMMY_CHILD,
-                java.util.Optional.empty(),
-                java.util.Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
                 Join.JoinType.INNER,
-                java.util.Optional.empty(),
+                Optional.empty(),
                 new Join.JoinHint(),
-                java.util.Optional.empty(),
-                new org.opensearch.sql.ast.expression.Argument.ArgumentMap(List.of())))
+                Optional.empty(),
+                new ArgumentMap(List.of())))
         .shouldNotProject();
   }
 

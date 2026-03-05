@@ -198,7 +198,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelNode result = super.visitChildren(node, context);
 
     if (node instanceof UnresolvedPlan plan) {
-      // Pre-materialize MAP dotted paths as flat columns after children are analyzed
+      // Pre-materialize dotted field paths as flat columns after children are analyzed
       // (so MAP/struct types are known) but before the command's own visit logic runs.
       fieldPathMaterializer.materializePaths(plan, context);
     }
@@ -1382,7 +1382,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
-    mapPathMaterializer.materializePaths(node, context);
+    fieldPathMaterializer.materializePaths(node, context);
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
       List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();

@@ -56,7 +56,7 @@ public class FieldPathPreMaterializer {
   }
 
   /**
-   * Resolves and projects MAP dotted paths referenced by the given command as flat named columns.
+   * Resolves and projects dotted field paths referenced by the given command as flat named columns.
    *
    * @param plan the AST command being visited
    * @param context the current plan context with relBuilder state
