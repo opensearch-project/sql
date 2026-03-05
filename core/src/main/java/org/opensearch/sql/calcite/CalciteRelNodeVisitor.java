@@ -180,13 +180,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final CalciteRexNodeVisitor rexVisitor;
   private final CalciteAggCallVisitor aggVisitor;
   private final DataSourceService dataSourceService;
-  private final MapPathPreMaterializer mapPathMaterializer;
+  private final FieldPathPreMaterializer fieldPathMaterializer;
 
   public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
     this.dataSourceService = dataSourceService;
-    this.mapPathMaterializer = new MapPathPreMaterializer(rexVisitor);
+    this.fieldPathMaterializer = new FieldPathPreMaterializer(rexVisitor);
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
@@ -196,10 +196,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitChildren(Node node, CalcitePlanContext context) {
     RelNode result = super.visitChildren(node, context);
+
     if (node instanceof UnresolvedPlan plan) {
-      // Materialize MAP dotted paths as flat columns after children are analyzed
+      // Pre-materialize MAP dotted paths as flat columns after children are analyzed
       // (so MAP/struct types are known) but before the command's own visit logic runs.
-      mapPathMaterializer.materializePaths(plan, context);
+      fieldPathMaterializer.materializePaths(plan, context);
     }
     return result;
   }

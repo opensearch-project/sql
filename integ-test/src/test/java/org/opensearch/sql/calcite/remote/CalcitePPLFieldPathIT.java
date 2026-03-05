@@ -9,6 +9,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.TestUtils.createIndexByRestClient;
@@ -27,7 +28,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  * Uses {@code spath} to parse a JSON text field into a MAP column, then verifies various PPL
  * commands work correctly on the resulting nested paths.
  */
-public class CalcitePPLMapPathIT extends PPLIntegTestCase {
+public class CalcitePPLFieldPathIT extends PPLIntegTestCase {
 
   private static final String TEST_INDEX = "opensearch-sql_test_index_spath";
 
@@ -545,6 +546,24 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
     // TODO: The correlate path loses materialized MAP columns when building the right-side
     //  scan. This needs a separate investigation into how projectPlus interacts with the
     //  correlate variable creation in buildStreamWindowJoinPlan.
+  }
+
+  @Test
+  public void testReplaceOnDottedPathWithoutSpath() {
+    // Without spath, doc is a VARCHAR field. Referencing doc.user.name should produce
+    // a clear error, not an AssertionError from Calcite's SqlItemOperator.
+    Throwable e =
+        assertThrowsWithReplace(
+            IllegalArgumentException.class,
+            () ->
+                ppl(
+                    """
+                    source=%s
+                    | replace 'John' WITH 'Jonathan' IN doc.user.name
+                    | fields doc.user.name\
+                    """,
+                    TEST_INDEX));
+    verifyErrorMessageContains(e, "not found");
   }
 
   private void loadBulkData(String index, String bulkData) {

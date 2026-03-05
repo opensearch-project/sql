@@ -60,7 +60,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.executor.QueryType;
 
 @ExtendWith(MockitoExtension.class)
-public class MapPathPreMaterializerTest {
+public class FieldPathPreMaterializerTest {
 
   @Mock private CalciteRexNodeVisitor rexVisitor;
   @Mock private OpenSearchRelBuilder relBuilder;
@@ -72,11 +72,11 @@ public class MapPathPreMaterializerTest {
   private static final UnresolvedPlan DUMMY_CHILD = relation("t");
 
   private CalcitePlanContext context;
-  private MapPathPreMaterializer materializer;
+  private FieldPathPreMaterializer materializer;
 
   @BeforeEach
   void setUp() {
-    materializer = new MapPathPreMaterializer(rexVisitor);
+    materializer = new FieldPathPreMaterializer(rexVisitor);
     mockedToolsHelper
         .when(() -> CalciteToolsHelper.connect(any(), any()))
         .thenReturn(mock(Connection.class));
@@ -221,7 +221,7 @@ public class MapPathPreMaterializerTest {
         .shouldProject("doc.user.name");
   }
 
-  // ---- No-op cases ----
+  // ---- No-op and edge cases ----
 
   @Test
   void testNoOpForFilter() {
@@ -253,6 +253,30 @@ public class MapPathPreMaterializerTest {
         .shouldNotProject();
   }
 
+  @Test
+  void testSkipsErrorField() {
+    givenMapPaths()
+        .givenErrorPaths("message.process.name", new AssertionError())
+        .whenCommand(
+            new Replace(
+                List.of(new ReplacePair(stringLiteral("a"), stringLiteral("b"))),
+                Set.of(field("message.process.name"))))
+        .shouldNotProject();
+  }
+
+  @Test
+  void testSkipsErrorFieldButProjectsValidMapPath() {
+    givenMapPaths("doc.user.name")
+        .givenErrorPaths("bad.field", new AssertionError())
+        .whenCommand(
+            fillNull(
+                DUMMY_CHILD,
+                List.of(
+                    Pair.of(field("doc.user.name"), stringLiteral("N/A")),
+                    Pair.of(field("bad.field"), stringLiteral("0")))))
+        .shouldProject("doc.user.name");
+  }
+
   // ---- Fluent test helper ----
 
   private MapPathAssertion givenMapPaths(String... fieldNames) {
@@ -279,6 +303,11 @@ public class MapPathPreMaterializerTest {
         when(ref.getKind()).thenReturn(SqlKind.INPUT_REF);
         lenient().when(rexVisitor.analyze(fieldMatching(name), eq(context))).thenReturn(ref);
       }
+      return this;
+    }
+
+    MapPathAssertion givenErrorPaths(String fieldName, Throwable error) {
+      lenient().when(rexVisitor.analyze(fieldMatching(fieldName), eq(context))).thenThrow(error);
       return this;
     }
 
