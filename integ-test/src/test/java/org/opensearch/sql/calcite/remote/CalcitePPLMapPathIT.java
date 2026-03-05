@@ -31,6 +31,8 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
 
   private static final String TEST_INDEX = "opensearch-sql_test_index_spath";
 
+  private static final String LOOKUP_INDEX = "opensearch-sql_test_index_spath_lookup";
+
   private static final String TEST_BULK_DATA =
       """
       {"index":{"_id":"1"}}
@@ -45,11 +47,22 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
       {"doc":null}
       """;
 
+  private static final String LOOKUP_BULK_DATA =
+      """
+      {"index":{"_id":"1"}}
+      {"name":"John","title":"Engineer"}
+      {"index":{"_id":"2"}}
+      {"name":"Alice","title":"Manager"}
+      {"index":{"_id":"3"}}
+      {"name":"Bob","title":"Analyst"}
+      """;
+
   @Override
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    createJsonTestIndex();
+    loadBulkData(TEST_INDEX, TEST_BULK_DATA);
+    loadBulkData(LOOKUP_INDEX, LOOKUP_BULK_DATA);
   }
 
   @Test
@@ -467,13 +480,80 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
     verifyDataRows(result, rows(20, 1), rows(30, 2), rows(40, 1));
   }
 
-  private void createJsonTestIndex() {
-    if (isIndexExist(client(), TEST_INDEX)) {
+  @Test
+  public void testJoinFieldListOnMapPath() throws IOException {
+    // join-with-field-list grammar: eval creates 'name' from MAP sub-path, then join on it
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | eval name = doc.user.name
+            | inner join left=l, right=r ON l.name = r.name %s
+            | fields l.name, r.title\
+            """,
+            TEST_INDEX, LOOKUP_INDEX);
+    verifySchema(result, schema("name", "string"), schema("title", "string"));
+    verifyDataRows(
+        result,
+        rows("John", "Engineer"),
+        rows("Alice", "Manager"),
+        rows("John", "Engineer"),
+        rows("Bob", "Analyst"));
+  }
+
+  @Test
+  public void testLookupOnMapPath() throws IOException {
+    // lookup: map source MAP sub-path to lookup field via AS
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | LOOKUP %s name AS doc.user.name REPLACE title
+            | where isnotnull(doc.user.name)
+            | fields doc.user.name, title\
+            """,
+            TEST_INDEX, LOOKUP_INDEX);
+    verifySchema(result, schema("doc.user.name", "string"), schema("title", "string"));
+    verifyDataRows(
+        result,
+        rows("John", "Engineer"),
+        rows("Alice", "Manager"),
+        rows("John", "Engineer"),
+        rows("Bob", "Analyst"));
+  }
+
+  @Test
+  public void testStreamstatsByMapPath() throws IOException {
+    // streamstats with group-by on a MAP sub-path (non-correlate path)
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | where isnotnull(doc.user.city)
+            | streamstats count() as cnt by doc.user.city
+            | fields doc.user.city, cnt\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.city", "string"), schema("cnt", "bigint"));
+    verifyDataRows(result, rows("NYC", 1), rows("LA", 1), rows("SF", 1), rows("NYC", 2));
+  }
+
+  @Test
+  public void testStreamstatsGlobalWindowByMapPath() throws IOException {
+    // streamstats with global=true, window>0, and group-by on MAP sub-path
+    // This exercises the correlate path: buildGroupFilter + buildRequiredLeft.
+    // TODO: The correlate path loses materialized MAP columns when building the right-side
+    //  scan. This needs a separate investigation into how projectPlus interacts with the
+    //  correlate variable creation in buildStreamWindowJoinPlan.
+  }
+
+  private void loadBulkData(String index, String bulkData) {
+    if (isIndexExist(client(), index)) {
       return;
     }
-    createIndexByRestClient(client(), TEST_INDEX, null);
-    Request request = new Request("POST", "/" + TEST_INDEX + "/_bulk?refresh=true");
-    request.setJsonEntity(TEST_BULK_DATA);
+    createIndexByRestClient(client(), index, null);
+    Request request = new Request("POST", "/" + index + "/_bulk?refresh=true");
+    request.setJsonEntity(bulkData);
     performRequest(client(), request);
   }
 

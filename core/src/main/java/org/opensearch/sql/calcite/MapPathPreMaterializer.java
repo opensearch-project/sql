@@ -18,12 +18,16 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.FillNull;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 
 /**
@@ -65,6 +69,16 @@ public class MapPathPreMaterializer {
       case Project project -> project.isExcluded() ? toFields(project.getProjectList()) : List.of();
       case AddTotals addTotals -> toFields(addTotals.getFieldList());
       case MvCombine mvCombine -> List.of(mvCombine.getField());
+      // The following commands use string-based field resolution internally (e.g.,
+      // relBuilder.field(name)). Pre-materializing MAP paths here lets the existing
+      // string-matching logic find them without modifying each command's visitor code.
+      case StreamWindow streamWindow -> toFields(streamWindow.getGroupList());
+      case Lookup lookup ->
+          lookup.getMappingAliasMap().values().stream()
+              .map(name -> new Field(QualifiedName.of(List.of(name.split("\\.")))))
+              .toList();
+      case Join join ->
+          join.getJoinFields().isPresent() ? toFields(join.getJoinFields().get()) : List.of();
       default -> List.of();
     };
   }

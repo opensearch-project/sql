@@ -48,8 +48,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AddTotals;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.ReplacePair;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
@@ -137,6 +140,58 @@ public class MapPathPreMaterializerTest {
     givenMapPaths("doc.user.name")
         .whenCommand(mvcombine(field("doc.user.name")))
         .shouldProject("doc.user.name");
+  }
+
+  // ---- New command cases: join, lookup, streamstats ----
+
+  @Test
+  void testStreamWindow() {
+    givenMapPaths("doc.user.city")
+        .whenCommand(
+            new StreamWindow(
+                List.of(), List.of(field("doc.user.city")), false, 2, true, false, null, null))
+        .shouldProject("doc.user.city");
+  }
+
+  @Test
+  void testLookup() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(
+            new Lookup(
+                null, Map.of("name", "doc.user.name"), Lookup.OutputStrategy.REPLACE, Map.of()))
+        .shouldProject("doc.user.name");
+  }
+
+  @Test
+  void testJoinWithFieldList() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(
+            new Join(
+                DUMMY_CHILD,
+                java.util.Optional.empty(),
+                java.util.Optional.empty(),
+                Join.JoinType.INNER,
+                java.util.Optional.empty(),
+                new Join.JoinHint(),
+                java.util.Optional.of(List.of(field("doc.user.name"))),
+                new org.opensearch.sql.ast.expression.Argument.ArgumentMap(List.of())))
+        .shouldProject("doc.user.name");
+  }
+
+  @Test
+  void testJoinWithoutFieldList() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(
+            new Join(
+                DUMMY_CHILD,
+                java.util.Optional.empty(),
+                java.util.Optional.empty(),
+                Join.JoinType.INNER,
+                java.util.Optional.empty(),
+                new Join.JoinHint(),
+                java.util.Optional.empty(),
+                new org.opensearch.sql.ast.expression.Argument.ArgumentMap(List.of())))
+        .shouldNotProject();
   }
 
   // ---- Multiple fields cases ----
