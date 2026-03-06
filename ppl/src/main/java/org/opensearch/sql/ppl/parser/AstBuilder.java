@@ -1568,59 +1568,54 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     // Parse lookup table
     UnresolvedPlan fromTable = visitTableSourceClause(ctx.lookupTable);
 
-    // Parse options with defaults
-    Field fromField = null;
-    Field toField = null;
+    // Parse required base: start and edge
+    OpenSearchPPLParser.StartClauseContext startCtx = ctx.startClause();
+    Field startField = (Field) internalVisitExpression(startCtx.startField);
+    OpenSearchPPLParser.EdgeClauseContext edgeCtx = ctx.edgeClause();
+    Field fromField = (Field) internalVisitExpression(edgeCtx.fromField);
+    if (edgeCtx.trailHyphen != null) {
+      String name = fromField.getField().toString() + edgeCtx.trailHyphen.getText();
+      fromField = new Field(new QualifiedName(name));
+    }
+    Field toField = (Field) internalVisitExpression(edgeCtx.toField);
+    Direction direction =
+        edgeCtx.edgeDirection.getType() == OpenSearchPPLParser.BI_ARROW
+            ? Direction.BI
+            : Direction.UNI;
+
+    // Parse optional args with defaults
     Literal maxDepth = Literal.ZERO;
-    Field startField = null;
     Field depthField = null;
-    Direction direction = Direction.UNI;
     boolean supportArray = false;
     boolean batchMode = false;
     boolean usePIT = false;
     UnresolvedExpression filter = null;
 
-    for (OpenSearchPPLParser.GraphLookupOptionContext option : ctx.graphLookupOption()) {
-      if (option.FROM_FIELD() != null) {
-        fromField = (Field) internalVisitExpression(option.fieldExpression());
+    for (OpenSearchPPLParser.GraphLookupArgsContext arg : ctx.graphLookupArgs()) {
+      if (arg.MAX_DEPTH() != null) {
+        maxDepth = (Literal) internalVisitExpression(arg.integerLiteral());
       }
-      if (option.TO_FIELD() != null) {
-        toField = (Field) internalVisitExpression(option.fieldExpression());
+      if (arg.DEPTH_FIELD() != null) {
+        depthField = (Field) internalVisitExpression(arg.fieldExpression());
       }
-      if (option.MAX_DEPTH() != null) {
-        maxDepth = (Literal) internalVisitExpression(option.integerLiteral());
-      }
-      if (option.START_FIELD() != null) {
-        startField = (Field) internalVisitExpression(option.fieldExpression());
-      }
-      if (option.DEPTH_FIELD() != null) {
-        depthField = (Field) internalVisitExpression(option.fieldExpression());
-      }
-      if (option.DIRECTION() != null) {
-        direction = option.BI() != null ? Direction.BI : Direction.UNI;
-      }
-      if (option.SUPPORT_ARRAY() != null) {
-        Literal literal = (Literal) internalVisitExpression(option.booleanLiteral());
+      if (arg.SUPPORT_ARRAY() != null) {
+        Literal literal = (Literal) internalVisitExpression(arg.booleanLiteral());
         supportArray = Boolean.TRUE.equals(literal.getValue());
       }
-      if (option.BATCH_MODE() != null) {
-        Literal literal = (Literal) internalVisitExpression(option.booleanLiteral());
+      if (arg.BATCH_MODE() != null) {
+        Literal literal = (Literal) internalVisitExpression(arg.booleanLiteral());
         batchMode = Boolean.TRUE.equals(literal.getValue());
       }
-      if (option.USE_PIT() != null) {
-        Literal literal = (Literal) internalVisitExpression(option.booleanLiteral());
+      if (arg.USE_PIT() != null) {
+        Literal literal = (Literal) internalVisitExpression(arg.booleanLiteral());
         usePIT = Boolean.TRUE.equals(literal.getValue());
       }
-      if (option.FILTER() != null) {
-        filter = internalVisitExpression(option.logicalExpression());
+      if (arg.FILTER() != null) {
+        filter = internalVisitExpression(arg.logicalExpression());
       }
     }
 
     Field as = (Field) internalVisitExpression(ctx.outputField);
-
-    if (fromField == null || toField == null) {
-      throw new SemanticCheckException("fromField and toField must be specified for graphLookup");
-    }
 
     return GraphLookup.builder()
         .fromTable(fromTable)
