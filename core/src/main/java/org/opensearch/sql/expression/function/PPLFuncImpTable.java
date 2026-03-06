@@ -24,6 +24,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN2;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.AUTO;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.AVG;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CBRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEIL;
@@ -138,6 +139,9 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEMK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MKTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MSTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DUR2SEC;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINSPAN_BUCKET;
@@ -995,6 +999,10 @@ public class PPLFuncImpTable {
       registerOperator(RMCOMMA, PPLBuiltinOperators.RMCOMMA);
       registerOperator(RMUNIT, PPLBuiltinOperators.RMUNIT);
       registerOperator(MEMK, PPLBuiltinOperators.MEMK);
+      registerOperator(CTIME, PPLBuiltinOperators.CTIME);
+      registerOperator(MKTIME, PPLBuiltinOperators.MKTIME);
+      registerOperator(MSTIME, PPLBuiltinOperators.MSTIME);
+      registerOperator(DUR2SEC, PPLBuiltinOperators.DUR2SEC);
 
       register(
           TOSTRING,

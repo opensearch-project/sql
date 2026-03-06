@@ -341,14 +341,10 @@ public class ConversionFunctionsTest {
   // ctime() Function Tests
   @Test
   public void testCtimeConvertBasic() {
-    String result = (String) CTimeConvertFunction.convert(1066507633);
-    assertTrue(result != null && result.contains("2003"));
-
-    result = (String) CTimeConvertFunction.convert(0);
-    assertTrue(result != null && result.contains("1970"));
-
-    result = (String) CTimeConvertFunction.convert("1066507633");
-    assertTrue(result != null && result.contains("2003"));
+    // Default format is %m/%d/%Y %H:%M:%S
+    assertEquals("10/18/2003 20:07:13", CTimeConvertFunction.convert(1066507633));
+    assertEquals("01/01/1970 00:00:00", CTimeConvertFunction.convert(0));
+    assertEquals("10/18/2003 20:07:13", CTimeConvertFunction.convert("1066507633"));
   }
 
   @Test
@@ -362,9 +358,9 @@ public class ConversionFunctionsTest {
   // mktime() Function Tests
   @Test
   public void testMktimeConvertBasic() {
-    assertEquals(1066507633.0, MkTimeConvertFunction.convert("2003-10-18 20:07:13"));
-    assertEquals(1066507633.0, MkTimeConvertFunction.convert("2003-10-18T20:07:13"));
-    assertEquals(946684800.0, MkTimeConvertFunction.convert("2000-01-01 00:00:00"));
+    // Default format is %m/%d/%Y %H:%M:%S
+    assertEquals(1066507633.0, MkTimeConvertFunction.convert("10/18/2003 20:07:13"));
+    assertEquals(946684800.0, MkTimeConvertFunction.convert("01/01/2000 00:00:00"));
     assertEquals(1066473433.0, MkTimeConvertFunction.convert(1066473433));
     assertEquals(1066473433.0, MkTimeConvertFunction.convert("1066473433"));
   }
@@ -384,6 +380,10 @@ public class ConversionFunctionsTest {
     assertEquals(225.123, MsTimeConvertFunction.convert("03:45.123"));
     assertEquals(90.5, MsTimeConvertFunction.convert("01:30.5"));
     assertEquals(3661.0, MsTimeConvertFunction.convert("61:01"));
+
+    // SS.SSS without MM: prefix
+    assertEquals(45.123, MsTimeConvertFunction.convert("45.123"));
+    assertEquals(30.0, MsTimeConvertFunction.convert("30"));
 
     // Test already numeric
     assertEquals(225.0, MsTimeConvertFunction.convert(225));
@@ -437,40 +437,31 @@ public class ConversionFunctionsTest {
   // timeformat tests for mktime() and ctime()
   @Test
   public void testMktimeWithCustomTimeformat() {
-    // Test mktime with custom timeformat
-    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("18/10/2003 20:07:13", "dd/MM/yyyy HH:mm:ss"));
-    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", "yyyy-MM-dd HH:mm:ss"));
-    assertEquals(946684800.0, MkTimeConvertFunction.convertWithFormat("01/01/2000 00:00:00", "dd/MM/yyyy HH:mm:ss"));
+    // Strftime format specifiers
+    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("18/10/2003 20:07:13", "%d/%m/%Y %H:%M:%S"));
+    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", "%Y-%m-%d %H:%M:%S"));
+    assertEquals(946684800.0, MkTimeConvertFunction.convertWithFormat("01/01/2000 00:00:00", "%d/%m/%Y %H:%M:%S"));
 
-    // Test fallback to default formats when custom format fails
-    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", "invalid format"));
+    // Invalid format returns null
+    assertNull(MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", "invalid format"));
 
-    // Test null/empty timeformat
-    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", null));
-    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", ""));
+    // Null/empty timeformat falls back to default %m/%d/%Y %H:%M:%S
+    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("10/18/2003 20:07:13", null));
+    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("10/18/2003 20:07:13", ""));
   }
 
   @Test
   public void testCtimeWithCustomTimeformat() {
-    // Test ctime with custom timeformat
-    String result1 = (String) CTimeConvertFunction.convertWithFormat(1066507633, "yyyy-MM-dd HH:mm:ss");
-    assertTrue(result1 != null && result1.contains("2003-10-18"));
+    // Strftime format specifiers
+    assertEquals("2003-10-18 20:07:13", CTimeConvertFunction.convertWithFormat(1066507633, "%Y-%m-%d %H:%M:%S"));
+    assertEquals("18/10/2003", CTimeConvertFunction.convertWithFormat(1066507633, "%d/%m/%Y"));
+    assertEquals("1970", CTimeConvertFunction.convertWithFormat(0, "%Y"));
 
-    String result2 = (String) CTimeConvertFunction.convertWithFormat(1066507633, "dd/MM/yyyy");
-    assertTrue(result2 != null && result2.contains("18/10/2003"));
+    // Null/empty timeformat falls back to default
+    String result = CTimeConvertFunction.convertWithFormat(1066507633, null);
+    assertEquals("10/18/2003 20:07:13", result);
 
-    String result3 = (String) CTimeConvertFunction.convertWithFormat(0, "yyyy");
-    assertTrue(result3 != null && result3.contains("1970"));
-
-    // Test fallback to default format when custom format fails
-    String result4 = (String) CTimeConvertFunction.convertWithFormat(1066507633, "invalid format");
-    assertTrue(result4 != null && result4.contains("2003"));
-
-    // Test null/empty timeformat
-    String result5 = (String) CTimeConvertFunction.convertWithFormat(1066507633, null);
-    assertTrue(result5 != null && result5.contains("2003"));
-
-    String result6 = (String) CTimeConvertFunction.convertWithFormat(1066507633, "");
-    assertTrue(result6 != null && result6.contains("2003"));
+    result = CTimeConvertFunction.convertWithFormat(1066507633, "");
+    assertEquals("10/18/2003 20:07:13", result);
   }
 }

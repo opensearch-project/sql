@@ -268,7 +268,7 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval date_str = '2003-10-18 20:07:13' | convert mktime(date_str) |"
+                "search source=%s | eval date_str = '10/18/2003 20:07:13' | convert mktime(date_str) |"
                     + " fields date_str | head 1",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("date_str", null, "double"));
@@ -280,7 +280,7 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval date_str = '18/10/2003 20:07:13' | convert timeformat=\"dd/MM/yyyy HH:mm:ss\" mktime(date_str) |"
+                "search source=%s | eval date_str = '18/10/2003 20:07:13' | convert timeformat=\"%%d/%%m/%%Y %%H:%%M:%%S\" mktime(date_str) |"
                     + " fields date_str | head 1",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("date_str", null, "double"));
@@ -296,10 +296,7 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
                     + " fields timestamp | head 1",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("timestamp", null, "string"));
-    verifyNumOfRows(result, 1);
-    // Verify it contains expected year - exact format may vary by timezone
-    String timestampValue = result.getJSONArray("datarows").getJSONArray(0).getString(0);
-    assertTrue("Expected timestamp to contain '2003'", timestampValue.contains("2003"));
+    verifyDataRows(result, rows("10/18/2003 20:07:13"));
   }
 
   @Test
@@ -307,7 +304,7 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval timestamp = 1066507633 | convert timeformat=\"yyyy-MM-dd HH:mm:ss\" ctime(timestamp) |"
+                "search source=%s | eval timestamp = 1066507633 | convert timeformat=\"%%Y-%%m-%%d %%H:%%M:%%S\" ctime(timestamp) |"
                     + " fields timestamp | head 1",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("timestamp", null, "string"));
@@ -344,16 +341,13 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "search source=%s | eval date_str = '18/10/2003 20:07:13', timestamp = 1066507633 |"
-                    + " convert timeformat=\"dd/MM/yyyy HH:mm:ss\" mktime(date_str), ctime(timestamp) |"
+                    + " convert timeformat=\"%%d/%%m/%%Y %%H:%%M:%%S\" mktime(date_str), ctime(timestamp) |"
                     + " fields date_str, timestamp | head 1",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("date_str", null, "double"), schema("timestamp", null, "string"));
     verifyNumOfRows(result, 1);
-    // Verify mktime conversion
     assertEquals(1066507633.0, result.getJSONArray("datarows").getJSONArray(0).getDouble(0), 0.001);
-    // Verify ctime conversion contains expected year
-    String timestampValue = result.getJSONArray("datarows").getJSONArray(0).getString(1);
-    assertTrue("Expected timestamp to contain '2003'", timestampValue.contains("2003"));
+    assertEquals("18/10/2003 20:07:13", result.getJSONArray("datarows").getJSONArray(0).getString(1));
   }
 
   @Test
@@ -361,7 +355,7 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval date_str = '2003-10-18 20:07:13' |"
+                "search source=%s | eval date_str = '10/18/2003 20:07:13' |"
                     + " convert mktime(date_str) | where date_str > 1000000000 |"
                     + " fields date_str | head 1",
                 TEST_INDEX_BANK));
@@ -375,7 +369,7 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "search source=%s | eval timestamp = 1066507633 |"
-                    + " convert timeformat=\"yyyy\" ctime(timestamp) |"
+                    + " convert timeformat=\"%%Y\" ctime(timestamp) |"
                     + " stats count() by timestamp",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("count()", null, "long"), schema("timestamp", "string"));
