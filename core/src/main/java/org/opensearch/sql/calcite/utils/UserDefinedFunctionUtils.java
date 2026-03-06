@@ -11,6 +11,7 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
 
 import com.google.common.collect.ImmutableSet;
+import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -209,7 +210,7 @@ public class UserDefinedFunctionUtils {
    * @return an adapted ImplementorUDF with the expr method, which is a UserDefinedFunctionBuilder
    */
   public static ImplementorUDF adaptExprMethodToUDF(
-      java.lang.reflect.Type type,
+      Type type,
       String methodName,
       SqlReturnTypeInference returnTypeInference,
       NullPolicy nullPolicy,
@@ -240,7 +241,7 @@ public class UserDefinedFunctionUtils {
    * FunctionProperties} at the beginning to a Calcite-compatible UserDefinedFunctionBuilder.
    */
   public static ImplementorUDF adaptExprMethodWithPropertiesToUDF(
-      java.lang.reflect.Type type,
+      Type type,
       String methodName,
       SqlReturnTypeInference returnTypeInference,
       NullPolicy nullPolicy,
@@ -316,5 +317,45 @@ public class UserDefinedFunctionUtils {
             UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
     operandsWithProperties.addFirst(properties);
     return Collections.unmodifiableList(operandsWithProperties);
+  }
+
+  /**
+   * Adapt a static method from any class to a UserDefinedFunctionBuilder. This is a general-purpose
+   * adapter that can wrap static helper methods (e.g., PatternAggregationHelpers methods) as UDFs
+   * for use in scripted metrics.
+   *
+   * @param type the class containing the static method
+   * @param methodName the name of the static method to be invoked
+   * @param returnTypeInference the return type inference of the UDF
+   * @param nullPolicy the null policy of the UDF
+   * @param operandMetadata type checker for operands
+   * @return an adapted ImplementorUDF wrapping the static method
+   */
+  public static ImplementorUDF adaptStaticMethodToUDF(
+      Type type,
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      @Nullable UDFOperandMetadata operandMetadata) {
+
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          // For static methods that work with generic objects (Map, List, etc.),
+          // we don't need type conversion like adaptMathFunctionToUDF
+          // Just pass the operands directly to the static method
+          return Expressions.call(type, methodName, translatedOperands);
+        };
+
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
+      }
+    };
   }
 }

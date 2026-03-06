@@ -18,6 +18,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Hook;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.Source;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 
 @Getter
@@ -42,9 +43,12 @@ public class ScriptParameterHelper {
    *
    * <p>0 stands for DOC_VALUE
    *
-   * <p>1 stand for SOURCE
+   * <p>1 stands for SOURCE
    *
    * <p>2 stands for LITERAL
+   *
+   * <p>3 stands for SPECIAL_VARIABLE - retrieves value from special context variables (e.g., state,
+   * states in scripted metric aggregations)
    */
   List<Integer> sources;
 
@@ -93,5 +97,19 @@ public class ScriptParameterHelper {
         put(DIGESTS, digests);
       }
     };
+  }
+
+  /**
+   * Adds a special variable reference (like state or states in scripted metric aggregations) and
+   * returns the index.
+   *
+   * @param variableName The name of the special variable (e.g., "state", "states")
+   * @return The index in the sources/digests lists
+   */
+  public int addSpecialVariable(String variableName) {
+    int index = sources.size();
+    sources.add(Source.SPECIAL_VARIABLE.getValue()); // SPECIAL_VARIABLE = 3
+    digests.add(variableName);
+    return index;
   }
 }
