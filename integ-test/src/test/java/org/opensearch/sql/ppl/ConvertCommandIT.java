@@ -97,8 +97,8 @@ public class ConvertCommandIT extends PPLIntegTestCase {
   @Test
   public void testConvertWithTimeformat() {
     verifyQueryThrowsCalciteError(
-        "source=%s | eval date_str = '18/10/2003 20:07:13' | convert timeformat=\"dd/MM/yyyy"
-            + " HH:mm:ss\" mktime(date_str) | fields date_str");
+        "source=%s | eval date_str = '18/10/2003 20:07:13' | convert"
+            + " timeformat=\\\"%%d/%%m/%%Y %%H:%%M:%%S\\\" mktime(date_str) | fields date_str");
   }
 
   private void verifyQueryThrowsCalciteError(String query) {
