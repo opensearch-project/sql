@@ -58,11 +58,11 @@ public class MkTimeConvertFunction extends ImplementorUDF {
       if (translatedOperands.isEmpty()) {
         return Expressions.constant(null, Double.class);
       }
-      Expression fieldValue = translatedOperands.get(0);
+      Expression fieldValue = Expressions.box(translatedOperands.get(0));
       if (translatedOperands.size() == 1) {
         return Expressions.call(MkTimeConvertFunction.class, "convert", fieldValue);
       }
-      Expression timeFormat = translatedOperands.get(1);
+      Expression timeFormat = Expressions.box(translatedOperands.get(1));
       return Expressions.call(
           MkTimeConvertFunction.class, "convertWithFormat", fieldValue, timeFormat);
     }

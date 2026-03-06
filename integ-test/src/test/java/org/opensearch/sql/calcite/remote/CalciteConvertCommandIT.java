@@ -279,10 +279,10 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
   public void testConvertMktimeWithCustomTimeformat() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | eval date_str = '18/10/2003 20:07:13' | convert timeformat=\"%%d/%%m/%%Y %%H:%%M:%%S\" mktime(date_str) |"
-                    + " fields date_str | head 1",
-                TEST_INDEX_BANK));
+            "search source="
+                + TEST_INDEX_BANK
+                + " | eval date_str = '18/10/2003 20:07:13' | convert timeformat=\\\"%d/%m/%Y %H:%M:%S\\\" mktime(date_str) |"
+                + " fields date_str | head 1");
     verifySchema(result, schema("date_str", null, "double"));
     verifyDataRows(result, rows(1066507633.0));
   }
@@ -303,10 +303,10 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
   public void testConvertCtimeWithCustomTimeformat() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | eval timestamp = 1066507633 | convert timeformat=\"%%Y-%%m-%%d %%H:%%M:%%S\" ctime(timestamp) |"
-                    + " fields timestamp | head 1",
-                TEST_INDEX_BANK));
+            "search source="
+                + TEST_INDEX_BANK
+                + " | eval timestamp = 1066507633 | convert timeformat=\\\"%Y-%m-%d %H:%M:%S\\\" ctime(timestamp) |"
+                + " fields timestamp | head 1");
     verifySchema(result, schema("timestamp", null, "string"));
     verifyDataRows(result, rows("2003-10-18 20:07:13"));
   }
@@ -339,11 +339,11 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
   public void testConvertTimeformatWithMultipleFunctions() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | eval date_str = '18/10/2003 20:07:13', timestamp = 1066507633 |"
-                    + " convert timeformat=\"%%d/%%m/%%Y %%H:%%M:%%S\" mktime(date_str), ctime(timestamp) |"
-                    + " fields date_str, timestamp | head 1",
-                TEST_INDEX_BANK));
+            "search source="
+                + TEST_INDEX_BANK
+                + " | eval date_str = '18/10/2003 20:07:13', timestamp = 1066507633 |"
+                + " convert timeformat=\\\"%d/%m/%Y %H:%M:%S\\\" mktime(date_str), ctime(timestamp) |"
+                + " fields date_str, timestamp | head 1");
     verifySchema(result, schema("date_str", null, "double"), schema("timestamp", null, "string"));
     verifyNumOfRows(result, 1);
     assertEquals(1066507633.0, result.getJSONArray("datarows").getJSONArray(0).getDouble(0), 0.001);
@@ -367,12 +367,12 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
   public void testConvertTimeformatWithStats() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | eval timestamp = 1066507633 |"
-                    + " convert timeformat=\"%%Y\" ctime(timestamp) |"
-                    + " stats count() by timestamp",
-                TEST_INDEX_BANK));
-    verifySchema(result, schema("count()", null, "long"), schema("timestamp", "string"));
-    verifyDataRows(result, rows(1000L, "2003"));
+            "search source="
+                + TEST_INDEX_BANK
+                + " | eval timestamp = 1066507633 |"
+                + " convert timeformat=\\\"%Y\\\" ctime(timestamp) |"
+                + " stats count() by timestamp");
+    verifySchema(result, schema("count()", null, "bigint"), schema("timestamp", "string"));
+    verifyDataRows(result, rows(7, "2003"));
   }
 }
