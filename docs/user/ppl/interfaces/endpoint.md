@@ -53,7 +53,152 @@ Expected output:
 }
 ```
   
-## Explain  
+## Highlight
+
+### Description
+
+You can include an optional `highlight` object in the request body to request search result highlighting. When a PPL query contains a full-text search (e.g., `search source=logs "error"`), OpenSearch identifies where the search terms appear in document fields and returns the matching fragments wrapped in the specified tags.
+
+The `highlight` object is passed as-is to OpenSearch. See the [OpenSearch highlighting documentation](https://docs.opensearch.org/latest/search-plugins/searching-data/highlight/) for all supported parameters.
+
+### What gets highlighted
+
+- **Full-text search terms only.** The search term in `search source=logs "error"` is translated to a `query_string` query, and OpenSearch's highlighter identifies matches. Structured filters (`where`, `stats`, comparison operators) do not produce highlights.
+- **`text` and `keyword` fields only.** Numeric, date, boolean, and other non-string field types never produce highlight fragments.
+
+### Example 1: Wildcard highlight
+
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+-X POST localhost:9200/_plugins/_ppl \
+-d '{
+  "query": "search source=accounts \\\"Street\\\" | fields firstname, address",
+  "highlight": {
+    "fields": { "*": {} },
+    "pre_tags": ["<em>"],
+    "post_tags": ["</em>"],
+    "fragment_size": 2147483647
+  }
+}'
+```
+
+Expected output:
+
+```json
+{
+  "schema": [
+    {
+      "name": "firstname",
+      "type": "string"
+    },
+    {
+      "name": "address",
+      "type": "string"
+    }
+  ],
+  "datarows": [
+    [
+      "Hattie",
+      "671 Bristol Street"
+    ],
+    [
+      "Nanette",
+      "789 Madison Street"
+    ]
+  ],
+  "highlights": [
+    {
+      "address": [
+        "671 Bristol <em>Street</em>"
+      ]
+    },
+    {
+      "address": [
+        "789 Madison <em>Street</em>"
+      ]
+    }
+  ],
+  "total": 2,
+  "size": 2
+}
+```
+
+### Example 2: Specific field with custom tags
+
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+-X POST localhost:9200/_plugins/_ppl \
+-d '{
+  "query": "search source=accounts \\\"Street\\\" | fields firstname, address",
+  "highlight": {
+    "fields": { "address": {} },
+    "pre_tags": ["<mark>"],
+    "post_tags": ["</mark>"]
+  }
+}'
+```
+
+Expected output:
+
+```json
+{
+  "schema": [
+    {
+      "name": "firstname",
+      "type": "string"
+    },
+    {
+      "name": "address",
+      "type": "string"
+    }
+  ],
+  "datarows": [
+    [
+      "Hattie",
+      "671 Bristol Street"
+    ],
+    [
+      "Nanette",
+      "789 Madison Street"
+    ]
+  ],
+  "highlights": [
+    {
+      "address": [
+        "671 Bristol <mark>Street</mark>"
+      ]
+    },
+    {
+      "address": [
+        "789 Madison <mark>Street</mark>"
+      ]
+    }
+  ],
+  "total": 2,
+  "size": 2
+}
+```
+
+Only the `address` field is highlighted. The `<mark>` custom tags are used instead of the default `<em>` tags.
+
+### Response format
+
+- The `highlights` array is parallel to `datarows` — each entry corresponds to the row at the same index.
+- Entries are `null` when a row has no highlight data for the requested fields.
+- The `highlights` array is **omitted entirely** when no `highlight` config is provided in the request (backward compatible). When no highlight config is provided, there is zero impact on query processing — no extra columns, no extra overhead.
+
+### Behavior with piped commands
+
+- Piped commands (`where`, `sort`, `head`, `dedup`) narrow or reorder the result set but do not affect which terms are highlighted. Only the full-text search term produces highlights.
+- Explicit field projection (`| fields name, age`) preserves highlight data, consistent with DSL where `_source` filtering does not affect highlights.
+
+### Limitations
+
+- Highlighting is supported only in the Calcite engine.
+- The backend forwards the highlight config as-is to OpenSearch. The same highlighting behavior and limitations as [OpenSearch's highlighting API](https://docs.opensearch.org/latest/search-plugins/searching-data/highlight/) apply.
+- Highlighting works with **single-source queries only**, consistent with DSL where highlighting is inherently single-index per request. Behavior with joins (`| join`), subqueries, and multi-source queries is not validated.
+
+## Explain
 
 ### Description  
 

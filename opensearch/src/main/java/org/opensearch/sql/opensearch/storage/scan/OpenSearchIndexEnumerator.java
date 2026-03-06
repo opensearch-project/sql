@@ -5,9 +5,12 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import static org.opensearch.sql.expression.HighlightExpression.HIGHLIGHT_FIELD;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.calcite.linq4j.Enumerator;
@@ -88,7 +91,19 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     if (fields.size() == 1) {
       return resolveForCalcite(current, fields.getFirst());
     }
-    return fields.stream().map(field -> resolveForCalcite(current, field)).toArray();
+    return fields.stream()
+        .map(
+            field -> {
+              // _highlight is carried as an opaque ExprValue through the Calcite row pipeline.
+              // It uses SqlTypeName.ANY so Calcite passes it through without conversion.
+              if (HIGHLIGHT_FIELD.equals(field)) {
+                Map<String, ExprValue> tuple = ExprValueUtils.getTupleValue(current);
+                ExprValue hl = tuple.get(HIGHLIGHT_FIELD);
+                return (hl != null && !hl.isMissing()) ? (Object) hl : null;
+              }
+              return resolveForCalcite(current, field);
+            })
+        .toArray();
   }
 
   private Object resolveForCalcite(ExprValue value, String rawPath) {

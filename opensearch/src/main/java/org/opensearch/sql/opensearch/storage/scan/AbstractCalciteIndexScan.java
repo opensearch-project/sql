@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
+import static org.opensearch.core.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
 import static org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression.getScriptSortType;
 import static org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper.MISSING_MAX;
@@ -45,15 +47,23 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.search.SearchModule;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.ScriptSortBuilder.ScriptSortType;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.context.AbstractAction;
@@ -72,6 +82,9 @@ import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 @Getter
 public abstract class AbstractCalciteIndexScan extends TableScan implements AliasFieldsWrappable {
   private static final Logger LOG = LogManager.getLogger(AbstractCalciteIndexScan.class);
+
+  private static final NamedXContentRegistry X_CONTENT_REGISTRY =
+      new NamedXContentRegistry(new SearchModule(Settings.EMPTY, emptyList()).getNamedXContents());
   public final OpenSearchIndex osIndex;
   // The schema of this scan operator, it's initialized with the row type of the table, but may be
   // changed by push down operations.
@@ -106,11 +119,37 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
   public RelWriter explainTerms(RelWriter pw) {
     String explainString = String.valueOf(pushDownContext);
     if (pw instanceof RelWriterImpl) {
-      // Only add request builder to the explain plan
-      explainString += ", " + pushDownContext.createRequestBuilder();
+      OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
+      applyExtraSearchSource(requestBuilder);
+      explainString += ", " + requestBuilder;
     }
     return super.explainTerms(pw)
         .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
+  }
+
+  /**
+   * Apply extra search-source JSON from the ThreadLocal to the OpenSearch request builder. The JSON
+   * is parsed via {@code SearchSourceBuilder.fromXContent()} and any recognized clauses (highlight,
+   * suggest, rescore, etc.) are selectively merged into the target request.
+   *
+   * @param requestBuilder the OpenSearch request builder to merge extra clauses into
+   */
+  protected static void applyExtraSearchSource(OpenSearchRequestBuilder requestBuilder) {
+    String json = CalcitePlanContext.getExtraSearchSource();
+    if (json == null) {
+      return;
+    }
+    try {
+      XContentParser parser =
+          XContentType.JSON.xContent().createParser(X_CONTENT_REGISTRY, IGNORE_DEPRECATIONS, json);
+      SearchSourceBuilder extra = SearchSourceBuilder.fromXContent(parser);
+      SearchSourceBuilder target = requestBuilder.getSourceBuilder();
+      if (extra.highlighter() != null) {
+        target.highlighter(extra.highlighter());
+      }
+    } catch (Exception e) {
+      LOG.warn("Failed to parse extra search source JSON, skipping: {}", e.getMessage());
+    }
   }
 
   protected Integer getQuerySizeLimit() {

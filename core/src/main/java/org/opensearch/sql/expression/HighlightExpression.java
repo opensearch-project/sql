@@ -23,6 +23,9 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 /** Highlight Expression. */
 @Getter
 public class HighlightExpression extends FunctionExpression {
+  /** The field name used to store highlight data on ExprTupleValue rows. */
+  public static final String HIGHLIGHT_FIELD = "_highlight";
+
   private final Expression highlightField;
   private final ExprType type;
 
@@ -46,7 +49,7 @@ public class HighlightExpression extends FunctionExpression {
    */
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-    String refName = "_highlight";
+    String refName = HIGHLIGHT_FIELD;
     // Not a wilcard expression
     if (this.type == ExprCoreType.ARRAY) {
       refName += "." + StringUtils.unquoteText(getHighlightField().toString());

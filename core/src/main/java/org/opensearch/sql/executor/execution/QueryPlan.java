@@ -10,6 +10,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
@@ -60,10 +61,15 @@ public class QueryPlan extends AbstractPlan {
 
   @Override
   public void execute() {
-    if (pageSize.isPresent()) {
-      queryService.execute(new Paginate(pageSize.get(), plan), getQueryType(), listener);
-    } else {
-      queryService.execute(plan, getQueryType(), listener);
+    setExtraSearchSourceThreadLocal();
+    try {
+      if (pageSize.isPresent()) {
+        queryService.execute(new Paginate(pageSize.get(), plan), getQueryType(), listener);
+      } else {
+        queryService.execute(plan, getQueryType(), listener);
+      }
+    } finally {
+      CalcitePlanContext.clearExtraSearchSource();
     }
   }
 
@@ -76,6 +82,13 @@ public class QueryPlan extends AbstractPlan {
               "`explain` feature for paginated requests is not implemented yet."));
     } else {
       queryService.explain(plan, getQueryType(), listener, mode);
+    }
+  }
+
+  private void setExtraSearchSourceThreadLocal() {
+    String extra = getExtraSearchSource();
+    if (extra != null) {
+      CalcitePlanContext.setExtraSearchSource(extra);
     }
   }
 }

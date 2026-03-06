@@ -6,17 +6,21 @@
 package org.opensearch.sql.executor.execution;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
@@ -55,5 +59,37 @@ public class ExplainPlanTest {
               explainPlan.explain(explainListener, mode);
             });
     assertEquals("explain query can not been explained.", unsupportedExplainException.getMessage());
+  }
+
+  @Test
+  public void execute_sets_extra_search_source_threadlocal_for_explain() {
+    String extraSearchSource = "{\"highlight\":{\"fields\":{\"*\":{}}}}";
+    AtomicReference<String> captured = new AtomicReference<>();
+
+    doAnswer(
+            invocation -> {
+              captured.set(CalcitePlanContext.getExtraSearchSource());
+              return null;
+            })
+        .when(queryPlan)
+        .explain(any(), any());
+
+    ExplainPlan explainPlan = new ExplainPlan(queryId, queryType, queryPlan, mode, explainListener);
+    explainPlan.setExtraSearchSource(extraSearchSource);
+    explainPlan.execute();
+
+    assertEquals(extraSearchSource, captured.get());
+  }
+
+  @Test
+  public void execute_clears_extra_search_source_threadlocal_after_explain() {
+    String extraSearchSource = "{\"highlight\":{\"fields\":{\"*\":{}}}}";
+    doNothing().when(queryPlan).explain(any(), any());
+
+    ExplainPlan explainPlan = new ExplainPlan(queryId, queryType, queryPlan, mode, explainListener);
+    explainPlan.setExtraSearchSource(extraSearchSource);
+    explainPlan.execute();
+
+    assertNull(CalcitePlanContext.getExtraSearchSource());
   }
 }
