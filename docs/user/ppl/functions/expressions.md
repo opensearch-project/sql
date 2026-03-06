@@ -8,7 +8,7 @@ Arithmetic expressions are formed by combining numeric literals and binary arith
 1. `+`: Addition
 2. `-`: Subtraction
 3. `*`: Multiplication
-4. `/`: Division. When [`plugins.ppl.syntax.legacy.preferred`](../../admin/settings.md) is `true` (default), integer operands follow the legacy truncating result. When the setting is `false`, the operands are promoted to floating-point, preserving the fractional part. Division by zero returns `NULL`.
+4. `/`: Division. When [`plugins.ppl.syntax.legacy.preferred`](../admin/settings.md) is `true` (default), integer operands follow the legacy truncating result. When the setting is `false`, the operands are promoted to floating-point, preserving the fractional part. Division by zero returns `NULL`.
 5. `%`: Modulo. This operator can only be used with integers and returns the remainder of the division.
 
 ### Precedence
