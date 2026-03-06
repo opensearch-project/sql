@@ -55,7 +55,7 @@ public class OpenSearchRelOptUtil {
       case MINUS_PREFIX:
         return getOrderEquivalentInputInfo(((RexCall) expr).getOperands().get(0))
             .map(inputInfo -> Pair.of(inputInfo.getLeft(), !inputInfo.getRight()));
-      case PLUS, MINUS:
+      case PLUS, MINUS, CHECKED_PLUS, CHECKED_MINUS:
         {
           RexNode operand0 = ((RexCall) expr).getOperands().get(0);
           RexNode operand1 = ((RexCall) expr).getOperands().get(1);
@@ -68,12 +68,14 @@ public class OpenSearchRelOptUtil {
           }
 
           RexNode variable = operand0Lit ? operand1 : operand0;
-          boolean flipped = (expr.getKind() == SqlKind.MINUS) && operand0Lit;
+          boolean flipped =
+              (expr.getKind() == SqlKind.MINUS || expr.getKind() == SqlKind.CHECKED_MINUS)
+                  && operand0Lit;
 
           return getOrderEquivalentInputInfo(variable)
               .map(inputInfo -> Pair.of(inputInfo.getLeft(), flipped != inputInfo.getRight()));
         }
-      case TIMES:
+      case TIMES, CHECKED_TIMES:
         {
           RexNode operand0 = ((RexCall) expr).getOperands().get(0);
           RexNode operand1 = ((RexCall) expr).getOperands().get(1);
