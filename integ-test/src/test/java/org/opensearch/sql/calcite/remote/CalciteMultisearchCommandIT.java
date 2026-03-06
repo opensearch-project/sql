@@ -152,10 +152,10 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
     verifySchema(
         result,
-        schema("@timestamp", null, "string"),
+        schema("@timestamp", null, "timestamp"),
         schema("category", null, "string"),
         schema("value", null, "int"),
-        schema("timestamp", null, "string"));
+        schema("timestamp", null, "timestamp"));
 
     verifyDataRows(
         result,
@@ -342,6 +342,203 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         rows("Hattie", 5686L, null, null),
         rows(null, null, "Central Park", 1001),
         rows(null, null, "Times Square", 1002));
+  }
+
+  // ========================================================================
+  // Reproduction tests for GitHub issues #5145, #5146, #5147
+  // ========================================================================
+
+  /** Reproduce #5145: multisearch without further processing should return all rows. */
+  @Test
+  public void testMultisearchWithoutFurtherProcessing() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="
+                + " \\\"A\\\"] [search source=opensearch-sql_test_index_time_data | where category"
+                + " = \\\"B\\\"]");
+
+    verifySchema(
+        result,
+        schema("@timestamp", null, "timestamp"),
+        schema("category", null, "string"),
+        schema("value", null, "int"),
+        schema("timestamp", null, "timestamp"));
+
+    // category A has 26 rows, category B has 25 rows = 51 total
+    assertEquals(51, result.getInt("total"));
+  }
+
+  /** Reproduce #5146: span expression used after multisearch should work. */
+  @Test
+  public void testMultisearchWithSpanExpression() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="
+                + " \\\"A\\\"] [search source=opensearch-sql_test_index_time_data2 | where category"
+                + " = \\\"E\\\"] | stats avg(value) by span(@timestamp, 5m)");
+
+    verifySchema(
+        result,
+        schema("avg(value)", null, "double"),
+        schema("span(@timestamp,5m)", null, "timestamp"));
+
+    // Each data point falls in its own 5-min bucket (all >5min apart), so avg = single value
+    // Category A: 26 rows from time_test_data, Category E: 10 rows from time_test_data2
+    verifyDataRows(
+        result,
+        // Category A (26 rows)
+        rows(8945.0, "2025-07-28 00:15:00"),
+        rows(6834.0, "2025-07-28 03:55:00"),
+        rows(6589.0, "2025-07-28 07:50:00"),
+        rows(9367.0, "2025-07-28 11:05:00"),
+        rows(9245.0, "2025-07-28 15:15:00"),
+        rows(8917.0, "2025-07-28 19:20:00"),
+        rows(8384.0, "2025-07-28 23:30:00"),
+        rows(8798.0, "2025-07-29 03:35:00"),
+        rows(9306.0, "2025-07-29 07:45:00"),
+        rows(8873.0, "2025-07-29 11:50:00"),
+        rows(8542.0, "2025-07-29 15:00:00"),
+        rows(9321.0, "2025-07-29 19:05:00"),
+        rows(8917.0, "2025-07-29 23:10:00"),
+        rows(8756.0, "2025-07-30 03:20:00"),
+        rows(9234.0, "2025-07-30 07:25:00"),
+        rows(8679.0, "2025-07-30 11:35:00"),
+        rows(8765.0, "2025-07-30 15:40:00"),
+        rows(9187.0, "2025-07-30 19:50:00"),
+        rows(8862.0, "2025-07-30 23:55:00"),
+        rows(8537.0, "2025-07-31 03:00:00"),
+        rows(9318.0, "2025-07-31 07:10:00"),
+        rows(8914.0, "2025-07-31 11:15:00"),
+        rows(8753.0, "2025-07-31 15:25:00"),
+        rows(9231.0, "2025-07-31 19:30:00"),
+        rows(8676.0, "2025-07-31 23:40:00"),
+        rows(8762.0, "2025-08-01 03:45:00"),
+        // Category E (10 rows)
+        rows(2001.0, "2025-08-01 04:00:00"),
+        rows(2003.0, "2025-08-01 01:00:00"),
+        rows(2005.0, "2025-07-31 20:45:00"),
+        rows(2007.0, "2025-07-31 16:00:00"),
+        rows(2009.0, "2025-07-31 12:30:00"),
+        rows(2011.0, "2025-07-31 08:00:00"),
+        rows(2013.0, "2025-07-31 04:30:00"),
+        rows(2015.0, "2025-07-31 01:00:00"),
+        rows(2017.0, "2025-07-30 21:30:00"),
+        rows(2019.0, "2025-07-30 18:00:00"));
+  }
+
+  /** Reproduce #5147: bin command after multisearch should produce non-null @timestamp. */
+  @Test
+  public void testMultisearchBinTimestamp() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="
+                + " \\\"A\\\"] [search source=opensearch-sql_test_index_time_data2 | where category"
+                + " = \\\"E\\\"] | fields @timestamp, category, value | bin @timestamp span=5m");
+
+    verifySchema(
+        result,
+        schema("category", null, "string"),
+        schema("value", null, "int"),
+        schema("@timestamp", null, "timestamp"));
+
+    // bin floors @timestamp to 5-min boundaries; projectPlusOverriding moves @timestamp to end
+    // Category A: 26 rows from time_test_data, Category E: 10 rows from time_test_data2
+    verifyDataRows(
+        result,
+        // Category A (26 rows)
+        rows("A", 8945, "2025-07-28 00:15:00"),
+        rows("A", 6834, "2025-07-28 03:55:00"),
+        rows("A", 6589, "2025-07-28 07:50:00"),
+        rows("A", 9367, "2025-07-28 11:05:00"),
+        rows("A", 9245, "2025-07-28 15:15:00"),
+        rows("A", 8917, "2025-07-28 19:20:00"),
+        rows("A", 8384, "2025-07-28 23:30:00"),
+        rows("A", 8798, "2025-07-29 03:35:00"),
+        rows("A", 9306, "2025-07-29 07:45:00"),
+        rows("A", 8873, "2025-07-29 11:50:00"),
+        rows("A", 8542, "2025-07-29 15:00:00"),
+        rows("A", 9321, "2025-07-29 19:05:00"),
+        rows("A", 8917, "2025-07-29 23:10:00"),
+        rows("A", 8756, "2025-07-30 03:20:00"),
+        rows("A", 9234, "2025-07-30 07:25:00"),
+        rows("A", 8679, "2025-07-30 11:35:00"),
+        rows("A", 8765, "2025-07-30 15:40:00"),
+        rows("A", 9187, "2025-07-30 19:50:00"),
+        rows("A", 8862, "2025-07-30 23:55:00"),
+        rows("A", 8537, "2025-07-31 03:00:00"),
+        rows("A", 9318, "2025-07-31 07:10:00"),
+        rows("A", 8914, "2025-07-31 11:15:00"),
+        rows("A", 8753, "2025-07-31 15:25:00"),
+        rows("A", 9231, "2025-07-31 19:30:00"),
+        rows("A", 8676, "2025-07-31 23:40:00"),
+        rows("A", 8762, "2025-08-01 03:45:00"),
+        // Category E (10 rows)
+        rows("E", 2001, "2025-08-01 04:00:00"),
+        rows("E", 2003, "2025-08-01 01:00:00"),
+        rows("E", 2005, "2025-07-31 20:45:00"),
+        rows("E", 2007, "2025-07-31 16:00:00"),
+        rows("E", 2009, "2025-07-31 12:30:00"),
+        rows("E", 2011, "2025-07-31 08:00:00"),
+        rows("E", 2013, "2025-07-31 04:30:00"),
+        rows("E", 2015, "2025-07-31 01:00:00"),
+        rows("E", 2017, "2025-07-30 21:30:00"),
+        rows("E", 2019, "2025-07-30 18:00:00"));
+  }
+
+  /** Reproduce #5147 full pattern: bin + stats after multisearch. */
+  @Test
+  public void testMultisearchBinAndStats() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="
+                + " \\\"A\\\"] [search source=opensearch-sql_test_index_time_data2 | where category"
+                + " = \\\"E\\\"] | bin @timestamp span=5m | stats avg(value) by @timestamp");
+
+    verifySchema(
+        result, schema("avg(value)", null, "double"), schema("@timestamp", null, "timestamp"));
+
+    // Each data point falls in its own 5-min bucket (all >5min apart), so avg = single value
+    // Category A: 26 rows from time_test_data, Category E: 10 rows from time_test_data2
+    verifyDataRows(
+        result,
+        // Category A (26 rows)
+        rows(8945.0, "2025-07-28 00:15:00"),
+        rows(6834.0, "2025-07-28 03:55:00"),
+        rows(6589.0, "2025-07-28 07:50:00"),
+        rows(9367.0, "2025-07-28 11:05:00"),
+        rows(9245.0, "2025-07-28 15:15:00"),
+        rows(8917.0, "2025-07-28 19:20:00"),
+        rows(8384.0, "2025-07-28 23:30:00"),
+        rows(8798.0, "2025-07-29 03:35:00"),
+        rows(9306.0, "2025-07-29 07:45:00"),
+        rows(8873.0, "2025-07-29 11:50:00"),
+        rows(8542.0, "2025-07-29 15:00:00"),
+        rows(9321.0, "2025-07-29 19:05:00"),
+        rows(8917.0, "2025-07-29 23:10:00"),
+        rows(8756.0, "2025-07-30 03:20:00"),
+        rows(9234.0, "2025-07-30 07:25:00"),
+        rows(8679.0, "2025-07-30 11:35:00"),
+        rows(8765.0, "2025-07-30 15:40:00"),
+        rows(9187.0, "2025-07-30 19:50:00"),
+        rows(8862.0, "2025-07-30 23:55:00"),
+        rows(8537.0, "2025-07-31 03:00:00"),
+        rows(9318.0, "2025-07-31 07:10:00"),
+        rows(8914.0, "2025-07-31 11:15:00"),
+        rows(8753.0, "2025-07-31 15:25:00"),
+        rows(9231.0, "2025-07-31 19:30:00"),
+        rows(8676.0, "2025-07-31 23:40:00"),
+        rows(8762.0, "2025-08-01 03:45:00"),
+        // Category E (10 rows)
+        rows(2001.0, "2025-08-01 04:00:00"),
+        rows(2003.0, "2025-08-01 01:00:00"),
+        rows(2005.0, "2025-07-31 20:45:00"),
+        rows(2007.0, "2025-07-31 16:00:00"),
+        rows(2009.0, "2025-07-31 12:30:00"),
+        rows(2011.0, "2025-07-31 08:00:00"),
+        rows(2013.0, "2025-07-31 04:30:00"),
+        rows(2015.0, "2025-07-31 01:00:00"),
+        rows(2017.0, "2025-07-30 21:30:00"),
+        rows(2019.0, "2025-07-30 18:00:00"));
   }
 
   @Test
