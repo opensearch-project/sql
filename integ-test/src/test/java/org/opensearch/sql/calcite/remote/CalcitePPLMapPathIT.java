@@ -152,7 +152,7 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   public void testMvcombineOnMapPath() throws IOException {
     try {
       updateIndexSettings(
-          TEST_INDEX, "{ \"index\": { \"max_inner_result_window\":" + 1000 + " } }");
+          TEST_INDEX, "{ \"index\": { \"max_inner_result_window\":" + 10000 + " } }");
       JSONObject result =
           ppl(
               """

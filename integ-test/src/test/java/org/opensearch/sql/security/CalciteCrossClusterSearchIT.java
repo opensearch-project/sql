@@ -393,7 +393,7 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
     try {
       updateIndexSettings(
           TEST_INDEX_BANK,
-          "{ \"index\": { \"max_inner_result_window\":" + 1000 + " } }",
+          "{ \"index\": { \"max_inner_result_window\":" + 10000 + " } }",
           remoteClient());
       JSONObject result =
           executeQuery(

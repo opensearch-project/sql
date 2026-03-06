@@ -247,7 +247,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     JSONObject result;
     try {
       updateIndexSettings(
-          TEST_INDEX_BANK, "{ \"index\": { \"max_inner_result_window\":" + 1000 + " } }");
+          TEST_INDEX_BANK, "{ \"index\": { \"max_inner_result_window\":" + 10000 + " } }");
       result =
           executeQuery(
               String.format(
