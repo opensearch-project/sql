@@ -76,6 +76,7 @@ import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DefaultBin;
@@ -1202,6 +1203,55 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitFillNullValueAllFields(
       OpenSearchPPLParser.FillNullValueAllFieldsContext ctx) {
     return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of(), true);
+  }
+
+  @Override
+  public UnresolvedPlan visitConvertCommand(OpenSearchPPLParser.ConvertCommandContext ctx) {
+    List<Let> conversions =
+        ctx.convertFunction().stream()
+            .map(this::buildConversion)
+            .filter(conversion -> conversion != null)
+            .collect(Collectors.toList());
+    return new Convert(conversions);
+  }
+
+  /** Supported PPL convert function names (case-insensitive). */
+  private static final Set<String> SUPPORTED_CONVERSION_FUNCTIONS =
+      Set.of("auto", "num", "rmcomma", "rmunit", "memk", "none");
+
+  private Let buildConversion(OpenSearchPPLParser.ConvertFunctionContext funcCtx) {
+    if (funcCtx.fieldExpression().isEmpty()) {
+      throw new IllegalArgumentException("Convert function requires a field argument");
+    }
+
+    String functionName = funcCtx.functionName.getText();
+
+    // Validate function name against supported conversion functions
+    if (!SUPPORTED_CONVERSION_FUNCTIONS.contains(functionName.toLowerCase())) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Unsupported conversion function '%s'. Supported functions are: %s",
+              functionName, SUPPORTED_CONVERSION_FUNCTIONS));
+    }
+
+    UnresolvedExpression fieldArg = internalVisitExpression(funcCtx.fieldExpression(0));
+    Field targetField = determineTargetField(funcCtx, fieldArg);
+
+    if ("none".equalsIgnoreCase(functionName)) {
+      return fieldArg.toString().equals(targetField.getField().toString())
+          ? null
+          : new Let(targetField, fieldArg);
+    }
+
+    return new Let(targetField, AstDSL.function(functionName, fieldArg));
+  }
+
+  private Field determineTargetField(
+      OpenSearchPPLParser.ConvertFunctionContext funcCtx, UnresolvedExpression fieldArg) {
+    if (funcCtx.alias != null) {
+      return AstDSL.field(StringUtils.unquoteIdentifier(funcCtx.alias.getText()));
+    }
+    return fieldArg instanceof Field ? (Field) fieldArg : AstDSL.field(fieldArg.toString());
   }
 
   @Override
