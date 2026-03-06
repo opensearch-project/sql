@@ -254,25 +254,13 @@ public class StrftimeFormatterUtil {
   private static final Map<String, String> STRFTIME_TO_JAVA_PARSE =
       ImmutableMap.<String, String>builder()
           .put("%Y", "yyyy")
-          .put("%y", "yy")
           .put("%m", "MM")
           .put("%d", "dd")
-          .put("%e", "d")
           .put("%H", "HH")
-          .put("%I", "hh")
           .put("%M", "mm")
           .put("%S", "ss")
-          .put("%p", "a")
-          .put("%B", "MMMM")
-          .put("%b", "MMM")
-          .put("%A", "EEEE")
-          .put("%a", "EEE")
-          .put("%j", "DDD")
-          .put("%Z", "zzz")
-          .put("%z", "xx")
           .put("%T", "HH:mm:ss")
           .put("%F", "yyyy-MM-dd")
-          .put("%x", "MM/dd/yyyy")
           .put("%%", "'%'")
           .build();
 
@@ -283,30 +271,13 @@ public class StrftimeFormatterUtil {
    * @return a Java DateTimeFormatter pattern (e.g. {@code yyyy-MM-dd HH:mm:ss})
    */
   public static String toJavaPattern(String strftimeFormat) {
-    StringBuilder result = new StringBuilder();
-    int i = 0;
-    while (i < strftimeFormat.length()) {
-      if (strftimeFormat.charAt(i) == '%' && i + 1 < strftimeFormat.length()) {
-        String spec = strftimeFormat.substring(i, i + 2);
-        String javaPattern = STRFTIME_TO_JAVA_PARSE.get(spec);
-        if (javaPattern != null) {
-          result.append(javaPattern);
-        } else {
-          // Unknown specifier — pass through as literal
-          result.append("'").append(spec).append("'");
-        }
-        i += 2;
-      } else {
-        char c = strftimeFormat.charAt(i);
-        // Escape Java pattern letters as literals
-        if (Character.isLetter(c)) {
-          result.append("'").append(c).append("'");
-        } else {
-          result.append(c);
-        }
-        i++;
+    String result = strftimeFormat;
+    for (Map.Entry<String, String> entry : STRFTIME_TO_JAVA_PARSE.entrySet()) {
+      String specifier = entry.getKey();
+      if (result.contains(specifier)) {
+        result = result.replace(specifier, entry.getValue());
       }
     }
-    return result.toString();
+    return result;
   }
 }
