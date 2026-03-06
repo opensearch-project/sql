@@ -100,13 +100,21 @@ public class TransportPPLQueryAction
                   + " false"));
       return;
     }
+
+    TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
+    if (transportRequest.isGrammarRequest()) {
+      // Authorization is enforced by this transport action before returning grammar metadata in
+      // REST.
+      listener.onResponse(new TransportPPLQueryResponse("{}"));
+      return;
+    }
+
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
 
     QueryContext.addRequestId();
 
     PPLService pplService = injector.getInstance(PPLService.class);
-    TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
     QueryContext.setProfile(transformedRequest.profile());
