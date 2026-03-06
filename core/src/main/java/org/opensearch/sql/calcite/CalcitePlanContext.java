@@ -87,7 +87,6 @@ public class CalcitePlanContext {
    */
   @Setter private static SqlOperatorTableProvider operatorTableProvider;
 
-
   private CalcitePlanContext(FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     this.config = config;
     this.sysLimit = sysLimit;
