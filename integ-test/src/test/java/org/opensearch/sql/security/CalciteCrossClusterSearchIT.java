@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.security;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -389,20 +390,30 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
   /** CrossClusterSearchIT Test for mvcombine. */
   @Test
   public void testCrossClusterMvcombine() throws IOException {
+    try {
+      updateIndexSettings(
+          TEST_INDEX_BANK,
+          "{ \"index\": { \"max_inner_result_window\":" + 10000 + " } }",
+          remoteClient());
+      JSONObject result =
+          executeQuery(
+              String.format(
+                  "search source=%s | where firstname='Hattie' or firstname='Nanette' "
+                      + "| fields firstname, age | mvcombine age",
+                  TEST_INDEX_BANK_REMOTE));
 
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | where firstname='Hattie' or firstname='Nanette' "
-                    + "| fields firstname, age | mvcombine age",
-                TEST_INDEX_BANK_REMOTE));
+      verifyColumn(result, columnName("firstname"), columnName("age"));
 
-    verifyColumn(result, columnName("firstname"), columnName("age"));
-
-    verifyDataRows(
-        result,
-        rows("Hattie", new org.json.JSONArray().put(36)),
-        rows("Nanette", new org.json.JSONArray().put(28)));
+      verifyDataRows(
+          result,
+          rows("Hattie", new org.json.JSONArray().put(36)),
+          rows("Nanette", new org.json.JSONArray().put(28)));
+    } finally {
+      updateIndexSettings(
+          TEST_INDEX_BANK,
+          "{ \"index\": { \"max_inner_result_window\":" + 100 + " } }",
+          remoteClient());
+    }
   }
 
   /** CrossClusterSearchIT Test for fieldformat. */

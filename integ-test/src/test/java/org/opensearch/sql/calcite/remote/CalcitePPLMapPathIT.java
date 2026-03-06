@@ -150,22 +150,29 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
 
   @Test
   public void testMvcombineOnMapPath() throws IOException {
-    JSONObject result =
-        ppl(
-            """
-            source=%s | spath input=doc
-            | mvcombine doc.user.name
-            | fields doc.user.name, doc.user.city\
-            """,
-            TEST_INDEX);
-    verifySchema(result, schema("doc.user.name", "array"), schema("doc.user.city", "string"));
-    verifyDataRows(
-        result,
-        rows(new JSONArray("[\"John\"]"), "NYC"),
-        rows(new JSONArray("[\"Alice\"]"), "LA"),
-        rows(new JSONArray("[\"John\"]"), "SF"),
-        rows(new JSONArray("[\"Bob\"]"), "NYC"),
-        rows(null, null));
+    try {
+      updateIndexSettings(
+          TEST_INDEX, "{ \"index\": { \"max_inner_result_window\":" + 10000 + " } }");
+      JSONObject result =
+          ppl(
+              """
+              source=%s | spath input=doc
+              | mvcombine doc.user.name
+              | fields doc.user.name, doc.user.city\
+              """,
+              TEST_INDEX);
+      verifySchema(result, schema("doc.user.name", "array"), schema("doc.user.city", "string"));
+      verifyDataRows(
+          result,
+          rows(new JSONArray("[\"John\"]"), "NYC"),
+          rows(new JSONArray("[\"Alice\"]"), "LA"),
+          rows(new JSONArray("[\"John\"]"), "SF"),
+          rows(new JSONArray("[\"Bob\"]"), "NYC"),
+          rows(null, null));
+
+    } finally {
+      updateIndexSettings(TEST_INDEX, "{ \"index\": { \"max_inner_result_window\":" + 100 + " } }");
+    }
   }
 
   @Test

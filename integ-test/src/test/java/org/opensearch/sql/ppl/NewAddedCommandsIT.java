@@ -257,12 +257,17 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   public void testMvCombineUnsupportedInV2() throws IOException {
     JSONObject result;
     try {
+      updateIndexSettings(
+          TEST_INDEX_BANK, "{ \"index\": { \"max_inner_result_window\":" + 10000 + " } }");
       result =
           executeQuery(
               String.format(
                   "source=%s | fields state, city, age | mvcombine age", TEST_INDEX_BANK));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    } finally {
+      updateIndexSettings(
+          TEST_INDEX_BANK, "{ \"index\": { \"max_inner_result_window\":" + 100 + " } }");
     }
     verifyQuery(result);
   }
