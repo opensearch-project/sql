@@ -433,7 +433,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         // can update the aggregation builder
         boolean canUpdate =
             canReduceEstimatedRowsCount
-                || pushDownContext.getAggPushDownAction().pushDownLimitIntoBucketSize(totalSize);
+                || pushDownContext.getAggPushDownAction().canPushDownLimitIntoBucketSize(totalSize);
         if (!canUpdate && offset > 0) return null;
         CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
         if (canUpdate) {
