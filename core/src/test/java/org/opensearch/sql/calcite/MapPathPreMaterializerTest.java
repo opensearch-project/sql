@@ -31,6 +31,7 @@ import java.sql.Connection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.calcite.rel.RelNode;
@@ -45,11 +46,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AddTotals;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.ReplacePair;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
@@ -139,6 +144,58 @@ public class MapPathPreMaterializerTest {
         .shouldProject("doc.user.name");
   }
 
+  // ---- New command cases: join, lookup, streamstats ----
+
+  @Test
+  void testStreamWindow() {
+    givenMapPaths("doc.user.city")
+        .whenCommand(
+            new StreamWindow(
+                List.of(), List.of(field("doc.user.city")), false, 2, true, false, null, null))
+        .shouldProject("doc.user.city");
+  }
+
+  @Test
+  void testLookup() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(
+            new Lookup(
+                null, Map.of("name", "doc.user.name"), Lookup.OutputStrategy.REPLACE, Map.of()))
+        .shouldProject("doc.user.name");
+  }
+
+  @Test
+  void testJoinWithFieldList() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(
+            new Join(
+                DUMMY_CHILD,
+                Optional.empty(),
+                Optional.empty(),
+                Join.JoinType.INNER,
+                Optional.empty(),
+                new Join.JoinHint(),
+                Optional.of(List.of(field("doc.user.name"))),
+                new ArgumentMap(List.of())))
+        .shouldProject("doc.user.name");
+  }
+
+  @Test
+  void testJoinWithoutFieldList() {
+    givenMapPaths("doc.user.name")
+        .whenCommand(
+            new Join(
+                DUMMY_CHILD,
+                Optional.empty(),
+                Optional.empty(),
+                Join.JoinType.INNER,
+                Optional.empty(),
+                new Join.JoinHint(),
+                Optional.empty(),
+                new ArgumentMap(List.of())))
+        .shouldNotProject();
+  }
+
   // ---- Multiple fields cases ----
 
   @Test
@@ -166,7 +223,7 @@ public class MapPathPreMaterializerTest {
         .shouldProject("doc.user.name");
   }
 
-  // ---- No-op cases ----
+  // ---- No-op and edge cases ----
 
   @Test
   void testNoOpForFilter() {
@@ -198,6 +255,30 @@ public class MapPathPreMaterializerTest {
         .shouldNotProject();
   }
 
+  @Test
+  void testSkipsErrorField() {
+    givenMapPaths()
+        .givenErrorPaths("message.process.name", new AssertionError())
+        .whenCommand(
+            new Replace(
+                List.of(new ReplacePair(stringLiteral("a"), stringLiteral("b"))),
+                Set.of(field("message.process.name"))))
+        .shouldNotProject();
+  }
+
+  @Test
+  void testSkipsErrorFieldButProjectsValidMapPath() {
+    givenMapPaths("doc.user.name")
+        .givenErrorPaths("bad.field", new AssertionError())
+        .whenCommand(
+            fillNull(
+                DUMMY_CHILD,
+                List.of(
+                    Pair.of(field("doc.user.name"), stringLiteral("N/A")),
+                    Pair.of(field("bad.field"), stringLiteral("0")))))
+        .shouldProject("doc.user.name");
+  }
+
   // ---- Fluent test helper ----
 
   private MapPathAssertion givenMapPaths(String... fieldNames) {
@@ -224,6 +305,11 @@ public class MapPathPreMaterializerTest {
         when(ref.getKind()).thenReturn(SqlKind.INPUT_REF);
         lenient().when(rexVisitor.analyze(fieldMatching(name), eq(context))).thenReturn(ref);
       }
+      return this;
+    }
+
+    MapPathAssertion givenErrorPaths(String fieldName, Throwable error) {
+      lenient().when(rexVisitor.analyze(fieldMatching(fieldName), eq(context))).thenThrow(error);
       return this;
     }
 

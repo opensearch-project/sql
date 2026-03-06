@@ -198,8 +198,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitChildren(Node node, CalcitePlanContext context) {
     RelNode result = super.visitChildren(node, context);
+
     if (node instanceof UnresolvedPlan plan) {
-      // Materialize MAP dotted paths as flat columns after children are analyzed
+      // Pre-materialize dotted field paths as flat columns after children are analyzed
       // (so MAP/struct types are known) but before the command's own visit logic runs.
       mapPathMaterializer.materializePaths(plan, context);
     }
@@ -1494,6 +1495,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
+    mapPathMaterializer.materializePaths(node, context);
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
       List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
@@ -2488,9 +2490,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     // 1. group the group-by list + field list and add a count() aggregation
-    List<UnresolvedExpression> groupExprList = new ArrayList<>(node.getGroupExprList());
+    List<UnresolvedExpression> groupExprList =
+        new ArrayList<>(
+            node.getGroupExprList().stream()
+                .map(
+                    expr ->
+                        expr instanceof Field f
+                            ? (UnresolvedExpression) new Alias(f.getField().toString(), f)
+                            : expr)
+                .toList());
     List<UnresolvedExpression> fieldList =
-        node.getFields().stream().map(f -> (UnresolvedExpression) f).toList();
+        node.getFields().stream()
+            .map(f -> (UnresolvedExpression) new Alias(f.getField().toString(), f))
+            .toList();
     groupExprList.addAll(fieldList);
     List<UnresolvedExpression> aggExprList =
         List.of(AstDSL.alias(countFieldName, AstDSL.aggregate("count", null)));
@@ -2512,7 +2524,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     aggregateWithTrimming(groupExprList, aggExprList, context, hintIgnoreNullBucket);
 
     // 2. add count() column with sort direction
-    List<RexNode> partitionKeys = rexVisitor.analyze(node.getGroupExprList(), context);
+    List<RexNode> partitionKeys =
+        rexVisitor.analyze(
+            node.getGroupExprList().stream()
+                .map(expr -> expr instanceof Alias ? ((Alias) expr).getDelegated() : expr)
+                .toList(),
+            context);
     RexNode countField;
     if (node.getCommandType() == RareTopN.CommandType.TOP) {
       countField = context.relBuilder.desc(context.relBuilder.field(countFieldName));

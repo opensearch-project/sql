@@ -18,12 +18,16 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.FillNull;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 
 /**
@@ -61,10 +65,19 @@ public class MapPathPreMaterializer {
       case Rename rename -> toFields(rename.getRenameList(), m -> m.getOrigin());
       case FillNull fillNull -> toFields(fillNull.getReplacementPairs(), Pair::getLeft);
       case Replace replace -> toFields(replace.getFieldList());
-      // Only fields-exclusion needs pre-materialization; inclusion resolves paths via visitProject
       case Project project -> project.isExcluded() ? toFields(project.getProjectList()) : List.of();
       case AddTotals addTotals -> toFields(addTotals.getFieldList());
       case MvCombine mvCombine -> List.of(mvCombine.getField());
+      // The following commands use string-based field resolution internally (e.g.,
+      // relBuilder.field(name)). Pre-materializing MAP paths here lets the existing
+      // string-matching logic find them without modifying each command's visitor code.
+      case StreamWindow streamWindow -> toFields(streamWindow.getGroupList());
+      case Lookup lookup ->
+          lookup.getMappingAliasMap().values().stream()
+              .map(name -> new Field(QualifiedName.of(List.of(name.split("\\.")))))
+              .toList();
+      case Join join ->
+          join.getJoinFields().isPresent() ? toFields(join.getJoinFields().get()) : List.of();
       default -> List.of();
     };
   }
@@ -81,9 +94,11 @@ public class MapPathPreMaterializer {
           newColumns.add(context.relBuilder.alias(resolved, name));
           existingFields.add(name);
         }
-      } catch (RuntimeException e) {
-        // Skip unresolvable fields (e.g. wildcards); let the command itself handle them
-        log.debug("Skipping field resolution for '{}': {}", field.getField(), e.getMessage(), e);
+      } catch (RuntimeException | AssertionError e) {
+        // FIXME: Temporary catch for AssertionError from QualifiedNameResolver.
+        // Skip unresolvable fields (e.g. wildcards, dotted paths on non-MAP types);
+        // let the command itself handle them and throw its own error.
+        log.debug("Skipping field resolution for '{}': {}", field.getField(), e.getMessage());
       }
     }
 
