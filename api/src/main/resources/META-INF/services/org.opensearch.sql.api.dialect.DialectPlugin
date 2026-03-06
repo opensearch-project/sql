@@ -1,0 +1,14 @@
+# ServiceLoader descriptor for DialectPlugin implementations.
+#
+# Built-in dialects (e.g., ClickHouse) are registered programmatically
+# during plugin initialization and do not need entries here.
+#
+# Third-party dialect plugins packaged as separate JARs should include
+# their own META-INF/services/org.opensearch.sql.api.dialect.DialectPlugin
+# file listing their implementation class(es), one per line. For example:
+#
+#   com.example.dialect.MyCustomDialectPlugin
+#
+# At startup, ServiceLoader.load(DialectPlugin.class) discovers all
+# implementations on the classpath and registers them with the
+# DialectRegistry before it is frozen.

@@ -48,7 +48,11 @@ public enum MetricName {
   EMR_STREAMING_QUERY_JOBS_CREATION_COUNT("emr_streaming_jobs_creation_count"),
   EMR_INTERACTIVE_QUERY_JOBS_CREATION_COUNT("emr_interactive_jobs_creation_count"),
   EMR_BATCH_QUERY_JOBS_CREATION_COUNT("emr_batch_jobs_creation_count"),
-  STREAMING_JOB_HOUSEKEEPER_TASK_FAILURE_COUNT("streaming_job_housekeeper_task_failure_count");
+  STREAMING_JOB_HOUSEKEEPER_TASK_FAILURE_COUNT("streaming_job_housekeeper_task_failure_count"),
+
+  DIALECT_REQUESTS_TOTAL("dialect_requests_total"),
+  DIALECT_TRANSLATION_ERRORS_TOTAL("dialect_translation_errors_total"),
+  DIALECT_UNPARSE_LATENCY_MS("dialect_unparse_latency_ms");
 
   private final String name;
 
@@ -93,6 +97,9 @@ public enum MetricName {
           .add(ASYNC_QUERY_GET_API_REQUEST_COUNT)
           .add(ASYNC_QUERY_CANCEL_API_REQUEST_COUNT)
           .add(STREAMING_JOB_HOUSEKEEPER_TASK_FAILURE_COUNT)
+          .add(DIALECT_REQUESTS_TOTAL)
+          .add(DIALECT_TRANSLATION_ERRORS_TOTAL)
+          .add(DIALECT_UNPARSE_LATENCY_MS)
           .build();
 
   public boolean isNumerical() {

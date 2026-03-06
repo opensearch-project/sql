@@ -84,6 +84,7 @@ compileTestJava {
 
 // TODO: Need to update integration test to use OpenSearch test framework
 test {
+    useJUnitPlatform()
     maxParallelForks = Runtime.runtime.availableProcessors()
     include '**/*Test.class'
     exclude 'org/opensearch/sql/intgtest/**'
@@ -118,6 +119,8 @@ dependencies {
     api project(':sql')
     api project(':common')
     api project(':opensearch')
+    api project(':api')
+    api project(':core')
 
     // ANTLR gradle plugin and runtime dependency
     antlr "org.antlr:antlr4:4.13.2"
@@ -127,5 +130,10 @@ dependencies {
     testImplementation group: 'org.hamcrest', name: 'hamcrest-core', version:'2.2'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
+
+    testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
+    testImplementation('net.jqwik:jqwik:1.9.2')
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
+    testRuntimeOnly('org.junit.vintage:junit-vintage-engine')
 
 }

@@ -31,6 +31,7 @@ public class SQLQueryRequest {
   private static final String QUERY_PARAMS_FORMAT = "format";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
+  private static final String QUERY_PARAMS_DIALECT = "dialect";
 
   /** JSON payload in REST request. */
   private final JSONObject jsonContent;
@@ -90,7 +91,8 @@ public class SQLQueryRequest {
     boolean hasQuery = query != null;
     boolean hasContent = jsonContent != null && !jsonContent.isEmpty();
 
-    Predicate<String> supportedParams = Set.of(QUERY_PARAMS_FORMAT, QUERY_PARAMS_PRETTY)::contains;
+    Predicate<String> supportedParams =
+        Set.of(QUERY_PARAMS_FORMAT, QUERY_PARAMS_PRETTY, QUERY_PARAMS_DIALECT)::contains;
     boolean hasUnsupportedParams =
         (!params.isEmpty())
             && params.keySet().stream().dropWhile(supportedParams).findAny().isPresent();
@@ -139,6 +141,15 @@ public class SQLQueryRequest {
 
   public Optional<String> getCursor() {
     return Optional.ofNullable(cursor);
+  }
+
+  /**
+   * Get the dialect query parameter value.
+   *
+   * @return Optional containing the dialect name, or empty if not specified
+   */
+  public Optional<String> getDialect() {
+    return Optional.ofNullable(params.get(QUERY_PARAMS_DIALECT));
   }
 
   public int getFetchSize() {

@@ -192,7 +192,16 @@ public class RestSqlAction extends BaseRestHandler {
     Set<String> responseParams = new HashSet<>(super.responseParams());
     responseParams.addAll(
         Arrays.asList(
-            "sql", "flat", "separator", "_score", "_type", "_id", "newLine", "format", "sanitize"));
+            "sql",
+            "flat",
+            "separator",
+            "_score",
+            "_type",
+            "_id",
+            "newLine",
+            "format",
+            "sanitize",
+            "dialect"));
     return responseParams;
   }
 

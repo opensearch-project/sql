@@ -56,3 +56,9 @@ http-client.env.json
 .claude
 .clinerules
 memory-bank
+
+# jqwik property-based testing database
+.jqwik-database
+
+# Kiro IDE spec files
+.kiro/
