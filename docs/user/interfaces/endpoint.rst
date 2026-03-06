@@ -273,7 +273,7 @@ Fetch Size (PPL) [Experimental]
 Description
 -----------
 
-The ``fetch_size`` parameter limits the number of rows returned in a PPL query response. The value of ``fetch_size`` should be greater than ``0``. In absence of ``fetch_size`` or a value of ``0``, the result size is governed by the ``plugins.query.size_limit`` cluster setting.
+The ``fetch_size`` parameter sets a **default** limit on the number of rows returned in a PPL query response. The value of ``fetch_size`` should be greater than ``0``. In absence of ``fetch_size`` or a value of ``0``, the result size is governed by the ``plugins.query.size_limit`` cluster setting.
 
 ``fetch_size`` can be specified either as a URL parameter or in the JSON request body. If both are provided, the JSON body value takes precedence.
 
@@ -282,7 +282,7 @@ If ``fetch_size`` is larger than ``plugins.query.size_limit``, the result is cap
 Note
 ----
 
-Unlike SQL's ``fetch_size`` which enables cursor-based pagination, PPL's ``fetch_size`` does not return a cursor and does not support fetching additional pages. The response is always complete and final.
+Unlike SQL's ``fetch_size`` which enables cursor-based pagination, PPL's ``fetch_size`` does not return a cursor and does not support fetching additional pages. The response is always complete and final. Because there is no pagination, ``fetch_size`` acts as a default response size for queries that do not specify their own row limit. If the query includes an explicit ``head`` command, the ``head`` limit takes precedence — otherwise ``fetch_size`` would silently discard rows with no way to retrieve them.
 
 +--------------------+-------------------------------------+------------------------------------+
 | Aspect             | SQL ``fetch_size``                  | PPL ``fetch_size``                 |
@@ -293,6 +293,37 @@ Unlike SQL's ``fetch_size`` which enables cursor-based pagination, PPL's ``fetch
 +--------------------+-------------------------------------+------------------------------------+
 | Can fetch more?    | Yes (with cursor)                   | No (single response)               |
 +--------------------+-------------------------------------+------------------------------------+
+
+Interaction with the ``head`` command
+--------------------------------------
+
+When a PPL query contains an explicit ``head`` command in the main pipeline, the ``head`` command takes precedence over ``fetch_size``. Because PPL's ``fetch_size`` does not support pagination, capping the result below the user's explicit ``head`` limit would silently discard rows with no way to retrieve them. To avoid this, ``fetch_size`` is ignored when the main pipeline contains a ``head`` command, and the query returns the number of rows specified by ``head``.
+
+If the query does **not** contain a ``head`` command in the main pipeline, ``fetch_size`` limits the result as usual. Note that ``head`` commands inside subqueries (e.g., within a ``join``) do not affect ``fetch_size`` behavior for the outer query, since they operate at a different scope.
+
++-----------------------------------------------+---------------------------------------------------+
+| Query                                         | Behavior with ``fetch_size=5``                    |
++===============================================+===================================================+
+| ``source=t | fields age``                     | ``fetch_size`` applies — returns 5 rows           |
++-----------------------------------------------+---------------------------------------------------+
+| ``source=t | head 100 | fields age``          | ``head`` takes precedence — returns 100 rows      |
++-----------------------------------------------+---------------------------------------------------+
+| ``source=t1 | join (source=t2 | head 100)``   | ``head`` is in subquery — ``fetch_size`` applies  |
++-----------------------------------------------+---------------------------------------------------+
+
+Examples::
+
+	# head 100 takes precedence — returns 100 rows, fetch_size=5 is ignored
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_ppl -d '{
+	  "fetch_size" : 5,
+	  "query" : "source = accounts | head 100 | fields firstname"
+	}'
+
+	# No head command — fetch_size=5 limits the result to 5 rows
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_ppl -d '{
+	  "fetch_size" : 5,
+	  "query" : "source = accounts | fields firstname"
+	}'
 
 Example 1: JSON body
 -------

@@ -8,9 +8,11 @@ package org.opensearch.sql.ppl.parser;
 import static org.opensearch.sql.executor.QueryType.PPL;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
@@ -32,7 +34,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   @Override
   public Statement visitPplStatement(OpenSearchPPLParser.PplStatementContext ctx) {
     UnresolvedPlan rawPlan = astBuilder.visit(ctx);
-    if (context.getFetchSize() > 0) {
+    if (context.getFetchSize() > 0 && !containsHead(rawPlan)) {
       rawPlan = new Head(context.getFetchSize(), 0).attach(rawPlan);
     }
     UnresolvedPlan plan = addSelectAll(rawPlan);
@@ -67,6 +69,27 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
 
     private final String format;
     private final String explainMode;
+  }
+
+  /**
+   * Checks if the main pipeline contains a {@link Head} node by walking the first-child chain. Only
+   * the main pipeline is checked — subqueries in joins or nested structures are not traversed. When
+   * the user's query already includes an explicit {@code head} command, we should not inject an
+   * additional Head for fetch_size so that the user's explicit limit takes precedence.
+   */
+  private boolean containsHead(UnresolvedPlan plan) {
+    UnresolvedPlan current = plan;
+    while (current != null) {
+      if (current instanceof Head) {
+        return true;
+      }
+      List<? extends Node> children = current.getChild();
+      if (children.isEmpty() || !(children.get(0) instanceof UnresolvedPlan)) {
+        break;
+      }
+      current = (UnresolvedPlan) children.get(0);
+    }
+    return false;
   }
 
   private UnresolvedPlan addSelectAll(UnresolvedPlan plan) {

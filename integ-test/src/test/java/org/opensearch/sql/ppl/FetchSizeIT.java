@@ -172,9 +172,9 @@ public class FetchSizeIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFetchSizeWithHead() throws IOException {
-    // Both head command and fetch_size - the smaller limit should win
-    // head 3 limits to 3, fetch_size 10 would allow 10, so we get 3
+  public void testHeadOverridesFetchSizeWhenSmaller() throws IOException {
+    // Explicit head takes precedence over fetch_size
+    // head 3 returns 3 rows regardless of fetch_size=10
     JSONObject result =
         executeQueryWithFetchSize(
             String.format("source=%s | head 3 | fields firstname", TEST_INDEX_ACCOUNT), 10);
@@ -183,14 +183,57 @@ public class FetchSizeIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFetchSizeSmallerThanHead() throws IOException {
-    // fetch_size smaller than head - fetch_size should further limit
-    // head 100 would return 100, but fetch_size 5 limits to 5
+  public void testHeadOverridesFetchSizeWhenLarger() throws IOException {
+    // Explicit head takes precedence over fetch_size
+    // head 100 should return 100 rows even though fetch_size=5
     JSONObject result =
         executeQueryWithFetchSize(
             String.format("source=%s | head 100 | fields firstname", TEST_INDEX_ACCOUNT), 5);
     JSONArray dataRows = result.getJSONArray("datarows");
+    assertEquals(100, dataRows.length());
+  }
+
+  @Test
+  public void testHeadOverridesFetchSizeWithOffset() throws IOException {
+    // Explicit head with offset takes precedence over fetch_size
+    // head 3 from 2 should skip 2 rows and return 3 rows, ignoring fetch_size=100
+    JSONObject result =
+        executeQueryWithFetchSize(
+            String.format("source=%s | head 3 from 2 | fields firstname", TEST_INDEX_ACCOUNT), 100);
+    JSONArray dataRows = result.getJSONArray("datarows");
+    assertEquals(3, dataRows.length());
+  }
+
+  @Test
+  public void testHeadOverridesFetchSizeWithFilter() throws IOException {
+    // Explicit head after filter takes precedence over fetch_size
+    // Even with fetch_size=2, head 5 should return 5 matching rows
+    JSONObject result =
+        executeQueryWithFetchSize(
+            String.format(
+                "source=%s | where age > 30 | head 5 | fields firstname, age", TEST_INDEX_ACCOUNT),
+            2);
+    JSONArray dataRows = result.getJSONArray("datarows");
     assertEquals(5, dataRows.length());
+  }
+
+  @Test
+  public void testHeadEqualToFetchSize() throws IOException {
+    // When head and fetch_size are the same value, head takes precedence (no double-Head)
+    JSONObject result =
+        executeQueryWithFetchSize(
+            String.format("source=%s | head 7 | fields firstname", TEST_INDEX_ACCOUNT), 7);
+    JSONArray dataRows = result.getJSONArray("datarows");
+    assertEquals(7, dataRows.length());
+  }
+
+  @Test
+  public void testHeadLargerThanDatasetWithFetchSize() throws IOException {
+    // head 1000 on a 7-row index with fetch_size=3: head takes precedence, returns all 7 rows
+    JSONObject result =
+        executeQueryWithFetchSize(String.format("source=%s | head 1000", TEST_INDEX_BANK), 3);
+    JSONArray dataRows = result.getJSONArray("datarows");
+    assertEquals(7, dataRows.length());
   }
 
   @Test
