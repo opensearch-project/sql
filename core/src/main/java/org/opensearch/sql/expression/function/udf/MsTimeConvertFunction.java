@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 
 /**
  * PPL mstime() conversion function. Converts {@code [MM:]SS.SSS} format to seconds
- * (SPL-compatible). The minutes portion is optional.
+ * The minutes portion is optional.
  */
 public class MsTimeConvertFunction extends BaseConversionUDF {
 

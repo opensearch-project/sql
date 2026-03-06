@@ -27,7 +27,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * PPL mktime() conversion function. Parses a human-readable time string into UNIX epoch seconds
- * using strftime format specifiers. Default format: {@code %m/%d/%Y %H:%M:%S} (SPL-compatible).
+ * using strftime format specifiers. Default format: {@code %m/%d/%Y %H:%M:%S}.
  */
 public class MkTimeConvertFunction extends ImplementorUDF {
 

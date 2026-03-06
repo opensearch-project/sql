@@ -24,7 +24,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * PPL ctime() conversion function. Converts UNIX epoch timestamps to human-readable time strings
- * using strftime format specifiers. Default format: {@code %m/%d/%Y %H:%M:%S} (SPL-compatible).
+ * using strftime format specifiers. Default format: {@code %m/%d/%Y %H:%M:%S}.
  */
 public class CTimeConvertFunction extends ImplementorUDF {
 
