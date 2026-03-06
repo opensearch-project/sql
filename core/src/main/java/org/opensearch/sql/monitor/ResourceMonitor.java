@@ -14,6 +14,43 @@ public abstract class ResourceMonitor {
    * Is the resource healthy.
    *
    * @return true for healthy, otherwise false.
+   * @throws UnsupportedOperationException if the subclass doesn't override getStatus() or
+   *     isHealthyImpl()
    */
-  public abstract boolean isHealthy();
+  public boolean isHealthy() {
+    return getStatus().isHealthy();
+  }
+
+  /**
+   * Get detailed resource status including context for error messages. Subclasses should override
+   * this method to provide rich status information.
+   *
+   * @return ResourceStatus with health state and detailed context
+   * @throws UnsupportedOperationException if the subclass doesn't override getStatus() or
+   *     isHealthyImpl()
+   */
+  public ResourceStatus getStatus() {
+    // Default implementation for backwards compatibility
+    // Subclasses should override this to provide detailed status
+    boolean healthy = isHealthyImpl();
+    return healthy
+        ? ResourceStatus.healthy(ResourceStatus.ResourceType.OTHER)
+        : ResourceStatus.builder()
+            .healthy(false)
+            .type(ResourceStatus.ResourceType.OTHER)
+            .description("Resource monitor reports unhealthy status")
+            .build();
+  }
+
+  /**
+   * Internal implementation for health check. Subclasses that don't override getStatus() should
+   * override this instead.
+   *
+   * @return true for healthy, otherwise false.
+   */
+  protected boolean isHealthyImpl() {
+    // Subclass must override either getStatus() or isHealthyImpl()
+    throw new UnsupportedOperationException(
+        "Subclass must override either getStatus() or isHealthyImpl()");
+  }
 }
