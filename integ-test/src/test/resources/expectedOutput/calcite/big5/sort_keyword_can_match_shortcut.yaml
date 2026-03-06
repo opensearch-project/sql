@@ -1,12 +1,13 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(agent=[$0], process=[$6], log=[$8], message=[$11], tags=[$12], cloud=[$13], input=[$15], @timestamp=[$17], ecs=[$18], data_stream=[$20], meta=[$24], host=[$26], metrics=[$27], aws=[$30], event=[$35])
-        LogicalSort(sort0=[$25], dir0=[ASC-nulls-first], fetch=[10])
-          LogicalFilter(condition=[query_string(MAP('query', 'process.name:kernel':VARCHAR))])
-            CalciteLogicalIndexScan(table=[[OpenSearch, big5]])
+      LogicalProject(agent=[$0], process=[$1], log=[$2], message=[$3], tags=[$4], cloud=[$5], input=[$6], @timestamp=[$7], ecs=[$8], data_stream=[$9], meta=[$10], host=[$11], metrics=[$12], aws=[$13], event=[$14])
+        LogicalSort(sort0=[$15], dir0=[ASC-nulls-first], fetch=[10])
+          LogicalProject(agent=[$0], process=[$6], log=[$8], message=[$11], tags=[$12], cloud=[$13], input=[$15], @timestamp=[$17], ecs=[$18], data_stream=[$20], meta=[$24], host=[$26], metrics=[$27], aws=[$30], event=[$35], meta.file=[$25])
+            LogicalFilter(condition=[query_string(MAP('query':VARCHAR, 'process.name:kernel':VARCHAR))])
+              CalciteLogicalIndexScan(table=[[OpenSearch, big5]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, big5]], PushDownContext=[[PROJECT->[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream, meta, meta.file, host, metrics, aws, event], FILTER->query_string(MAP('query', 'process.name:kernel':VARCHAR)), SORT->[{
+    CalciteEnumerableIndexScan(table=[[OpenSearch, big5]], PushDownContext=[[PROJECT->[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream, meta, meta.file, host, metrics, aws, event], FILTER->query_string(MAP('query':VARCHAR, 'process.name:kernel':VARCHAR)), PROJECT->[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream, meta, host, metrics, aws, event, meta.file], SORT->[{
       "meta.file" : {
         "order" : "asc",
         "missing" : "_first"

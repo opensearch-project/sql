@@ -2,7 +2,7 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(name=[$0], address=[$1], id=[$7], age=[$8])
-        LogicalFilter(condition=[SEARCH($3, Sarg['Miami':VARCHAR, 'san diego':VARCHAR]:VARCHAR)])
+        LogicalFilter(condition=[OR(=($3, 'Miami'), =($3, 'san diego'))])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])
   physical: |
     EnumerableLimit(fetch=[10000])

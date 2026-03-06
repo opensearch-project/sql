@@ -193,7 +193,9 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `count`\n"
-            + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
+            + "FROM (SELECT\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
+            + "`DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
             + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL AND `JOB` IS NOT NULL\n"
@@ -396,7 +398,9 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `count`\n"
-            + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
+            + "FROM (SELECT\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
+            + "`DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
             + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL AND `JOB` IS NOT NULL\n"
