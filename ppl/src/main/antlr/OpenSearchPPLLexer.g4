@@ -54,14 +54,9 @@ APPENDCOL:                          'APPENDCOL';
 ADDTOTALS:                          'ADDTOTALS';
 ADDCOLTOTALS:                       'ADDCOLTOTALS';
 GRAPHLOOKUP:                        'GRAPHLOOKUP';
-START_FIELD:                        'STARTFIELD';
-FROM_FIELD:                         'FROMFIELD';
-TO_FIELD:                           'TOFIELD';
+EDGE:                               'EDGE' -> pushMode(EDGE_MODE);
 MAX_DEPTH:                          'MAXDEPTH';
 DEPTH_FIELD:                        'DEPTHFIELD';
-DIRECTION:                          'DIRECTION';
-UNI:                                'UNI';
-BI:                                 'BI';
 SUPPORT_ARRAY:                      'SUPPORTARRAY';
 BATCH_MODE:                         'BATCHMODE';
 USE_PIT:                            'USEPIT';
@@ -269,6 +264,8 @@ RT_CURLY:                           '}';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
+BI_ARROW:                           '<->';
+UNI_ARROW:                          '-->';
 ARROW:                              '->';
 fragment AT:                        '@';
 
@@ -599,3 +596,24 @@ LINE_COMMENT:                       '//' ('\\\n' | ~[\r\n])* '\r'? '\n'? -> chan
 BLOCK_COMMENT:                      '/*' .*? '*/' -> channel(HIDDEN);
 
 ERROR_RECOGNITION:                  .    -> channel(ERRORCHANNEL);
+
+// EDGE_MODE: entered after EDGE keyword, handles "= fromField --> toField" or "= fromField <-> toField"
+// fromField is split into EDGE_ID (base) + optional TRAIL_HYPHEN (trailing dashes).
+// This avoids ambiguity: "edge=field--->x" lexes as "field" + "--->" (invalid arrow),
+// while "edge=field- --> x" lexes as "field" + "-" (trail) + "-->" (arrow).
+mode EDGE_MODE;
+EDGE_EQUAL:     '='                                         -> type(EQUAL);
+EDGE_WS:        [ \t\r\n]+                                  -> skip;
+EDGE_ID: [@*A-Z_]+? [*A-Z_0-9]*                             -> type(ID), mode(EDGE_ARROW_MODE);
+
+// EDGE_ARROW_MODE: entered after fromField, handles optional trailing dashes, arrow, and toField
+mode EDGE_ARROW_MODE;
+EDGE_UNI_ARROW: '-->'                                       -> type(UNI_ARROW), mode(EDGE_TO_MODE);
+EDGE_BI_ARROW:  '<->'                                       -> type(BI_ARROW), mode(EDGE_TO_MODE);
+TRAIL_HYPHEN:  '-'+;
+EDGE_ARROW_WS:  [ \t\r\n]+                                  -> skip;
+
+// EDGE_TO_MODE: entered after arrow, lexes toField then pops back to default
+mode EDGE_TO_MODE;
+EDGE_TO_WS:     [ \t\r\n]+                                  -> skip;
+EDGE_TO_ID: ID_LITERAL                                      -> type(ID), popMode;
