@@ -1,3 +1,4 @@
+
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
@@ -5,10 +6,10 @@ calcite:
         LogicalAggregate(group=[{0}], count=[COUNT()])
           LogicalProject(age_group=[$11])
             LogicalUnion(all=[true])
-              LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], age_group=['young':VARCHAR])
+              LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], age_group=['young'])
                 LogicalFilter(condition=[<($8, 30)])
                   CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
-              LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], age_group=['adult':VARCHAR])
+              LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], age_group=['adult'])
                 LogicalFilter(condition=[>=($8, 30)])
                   CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
@@ -16,7 +17,7 @@ calcite:
       EnumerableCalc(expr#0..1=[{inputs}], count=[$t1], age_group=[$t0])
         EnumerableAggregate(group=[{0}], count=[COUNT()])
           EnumerableUnion(all=[true])
-            EnumerableCalc(expr#0=[{inputs}], expr#1=['young':VARCHAR], age_group=[$t1])
+            EnumerableCalc(expr#0=[{inputs}], expr#1=['young'], age_group=[$t1])
               CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[age], FILTER-><($0, 30)], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","query":{"range":{"age":{"from":null,"to":30,"include_lower":true,"include_upper":false,"boost":1.0}}},"_source":{"includes":["age"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
-            EnumerableCalc(expr#0=[{inputs}], expr#1=['adult':VARCHAR], age_group=[$t1])
+            EnumerableCalc(expr#0=[{inputs}], expr#1=['adult'], age_group=[$t1])
               CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[age], FILTER->>=($0, 30)], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","query":{"range":{"age":{"from":30,"to":null,"include_lower":true,"include_upper":true,"boost":1.0}}},"_source":{"includes":["age"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

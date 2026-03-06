@@ -3,10 +3,10 @@ calcite:
     LogicalSystemLimit(sort0=[$0], dir0=[ASC-nulls-first], fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])
         LogicalProject(c=[$2], s=[$3], span(age,5)=[$1], state=[$0])
-          LogicalAggregate(group=[{0, 2}], c=[COUNT()], s=[SUM($1)])
-            LogicalProject(state=[$7], balance=[$3], span(age,5)=[SPAN($8, 5, null:NULL)])
+          LogicalAggregate(group=[{0, 1}], c=[COUNT()], s=[SUM($2)])
+            LogicalProject(state=[$7], span(age,5)=[SPAN($8, 5, null:ANY)], balance=[$3])
               LogicalFilter(condition=[AND(IS NOT NULL($8), IS NOT NULL($7))])
                 CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     CalciteEnumerableTopK(sort0=[$0], dir0=[ASC-nulls-first], fetch=[10000])
-      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 2},c=COUNT(),s=SUM($1)), PROJECT->[c, s, span(age,5), state]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"state":{"terms":{"field":"state.keyword","missing_bucket":false,"order":"asc"}}},{"span(age,5)":{"histogram":{"field":"age","missing_bucket":false,"order":"asc","interval":5.0}}}]},"aggregations":{"s":{"sum":{"field":"balance"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 1},c=COUNT(),s=SUM($2)), PROJECT->[c, s, span(age,5), state]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"state":{"terms":{"field":"state.keyword","missing_bucket":false,"order":"asc"}}},{"span(age,5)":{"histogram":{"field":"age","missing_bucket":false,"order":"asc","interval":5.0}}}]},"aggregations":{"s":{"sum":{"field":"balance"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

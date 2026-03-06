@@ -2,9 +2,9 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10])
-        LogicalFilter(condition=[OR(IS NULL($1), IS EMPTY(TRIM(FLAG(BOTH), ' ', $1)))])
+        LogicalFilter(condition=[OR(IS NULL($1), =(TRIM(FLAG(BOTH), ' ', $1), ''))])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..16=[{inputs}], expr#17=[IS NULL($t1)], expr#18=[FLAG(BOTH)], expr#19=[' '], expr#20=[TRIM($t18, $t19, $t1)], expr#21=[IS EMPTY($t20)], expr#22=[OR($t17, $t21)], proj#0..10=[{exprs}], $condition=[$t22])
+      EnumerableCalc(expr#0..16=[{inputs}], expr#17=[IS NULL($t1)], expr#18=[FLAG(BOTH)], expr#19=[' '], expr#20=[TRIM($t18, $t19, $t1)], expr#21=['':VARCHAR], expr#22=[=($t20, $t21)], expr#23=[OR($t17, $t22)], proj#0..10=[{exprs}], $condition=[$t23])
         CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

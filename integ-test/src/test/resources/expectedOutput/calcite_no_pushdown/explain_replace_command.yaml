@@ -1,9 +1,9 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(state=[REPLACE($7, 'IL':VARCHAR, 'Illinois':VARCHAR)])
+      LogicalProject(state=[REPLACE($7, 'IL', 'Illinois')])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..16=[{inputs}], expr#17=['IL':VARCHAR], expr#18=['Illinois':VARCHAR], expr#19=[REPLACE($t7, $t17, $t18)], state=[$t19])
+      EnumerableCalc(expr#0..16=[{inputs}], expr#17=['IL'], expr#18=['Illinois'], expr#19=[REPLACE($t7, $t17, $t18)], state=[$t19])
         CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

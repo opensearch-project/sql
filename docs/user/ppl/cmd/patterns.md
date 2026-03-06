@@ -269,8 +269,9 @@ fetched rows / total rows = 4/4
 ### Example 3: Return a log pattern aggregation result
 
 The following query aggregates patterns extracted from a raw log field using the `brain` algorithm:
-  
-```ppl
+
+<!-- TODO: Enbale after fixing https://github.com/opensearch-project/sql/issues/4968 -->
+```ppl ignore
 source=apache
 | patterns message method=brain mode=aggregation variable_count_threshold=2
 | fields patterns_field, pattern_count, sample_logs
