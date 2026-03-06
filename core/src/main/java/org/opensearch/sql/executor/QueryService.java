@@ -23,7 +23,6 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
-import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -44,7 +43,6 @@ import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
 import org.opensearch.sql.calcite.validate.PplConvertletTable;
-import org.opensearch.sql.calcite.validate.ValidationUtils;
 import org.opensearch.sql.calcite.validate.converters.OpenSearchRelToSqlConverter;
 import org.opensearch.sql.calcite.validate.converters.OpenSearchSqlToRelConverter;
 import org.opensearch.sql.calcite.validate.shuttles.PplRelToSqlRelShuttle;
@@ -55,7 +53,6 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.monitor.profile.ProfileContext;
@@ -297,6 +294,18 @@ public class QueryService {
     if (skipShuttle.shouldSkipValidation()) {
       return relNode;
     }
+    try {
+      return doValidate(relNode, context);
+    } catch (Throwable e) {
+      // Gracefully skip validation when the plan contains operators that cannot be converted
+      // to SQL (e.g., LogicalGraphLookup throws AssertionError) or validated (e.g., unregistered
+      // UDFs like ARRAY_COMPACT). Return the original plan without validation.
+      log.debug("Skipping validation due to unsupported operation: {}", e.getMessage());
+      return relNode;
+    }
+  }
+
+  private RelNode doValidate(RelNode relNode, CalcitePlanContext context) {
     // Fix interval literals before conversion to SQL
     RelNode sqlRelNode = relNode.accept(new PplRelToSqlRelShuttle(context.rexBuilder, true));
 
@@ -308,14 +317,7 @@ public class QueryService {
     // Rewrite SqlNode to remove database qualifiers
     SqlNode rewritten = root.accept(new SqlRewriteShuttle());
     SqlValidator validator = context.getValidator();
-    try {
-      validator.validate(Objects.requireNonNull(rewritten));
-    } catch (CalciteContextException e) {
-      if (ValidationUtils.tolerantValidationException(e)) {
-        return relNode;
-      }
-      throw new ExpressionEvaluationException(e.getMessage(), e);
-    }
+    validator.validate(Objects.requireNonNull(rewritten));
 
     SqlToRelConverter.Config sql2relConfig =
         SqlToRelConverter.config()

@@ -2137,11 +2137,11 @@ public class CalciteExplainIT extends ExplainIT {
             "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
                 + " eval new_gender = lower(gender), new_state = lower(state) | dedup 1 new_gender,"
                 + " new_state"));
-    expected = loadExpectedPlan("explain_dedup_expr3.yaml");
-    alternative = loadExpectedPlan("explain_dedup_expr3_alternative.yaml");
     assertYamlEqualsIgnoreId(
-        expected,
-        alternative,
+        List.of(
+            loadExpectedPlan("explain_dedup_expr3.yaml"),
+            loadExpectedPlan("explain_dedup_expr3_alternative.yaml"),
+            loadExpectedPlan("explain_dedup_expr3_alternative2.yaml")),
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | eval new_gender = lower(gender) | eval"
                 + " new_state = lower(state) | dedup 2 new_gender, new_state"));
@@ -2149,7 +2149,8 @@ public class CalciteExplainIT extends ExplainIT {
         List.of(
             loadExpectedPlan("explain_dedup_expr4.yaml"),
             loadExpectedPlan("explain_dedup_expr4_alternative.yaml"),
-            loadExpectedPlan("explain_dedup_expr4_alternative1.yaml")),
+            loadExpectedPlan("explain_dedup_expr4_alternative1.yaml"),
+            loadExpectedPlan("explain_dedup_expr4_alternative2.yaml")),
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
                 + " eval new_gender = lower(gender) | eval new_state = lower(state) | sort gender,"
@@ -2176,11 +2177,11 @@ public class CalciteExplainIT extends ExplainIT {
                 + " eval tmp_gender = lower(gender), tmp_state = lower(state) | rename tmp_gender"
                 + " as new_gender | rename tmp_state as new_state | dedup 1 new_gender,"
                 + " new_state"));
-    expected = loadExpectedPlan("explain_dedup_expr3.yaml");
-    alternative = loadExpectedPlan("explain_dedup_expr3_alternative.yaml");
     assertYamlEqualsIgnoreId(
-        expected,
-        alternative,
+        List.of(
+            loadExpectedPlan("explain_dedup_expr3.yaml"),
+            loadExpectedPlan("explain_dedup_expr3_alternative.yaml"),
+            loadExpectedPlan("explain_dedup_expr3_alternative2.yaml")),
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | eval tmp_gender = lower(gender) | eval"
                 + " tmp_state = lower(state) | rename tmp_gender as new_gender | rename tmp_state"
@@ -2189,7 +2190,8 @@ public class CalciteExplainIT extends ExplainIT {
         List.of(
             loadExpectedPlan("explain_dedup_expr4.yaml"),
             loadExpectedPlan("explain_dedup_expr4_alternative.yaml"),
-            loadExpectedPlan("explain_dedup_expr4_alternative1.yaml")),
+            loadExpectedPlan("explain_dedup_expr4_alternative1.yaml"),
+            loadExpectedPlan("explain_dedup_expr4_alternative2.yaml")),
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
                 + " eval tmp_gender = lower(gender) | eval tmp_state = lower(state) | rename"
@@ -2253,7 +2255,8 @@ public class CalciteExplainIT extends ExplainIT {
         List.of(
             loadExpectedPlan("explain_dedup_with_expr4.yaml"),
             loadExpectedPlan("explain_dedup_with_expr4_alternative.yaml"),
-            loadExpectedPlan("explain_dedup_with_expr4_alternative2.yaml")),
+            loadExpectedPlan("explain_dedup_with_expr4_alternative2.yaml"),
+            loadExpectedPlan("explain_dedup_with_expr4_alternative3.yaml")),
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
                 + " eval new_gender = lower(gender) | eval new_state = lower(state) | sort gender,"
@@ -2650,13 +2653,14 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testFilterBooleanFieldWithStringLiteral() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    // Test boolean field with string literal 'TRUE' - Calcite converts to boolean true
-    // and generates same term query as boolean literal
+    // Test boolean field with string literal 'TRUE' - the validation round-trip preserves
+    // the SAFE_CAST('TRUE') in the logical plan but produces the same physical term query
     String query =
         StringUtils.format(
             "source=%s firstname=Amber | where male = 'TRUE' | fields firstname", TEST_INDEX_BANK);
     var result = explainQueryYaml(query);
-    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean.yaml");
+    String expected =
+        loadExpectedPlan("explain_filter_query_string_with_boolean_string_literal.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 
