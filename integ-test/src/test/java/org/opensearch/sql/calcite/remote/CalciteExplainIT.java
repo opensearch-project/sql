@@ -2768,7 +2768,8 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainConsecutiveSortsAfterAgg() throws IOException {
+  public void testExplainConsecutiveSortsAfterAggIssue5125() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_agg_consecutive_sorts_issue_5125.yaml");
     assertYamlEqualsIgnoreId(
         expected,

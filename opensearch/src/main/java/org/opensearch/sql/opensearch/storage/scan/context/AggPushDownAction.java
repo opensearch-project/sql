@@ -96,6 +96,19 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     }
   }
 
+  private static final class DateHistogramAggregationBuilderCopy
+      extends DateHistogramAggregationBuilder {
+    private DateHistogramAggregationBuilderCopy(DateHistogramAggregationBuilder source) {
+      super(source, copySubAggregations(source), copyMetadataOrNull(source));
+    }
+  }
+
+  private static final class HistogramAggregationBuilderCopy extends HistogramAggregationBuilder {
+    private HistogramAggregationBuilderCopy(HistogramAggregationBuilder source) {
+      super(source, copySubAggregations(source), copyMetadataOrNull(source));
+    }
+  }
+
   private static final class TopHitsAggregationBuilderCopy extends TopHitsAggregationBuilder {
     private TopHitsAggregationBuilderCopy(TopHitsAggregationBuilder source) {
       super(source, copySubAggregations(source), copyMetadataOrNull(source));
@@ -123,6 +136,16 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     return new MultiTermsAggregationBuilderCopy(source);
   }
 
+  private static DateHistogramAggregationBuilder copyDateHistogramAggregationBuilder(
+      DateHistogramAggregationBuilder source) {
+    return new DateHistogramAggregationBuilderCopy(source);
+  }
+
+  private static HistogramAggregationBuilder copyHistogramAggregationBuilder(
+      HistogramAggregationBuilder source) {
+    return new HistogramAggregationBuilderCopy(source);
+  }
+
   private static TopHitsAggregationBuilder copyTopHitsAggregationBuilder(
       TopHitsAggregationBuilder source) {
     return new TopHitsAggregationBuilderCopy(source);
@@ -142,6 +165,12 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     }
     if (builder instanceof MultiTermsAggregationBuilder multiTerms) {
       return copyMultiTermsAggregationBuilder(multiTerms);
+    }
+    if (builder instanceof DateHistogramAggregationBuilder dateHistogram) {
+      return copyDateHistogramAggregationBuilder(dateHistogram);
+    }
+    if (builder instanceof HistogramAggregationBuilder histogram) {
+      return copyHistogramAggregationBuilder(histogram);
     }
     if (builder instanceof TopHitsAggregationBuilder topHits) {
       return copyTopHitsAggregationBuilder(topHits);
@@ -409,22 +438,56 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     }
   }
 
+  private static void copyDateHistogramBucketOptions(
+      DateHistogramValuesSourceBuilder source, DateHistogramAggregationBuilder target) {
+    if (source.field() != null) {
+      target.field(source.field());
+    }
+    if (source.script() != null) {
+      target.script(source.script());
+    }
+    copyDateHistogramInterval(source, target::fixedInterval, target::calendarInterval);
+    if (source.userValuetypeHint() != null) {
+      target.userValueTypeHint(source.userValuetypeHint());
+    }
+    if (source.timeZone() != null) {
+      target.timeZone(source.timeZone());
+    }
+    if (source.offset() != 0) {
+      target.offset(source.offset());
+    }
+    if (source.format() != null) {
+      target.format(source.format());
+    }
+    // Composite group-by only returns buckets with documents. Preserve that when rewriting.
+    target.minDocCount(1);
+  }
+
+  private static void copyHistogramBucketOptions(
+      HistogramValuesSourceBuilder source, HistogramAggregationBuilder target) {
+    if (source.field() != null) {
+      target.field(source.field());
+    }
+    if (source.script() != null) {
+      target.script(source.script());
+    }
+    target.interval(source.interval());
+    if (source.userValuetypeHint() != null) {
+      target.userValueTypeHint(source.userValuetypeHint());
+    }
+    if (source.format() != null) {
+      target.format(source.format());
+    }
+    // Composite group-by only returns buckets with documents. Preserve that when rewriting.
+    target.minDocCount(1);
+  }
+
   /** Build a {@link DateHistogramAggregationBuilder} by {@link DateHistogramValuesSourceBuilder} */
   private DateHistogramAggregationBuilder buildDateHistogramAggregationBuilder(
       DateHistogramValuesSourceBuilder dateHisto, BucketOrder bucketOrder) {
     DateHistogramAggregationBuilder dateHistoBuilder =
         new DateHistogramAggregationBuilder(dateHisto.name());
-    if (dateHisto.field() != null) {
-      dateHistoBuilder.field(dateHisto.field());
-    }
-    if (dateHisto.script() != null) {
-      dateHistoBuilder.script(dateHisto.script());
-    }
-    copyDateHistogramInterval(
-        dateHisto, dateHistoBuilder::fixedInterval, dateHistoBuilder::calendarInterval);
-    if (dateHisto.userValuetypeHint() != null) {
-      dateHistoBuilder.userValueTypeHint(dateHisto.userValuetypeHint());
-    }
+    copyDateHistogramBucketOptions(dateHisto, dateHistoBuilder);
     dateHistoBuilder.order(bucketOrder);
     return dateHistoBuilder;
   }
@@ -433,16 +496,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   private HistogramAggregationBuilder buildHistogramAggregationBuilder(
       HistogramValuesSourceBuilder histo, BucketOrder bucketOrder) {
     HistogramAggregationBuilder histoBuilder = new HistogramAggregationBuilder(histo.name());
-    if (histo.field() != null) {
-      histoBuilder.field(histo.field());
-    }
-    if (histo.script() != null) {
-      histoBuilder.script(histo.script());
-    }
-    histoBuilder.interval(histo.interval());
-    if (histo.userValuetypeHint() != null) {
-      histoBuilder.userValueTypeHint(histo.userValuetypeHint());
-    }
+    copyHistogramBucketOptions(histo, histoBuilder);
     histoBuilder.order(bucketOrder);
     return histoBuilder;
   }
