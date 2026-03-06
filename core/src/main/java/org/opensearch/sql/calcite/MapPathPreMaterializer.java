@@ -94,10 +94,11 @@ public class MapPathPreMaterializer {
           newColumns.add(context.relBuilder.alias(resolved, name));
           existingFields.add(name);
         }
-      } catch (Throwable e) {
+      } catch (RuntimeException | AssertionError e) {
+        // FIXME: Temporary catch for AssertionError from QualifiedNameResolver.
         // Skip unresolvable fields (e.g. wildcards, dotted paths on non-MAP types);
         // let the command itself handle them and throw its own error.
-        log.debug("Skipping field resolution for '{}': {}", field.getField(), e.getMessage(), e);
+        log.debug("Skipping field resolution for '{}': {}", field.getField(), e.getMessage());
       }
     }
 
