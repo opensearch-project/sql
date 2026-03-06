@@ -100,8 +100,7 @@ public class MkTimeConvertFunction extends ImplementorUDF {
   private static Object parseWithFormat(String dateStr, String strftimeFormat) {
     try {
       String javaPattern = StrftimeFormatterUtil.toJavaPattern(strftimeFormat);
-      DateTimeFormatter formatter =
-          DateTimeFormatter.ofPattern(javaPattern, Locale.ROOT);
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern(javaPattern, Locale.ROOT);
       LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
       return (double) dateTime.toEpochSecond(ZoneOffset.UTC);
     } catch (DateTimeParseException | IllegalArgumentException e) {

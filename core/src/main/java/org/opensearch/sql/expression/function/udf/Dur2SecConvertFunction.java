@@ -8,9 +8,7 @@ package org.opensearch.sql.expression.function.udf;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * PPL dur2sec() conversion function. Converts duration format {@code [D+]HH:MM:SS} to seconds
- */
+/** PPL dur2sec() conversion function. Converts duration format {@code [D+]HH:MM:SS} to seconds */
 public class Dur2SecConvertFunction extends BaseConversionUDF {
 
   public static final Dur2SecConvertFunction INSTANCE = new Dur2SecConvertFunction();

@@ -9,8 +9,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * PPL mstime() conversion function. Converts {@code [MM:]SS.SSS} format to seconds
- * The minutes portion is optional.
+ * PPL mstime() conversion function. Converts {@code [MM:]SS.SSS} format to seconds The minutes
+ * portion is optional.
  */
 public class MsTimeConvertFunction extends BaseConversionUDF {
 

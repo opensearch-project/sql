@@ -72,7 +72,8 @@ public class ConvertCommandIT extends PPLIntegTestCase {
   @Test
   public void testConvertMktimeFunction() {
     verifyQueryThrowsCalciteError(
-        "source=%s | eval date_str = '2003-10-18 20:07:13' | convert mktime(date_str) | fields date_str");
+        "source=%s | eval date_str = '2003-10-18 20:07:13' | convert mktime(date_str) | fields"
+            + " date_str");
   }
 
   @Test
@@ -96,7 +97,8 @@ public class ConvertCommandIT extends PPLIntegTestCase {
   @Test
   public void testConvertWithTimeformat() {
     verifyQueryThrowsCalciteError(
-        "source=%s | eval date_str = '18/10/2003 20:07:13' | convert timeformat=\"dd/MM/yyyy HH:mm:ss\" mktime(date_str) | fields date_str");
+        "source=%s | eval date_str = '18/10/2003 20:07:13' | convert timeformat=\"dd/MM/yyyy"
+            + " HH:mm:ss\" mktime(date_str) | fields date_str");
   }
 
   private void verifyQueryThrowsCalciteError(String query) {

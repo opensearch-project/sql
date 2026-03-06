@@ -1051,7 +1051,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private void processFunctionConversion(
-      String target, Function function, String timeFormat, ConversionState state, CalcitePlanContext context) {
+      String target,
+      Function function,
+      String timeFormat,
+      ConversionState state,
+      CalcitePlanContext context) {
     String functionName = function.getFuncName();
     List<UnresolvedExpression> args = function.getFuncArgs();
 

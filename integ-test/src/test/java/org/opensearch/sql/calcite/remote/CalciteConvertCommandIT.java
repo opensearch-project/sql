@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -268,8 +267,8 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval date_str = '10/18/2003 20:07:13' | convert mktime(date_str) |"
-                    + " fields date_str | head 1",
+                "search source=%s | eval date_str = '10/18/2003 20:07:13' | convert"
+                    + " mktime(date_str) | fields date_str | head 1",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("date_str", null, "double"));
     verifyDataRows(result, rows(1066507633.0));
@@ -281,8 +280,8 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
         executeQuery(
             "search source="
                 + TEST_INDEX_BANK
-                + " | eval date_str = '18/10/2003 20:07:13' | convert timeformat=\\\"%d/%m/%Y %H:%M:%S\\\" mktime(date_str) |"
-                + " fields date_str | head 1");
+                + " | eval date_str = '18/10/2003 20:07:13' | convert timeformat=\\\"%d/%m/%Y"
+                + " %H:%M:%S\\\" mktime(date_str) | fields date_str | head 1");
     verifySchema(result, schema("date_str", null, "double"));
     verifyDataRows(result, rows(1066507633.0));
   }
@@ -305,8 +304,8 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
         executeQuery(
             "search source="
                 + TEST_INDEX_BANK
-                + " | eval timestamp = 1066507633 | convert timeformat=\\\"%Y-%m-%d %H:%M:%S\\\" ctime(timestamp) |"
-                + " fields timestamp | head 1");
+                + " | eval timestamp = 1066507633 | convert timeformat=\\\"%Y-%m-%d %H:%M:%S\\\""
+                + " ctime(timestamp) | fields timestamp | head 1");
     verifySchema(result, schema("timestamp", null, "string"));
     verifyDataRows(result, rows("2003-10-18 20:07:13"));
   }
@@ -341,13 +340,14 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
         executeQuery(
             "search source="
                 + TEST_INDEX_BANK
-                + " | eval date_str = '18/10/2003 20:07:13', timestamp = 1066507633 |"
-                + " convert timeformat=\\\"%d/%m/%Y %H:%M:%S\\\" mktime(date_str), ctime(timestamp) |"
+                + " | eval date_str = '18/10/2003 20:07:13', timestamp = 1066507633 | convert"
+                + " timeformat=\\\"%d/%m/%Y %H:%M:%S\\\" mktime(date_str), ctime(timestamp) |"
                 + " fields date_str, timestamp | head 1");
     verifySchema(result, schema("date_str", null, "double"), schema("timestamp", null, "string"));
     verifyNumOfRows(result, 1);
     assertEquals(1066507633.0, result.getJSONArray("datarows").getJSONArray(0).getDouble(0), 0.001);
-    assertEquals("18/10/2003 20:07:13", result.getJSONArray("datarows").getJSONArray(0).getString(1));
+    assertEquals(
+        "18/10/2003 20:07:13", result.getJSONArray("datarows").getJSONArray(0).getString(1));
   }
 
   @Test

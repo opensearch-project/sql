@@ -1223,7 +1223,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /** Supported PPL convert function names (case-insensitive). */
   private static final Set<String> SUPPORTED_CONVERSION_FUNCTIONS =
-      Set.of("auto", "num", "rmcomma", "rmunit", "memk", "none", "ctime", "mktime", "dur2sec", "mstime");
+      Set.of(
+          "auto", "num", "rmcomma", "rmunit", "memk", "none", "ctime", "mktime", "dur2sec",
+          "mstime");
 
   private Let buildConversion(OpenSearchPPLParser.ConvertFunctionContext funcCtx) {
     if (funcCtx.fieldExpression().isEmpty()) {

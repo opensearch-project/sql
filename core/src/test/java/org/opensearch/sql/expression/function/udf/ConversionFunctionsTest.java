@@ -7,7 +7,6 @@ package org.opensearch.sql.expression.function.udf;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -438,22 +437,31 @@ public class ConversionFunctionsTest {
   @Test
   public void testMktimeWithCustomTimeformat() {
     // Strftime format specifiers
-    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("18/10/2003 20:07:13", "%d/%m/%Y %H:%M:%S"));
-    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", "%Y-%m-%d %H:%M:%S"));
-    assertEquals(946684800.0, MkTimeConvertFunction.convertWithFormat("01/01/2000 00:00:00", "%d/%m/%Y %H:%M:%S"));
+    assertEquals(
+        1066507633.0,
+        MkTimeConvertFunction.convertWithFormat("18/10/2003 20:07:13", "%d/%m/%Y %H:%M:%S"));
+    assertEquals(
+        1066507633.0,
+        MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", "%Y-%m-%d %H:%M:%S"));
+    assertEquals(
+        946684800.0,
+        MkTimeConvertFunction.convertWithFormat("01/01/2000 00:00:00", "%d/%m/%Y %H:%M:%S"));
 
     // Invalid format returns null
     assertNull(MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", "invalid format"));
 
     // Null/empty timeformat falls back to default %m/%d/%Y %H:%M:%S
-    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("10/18/2003 20:07:13", null));
+    assertEquals(
+        1066507633.0, MkTimeConvertFunction.convertWithFormat("10/18/2003 20:07:13", null));
     assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("10/18/2003 20:07:13", ""));
   }
 
   @Test
   public void testCtimeWithCustomTimeformat() {
     // Strftime format specifiers
-    assertEquals("2003-10-18 20:07:13", CTimeConvertFunction.convertWithFormat(1066507633, "%Y-%m-%d %H:%M:%S"));
+    assertEquals(
+        "2003-10-18 20:07:13",
+        CTimeConvertFunction.convertWithFormat(1066507633, "%Y-%m-%d %H:%M:%S"));
     assertEquals("18/10/2003", CTimeConvertFunction.convertWithFormat(1066507633, "%d/%m/%Y"));
     assertEquals("1970", CTimeConvertFunction.convertWithFormat(0, "%Y"));
 
