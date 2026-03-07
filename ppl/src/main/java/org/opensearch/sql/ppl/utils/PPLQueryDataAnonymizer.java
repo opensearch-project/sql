@@ -528,7 +528,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
                   return StringUtils.format("%s(%s)%s", functionName, fields, asClause);
                 })
             .collect(Collectors.joining(","));
-    return StringUtils.format("%s | convert %s", child, conversions);
+    String timeformatClause =
+        node.getTimeFormat() != null
+            ? StringUtils.format("timeformat=\"%s\" ", node.getTimeFormat())
+            : "";
+    return StringUtils.format("%s | convert %s%s", child, timeformatClause, conversions);
   }
 
   @Override

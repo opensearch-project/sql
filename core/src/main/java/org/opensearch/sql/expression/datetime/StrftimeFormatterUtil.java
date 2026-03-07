@@ -249,4 +249,35 @@ public class StrftimeFormatterUtil {
 
     return isNegative ? -result : result;
   }
+
+  /** Mapping from strftime specifiers to Java DateTimeFormatter patterns for parsing. */
+  private static final Map<String, String> STRFTIME_TO_JAVA_PARSE =
+      ImmutableMap.<String, String>builder()
+          .put("%Y", "yyyy")
+          .put("%m", "MM")
+          .put("%d", "dd")
+          .put("%H", "HH")
+          .put("%M", "mm")
+          .put("%S", "ss")
+          .put("%T", "HH:mm:ss")
+          .put("%F", "yyyy-MM-dd")
+          .put("%%", "'%'")
+          .build();
+
+  /**
+   * Convert a strftime format string to a Java DateTimeFormatter pattern suitable for parsing.
+   *
+   * @param strftimeFormat the strftime-style format string (e.g. {@code %Y-%m-%d %H:%M:%S})
+   * @return a Java DateTimeFormatter pattern (e.g. {@code yyyy-MM-dd HH:mm:ss})
+   */
+  public static String toJavaPattern(String strftimeFormat) {
+    String result = strftimeFormat;
+    for (Map.Entry<String, String> entry : STRFTIME_TO_JAVA_PARSE.entrySet()) {
+      String specifier = entry.getKey();
+      if (result.contains(specifier)) {
+        result = result.replace(specifier, entry.getValue());
+      }
+    }
+    return result;
+  }
 }

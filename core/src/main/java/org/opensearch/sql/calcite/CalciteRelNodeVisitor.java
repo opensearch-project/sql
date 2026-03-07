@@ -1005,10 +1005,62 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return context.relBuilder.peek();
     }
 
+    // Collect none() patterns for wildcard exclusion
+    Set<String> nonePatterns = new HashSet<>();
+    for (Let conversion : node.getConversions()) {
+      UnresolvedExpression expr = conversion.getExpression();
+      if (expr instanceof Function func && "none".equalsIgnoreCase(func.getFuncName())) {
+        nonePatterns.add(((Field) func.getFuncArgs().get(0)).getField().toString());
+      }
+    }
+
+    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     ConversionState state = new ConversionState();
 
     for (Let conversion : node.getConversions()) {
-      processConversion(conversion, state, context);
+      UnresolvedExpression expr = conversion.getExpression();
+
+      // Skip none() — already collected above
+      if (expr instanceof Function func && "none".equalsIgnoreCase(func.getFuncName())) {
+        // none() with AS is a field copy
+        if (!conversion
+            .getVar()
+            .getField()
+            .toString()
+            .equals(((Field) func.getFuncArgs().get(0)).getField().toString())) {
+          processFieldCopyConversion(
+              conversion.getVar().getField().toString(),
+              (Field) func.getFuncArgs().get(0),
+              state,
+              context);
+        }
+        continue;
+      }
+
+      if (expr instanceof Function func) {
+        String source = ((Field) func.getFuncArgs().get(0)).getField().toString();
+        if (WildcardUtils.containsWildcard(source)) {
+          List<String> matchingFields =
+              WildcardUtils.expandWildcardPattern(source, currentFields).stream()
+                  .filter(f -> !state.seenFields.contains(f))
+                  .filter(
+                      f ->
+                          nonePatterns.stream()
+                              .noneMatch(p -> WildcardUtils.matchesWildcardPattern(p, f)))
+                  .toList();
+          for (String field : matchingFields) {
+            processFunctionConversion(
+                field,
+                new Function(func.getFuncName(), List.of(AstDSL.field(field))),
+                node.getTimeFormat(),
+                state,
+                context);
+          }
+          continue;
+        }
+      }
+
+      processConversion(conversion, node.getTimeFormat(), state, context);
     }
 
     return buildConversionProjection(state, context);
@@ -1021,14 +1073,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private void processConversion(
-      Let conversion, ConversionState state, CalcitePlanContext context) {
+      Let conversion, String timeFormat, ConversionState state, CalcitePlanContext context) {
     String target = conversion.getVar().getField().toString();
     UnresolvedExpression expression = conversion.getExpression();
 
     if (expression instanceof Field) {
       processFieldCopyConversion(target, (Field) expression, state, context);
     } else if (expression instanceof Function) {
-      processFunctionConversion(target, (Function) expression, state, context);
+      processFunctionConversion(target, (Function) expression, timeFormat, state, context);
     } else {
       throw new SemanticCheckException("Convert command requires function call expressions");
     }
@@ -1051,7 +1103,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private void processFunctionConversion(
-      String target, Function function, ConversionState state, CalcitePlanContext context) {
+      String target,
+      Function function,
+      String timeFormat,
+      ConversionState state,
+      CalcitePlanContext context) {
     String functionName = function.getFuncName();
     List<UnresolvedExpression> args = function.getFuncArgs();
 
@@ -1068,13 +1124,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     state.seenFields.add(source);
 
     RexNode sourceField = context.relBuilder.field(source);
-    RexNode convertCall =
-        PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, sourceField);
+    RexNode convertCall = resolveConvertFunction(functionName, sourceField, timeFormat, context);
 
     if (!target.equals(source)) {
       state.additions.add(Pair.of(target, context.relBuilder.alias(convertCall, target)));
     } else {
       state.replacements.put(source, context.relBuilder.alias(convertCall, source));
+    }
+  }
+
+  private RexNode resolveConvertFunction(
+      String functionName, RexNode sourceField, String timeFormat, CalcitePlanContext context) {
+
+    // Time functions that support timeformat parameter
+    Set<String> timeFunctions = Set.of("ctime", "mktime");
+
+    if (timeFunctions.contains(functionName.toLowerCase()) && timeFormat != null) {
+      // For time functions with custom timeformat, pass the format as a second parameter
+      RexNode timeFormatLiteral = context.rexBuilder.makeLiteral(timeFormat);
+      return PPLFuncImpTable.INSTANCE.resolve(
+          context.rexBuilder, functionName, sourceField, timeFormatLiteral);
+    } else {
+      // Regular conversion functions or time functions without custom format
+      return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, sourceField);
     }
   }
 

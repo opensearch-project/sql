@@ -1212,15 +1212,23 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             .map(this::buildConversion)
             .filter(conversion -> conversion != null)
             .collect(Collectors.toList());
-    return new Convert(conversions);
+
+    String timeFormat = null;
+    if (ctx.timeFormat != null) {
+      timeFormat = StringUtils.unquoteText(ctx.timeFormat.getText());
+    }
+
+    return new Convert(conversions, timeFormat);
   }
 
   /** Supported PPL convert function names (case-insensitive). */
   private static final Set<String> SUPPORTED_CONVERSION_FUNCTIONS =
-      Set.of("auto", "num", "rmcomma", "rmunit", "memk", "none");
+      Set.of(
+          "auto", "num", "rmcomma", "rmunit", "memk", "none", "ctime", "mktime", "dur2sec",
+          "mstime");
 
   private Let buildConversion(OpenSearchPPLParser.ConvertFunctionContext funcCtx) {
-    if (funcCtx.fieldExpression().isEmpty()) {
+    if (funcCtx.wcFieldExpression() == null) {
       throw new IllegalArgumentException("Convert function requires a field argument");
     }
 
@@ -1234,13 +1242,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
               functionName, SUPPORTED_CONVERSION_FUNCTIONS));
     }
 
-    UnresolvedExpression fieldArg = internalVisitExpression(funcCtx.fieldExpression(0));
+    UnresolvedExpression fieldArg = internalVisitExpression(funcCtx.wcFieldExpression());
     Field targetField = determineTargetField(funcCtx, fieldArg);
 
     if ("none".equalsIgnoreCase(functionName)) {
-      return fieldArg.toString().equals(targetField.getField().toString())
-          ? null
-          : new Let(targetField, fieldArg);
+      if (funcCtx.alias != null) {
+        return new Let(targetField, fieldArg);
+      }
+      // Keep none() as a function so the visitor can use it for wildcard exclusion
+      return new Let(targetField, AstDSL.function(functionName, fieldArg));
     }
 
     return new Let(targetField, AstDSL.function(functionName, fieldArg));
