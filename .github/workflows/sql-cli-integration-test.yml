@@ -68,7 +68,6 @@ jobs:
         run: |
           echo "Building SQL modules from current branch..."
           ./gradlew publishToMavenLocal -x test -x integTest
-          ./gradlew clean
           echo "SQL modules published to Maven Local"
 
       - name: Run SQL CLI tests with local SQL modules
