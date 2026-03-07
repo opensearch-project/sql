@@ -1228,7 +1228,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
           "mstime");
 
   private Let buildConversion(OpenSearchPPLParser.ConvertFunctionContext funcCtx) {
-    if (funcCtx.fieldExpression().isEmpty()) {
+    if (funcCtx.wcFieldExpression() == null) {
       throw new IllegalArgumentException("Convert function requires a field argument");
     }
 
@@ -1242,13 +1242,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
               functionName, SUPPORTED_CONVERSION_FUNCTIONS));
     }
 
-    UnresolvedExpression fieldArg = internalVisitExpression(funcCtx.fieldExpression(0));
+    UnresolvedExpression fieldArg = internalVisitExpression(funcCtx.wcFieldExpression());
     Field targetField = determineTargetField(funcCtx, fieldArg);
 
     if ("none".equalsIgnoreCase(functionName)) {
-      return fieldArg.toString().equals(targetField.getField().toString())
-          ? null
-          : new Let(targetField, fieldArg);
+      if (funcCtx.alias != null) {
+        return new Let(targetField, fieldArg);
+      }
+      // Keep none() as a function so the visitor can use it for wildcard exclusion
+      return new Let(targetField, AstDSL.function(functionName, fieldArg));
     }
 
     return new Let(targetField, AstDSL.function(functionName, fieldArg));

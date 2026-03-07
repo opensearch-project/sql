@@ -70,8 +70,7 @@ public class CTimeConvertFunction extends ImplementorUDF {
     if (timestamp == null) {
       return null;
     }
-    String format =
-        (timeFormatObj != null) ? timeFormatObj.toString().trim() : DEFAULT_FORMAT;
+    String format = (timeFormatObj != null) ? timeFormatObj.toString().trim() : DEFAULT_FORMAT;
     if (format.isEmpty()) {
       return null;
     }

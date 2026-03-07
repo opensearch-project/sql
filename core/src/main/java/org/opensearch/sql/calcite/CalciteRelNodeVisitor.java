@@ -1005,9 +1005,61 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return context.relBuilder.peek();
     }
 
+    // Collect none() patterns for wildcard exclusion
+    Set<String> nonePatterns = new HashSet<>();
+    for (Let conversion : node.getConversions()) {
+      UnresolvedExpression expr = conversion.getExpression();
+      if (expr instanceof Function func && "none".equalsIgnoreCase(func.getFuncName())) {
+        nonePatterns.add(((Field) func.getFuncArgs().get(0)).getField().toString());
+      }
+    }
+
+    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     ConversionState state = new ConversionState();
 
     for (Let conversion : node.getConversions()) {
+      UnresolvedExpression expr = conversion.getExpression();
+
+      // Skip none() — already collected above
+      if (expr instanceof Function func && "none".equalsIgnoreCase(func.getFuncName())) {
+        // none() with AS is a field copy
+        if (!conversion
+            .getVar()
+            .getField()
+            .toString()
+            .equals(((Field) func.getFuncArgs().get(0)).getField().toString())) {
+          processFieldCopyConversion(
+              conversion.getVar().getField().toString(),
+              (Field) func.getFuncArgs().get(0),
+              state,
+              context);
+        }
+        continue;
+      }
+
+      if (expr instanceof Function func) {
+        String source = ((Field) func.getFuncArgs().get(0)).getField().toString();
+        if (WildcardUtils.containsWildcard(source)) {
+          List<String> matchingFields =
+              WildcardUtils.expandWildcardPattern(source, currentFields).stream()
+                  .filter(f -> !state.seenFields.contains(f))
+                  .filter(
+                      f ->
+                          nonePatterns.stream()
+                              .noneMatch(p -> WildcardUtils.matchesWildcardPattern(p, f)))
+                  .toList();
+          for (String field : matchingFields) {
+            processFunctionConversion(
+                field,
+                new Function(func.getFuncName(), List.of(AstDSL.field(field))),
+                node.getTimeFormat(),
+                state,
+                context);
+          }
+          continue;
+        }
+      }
+
       processConversion(conversion, node.getTimeFormat(), state, context);
     }
 
