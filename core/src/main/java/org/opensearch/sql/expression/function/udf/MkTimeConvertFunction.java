@@ -91,9 +91,10 @@ public class MkTimeConvertFunction extends ImplementorUDF {
     }
 
     String strftimeFormat =
-        (timeFormatObj != null && !timeFormatObj.toString().trim().isEmpty())
-            ? timeFormatObj.toString().trim()
-            : DEFAULT_FORMAT;
+        (timeFormatObj != null) ? timeFormatObj.toString().trim() : DEFAULT_FORMAT;
+    if (strftimeFormat.isEmpty()) {
+      return null;
+    }
     return parseWithFormat(str, strftimeFormat);
   }
 

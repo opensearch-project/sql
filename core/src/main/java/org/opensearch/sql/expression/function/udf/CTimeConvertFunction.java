@@ -70,11 +70,12 @@ public class CTimeConvertFunction extends ImplementorUDF {
     if (timestamp == null) {
       return null;
     }
+    String format =
+        (timeFormatObj != null) ? timeFormatObj.toString().trim() : DEFAULT_FORMAT;
+    if (format.isEmpty()) {
+      return null;
+    }
     try {
-      String format =
-          (timeFormatObj != null && !timeFormatObj.toString().trim().isEmpty())
-              ? timeFormatObj.toString().trim()
-              : DEFAULT_FORMAT;
       Instant instant = Instant.ofEpochSecond(timestamp.longValue());
       ZonedDateTime zdt = ZonedDateTime.ofInstant(instant, ZoneId.of("UTC"));
       return StrftimeFormatterUtil.formatZonedDateTime(zdt, format).stringValue();
