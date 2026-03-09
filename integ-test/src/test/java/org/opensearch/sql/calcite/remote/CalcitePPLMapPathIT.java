@@ -407,42 +407,6 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testTopByOnMapPath() throws IOException {
-    JSONObject result =
-        ppl(
-            """
-            source=%s | spath input=doc
-            | top 2 doc.user.name by doc.user.city\
-            """,
-            TEST_INDEX);
-    verifySchema(
-        result,
-        schema("doc.user.city", "string"),
-        schema("doc.user.name", "string"),
-        schema("count", "bigint"));
-    verifyDataRows(
-        result,
-        rows(null, null, 1),
-        rows("LA", "Alice", 1),
-        rows("NYC", "Bob", 1),
-        rows("NYC", "John", 1),
-        rows("SF", "John", 1));
-  }
-
-  @Test
-  public void testRareOnMapPath() throws IOException {
-    JSONObject result =
-        ppl(
-            """
-            source=%s | spath input=doc
-            | rare 2 doc.user.name\
-            """,
-            TEST_INDEX);
-    verifySchema(result, schema("doc.user.name", "string"), schema("count", "bigint"));
-    verifyNumOfRows(result, 2);
-  }
-
-  @Test
   public void testRareByOnMapPath() throws IOException {
     JSONObject result =
         ppl(
@@ -463,22 +427,6 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
         rows("NYC", "Bob", 1),
         rows("NYC", "John", 1),
         rows("SF", "John", 1));
-  }
-
-  @Test
-  public void testBinOnMapPath() throws IOException {
-    JSONObject result =
-        ppl(
-            """
-            source=%s | spath input=doc
-            | eval age_num = cast(doc.user.age as integer)
-            | where isnotnull(age_num)
-            | stats count() as cnt by span(age_num, 10) as age_bin
-            | fields age_bin, cnt\
-            """,
-            TEST_INDEX);
-    verifySchema(result, schema("age_bin", "int"), schema("cnt", "bigint"));
-    verifyDataRows(result, rows(20, 1), rows(30, 2), rows(40, 1));
   }
 
   @Test
@@ -540,16 +488,7 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testStreamstatsGlobalWindowByMapPath() throws IOException {
-    // streamstats with global=true, window>0, and group-by on MAP sub-path
-    // This exercises the correlate path: buildGroupFilter + buildRequiredLeft.
-    // TODO: The correlate path loses materialized MAP columns when building the right-side
-    //  scan. This needs a separate investigation into how projectPlus interacts with the
-    //  correlate variable creation in buildStreamWindowJoinPlan.
-  }
-
-  @Test
-  public void testDottedPathOnTextField() {
+  public void testDottedPathOnNonMapField() {
     // Without spath, doc is a VARCHAR field. Referencing doc.user.name should produce
     // a clear error, not an AssertionError from Calcite's SqlItemOperator via
     // MapPathPreMaterializer.

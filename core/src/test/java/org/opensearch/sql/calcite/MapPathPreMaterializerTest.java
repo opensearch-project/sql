@@ -16,6 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.defaultTopArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.fillNull;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
@@ -23,6 +24,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.map;
 import static org.opensearch.sql.ast.dsl.AstDSL.mvcombine;
 import static org.opensearch.sql.ast.dsl.AstDSL.project;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
+import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.rename;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
@@ -52,6 +54,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
+import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.ReplacePair;
 import org.opensearch.sql.ast.tree.StreamWindow;
@@ -144,7 +147,18 @@ public class MapPathPreMaterializerTest {
         .shouldProject("doc.user.name");
   }
 
-  // ---- New command cases: join, lookup, streamstats ----
+  @Test
+  void testRareTopN() {
+    givenMapPaths("doc.user.name", "doc.user.city")
+        .whenCommand(
+            rareTopN(
+                DUMMY_CHILD,
+                RareTopN.CommandType.TOP,
+                defaultTopArgs(),
+                List.of(field("doc.user.city")),
+                field("doc.user.name")))
+        .shouldProject("doc.user.name", "doc.user.city");
+  }
 
   @Test
   void testStreamWindow() {
