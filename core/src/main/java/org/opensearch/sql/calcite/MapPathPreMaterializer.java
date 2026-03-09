@@ -123,8 +123,4 @@ public class MapPathPreMaterializer {
         .map(Field.class::cast)
         .toList();
   }
-
-  private static Field fieldFromDotted(String dottedName) {
-    return new Field(QualifiedName.of(List.of(dottedName.split("\\."))));
-  }
 }

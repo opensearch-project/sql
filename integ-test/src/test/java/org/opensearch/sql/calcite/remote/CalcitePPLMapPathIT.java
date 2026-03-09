@@ -431,8 +431,6 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
 
   @Test
   public void testJoinOnMapPath() throws IOException {
-    // join ON condition references MAP sub-path through table alias (l.doc.user.name),
-    // and fields clause also references MAP sub-path after join.
     JSONObject result =
         ppl(
             """
@@ -452,7 +450,6 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
 
   @Test
   public void testLookupOnMapPath() throws IOException {
-    // lookup: map source MAP sub-path to lookup field via AS
     JSONObject result =
         ppl(
             """
@@ -473,7 +470,6 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
 
   @Test
   public void testStreamstatsByMapPath() throws IOException {
-    // streamstats with group-by on a MAP sub-path (non-correlate path)
     JSONObject result =
         ppl(
             """
@@ -488,10 +484,27 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStreamstatsGlobalWindowByMapPath() {
+    // TODO: Fix requires propagating pre-materialized columns to the correlate right-side scan.
+    Throwable e =
+        assertThrows(
+            Exception.class,
+            () ->
+                ppl(
+                    """
+                    source=%s | spath input=doc
+                    | where isnotnull(doc.user.city)
+                    | streamstats global=true window=2 count() as cnt by doc.user.city
+                    | fields doc.user.city, cnt\
+                    """,
+                    TEST_INDEX));
+    verifyErrorMessageContains(e, "field [doc.user.city] not found");
+  }
+
+  @Test
   public void testDottedPathOnNonMapField() {
-    // Without spath, doc is a VARCHAR field. Referencing doc.user.name should produce
-    // a clear error, not an AssertionError from Calcite's SqlItemOperator via
-    // MapPathPreMaterializer.
+    // doc is a VARCHAR field. Referencing doc.user.name should produce
+    // a clear error, not an AssertionError from QualifiedNameResolver.
     Throwable e =
         assertThrowsWithReplace(
             IllegalArgumentException.class,
