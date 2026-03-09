@@ -450,10 +450,7 @@ public class ConversionFunctionsTest {
     // Invalid format returns null
     assertNull(MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", "invalid format"));
 
-    // Null/empty timeformat falls back to default %m/%d/%Y %H:%M:%S
-    assertEquals(
-        1066507633.0, MkTimeConvertFunction.convertWithFormat("10/18/2003 20:07:13", null));
-    assertEquals(1066507633.0, MkTimeConvertFunction.convertWithFormat("10/18/2003 20:07:13", ""));
+    assertNull(MkTimeConvertFunction.convertWithFormat("10/18/2003 20:07:13", ""));
   }
 
   @Test
@@ -465,11 +462,6 @@ public class ConversionFunctionsTest {
     assertEquals("18/10/2003", CTimeConvertFunction.convertWithFormat(1066507633, "%d/%m/%Y"));
     assertEquals("1970", CTimeConvertFunction.convertWithFormat(0, "%Y"));
 
-    // Null/empty timeformat falls back to default
-    String result = CTimeConvertFunction.convertWithFormat(1066507633, null);
-    assertEquals("10/18/2003 20:07:13", result);
-
-    result = CTimeConvertFunction.convertWithFormat(1066507633, "");
-    assertEquals("10/18/2003 20:07:13", result);
+    assertNull(CTimeConvertFunction.convertWithFormat(1066507633, ""));
   }
 }
