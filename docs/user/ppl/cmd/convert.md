@@ -26,10 +26,10 @@ The `convert` command supports the following parameters.
 | Function | Description |
 | --- | --- |
 | `auto(field)` | Automatically converts fields to numbers using intelligent conversion. Handles memory sizes (k/m/g), commas, units, and scientific notation. Returns `null` for non-convertible values. |
-| `ctime(field)` | Converts a UNIX epoch timestamp to a human-readable time string. Uses the `timeformat` parameter if specified, otherwise defaults to `%m/%d/%Y %H:%M:%S`. |
+| `ctime(field)` | Converts a UNIX epoch timestamp to a human-readable time string. Uses the `timeformat` parameter if specified, otherwise defaults to `%m/%d/%Y %H:%M:%S`. All timestamps are interpreted in UTC timezone. |
 | `dur2sec(field)` | Converts a duration string in `HH:MM:SS` format to total seconds. Hours must be less than 24. Returns `null` for invalid formats. |
 | `memk(field)` | Converts memory size strings to kilobytes. Accepts numbers with optional k/m/g suffix (case-insensitive). Default unit is kilobytes. Returns `null` for invalid formats. |
-| `mktime(field)` | Converts a human-readable time string to a UNIX epoch timestamp. Uses the `timeformat` parameter if specified, otherwise defaults to `%m/%d/%Y %H:%M:%S`. |
+| `mktime(field)` | Converts a human-readable time string to a UNIX epoch timestamp. Uses the `timeformat` parameter if specified, otherwise defaults to `%m/%d/%Y %H:%M:%S`. Input strings are interpreted as UTC timezone. |
 | `mstime(field)` | Converts a time string in `[MM:]SS.SSS` format to total seconds. The minutes portion is optional. Returns `null` for invalid formats. |
 | `none(field)` | No-op function that preserves the original field value. |
 | `num(field)` | Extracts leading numbers from strings. For strings without letters: removes commas as thousands separators. For strings with letters: extracts leading number, stops at letters or commas. Returns `null` for non-convertible values. |
