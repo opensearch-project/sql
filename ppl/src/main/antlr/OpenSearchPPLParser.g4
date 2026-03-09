@@ -547,7 +547,7 @@ convertCommand
    ;
 
 convertFunction
-   : functionName = ident LT_PRTHS wcFieldExpression RT_PRTHS (AS alias = fieldExpression)?
+   : functionName = ident LT_PRTHS fieldExpression RT_PRTHS (AS alias = fieldExpression)?
    ;
 
 trendlineCommand
