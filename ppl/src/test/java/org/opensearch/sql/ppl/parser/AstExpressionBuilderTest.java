@@ -66,6 +66,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
@@ -225,6 +226,35 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
     assertEqual(
         "source=t | where a LiKe 'pattern'",
         filter(relation("t"), compare("ilike", field("a"), stringLiteral("pattern"))));
+  }
+
+  @Test
+  public void testContainsOperatorExpr() {
+    assertEqual(
+        "source=t | where a contains 'hello'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%hello%"))));
+
+    assertEqual(
+        "source=t | where message contains 'err'",
+        filter(relation("t"), compare("ilike", field("message"), stringLiteral("%err%"))));
+  }
+
+  @Test
+  public void testContainsOperatorCaseInsensitive() {
+    assertEqual(
+        "source=t | where a CONTAINS 'hello'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%hello%"))));
+
+    assertEqual(
+        "source=t | where a Contains 'hello'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%hello%"))));
+  }
+
+  @Test
+  public void testContainsOperatorNonLiteralRhsThrows() {
+    assertThrows(
+        SemanticCheckException.class,
+        () -> assertEqual("source=t | where a contains b", (Node) null));
   }
 
   @Test

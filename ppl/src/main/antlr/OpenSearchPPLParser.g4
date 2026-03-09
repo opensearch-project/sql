@@ -1444,6 +1444,7 @@ positionFunctionName
    | REGEXP
    | LIKE
    | ILIKE
+   | CONTAINS
    ;
 
 singleFieldRelevanceFunctionName
@@ -1609,6 +1610,7 @@ searchableKeyWord
    | ELSE
    | ARROW
    | BETWEEN
+   | CONTAINS
    | EXISTS
    | SOURCE
    | INDEX
