@@ -1,9 +1,10 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalFilter(condition=[>($1, 29)])
-        LogicalProject(projects.name=[$3], proj_name_len=[CHAR_LENGTH($3)])
-          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_deep_nested]])
+      LogicalProject(projects.name=[$0], proj_name_len=[$1])
+        LogicalFilter(condition=[>($1, 29)])
+          LogicalProject(projects.name=[$3], proj_name_len=[CHAR_LENGTH($3)])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_deep_nested]])
   physical: |
     EnumerableCalc(expr#0=[{inputs}], expr#1=[CHAR_LENGTH($t0)], proj#0..1=[{exprs}])
       CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_deep_nested]], PushDownContext=[[PROJECT->[projects.name], SCRIPT->>(CHAR_LENGTH($0), 29), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"nested":{"query":{"script":{"script":{"source":"{\"langType\":\"calcite\",\"script\":\"rO0ABXQCHHsKICAib3AiOiB7CiAgICAibmFtZSI6ICI8IiwKICAgICJraW5kIjogIkxFU1NfVEhBTiIsCiAgICAic3ludGF4IjogIkJJTkFSWSIKICB9LAogICJvcGVyYW5kcyI6IFsKICAgIHsKICAgICAgImR5bmFtaWNQYXJhbSI6IDAsCiAgICAgICJ0eXBlIjogewogICAgICAgICJ0eXBlIjogIkJJR0lOVCIsCiAgICAgICAgIm51bGxhYmxlIjogdHJ1ZQogICAgICB9CiAgICB9LAogICAgewogICAgICAib3AiOiB7CiAgICAgICAgIm5hbWUiOiAiQ0hBUl9MRU5HVEgiLAogICAgICAgICJraW5kIjogIkNIQVJfTEVOR1RIIiwKICAgICAgICAic3ludGF4IjogIkZVTkNUSU9OIgogICAgICB9LAogICAgICAib3BlcmFuZHMiOiBbCiAgICAgICAgewogICAgICAgICAgImR5bmFtaWNQYXJhbSI6IDEsCiAgICAgICAgICAidHlwZSI6IHsKICAgICAgICAgICAgInR5cGUiOiAiVkFSQ0hBUiIsCiAgICAgICAgICAgICJudWxsYWJsZSI6IHRydWUsCiAgICAgICAgICAgICJwcmVjaXNpb24iOiAtMQogICAgICAgICAgfQogICAgICAgIH0KICAgICAgXQogICAgfQogIF0KfQ==\"}","lang":"opensearch_compounded_script","params":{"utcTimestamp": 0,"SOURCES":[2,0],"DIGESTS":[29,"projects.name"]}},"boost":1.0}},"path":"projects","ignore_unmapped":false,"score_mode":"none","boost":1.0}},"_source":{"includes":["projects.name"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

@@ -31,6 +31,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.logging.log4j.util.Strings;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.patterns.BrainLogParser;
 import org.opensearch.sql.common.patterns.PatternUtils;
@@ -50,7 +51,7 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
             OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.ARRAY, SqlTypeFamily.BOOLEAN)

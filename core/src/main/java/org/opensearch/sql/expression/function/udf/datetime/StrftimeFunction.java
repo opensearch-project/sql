@@ -18,6 +18,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.*;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
@@ -53,14 +54,15 @@ public class StrftimeFunction extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
-    // Accepts (NUMERIC|TIMESTAMP, STRING) -> STRING
-    // Note: STRING is NOT accepted for first parameter - use unix_timestamp() to convert
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
+    // Accepts (NUMERIC|TIMESTAMP|CHARACTER, STRING) -> STRING
+    // CHARACTER is accepted for first parameter to allow string numeric values like '1521467703'
     // Calcite will auto-cast DATE and TIME to TIMESTAMP
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
             OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)
-                .or(OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.CHARACTER)));
+                .or(OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.CHARACTER))
+                .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)));
   }
 
   public static class StrftimeImplementor implements NotNullImplementor {
@@ -144,8 +146,13 @@ public class StrftimeFunction extends ImplementorUDF {
       return (double) value.floatValue();
     }
 
-    // Not a numeric type
-    return null;
+    // Try to parse string values as numeric (handles string literals like '1521467703')
+    try {
+      return Double.parseDouble(value.stringValue());
+    } catch (Exception e) {
+      // Not a parseable numeric string
+      return null;
+    }
   }
 
   /**
