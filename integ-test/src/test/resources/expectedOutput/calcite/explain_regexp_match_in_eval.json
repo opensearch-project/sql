@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(has_hello=[REGEXP_CONTAINS($0, 'hello':VARCHAR)])\n    CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_strings]])\n",
-    "physical": "EnumerableCalc(expr#0=[{inputs}], expr#1=['hello':VARCHAR], expr#2=[REGEXP_CONTAINS($t0, $t1)], has_hello=[$t2])\n  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_strings]], PushDownContext=[[PROJECT->[name], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"name\"],\"excludes\":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])\n"
-  }
-}

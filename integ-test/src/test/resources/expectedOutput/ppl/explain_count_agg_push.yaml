@@ -1,0 +1,12 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[cnt]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
+          \ sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\"\
+          :{\"cnt\":{\"value_count\":{\"field\":\"_index\"}}}}, pitId=*, cursorKeepAlive=null,\
+          \ searchAfter=null, searchResponse=null)"
+      children: []

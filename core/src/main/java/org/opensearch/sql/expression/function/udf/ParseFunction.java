@@ -23,6 +23,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.data.model.ExprValue;
@@ -50,7 +51,7 @@ public final class ParseFunction extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     return PPLOperandTypes.STRING_STRING_STRING;
   }
 

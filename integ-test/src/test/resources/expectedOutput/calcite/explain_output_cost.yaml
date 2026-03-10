@@ -1,21 +1,20 @@
 calcite:
   logical: |
-    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT]): rowcount = 56.25, cumulative cost = {165681.25 rows, 105156.5471810663 cpu, 0.0 io}, id = 7529
-      LogicalProject(age2=[$2]): rowcount = 56.25, cumulative cost = {165625.0 rows, 104256.5471810663 cpu, 0.0 io}, id = 7528
-        LogicalFilter(condition=[<=($3, 1)]): rowcount = 56.25, cumulative cost = {165568.75 rows, 104200.2971810663 cpu, 0.0 io}, id = 7526
-          LogicalProject(avg_age=[$0], state=[$1], age2=[$2], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $2)]): rowcount = 225.0, cumulative cost = {165512.5 rows, 103975.2971810663 cpu, 0.0 io}, id = 7525
-            LogicalFilter(condition=[IS NOT NULL($2)]): rowcount = 225.0, cumulative cost = {165287.5 rows, 103075.2971810663 cpu, 0.0 io}, id = 7524
-              LogicalProject(avg_age=[$0], state=[$1], age2=[+($0, 2)]): rowcount = 500.0, cumulative cost = {165062.5 rows, 102575.2971810663 cpu, 0.0 io}, id = 7523
-                LogicalSort(sort0=[$1], dir0=[ASC-nulls-first]): rowcount = 500.0, cumulative cost = {164562.5 rows, 101075.2971810663 cpu, 0.0 io}, id = 7521
-                  LogicalProject(avg_age=[$2], state=[$0], city=[$1]): rowcount = 500.0, cumulative cost = {164062.5 rows, 26500.0 cpu, 0.0 io}, id = 7520
-                    LogicalAggregate(group=[{0, 1}], avg_age=[AVG($2)]): rowcount = 500.0, cumulative cost = {163562.5 rows, 25000.0 cpu, 0.0 io}, id = 7519
-                      LogicalProject(state=[$7], city=[$5], age=[$8]): rowcount = 5000.0, cumulative cost = {163000.0 rows, 25000.0 cpu, 0.0 io}, id = 7518
-                        LogicalFilter(condition=[>($8, 30)]): rowcount = 5000.0, cumulative cost = {158000.0 rows, 10000.0 cpu, 0.0 io}, id = 7517
-                          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]]): rowcount = 10000.0, cumulative cost = {153000.0 rows, 0.0 cpu, 0.0 io}, id = 7516
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT]): rowcount = 56.25, cumulative cost = {165181.25 rows, 103656.5471810663 cpu, 0.0 io}, id = *
+      LogicalProject(age2=[$2]): rowcount = 56.25, cumulative cost = {165125.0 rows, 102756.5471810663 cpu, 0.0 io}, id = *
+        LogicalFilter(condition=[<=($3, 1)]): rowcount = 56.25, cumulative cost = {165068.75 rows, 102700.2971810663 cpu, 0.0 io}, id = *
+          LogicalProject(avg_age=[$0], state=[$1], age2=[$2], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $2)]): rowcount = 225.0, cumulative cost = {165012.5 rows, 102475.2971810663 cpu, 0.0 io}, id = *
+            LogicalFilter(condition=[IS NOT NULL($2)]): rowcount = 225.0, cumulative cost = {164787.5 rows, 101575.2971810663 cpu, 0.0 io}, id = *
+              LogicalSort(sort0=[$1], dir0=[ASC-nulls-first]): rowcount = 500.0, cumulative cost = {164562.5 rows, 101075.2971810663 cpu, 0.0 io}, id = *
+                LogicalProject(avg_age=[$2], state=[$0], age2=[+($2, 2)]): rowcount = 500.0, cumulative cost = {164062.5 rows, 26500.0 cpu, 0.0 io}, id = *
+                  LogicalAggregate(group=[{0, 1}], avg_age=[AVG($2)]): rowcount = 500.0, cumulative cost = {163562.5 rows, 25000.0 cpu, 0.0 io}, id = *
+                    LogicalProject(state=[$7], city=[$5], age=[$8]): rowcount = 5000.0, cumulative cost = {163000.0 rows, 25000.0 cpu, 0.0 io}, id = *
+                      LogicalFilter(condition=[>($8, 30)]): rowcount = 5000.0, cumulative cost = {158000.0 rows, 10000.0 cpu, 0.0 io}, id = *
+                        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]]): rowcount = 10000.0, cumulative cost = {153000.0 rows, 0.0 cpu, 0.0 io}, id = *
   physical: |
-    EnumerableCalc(expr#0..1=[{inputs}], age2=[$t0]): rowcount = 225.0, cumulative cost = {2981.25 rows, 7950.0 cpu, 0.0 io}, id = 9382
-      EnumerableLimit(fetch=[10000]): rowcount = 225.0, cumulative cost = {2756.25 rows, 7275.0 cpu, 0.0 io}, id = 9374
-        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[<=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3]): rowcount = 225.0, cumulative cost = {2531.25 rows, 7050.0 cpu, 0.0 io}, id = 9378
-          EnumerableWindow(window#0=[window(partition {0} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])]): rowcount = 450.0, cumulative cost = {2306.25 rows, 3900.0 cpu, 0.0 io}, id = 9370
-            EnumerableCalc(expr#0=[{inputs}], expr#1=[2], expr#2=[+($t0, $t1)], expr#3=[IS NOT NULL($t0)], $0=[$t2], $condition=[$t3]): rowcount = 450.0, cumulative cost = {1856.25 rows, 3000.0 cpu, 0.0 io}, id = 9386
-              CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[FILTER->>($2, 30), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 1},avg_age=AVG($2)), PROJECT->[avg_age, state], SORT->[1 ASC FIRST], PROJECT->[avg_age]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"range":{"age":{"from":30,"to":null,"include_lower":false,"include_upper":true,"boost":1.0}}},"aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"state":{"terms":{"field":"state.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}},{"city":{"terms":{"field":"city.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"avg_age":{"avg":{"field":"age"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)]): rowcount = 500.0, cumulative cost = {1406.25 rows, 0.0 cpu, 0.0 io}, id = 9090
+    EnumerableCalc(expr#0..1=[{inputs}], age2=[$t0]): rowcount = 225.0, cumulative cost = {2981.25 rows, 7950.0 cpu, 0.0 io}, id = *
+      EnumerableLimit(fetch=[10000]): rowcount = 225.0, cumulative cost = {2756.25 rows, 7275.0 cpu, 0.0 io}, id = *
+        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[<=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3]): rowcount = 225.0, cumulative cost = {2531.25 rows, 7050.0 cpu, 0.0 io}, id = *
+          EnumerableWindow(window#0=[window(partition {0} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])]): rowcount = 450.0, cumulative cost = {2306.25 rows, 3900.0 cpu, 0.0 io}, id = *
+            EnumerableCalc(expr#0=[{inputs}], expr#1=[2], expr#2=[+($t0, $t1)], expr#3=[IS NOT NULL($t0)], $0=[$t2], $condition=[$t3]): rowcount = 450.0, cumulative cost = {1856.25 rows, 3000.0 cpu, 0.0 io}, id = *
+              CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[FILTER->>($2, 30), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 1},avg_age=AVG($2)), SORT->[0 ASC FIRST], PROJECT->[avg_age]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"range":{"age":{"from":30,"to":null,"include_lower":false,"include_upper":true,"boost":1.0}}},"aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"state":{"terms":{"field":"state.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}},{"city":{"terms":{"field":"city.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"avg_age":{"avg":{"field":"age"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)]): rowcount = 500.0, cumulative cost = {1406.25 rows, 0.0 cpu, 0.0 io}, id = *
