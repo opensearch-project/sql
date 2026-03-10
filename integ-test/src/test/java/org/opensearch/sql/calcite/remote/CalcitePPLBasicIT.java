@@ -17,7 +17,6 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLBasicIT extends PPLIntegTestCase {
@@ -129,6 +128,8 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
 
   @Test
   public void testRegexpFilter() throws IOException {
+    // REGEXP is not supported in calcite script engine for pushdown
+    enabledOnlyWhenPushdownIsDisabled();
     JSONObject actual = executeQuery("source=test | where name REGEXP 'he.*' | fields name, age");
     verifySchema(actual, schema("name", "string"), schema("age", "bigint"));
     verifyDataRows(actual, rows("hello", 20));
@@ -455,16 +456,15 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testBetweenWithIncompatibleTypes() {
-    Throwable e =
-        assertThrowsWithReplace(
-            SemanticCheckException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | where age between '35' and 38.5 | fields firstname, age",
-                        TEST_INDEX_BANK)));
-    verifyErrorMessageContains(e, "BETWEEN expression types are incompatible");
+  public void testBetweenWithIncompatibleTypes() throws IOException {
+    // Type coercion now handles mixed types in BETWEEN - '35' is coerced to numeric
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age between '35' and 38.5 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
+    verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
 
   @Test

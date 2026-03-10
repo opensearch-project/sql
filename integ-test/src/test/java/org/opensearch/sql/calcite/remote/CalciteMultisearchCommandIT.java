@@ -152,10 +152,10 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
     verifySchema(
         result,
-        schema("@timestamp", null, "string"),
+        schema("@timestamp", null, "timestamp"),
         schema("category", null, "string"),
         schema("value", null, "int"),
-        schema("timestamp", null, "string"));
+        schema("timestamp", null, "timestamp"));
 
     verifyDataRows(
         result,

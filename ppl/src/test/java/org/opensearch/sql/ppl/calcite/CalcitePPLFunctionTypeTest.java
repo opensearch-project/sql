@@ -80,10 +80,13 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     verifyQueryThrowsException(
         "source=EMP | eval if_name = if(EMPNO, 1, DEPTNO) | fields if_name",
         "IF function expects {[BOOLEAN,ANY,ANY]}, but got [SHORT,INTEGER,BYTE]");
-    verifyQueryThrowsException(
-        "source=EMP | eval if_name = if(EMPNO > 6, 'Jack', 1) | fields if_name",
-        "Cannot resolve function: IF, arguments: [BOOLEAN,STRING,INTEGER], caused by: Can't find"
-            + " leastRestrictive type for [VARCHAR, INTEGER]");
+    // if(EMPNO > 6, 'Jack', 1) no longer throws - Calcite handles type coercion
+    String ppl = "source=EMP | eval if_name = if(EMPNO > 6, 'Jack', 1) | fields if_name";
+    RelNode root = getRelNode(ppl);
+    verifyLogical(
+        root,
+        "LogicalProject(if_name=[CASE(>($0, 6), 'Jack':VARCHAR, 1)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
   @Test

@@ -130,7 +130,7 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
     verifySchema(
         result,
         schema("category", "string"),
-        schema("timestamp", "string"),
+        schema("timestamp", "timestamp"),
         schema("max(value)", "int"));
     // All data within same week span
     verifyDataRows(
@@ -152,7 +152,7 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
     verifySchema(
         result,
         schema("timestamp", "timestamp"),
-        schema("@timestamp", "string"),
+        schema("@timestamp", "timestamp"),
         schema("max(value)", "int"));
     // Data grouped by day spans
     verifyDataRows(
