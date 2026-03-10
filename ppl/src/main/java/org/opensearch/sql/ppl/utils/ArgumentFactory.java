@@ -211,7 +211,7 @@ public class ArgumentFactory {
   }
 
   /** Helper method to get type argument from sortFieldExpression. */
-  private static Argument getTypeArgument(OpenSearchPPLParser.SortFieldExpressionContext ctx) {
+  public static Argument getTypeArgument(OpenSearchPPLParser.SortFieldExpressionContext ctx) {
     if (ctx.AUTO() != null) {
       return new Argument("type", new Literal("auto", DataType.STRING));
     } else if (ctx.IP() != null) {
