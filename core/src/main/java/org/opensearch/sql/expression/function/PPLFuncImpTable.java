@@ -425,7 +425,8 @@ public class PPLFuncImpTable {
     CalciteFuncSignature signature = new CalciteFuncSignature(functionName.getName(), typeChecker);
     externalFunctionRegistry.put(
         functionName,
-        List.of(Pair.of(signature, (FunctionImp) (builder, args) -> builder.makeCall(operator, args))));
+        List.of(
+            Pair.of(signature, (FunctionImp) (builder, args) -> builder.makeCall(operator, args))));
   }
 
   /**
