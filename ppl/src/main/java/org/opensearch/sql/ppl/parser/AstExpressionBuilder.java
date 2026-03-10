@@ -324,8 +324,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   private Field buildSortField(
-      OpenSearchPPLParser.SortFieldExpressionContext sortFieldExpr,
-      boolean ascending) {
+      OpenSearchPPLParser.SortFieldExpressionContext sortFieldExpr, boolean ascending) {
     UnresolvedExpression fieldExpression = visit(sortFieldExpr.fieldExpression().qualifiedName());
 
     if (sortFieldExpr.IP() != null) {
@@ -337,10 +336,10 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     }
     // AUTO() case uses the field expression as-is
 
-    List<Argument> arguments = Arrays.asList(
-        new Argument("asc", new Literal(ascending, DataType.BOOLEAN)),
-        ArgumentFactory.getTypeArgument(sortFieldExpr)
-    );
+    List<Argument> arguments =
+        Arrays.asList(
+            new Argument("asc", new Literal(ascending, DataType.BOOLEAN)),
+            ArgumentFactory.getTypeArgument(sortFieldExpr));
     return new Field(fieldExpression, arguments);
   }
 
