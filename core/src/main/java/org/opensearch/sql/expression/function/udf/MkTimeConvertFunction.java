@@ -73,21 +73,16 @@ public class MkTimeConvertFunction extends ImplementorUDF {
   }
 
   public static Object convertWithFormat(Object value, Object timeFormatObj) {
+    Double numeric = CTimeConvertFunction.toEpochSeconds(value);
+    if (numeric != null) {
+      return numeric;
+    }
     if (value == null) {
       return null;
-    }
-    if (value instanceof Number) {
-      return ((Number) value).doubleValue();
     }
     String str = value instanceof String ? ((String) value).trim() : value.toString().trim();
     if (str.isEmpty()) {
       return null;
-    }
-    // If already numeric, return as-is
-    try {
-      return Double.parseDouble(str);
-    } catch (NumberFormatException ignored) {
-      // Not a number, proceed with date parsing
     }
 
     String strftimeFormat =

@@ -83,7 +83,7 @@ public class CTimeConvertFunction extends ImplementorUDF {
     }
   }
 
-  static Double toEpochSeconds(Object value) {
+  public static Double toEpochSeconds(Object value) {
     if (value == null) {
       return null;
     }

@@ -276,13 +276,13 @@ public class StrftimeFormatterUtil {
    * @return a Java DateTimeFormatter pattern (e.g. {@code yyyy-MM-dd HH:mm:ss})
    */
   public static String toJavaPattern(String strftimeFormat) {
-    String result = strftimeFormat;
-    for (Map.Entry<String, String> entry : STRFTIME_TO_JAVA_PARSE.entrySet()) {
-      String specifier = entry.getKey();
-      if (result.contains(specifier)) {
-        result = result.replace(specifier, entry.getValue());
-      }
+    Matcher m = Pattern.compile("%[A-Za-z%]").matcher(strftimeFormat);
+    StringBuilder sb = new StringBuilder();
+    while (m.find()) {
+      String replacement = STRFTIME_TO_JAVA_PARSE.getOrDefault(m.group(), m.group());
+      m.appendReplacement(sb, Matcher.quoteReplacement(replacement));
     }
-    return result;
+    m.appendTail(sb);
+    return sb.toString();
   }
 }
