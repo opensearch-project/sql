@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CASCADED_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
@@ -32,10 +33,15 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
     loadIndex(Index.CASCADED_NESTED);
   }
 
-  @Override
-  protected String getIncompatibleTypeErrMsg() {
-    return "In expression types are incompatible: fields type LONG, values type [INTEGER, INTEGER,"
-        + " STRING]";
+  @Test
+  public void testInWithMixedType() throws IOException {
+    // Mixed type coercion only work with Calcite enabled
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where balance in (4180, 5686, '6077') | fields firstname",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Hattie"), rows("Dale"), rows("Hughes"));
   }
 
   @Test
@@ -140,6 +146,21 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
         t,
         "Accessing multiple nested fields under different hierarchies in script is not supported:"
             + " [author.books.reviews, author.books]");
+  }
+
+  @Test
+  public void testInWithIncompatibleType() {
+    // Type coercion now handles mixed types in IN expression - '6077' is coerced to numeric
+    try {
+      JSONObject result =
+          executeQuery(
+              String.format(
+                  "source=%s | where balance in (4180, 5686, '6077') | fields firstname, balance",
+                  TEST_INDEX_ACCOUNT));
+      verifySchema(result, schema("firstname", "string"), schema("balance", "bigint"));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test

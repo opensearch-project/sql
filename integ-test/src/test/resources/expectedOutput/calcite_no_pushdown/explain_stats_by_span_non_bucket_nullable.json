@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(count()=[$1], span(age,10)=[$0])\n    LogicalAggregate(group=[{0}], count()=[COUNT()])\n      LogicalProject(span(age,10)=[SPAN($10, 10, null:NULL)])\n        LogicalFilter(condition=[IS NOT NULL($10)])\n          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n",
-    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..1=[{inputs}], count()=[$t1], span(age,10)=[$t0])\n    EnumerableAggregate(group=[{0}], count()=[COUNT()])\n      EnumerableCalc(expr#0..18=[{inputs}], expr#19=[10], expr#20=[null:NULL], expr#21=[SPAN($t10, $t19, $t20)], expr#22=[IS NOT NULL($t10)], span(age,10)=[$t21], $condition=[$t22])\n        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n"
-  }
-}

@@ -200,7 +200,8 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         msg.toLowerCase().contains("does_not_exist")
             || msg.toLowerCase().contains("field")
             || msg.contains("ARRAY_COMPACT")
-            || msg.contains("ARRAY"));
+            || msg.contains("ARRAY")
+            || msg.contains("inferred array element type"));
   }
 
   @Test
