@@ -220,7 +220,9 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         throw new SemanticCheckException(
             "The right-hand side of 'contains' must be a string literal");
       }
-      String wrapped = "%" + ((Literal) right).getValue() + "%";
+      String raw = ((Literal) right).getValue().toString();
+      String escaped = raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+      String wrapped = "%" + escaped + "%";
       return new Compare(ILIKE.getName().getFunctionName(), left, new Literal(wrapped, DataType.STRING));
     } else if (LIKE.getName().getFunctionName().equalsIgnoreCase(operator)
         && UnresolvedPlanHelper.isCalciteEnabled(astBuilder.getSettings())) {

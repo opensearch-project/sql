@@ -258,6 +258,30 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testContainsOperatorEscapesSpecialChars() {
+    // % must be escaped so it is treated as a literal character, not a wildcard
+    assertEqual(
+        "source=t | where a contains '%'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%\\%%"))));
+
+    // _ must be escaped so it is treated as a literal character, not a single-char wildcard
+    assertEqual(
+        "source=t | where a contains '_'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%\\_%"))));
+
+    // backslash in PPL is written as '\\'; unquotes to \, then escaped to \\ in the pattern
+    // Java: "source=t | where a contains '\\\\'" produces PPL: source=t | where a contains '\\'
+    assertEqual(
+        "source=t | where a contains '\\\\'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%\\\\%"))));
+
+    // mixed special characters are all escaped
+    assertEqual(
+        "source=t | where a contains 'foo%bar_baz'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%foo\\%bar\\_baz%"))));
+  }
+
+  @Test
   public void testBooleanIsNullFunction() {
     assertEqual(
         "source=t | where isnull(a)", filter(relation("t"), function("is null", field("a"))));
