@@ -27,14 +27,10 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralCon
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ChartCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DefaultSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EventstatsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PrefixSortFieldContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StreamstatsCommandContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SuffixSortFieldContext;
 import org.opensearch.sql.ppl.parser.AstExpressionBuilder;
 
 /** Util class to get all arguments as a list from the PPL command. */
@@ -155,59 +151,13 @@ public class ArgumentFactory {
   }
 
   /**
-   * Get list of {@link Argument}.
+   * Creates an "asc" argument for sort field direction.
    *
-   * @param ctx SortFieldContext instance
-   * @return the list of arguments fetched from the sort field in sort command
+   * @param ascending true for ascending sort, false for descending
+   * @return Argument representing the sort direction
    */
-  public static List<Argument> getArgumentList(SortFieldContext ctx) {
-    if (ctx instanceof PrefixSortFieldContext) {
-      return getArgumentList((PrefixSortFieldContext) ctx);
-    } else if (ctx instanceof SuffixSortFieldContext) {
-      return getArgumentList((SuffixSortFieldContext) ctx);
-    } else {
-      return getArgumentList((DefaultSortFieldContext) ctx);
-    }
-  }
-
-  /**
-   * Get list of {@link Argument} for prefix sort field (+/- syntax).
-   *
-   * @param ctx PrefixSortFieldContext instance
-   * @return the list of arguments fetched from the prefix sort field
-   */
-  public static List<Argument> getArgumentList(PrefixSortFieldContext ctx) {
-    return Arrays.asList(
-        ctx.MINUS() != null
-            ? new Argument("asc", new Literal(false, DataType.BOOLEAN))
-            : new Argument("asc", new Literal(true, DataType.BOOLEAN)),
-        getTypeArgument(ctx.sortFieldExpression()));
-  }
-
-  /**
-   * Get list of {@link Argument} for suffix sort field (asc/desc syntax).
-   *
-   * @param ctx SuffixSortFieldContext instance
-   * @return the list of arguments fetched from the suffix sort field
-   */
-  public static List<Argument> getArgumentList(SuffixSortFieldContext ctx) {
-    return Arrays.asList(
-        (ctx.DESC() != null || ctx.D() != null)
-            ? new Argument("asc", new Literal(false, DataType.BOOLEAN))
-            : new Argument("asc", new Literal(true, DataType.BOOLEAN)),
-        getTypeArgument(ctx.sortFieldExpression()));
-  }
-
-  /**
-   * Get list of {@link Argument} for default sort field (no direction specified).
-   *
-   * @param ctx DefaultSortFieldContext instance
-   * @return the list of arguments fetched from the default sort field
-   */
-  public static List<Argument> getArgumentList(DefaultSortFieldContext ctx) {
-    return Arrays.asList(
-        new Argument("asc", new Literal(true, DataType.BOOLEAN)),
-        getTypeArgument(ctx.sortFieldExpression()));
+  public static Argument createSortDirectionArgument(boolean ascending) {
+    return new Argument("asc", new Literal(ascending, DataType.BOOLEAN));
   }
 
   /** Helper method to get type argument from sortFieldExpression. */

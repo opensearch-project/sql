@@ -338,7 +338,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
     List<Argument> arguments =
         Arrays.asList(
-            new Argument("asc", new Literal(ascending, DataType.BOOLEAN)),
+            ArgumentFactory.createSortDirectionArgument(ascending),
             ArgumentFactory.getTypeArgument(sortFieldExpr));
     return new Field(fieldExpression, arguments);
   }
