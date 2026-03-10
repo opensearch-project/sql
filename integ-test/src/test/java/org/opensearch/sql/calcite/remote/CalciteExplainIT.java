@@ -2664,7 +2664,8 @@ public class CalciteExplainIT extends ExplainIT {
         StringUtils.format(
             "source=%s firstname=Amber | where male = 'TRUE' | fields firstname", TEST_INDEX_BANK);
     var result = explainQueryYaml(query);
-    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean.yaml");
+    String expected =
+        loadExpectedPlan("explain_filter_query_string_with_boolean_string_literal.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 

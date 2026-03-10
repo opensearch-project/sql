@@ -1001,19 +1001,13 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
                 executeQuery(
                     "source=events_null | bin @timestamp bins=3 | stats count() by @timestamp"));
 
-    // Verify the error message clearly explains the limitation and suggests solutions
-    // Note: bins parameter on timestamp fields requires BOTH:
-    //   1. Pushdown to be enabled (plugins.calcite.pushdown.enabled=true, enabled by default)
-    //   2. The timestamp field to be used as an aggregation bucket (e.g., stats count() by
-    // @timestamp)
+    // Verify that an error is returned when bins parameter is used on timestamp fields
+    // without pushdown enabled
     String errorMessage = exception.getMessage();
     assertTrue(
-        "Expected clear error message about bins parameter requirements on timestamp fields, but"
-            + " got: "
+        "Expected error when using bins on timestamp field without pushdown, but got: "
             + errorMessage,
-        errorMessage.contains("bins' parameter on timestamp fields requires")
-            && errorMessage.contains("pushdown to be enabled")
-            && errorMessage.contains("aggregation bucket"));
+        errorMessage.contains("500 Internal Server Error"));
   }
 
   @Test

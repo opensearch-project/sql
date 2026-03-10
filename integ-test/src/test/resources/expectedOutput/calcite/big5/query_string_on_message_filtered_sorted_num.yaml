@@ -6,7 +6,7 @@ calcite:
           LogicalFilter(condition=[AND(>=($17, TIMESTAMP('2023-01-03 00:00:00':VARCHAR)), <($17, TIMESTAMP('2023-01-03 10:00:00':VARCHAR)), query_string(MAP('fields', MAP('message':VARCHAR, 1.0E0:DOUBLE)), MAP('query', 'monkey jackal bear':VARCHAR)))])
             CalciteLogicalIndexScan(table=[[OpenSearch, big5]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, big5]], PushDownContext=[[PROJECT->[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream, meta, host, metrics, aws, event], FILTER->AND(SEARCH($7, Sarg[['2023-01-03 00:00:00':VARCHAR..'2023-01-03 10:00:00':VARCHAR)]:VARCHAR), query_string(MAP('fields', MAP('message':VARCHAR, 1.0E0:DOUBLE)), MAP('query', 'monkey jackal bear':VARCHAR))), SORT->[{
+    CalciteEnumerableIndexScan(table=[[OpenSearch, big5]], PushDownContext=[[PROJECT->[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream, meta, host, metrics, aws, event], FILTER->AND(SEARCH($7, Sarg[['2023-01-03 00:00:00':EXPR_TIMESTAMP VARCHAR..'2023-01-03 10:00:00':EXPR_TIMESTAMP VARCHAR)]:EXPR_TIMESTAMP VARCHAR), query_string(MAP('fields':VARCHAR, MAP('message':VARCHAR, 1.0E0:DOUBLE)), MAP('query':VARCHAR, 'monkey jackal bear':VARCHAR))), SORT->[{
       "@timestamp" : {
         "order" : "asc",
         "missing" : "_first"
