@@ -8,7 +8,7 @@ package org.opensearch.sql.calcite.utils.binning;
 import lombok.Getter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 /** Represents a field that supports binning operations. */
@@ -33,8 +33,8 @@ public class BinnableField {
     this.fieldType = fieldType;
     this.fieldName = fieldName;
 
-    this.isTimeBased = OpenSearchTypeFactory.isTimeBasedType(fieldType);
-    this.isNumeric = OpenSearchTypeFactory.isNumericType(fieldType);
+    this.isTimeBased = OpenSearchTypeUtil.isDatetime(fieldType);
+    this.isNumeric = OpenSearchTypeUtil.isNumericOrCharacter(fieldType);
 
     // Reject truly unsupported types (e.g., BOOLEAN, ARRAY, MAP)
     if (!isNumeric && !isTimeBased) {

@@ -65,13 +65,11 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
             "source=EMP | spath input=ENAME output=result"
                 + " | eval age = result.user.age + 1 | fields age")
         .expectLogical(
-            "LogicalProject(age=[+(SAFE_CAST(ITEM(JSON_EXTRACT_ALL($1),"
-                + " 'user.age')), 1.0E0)])\n"
+            "LogicalProject(age=[+(ITEM(JSON_EXTRACT_ALL($1),"
+                + " 'user.age'), 1)])\n"
                 + "  LogicalTableScan(table=[[scott, EMP]])\n")
         .expectSparkSQL(
-            "SELECT TRY_CAST(JSON_EXTRACT_ALL(`ENAME`)['user.age']"
-                + " AS DOUBLE) + 1.0E0 `age`\n"
-                + "FROM `scott`.`EMP`");
+            "SELECT JSON_EXTRACT_ALL(`ENAME`)['user.age'] + 1 `age`\n" + "FROM `scott`.`EMP`");
   }
 
   @Test

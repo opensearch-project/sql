@@ -356,7 +356,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT AVG(`SAL`) `avg(SAL)`, `DEPTNO`\n"
+        "SELECT\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
+            + "AVG(`SAL`) `avg(SAL)`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL\n"
             + "GROUP BY `DEPTNO`";
@@ -957,7 +959,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT AVG(`SAL`) `avg`, `DEPTNO`\n"
+        "SELECT\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
+            + "AVG(`SAL`) `avg`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL\n"
             + "GROUP BY `DEPTNO`\n"
@@ -982,7 +986,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT AVG(`SAL`) `avg`, SPAN(`HIREDATE`, 1, 'y') `hiredate_span`\n"
+        "SELECT\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
+            + "AVG(`SAL`) `avg`, SPAN(`HIREDATE`, 1, 'y') `hiredate_span`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `HIREDATE` IS NOT NULL\n"
             + "GROUP BY SPAN(`HIREDATE`, 1, 'y')\n"
@@ -1033,7 +1039,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT *\n"
-            + "FROM (SELECT AVG(`SAL`) `avg`, `DEPTNO`\n"
+            + "FROM (SELECT\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
+            + "AVG(`SAL`) `avg`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL\n"
             + "GROUP BY `DEPTNO`) `t2`\n"

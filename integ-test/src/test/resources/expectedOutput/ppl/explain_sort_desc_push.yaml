@@ -1,0 +1,14 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[age, firstname]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
+          \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"_source\"\
+          :{\"includes\":[\"age\",\"firstname\"],\"excludes\":[]},\"sort\":[{\"age\"\
+          :{\"order\":\"desc\",\"missing\":\"_last\"}},{\"firstname.keyword\":{\"\
+          order\":\"asc\",\"missing\":\"_first\"}}]}, pitId=*,\
+          \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+      children: []

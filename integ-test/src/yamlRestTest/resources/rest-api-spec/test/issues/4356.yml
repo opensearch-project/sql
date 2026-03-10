@@ -83,8 +83,9 @@ teardown:
       ppl:
         body:
           query: source=log00001 | rex field=v 'value=(?<digits>[\\w\\d\\.]*)' | eval m=digits * 10 | eval d=digits/10 | sort a | fields m, d
-  - match: {"schema": [{"name": "m", "type": "double"}, {"name": "d", "type": "double"}]}
-  - match: {"datarows": [[10.0, 0.1], [15.0, 0.15], [null, null], [null, null]]}
+  - match: {"schema": [{"name": "m", "type": "int"}, {"name": "d", "type": "double"}]}
+  # As the second operand is integer, the first string operand is cast to integer as well. "1.5" is not a valid string, so the second row becomes [null, 0.15]
+  - match: {"datarows": [[10, 0.1], [null, 0.15], [null, null], [null, null]]}
 
   - do:
       allowed_warnings:
@@ -105,8 +106,9 @@ teardown:
       ppl:
         body:
           query: source=log00002 | eval m="5" - 10 | eval r=round("1.5",  1) | eval f=floor("5.2") | eval c=ceil("5.2") | fields m, r, f, c
-  - match: { "schema": [ { "name": "m", "type": "double" }, { "name": "r", "type": "double" }, { "name": "f", "type": "double" }, { "name": "c", "type": "double" }] }
-  - match: { "datarows": [ [ -5.0, 1.5, 5.0, 6.0] ] }
+  # "5" in `"5" - 10` is cast to integer as the second argument is integer.
+  - match: { "schema": [ { "name": "m", "type": "int" }, { "name": "r", "type": "double" }, { "name": "f", "type": "double" }, { "name": "c", "type": "double" }] }
+  - match: { "datarows": [ [ -5, 1.5, 5.0, 6.0] ] }
 
 ---
 "Extracted value participate in comparison operator":
@@ -123,7 +125,8 @@ teardown:
         body:
           query: source=log00001 | rex field=v 'value=(?<digits>[\\w\\d\\.]*)' | eval i=digits==vint, d=digits==vdouble, b=digits==vboolean| fields i, d, b
   - match: {"schema": [{"name": "i", "type": "boolean"}, {"name": "d", "type": "boolean"}, {"name": "b", "type": "boolean"}]}
-  - match: {"datarows": [[true,true,null], [false,true,null], [null, null, true], [null, null, null]]}
+  # Same as the above arithmetic operator case, "1.5" fails to be cased to integer, so the second row becomes [null,true,null]
+  - match: {"datarows": [[true,true,null], [null,true,null], [null, null, true], [null, null, null]]}
 
   - do:
       allowed_warnings:
