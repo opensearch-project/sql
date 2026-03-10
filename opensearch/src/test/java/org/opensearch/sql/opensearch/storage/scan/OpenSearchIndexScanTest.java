@@ -174,7 +174,7 @@ class OpenSearchIndexScanTest {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
   }
 
   @Test
@@ -200,7 +200,7 @@ class OpenSearchIndexScanTest {
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
           () -> assertFalse(indexScan.hasNext()));
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
   }
 
   static final OpenSearchRequest.IndexName EMPLOYEES_INDEX =
@@ -228,7 +228,7 @@ class OpenSearchIndexScanTest {
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
           () -> assertFalse(indexScan.hasNext()));
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
   }
 
   @Test
@@ -255,7 +255,7 @@ class OpenSearchIndexScanTest {
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
           () -> assertFalse(indexScan.hasNext()));
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
   }
 
   @Test
@@ -278,7 +278,7 @@ class OpenSearchIndexScanTest {
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
           () -> assertFalse(indexScan.hasNext()));
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
   }
 
   static void mockTwoPageResponse(OpenSearchClient client) {
@@ -311,7 +311,7 @@ class OpenSearchIndexScanTest {
           () -> assertEquals(employee(2, "Smith", "HR"), indexScan.next()),
           () -> assertFalse(indexScan.hasNext()));
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
   }
 
   @Test

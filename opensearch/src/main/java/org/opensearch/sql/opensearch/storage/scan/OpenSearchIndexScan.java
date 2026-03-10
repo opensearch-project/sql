@@ -108,7 +108,26 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   public void close() {
     super.close();
 
-    client.cleanup(request);
+    if (request.hasAnotherBatch()) {
+      // PIT is still needed for the next page — only clean up the in-memory state
+      // without deleting the PIT from OpenSearch.
+      client.cleanup(request);
+    } else {
+      // No more pages expected (last page consumed, non-paginated query, or error path).
+      // Force delete the PIT to prevent leaking.
+      client.forceCleanup(request);
+    }
+  }
+
+  /**
+   * Force cleanup of server-side resources (PIT) regardless of pagination state. Used by {@link
+   * org.opensearch.sql.planner.physical.CursorCloseOperator} when the client explicitly closes a
+   * cursor mid-pagination.
+   */
+  @Override
+  public void forceClose() {
+    super.close();
+    client.forceCleanup(request);
   }
 
   @Override

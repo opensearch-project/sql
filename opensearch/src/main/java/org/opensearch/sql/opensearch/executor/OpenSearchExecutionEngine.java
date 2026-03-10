@@ -145,6 +145,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             listener.onResponse(openSearchExplain.apply(plan));
           } catch (Exception e) {
             listener.onFailure(e);
+          } finally {
+            plan.close();
           }
         });
   }
