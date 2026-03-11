@@ -18,6 +18,7 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.digest.MessageDigestAlgorithms;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -30,7 +31,7 @@ public abstract class CryptographicFunction extends ImplementorUDF {
   public static CryptographicFunction sha2() {
     return new CryptographicFunction(new Sha2Implementor(), NullPolicy.ANY) {
       @Override
-      public UDFOperandMetadata getOperandMetadata() {
+      public @NonNull UDFOperandMetadata getOperandMetadata() {
         return PPLOperandTypes.STRING_INTEGER;
       }
     };

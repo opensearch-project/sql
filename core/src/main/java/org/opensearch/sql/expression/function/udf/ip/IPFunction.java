@@ -11,9 +11,17 @@ import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -39,9 +47,29 @@ public class IPFunction extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrapUDT(
-        List.of(List.of(ExprCoreType.IP), List.of(ExprCoreType.STRING)));
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(
+        new SqlOperandTypeChecker() {
+          @Override
+          public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+            RelDataType type = callBinding.getOperandType(0);
+            boolean valid = OpenSearchTypeUtil.isIp(type) || OpenSearchTypeUtil.isCharacter(type);
+            if (!valid && throwOnFailure) {
+              throw callBinding.newValidationSignatureError();
+            }
+            return valid;
+          }
+
+          @Override
+          public SqlOperandCountRange getOperandCountRange() {
+            return SqlOperandCountRanges.of(1);
+          }
+
+          @Override
+          public String getAllowedSignatures(SqlOperator op, String opName) {
+            return "IP(<IP>), IP(<STRING>)";
+          }
+        });
   }
 
   @Override

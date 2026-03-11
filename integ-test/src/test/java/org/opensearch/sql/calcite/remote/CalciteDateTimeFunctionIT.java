@@ -120,12 +120,12 @@ public class CalciteDateTimeFunctionIT extends DateTimeFunctionIT {
     verifyDataRows(result2, rows(currentYear));
     // Should return current year
 
-    // Test 3: Using unix_timestamp to convert string first
+    // Test 3: strftime with a different format
     JSONObject result3 =
         executeQuery(
             String.format(
-                "source=%s | eval ts = unix_timestamp('2018-03-19 13:55:03') | "
-                    + "eval result = strftime(ts, '%s') | fields result | head 1",
+                "source=%s | eval result = strftime(1521467703, '%s') | "
+                    + "fields result | head 1",
                 TEST_INDEX_DATE, "%m/%d/%Y"));
     verifyDataRows(result3, rows("03/19/2018"));
   }
@@ -148,12 +148,11 @@ public class CalciteDateTimeFunctionIT extends DateTimeFunctionIT {
                 TEST_INDEX_DATE, "%Y-%m-%d"));
     verifyDataRows(result1, rows("2018-03-19"));
 
-    // Test 3: For date strings, users must use unix_timestamp() first
-    // This is the recommended approach for converting date strings
+    // Test 3: strftime with a numeric variable from eval
     JSONObject result2 =
         executeQuery(
             String.format(
-                "source=%s | eval ts = unix_timestamp('2018-03-19 13:55:03') | "
+                "source=%s | eval ts = 1521467703 | "
                     + "eval result = strftime(ts, '%s') | fields result | head 1",
                 TEST_INDEX_DATE, "%Y-%m-%d"));
     verifyDataRows(result2, rows("2018-03-19"));

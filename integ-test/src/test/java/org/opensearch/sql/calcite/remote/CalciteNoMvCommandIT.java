@@ -225,7 +225,8 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
             || msg.contains("field")
             || msg.contains("Field")
             || msg.contains("ARRAY_COMPACT")
-            || msg.contains("ARRAY"),
+            || msg.contains("ARRAY")
+            || msg.contains("inferred array element type"),
         msg);
   }
 

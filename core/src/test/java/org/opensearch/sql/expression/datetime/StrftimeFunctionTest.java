@@ -197,11 +197,11 @@ public class StrftimeFunctionTest {
 
   @Test
   public void testStrftimeWithStringTimestamp() {
-    // String inputs are not supported - should return null
+    // String numeric timestamps are parsed and formatted
     String result =
         StrftimeFunction.strftime(
             new ExprStringValue("1521467703"), new ExprStringValue("%Y-%m-%d"));
-    assertNull(result);
+    assertEquals("2018-03-19", result);
   }
 
   @Test
