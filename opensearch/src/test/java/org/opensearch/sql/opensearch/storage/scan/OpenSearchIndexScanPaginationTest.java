@@ -83,7 +83,7 @@ public class OpenSearchIndexScanPaginationTest {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
   }
 
   @Test
