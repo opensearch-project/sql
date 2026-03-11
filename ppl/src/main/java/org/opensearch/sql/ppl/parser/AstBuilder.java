@@ -1521,17 +1521,23 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     // Parse required base: start and edge
     OpenSearchPPLParser.StartClauseContext startCtx = ctx.startClause();
     Field startField = (Field) internalVisitExpression(startCtx.startField);
+    // Parse edge clause from EDGE_CLAUSE token (e.g., "edge=manager-->name")
     OpenSearchPPLParser.EdgeClauseContext edgeCtx = ctx.edgeClause();
-    Field fromField = (Field) internalVisitExpression(edgeCtx.fromField);
-    if (edgeCtx.trailHyphen != null) {
-      String name = fromField.getField().toString() + edgeCtx.trailHyphen.getText();
-      fromField = new Field(new QualifiedName(name));
+    String edgeClauseText = edgeCtx.edgeClauseToken.getText();
+    // Remove "edge=" prefix (case-insensitive)
+    String edgeBody = edgeClauseText.substring(edgeClauseText.indexOf('=') + 1).trim();
+    // Determine direction and split by arrow
+    Direction direction;
+    String[] parts;
+    if (edgeBody.contains("<->")) {
+      direction = Direction.BI;
+      parts = edgeBody.split("<->", 2);
+    } else {
+      direction = Direction.UNI;
+      parts = edgeBody.split("-->", 2);
     }
-    Field toField = (Field) internalVisitExpression(edgeCtx.toField);
-    Direction direction =
-        edgeCtx.edgeDirection.getType() == OpenSearchPPLParser.BI_ARROW
-            ? Direction.BI
-            : Direction.UNI;
+    Field fromField = new Field(new QualifiedName(parts[0].trim()));
+    Field toField = new Field(new QualifiedName(parts[1].trim()));
 
     // Parse optional args with defaults
     Literal maxDepth = Literal.ZERO;

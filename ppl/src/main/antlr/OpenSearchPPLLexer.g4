@@ -54,7 +54,7 @@ APPENDCOL:                          'APPENDCOL';
 ADDTOTALS:                          'ADDTOTALS';
 ADDCOLTOTALS:                       'ADDCOLTOTALS';
 GRAPHLOOKUP:                        'GRAPHLOOKUP';
-EDGE:                               'EDGE' -> pushMode(EDGE_MODE);
+EDGE:                               'EDGE';
 MAX_DEPTH:                          'MAXDEPTH';
 DEPTH_FIELD:                        'DEPTHFIELD';
 SUPPORT_ARRAY:                      'SUPPORTARRAY';
@@ -84,6 +84,16 @@ COLUMN_NAME:                        'COLUMN_NAME';
 MVCOMBINE:                          'MVCOMBINE';
 NOMV:                               'NOMV';
 
+// EDGE_CLAUSE matches the entire edge clause pattern in graphLookup command.
+// This allows EDGE to be used as a field name elsewhere (e.g., eval edge=1).
+// Pattern: edge=fromField-->toField or edge=fromField<->toField
+// Field names can contain hyphens in the middle (e.g., field-name) but trailing hyphens
+// before arrow require a space (e.g., edge=field- --> name).
+EDGE_CLAUSE:                        'EDGE' OWS '=' OWS EDGE_FIELD TRAIL_HYPHENS? EDGE_ARROW OWS EDGE_FIELD;
+fragment OWS:                       [ \t]*;  // Optional whitespace
+fragment EDGE_FIELD:                [A-Z_@*] [A-Z_0-9]* ('-' [A-Z_0-9]+)*;  // Field with optional mid-hyphens
+fragment TRAIL_HYPHENS:             '-'+ [ \t]+;  // Trailing hyphens require space before arrow
+fragment EDGE_ARROW:                '-->' | '<->'; // The direction arrow (--> or <->)
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';
@@ -596,24 +606,3 @@ LINE_COMMENT:                       '//' ('\\\n' | ~[\r\n])* '\r'? '\n'? -> chan
 BLOCK_COMMENT:                      '/*' .*? '*/' -> channel(HIDDEN);
 
 ERROR_RECOGNITION:                  .    -> channel(ERRORCHANNEL);
-
-// EDGE_MODE: entered after EDGE keyword, handles "= fromField --> toField" or "= fromField <-> toField"
-// fromField is split into EDGE_ID (base) + optional TRAIL_HYPHEN (trailing dashes).
-// This avoids ambiguity: "edge=field--->x" lexes as "field" + "--->" (invalid arrow),
-// while "edge=field- --> x" lexes as "field" + "-" (trail) + "-->" (arrow).
-mode EDGE_MODE;
-EDGE_EQUAL:     '='                                         -> type(EQUAL);
-EDGE_WS:        [ \t\r\n]+                                  -> skip;
-EDGE_ID: [@*A-Z_]+? [*A-Z_0-9]*                             -> type(ID), mode(EDGE_ARROW_MODE);
-
-// EDGE_ARROW_MODE: entered after fromField, handles optional trailing dashes, arrow, and toField
-mode EDGE_ARROW_MODE;
-EDGE_UNI_ARROW: '-->'                                       -> type(UNI_ARROW), mode(EDGE_TO_MODE);
-EDGE_BI_ARROW:  '<->'                                       -> type(BI_ARROW), mode(EDGE_TO_MODE);
-TRAIL_HYPHEN:  '-'+;
-EDGE_ARROW_WS:  [ \t\r\n]+                                  -> skip;
-
-// EDGE_TO_MODE: entered after arrow, lexes toField then pops back to default
-mode EDGE_TO_MODE;
-EDGE_TO_WS:     [ \t\r\n]+                                  -> skip;
-EDGE_TO_ID: ID_LITERAL                                      -> type(ID), popMode;

@@ -671,6 +671,16 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testEdgeAsFieldName() {
+    // EDGE keyword can be used as a field name outside graphLookup command
+    assertEqual("source=t | eval edge=1", eval(relation("t"), let(field("edge"), intLiteral(1))));
+    assertEqual("source=t | eval edge = 1", eval(relation("t"), let(field("edge"), intLiteral(1))));
+    assertEqual(
+        "source=t | where edge > 5",
+        filter(relation("t"), compare(">", field("edge"), intLiteral(5))));
+  }
+
+  @Test
   public void testIndexName() {
     assertEqual(
         "source=`log.2020.04.20.` | where a=1",

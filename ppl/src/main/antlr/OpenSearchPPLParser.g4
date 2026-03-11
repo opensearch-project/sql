@@ -654,7 +654,7 @@ startClause
    ;
 
 edgeClause
-   : EDGE EQUAL fromField = fieldExpression trailHyphen = TRAIL_HYPHEN? edgeDirection = (UNI_ARROW | BI_ARROW) toField = fieldExpression
+   : edgeClauseToken = EDGE_CLAUSE
    ;
 
 graphLookupArgs
@@ -1731,4 +1731,5 @@ searchableKeyWord
    | COLUMN_NAME
    | MAX_DEPTH
    | DEPTH_FIELD
+   | EDGE
    ;
