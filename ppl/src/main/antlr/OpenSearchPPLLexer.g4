@@ -274,8 +274,6 @@ RT_CURLY:                           '}';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
-BI_ARROW:                           '<->';
-UNI_ARROW:                          '-->';
 ARROW:                              '->';
 fragment AT:                        '@';
 
