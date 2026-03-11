@@ -13,6 +13,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchParseException;
 import org.opensearch.common.Numbers;
 import org.opensearch.common.geo.GeoPoint;
@@ -25,7 +27,7 @@ import org.opensearch.core.xcontent.XContentParser;
 /** The Implementation of Content to represent {@link JsonNode}. */
 @RequiredArgsConstructor
 public class OpenSearchJsonContent implements Content {
-
+  private static final Logger LOG = LogManager.getLogger();
   private final JsonNode value;
 
   @Override
@@ -156,7 +158,10 @@ public class OpenSearchJsonContent implements Content {
       GeoUtils.parseGeoPoint(parser, point, true);
       return Pair.of(point.getLat(), point.getLon());
     } catch (IOException ex) {
-      throw new OpenSearchParseException(String.format("error parsing geo point %s", value), ex);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Error parsing geo point '{}'", value);
+      }
+      throw new OpenSearchParseException("error parsing geo point", ex);
     }
   }
 
@@ -175,7 +180,11 @@ public class OpenSearchJsonContent implements Content {
       }
       return Numbers.toLong(node.textValue(), true);
     } else {
-      throw new OpenSearchParseException(String.format("node %s must be a number", node));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("node '{}' must be a number", node);
+      }
+      throw new OpenSearchParseException(
+          String.format("node must be a number, found %s", node.getNodeType()));
     }
   }
 
@@ -189,7 +198,11 @@ public class OpenSearchJsonContent implements Content {
       }
       return Double.parseDouble(node.textValue());
     } else {
-      throw new OpenSearchParseException(String.format("node %s must be a number", node));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("node '{}' must be a number", node);
+      }
+      throw new OpenSearchParseException(
+          String.format("node must be a number, found %s", node.getNodeType()));
     }
   }
 
@@ -200,7 +213,11 @@ public class OpenSearchJsonContent implements Content {
     } else if (node.isTextual()) {
       return Boolean.parseBoolean(node.textValue());
     } else {
-      throw new OpenSearchParseException(String.format("node %s must be a boolean", node));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("node '{}' must be a boolean", node);
+      }
+      throw new OpenSearchParseException(
+          String.format("node must be a boolean, found %s", node.getNodeType()));
     }
   }
 }
