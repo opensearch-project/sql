@@ -156,7 +156,7 @@ public class OpenSearchJsonContent implements Content {
       GeoUtils.parseGeoPoint(parser, point, true);
       return Pair.of(point.getLat(), point.getLon());
     } catch (IOException ex) {
-      throw new OpenSearchParseException("error parsing geo point", ex);
+      throw new OpenSearchParseException(String.format("error parsing geo point %s", value), ex);
     }
   }
 
@@ -175,7 +175,7 @@ public class OpenSearchJsonContent implements Content {
       }
       return Numbers.toLong(node.textValue(), true);
     } else {
-      throw new OpenSearchParseException("node must be a number");
+      throw new OpenSearchParseException(String.format("node %s must be a number", node));
     }
   }
 
@@ -189,7 +189,7 @@ public class OpenSearchJsonContent implements Content {
       }
       return Double.parseDouble(node.textValue());
     } else {
-      throw new OpenSearchParseException("node must be a number");
+      throw new OpenSearchParseException(String.format("node %s must be a number", node));
     }
   }
 
@@ -200,7 +200,7 @@ public class OpenSearchJsonContent implements Content {
     } else if (node.isTextual()) {
       return Boolean.parseBoolean(node.textValue());
     } else {
-      throw new OpenSearchParseException("node must be a boolean");
+      throw new OpenSearchParseException(String.format("node %s must be a boolean", node));
     }
   }
 }

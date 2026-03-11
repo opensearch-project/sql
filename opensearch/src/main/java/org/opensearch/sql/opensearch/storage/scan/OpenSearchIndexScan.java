@@ -44,6 +44,12 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   /** Number of rows returned. */
   private Integer queryCount;
 
+  /**
+   * Whether the cursor (including PIT) has been serialized for a subsequent page request. When
+   * true, {@link #close()} must preserve the PIT because a future request will resume from it.
+   */
+  private boolean cursorSerialized = false;
+
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
@@ -108,12 +114,12 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   public void close() {
     super.close();
 
-    if (request.hasAnotherBatch()) {
-      // PIT is still needed for the next page — only clean up the in-memory state
-      // without deleting the PIT from OpenSearch.
+    if (request.hasAnotherBatch() && cursorSerialized) {
+      // PIT has been serialized into a cursor for the next page request.
+      // Only clean up in-memory state; the PIT must survive for the next request.
       client.cleanup(request);
     } else {
-      // No more pages expected (last page consumed, non-paginated query, or error path).
+      // No more pages, or query failed/aborted before cursor was serialized.
       // Force delete the PIT to prevent leaking.
       client.forceCleanup(request);
     }
@@ -186,5 +192,8 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     out.write(reqAsBytes, 0, reqOut.size());
 
     out.writeInt(maxResponseSize);
+
+    // Mark that the PIT has been serialized into a cursor, so close() preserves it.
+    cursorSerialized = true;
   }
 }
