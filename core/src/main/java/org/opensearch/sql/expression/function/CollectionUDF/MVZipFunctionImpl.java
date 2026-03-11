@@ -24,6 +24,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -62,7 +63,7 @@ public class MVZipFunctionImpl extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     // First two arguments must be arrays, optional STRING delimiter
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)

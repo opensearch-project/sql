@@ -47,9 +47,7 @@ public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
         normalize(
             "SELECT *\nFROM `catalog`.`employees`\nWHERE TRY_CAST(`name` AS DOUBLE) = 1.230E2");
     assertEquals(
-        "Transpiled query using OpenSearchSparkSqlDialect should translate SAFE_CAST to TRY_CAST",
-        expectedSql,
-        actualSql);
+        "String field compared with numeric literal coerces to DOUBLE", expectedSql, actualSql);
   }
 
   /** Normalizes line endings to platform-specific format for cross-platform test compatibility. */

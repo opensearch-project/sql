@@ -18,12 +18,13 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.model.ExprValue;
@@ -45,29 +46,41 @@ public class SpanFunction extends ImplementorUDF {
   public SqlReturnTypeInference getReturnTypeInference() {
     // Return arg0 type if it has a unit (i.e. time related span)
     return callBinding -> {
-      if (SqlTypeUtil.isString(callBinding.getOperandType(2))) {
+      RelDataType unitType = callBinding.getOperandType(2);
+      if (SqlTypeUtil.isString(unitType)) {
         return callBinding.getOperandType(0);
+      }
+      // When unit is NULL/ANY and field is a datetime type, return the field type.
+      // This handles cases like timechart with millisecond spans where the unit may be NULL.
+      RelDataType fieldType = callBinding.getOperandType(0);
+      if ((SqlTypeUtil.isNull(unitType) || SqlTypeName.ANY.equals(unitType.getSqlTypeName()))
+          && (SqlTypeUtil.isDatetime(fieldType) || fieldType instanceof ExprSqlType)) {
+        return fieldType;
       }
       // Use the least restrictive type between the field type and the interval type if it's a
       // numeric span. E.g. span(int_field, double_literal) -> double
-      return callBinding
-          .getTypeFactory()
-          .leastRestrictive(List.of(callBinding.getOperandType(0), callBinding.getOperandType(1)));
+      RelDataType leastRestrictive =
+          callBinding
+              .getTypeFactory()
+              .leastRestrictive(
+                  List.of(callBinding.getOperandType(0), callBinding.getOperandType(1)));
+      return leastRestrictive != null ? leastRestrictive : callBinding.getOperandType(0);
     };
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker)
-            OperandTypes.family(
-                    SqlTypeFamily.CHARACTER, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)
-                .or(
-                    OperandTypes.family(
-                        SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER))
-                .or(
-                    OperandTypes.family(
-                        SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.ANY)));
+        OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)
+            .or(
+                OperandTypes.family(
+                    SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER))
+            .or(
+                OperandTypes.family(
+                    SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC, SqlTypeFamily.ANY))
+            .or(
+                OperandTypes.family(
+                    SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.ANY)));
   }
 
   public static class SpanImplementor implements NotNullImplementor {
@@ -86,7 +99,7 @@ public class SpanFunction extends ImplementorUDF {
       if (SqlTypeUtil.isDecimal(intervalType)) {
         interval = Expressions.call(interval, "doubleValue");
       }
-      if (SqlTypeUtil.isNull(unitType)) {
+      if (SqlTypeUtil.isNull(unitType) || SqlTypeName.ANY.equals(unitType.getSqlTypeName())) {
         return switch (call.getType().getSqlTypeName()) {
           case BIGINT, INTEGER, SMALLINT, TINYINT ->
               Expressions.multiply(Expressions.divide(field, interval), interval);
