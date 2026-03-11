@@ -14,12 +14,12 @@ convert [timeformat=<string>] <convert-function>(<field>) [AS <field>] [, <conve
 
 The `convert` command supports the following parameters.
 
-| Parameter | Required/Optional | Description |
-| --- | --- | --- |
-| `<convert-function>` | Required | One of the conversion functions: `auto()`, `ctime()`, `dur2sec()`, `memk()`, `mktime()`, `mstime()`, `none()`, `num()`, `rmcomma()`, or `rmunit()`. |
-| `<field>` | Required | Single field name to convert. |
-| `AS <field>` | Optional | Create new field with converted value, preserving original field. |
-| `timeformat=<string>` | Optional | A strftime format string used by `ctime()` and `mktime()`. Default: `%m/%d/%Y %H:%M:%S`. |
+| Parameter | Required/Optional | Description | Default |
+| --- | --- | --- | --- |
+| `<convert-function>` | Required | One of the conversion functions: `auto()`, `ctime()`, `dur2sec()`, `memk()`, `mktime()`, `mstime()`, `none()`, `num()`, `rmcomma()`, or `rmunit()`. | N/A |
+| `<field>` | Required | Single field name to convert. | N/A |
+| `AS <field>` | Optional | Create new field with converted value, preserving original field. | N/A |
+| `timeformat=<string>` | Optional | A strftime format string used by `ctime()` and `mktime()`. | `%m/%d/%Y %H:%M:%S`. |
 
 ## Conversion Functions
 
@@ -255,6 +255,8 @@ source=accounts
 | fields timestamp
 ```
 
+The query returns the following results:
+
 ```text
 fetched rows / total rows = 1/1
 +---------------------+
@@ -272,6 +274,8 @@ source=accounts
 | convert mktime(date_str)
 | fields date_str
 ```
+
+The query returns the following results:
 
 ```text
 fetched rows / total rows = 1/1
@@ -293,6 +297,8 @@ source=accounts
 | fields timestamp
 ```
 
+The query returns the following results:
+
 ```text
 fetched rows / total rows = 1/1
 +---------------------+
@@ -311,6 +317,8 @@ source=accounts
 | fields duration
 ```
 
+The query returns the following results:
+
 ```text
 fetched rows / total rows = 1/1
 +----------+
@@ -328,6 +336,8 @@ source=accounts
 | convert mstime(time_str)
 | fields time_str
 ```
+
+The query returns the following results:
 
 ```text
 fetched rows / total rows = 1/1
