@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.directquery;
 
-import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest;
-import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesResponse;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
@@ -37,20 +35,11 @@ public interface DirectQueryExecutorService {
       GetDirectQueryResourcesRequest request);
 
   /**
-   * Write resources to a data source.
+   * Write resources to a data source. Supports create, update, and delete operations.
    *
    * @param request The resources request
-   * @return A response containing the resources to create
+   * @return A response containing the result
    */
   WriteDirectQueryResourcesResponse<?> writeDirectQueryResources(
-          WriteDirectQueryResourcesRequest request);
-
-  /**
-   * Delete resources from a data source.
-   *
-   * @param request The delete resources request
-   * @return A response containing the result of the delete
-   */
-  DeleteDirectQueryResourcesResponse<?> deleteDirectQueryResources(
-      DeleteDirectQueryResourcesRequest request);
+      WriteDirectQueryResourcesRequest request);
 }

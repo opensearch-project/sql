@@ -12,8 +12,6 @@ import org.opensearch.sql.datasource.client.DataSourceClient;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
-import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest;
-import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesResponse;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
@@ -121,27 +119,4 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
             );
     }
 
-  @Override
-  public DeleteDirectQueryResourcesResponse<?> deleteDirectQueryResources(
-      DeleteDirectQueryResourcesRequest request) {
-    DataSourceClient client = dataSourceClientFactory.createClient(request.getDataSource());
-    return queryHandlerRegistry
-        .getQueryHandler(client)
-        .map(
-            handler -> {
-              try {
-                return handler.deleteResources(client, request);
-              } catch (IOException e) {
-                throw new DataSourceClientException(
-                    String.format(
-                        "Error deleting resources for data source type: %s",
-                        request.getDataSource()),
-                    e);
-              }
-            })
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "Unsupported data source type: " + request.getDataSource()));
-  }
 }

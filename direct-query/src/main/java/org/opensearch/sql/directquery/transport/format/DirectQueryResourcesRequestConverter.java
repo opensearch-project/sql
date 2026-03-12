@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.DirectQueryResourceType;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRequest;
@@ -64,7 +63,8 @@ public class DirectQueryResourcesRequestConverter {
   }
 
   /**
-   * Converts a RestRequest to a WriteDirectQueryResourcesRequest.
+   * Converts a RestRequest to a WriteDirectQueryResourcesRequest. Handles POST (create/update) and
+   * DELETE operations.
    *
    * @param restRequest The REST request to convert
    * @return A configured WriteDirectQueryResourcesRequest
@@ -74,6 +74,8 @@ public class DirectQueryResourcesRequestConverter {
     WriteDirectQueryResourcesRequest directQueryRequest = new WriteDirectQueryResourcesRequest();
 
     directQueryRequest.setDataSource(restRequest.param("dataSource"));
+    boolean isDelete = RestRequest.Method.DELETE.equals(restRequest.method());
+    directQueryRequest.setDelete(isDelete);
 
     String path = restRequest.path();
     if (path.contains("/alertmanager/api/v2/")) {
@@ -86,15 +88,24 @@ public class DirectQueryResourcesRequestConverter {
                 "alertmanager_" + restRequest.param("resourceType")));
       }
     } else if (restRequest.param("namespace") != null) {
-      // Handle Ruler API - POST /api/v1/rules/{namespace}
+      // Handle Ruler API - POST/DELETE /api/v1/rules/{namespace}
       directQueryRequest.setResourceType(DirectQueryResourceType.RULES);
       directQueryRequest.setResourceName(restRequest.param("namespace"));
+      if (restRequest.param("groupName") != null) {
+        directQueryRequest.setGroupName(restRequest.param("groupName"));
+      }
     } else {
       directQueryRequest.setResourceTypeFromString(restRequest.param("resourceType"));
       if (restRequest.param("resourceName") != null) {
         directQueryRequest.setResourceName(restRequest.param("resourceName"));
       }
     }
+
+    if (isDelete) {
+      // DELETE requests have no body
+      return directQueryRequest;
+    }
+
     if (restRequest.hasContent()) {
       directQueryRequest.setRequest(restRequest.content().utf8ToString());
     } else {
@@ -102,31 +113,5 @@ public class DirectQueryResourcesRequestConverter {
           "The write direct resource request must have a request in the body");
     }
     return directQueryRequest;
-  }
-
-  /**
-   * Converts a RestRequest to a DeleteDirectQueryResourcesRequest.
-   *
-   * @param restRequest The REST request to convert
-   * @return A configured DeleteDirectQueryResourcesRequest
-   */
-  public static DeleteDirectQueryResourcesRequest toDeleteDirectRestRequest(
-      RestRequest restRequest) {
-    DeleteDirectQueryResourcesRequest deleteRequest = new DeleteDirectQueryResourcesRequest();
-    deleteRequest.setDataSource(restRequest.param("dataSource"));
-    deleteRequest.setResourceType(DirectQueryResourceType.RULES);
-
-    String namespace = restRequest.param("namespace");
-    if (namespace == null || namespace.isEmpty()) {
-      throw new IllegalArgumentException("Namespace is required for delete rule operations");
-    }
-    deleteRequest.setNamespace(namespace);
-
-    String groupName = restRequest.param("groupName");
-    if (groupName != null && !groupName.isEmpty()) {
-      deleteRequest.setGroupName(groupName);
-    }
-
-    return deleteRequest;
   }
 }

@@ -8,8 +8,6 @@ package org.opensearch.sql.datasource.query;
 import java.io.IOException;
 import org.opensearch.sql.datasource.client.DataSourceClient;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest;
-import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesResponse;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
@@ -20,7 +18,6 @@ import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRespon
  * Interface for handling queries for specific data source types.
  *
  * @param <T> The client type this handler works with, extending DataSourceClient
- *
  * @opensearch.experimental
  */
 public interface QueryHandler<T extends DataSourceClient> {
@@ -54,26 +51,15 @@ public interface QueryHandler<T extends DataSourceClient> {
       throws IOException;
 
   /**
-   * Writes resources to the data source.
+   * Writes resources to the data source. Supports create, update, and delete operations.
    *
    * @param client The client instance to use
    * @param request The resources request
-   * @return Response containing the requested resources
-   * @throws IOException If resource retrieval fails
+   * @return Response containing the result
+   * @throws IOException If the operation fails
    */
-  WriteDirectQueryResourcesResponse<?> writeResources(T client, WriteDirectQueryResourcesRequest request)
-          throws IOException;
-
-  /**
-   * Deletes resources from the data source.
-   *
-   * @param client The client instance to use
-   * @param request The delete resources request
-   * @return Response containing the result of the delete operation
-   * @throws IOException If resource deletion fails
-   */
-  DeleteDirectQueryResourcesResponse<?> deleteResources(
-      T client, DeleteDirectQueryResourcesRequest request) throws IOException;
+  WriteDirectQueryResourcesResponse<?> writeResources(
+      T client, WriteDirectQueryResourcesRequest request) throws IOException;
 
   /**
    * Checks if this handler can handle the given client type.

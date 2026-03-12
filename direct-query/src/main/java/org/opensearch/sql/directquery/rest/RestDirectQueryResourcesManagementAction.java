@@ -29,15 +29,11 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasources.exceptions.ErrorMessage;
 import org.opensearch.sql.datasources.utils.Scheduler;
-import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRequest;
-import org.opensearch.sql.directquery.transport.TransportDeleteDirectQueryResourcesRequestAction;
 import org.opensearch.sql.directquery.transport.TransportGetDirectQueryResourcesRequestAction;
 import org.opensearch.sql.directquery.transport.TransportWriteDirectQueryResourcesRequestAction;
 import org.opensearch.sql.directquery.transport.format.DirectQueryResourcesRequestConverter;
-import org.opensearch.sql.directquery.transport.model.DeleteDirectQueryResourcesActionRequest;
-import org.opensearch.sql.directquery.transport.model.DeleteDirectQueryResourcesActionResponse;
 import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionRequest;
 import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionResponse;
 import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionRequest;
@@ -131,9 +127,8 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
       case GET:
         return executeGetResourcesRequest(restRequest, nodeClient);
       case POST:
-        return executeWriteResourcesRequest(restRequest, nodeClient);
       case DELETE:
-        return executeDeleteResourcesRequest(restRequest, nodeClient);
+        return executeWriteResourcesRequest(restRequest, nodeClient);
       default:
         return restChannel ->
             restChannel.sendResponse(
@@ -186,35 +181,6 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
                     new ActionListener<>() {
                       @Override
                       public void onResponse(WriteDirectQueryResourcesActionResponse response) {
-                        restChannel.sendResponse(
-                            new BytesRestResponse(
-                                RestStatus.OK,
-                                "application/json; charset=UTF-8",
-                                response.getResult()));
-                      }
-
-                      @Override
-                      public void onFailure(Exception e) {
-                        handleException(e, restChannel, restRequest.method());
-                      }
-                    }));
-  }
-
-  private RestChannelConsumer executeDeleteResourcesRequest(
-      RestRequest restRequest, NodeClient nodeClient) {
-    DeleteDirectQueryResourcesRequest directQueryRequest =
-        DirectQueryResourcesRequestConverter.toDeleteDirectRestRequest(restRequest);
-
-    return restChannel ->
-        Scheduler.schedule(
-            nodeClient,
-            () ->
-                nodeClient.execute(
-                    TransportDeleteDirectQueryResourcesRequestAction.ACTION_TYPE,
-                    new DeleteDirectQueryResourcesActionRequest(directQueryRequest),
-                    new ActionListener<>() {
-                      @Override
-                      public void onResponse(DeleteDirectQueryResourcesActionResponse response) {
                         restChannel.sendResponse(
                             new BytesRestResponse(
                                 RestStatus.OK,

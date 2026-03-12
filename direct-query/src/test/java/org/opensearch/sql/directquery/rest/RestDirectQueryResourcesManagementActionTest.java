@@ -680,10 +680,8 @@ public class RestDirectQueryResourcesManagementActionTest {
   public void testSuccessfulDeleteResourceResponse() {
     setDataSourcesEnabled(true);
     String successResponse = "{\"status\":\"success\"}";
-    org.opensearch.sql.directquery.transport.model.DeleteDirectQueryResourcesActionResponse
-        response =
-            new org.opensearch.sql.directquery.transport.model
-                .DeleteDirectQueryResourcesActionResponse(successResponse);
+    WriteDirectQueryResourcesActionResponse response =
+        new WriteDirectQueryResourcesActionResponse(successResponse);
 
     Mockito.when(request.method()).thenReturn(RestRequest.Method.DELETE);
     Mockito.when(request.path())
