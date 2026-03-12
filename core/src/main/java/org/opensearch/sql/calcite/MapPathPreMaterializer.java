@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -18,12 +19,17 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.FillNull;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 
 /**
@@ -58,13 +64,26 @@ public class MapPathPreMaterializer {
 
   private List<Field> extractFieldOperands(UnresolvedPlan node) {
     return switch (node) {
+      // Symbol-based commands require the map path symbol present in the symbol table
       case Rename rename -> toFields(rename.getRenameList(), m -> m.getOrigin());
       case FillNull fillNull -> toFields(fillNull.getReplacementPairs(), Pair::getLeft);
       case Replace replace -> toFields(replace.getFieldList());
-      // Only fields-exclusion needs pre-materialization; inclusion resolves paths via visitProject
       case Project project -> project.isExcluded() ? toFields(project.getProjectList()) : List.of();
       case AddTotals addTotals -> toFields(addTotals.getFieldList());
       case MvCombine mvCombine -> List.of(mvCombine.getField());
+      // Commands broken by fragmented resolve API but direct surgical fix is highly complex
+      case RareTopN rareTopN ->
+          ImmutableList.<Field>builder()
+              .addAll(rareTopN.getFields())
+              .addAll(toFields(rareTopN.getGroupExprList()))
+              .build();
+      case StreamWindow streamWindow -> toFields(streamWindow.getGroupList());
+      case Lookup lookup ->
+          toFields(
+              lookup.getMappingAliasMap().values(),
+              name -> new Field(QualifiedName.of(List.of(name.split("\\.")))));
+      case Join join ->
+          join.getJoinFields().map(MapPathPreMaterializer::toFields).orElse(List.of());
       default -> List.of();
     };
   }
@@ -81,9 +100,10 @@ public class MapPathPreMaterializer {
           newColumns.add(context.relBuilder.alias(resolved, name));
           existingFields.add(name);
         }
-      } catch (RuntimeException e) {
+      } catch (RuntimeException | AssertionError e) {
+        // FIXME: QualifiedNameResolver throws error for dotted path on non-map field
         // Skip unresolvable fields (e.g. wildcards); let the command itself handle them
-        log.debug("Skipping field resolution for '{}': {}", field.getField(), e.getMessage(), e);
+        log.debug("Skipping field resolution for '{}': {}", field.getField(), e.getMessage());
       }
     }
 

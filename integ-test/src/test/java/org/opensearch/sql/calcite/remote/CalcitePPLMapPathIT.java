@@ -9,6 +9,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.TestUtils.createIndexByRestClient;
@@ -31,6 +32,8 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
 
   private static final String TEST_INDEX = "opensearch-sql_test_index_spath";
 
+  private static final String LOOKUP_INDEX = "opensearch-sql_test_index_spath_lookup";
+
   private static final String TEST_BULK_DATA =
       """
       {"index":{"_id":"1"}}
@@ -45,11 +48,22 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
       {"doc":null}
       """;
 
+  private static final String LOOKUP_BULK_DATA =
+      """
+      {"index":{"_id":"1"}}
+      {"name":"John","title":"Engineer"}
+      {"index":{"_id":"2"}}
+      {"name":"Alice","title":"Manager"}
+      {"index":{"_id":"3"}}
+      {"name":"Bob","title":"Analyst"}
+      """;
+
   @Override
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    createJsonTestIndex();
+    loadBulkData(TEST_INDEX, TEST_BULK_DATA);
+    loadBulkData(LOOKUP_INDEX, LOOKUP_BULK_DATA);
   }
 
   @Test
@@ -380,28 +394,138 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testBinOnMapPath() throws IOException {
+  public void testTopOnMapPath() throws IOException {
     JSONObject result =
         ppl(
             """
             source=%s | spath input=doc
-            | eval age_num = cast(doc.user.age as integer)
-            | where isnotnull(age_num)
-            | stats count() as cnt by span(age_num, 10) as age_bin
-            | fields age_bin, cnt\
+            | top 1 doc.user.name\
             """,
             TEST_INDEX);
-    verifySchema(result, schema("age_bin", "int"), schema("cnt", "bigint"));
-    verifyDataRows(result, rows(20, 1), rows(30, 2), rows(40, 1));
+    verifySchema(result, schema("doc.user.name", "string"), schema("count", "bigint"));
+    verifyDataRows(result, rows("John", 2));
   }
 
-  private void createJsonTestIndex() {
-    if (isIndexExist(client(), TEST_INDEX)) {
+  @Test
+  public void testRareByOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | rare 2 doc.user.name by doc.user.city\
+            """,
+            TEST_INDEX);
+    verifySchema(
+        result,
+        schema("doc.user.city", "string"),
+        schema("doc.user.name", "string"),
+        schema("count", "bigint"));
+    verifyDataRows(
+        result,
+        rows(null, null, 1),
+        rows("LA", "Alice", 1),
+        rows("NYC", "Bob", 1),
+        rows("NYC", "John", 1),
+        rows("SF", "John", 1));
+  }
+
+  @Test
+  public void testJoinOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | inner join left=l, right=r ON l.doc.user.name = r.name %s
+            | fields doc.user.name, r.title\
+            """,
+            TEST_INDEX, LOOKUP_INDEX);
+    verifySchema(result, schema("doc.user.name", "string"), schema("title", "string"));
+    verifyDataRows(
+        result,
+        rows("John", "Engineer"),
+        rows("Alice", "Manager"),
+        rows("John", "Engineer"),
+        rows("Bob", "Analyst"));
+  }
+
+  @Test
+  public void testLookupOnMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | LOOKUP %s name AS doc.user.name REPLACE title
+            | where isnotnull(doc.user.name)
+            | fields doc.user.name, title\
+            """,
+            TEST_INDEX, LOOKUP_INDEX);
+    verifySchema(result, schema("doc.user.name", "string"), schema("title", "string"));
+    verifyDataRows(
+        result,
+        rows("John", "Engineer"),
+        rows("Alice", "Manager"),
+        rows("John", "Engineer"),
+        rows("Bob", "Analyst"));
+  }
+
+  @Test
+  public void testStreamstatsByMapPath() throws IOException {
+    JSONObject result =
+        ppl(
+            """
+            source=%s | spath input=doc
+            | where isnotnull(doc.user.city)
+            | streamstats count() as cnt by doc.user.city
+            | fields doc.user.city, cnt\
+            """,
+            TEST_INDEX);
+    verifySchema(result, schema("doc.user.city", "string"), schema("cnt", "bigint"));
+    verifyDataRows(result, rows("NYC", 1), rows("LA", 1), rows("SF", 1), rows("NYC", 2));
+  }
+
+  @Test
+  public void testStreamstatsGlobalWindowByMapPath() {
+    // TODO: Fix requires propagating pre-materialized columns to the correlate right-side scan.
+    Throwable e =
+        assertThrows(
+            Exception.class,
+            () ->
+                ppl(
+                    """
+                    source=%s | spath input=doc
+                    | where isnotnull(doc.user.city)
+                    | streamstats global=true window=2 count() as cnt by doc.user.city
+                    | fields doc.user.city, cnt\
+                    """,
+                    TEST_INDEX));
+    verifyErrorMessageContains(e, "field [doc.user.city] not found");
+  }
+
+  @Test
+  public void testDottedPathOnNonMapField() {
+    // doc is a VARCHAR field. Referencing doc.user.name should produce
+    // a clear error, not an AssertionError from QualifiedNameResolver.
+    Throwable e =
+        assertThrowsWithReplace(
+            IllegalArgumentException.class,
+            () ->
+                ppl(
+                    """
+                    source=%s
+                    | replace 'John' WITH 'Jonathan' IN doc.user.name
+                    | fields doc.user.name\
+                    """,
+                    TEST_INDEX));
+    verifyErrorMessageContains(e, "field [doc.user.name] not found");
+  }
+
+  private void loadBulkData(String index, String bulkData) {
+    if (isIndexExist(client(), index)) {
       return;
     }
-    createIndexByRestClient(client(), TEST_INDEX, null);
-    Request request = new Request("POST", "/" + TEST_INDEX + "/_bulk?refresh=true");
-    request.setJsonEntity(TEST_BULK_DATA);
+    createIndexByRestClient(client(), index, null);
+    Request request = new Request("POST", "/" + index + "/_bulk?refresh=true");
+    request.setJsonEntity(bulkData);
     performRequest(client(), request);
   }
 
