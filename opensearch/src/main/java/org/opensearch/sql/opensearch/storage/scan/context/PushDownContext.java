@@ -49,7 +49,9 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   @Override
   public PushDownContext clone() {
     PushDownContext newContext = new PushDownContext(osIndex);
-    newContext.addAll(this);
+    for (PushDownOperation operation : this) {
+      newContext.add(maybeCopyAggOperation(operation));
+    }
     return newContext;
   }
 
@@ -62,7 +64,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     PushDownContext newContext = new PushDownContext(osIndex);
     for (PushDownOperation action : this) {
       if (action.type() != PushDownType.SORT && action.type() != PushDownType.SORT_EXPR) {
-        newContext.add(action);
+        newContext.add(maybeCopyAggOperation(action));
       }
     }
     return newContext;
@@ -108,9 +110,21 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
           continue;
         }
       }
-      newContext.add(operation);
+      newContext.add(maybeCopyAggOperation(operation));
     }
     return newContext;
+  }
+
+  /**
+   * Deep-copy AGGREGATION operations so that the cloned context gets its own AggPushDownAction
+   * instance. Other operation types are immutable lambdas and can be shared safely.
+   */
+  private PushDownOperation maybeCopyAggOperation(PushDownOperation operation) {
+    if (operation.type() == PushDownType.AGGREGATION
+        && operation.action() instanceof AggPushDownAction aggAction) {
+      return new PushDownOperation(operation.type(), operation.digest(), aggAction.copy());
+    }
+    return operation;
   }
 
   @NotNull
