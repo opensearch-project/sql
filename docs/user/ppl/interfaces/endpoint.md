@@ -201,3 +201,25 @@ Expected output (trimmed):
 - Plan node names use Calcite physical operator names (for example, `EnumerableCalc` or `CalciteEnumerableIndexScan`).
 - Plan `time_ms` is inclusive of child operators and represents wall-clock time; overlapping work can make summed plan times exceed `summary.total_time_ms`.
 - Scan nodes reflect operator wall-clock time; background prefetch can make scan time smaller than total request latency.
+
+## Grammar (Experimental)
+
+### Description
+
+You can send an HTTP GET request to endpoint **/_plugins/_ppl/_grammar** to fetch serialized PPL grammar metadata used by autocomplete clients.
+
+### Example
+
+```bash
+curl -sS -X GET localhost:9200/_plugins/_ppl/_grammar | python3 -m json.tool | grep -E '"bundleVersion"|"antlrVersion"|"startRuleIndex"|"ignoredTokens"|"rulesToVisit"'
+```
+
+Expected output (trimmed):
+
+```text
+"bundleVersion": "1.0",
+"antlrVersion": "4.13.2",
+"startRuleIndex": 0,
+"ignoredTokens": [
+"rulesToVisit": [
+```

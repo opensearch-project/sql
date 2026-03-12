@@ -1,0 +1,18 @@
+{
+  "ppl.grammar": {
+    "documentation": {
+      "url": "https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/interfaces/endpoint.md",
+      "description": "PPL Grammar Endpoint for Autocomplete"
+    },
+    "stability": "experimental",
+    "url": {
+      "paths": [
+        {
+          "path": "/_plugins/_ppl/_grammar",
+          "methods": ["GET"]
+        }
+      ]
+    },
+    "params": {}
+  }
+}
