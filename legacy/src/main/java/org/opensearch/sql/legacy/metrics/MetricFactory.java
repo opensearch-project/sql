@@ -41,6 +41,10 @@ public class MetricFactory {
       case EMR_STREAMING_QUERY_JOBS_CREATION_COUNT:
       case EMR_INTERACTIVE_QUERY_JOBS_CREATION_COUNT:
         return new NumericMetric<>(name.getName(), new RollingCounter());
+      case DIALECT_REQUESTS_TOTAL:
+      case DIALECT_TRANSLATION_ERRORS_TOTAL:
+      case DIALECT_UNPARSE_LATENCY_MS:
+        return new NumericMetric<>(name.getName(), new BasicCounter());
       default:
         return new NumericMetric<>(name.getName(), new BasicCounter());
     }

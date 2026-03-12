@@ -7,5 +7,11 @@ package org.opensearch.sql.executor;
 
 public enum QueryType {
   PPL,
-  SQL
+  SQL,
+  CLICKHOUSE;
+
+  /** Returns true if this query type represents a third-party dialect. */
+  public boolean isDialectQuery() {
+    return this != PPL && this != SQL;
+  }
 }

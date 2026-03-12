@@ -48,11 +48,13 @@ dependencies {
     implementation "org.antlr:antlr4-runtime:4.13.2"
     implementation group: 'com.google.guava', name: 'guava', version: "${guava_version}"
     implementation group: 'org.json', name: 'json', version:'20231013'
+    implementation project(':api')
     implementation project(':common')
     implementation project(':core')
     api project(':protocol')
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
+    testImplementation('net.jqwik:jqwik:1.9.2')
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
