@@ -398,19 +398,18 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     if (types.size() > 1) {
       RelDataType first = types.get(0);
       if (first instanceof AbstractExprRelDataType<?> firstUdt) {
-        boolean allSameUdt =
-            types.stream()
-                .allMatch(
-                    t ->
-                        t instanceof AbstractExprRelDataType<?> udt
-                            && udt.getUdt() == firstUdt.getUdt());
-        if (allSameUdt) {
-          boolean anyNullable = types.stream().anyMatch(RelDataType::isNullable);
-          if (anyNullable && !first.isNullable()) {
-            return firstUdt.createWithNullability(this, true);
+        boolean anyNullable = false;
+        for (RelDataType t : types) {
+          if (t instanceof AbstractExprRelDataType<?> udt && udt.getUdt() == firstUdt.getUdt()) {
+            anyNullable |= t.isNullable();
+          } else {
+            return super.leastRestrictive(types);
           }
-          return first;
         }
+        if (anyNullable && !first.isNullable()) {
+          return firstUdt.createWithNullability(this, true);
+        }
+        return first;
       }
     }
     return super.leastRestrictive(types);
