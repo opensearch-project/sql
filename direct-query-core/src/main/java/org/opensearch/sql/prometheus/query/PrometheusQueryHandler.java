@@ -15,6 +15,8 @@ import org.json.JSONObject;
 import org.opensearch.sql.datasource.client.DataSourceClient;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasource.query.QueryHandler;
+import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest;
+import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesResponse;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
@@ -148,7 +150,14 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
           }
         case RULES:
           {
-            JSONObject rules = client.getRules(request.getQueryParams());
+            JSONObject rules;
+            if (request.getResourceName() != null && !request.getResourceName().isEmpty()) {
+              rules =
+                  client.getRulesByNamespace(
+                      request.getResourceName(), request.getQueryParams());
+            } else {
+              rules = client.getRules(request.getQueryParams());
+            }
             return GetDirectQueryResourcesResponse.withMap(rules.toMap());
           }
         case ALERTMANAGER_ALERTS:
@@ -198,16 +207,61 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
           String createdSilence = client.createAlertmanagerSilences(request.getRequest());
           return WriteDirectQueryResourcesResponse.withList(List.of(createdSilence));
         }
+        case RULES:
+        {
+          if (request.getResourceName() == null || request.getResourceName().isEmpty()) {
+            throw new IllegalArgumentException(
+                "Namespace is required for creating/updating rule groups");
+          }
+          String result =
+              client.createOrUpdateRuleGroup(request.getResourceName(), request.getRequest());
+          return WriteDirectQueryResourcesResponse.withStringList(List.of(result));
+        }
         default:
           throw new IllegalArgumentException(
                   "Invalid prometheus resource type: " + request.getResourceType());
       }
     } catch (IOException e) {
-      LOG.error("Error getting resources", e);
+      LOG.error("Error writing resources", e);
       throw new PrometheusClientException(
               String.format(
-                      "Error while getting resources for %s: %s",
+                      "Error while writing resources for %s: %s",
                       request.getResourceType(), e.getMessage()));
+    }
+  }
+
+  @Override
+  public DeleteDirectQueryResourcesResponse<?> deleteResources(
+      PrometheusClient client, DeleteDirectQueryResourcesRequest request) {
+    try {
+      if (request.getResourceType() == null) {
+        throw new IllegalArgumentException("Resource type cannot be null");
+      }
+
+      switch (request.getResourceType()) {
+        case RULES:
+          {
+            if (request.getNamespace() == null || request.getNamespace().isEmpty()) {
+              throw new IllegalArgumentException("Namespace is required for deleting rules");
+            }
+            String result;
+            if (request.getGroupName() != null && !request.getGroupName().isEmpty()) {
+              result = client.deleteRuleGroup(request.getNamespace(), request.getGroupName());
+            } else {
+              result = client.deleteRuleNamespace(request.getNamespace());
+            }
+            return DeleteDirectQueryResourcesResponse.withMessage(result);
+          }
+        default:
+          throw new IllegalArgumentException(
+              "Delete not supported for resource type: " + request.getResourceType());
+      }
+    } catch (IOException e) {
+      LOG.error("Error deleting resources", e);
+      throw new PrometheusClientException(
+          String.format(
+              "Error while deleting resources for %s: %s",
+              request.getResourceType(), e.getMessage()));
     }
   }
 }

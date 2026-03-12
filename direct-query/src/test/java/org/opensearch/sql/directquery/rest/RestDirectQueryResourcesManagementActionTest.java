@@ -132,13 +132,17 @@ public class RestDirectQueryResourcesManagementActionTest {
   public void testRoutes() {
     List<RestDirectQueryResourcesManagementAction.Route> routes = unit.routes();
     Assertions.assertNotNull(routes);
-    Assertions.assertEquals(5, routes.size());
+    Assertions.assertEquals(9, routes.size());
 
     boolean foundResourceTypeRoute = false;
     boolean foundResourceValuesRoute = false;
     boolean foundAlertmanagerResourceRoute = false;
     boolean foundAlertmanagerAlertGroupsRoute = false;
     boolean foundPostAlertmanagerRoute = false;
+    boolean foundGetRulesNamespaceRoute = false;
+    boolean foundPostRulesNamespaceRoute = false;
+    boolean foundDeleteRulesNamespaceRoute = false;
+    boolean foundDeleteRulesGroupRoute = false;
 
     for (RestDirectQueryResourcesManagementAction.Route route : routes) {
       if (RestRequest.Method.GET.equals(route.getMethod())
@@ -191,6 +195,33 @@ public class RestDirectQueryResourcesManagementActionTest {
                   RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
         foundPostAlertmanagerRoute = true;
       }
+      String rulesNamespacePath =
+          String.format(
+              Locale.ROOT,
+              "%s/api/v1/rules/{namespace}",
+              RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL);
+      if (RestRequest.Method.GET.equals(route.getMethod())
+          && route.getPath().equals(rulesNamespacePath)) {
+        foundGetRulesNamespaceRoute = true;
+      }
+      if (RestRequest.Method.POST.equals(route.getMethod())
+          && route.getPath().equals(rulesNamespacePath)) {
+        foundPostRulesNamespaceRoute = true;
+      }
+      if (RestRequest.Method.DELETE.equals(route.getMethod())
+          && route.getPath().equals(rulesNamespacePath)) {
+        foundDeleteRulesNamespaceRoute = true;
+      }
+      if (RestRequest.Method.DELETE.equals(route.getMethod())
+          && route
+              .getPath()
+              .equals(
+                  String.format(
+                      Locale.ROOT,
+                      "%s/api/v1/rules/{namespace}/{groupName}",
+                      RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
+        foundDeleteRulesGroupRoute = true;
+      }
     }
 
     Assertions.assertTrue(foundResourceTypeRoute, "Resource type route not found");
@@ -201,6 +232,14 @@ public class RestDirectQueryResourcesManagementActionTest {
         foundAlertmanagerAlertGroupsRoute, "Alertmanager alert groups route not found");
     Assertions.assertTrue(
         foundPostAlertmanagerRoute, "Post Alertmanager route not found");
+    Assertions.assertTrue(
+        foundGetRulesNamespaceRoute, "GET rules namespace route not found");
+    Assertions.assertTrue(
+        foundPostRulesNamespaceRoute, "POST rules namespace route not found");
+    Assertions.assertTrue(
+        foundDeleteRulesNamespaceRoute, "DELETE rules namespace route not found");
+    Assertions.assertTrue(
+        foundDeleteRulesGroupRoute, "DELETE rules group route not found");
   }
 
   @Test
@@ -610,5 +649,125 @@ public class RestDirectQueryResourcesManagementActionTest {
     unit.handleRequest(request, channel, nodeClient);
 
     return listenerCaptor.getValue();
+  }
+
+  @Test
+  @SneakyThrows
+  public void testDeleteMethodForRulesNamespace() {
+    setDataSourcesEnabled(true);
+
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.DELETE);
+    Mockito.when(request.path())
+        .thenReturn(
+            "/_plugins/_directquery/_resources/testDataSource/api/v1/rules/test_namespace");
+    Map<String, String> requestParams =
+        Map.of("dataSource", "testDataSource", "namespace", "test_namespace");
+    Mockito.when(request.param(Mockito.anyString()))
+        .thenAnswer(i -> requestParams.get(i.getArgument(0)));
+    Mockito.when(request.consumedParams()).thenReturn(List.of("dataSource", "namespace"));
+    Mockito.when(request.params()).thenReturn(ImmutableMap.copyOf(requestParams));
+
+    unit.handleRequest(request, channel, nodeClient);
+
+    Mockito.verify(threadPool, Mockito.times(1))
+        .schedule(
+            ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any());
+    Mockito.verifyNoInteractions(channel);
+  }
+
+  @Test
+  @SneakyThrows
+  public void testSuccessfulDeleteResourceResponse() {
+    setDataSourcesEnabled(true);
+    String successResponse = "{\"status\":\"success\"}";
+    org.opensearch.sql.directquery.transport.model.DeleteDirectQueryResourcesActionResponse
+        response =
+            new org.opensearch.sql.directquery.transport.model
+                .DeleteDirectQueryResourcesActionResponse(successResponse);
+
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.DELETE);
+    Mockito.when(request.path())
+        .thenReturn(
+            "/_plugins/_directquery/_resources/testDataSource/api/v1/rules/test_namespace");
+    Map<String, String> requestParams =
+        Map.of("dataSource", "testDataSource", "namespace", "test_namespace");
+    Mockito.when(request.param(Mockito.anyString()))
+        .thenAnswer(i -> requestParams.get(i.getArgument(0)));
+    Mockito.when(request.consumedParams()).thenReturn(List.of("dataSource", "namespace"));
+    Mockito.when(request.params()).thenReturn(ImmutableMap.copyOf(requestParams));
+
+    ArgumentCaptor<ActionListener> listenerCaptor =
+        ArgumentCaptor.forClass(ActionListener.class);
+
+    Mockito.doAnswer(
+            invocation -> {
+              Runnable runnable = invocation.getArgument(0);
+              runnable.run();
+              return null;
+            })
+        .when(threadPool)
+        .schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+
+    Mockito.doAnswer(invocation -> null)
+        .when(nodeClient)
+        .execute(Mockito.any(), Mockito.any(), listenerCaptor.capture());
+
+    unit.handleRequest(request, channel, nodeClient);
+
+    ActionListener listener = listenerCaptor.getValue();
+    listener.onResponse(response);
+
+    ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel).sendResponse(responseCaptor.capture());
+
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(200, capturedResponse.status().getStatus());
+    Assertions.assertEquals(
+        "application/json; charset=UTF-8", capturedResponse.contentType());
+  }
+
+  @Test
+  @SneakyThrows
+  public void testDeleteResourceFailureResponse() {
+    setDataSourcesEnabled(true);
+    RuntimeException serverError = new RuntimeException("Delete operation failed");
+
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.DELETE);
+    Mockito.when(request.path())
+        .thenReturn(
+            "/_plugins/_directquery/_resources/testDataSource/api/v1/rules/test_namespace");
+    Map<String, String> requestParams =
+        Map.of("dataSource", "testDataSource", "namespace", "test_namespace");
+    Mockito.when(request.param(Mockito.anyString()))
+        .thenAnswer(i -> requestParams.get(i.getArgument(0)));
+    Mockito.when(request.consumedParams()).thenReturn(List.of("dataSource", "namespace"));
+    Mockito.when(request.params()).thenReturn(ImmutableMap.copyOf(requestParams));
+
+    ArgumentCaptor<ActionListener> listenerCaptor =
+        ArgumentCaptor.forClass(ActionListener.class);
+
+    Mockito.doAnswer(
+            invocation -> {
+              Runnable runnable = invocation.getArgument(0);
+              runnable.run();
+              return null;
+            })
+        .when(threadPool)
+        .schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+
+    Mockito.doAnswer(invocation -> null)
+        .when(nodeClient)
+        .execute(Mockito.any(), Mockito.any(), listenerCaptor.capture());
+
+    unit.handleRequest(request, channel, nodeClient);
+
+    ActionListener listener = listenerCaptor.getValue();
+    listener.onFailure(serverError);
+
+    ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel).sendResponse(responseCaptor.capture());
+
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(500, capturedResponse.status().getStatus());
   }
 }

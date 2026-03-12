@@ -365,4 +365,78 @@ public class DirectQueryExecutorServiceImplTest {
     assertTrue(exception.getCause() instanceof IOException);
     assertEquals("Failed to write resources", exception.getCause().getMessage());
   }
+
+  @Test
+  public void testDeleteDirectQueryResourcesSuccessful() throws IOException {
+    String dataSource = "prometheusDataSource";
+
+    org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest request =
+        new org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest();
+    request.setDataSource(dataSource);
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setNamespace("test_namespace");
+
+    when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
+    when(queryHandlerRegistry.getQueryHandler(prometheusClient))
+        .thenReturn(Optional.of(queryHandler));
+
+    org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesResponse<String>
+        expectedResponse =
+            org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesResponse
+                .withMessage("{\"status\":\"success\"}");
+
+    when(queryHandler.deleteResources(eq(prometheusClient), eq(request)))
+        .thenReturn(
+            (org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesResponse)
+                expectedResponse);
+
+    org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesResponse<?> response =
+        executorService.deleteDirectQueryResources(request);
+
+    assertNotNull(response);
+  }
+
+  @Test
+  public void testDeleteDirectQueryResourcesWithUnregisteredHandler() {
+    String dataSource = "unsupportedDataSource";
+
+    org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest request =
+        new org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest();
+    request.setDataSource(dataSource);
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setNamespace("test_namespace");
+
+    when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
+    when(queryHandlerRegistry.getQueryHandler(prometheusClient)).thenReturn(Optional.empty());
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> executorService.deleteDirectQueryResources(request));
+    assertEquals("Unsupported data source type: " + dataSource, exception.getMessage());
+  }
+
+  @Test
+  public void testDeleteDirectQueryResourcesWithIOError() throws IOException {
+    String dataSource = "prometheusDataSource";
+
+    org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest request =
+        new org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest();
+    request.setDataSource(dataSource);
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setNamespace("test_namespace");
+
+    when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
+    when(queryHandlerRegistry.getQueryHandler(prometheusClient))
+        .thenReturn(Optional.of(queryHandler));
+    when(queryHandler.deleteResources(eq(prometheusClient), eq(request)))
+        .thenThrow(new IOException("Failed to delete resources"));
+
+    DataSourceClientException exception =
+        assertThrows(
+            DataSourceClientException.class,
+            () -> executorService.deleteDirectQueryResources(request));
+    assertNotNull(exception);
+    assertTrue(exception.getMessage().contains("Error deleting resources"));
+  }
 }

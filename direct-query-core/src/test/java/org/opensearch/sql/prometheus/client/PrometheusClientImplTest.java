@@ -647,4 +647,222 @@ public class PrometheusClientImplTest {
     assertTrue(exception.getMessage().contains("Alertmanager request failed with code: 400"));
     assertTrue(exception.getMessage().contains("No response body"));
   }
+
+  @Test
+  public void testGetRulesByNamespace() throws IOException {
+    String successResponse =
+        "{\"status\":\"success\",\"data\":{\"groups\":[{\"name\":\"example\",\"rules\":[]}]}}";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    JSONObject result = client.getRulesByNamespace("test_namespace", new HashMap<>());
+
+    assertNotNull(result);
+    assertTrue(result.has("groups"));
+  }
+
+  @Test
+  public void testGetRulesByNamespaceHttpError() {
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(404).setBody("Namespace not found"));
+
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> client.getRulesByNamespace("missing_ns", new HashMap<>()));
+    assertTrue(exception.getMessage().contains("404"));
+  }
+
+  @Test
+  public void testCreateOrUpdateRuleGroupSuccess() throws IOException {
+    mockWebServer.enqueue(new MockResponse().setResponseCode(202).setBody(""));
+
+    String yamlBody =
+        "name: example_group\nrules:\n  - record: job:requests:rate5m\n    expr: sum(rate(requests_total[5m])) by (job)\n";
+    String result = client.createOrUpdateRuleGroup("test_namespace", yamlBody);
+
+    assertNotNull(result);
+    assertTrue(result.contains("success"));
+  }
+
+  @Test
+  public void testCreateOrUpdateRuleGroupHttpError() {
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(400).setBody("Bad Request: invalid YAML"));
+
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> client.createOrUpdateRuleGroup("test_namespace", "invalid yaml"));
+    assertTrue(exception.getMessage().contains("Ruler request failed with code: 400"));
+    assertTrue(exception.getMessage().contains("Bad Request: invalid YAML"));
+  }
+
+  @Test
+  public void testDeleteRuleNamespaceSuccess() throws IOException {
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200));
+
+    String result = client.deleteRuleNamespace("test_namespace");
+
+    assertNotNull(result);
+    assertTrue(result.contains("success"));
+  }
+
+  @Test
+  public void testDeleteRuleNamespaceHttpError() {
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(404).setBody("Namespace not found"));
+
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> client.deleteRuleNamespace("missing_ns"));
+    assertTrue(exception.getMessage().contains("Ruler request failed with code: 404"));
+  }
+
+  @Test
+  public void testDeleteRuleGroupSuccess() throws IOException {
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200));
+
+    String result = client.deleteRuleGroup("test_namespace", "test_group");
+
+    assertNotNull(result);
+    assertTrue(result.contains("success"));
+  }
+
+  @Test
+  public void testDeleteRuleGroupHttpError() {
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(404).setBody("Group not found"));
+
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> client.deleteRuleGroup("test_namespace", "missing_group"));
+    assertTrue(exception.getMessage().contains("Ruler request failed with code: 404"));
+  }
+
+  @Test
+  public void testCreateOrUpdateRuleGroupWithResponseBody() throws IOException {
+    String responseBody = "{\"status\":\"success\",\"data\":null}";
+    mockWebServer.enqueue(new MockResponse().setResponseCode(202).setBody(responseBody));
+
+    String result = client.createOrUpdateRuleGroup("test_namespace", "name: test\nrules: []\n");
+
+    assertEquals(responseBody, result);
+  }
+
+  @Test
+  public void testCreateOrUpdateRuleGroupSuccessWithNullBody() throws IOException {
+    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
+    Response nullBodyResponse =
+        new Response.Builder()
+            .request(dummyRequest)
+            .protocol(Protocol.HTTP_1_1)
+            .code(202)
+            .message("Accepted")
+            .body(null)
+            .build();
+
+    OkHttpClient spyClient = spy(new OkHttpClient());
+    Call mockCall = mock(Call.class);
+    when(mockCall.execute()).thenReturn(nullBodyResponse);
+    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
+
+    PrometheusClientImpl nullBodyClient =
+        new PrometheusClientImpl(
+            spyClient,
+            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+
+    String result = nullBodyClient.createOrUpdateRuleGroup("test_ns", "name: test\nrules: []\n");
+
+    assertNotNull(result);
+    assertTrue(result.contains("success"));
+  }
+
+  @Test
+  public void testDeleteRuleNamespaceHttpErrorWithNullBody() throws IOException {
+    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
+    Response nullBodyResponse =
+        new Response.Builder()
+            .request(dummyRequest)
+            .protocol(Protocol.HTTP_1_1)
+            .code(500)
+            .message("Server Error")
+            .body(null)
+            .build();
+
+    OkHttpClient spyClient = spy(new OkHttpClient());
+    Call mockCall = mock(Call.class);
+    when(mockCall.execute()).thenReturn(nullBodyResponse);
+    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
+
+    PrometheusClientImpl nullBodyClient =
+        new PrometheusClientImpl(
+            spyClient,
+            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> nullBodyClient.deleteRuleNamespace("test_ns"));
+    assertTrue(exception.getMessage().contains("No response body"));
+  }
+
+  @Test
+  public void testDeleteRuleGroupHttpErrorWithNullBody() throws IOException {
+    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
+    Response nullBodyResponse =
+        new Response.Builder()
+            .request(dummyRequest)
+            .protocol(Protocol.HTTP_1_1)
+            .code(500)
+            .message("Server Error")
+            .body(null)
+            .build();
+
+    OkHttpClient spyClient = spy(new OkHttpClient());
+    Call mockCall = mock(Call.class);
+    when(mockCall.execute()).thenReturn(nullBodyResponse);
+    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
+
+    PrometheusClientImpl nullBodyClient =
+        new PrometheusClientImpl(
+            spyClient,
+            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> nullBodyClient.deleteRuleGroup("test_ns", "test_group"));
+    assertTrue(exception.getMessage().contains("No response body"));
+  }
+
+  @Test
+  public void testCreateOrUpdateRuleGroupHttpErrorWithNullBody() throws IOException {
+    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
+    Response nullBodyResponse =
+        new Response.Builder()
+            .request(dummyRequest)
+            .protocol(Protocol.HTTP_1_1)
+            .code(400)
+            .message("Bad Request")
+            .body(null)
+            .build();
+
+    OkHttpClient spyClient = spy(new OkHttpClient());
+    Call mockCall = mock(Call.class);
+    when(mockCall.execute()).thenReturn(nullBodyResponse);
+    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
+
+    PrometheusClientImpl nullBodyClient =
+        new PrometheusClientImpl(
+            spyClient,
+            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> nullBodyClient.createOrUpdateRuleGroup("test_ns", "bad yaml"));
+    assertTrue(exception.getMessage().contains("No response body"));
+  }
 }

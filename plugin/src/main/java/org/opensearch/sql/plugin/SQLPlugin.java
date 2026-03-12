@@ -78,10 +78,12 @@ import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
 import org.opensearch.sql.directquery.DirectQueryExecutorService;
 import org.opensearch.sql.directquery.rest.RestDirectQueryManagementAction;
 import org.opensearch.sql.directquery.rest.RestDirectQueryResourcesManagementAction;
+import org.opensearch.sql.directquery.transport.TransportDeleteDirectQueryResourcesRequestAction;
 import org.opensearch.sql.directquery.transport.TransportExecuteDirectQueryRequestAction;
 import org.opensearch.sql.directquery.transport.TransportGetDirectQueryResourcesRequestAction;
 import org.opensearch.sql.directquery.transport.TransportWriteDirectQueryResourcesRequestAction;
 import org.opensearch.sql.directquery.transport.config.DirectQueryModule;
+import org.opensearch.sql.directquery.transport.model.DeleteDirectQueryResourcesActionResponse;
 import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionResponse;
 import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionResponse;
 import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionResponse;
@@ -225,7 +227,12 @@ public class SQLPlugin extends Plugin
             new ActionType<>(
                 TransportWriteDirectQueryResourcesRequestAction.NAME,
                 WriteDirectQueryResourcesActionResponse::new),
-            TransportWriteDirectQueryResourcesRequestAction.class));
+            TransportWriteDirectQueryResourcesRequestAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportDeleteDirectQueryResourcesRequestAction.NAME,
+                DeleteDirectQueryResourcesActionResponse::new),
+            TransportDeleteDirectQueryResourcesRequestAction.class));
   }
 
   @Override

@@ -317,6 +317,110 @@ public class PrometheusClientImpl implements PrometheusClient {
     }
   }
 
+  @Override
+  public JSONObject getRulesByNamespace(String namespace, Map<String, String> queryParams)
+      throws IOException {
+    String queryString = this.paramsToQueryString(queryParams);
+    String queryUrl =
+        String.format(
+            "%s/api/v1/rules/%s%s",
+            prometheusUri.toString().replaceAll("/$", ""),
+            URLEncoder.encode(namespace, StandardCharsets.UTF_8),
+            queryString);
+    logger.debug("Making Prometheus rules request for namespace: {}", queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
+    JSONObject jsonObject = readResponse(response);
+    return jsonObject.getJSONObject("data");
+  }
+
+  @Override
+  public String createOrUpdateRuleGroup(String namespace, String yamlBody) throws IOException {
+    String queryUrl =
+        String.format(
+            "%s/api/v1/rules/%s",
+            prometheusUri.toString().replaceAll("/$", ""),
+            URLEncoder.encode(namespace, StandardCharsets.UTF_8));
+    logger.debug("Making Ruler POST request to create/update rule group: {}", queryUrl);
+    Request request =
+        new Request.Builder()
+            .url(queryUrl)
+            .header("Content-Type", "application/yaml")
+            .post(RequestBody.create(yamlBody.getBytes(StandardCharsets.UTF_8)))
+            .build();
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
+
+    if (response.isSuccessful()) {
+      String body = response.body() != null ? response.body().string() : "";
+      return body.isEmpty() ? "{\"status\":\"success\"}" : body;
+    } else {
+      String errorBody = response.body() != null ? response.body().string() : "No response body";
+      logger.error(
+          "Ruler POST request failed with code: {}, error body: {}", response.code(), errorBody);
+      throw new PrometheusClientException(
+          String.format(
+              "Ruler request failed with code: %s. Error details: %s",
+              response.code(), errorBody));
+    }
+  }
+
+  @Override
+  public String deleteRuleNamespace(String namespace) throws IOException {
+    String queryUrl =
+        String.format(
+            "%s/api/v1/rules/%s",
+            prometheusUri.toString().replaceAll("/$", ""),
+            URLEncoder.encode(namespace, StandardCharsets.UTF_8));
+    logger.debug("Making Ruler DELETE request for namespace: {}", queryUrl);
+    Request request = new Request.Builder().url(queryUrl).delete().build();
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
+
+    if (response.isSuccessful()) {
+      return "{\"status\":\"success\"}";
+    } else {
+      String errorBody = response.body() != null ? response.body().string() : "No response body";
+      logger.error(
+          "Ruler DELETE request failed with code: {}, error body: {}", response.code(), errorBody);
+      throw new PrometheusClientException(
+          String.format(
+              "Ruler request failed with code: %s. Error details: %s",
+              response.code(), errorBody));
+    }
+  }
+
+  @Override
+  public String deleteRuleGroup(String namespace, String groupName) throws IOException {
+    String queryUrl =
+        String.format(
+            "%s/api/v1/rules/%s/%s",
+            prometheusUri.toString().replaceAll("/$", ""),
+            URLEncoder.encode(namespace, StandardCharsets.UTF_8),
+            URLEncoder.encode(groupName, StandardCharsets.UTF_8));
+    logger.debug("Making Ruler DELETE request for group: {}", queryUrl);
+    Request request = new Request.Builder().url(queryUrl).delete().build();
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
+
+    if (response.isSuccessful()) {
+      return "{\"status\":\"success\"}";
+    } else {
+      String errorBody = response.body() != null ? response.body().string() : "No response body";
+      logger.error(
+          "Ruler DELETE request failed with code: {}, error body: {}", response.code(), errorBody);
+      throw new PrometheusClientException(
+          String.format(
+              "Ruler request failed with code: %s. Error details: %s",
+              response.code(), errorBody));
+    }
+  }
+
   /**
    * Reads and processes an Alertmanager API response.
    *

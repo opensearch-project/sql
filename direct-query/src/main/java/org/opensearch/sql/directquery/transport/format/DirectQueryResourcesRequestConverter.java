@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.DirectQueryResourceType;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRequest;
@@ -29,7 +30,7 @@ public class DirectQueryResourcesRequestConverter {
     GetDirectQueryResourcesRequest directQueryRequest = new GetDirectQueryResourcesRequest();
     directQueryRequest.setDataSource(restRequest.param("dataSource"));
 
-    //TODO: Move prometheus code into prometheus module/classes
+    // TODO: Move prometheus code into prometheus module/classes
     String path = restRequest.path();
     if (path.contains("/alertmanager/api/v2/")) {
       // Handle Alertmanager API endpoints
@@ -40,6 +41,10 @@ public class DirectQueryResourcesRequestConverter {
             DirectQueryResourceType.fromString(
                 "alertmanager_" + restRequest.param("resourceType")));
       }
+    } else if (restRequest.param("namespace") != null) {
+      // Handle Ruler API - GET /api/v1/rules/{namespace}
+      directQueryRequest.setResourceType(DirectQueryResourceType.RULES);
+      directQueryRequest.setResourceName(restRequest.param("namespace"));
     } else {
       directQueryRequest.setResourceTypeFromString(restRequest.param("resourceType"));
       if (restRequest.param("resourceName") != null) {
@@ -64,7 +69,8 @@ public class DirectQueryResourcesRequestConverter {
    * @param restRequest The REST request to convert
    * @return A configured WriteDirectQueryResourcesRequest
    */
-  public static WriteDirectQueryResourcesRequest toWriteDirectRestRequest(RestRequest restRequest) {
+  public static WriteDirectQueryResourcesRequest toWriteDirectRestRequest(
+      RestRequest restRequest) {
     WriteDirectQueryResourcesRequest directQueryRequest = new WriteDirectQueryResourcesRequest();
 
     directQueryRequest.setDataSource(restRequest.param("dataSource"));
@@ -76,9 +82,13 @@ public class DirectQueryResourcesRequestConverter {
         directQueryRequest.setResourceType(DirectQueryResourceType.ALERTMANAGER_ALERT_GROUPS);
       } else {
         directQueryRequest.setResourceType(
-                DirectQueryResourceType.fromString(
-                        "alertmanager_" + restRequest.param("resourceType")));
+            DirectQueryResourceType.fromString(
+                "alertmanager_" + restRequest.param("resourceType")));
       }
+    } else if (restRequest.param("namespace") != null) {
+      // Handle Ruler API - POST /api/v1/rules/{namespace}
+      directQueryRequest.setResourceType(DirectQueryResourceType.RULES);
+      directQueryRequest.setResourceName(restRequest.param("namespace"));
     } else {
       directQueryRequest.setResourceTypeFromString(restRequest.param("resourceType"));
       if (restRequest.param("resourceName") != null) {
@@ -88,8 +98,35 @@ public class DirectQueryResourcesRequestConverter {
     if (restRequest.hasContent()) {
       directQueryRequest.setRequest(restRequest.content().utf8ToString());
     } else {
-      throw new IllegalArgumentException("The write direct resource request must have a request in the body");
+      throw new IllegalArgumentException(
+          "The write direct resource request must have a request in the body");
     }
     return directQueryRequest;
+  }
+
+  /**
+   * Converts a RestRequest to a DeleteDirectQueryResourcesRequest.
+   *
+   * @param restRequest The REST request to convert
+   * @return A configured DeleteDirectQueryResourcesRequest
+   */
+  public static DeleteDirectQueryResourcesRequest toDeleteDirectRestRequest(
+      RestRequest restRequest) {
+    DeleteDirectQueryResourcesRequest deleteRequest = new DeleteDirectQueryResourcesRequest();
+    deleteRequest.setDataSource(restRequest.param("dataSource"));
+    deleteRequest.setResourceType(DirectQueryResourceType.RULES);
+
+    String namespace = restRequest.param("namespace");
+    if (namespace == null || namespace.isEmpty()) {
+      throw new IllegalArgumentException("Namespace is required for delete rule operations");
+    }
+    deleteRequest.setNamespace(namespace);
+
+    String groupName = restRequest.param("groupName");
+    if (groupName != null && !groupName.isEmpty()) {
+      deleteRequest.setGroupName(groupName);
+    }
+
+    return deleteRequest;
   }
 }

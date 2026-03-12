@@ -8,6 +8,8 @@ package org.opensearch.sql.datasource.query;
 import java.io.IOException;
 import org.opensearch.sql.datasource.client.DataSourceClient;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest;
+import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesResponse;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
@@ -61,6 +63,17 @@ public interface QueryHandler<T extends DataSourceClient> {
    */
   WriteDirectQueryResourcesResponse<?> writeResources(T client, WriteDirectQueryResourcesRequest request)
           throws IOException;
+
+  /**
+   * Deletes resources from the data source.
+   *
+   * @param client The client instance to use
+   * @param request The delete resources request
+   * @return Response containing the result of the delete operation
+   * @throws IOException If resource deletion fails
+   */
+  DeleteDirectQueryResourcesResponse<?> deleteResources(
+      T client, DeleteDirectQueryResourcesRequest request) throws IOException;
 
   /**
    * Checks if this handler can handle the given client type.

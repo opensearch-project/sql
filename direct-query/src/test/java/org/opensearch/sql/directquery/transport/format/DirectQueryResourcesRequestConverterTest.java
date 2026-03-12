@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockSettings;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.sql.directquery.rest.model.DeleteDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.DirectQueryResourceType;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRequest;
@@ -324,5 +325,115 @@ public class DirectQueryResourcesRequestConverterTest {
     assertEquals(DirectQueryResourceType.METADATA, result.getResourceType());
     assertEquals(null, result.getResourceName());
     assertEquals(requestBody, result.getRequest());
+  }
+
+  @Test
+  public void testToGetDirectRestRequestForRulesNamespace() {
+    when(request.param("dataSource")).thenReturn("testDataSource");
+    when(request.param("namespace")).thenReturn("test_namespace");
+    when(request.param("resourceType")).thenReturn(null);
+    when(request.path())
+        .thenReturn(
+            "/_plugins/_directquery/_resources/testDataSource/api/v1/rules/test_namespace");
+
+    Map<String, String> params =
+        Map.of("dataSource", "testDataSource", "namespace", "test_namespace");
+    when(request.params()).thenReturn(ImmutableMap.copyOf(params));
+    when(request.consumedParams()).thenReturn(List.of("dataSource", "namespace"));
+
+    GetDirectQueryResourcesRequest result =
+        DirectQueryResourcesRequestConverter.toGetDirectRestRequest(request);
+
+    assertEquals("testDataSource", result.getDataSource());
+    assertEquals(DirectQueryResourceType.RULES, result.getResourceType());
+    assertEquals("test_namespace", result.getResourceName());
+  }
+
+  @Test
+  public void testToWriteDirectRestRequestForRulesNamespace() {
+    String yamlBody = "name: test_group\nrules:\n  - record: test\n    expr: up\n";
+    when(request.param("dataSource")).thenReturn("testDataSource");
+    when(request.param("namespace")).thenReturn("test_namespace");
+    when(request.param("resourceType")).thenReturn(null);
+    when(request.path())
+        .thenReturn(
+            "/_plugins/_directquery/_resources/testDataSource/api/v1/rules/test_namespace");
+    when(request.hasContent()).thenReturn(true);
+    when(request.content()).thenReturn(new BytesArray(yamlBody));
+
+    WriteDirectQueryResourcesRequest result =
+        DirectQueryResourcesRequestConverter.toWriteDirectRestRequest(request);
+
+    assertEquals("testDataSource", result.getDataSource());
+    assertEquals(DirectQueryResourceType.RULES, result.getResourceType());
+    assertEquals("test_namespace", result.getResourceName());
+    assertEquals(yamlBody, result.getRequest());
+  }
+
+  @Test
+  public void testToDeleteDirectRestRequestWithNamespace() {
+    when(request.param("dataSource")).thenReturn("testDataSource");
+    when(request.param("namespace")).thenReturn("test_namespace");
+    when(request.param("groupName")).thenReturn(null);
+
+    DeleteDirectQueryResourcesRequest result =
+        DirectQueryResourcesRequestConverter.toDeleteDirectRestRequest(request);
+
+    assertEquals("testDataSource", result.getDataSource());
+    assertEquals(DirectQueryResourceType.RULES, result.getResourceType());
+    assertEquals("test_namespace", result.getNamespace());
+    assertEquals(null, result.getGroupName());
+  }
+
+  @Test
+  public void testToDeleteDirectRestRequestWithNamespaceAndGroupName() {
+    when(request.param("dataSource")).thenReturn("testDataSource");
+    when(request.param("namespace")).thenReturn("test_namespace");
+    when(request.param("groupName")).thenReturn("test_group");
+
+    DeleteDirectQueryResourcesRequest result =
+        DirectQueryResourcesRequestConverter.toDeleteDirectRestRequest(request);
+
+    assertEquals("testDataSource", result.getDataSource());
+    assertEquals(DirectQueryResourceType.RULES, result.getResourceType());
+    assertEquals("test_namespace", result.getNamespace());
+    assertEquals("test_group", result.getGroupName());
+  }
+
+  @Test
+  public void testToDeleteDirectRestRequestMissingNamespace() {
+    when(request.param("dataSource")).thenReturn("testDataSource");
+    when(request.param("namespace")).thenReturn(null);
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> DirectQueryResourcesRequestConverter.toDeleteDirectRestRequest(request));
+    assertEquals("Namespace is required for delete rule operations", exception.getMessage());
+  }
+
+  @Test
+  public void testToDeleteDirectRestRequestEmptyNamespace() {
+    when(request.param("dataSource")).thenReturn("testDataSource");
+    when(request.param("namespace")).thenReturn("");
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> DirectQueryResourcesRequestConverter.toDeleteDirectRestRequest(request));
+    assertEquals("Namespace is required for delete rule operations", exception.getMessage());
+  }
+
+  @Test
+  public void testToDeleteDirectRestRequestWithEmptyGroupName() {
+    when(request.param("dataSource")).thenReturn("testDataSource");
+    when(request.param("namespace")).thenReturn("test_namespace");
+    when(request.param("groupName")).thenReturn("");
+
+    DeleteDirectQueryResourcesRequest result =
+        DirectQueryResourcesRequestConverter.toDeleteDirectRestRequest(request);
+
+    assertEquals("test_namespace", result.getNamespace());
+    assertEquals(null, result.getGroupName());
   }
 }

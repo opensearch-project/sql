@@ -107,4 +107,44 @@ public interface PrometheusClient extends DataSourceClient {
    * @throws IOException If there is an issue with the request
    */
   String createAlertmanagerSilences(String silenceJson) throws IOException;
+
+  /**
+   * Get rules for a specific namespace from the Cortex/Thanos Ruler API.
+   *
+   * @param namespace The rules namespace
+   * @param queryParams Map of query parameters to include in the request
+   * @return JSONObject containing rules in the namespace
+   * @throws IOException If there is an issue with the request
+   */
+  JSONObject getRulesByNamespace(String namespace, Map<String, String> queryParams)
+      throws IOException;
+
+  /**
+   * Create or update a rule group in a namespace via the Cortex/Thanos Ruler API.
+   *
+   * @param namespace The rules namespace
+   * @param yamlBody The rule group definition in YAML format
+   * @return String containing the response
+   * @throws IOException If there is an issue with the request
+   */
+  String createOrUpdateRuleGroup(String namespace, String yamlBody) throws IOException;
+
+  /**
+   * Delete all rules in a namespace via the Cortex/Thanos Ruler API.
+   *
+   * @param namespace The rules namespace to delete
+   * @return String containing the response
+   * @throws IOException If there is an issue with the request
+   */
+  String deleteRuleNamespace(String namespace) throws IOException;
+
+  /**
+   * Delete a specific rule group in a namespace via the Cortex/Thanos Ruler API.
+   *
+   * @param namespace The rules namespace
+   * @param groupName The specific rule group name to delete
+   * @return String containing the response
+   * @throws IOException If there is an issue with the request
+   */
+  String deleteRuleGroup(String namespace, String groupName) throws IOException;
 }
