@@ -386,9 +386,16 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       }
       int queryBucketSize = osIndex.getQueryBucketSize();
       boolean bucketNullable = !PPLHintUtils.ignoreNullBucket(aggregate);
+      boolean udafPushdownEnabled =
+          osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_UDAF_PUSHDOWN_ENABLED);
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
-              getRowType(), fieldTypes, getCluster(), bucketNullable, queryBucketSize);
+              getRowType(),
+              fieldTypes,
+              getCluster(),
+              bucketNullable,
+              queryBucketSize,
+              udafPushdownEnabled);
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser =
           AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
       Map<String, OpenSearchDataType> extendedTypeMapping =
