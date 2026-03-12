@@ -458,40 +458,17 @@ public class PrometheusQueryHandlerTest {
     Map<String, String> queryParams = new HashMap<>();
     request.setQueryParams(queryParams);
 
-    JSONObject rulesJson = new JSONObject();
-    rulesJson.put("status", "success");
-    rulesJson.put(
-        "data",
-        new JSONObject()
-            .put(
-                "groups",
-                Arrays.asList(
-                    new JSONObject()
-                        .put("name", "example")
-                        .put(
-                            "rules",
-                            Arrays.asList(
-                                new JSONObject()
-                                    .put("name", "HighErrorRate")
-                                    .put(
-                                        "query",
-                                        "rate(http_requests_total{status=~\"5..\"}[5m]) > 0.5")
-                                    .put("type", "alerting"),
-                                new JSONObject()
-                                    .put("name", "RequestRate")
-                                    .put("query", "rate(http_requests_total[5m])")
-                                    .put("type", "recording"))))));
-
-    when(prometheusClient.getRules(queryParams)).thenReturn(rulesJson);
+    String rulesBody = "{\"groups\":[{\"name\":\"example\",\"rules\":[]}]}";
+    when(prometheusClient.getRules(queryParams)).thenReturn(rulesBody);
 
     // Test
     GetDirectQueryResourcesResponse<?> response = handler.getResources(prometheusClient, request);
 
     // Verify
     assertNotNull(response);
-    Map<?, ?> data = (Map<?, ?>) response.getData();
-    assertEquals("success", data.get("status"));
-    assertTrue(data.containsKey("data"));
+    List<?> data = (List<?>) response.getData();
+    assertEquals(1, data.size());
+    assertTrue(data.get(0).toString().contains("example"));
   }
 
   @Test
@@ -773,9 +750,8 @@ public class PrometheusQueryHandlerTest {
     request.setResourceName(null);
     request.setQueryParams(new HashMap<>());
 
-    JSONObject rulesData =
-        new JSONObject("{\"groups\":[{\"name\":\"all\",\"rules\":[]}]}");
-    when(prometheusClient.getRules(eq(new HashMap<>()))).thenReturn(rulesData);
+    when(prometheusClient.getRules(eq(new HashMap<>())))
+        .thenReturn("{\"groups\":[{\"name\":\"all\",\"rules\":[]}]}");
 
     GetDirectQueryResourcesResponse<?> response =
         handler.getResources(prometheusClient, request);
@@ -790,9 +766,8 @@ public class PrometheusQueryHandlerTest {
     request.setResourceName("");
     request.setQueryParams(new HashMap<>());
 
-    JSONObject rulesData =
-        new JSONObject("{\"groups\":[{\"name\":\"all\",\"rules\":[]}]}");
-    when(prometheusClient.getRules(eq(new HashMap<>()))).thenReturn(rulesData);
+    when(prometheusClient.getRules(eq(new HashMap<>())))
+        .thenReturn("{\"groups\":[{\"name\":\"all\",\"rules\":[]}]}");
 
     GetDirectQueryResourcesResponse<?> response =
         handler.getResources(prometheusClient, request);
@@ -807,17 +782,18 @@ public class PrometheusQueryHandlerTest {
     request.setResourceName("test_namespace");
     request.setQueryParams(new HashMap<>());
 
-    JSONObject rulesData =
-        new JSONObject("{\"groups\":[{\"name\":\"test\",\"rules\":[]}]}");
+    String rulesYaml =
+        "test_namespace:\n  - name: test\n    rules: []\n";
     when(prometheusClient.getRulesByNamespace(eq("test_namespace"), eq(new HashMap<>())))
-        .thenReturn(rulesData);
+        .thenReturn(rulesYaml);
 
     GetDirectQueryResourcesResponse<?> response =
         handler.getResources(prometheusClient, request);
 
     assertNotNull(response);
-    Map<?, ?> data = (Map<?, ?>) response.getData();
-    assertTrue(data.containsKey("groups"));
+    List<?> data = (List<?>) response.getData();
+    assertEquals(1, data.size());
+    assertTrue(data.get(0).toString().contains("test_namespace"));
   }
 
   @Test

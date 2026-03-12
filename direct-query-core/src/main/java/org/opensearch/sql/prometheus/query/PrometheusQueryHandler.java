@@ -148,15 +148,15 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
           }
         case RULES:
           {
-            JSONObject rules;
+            String rulesBody;
             if (request.getResourceName() != null && !request.getResourceName().isEmpty()) {
-              rules =
+              rulesBody =
                   client.getRulesByNamespace(
                       request.getResourceName(), request.getQueryParams());
             } else {
-              rules = client.getRules(request.getQueryParams());
+              rulesBody = client.getRules(request.getQueryParams());
             }
-            return GetDirectQueryResourcesResponse.withMap(rules.toMap());
+            return GetDirectQueryResourcesResponse.withStringList(List.of(rulesBody));
           }
         case ALERTMANAGER_ALERTS:
           {

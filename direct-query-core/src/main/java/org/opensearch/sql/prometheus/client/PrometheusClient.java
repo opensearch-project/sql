@@ -58,13 +58,14 @@ public interface PrometheusClient extends DataSourceClient {
   JSONObject getAlerts() throws IOException;
 
   /**
-   * Get all recording and alerting rules.
+   * Get all recording and alerting rules. Returns the raw response body since the format varies by
+   * backend: Prometheus returns JSON, Cortex/Thanos returns YAML, and AMP returns JSON.
    *
    * @param queryParams Map of query parameters to include in the request
-   * @return JSONObject containing all rules
+   * @return String containing the raw response body
    * @throws IOException If there is an issue with the request
    */
-  JSONObject getRules(Map<String, String> queryParams) throws IOException;
+  String getRules(Map<String, String> queryParams) throws IOException;
 
   /**
    * Get all alerts from Alertmanager.
@@ -109,15 +110,15 @@ public interface PrometheusClient extends DataSourceClient {
   String createAlertmanagerSilences(String silenceJson) throws IOException;
 
   /**
-   * Get rules for a specific namespace from the Cortex/Thanos Ruler API.
+   * Get rules for a specific namespace from the Cortex/Thanos Ruler API. The response is returned
+   * as a raw string since the Ruler API returns YAML (Cortex/Thanos) or JSON (AMP).
    *
    * @param namespace The rules namespace
    * @param queryParams Map of query parameters to include in the request
-   * @return JSONObject containing rules in the namespace
+   * @return String containing the raw response body (YAML or JSON)
    * @throws IOException If there is an issue with the request
    */
-  JSONObject getRulesByNamespace(String namespace, Map<String, String> queryParams)
-      throws IOException;
+  String getRulesByNamespace(String namespace, Map<String, String> queryParams) throws IOException;
 
   /**
    * Create or update a rule group in a namespace via the Cortex/Thanos Ruler API.

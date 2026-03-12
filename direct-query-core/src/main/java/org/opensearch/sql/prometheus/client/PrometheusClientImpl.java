@@ -229,16 +229,39 @@ public class PrometheusClientImpl implements PrometheusClient {
   }
 
   @Override
-  public JSONObject getRules(Map<String, String> queryParams) throws IOException {
+  public String getRules(Map<String, String> queryParams) throws IOException {
     String queryString = this.paramsToQueryString(queryParams);
     String queryUrl =
         String.format(
             "%s/api/v1/rules%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
-    logger.debug("Making Prometheus rules request: {}", queryUrl);
+    logger.debug("Making Ruler GET request for all rules: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
-    JSONObject jsonObject = readResponse(response);
-    return jsonObject.getJSONObject("data");
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
+
+    if (response.isSuccessful()) {
+      String bodyString = Objects.requireNonNull(response.body()).string();
+      // Try to extract data from Prometheus JSON format; return raw body otherwise
+      try {
+        JSONObject jsonObject = new JSONObject(bodyString);
+        if ("success".equals(jsonObject.optString("status"))
+            && jsonObject.has("data")) {
+          return jsonObject.getJSONObject("data").toString();
+        }
+      } catch (JSONException e) {
+        // Not JSON (e.g. Cortex YAML) — fall through
+      }
+      return bodyString;
+    } else {
+      String errorBody = response.body() != null ? response.body().string() : "No response body";
+      logger.error(
+          "Ruler GET request failed with code: {}, error body: {}", response.code(), errorBody);
+      throw new PrometheusClientException(
+          String.format(
+              "Ruler request failed with code: %s. Error details: %s",
+              response.code(), errorBody));
+    }
   }
 
   @Override
@@ -318,7 +341,7 @@ public class PrometheusClientImpl implements PrometheusClient {
   }
 
   @Override
-  public JSONObject getRulesByNamespace(String namespace, Map<String, String> queryParams)
+  public String getRulesByNamespace(String namespace, Map<String, String> queryParams)
       throws IOException {
     String queryString = this.paramsToQueryString(queryParams);
     String queryUrl =
@@ -327,13 +350,23 @@ public class PrometheusClientImpl implements PrometheusClient {
             prometheusUri.toString().replaceAll("/$", ""),
             URLEncoder.encode(namespace, StandardCharsets.UTF_8),
             queryString);
-    logger.debug("Making Prometheus rules request for namespace: {}", queryUrl);
+    logger.debug("Making Ruler GET request for namespace: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     Response response =
         AccessController.doPrivilegedChecked(
             () -> this.prometheusHttpClient.newCall(request).execute());
-    JSONObject jsonObject = readResponse(response);
-    return jsonObject.getJSONObject("data");
+
+    if (response.isSuccessful()) {
+      return Objects.requireNonNull(response.body()).string();
+    } else {
+      String errorBody = response.body() != null ? response.body().string() : "No response body";
+      logger.error(
+          "Ruler GET request failed with code: {}, error body: {}", response.code(), errorBody);
+      throw new PrometheusClientException(
+          String.format(
+              "Ruler request failed with code: %s. Error details: %s",
+              response.code(), errorBody));
+    }
   }
 
   @Override
