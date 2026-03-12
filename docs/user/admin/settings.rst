@@ -960,3 +960,19 @@ Join types ``inner``, ``left``, ``outer`` (alias of ``left``), ``semi`` and ``an
 1. The default value is false since 3.3.0.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
+
+plugins.calcite.checked_arithmetic.enabled
+==========================================
+
+Version
+-------
+3.3
+
+Description
+-----------
+
+When enabled, integer and long arithmetic operations (``+``, ``-``, ``*``, ``/``) detect overflow and return an error instead of silently wrapping. For example, ``2147483647 + 1`` returns an error rather than ``-2147483648``. Floating-point (``float``, ``double``) arithmetic is unaffected and follows IEEE 754 behavior.
+
+1. The default value is true since 3.3.0.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
