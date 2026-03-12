@@ -671,6 +671,16 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testEdgeAsFieldName() {
+    // EDGE keyword can be used as a field name outside graphLookup command
+    assertEqual("source=t | eval edge=1", eval(relation("t"), let(field("edge"), intLiteral(1))));
+    assertEqual("source=t | eval edge = 1", eval(relation("t"), let(field("edge"), intLiteral(1))));
+    assertEqual(
+        "source=t | where edge > 5",
+        filter(relation("t"), compare(">", field("edge"), intLiteral(5))));
+  }
+
+  @Test
   public void testIndexName() {
     assertEqual(
         "source=`log.2020.04.20.` | where a=1",
@@ -1659,7 +1669,7 @@ public class AstBuilderTest {
   public void testGraphLookupCommand() {
     // Basic graphLookup with required parameters
     assertEqual(
-        "source=t | graphLookup employees fromField=manager toField=name maxDepth=3"
+        "source=t | graphLookup employees start=reportsTo edge=manager-->name maxDepth=3"
             + " as reportingHierarchy",
         GraphLookup.builder()
             .child(relation("t"))
@@ -1668,15 +1678,14 @@ public class AstBuilderTest {
             .toField(field("name"))
             .as(field("reportingHierarchy"))
             .maxDepth(intLiteral(3))
-            .startField(null)
+            .startField(field("reportsTo"))
             .depthField(null)
             .direction(GraphLookup.Direction.UNI)
             .build());
 
-    // graphLookup with startField filter
+    // graphLookup with startField
     assertEqual(
-        "source=t | graphLookup employees fromField=manager toField=name"
-            + " startField=id as reportingHierarchy",
+        "source=t | graphLookup employees start=id edge=manager-->name" + " as reportingHierarchy",
         GraphLookup.builder()
             .child(relation("t"))
             .fromTable(relation("employees"))
@@ -1691,8 +1700,8 @@ public class AstBuilderTest {
 
     // graphLookup with depthField and bidirectional
     assertEqual(
-        "source=t | graphLookup employees fromField=manager toField=name"
-            + " depthField=level direction=bi as reportingHierarchy",
+        "source=t | graphLookup employees start=reportsTo edge=manager<->name"
+            + " depthField=level as reportingHierarchy",
         GraphLookup.builder()
             .child(relation("t"))
             .fromTable(relation("employees"))
@@ -1700,31 +1709,42 @@ public class AstBuilderTest {
             .toField(field("name"))
             .as(field("reportingHierarchy"))
             .maxDepth(intLiteral(0))
-            .startField(null)
+            .startField(field("reportsTo"))
             .depthField(field("level"))
             .direction(GraphLookup.Direction.BI)
             .build());
 
-    // Error: missing fromField - SemanticCheckException thrown by AstBuilder
+    // Error: missing edge - SyntaxCheckException from grammar
     assertThrows(
-        SemanticCheckException.class,
-        () ->
-            plan(
-                "source=t | graphLookup employees toField=name startField=id as"
-                    + " reportingHierarchy"));
+        SyntaxCheckException.class,
+        () -> plan("source=t | graphLookup employees start=id as" + " reportingHierarchy"));
 
     // Error: missing lookup table - SyntaxCheckException from grammar
     assertThrows(
         SyntaxCheckException.class,
         () ->
-            plan(
-                "source=t | graphLookup fromField=manager toField=name as"
-                    + " reportingHierarchy"));
+            plan("source=t | graphLookup start=id edge=manager-->name as" + " reportingHierarchy"));
 
-    // Error: missing toField - SemanticCheckException thrown by AstBuilder
+    // Error: missing start - SyntaxCheckException from grammar
     assertThrows(
-        SemanticCheckException.class,
-        () -> plan("source=t | graphLookup employees fromField=manager as reportingHierarchy"));
+        SyntaxCheckException.class,
+        () -> plan("source=t | graphLookup employees edge=manager-->name as reportingHierarchy"));
+
+    // graphLookup with hyphenated fromField (space before arrow)
+    assertEqual(
+        "source=t | graphLookup employees start=reportsTo edge=manager- --> name"
+            + " as reportingHierarchy",
+        GraphLookup.builder()
+            .child(relation("t"))
+            .fromTable(relation("employees"))
+            .fromField(field("manager-"))
+            .toField(field("name"))
+            .as(field("reportingHierarchy"))
+            .maxDepth(intLiteral(0))
+            .startField(field("reportsTo"))
+            .depthField(null)
+            .direction(GraphLookup.Direction.UNI)
+            .build());
   }
 
   @Test
