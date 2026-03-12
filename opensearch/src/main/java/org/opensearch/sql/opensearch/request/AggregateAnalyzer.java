@@ -603,6 +603,12 @@ public class AggregateAnalyzer {
                 aggCall, args, aggName, helper, dedupNumber, false, false, null, null);
         yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggName, false, false));
       }
+      case COLLECT, ARRAY_AGG -> {
+        TopHitsAggregationBuilder topHitsBuilder =
+            createTopHitsBuilder(
+                aggCall, args, aggName, helper, helper.queryBucketSize, false, false, null, null);
+        yield Pair.of(topHitsBuilder, new TopHitsParser(aggName, false, true));
+      }
       default ->
           throw new AggregateAnalyzer.AggregateAnalyzerException(
               String.format("unsupported aggregator %s", aggCall.getAggregation()));
