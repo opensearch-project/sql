@@ -56,4 +56,10 @@ class TableScanOperatorTest {
   public void getChild() {
     assertTrue(tableScan.getChild().isEmpty());
   }
+
+  @Test
+  public void forceClose_delegates_to_close() {
+    // Default forceClose() delegates to close(), which should not throw
+    tableScan.forceClose();
+  }
 }

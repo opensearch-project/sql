@@ -412,6 +412,40 @@ public class OpenSearchQueryRequestTest {
   }
 
   @Test
+  void forceClean_with_pitId() {
+    OpenSearchQueryRequest request =
+        new OpenSearchQueryRequest(
+            new OpenSearchRequest.IndexName("test"),
+            sourceBuilder,
+            factory,
+            List.of(),
+            new TimeValue(1000),
+            "samplePid");
+
+    request.forceClean(cleanAction);
+    verify(cleanAction, times(1)).accept("samplePid");
+    assertTrue(request.isSearchDone());
+    assertNull(request.getPitId());
+  }
+
+  @Test
+  void forceClean_without_pitId() {
+    OpenSearchQueryRequest request =
+        new OpenSearchQueryRequest(
+            new OpenSearchRequest.IndexName("test"),
+            sourceBuilder,
+            factory,
+            List.of(),
+            new TimeValue(1000),
+            null);
+
+    request.forceClean(cleanAction);
+    verify(cleanAction, never()).accept(anyString());
+    assertFalse(request.isSearchDone());
+    assertNull(request.getPitId());
+  }
+
+  @Test
   void searchRequest() {
     request.getSourceBuilder().query(QueryBuilders.termQuery("name", "John"));
 

@@ -423,6 +423,86 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
+  void forceCleanup_scroll_request_throws() {
+    OpenSearchScrollRequest request =
+        new OpenSearchScrollRequest(
+            new OpenSearchRequest.IndexName("test"),
+            TimeValue.timeValueMinutes(1),
+            new SearchSourceBuilder(),
+            factory,
+            List.of());
+    assertThrows(UnsupportedOperationException.class, () -> client.forceCleanup(request));
+  }
+
+  @Test
+  @SneakyThrows
+  void forceCleanup_scroll_request_with_mock() {
+    ClearScrollRequestBuilder requestBuilder = mock(ClearScrollRequestBuilder.class);
+    when(nodeClient.prepareClearScroll()).thenReturn(requestBuilder);
+    when(requestBuilder.addScrollId(any())).thenReturn(requestBuilder);
+    when(requestBuilder.get()).thenReturn(null);
+
+    OpenSearchScrollRequest request = mock(OpenSearchScrollRequest.class);
+    // Make forceClean invoke the lambda to cover the scroll cleanup path
+    org.mockito.Mockito.doAnswer(
+            invocation -> {
+              java.util.function.Consumer<String> action = invocation.getArgument(0);
+              action.accept("scroll123");
+              return null;
+            })
+        .when(request)
+        .forceClean(any());
+    client.forceCleanup(request);
+    verify(nodeClient).prepareClearScroll();
+  }
+
+  @Test
+  @SneakyThrows
+  void forceCleanup_scroll_request_with_exception() {
+    when(nodeClient.prepareClearScroll()).thenThrow(new RuntimeException());
+    OpenSearchScrollRequest request = mock(OpenSearchScrollRequest.class);
+    org.mockito.Mockito.doAnswer(
+            invocation -> {
+              java.util.function.Consumer<String> action = invocation.getArgument(0);
+              action.accept("scroll123");
+              return null;
+            })
+        .when(request)
+        .forceClean(any());
+    assertThrows(IllegalStateException.class, () -> client.forceCleanup(request));
+  }
+
+  @Test
+  @SneakyThrows
+  void forceCleanup_pit_request() {
+    OpenSearchQueryRequest request =
+        new OpenSearchQueryRequest(
+            new OpenSearchRequest.IndexName("test"),
+            new SearchSourceBuilder(),
+            factory,
+            List.of(),
+            TimeValue.timeValueMinutes(1L),
+            "samplePitId");
+    client.forceCleanup(request);
+    verify(nodeClient).execute(any(), any());
+  }
+
+  @Test
+  @SneakyThrows
+  void forceCleanup_pit_request_without_pitId() {
+    OpenSearchQueryRequest request =
+        new OpenSearchQueryRequest(
+            new OpenSearchRequest.IndexName("test"),
+            new SearchSourceBuilder(),
+            factory,
+            List.of(),
+            TimeValue.timeValueMinutes(1L),
+            null);
+    client.forceCleanup(request);
+    verify(nodeClient, never()).execute(any(), any());
+  }
+
+  @Test
   @SneakyThrows
   void create_pit() {
     CreatePitRequest createPitRequest =

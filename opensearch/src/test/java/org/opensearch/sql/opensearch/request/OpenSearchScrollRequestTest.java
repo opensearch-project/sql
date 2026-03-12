@@ -307,6 +307,11 @@ class OpenSearchScrollRequestTest {
   }
 
   @Test
+  void forceClean_throws_unsupported() {
+    assertThrows(UnsupportedOperationException.class, () -> request.forceClean(scrollId -> {}));
+  }
+
+  @Test
   void setScrollId() {
     request.setScrollId("test");
     assertEquals("test", request.getScrollId());
