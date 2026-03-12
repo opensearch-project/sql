@@ -1,37 +1,46 @@
-# Aggregation Functions  
+# Aggregation functions  
 
-## Description  
+Aggregation functions perform calculations across multiple rows to return a single result value. These functions are used with the `stats`, `eventstats`, and `streamstats` commands to analyze and summarize data.
 
-Aggregation functions perform calculations across multiple rows to return a single result value. These functions are used with `stats`, `eventstats` and `streamstats` commands to analyze and summarize data.
-The following table shows how NULL/MISSING values are handled by aggregation functions:
+The following table shows how `NULL` and missing values are handled by aggregation functions.
   
-| Function | NULL | MISSING |
+| Function | null | Missing |
 | --- | --- | --- |
-| COUNT | Not counted | Not counted |
-| SUM | Ignore | Ignore |
-| AVG | Ignore | Ignore |
-| MAX | Ignore | Ignore |
-| MIN | Ignore | Ignore |
-| FIRST | Ignore | Ignore |
-| LAST | Ignore | Ignore |
-| LIST | Ignore | Ignore |
-| VALUES | Ignore | Ignore |
+| `COUNT` | Not counted | Not counted |
+| `SUM` | Ignored | Ignored |
+| `AVG` | Ignored | Ignored |
+| `MAX` | Ignored | Ignored |
+| `MIN` | Ignored | Ignored |
+| `FIRST` | Ignored | Ignored |
+| `LAST` | Ignored | Ignored |
+| `LIST` | Ignored | Ignored |
+| `VALUES` | Ignored | Ignored |
   
-## Functions  
+## Functions
+
+The following aggregation functions are available in PPL for data analysis and summarization.  
 
 ### COUNT  
 
-#### Description  
+**Usage**: `COUNT(expr)`, `C(expr)`, `c(expr)`, `count(expr)`
 
-Usage: Returns a count of the number of expr in the rows retrieved. The `C()` function, `c`, and `count` can be used as abbreviations for `COUNT()`. To perform a filtered counting, wrap the condition to satisfy in an `eval` expression.
-### Example
+Counts the number of `expr` values in the retrieved rows. `C()`, `c()`, and `count()` are available as abbreviations for `COUNT()`. For filtered counting, use an `eval` expression to specify the filtering condition.
+
+**Parameters**:
+
+- `expr` (Optional): The expression whose values are to be counted.
+
+**Return type**: `LONG`
+
+#### Example
   
 ```ppl
 source=accounts
 | stats count(), c(), count, c
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -42,14 +51,15 @@ fetched rows / total rows = 1/1
 +---------+-----+-------+---+
 ```
   
-Example of filtered counting
-  
+The following example counts only records that match a specific condition:
+
 ```ppl
 source=accounts
 | stats count(eval(age > 30)) as mature_users
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -62,17 +72,25 @@ fetched rows / total rows = 1/1
   
 ### SUM  
 
-#### Description  
+**Usage**: `SUM(expr)`
 
-Usage: `SUM(expr)`. Returns the sum of expr.
-### Example
+Returns the sum of `expr` values.
+
+**Parameters**:
+
+- `expr` (Required): The expression whose values are to be summed.
+
+**Return type**: Same as input type (`INTEGER`, `LONG`, `FLOAT`, or `DOUBLE`)
+
+#### Example
   
 ```ppl
 source=accounts
 | stats sum(age) by gender
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -86,17 +104,25 @@ fetched rows / total rows = 2/2
   
 ### AVG  
 
-#### Description  
+**Usage**: `AVG(expr)`
 
-Usage: `AVG(expr)`. Returns the average value of expr.
-### Example
+Returns the average value of `expr`.
+
+**Parameters**:
+
+- `expr` (Required): The expression whose values are to be averaged.
+
+**Return type**: `DOUBLE` for numeric inputs; same as input type for `DATE`, `TIME`, or `TIMESTAMP` inputs
+
+#### Example
   
 ```ppl
 source=accounts
 | stats avg(age) by gender
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -110,18 +136,25 @@ fetched rows / total rows = 2/2
   
 ### MAX  
 
-#### Description  
+**Usage**: `MAX(expr)`
 
-Usage: `MAX(expr)`. Returns the maximum value of expr.
-For non-numeric fields, values are sorted lexicographically.
-### Example
+Returns the maximum value of `expr`. For non-numeric fields, this function returns the value that comes last in alphabetical order.
+
+**Parameters**:
+
+- `expr` (Required): The expression for which to find the maximum value.
+
+**Return type**: Same as input type
+
+#### Example
   
 ```ppl
 source=accounts
 | stats max(age)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -132,14 +165,15 @@ fetched rows / total rows = 1/1
 +----------+
 ```
   
-Example with text field
-  
+The following example returns the value from the `firstname` text field that comes last in alphabetical order:
+
 ```ppl
 source=accounts
 | stats max(firstname)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -152,18 +186,25 @@ fetched rows / total rows = 1/1
   
 ### MIN  
 
-#### Description  
+**Usage**: `MIN(expr)`
 
-Usage: `MIN(expr)`. Returns the minimum value of expr.
-For non-numeric fields, values are sorted lexicographically.
-### Example
+Returns the minimum value of `expr`. For non-numeric fields, this function returns the value that comes first in alphabetical order.
+
+**Parameters**:
+
+- `expr` (Required): The expression for which to find the minimum value.
+
+**Return type**: Same as input type
+
+#### Example
   
 ```ppl
 source=accounts
 | stats min(age)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -174,14 +215,15 @@ fetched rows / total rows = 1/1
 +----------+
 ```
   
-Example with text field
-  
+The following example returns the value from the `firstname` text field that comes first in alphabetical order:
+
 ```ppl
 source=accounts
 | stats min(firstname)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -194,17 +236,25 @@ fetched rows / total rows = 1/1
   
 ### VAR_SAMP  
 
-#### Description  
+**Usage**: `VAR_SAMP(expr)`
 
-Usage: `VAR_SAMP(expr)`. Returns the sample variance of expr.
-### Example
+Returns the sample variance of `expr`.
+
+**Parameters**:
+
+- `expr` (Required): The expression for which to calculate the sample variance.
+
+**Return type**: `DOUBLE`
+
+#### Example
   
 ```ppl
 source=accounts
 | stats var_samp(age)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -217,17 +267,25 @@ fetched rows / total rows = 1/1
   
 ### VAR_POP  
 
-#### Description  
+**Usage**: `VAR_POP(expr)`
 
-Usage: `VAR_POP(expr)`. Returns the population standard variance of expr.
-### Example
+Returns the population variance of `expr`.
+
+**Parameters**:
+
+- `expr` (Required): The expression for which to calculate the population variance.
+
+**Return type**: `DOUBLE`
+
+#### Example
   
 ```ppl
 source=accounts
 | stats var_pop(age)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -240,17 +298,25 @@ fetched rows / total rows = 1/1
   
 ### STDDEV_SAMP  
 
-#### Description  
+**Usage**: `STDDEV_SAMP(expr)`
 
-Usage: `STDDEV_SAMP(expr)`. Return the sample standard deviation of expr.
-### Example
+Returns the sample standard deviation of `expr`.
+
+**Parameters**:
+
+- `expr` (Required): The expression for which to calculate the sample standard deviation.
+
+**Return type**: `DOUBLE`
+
+#### Example
   
 ```ppl
 source=accounts
 | stats stddev_samp(age)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -263,17 +329,25 @@ fetched rows / total rows = 1/1
   
 ### STDDEV_POP  
 
-#### Description  
+**Usage**: `STDDEV_POP(expr)`
 
-Usage: `STDDEV_POP(expr)`. Return the population standard deviation of expr.
-### Example
+Returns the population standard deviation of `expr`.
+
+**Parameters**:
+
+- `expr` (Required): The expression for which to calculate the population standard deviation.
+
+**Return type**: `DOUBLE`
+
+#### Example
   
 ```ppl
 source=accounts
 | stats stddev_pop(age)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -284,20 +358,27 @@ fetched rows / total rows = 1/1
 +--------------------+
 ```
   
-### DISTINCT_COUNT, DC  
+### DISTINCT_COUNT, DC
 
-#### Description  
+**Usage**: `DISTINCT_COUNT(expr)`, `DC(expr)`
 
-Usage: `DISTINCT_COUNT(expr)`, `DC(expr)`. Returns the approximate number of distinct values using the HyperLogLog++ algorithm. Both functions are equivalent.
-For details on algorithm accuracy and precision control, see the [OpenSearch Cardinality Aggregation documentation](https://docs.opensearch.org/latest/aggregations/metric/cardinality/#controlling-precision).
-### Example
+Returns the approximate number of distinct values using the `HyperLogLog++` algorithm. Both functions are equivalent. For more information about algorithm accuracy and precision control, see [Controlling precision](https://docs.opensearch.org/latest/aggregations/metric/cardinality/#controlling-precision).
+
+**Parameters**:
+
+- `expr` (Required): The expression for which to count distinct values.
+
+**Return type**: `LONG`
+
+#### Example
   
 ```ppl
 source=accounts
 | stats dc(state) as distinct_states, distinct_count(state) as dc_states_alt by gender
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -311,17 +392,25 @@ fetched rows / total rows = 2/2
   
 ### DISTINCT_COUNT_APPROX  
 
-#### Description  
+**Usage**: `DISTINCT_COUNT_APPROX(expr)`
 
-Usage: `DISTINCT_COUNT_APPROX(expr)`. Return the approximate distinct count value of the expr, using the hyperloglog++ algorithm.
-### Example
+Returns the approximate count of distinct values in `expr` using the `HyperLogLog++` algorithm.
+
+**Parameters**:
+
+- `expr` (Required): The expression for which to count approximate distinct values.
+
+**Return type**: `LONG`
+
+#### Example
   
 ```ppl
 source=accounts
 | stats distinct_count_approx(gender)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -334,21 +423,27 @@ fetched rows / total rows = 1/1
   
 ### EARLIEST  
 
-#### Description  
+**Usage**: `EARLIEST(field [, time_field])`
 
-Usage: `EARLIEST(field [, time_field])`. Return the earliest value of a field based on timestamp ordering.
-* `field`: mandatory. The field to return the earliest value for.  
-* `time_field`: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.  
-  
-### Example
+Returns the earliest value of a `field` based on timestamp ordering.
+
+**Parameters**:
+
+- `field` (Required): The field for which to return the earliest value.
+- `time_field` (Optional): The field to use for time-based ordering. Defaults to `@timestamp` if not specified.
+
+**Return type**: Same as input field type
+
+#### Example
   
 ```ppl
 source=events
 | stats earliest(message) by host
 | sort host
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -360,15 +455,16 @@ fetched rows / total rows = 2/2
 +-------------------+---------+
 ```
   
-Example with custom time field
-  
+The following example uses a custom time field instead of the default `@timestamp` field for ordering:
+
 ```ppl
 source=events
 | stats earliest(status, event_time) by category
 | sort category
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -382,21 +478,27 @@ fetched rows / total rows = 2/2
   
 ### LATEST  
 
-#### Description  
+**Usage**: `LATEST(field [, time_field])`
 
-Usage: `LATEST(field [, time_field])`. Return the latest value of a field based on timestamp ordering.
-* `field`: mandatory. The field to return the latest value for.  
-* `time_field`: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.  
-  
-### Example
+Returns the latest value of a `field` based on timestamp ordering.
+
+**Parameters**:
+
+- `field` (Required): The field for which to return the latest value.
+- `time_field` (Optional): The field to use for time-based ordering. Defaults to `@timestamp` if not specified.
+
+**Return type**: Same as input field type
+
+#### Example
   
 ```ppl
 source=events
 | stats latest(message) by host
 | sort host
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -408,15 +510,16 @@ fetched rows / total rows = 2/2
 +------------------+---------+
 ```
   
-Example with custom time field
-  
+The following example uses a custom time field instead of the default `@timestamp` field for ordering:
+
 ```ppl
 source=events
 | stats latest(status, event_time) by category
 | sort category
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -430,20 +533,26 @@ fetched rows / total rows = 2/2
   
 ### TAKE  
 
-#### Description  
+**Usage**: `TAKE(field [, size])`
 
-Usage: `TAKE(field [, size])`. Return original values of a field. It does not guarantee on the order of values.
-* `field`: mandatory. The field must be a text field.  
-* `size`: optional integer. The number of values should be returned. Default is 10.  
-  
-### Example
+Returns the original values from a field. This function does not guarantee the order of the returned values.
+
+**Parameters**:
+
+- `field` (Required): A text field from which to extract values.
+- `size` (Optional): The number of values to return. Defaults to `10`.
+
+**Return type**: `ARRAY`
+
+#### Example
   
 ```ppl
 source=accounts
 | stats take(firstname)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -454,22 +563,31 @@ fetched rows / total rows = 1/1
 +-----------------------------+
 ```
   
-### PERCENTILE or PERCENTILE_APPROX  
+### PERCENTILE, PERCENTILE_APPROX
 
-#### Description  
+**Usage**: `PERCENTILE(expr, percent)`, `PERCENTILE_APPROX(expr, percent)`
 
-Usage: `PERCENTILE(expr, percent)` or `PERCENTILE_APPROX(expr, percent)`. Return the approximate percentile value of expr at the specified percentage.
-* `percent`: The number must be a constant between 0 and 100.  
-  
-Note: From 3.1.0, the percentile implementation is switched to MergingDigest from AVLTreeDigest. Ref [issue link](https://github.com/opensearch-project/OpenSearch/issues/18122).
-### Example
+Returns the approximate percentile value of `expr` at the specified percentage.
+
+**Parameters**:
+
+- `expr` (Required): The expression for which to calculate the percentile.
+- `percent` (Required): A constant number between `0` and `100`.
+
+**Return type**: Same as input type
+
+Starting in version 3.1.0, the percentile implementation switched from `AVLTreeDigest` to `MergingDigest`. For more information, see the [corresponding issue](https://github.com/opensearch-project/OpenSearch/issues/18122).
+{: .note}
+
+#### Example
   
 ```ppl
 source=accounts
 | stats percentile(age, 90) by gender
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -481,20 +599,21 @@ fetched rows / total rows = 2/2
 +---------------------+--------+
 ```
   
-#### Percentile Shortcut Functions  
+#### Percentile shortcut functions  
 
 For convenience, OpenSearch PPL provides shortcut functions for common percentiles:
-- `PERC<percent>(expr)` - Equivalent to `PERCENTILE(expr, <percent>)`  
-- `P<percent>(expr)` - Equivalent to `PERCENTILE(expr, <percent>)`  
-  
-Both integer and decimal percentiles from 0 to 100 are supported (e.g., `PERC95`, `P99.5`).
+- `PERC<percent>(expr)` - Equivalent to `PERCENTILE(expr, <percent>)`.
+- `P<percent>(expr)` - Equivalent to `PERCENTILE(expr, <percent>)`.
+
+Both integer and decimal percentiles from `0` to `100` are supported (for example, `PERC95`, `P99.5`):
   
 ```ppl
 source=accounts 
 | stats perc99.5(age);
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -509,8 +628,9 @@ fetched rows / total rows = 1/1
 source=accounts 
 | stats p50(age);
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -523,17 +643,25 @@ fetched rows / total rows = 1/1
   
 ### MEDIAN  
 
-#### Description  
+**Usage**: `MEDIAN(expr)`
 
-Usage: `MEDIAN(expr)`. Returns the median (50th percentile) value of `expr`. This is equivalent to `PERCENTILE(expr, 50)`.
-### Example
+Returns the median (50th percentile) value of `expr`. This is equivalent to `PERCENTILE(expr, 50)`.
+
+**Parameters**:
+
+- `expr` (Required): The expression for which to calculate the median.
+
+**Return type**: Same as input type
+
+#### Example
   
 ```ppl
 source=accounts
 | stats median(age)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -546,19 +674,25 @@ fetched rows / total rows = 1/1
   
 ### FIRST  
 
-#### Description  
+**Usage**: `FIRST(field)`
 
-Usage: `FIRST(field)`. Return the first non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
-* `field`: mandatory. The field to return the first value for.  
-  
-### Example
+Returns the first non-null value of a `field` based on natural document order. Returns `NULL` if no records exist or if all records have `NULL` values for the `field`.
+
+**Parameters**:
+
+- `field` (Required): The field for which to return the first value.
+
+**Return type**: Same as input field type
+
+#### Example
   
 ```ppl
 source=accounts
 | stats first(firstname) by gender
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -572,19 +706,25 @@ fetched rows / total rows = 2/2
   
 ### LAST  
 
-#### Description  
+**Usage**: `LAST(field)`
 
-Usage: `LAST(field)`. Return the last non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
-* `field`: mandatory. The field to return the last value for.  
-  
-### Example
+Returns the last non-null value of a `field` based on natural document order. Returns `NULL` if no records exist or if all records have `NULL` values for the `field`.
+
+**Parameters**:
+
+- `field` (Required): The field for which to return the last value.
+
+**Return type**: Same as input field type
+
+#### Example
   
 ```ppl
 source=accounts
 | stats last(firstname) by gender
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -598,21 +738,30 @@ fetched rows / total rows = 2/2
   
 ### LIST  
 
-#### Description  
+**Usage**: `LIST(expr)`
 
-Usage: `LIST(expr)`. Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved.
-The function returns up to 100 values with no guaranteed ordering.
-* `expr`: The field expression to collect values from.  
-* This aggregation function doesn't support Array, Struct, Object field types.  
-  
-Example with string fields
+Collects all values from the specified expression into an array. Values are converted to strings, `NULL` values are filtered out, and duplicates are preserved. This function returns up to `100` values without a guaranteed order.
+
+**Parameters**:
+
+- `expr` (Required): The field expression from which to collect values.
+
+**Return type**: `ARRAY`
+
+This aggregation function does not support array, struct, or object field types.
+{: .note}
+
+#### Example
+
+The following example collects all values from a string field into an array:
   
 ```ppl
 source=accounts
 | stats list(firstname)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -625,22 +774,32 @@ fetched rows / total rows = 1/1
   
 ### VALUES  
 
-#### Description  
+**Usage**: `VALUES(expr)`
 
-Usage: `VALUES(expr)`. Collects all unique values from the specified expression into a sorted array. Values are converted to strings, nulls are filtered, and duplicates are removed.
-The maximum number of unique values returned is controlled by the `plugins.ppl.values.max.limit` setting:
-* Default value is 0, which means unlimited values are returned  
-* Can be configured to any positive integer to limit the number of unique values  
-* See the [PPL Settings](../admin/settings.md#plugins-ppl-values-max-limit) documentation for more details  
-  
-Example with string fields
+Collects all unique values from the specified expression into a sorted array. Values are converted to strings, `NULL` values are filtered out, and duplicates are removed.
+
+**Parameters**:
+
+- `expr` (Required): The expression from which to collect unique values.
+
+**Return type**: `ARRAY`
+
+> The `plugins.ppl.values.max.limit` setting controls the maximum number of unique values returned:
+> - The default value is 0, which returns an unlimited number of values.
+> - Setting this to any positive integer limits the number of unique values.
+> - See the [PPL Settings](../admin/settings.md#plugins-ppl-values-max-limit) documentation for more details
+
+#### Example
+
+The following example collects unique values from a string field into a sorted array:
   
 ```ppl
 source=accounts
 | stats values(firstname)
 ```
+
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
