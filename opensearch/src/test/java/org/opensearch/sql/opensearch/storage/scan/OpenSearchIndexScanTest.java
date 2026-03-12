@@ -347,7 +347,7 @@ class OpenSearchIndexScanTest {
   void close_mid_pagination_without_cursor_serialized_should_force_cleanup() {
     var request = mock(OpenSearchRequest.class);
     when(request.hasAnotherBatch()).thenReturn(true);
-    var indexScan = new OpenSearchIndexScan(client, request);
+    var indexScan = new OpenSearchIndexScan(client, 10, request);
     indexScan.close();
     verify(client).forceCleanup(request);
     verify(client, never()).cleanup(any());
@@ -362,7 +362,7 @@ class OpenSearchIndexScanTest {
   void close_mid_pagination_with_cursor_serialized_should_cleanup() {
     var request = mock(OpenSearchRequest.class);
     when(request.hasAnotherBatch()).thenReturn(true);
-    var indexScan = new OpenSearchIndexScan(client, request);
+    var indexScan = new OpenSearchIndexScan(client, 10, request);
 
     // Simulate successful cursor serialization by calling writeExternal
     var out = mock(ObjectOutput.class);
@@ -377,7 +377,7 @@ class OpenSearchIndexScanTest {
   @Test
   void forceClose_should_always_force_cleanup() {
     var request = mock(OpenSearchRequest.class);
-    var indexScan = new OpenSearchIndexScan(client, request);
+    var indexScan = new OpenSearchIndexScan(client, 10, request);
     indexScan.forceClose();
     verify(client).forceCleanup(request);
   }
