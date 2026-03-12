@@ -308,6 +308,26 @@ fetched rows / total rows = 1/1
 +---------------------+
 ```
 
+Similarly, you can use `timeformat` with `mktime()` to parse dates in custom formats:
+
+```ppl
+source=accounts
+| eval date_str = '2000-01-01 00:00:00'
+| convert timeformat="%Y-%m-%d %H:%M:%S" mktime(date_str)
+| fields date_str
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++------------+
+| date_str   |
+|------------|
+| 9.466848E8 |
++------------+
+```
+
 ## Example 12: Convert duration to seconds with dur2sec()
 
 ```ppl
