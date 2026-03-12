@@ -145,6 +145,34 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testContainsOperator() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname contains 'mbe' | fields firstname",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Amber"));
+
+    result =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname contains 'zzz' | fields firstname",
+                TEST_INDEX_ACCOUNT));
+    assertEquals(0, result.getInt("total"));
+  }
+
+  @Test
+  public void testContainsOperatorCaseInsensitive() throws IOException {
+    // contains uses ilike semantics - case insensitive
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname contains 'MBE' | fields firstname",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Amber"));
+  }
+
+  @Test
   public void testIsNullFunction() throws IOException {
     JSONObject result =
         executeQuery(
