@@ -423,14 +423,10 @@ public class PPLFuncImpTable {
             functionName.name(),
             operator instanceof SqlUserDefinedFunction);
     CalciteFuncSignature signature = new CalciteFuncSignature(functionName.getName(), typeChecker);
-    externalFunctionRegistry.compute(
+    externalFunctionRegistry.put(
         functionName,
-        (name, existingList) -> {
-          List<Pair<CalciteFuncSignature, FunctionImp>> list =
-              existingList == null ? new ArrayList<>() : new ArrayList<>(existingList);
-          list.add(Pair.of(signature, (builder, args) -> builder.makeCall(operator, args)));
-          return list;
-        });
+        List.of(
+            Pair.of(signature, (FunctionImp) (builder, args) -> builder.makeCall(operator, args))));
   }
 
   /**
