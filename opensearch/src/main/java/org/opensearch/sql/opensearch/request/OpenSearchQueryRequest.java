@@ -222,6 +222,19 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   }
 
   @Override
+  public void forceClean(Consumer<String> cleanAction) {
+    try {
+      if (this.pitId != null) {
+        cleanAction.accept(this.pitId);
+        searchDone = true;
+      }
+    } finally {
+      this.pitId = null;
+      this.searchAfter = null;
+    }
+  }
+
+  @Override
   public boolean hasAnotherBatch() {
     if (this.pitId != null) {
       return !needClean;

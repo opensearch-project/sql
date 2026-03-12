@@ -123,6 +123,12 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     }
   }
 
+  @Override
+  public void forceClean(Consumer<String> cleanAction) {
+    throw new UnsupportedOperationException(
+        "Force clean is unsupported in OpenSearchScrollRequest");
+  }
+
   /**
    * Is scroll started which means pages after first is being requested.
    *

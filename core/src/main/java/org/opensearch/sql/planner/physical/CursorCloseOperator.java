@@ -64,8 +64,8 @@ public class CursorCloseOperator extends PhysicalPlan {
   }
 
   private void forceCloseChildren(PhysicalPlan node) {
-    if (node instanceof TableScanOperator scan) {
-      scan.forceClose();
+    if (node instanceof TableScanOperator) {
+      ((TableScanOperator) node).forceClose();
     } else {
       node.getChild().forEach(this::forceCloseChildren);
     }
