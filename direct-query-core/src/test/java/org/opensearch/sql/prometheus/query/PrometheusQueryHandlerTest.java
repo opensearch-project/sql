@@ -458,30 +458,7 @@ public class PrometheusQueryHandlerTest {
     Map<String, String> queryParams = new HashMap<>();
     request.setQueryParams(queryParams);
 
-    JSONObject rulesJson = new JSONObject();
-    rulesJson.put("status", "success");
-    rulesJson.put(
-        "data",
-        new JSONObject()
-            .put(
-                "groups",
-                Arrays.asList(
-                    new JSONObject()
-                        .put("name", "example")
-                        .put(
-                            "rules",
-                            Arrays.asList(
-                                new JSONObject()
-                                    .put("name", "HighErrorRate")
-                                    .put(
-                                        "query",
-                                        "rate(http_requests_total{status=~\"5..\"}[5m]) > 0.5")
-                                    .put("type", "alerting"),
-                                new JSONObject()
-                                    .put("name", "RequestRate")
-                                    .put("query", "rate(http_requests_total[5m])")
-                                    .put("type", "recording"))))));
-
+    JSONObject rulesJson = new JSONObject("{\"groups\":[{\"name\":\"example\",\"rules\":[]}]}");
     when(prometheusClient.getRules(queryParams)).thenReturn(rulesJson);
 
     // Test
@@ -490,8 +467,7 @@ public class PrometheusQueryHandlerTest {
     // Verify
     assertNotNull(response);
     Map<?, ?> data = (Map<?, ?>) response.getData();
-    assertEquals("success", data.get("status"));
-    assertTrue(data.containsKey("data"));
+    assertTrue(data.containsKey("groups"));
   }
 
   @Test
@@ -697,6 +673,189 @@ public class PrometheusQueryHandlerTest {
     when(prometheusClient.createAlertmanagerSilences(request.getRequest())).thenThrow(new IOException("Connection failed"));
 
     // Test - should throw exception
+    handler.writeResources(prometheusClient, request);
+  }
+
+  @Test
+  public void testWriteResourcesRules() throws IOException {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName("test_namespace");
+    request.setRequest("name: test_group\nrules:\n  - record: test\n    expr: up\n");
+
+    when(prometheusClient.createOrUpdateRuleGroup(
+            eq("test_namespace"), eq(request.getRequest())))
+        .thenReturn("{\"status\":\"success\"}");
+
+    WriteDirectQueryResourcesResponse<?> response =
+        handler.writeResources(prometheusClient, request);
+
+    assertNotNull(response);
+    List<?> data = (List<?>) response.getData();
+    assertEquals(1, data.size());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testWriteResourcesRulesNullNamespace() {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName(null);
+    request.setRequest("name: test_group\nrules: []\n");
+
+    handler.writeResources(prometheusClient, request);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testWriteResourcesRulesEmptyNamespace() {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName("");
+    request.setRequest("name: test_group\nrules: []\n");
+
+    handler.writeResources(prometheusClient, request);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testDeleteRulesEmptyNamespace() {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName("");
+    request.setDelete(true);
+
+    handler.writeResources(prometheusClient, request);
+  }
+
+  @Test
+  public void testDeleteRulesWithEmptyGroupName() throws IOException {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName("test_namespace");
+    request.setGroupName("");
+    request.setDelete(true);
+
+    when(prometheusClient.deleteRuleNamespace(eq("test_namespace")))
+        .thenReturn("{\"status\":\"success\"}");
+
+    WriteDirectQueryResourcesResponse<?> response =
+        handler.writeResources(prometheusClient, request);
+
+    assertNotNull(response);
+  }
+
+  @Test
+  public void testGetResourcesRulesWithoutNamespace() throws IOException {
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName(null);
+    request.setQueryParams(new HashMap<>());
+
+    JSONObject rulesJson = new JSONObject("{\"groups\":[{\"name\":\"all\",\"rules\":[]}]}");
+    when(prometheusClient.getRules(eq(new HashMap<>()))).thenReturn(rulesJson);
+
+    GetDirectQueryResourcesResponse<?> response =
+        handler.getResources(prometheusClient, request);
+
+    assertNotNull(response);
+    Map<?, ?> data = (Map<?, ?>) response.getData();
+    assertTrue(data.containsKey("groups"));
+  }
+
+  @Test
+  public void testGetResourcesRulesWithEmptyNamespace() throws IOException {
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName("");
+    request.setQueryParams(new HashMap<>());
+
+    JSONObject rulesJson = new JSONObject("{\"groups\":[{\"name\":\"all\",\"rules\":[]}]}");
+    when(prometheusClient.getRules(eq(new HashMap<>()))).thenReturn(rulesJson);
+
+    GetDirectQueryResourcesResponse<?> response =
+        handler.getResources(prometheusClient, request);
+
+    assertNotNull(response);
+    Map<?, ?> data = (Map<?, ?>) response.getData();
+    assertTrue(data.containsKey("groups"));
+  }
+
+  @Test
+  public void testGetResourcesRulesByNamespace() throws IOException {
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName("test_namespace");
+    request.setQueryParams(new HashMap<>());
+
+    JSONObject rulesJson =
+        new JSONObject(
+            "{\"groups\":[{\"name\":\"test\",\"file\":\"test_namespace\",\"rules\":[]}]}");
+    when(prometheusClient.getRulesByNamespace(eq("test_namespace"), eq(new HashMap<>())))
+        .thenReturn(rulesJson);
+
+    GetDirectQueryResourcesResponse<?> response =
+        handler.getResources(prometheusClient, request);
+
+    assertNotNull(response);
+    Map<?, ?> data = (Map<?, ?>) response.getData();
+    assertTrue(data.containsKey("groups"));
+  }
+
+  @Test
+  public void testDeleteRulesNamespace() throws IOException {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName("test_namespace");
+    request.setDelete(true);
+
+    when(prometheusClient.deleteRuleNamespace(eq("test_namespace")))
+        .thenReturn("{\"status\":\"success\"}");
+
+    WriteDirectQueryResourcesResponse<?> response =
+        handler.writeResources(prometheusClient, request);
+
+    assertNotNull(response);
+  }
+
+  @Test
+  public void testDeleteRulesGroup() throws IOException {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName("test_namespace");
+    request.setGroupName("test_group");
+    request.setDelete(true);
+
+    when(prometheusClient.deleteRuleGroup(eq("test_namespace"), eq("test_group")))
+        .thenReturn("{\"status\":\"success\"}");
+
+    WriteDirectQueryResourcesResponse<?> response =
+        handler.writeResources(prometheusClient, request);
+
+    assertNotNull(response);
+  }
+
+  @Test(expected = PrometheusClientException.class)
+  public void testDeleteRulesWithIOException() throws IOException {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName("test_namespace");
+    request.setDelete(true);
+
+    when(prometheusClient.deleteRuleNamespace(eq("test_namespace")))
+        .thenThrow(new IOException("Connection failed"));
+
+    handler.writeResources(prometheusClient, request);
+  }
+
+  @Test(expected = PrometheusClientException.class)
+  public void testWriteResourcesRulesWithIOException() throws IOException {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName("test_namespace");
+    request.setRequest("name: test\nrules: []\n");
+
+    when(prometheusClient.createOrUpdateRuleGroup(
+            eq("test_namespace"), eq(request.getRequest())))
+        .thenThrow(new IOException("Connection failed"));
+
     handler.writeResources(prometheusClient, request);
   }
 }

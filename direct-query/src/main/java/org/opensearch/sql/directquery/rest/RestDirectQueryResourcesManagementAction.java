@@ -7,6 +7,7 @@ package org.opensearch.sql.directquery.rest;
 
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -61,10 +62,30 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
     return DIRECT_QUERY_RESOURCES_ACTIONS;
   }
 
-  //TODO: Update these routes to be more generic and move away from prometheus
+  // TODO: Update these routes to be more generic and move away from prometheus
   @Override
   public List<Route> routes() {
     return ImmutableList.of(
+        // Ruler API routes (more specific, listed first)
+        new Route(
+            GET,
+            String.format(
+                Locale.ROOT, "%s/api/v1/rules/{namespace}", BASE_DIRECT_QUERY_RESOURCES_URL)),
+        new Route(
+            POST,
+            String.format(
+                Locale.ROOT, "%s/api/v1/rules/{namespace}", BASE_DIRECT_QUERY_RESOURCES_URL)),
+        new Route(
+            DELETE,
+            String.format(
+                Locale.ROOT, "%s/api/v1/rules/{namespace}", BASE_DIRECT_QUERY_RESOURCES_URL)),
+        new Route(
+            DELETE,
+            String.format(
+                Locale.ROOT,
+                "%s/api/v1/rules/{namespace}/{groupName}",
+                BASE_DIRECT_QUERY_RESOURCES_URL)),
+        // Generic resource routes
         new Route(
             GET,
             String.format(
@@ -106,6 +127,7 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
       case GET:
         return executeGetResourcesRequest(restRequest, nodeClient);
       case POST:
+      case DELETE:
         return executeWriteResourcesRequest(restRequest, nodeClient);
       default:
         return restChannel ->
@@ -145,9 +167,9 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
   }
 
   private RestChannelConsumer executeWriteResourcesRequest(
-          RestRequest restRequest, NodeClient nodeClient) {
+      RestRequest restRequest, NodeClient nodeClient) {
     WriteDirectQueryResourcesRequest directQueryRequest =
-            DirectQueryResourcesRequestConverter.toWriteDirectRestRequest(restRequest);
+        DirectQueryResourcesRequestConverter.toWriteDirectRestRequest(restRequest);
 
     return restChannel ->
         Scheduler.schedule(

@@ -7,6 +7,7 @@ package org.opensearch.sql.prometheus.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -36,19 +37,22 @@ import org.opensearch.sql.prometheus.model.MetricMetadata;
 public class PrometheusClientImpl implements PrometheusClient {
 
   private static final Logger logger = LogManager.getLogger(PrometheusClientImpl.class);
+  private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
   private final OkHttpClient prometheusHttpClient;
   private final OkHttpClient alertmanagerHttpClient;
 
   private final URI prometheusUri;
   private final URI alertmanagerUri;
+  private final URI rulerUri;
 
   public PrometheusClientImpl(OkHttpClient prometheusHttpClient, URI prometheusUri) {
     this(
         prometheusHttpClient,
         prometheusUri,
         prometheusHttpClient,
-        URI.create(prometheusUri.toString().replaceAll("/$", "") + "/alertmanager"));
+        URI.create(prometheusUri.toString().replaceAll("/$", "") + "/alertmanager"),
+        prometheusUri);
   }
 
   public PrometheusClientImpl(
@@ -56,10 +60,21 @@ public class PrometheusClientImpl implements PrometheusClient {
       URI prometheusUri,
       OkHttpClient alertmanagerHttpClient,
       URI alertmanagerUri) {
+    this(prometheusHttpClient, prometheusUri, alertmanagerHttpClient, alertmanagerUri,
+        prometheusUri);
+  }
+
+  public PrometheusClientImpl(
+      OkHttpClient prometheusHttpClient,
+      URI prometheusUri,
+      OkHttpClient alertmanagerHttpClient,
+      URI alertmanagerUri,
+      URI rulerUri) {
     this.prometheusHttpClient = prometheusHttpClient;
     this.prometheusUri = prometheusUri;
     this.alertmanagerHttpClient = alertmanagerHttpClient;
     this.alertmanagerUri = alertmanagerUri;
+    this.rulerUri = rulerUri;
   }
 
   private String paramsToQueryString(Map<String, String> queryParams) {
@@ -234,11 +249,14 @@ public class PrometheusClientImpl implements PrometheusClient {
     String queryUrl =
         String.format(
             "%s/api/v1/rules%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
-    logger.debug("Making Prometheus rules request: {}", queryUrl);
+    logger.debug("Making Ruler GET request for all rules");
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
-    JSONObject jsonObject = readResponse(response);
-    return jsonObject.getJSONObject("data");
+    try (Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute())) {
+      String body = readRulerResponse(response, "GET all rules");
+      return normalizeRulesResponse(body, null);
+    }
   }
 
   @Override
@@ -314,6 +332,180 @@ public class PrometheusClientImpl implements PrometheusClient {
               String.format(
                       "Alertmanager request failed with code: %s. Error details: %s",
                       response.code(), errorBody));
+    }
+  }
+
+  @Override
+  public JSONObject getRulesByNamespace(String namespace, Map<String, String> queryParams)
+      throws IOException {
+    String queryString = this.paramsToQueryString(queryParams);
+    String queryUrl =
+        String.format(
+            "%s/api/v1/rules/%s%s",
+            rulerUri.toString().replaceAll("/$", ""),
+            URLEncoder.encode(namespace, StandardCharsets.UTF_8),
+            queryString);
+    logger.debug("Making Ruler GET request for namespace");
+    Request request = new Request.Builder().url(queryUrl).build();
+    try (Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute())) {
+      String body = readRulerResponse(response, "GET namespace " + namespace);
+      return normalizeRulesResponse(body, namespace);
+    }
+  }
+
+  @Override
+  public String createOrUpdateRuleGroup(String namespace, String yamlBody) throws IOException {
+    String queryUrl =
+        String.format(
+            "%s/api/v1/rules/%s",
+            rulerUri.toString().replaceAll("/$", ""),
+            URLEncoder.encode(namespace, StandardCharsets.UTF_8));
+    logger.debug("Making Ruler POST request to create/update rule group");
+    Request request =
+        new Request.Builder()
+            .url(queryUrl)
+            .header("Content-Type", "application/yaml")
+            .post(RequestBody.create(yamlBody.getBytes(StandardCharsets.UTF_8)))
+            .build();
+    try (Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute())) {
+      String body = readRulerResponse(response, "POST create/update rule group");
+      return body.isEmpty() ? "{\"status\":\"success\"}" : body;
+    }
+  }
+
+  @Override
+  public String deleteRuleNamespace(String namespace) throws IOException {
+    String queryUrl =
+        String.format(
+            "%s/api/v1/rules/%s",
+            rulerUri.toString().replaceAll("/$", ""),
+            URLEncoder.encode(namespace, StandardCharsets.UTF_8));
+    logger.debug("Making Ruler DELETE request for namespace");
+    Request request = new Request.Builder().url(queryUrl).delete().build();
+    try (Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute())) {
+      String body = readRulerResponse(response, "DELETE namespace " + namespace);
+      return body.isEmpty() ? "{\"status\":\"success\"}" : body;
+    }
+  }
+
+  @Override
+  public String deleteRuleGroup(String namespace, String groupName) throws IOException {
+    String queryUrl =
+        String.format(
+            "%s/api/v1/rules/%s/%s",
+            rulerUri.toString().replaceAll("/$", ""),
+            URLEncoder.encode(namespace, StandardCharsets.UTF_8),
+            URLEncoder.encode(groupName, StandardCharsets.UTF_8));
+    logger.debug("Making Ruler DELETE request for group");
+    Request request = new Request.Builder().url(queryUrl).delete().build();
+    try (Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute())) {
+      String body = readRulerResponse(response, "DELETE group " + groupName);
+      return body.isEmpty() ? "{\"status\":\"success\"}" : body;
+    }
+  }
+
+  /**
+   * Reads a Ruler API response, returning the body string on success or throwing on failure.
+   * Consolidates the error-handling pattern shared by all Ruler methods.
+   *
+   * @param response The HTTP response
+   * @param operationDescription Description for log messages (e.g., "GET all rules")
+   * @return The response body as a string (empty string if body is null)
+   * @throws IOException If there is an issue reading the response
+   */
+  private String readRulerResponse(Response response, String operationDescription)
+      throws IOException {
+    if (response.isSuccessful()) {
+      return Objects.requireNonNull(response.body(), "Ruler response body is null").string();
+    } else {
+      String errorBody = response.body() != null ? response.body().string() : "No response body";
+      logger.error(
+          "Ruler {} request failed with code: {}, error body: {}",
+          operationDescription,
+          response.code(),
+          errorBody);
+      throw new PrometheusClientException(
+          String.format(
+              "Ruler request failed with code: %s. Error details: %s",
+              response.code(), errorBody));
+    }
+  }
+
+  /**
+   * Normalizes a raw rule response body into a consistent {"groups":[...]} JSONObject. Handles
+   * three response formats:
+   *
+   * <ul>
+   *   <li>Prometheus/AMP JSON: {"status":"success","data":{"groups":[...]}} - extracts data
+   *   <li>Cortex/Thanos YAML (all rules): Map of namespace to list of rule groups
+   *   <li>Cortex/Thanos YAML (single namespace): List of rule groups
+   * </ul>
+   *
+   * @param body The raw response body string
+   * @param namespace Optional namespace name used as the "file" field on groups from YAML
+   *     single-namespace responses. When null, indicates the body may be a YAML map of namespaces.
+   * @return JSONObject with {"groups":[...]} structure
+   */
+  @SuppressWarnings("unchecked")
+  private JSONObject normalizeRulesResponse(String body, String namespace) {
+    if (body.isEmpty()) {
+      return new JSONObject().put("groups", new JSONArray());
+    }
+
+    // 1. Try Prometheus/AMP JSON format first
+    try {
+      JSONObject jsonObject = new JSONObject(body);
+      if ("success".equals(jsonObject.optString("status")) && jsonObject.has("data")) {
+        return jsonObject.getJSONObject("data");
+      }
+      if (jsonObject.has("groups")) {
+        return jsonObject;
+      }
+    } catch (JSONException e) {
+      // Not JSON — fall through to YAML parsing
+    }
+
+    // 2. Parse as YAML (Cortex/Thanos format)
+    try {
+      Object parsed = YAML_MAPPER.readValue(body, Object.class);
+      JSONArray groupsArray = new JSONArray();
+      addGroupsFromParsed(parsed, namespace, groupsArray);
+      return new JSONObject().put("groups", groupsArray);
+    } catch (Exception e) {
+      logger.warn(
+          "Failed to parse rules response body, returning empty groups: {}", e.getMessage());
+      return new JSONObject().put("groups", new JSONArray());
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private void addGroupsFromParsed(Object parsed, String namespace, JSONArray groupsArray) {
+    if (parsed instanceof Map) {
+      // All-namespaces format: Map<String, List<RuleGroup>>
+      Map<String, Object> namespacesMap = (Map<String, Object>) parsed;
+      for (Map.Entry<String, Object> entry : namespacesMap.entrySet()) {
+        if (entry.getValue() instanceof List) {
+          addGroupsFromParsed(entry.getValue(), entry.getKey(), groupsArray);
+        }
+      }
+    } else if (parsed instanceof List) {
+      // Single-namespace format: List<RuleGroup>
+      List<Map<String, Object>> groups = (List<Map<String, Object>>) parsed;
+      for (Map<String, Object> group : groups) {
+        JSONObject groupObj = new JSONObject(group);
+        if (namespace != null) {
+          groupObj.put("file", namespace);
+        }
+        groupsArray.put(groupObj);
+      }
     }
   }
 

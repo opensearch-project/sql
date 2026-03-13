@@ -37,8 +37,9 @@ public class PrometheusClientUtils {
   public static final String ACCESS_KEY = "prometheus.auth.access_key";
   public static final String SECRET_KEY = "prometheus.auth.secret_key";
 
-  // Prometheus URI constant
+  // Prometheus URI constants
   public static final String PROMETHEUS_URI = "prometheus.uri";
+  public static final String RULER_URI = "prometheus.ruler.uri";
 
   // AlertManager constants
   public static final String ALERTMANAGER_URI = "alertmanager.uri";
@@ -160,7 +161,11 @@ public class PrometheusClientUtils {
       alertmanagerUri = URI.create(host.replaceAll("/$", "") + "/alertmanager");
     }
 
+    // Ruler URI defaults to prometheus.uri when not explicitly configured
+    String rulerHost = properties.get(PrometheusClientUtils.RULER_URI);
+    URI rulerUri = rulerHost != null ? URI.create(rulerHost) : uri;
+
     return new PrometheusClientImpl(
-        prometheusHttpClient, uri, alertmanagerHttpClient, alertmanagerUri);
+        prometheusHttpClient, uri, alertmanagerHttpClient, alertmanagerUri, rulerUri);
   }
 }
