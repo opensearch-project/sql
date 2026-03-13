@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verify;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.storage.TableScanOperator;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class CursorCloseOperatorTest {
@@ -36,11 +37,23 @@ public class CursorCloseOperatorTest {
   }
 
   @Test
-  public void close_is_propagated() {
-    var child = mock(PhysicalPlan.class);
+  public void close_calls_forceClose_on_table_scan() {
+    var child = mock(TableScanOperator.class);
     var plan = new CursorCloseOperator(child);
     plan.close();
-    verify(child).close();
+    verify(child).forceClose();
+    verify(child, never()).close();
+  }
+
+  @Test
+  public void close_traverses_tree_to_find_table_scan() {
+    var scan = mock(TableScanOperator.class);
+    // Wrap the scan in a regular PhysicalPlan node
+    var middle = mock(PhysicalPlan.class);
+    org.mockito.Mockito.when(middle.getChild()).thenReturn(java.util.List.of(scan));
+    var plan = new CursorCloseOperator(middle);
+    plan.close();
+    verify(scan).forceClose();
   }
 
   @Test

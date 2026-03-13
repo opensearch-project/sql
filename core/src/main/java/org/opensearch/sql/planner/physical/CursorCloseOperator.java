@@ -9,6 +9,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.storage.TableScanOperator;
 
 /**
  * A plan node which blocks issuing a request in {@link #open} and getting results in {@link
@@ -50,5 +51,23 @@ public class CursorCloseOperator extends PhysicalPlan {
   @Override
   public void open() {
     // no-op, no search should be invoked.
+  }
+
+  /**
+   * Force cleanup of server-side resources. When a cursor is explicitly closed, any underlying
+   * table scan must release its resources (e.g. PIT) unconditionally, even if pagination is not
+   * complete.
+   */
+  @Override
+  public void close() {
+    forceCloseChildren(input);
+  }
+
+  private void forceCloseChildren(PhysicalPlan node) {
+    if (node instanceof TableScanOperator) {
+      ((TableScanOperator) node).forceClose();
+    } else {
+      node.getChild().forEach(this::forceCloseChildren);
+    }
   }
 }
