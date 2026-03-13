@@ -109,4 +109,23 @@ public class PPLQueryRequest {
     }
     return jsonContent.optInt(FETCH_SIZE_FIELD, 0);
   }
+
+  /**
+   * Get extra search-source-compatible JSON from the request body. Currently wraps the {@code
+   * highlight} field; future extensions (suggest, rescore, post_filter, etc.) can be added here.
+   *
+   * @return search-source JSON string, or null if no extra fields are present
+   */
+  public String getExtraSearchSource() {
+    if (jsonContent == null) {
+      return null;
+    }
+    JSONObject highlight = jsonContent.optJSONObject("highlight");
+    if (highlight == null) {
+      return null;
+    }
+    JSONObject wrapper = new JSONObject();
+    wrapper.put("highlight", highlight);
+    return wrapper.toString();
+  }
 }

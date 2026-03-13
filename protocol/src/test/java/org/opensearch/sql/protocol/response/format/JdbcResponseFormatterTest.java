@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonParser;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -205,6 +206,55 @@ class JdbcResponseFormatterTest {
         formatter.format(
             new OpenSearchException(
                 "all shards failed", new IllegalStateException("Execution error"))));
+  }
+
+  @Test
+  void format_response_with_highlights() {
+    QueryResult response =
+        new QueryResult(
+            new Schema(
+                ImmutableList.of(
+                    new Column("name", null, STRING), new Column("age", null, INTEGER))),
+            Collections.singletonList(
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "name",
+                        stringValue("John"),
+                        "age",
+                        org.opensearch.sql.data.model.ExprValueUtils.integerValue(20),
+                        "_highlight",
+                        ExprTupleValue.fromExprValueMap(
+                            ImmutableMap.of(
+                                "name",
+                                org.opensearch.sql.data.model.ExprValueUtils.collectionValue(
+                                    ImmutableList.of("<em>John</em>"))))))));
+
+    assertJsonEquals(
+        "{"
+            + "\"schema\":["
+            + "{\"name\":\"name\",\"type\":\"keyword\"},"
+            + "{\"name\":\"age\",\"type\":\"integer\"}"
+            + "],"
+            + "\"datarows\":[[\"John\",20]],"
+            + "\"highlights\":[{\"name\":[\"<em>John</em>\"]}],"
+            + "\"total\":1,"
+            + "\"size\":1,"
+            + "\"status\":200}",
+        formatter.format(response));
+  }
+
+  @Test
+  void format_response_without_highlights() {
+    QueryResult response =
+        new QueryResult(
+            new Schema(
+                ImmutableList.of(
+                    new Column("name", null, STRING), new Column("age", null, INTEGER))),
+            Collections.singletonList(tupleValue(ImmutableMap.of("name", "John", "age", 20))));
+
+    // When no highlights, the highlights field should not appear in the JSON
+    String formatted = formatter.format(response);
+    assertEquals(false, formatted.contains("\"highlights\""));
   }
 
   private static void assertJsonEquals(String expected, String actual) {

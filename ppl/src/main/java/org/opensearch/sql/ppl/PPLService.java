@@ -64,7 +64,9 @@ public class PPLService {
       ResponseListener<QueryResponse> queryListener,
       ResponseListener<ExplainResponse> explainListener) {
     try {
-      queryManager.submit(plan(request, queryListener, explainListener));
+      AbstractPlan plan = plan(request, queryListener, explainListener);
+      setExtraSearchSourceOnPlan(plan, request);
+      queryManager.submit(plan);
     } catch (Exception e) {
       queryListener.onFailure(e);
     }
@@ -79,9 +81,22 @@ public class PPLService {
    */
   public void explain(PPLQueryRequest request, ResponseListener<ExplainResponse> listener) {
     try {
-      queryManager.submit(plan(request, NO_CONSUMER_RESPONSE_LISTENER, listener));
+      AbstractPlan plan = plan(request, NO_CONSUMER_RESPONSE_LISTENER, listener);
+      setExtraSearchSourceOnPlan(plan, request);
+      queryManager.submit(plan);
     } catch (Exception e) {
       listener.onFailure(e);
+    }
+  }
+
+  /**
+   * Set extra search source on the plan so it can be carried across the thread boundary. The plan's
+   * execute() method will set the ThreadLocal on the worker thread.
+   */
+  private void setExtraSearchSourceOnPlan(AbstractPlan plan, PPLQueryRequest request) {
+    String extra = request.getExtraSearchSource();
+    if (extra != null) {
+      plan.setExtraSearchSource(extra);
     }
   }
 

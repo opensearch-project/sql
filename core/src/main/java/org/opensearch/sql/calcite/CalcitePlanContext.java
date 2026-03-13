@@ -45,6 +45,32 @@ public class CalcitePlanContext {
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
 
+  /**
+   * Thread-local extra search-source JSON from the PPL request body. Set by PPLService before query
+   * execution and read by AbstractCalciteIndexScan when building the OpenSearch request. The JSON
+   * string is parsed via {@code SearchSourceBuilder.fromXContent()} and selectively merged into the
+   * index scan request.
+   */
+  private static final ThreadLocal<String> extraSearchSource = new ThreadLocal<>();
+
+  public static void setExtraSearchSource(String json) {
+    extraSearchSource.set(json);
+  }
+
+  public static String getExtraSearchSource() {
+    return extraSearchSource.get();
+  }
+
+  public static void clearExtraSearchSource() {
+    extraSearchSource.remove();
+  }
+
+  /** Convenience check: does the extra search source contain a highlight clause? */
+  public static boolean hasHighlightInExtraSearchSource() {
+    String extra = extraSearchSource.get();
+    return extra != null && extra.contains("\"highlight\"");
+  }
+
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
   @Getter @Setter private boolean inCoalesceFunction = false;

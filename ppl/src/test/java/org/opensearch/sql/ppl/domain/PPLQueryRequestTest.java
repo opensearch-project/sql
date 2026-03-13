@@ -6,6 +6,8 @@
 package org.opensearch.sql.ppl.domain;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.json.JSONObject;
@@ -91,5 +93,36 @@ public class PPLQueryRequestTest {
     JSONObject json = new JSONObject("{\"query\": \"source=t\", \"fetch_size\": 15000}");
     PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
     assertEquals(15000, request.getFetchSize());
+  }
+
+  @Test
+  public void testGetExtraSearchSourceReturnsHighlightWrapper() {
+    JSONObject json = new JSONObject();
+    json.put("query", "source=t \"error\"");
+    json.put(
+        "highlight",
+        new JSONObject(
+            "{\"fields\": {\"*\": {}}, \"pre_tags\": [\"<em>\"], \"post_tags\": [\"</em>\"]}"));
+    PPLQueryRequest request = new PPLQueryRequest("source=t \"error\"", json, "/_plugins/_ppl");
+    String extra = request.getExtraSearchSource();
+    assertNotNull(extra);
+    JSONObject parsed = new JSONObject(extra);
+    assertTrue(parsed.has("highlight"));
+    assertTrue(parsed.getJSONObject("highlight").has("fields"));
+    assertTrue(parsed.getJSONObject("highlight").has("pre_tags"));
+    assertTrue(parsed.getJSONObject("highlight").has("post_tags"));
+  }
+
+  @Test
+  public void testGetExtraSearchSourceReturnsNullWhenNotSpecified() {
+    JSONObject json = new JSONObject("{\"query\": \"source=t\"}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    assertNull(request.getExtraSearchSource());
+  }
+
+  @Test
+  public void testGetExtraSearchSourceReturnsNullWhenJsonContentIsNull() {
+    PPLQueryRequest request = new PPLQueryRequest("source=t", null, "/_plugins/_ppl");
+    assertNull(request.getExtraSearchSource());
   }
 }

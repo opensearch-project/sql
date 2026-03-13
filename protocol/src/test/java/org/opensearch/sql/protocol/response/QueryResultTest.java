@@ -7,6 +7,7 @@ package org.opensearch.sql.protocol.response;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -16,7 +17,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.pagination.Cursor;
 
@@ -105,5 +110,165 @@ class QueryResultTest {
       }
       i++;
     }
+  }
+
+  @Test
+  void testIterateExcludesHighlightFromDatarows() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Collections.singletonList(
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "name",
+                        ExprValueUtils.stringValue("John"),
+                        "age",
+                        ExprValueUtils.integerValue(20),
+                        "_highlight",
+                        ExprTupleValue.fromExprValueMap(
+                            ImmutableMap.of(
+                                "name",
+                                ExprValueUtils.collectionValue(
+                                    ImmutableList.of("<em>John</em>"))))))),
+            Cursor.None);
+
+    for (Object[] objects : response) {
+      // datarows should only have schema columns, not _highlight
+      assertArrayEquals(new Object[] {"John", 20}, objects);
+    }
+  }
+
+  @Test
+  void testHighlightsReturnsSingleRowData() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Collections.singletonList(
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "name",
+                        ExprValueUtils.stringValue("John"),
+                        "age",
+                        ExprValueUtils.integerValue(20),
+                        "_highlight",
+                        ExprTupleValue.fromExprValueMap(
+                            ImmutableMap.of(
+                                "name",
+                                ExprValueUtils.collectionValue(
+                                    ImmutableList.of("<em>John</em>"))))))),
+            Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(1, highlights.size());
+    assertEquals(ImmutableMap.of("name", ImmutableList.of("<em>John</em>")), highlights.get(0));
+  }
+
+  @Test
+  void testHighlightsReturnsNullWhenNoHighlightField() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Collections.singletonList(tupleValue(ImmutableMap.of("name", "John", "age", 20))),
+            Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(1, highlights.size());
+    assertNull(highlights.get(0));
+  }
+
+  @Test
+  void testHighlightsReturnsNullWhenHighlightIsMissing() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Collections.singletonList(
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "name",
+                        ExprValueUtils.stringValue("John"),
+                        "age",
+                        ExprValueUtils.integerValue(20),
+                        "_highlight",
+                        ExprValueUtils.LITERAL_MISSING))),
+            Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(1, highlights.size());
+    assertNull(highlights.get(0));
+  }
+
+  @Test
+  void testHighlightsReturnsEmptyListWhenNoRows() {
+    QueryResult response = new QueryResult(schema, Collections.emptyList(), Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(0, highlights.size());
+  }
+
+  @Test
+  void testHighlightsReturnsNullWhenHighlightIsNull() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Collections.singletonList(
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "name",
+                        ExprValueUtils.stringValue("John"),
+                        "age",
+                        ExprValueUtils.integerValue(20),
+                        "_highlight",
+                        ExprValueUtils.LITERAL_NULL))),
+            Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(1, highlights.size());
+    assertNull(highlights.get(0));
+  }
+
+  @Test
+  void testHighlightsMultiRowAlignment() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Arrays.asList(
+                // Row 0: has highlight on name
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "name",
+                        ExprValueUtils.stringValue("John"),
+                        "age",
+                        ExprValueUtils.integerValue(20),
+                        "_highlight",
+                        ExprTupleValue.fromExprValueMap(
+                            ImmutableMap.of(
+                                "name",
+                                ExprValueUtils.collectionValue(
+                                    ImmutableList.of("<em>John</em>")))))),
+                // Row 1: no highlight
+                tupleValue(ImmutableMap.of("name", "Allen", "age", 30)),
+                // Row 2: has highlight on age (as string field)
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "name",
+                        ExprValueUtils.stringValue("Smith"),
+                        "age",
+                        ExprValueUtils.integerValue(40),
+                        "_highlight",
+                        ExprTupleValue.fromExprValueMap(
+                            ImmutableMap.of(
+                                "name",
+                                ExprValueUtils.collectionValue(
+                                    ImmutableList.of("<em>Smith</em>"))))))),
+            Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(3, highlights.size());
+    // Row 0: highlight present
+    assertEquals(ImmutableMap.of("name", ImmutableList.of("<em>John</em>")), highlights.get(0));
+    // Row 1: no highlight → null
+    assertNull(highlights.get(1));
+    // Row 2: highlight present
+    assertEquals(ImmutableMap.of("name", ImmutableList.of("<em>Smith</em>")), highlights.get(2));
   }
 }
