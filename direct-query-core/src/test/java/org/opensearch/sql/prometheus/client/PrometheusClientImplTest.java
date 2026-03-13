@@ -28,6 +28,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
@@ -42,6 +43,32 @@ public class PrometheusClientImplTest {
 
   private MockWebServer mockWebServer;
   private PrometheusClientImpl client;
+
+  /**
+   * Creates a PrometheusClientImpl backed by a spy OkHttpClient that returns a Response with a null
+   * body and the given HTTP status code. Useful for testing null-body error/success handling.
+   */
+  private PrometheusClientImpl createNullBodyClient(int statusCode, String message)
+      throws IOException {
+    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
+    Response nullBodyResponse =
+        new Response.Builder()
+            .request(dummyRequest)
+            .protocol(Protocol.HTTP_1_1)
+            .code(statusCode)
+            .message(message)
+            .body(null)
+            .build();
+
+    OkHttpClient spyClient = spy(new OkHttpClient());
+    Call mockCall = mock(Call.class);
+    when(mockCall.execute()).thenReturn(nullBodyResponse);
+    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
+
+    return new PrometheusClientImpl(
+        spyClient,
+        URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+  }
 
   @BeforeEach
   public void setUp() throws IOException {
@@ -153,29 +180,8 @@ public class PrometheusClientImplTest {
 
   /** response.body() is @Nullable, to test the null path we need to create a spy client. */
   @Test
-  public void testQueryRangeWithNon2xxErrorNullBody() {
-    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
-    Response nullBodyResponse =
-        new Response.Builder()
-            .request(dummyRequest)
-            .protocol(Protocol.HTTP_1_1)
-            .code(400)
-            .message("Bad Request")
-            .body(null)
-            .build();
-    OkHttpClient spyClient = spy(new OkHttpClient());
-    Call mockCall = mock(Call.class);
-    try {
-      when(mockCall.execute()).thenReturn(nullBodyResponse);
-    } catch (IOException e) {
-      fail("Unexpected IOException");
-    }
-    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
-
-    PrometheusClientImpl nullBodyClient =
-        new PrometheusClientImpl(
-            spyClient,
-            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+  public void testQueryRangeWithNon2xxErrorNullBody() throws IOException {
+    PrometheusClientImpl nullBodyClient = createNullBodyClient(400, "Bad Request");
 
     PrometheusClientException exception =
         assertThrows(
@@ -409,28 +415,31 @@ public class PrometheusClientImplTest {
 
     HashMap<String, String> params = new HashMap<>();
     params.put("type", "alert");
-    String result = client.getRules(params);
+    JSONObject result = client.getRules(params);
 
-    // Should extract the data object as JSON string
     assertNotNull(result);
-    JSONObject data = new JSONObject(result);
-    assertTrue(data.has("groups"));
-    assertEquals("example", data.getJSONArray("groups").getJSONObject(0).getString("name"));
+    assertTrue(result.has("groups"));
+    JSONArray groups = result.getJSONArray("groups");
+    assertEquals(1, groups.length());
+    assertEquals("example", groups.getJSONObject(0).getString("name"));
+    assertEquals("rules.yml", groups.getJSONObject(0).getString("file"));
   }
 
   @Test
   public void testGetRulesCortexYamlFormat() throws IOException {
-    // Cortex returns YAML from the Ruler API
+    // Cortex all-rules YAML: Map<namespace, List<RuleGroup>>
     String yamlResponse =
         "test_namespace:\n  - name: example\n    rules:\n      - record: test\n        expr: up\n";
     mockWebServer.enqueue(new MockResponse().setBody(yamlResponse));
 
-    String result = client.getRules(new HashMap<>());
+    JSONObject result = client.getRules(new HashMap<>());
 
-    // Should return raw YAML since it's not Prometheus JSON format
     assertNotNull(result);
-    assertTrue(result.contains("test_namespace"));
-    assertTrue(result.contains("example"));
+    assertTrue(result.has("groups"));
+    JSONArray groups = result.getJSONArray("groups");
+    assertEquals(1, groups.length());
+    assertEquals("example", groups.getJSONObject(0).getString("name"));
+    assertEquals("test_namespace", groups.getJSONObject(0).getString("file"));
   }
 
   @Test
@@ -446,56 +455,39 @@ public class PrometheusClientImplTest {
 
   @Test
   public void testGetRulesHttpErrorWithNullBody() throws IOException {
-    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
-    Response nullBodyResponse =
-        new Response.Builder()
-            .request(dummyRequest)
-            .protocol(Protocol.HTTP_1_1)
-            .code(500)
-            .message("Server Error")
-            .body(null)
-            .build();
-
-    OkHttpClient spyClient = spy(new OkHttpClient());
-    Call mockCall = mock(Call.class);
-    when(mockCall.execute()).thenReturn(nullBodyResponse);
-    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
-
-    PrometheusClientImpl nullBodyClient =
-        new PrometheusClientImpl(
-            spyClient,
-            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+    PrometheusClientImpl nullBodyClient = createNullBodyClient(500, "Server Error");
 
     PrometheusClientException exception =
         assertThrows(
-            PrometheusClientException.class,
-            () -> nullBodyClient.getRules(new HashMap<>()));
+            PrometheusClientException.class, () -> nullBodyClient.getRules(new HashMap<>()));
     assertTrue(exception.getMessage().contains("No response body"));
   }
 
   @Test
   public void testGetRulesJsonWithoutStatusField() throws IOException {
-    // JSON response but not in Prometheus format (no "status" field)
+    // JSON with groups but no Prometheus "status" field
     String jsonResponse = "{\"groups\":[{\"name\":\"test\"}]}";
     mockWebServer.enqueue(new MockResponse().setBody(jsonResponse));
 
-    String result = client.getRules(new HashMap<>());
+    JSONObject result = client.getRules(new HashMap<>());
 
     assertNotNull(result);
-    assertTrue(result.contains("groups"));
+    assertTrue(result.has("groups"));
+    assertEquals("test", result.getJSONArray("groups").getJSONObject(0).getString("name"));
   }
 
   @Test
   public void testGetRulesJsonWithStatusButNoData() throws IOException {
-    // JSON with status=success but no data field
+    // JSON with status=success but no data field — falls through to YAML parsing,
+    // which parses it as a map but values are strings not lists, so returns empty groups
     String jsonResponse = "{\"status\":\"success\",\"message\":\"ok\"}";
     mockWebServer.enqueue(new MockResponse().setBody(jsonResponse));
 
-    String result = client.getRules(new HashMap<>());
+    JSONObject result = client.getRules(new HashMap<>());
 
-    // Falls through to returning raw body
     assertNotNull(result);
-    assertTrue(result.contains("success"));
+    assertTrue(result.has("groups"));
+    assertEquals(0, result.getJSONArray("groups").length());
   }
 
   @Test
@@ -722,16 +714,113 @@ public class PrometheusClientImplTest {
 
   @Test
   public void testGetRulesByNamespaceYaml() throws IOException {
-    // Cortex/Thanos return YAML from the Ruler GET endpoint
-    String yamlResponse =
-        "test_namespace:\n  - name: example\n    rules: []\n";
+    // Cortex/Thanos single-namespace response: bare YAML list of groups
+    String yamlResponse = "- name: example\n  rules: []\n";
     mockWebServer.enqueue(new MockResponse().setBody(yamlResponse));
 
-    String result = client.getRulesByNamespace("test_namespace", new HashMap<>());
+    JSONObject result = client.getRulesByNamespace("test_namespace", new HashMap<>());
 
     assertNotNull(result);
-    assertTrue(result.contains("test_namespace"));
-    assertTrue(result.contains("example"));
+    assertTrue(result.has("groups"));
+    JSONArray groups = result.getJSONArray("groups");
+    assertEquals(1, groups.length());
+    assertEquals("example", groups.getJSONObject(0).getString("name"));
+    assertEquals("test_namespace", groups.getJSONObject(0).getString("file"));
+  }
+
+  @Test
+  public void testGetRulesMultiNamespaceCortexYaml() throws IOException {
+    // Cortex all-rules YAML with multiple namespaces
+    String yamlResponse =
+        "namespace1:\n"
+            + "  - name: group1\n"
+            + "    rules:\n"
+            + "      - record: job_requests_rate5m\n"
+            + "        expr: sum(rate(requests_total[5m])) by (job)\n"
+            + "namespace2:\n"
+            + "  - name: group2\n"
+            + "    rules:\n"
+            + "      - alert: HighErrorRate\n"
+            + "        expr: rate(errors[5m]) > 0.5\n";
+    mockWebServer.enqueue(new MockResponse().setBody(yamlResponse));
+
+    JSONObject result = client.getRules(new HashMap<>());
+
+    assertNotNull(result);
+    assertTrue(result.has("groups"));
+    JSONArray groups = result.getJSONArray("groups");
+    assertEquals(2, groups.length());
+
+    boolean foundGroup1 = false;
+    boolean foundGroup2 = false;
+    for (int i = 0; i < groups.length(); i++) {
+      JSONObject group = groups.getJSONObject(i);
+      if ("group1".equals(group.getString("name"))) {
+        foundGroup1 = true;
+        assertEquals("namespace1", group.getString("file"));
+      } else if ("group2".equals(group.getString("name"))) {
+        foundGroup2 = true;
+        assertEquals("namespace2", group.getString("file"));
+      }
+    }
+    assertTrue(foundGroup1);
+    assertTrue(foundGroup2);
+  }
+
+  @Test
+  public void testGetRulesSuccessWithEmptyBodyFromServer() throws IOException {
+    // Server returns 200 with empty body (e.g., misconfigured endpoint)
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(""));
+
+    JSONObject result = client.getRules(new HashMap<>());
+
+    assertNotNull(result);
+    assertTrue(result.has("groups"));
+    assertEquals(0, result.getJSONArray("groups").length());
+  }
+
+  @Test
+  public void testGetRulesBareYamlListFormat() throws IOException {
+    // A response that is a bare YAML list (no namespace key) via getRules (namespace=null)
+    String yamlResponse = "- name: group1\n  rules:\n    - record: test\n      expr: up\n";
+    mockWebServer.enqueue(new MockResponse().setBody(yamlResponse));
+
+    JSONObject result = client.getRules(new HashMap<>());
+
+    assertNotNull(result);
+    assertTrue(result.has("groups"));
+    JSONArray groups = result.getJSONArray("groups");
+    assertEquals(1, groups.length());
+    assertEquals("group1", groups.getJSONObject(0).getString("name"));
+    // namespace is null so "file" should not be set
+    assertFalse(groups.getJSONObject(0).has("file"));
+  }
+
+  @Test
+  public void testGetRulesYamlParseExceptionReturnsEmptyGroups() throws IOException {
+    // YAML that parses as List<String> instead of List<Map>, causing ClassCastException
+    // in normalizeRulesResponse when iterating
+    String yamlResponse = "- just_a_string\n- another_string\n";
+    mockWebServer.enqueue(new MockResponse().setBody(yamlResponse));
+
+    JSONObject result = client.getRules(new HashMap<>());
+
+    assertNotNull(result);
+    assertTrue(result.has("groups"));
+    assertEquals(0, result.getJSONArray("groups").length());
+  }
+
+  @Test
+  public void testGetRulesPlainStringYamlReturnsEmptyGroups() throws IOException {
+    // YAML that parses as a plain String (neither Map nor List)
+    String yamlResponse = "just a plain string";
+    mockWebServer.enqueue(new MockResponse().setBody(yamlResponse));
+
+    JSONObject result = client.getRules(new HashMap<>());
+
+    assertNotNull(result);
+    assertTrue(result.has("groups"));
+    assertEquals(0, result.getJSONArray("groups").length());
   }
 
   @Test
@@ -748,25 +837,7 @@ public class PrometheusClientImplTest {
 
   @Test
   public void testGetRulesByNamespaceHttpErrorWithNullBody() throws IOException {
-    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
-    Response nullBodyResponse =
-        new Response.Builder()
-            .request(dummyRequest)
-            .protocol(Protocol.HTTP_1_1)
-            .code(500)
-            .message("Server Error")
-            .body(null)
-            .build();
-
-    OkHttpClient spyClient = spy(new OkHttpClient());
-    Call mockCall = mock(Call.class);
-    when(mockCall.execute()).thenReturn(nullBodyResponse);
-    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
-
-    PrometheusClientImpl nullBodyClient =
-        new PrometheusClientImpl(
-            spyClient,
-            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+    PrometheusClientImpl nullBodyClient = createNullBodyClient(500, "Server Error");
 
     PrometheusClientException exception =
         assertThrows(
@@ -811,6 +882,16 @@ public class PrometheusClientImplTest {
   }
 
   @Test
+  public void testDeleteRuleNamespaceSuccessWithBody() throws IOException {
+    String responseBody = "{\"status\":\"success\",\"data\":null}";
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(responseBody));
+
+    String result = client.deleteRuleNamespace("test_namespace");
+
+    assertEquals(responseBody, result);
+  }
+
+  @Test
   public void testDeleteRuleNamespaceHttpError() {
     mockWebServer.enqueue(
         new MockResponse().setResponseCode(404).setBody("Namespace not found"));
@@ -830,6 +911,16 @@ public class PrometheusClientImplTest {
 
     assertNotNull(result);
     assertTrue(result.contains("success"));
+  }
+
+  @Test
+  public void testDeleteRuleGroupSuccessWithBody() throws IOException {
+    String responseBody = "{\"status\":\"success\",\"data\":null}";
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(responseBody));
+
+    String result = client.deleteRuleGroup("test_namespace", "test_group");
+
+    assertEquals(responseBody, result);
   }
 
   @Test
@@ -855,28 +946,10 @@ public class PrometheusClientImplTest {
   }
 
   @Test
-  public void testCreateOrUpdateRuleGroupSuccessWithNullBody() throws IOException {
-    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
-    Response nullBodyResponse =
-        new Response.Builder()
-            .request(dummyRequest)
-            .protocol(Protocol.HTTP_1_1)
-            .code(202)
-            .message("Accepted")
-            .body(null)
-            .build();
+  public void testCreateOrUpdateRuleGroupSuccessWithEmptyBody() throws IOException {
+    mockWebServer.enqueue(new MockResponse().setResponseCode(202).setBody(""));
 
-    OkHttpClient spyClient = spy(new OkHttpClient());
-    Call mockCall = mock(Call.class);
-    when(mockCall.execute()).thenReturn(nullBodyResponse);
-    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
-
-    PrometheusClientImpl nullBodyClient =
-        new PrometheusClientImpl(
-            spyClient,
-            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
-
-    String result = nullBodyClient.createOrUpdateRuleGroup("test_ns", "name: test\nrules: []\n");
+    String result = client.createOrUpdateRuleGroup("test_ns", "name: test\nrules: []\n");
 
     assertNotNull(result);
     assertTrue(result.contains("success"));
@@ -884,25 +957,7 @@ public class PrometheusClientImplTest {
 
   @Test
   public void testDeleteRuleNamespaceHttpErrorWithNullBody() throws IOException {
-    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
-    Response nullBodyResponse =
-        new Response.Builder()
-            .request(dummyRequest)
-            .protocol(Protocol.HTTP_1_1)
-            .code(500)
-            .message("Server Error")
-            .body(null)
-            .build();
-
-    OkHttpClient spyClient = spy(new OkHttpClient());
-    Call mockCall = mock(Call.class);
-    when(mockCall.execute()).thenReturn(nullBodyResponse);
-    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
-
-    PrometheusClientImpl nullBodyClient =
-        new PrometheusClientImpl(
-            spyClient,
-            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+    PrometheusClientImpl nullBodyClient = createNullBodyClient(500, "Server Error");
 
     PrometheusClientException exception =
         assertThrows(
@@ -913,25 +968,7 @@ public class PrometheusClientImplTest {
 
   @Test
   public void testDeleteRuleGroupHttpErrorWithNullBody() throws IOException {
-    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
-    Response nullBodyResponse =
-        new Response.Builder()
-            .request(dummyRequest)
-            .protocol(Protocol.HTTP_1_1)
-            .code(500)
-            .message("Server Error")
-            .body(null)
-            .build();
-
-    OkHttpClient spyClient = spy(new OkHttpClient());
-    Call mockCall = mock(Call.class);
-    when(mockCall.execute()).thenReturn(nullBodyResponse);
-    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
-
-    PrometheusClientImpl nullBodyClient =
-        new PrometheusClientImpl(
-            spyClient,
-            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+    PrometheusClientImpl nullBodyClient = createNullBodyClient(500, "Server Error");
 
     PrometheusClientException exception =
         assertThrows(
@@ -942,30 +979,36 @@ public class PrometheusClientImplTest {
 
   @Test
   public void testCreateOrUpdateRuleGroupHttpErrorWithNullBody() throws IOException {
-    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
-    Response nullBodyResponse =
-        new Response.Builder()
-            .request(dummyRequest)
-            .protocol(Protocol.HTTP_1_1)
-            .code(400)
-            .message("Bad Request")
-            .body(null)
-            .build();
-
-    OkHttpClient spyClient = spy(new OkHttpClient());
-    Call mockCall = mock(Call.class);
-    when(mockCall.execute()).thenReturn(nullBodyResponse);
-    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
-
-    PrometheusClientImpl nullBodyClient =
-        new PrometheusClientImpl(
-            spyClient,
-            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+    PrometheusClientImpl nullBodyClient = createNullBodyClient(400, "Bad Request");
 
     PrometheusClientException exception =
         assertThrows(
             PrometheusClientException.class,
             () -> nullBodyClient.createOrUpdateRuleGroup("test_ns", "bad yaml"));
     assertTrue(exception.getMessage().contains("No response body"));
+  }
+
+  @Test
+  public void testGetRulesByNamespaceUrlEncodesSpecialCharacters() throws Exception {
+    String yamlResponse = "- name: group1\n  rules: []\n";
+    mockWebServer.enqueue(new MockResponse().setBody(yamlResponse));
+
+    client.getRulesByNamespace("my namespace/special", new HashMap<>());
+
+    RecordedRequest recorded = mockWebServer.takeRequest();
+    String path = recorded.getPath();
+    assertTrue(path.contains("my+namespace%2Fspecial") || path.contains("my%20namespace%2Fspecial"));
+  }
+
+  @Test
+  public void testDeleteRuleGroupUrlEncodesSpecialCharacters() throws Exception {
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200));
+
+    client.deleteRuleGroup("ns with spaces", "group/name");
+
+    RecordedRequest recorded = mockWebServer.takeRequest();
+    String path = recorded.getPath();
+    assertTrue(path.contains("ns+with+spaces") || path.contains("ns%20with%20spaces"));
+    assertTrue(path.contains("group%2Fname"));
   }
 }

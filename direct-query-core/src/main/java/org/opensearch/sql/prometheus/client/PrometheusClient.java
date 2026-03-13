@@ -58,14 +58,15 @@ public interface PrometheusClient extends DataSourceClient {
   JSONObject getAlerts() throws IOException;
 
   /**
-   * Get all recording and alerting rules. Returns the raw response body since the format varies by
-   * backend: Prometheus returns JSON, Cortex/Thanos returns YAML, and AMP returns JSON.
+   * Get all recording and alerting rules, normalized to a consistent JSON format. Handles
+   * Prometheus JSON, Cortex/Thanos YAML, and AMP JSON responses, returning them all as a
+   * {"groups":[...]} structure.
    *
    * @param queryParams Map of query parameters to include in the request
-   * @return String containing the raw response body
+   * @return JSONObject with {"groups":[...]} structure
    * @throws IOException If there is an issue with the request
    */
-  String getRules(Map<String, String> queryParams) throws IOException;
+  JSONObject getRules(Map<String, String> queryParams) throws IOException;
 
   /**
    * Get all alerts from Alertmanager.
@@ -110,15 +111,16 @@ public interface PrometheusClient extends DataSourceClient {
   String createAlertmanagerSilences(String silenceJson) throws IOException;
 
   /**
-   * Get rules for a specific namespace from the Cortex/Thanos Ruler API. The response is returned
-   * as a raw string since the Ruler API returns YAML (Cortex/Thanos) or JSON (AMP).
+   * Get rules for a specific namespace, normalized to a consistent JSON format. Handles
+   * Cortex/Thanos YAML and AMP JSON responses, returning them all as a {"groups":[...]} structure.
    *
    * @param namespace The rules namespace
    * @param queryParams Map of query parameters to include in the request
-   * @return String containing the raw response body (YAML or JSON)
+   * @return JSONObject with {"groups":[...]} structure
    * @throws IOException If there is an issue with the request
    */
-  String getRulesByNamespace(String namespace, Map<String, String> queryParams) throws IOException;
+  JSONObject getRulesByNamespace(String namespace, Map<String, String> queryParams)
+      throws IOException;
 
   /**
    * Create or update a rule group in a namespace via the Cortex/Thanos Ruler API.

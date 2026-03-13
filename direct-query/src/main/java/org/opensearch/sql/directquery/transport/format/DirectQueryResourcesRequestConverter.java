@@ -40,10 +40,14 @@ public class DirectQueryResourcesRequestConverter {
             DirectQueryResourceType.fromString(
                 "alertmanager_" + restRequest.param("resourceType")));
       }
-    } else if (restRequest.param("namespace") != null) {
+    } else if (path.contains("/api/v1/rules/") && restRequest.param("namespace") != null) {
       // Handle Ruler API - GET /api/v1/rules/{namespace}
+      String namespace = restRequest.param("namespace").trim();
+      if (namespace.isEmpty()) {
+        throw new IllegalArgumentException("Namespace cannot be empty");
+      }
       directQueryRequest.setResourceType(DirectQueryResourceType.RULES);
-      directQueryRequest.setResourceName(restRequest.param("namespace"));
+      directQueryRequest.setResourceName(namespace);
     } else {
       directQueryRequest.setResourceTypeFromString(restRequest.param("resourceType"));
       if (restRequest.param("resourceName") != null) {
@@ -87,12 +91,21 @@ public class DirectQueryResourcesRequestConverter {
             DirectQueryResourceType.fromString(
                 "alertmanager_" + restRequest.param("resourceType")));
       }
-    } else if (restRequest.param("namespace") != null) {
+    } else if (path.contains("/api/v1/rules/") && restRequest.param("namespace") != null) {
       // Handle Ruler API - POST/DELETE /api/v1/rules/{namespace}
+      String namespace = restRequest.param("namespace").trim();
+      if (namespace.isEmpty()) {
+        throw new IllegalArgumentException("Namespace cannot be empty");
+      }
       directQueryRequest.setResourceType(DirectQueryResourceType.RULES);
-      directQueryRequest.setResourceName(restRequest.param("namespace"));
-      if (restRequest.param("groupName") != null) {
-        directQueryRequest.setGroupName(restRequest.param("groupName"));
+      directQueryRequest.setResourceName(namespace);
+      String groupName = restRequest.param("groupName");
+      if (groupName != null) {
+        groupName = groupName.trim();
+        if (groupName.isEmpty()) {
+          throw new IllegalArgumentException("Group name cannot be empty");
+        }
+        directQueryRequest.setGroupName(groupName);
       }
     } else {
       directQueryRequest.setResourceTypeFromString(restRequest.param("resourceType"));
