@@ -1126,6 +1126,26 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | convert (identifier) AS identifier",
         anonymize("source=t | convert none(empno) AS empno_same"));
+    assertEquals(
+        "source=table | convert dur2sec(identifier)",
+        anonymize("source=t | convert dur2sec(duration)"));
+    assertEquals(
+        "source=table | convert mstime(identifier)",
+        anonymize("source=t | convert mstime(elapsed)"));
+    assertEquals(
+        "source=table | convert memk(identifier) AS identifier",
+        anonymize("source=t | convert memk(virt) AS virt_kb"));
+  }
+
+  @Test
+  public void testConvertCommandWithTimeformat() {
+    assertEquals(
+        "source=table | convert timeformat=\"%Y-%m-%d\" mktime(identifier)",
+        anonymize("source=t | convert timeformat=\"%Y-%m-%d\" mktime(date_str)"));
+    assertEquals(
+        "source=table | convert timeformat=\"%m/%d/%Y %H:%M:%S\" ctime(identifier) AS identifier",
+        anonymize(
+            "source=t | convert timeformat=\"%m/%d/%Y %H:%M:%S\" ctime(ts) AS formatted_time"));
   }
 
   @Test

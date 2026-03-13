@@ -269,4 +269,139 @@ public class CalcitePPLConvertTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testConvertMktimeFunction() {
+    String ppl = "source=EMP | convert mktime(ENAME)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[MKTIME($1)], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, MKTIME(`ENAME`) `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`,"
+            + " `DEPTNO`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testConvertCtimeFunction() {
+    String ppl = "source=EMP | convert ctime(SAL)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[CTIME($5)],"
+            + " COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, CTIME(`SAL`) `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testConvertDur2secFunction() {
+    String ppl = "source=EMP | convert dur2sec(ENAME)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[DUR2SEC($1)], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, DUR2SEC(`ENAME`) `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`,"
+            + " `DEPTNO`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testConvertMstimeFunction() {
+    String ppl = "source=EMP | convert mstime(ENAME)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[MSTIME($1)], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, MSTIME(`ENAME`) `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`,"
+            + " `DEPTNO`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testConvertWithTimeformatMktime() {
+    String ppl = "source=EMP | convert timeformat=\"%Y-%m-%d\" mktime(ENAME)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[MKTIME($1, '%Y-%m-%d')], JOB=[$2], MGR=[$3],"
+            + " HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, MKTIME(`ENAME`, '%Y-%m-%d') `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`,"
+            + " `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testConvertWithTimeformatCtime() {
+    String ppl = "source=EMP | convert timeformat=\"%Y-%m-%d %H:%M:%S\" ctime(SAL)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[CTIME($5,"
+            + " '%Y-%m-%d %H:%M:%S')], COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, CTIME(`SAL`, '%Y-%m-%d %H:%M:%S')"
+            + " `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testConvertTimeformatWithMultipleFunctions() {
+    String ppl = "source=EMP | convert timeformat=\"%Y-%m-%d\" mktime(ENAME), ctime(SAL)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[MKTIME($1, '%Y-%m-%d')], JOB=[$2], MGR=[$3],"
+            + " HIREDATE=[$4], SAL=[CTIME($5, '%Y-%m-%d')], COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, MKTIME(`ENAME`, '%Y-%m-%d') `ENAME`, `JOB`, `MGR`, `HIREDATE`,"
+            + " CTIME(`SAL`, '%Y-%m-%d') `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testConvertTimeformatMixedWithNonTimeFunctions() {
+    String ppl = "source=EMP | convert timeformat=\"%Y-%m-%d\" mktime(ENAME), auto(SAL)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[MKTIME($1, '%Y-%m-%d')], JOB=[$2], MGR=[$3],"
+            + " HIREDATE=[$4], SAL=[AUTO($5)], COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, MKTIME(`ENAME`, '%Y-%m-%d') `ENAME`, `JOB`, `MGR`, `HIREDATE`, AUTO(`SAL`)"
+            + " `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
