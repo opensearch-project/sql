@@ -2566,4 +2566,118 @@ public class CalciteExplainIT extends ExplainIT {
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     return getResponseBody(response, true);
   }
+
+  // Only for Calcite - Test for issue #5054: query_string combined with boolean comparison
+  // This mimics the query pattern: "source=test url=http | where is_internal=true"
+  // where query_string search is combined with boolean field comparison.
+  @Test
+  public void testFilterQueryStringWithBooleanFieldPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Verifies that query_string combined with boolean field comparison produces pure DSL query
+    // without embedded script. The boolean comparison should be pushed down as a term query.
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where male = true | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldWithTRUE() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test boolean literal with uppercase TRUE
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where male = TRUE | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldWithStringLiteral() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test boolean field with string literal 'TRUE' - Calcite converts to boolean true
+    // and generates same term query as boolean literal
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where male = 'TRUE' | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldFalse() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // male = false is converted to IS_FALSE(male) which generates term query {value: false}.
+    // This only matches documents where male is explicitly false (not null or missing).
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where male = false | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean_false.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldNotTrue() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // NOT(male = true) generates IS_NOT_TRUE which produces mustNot(term query {value: true})
+    // This matches documents where male is false, null, or missing
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where NOT male = true | fields firstname",
+            TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean_not_true.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldNotEquals() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // male != true generates IS_NOT_TRUE which produces mustNot(term query {value: true})
+    // This matches documents where male is false, null, or missing
+    String query =
+        StringUtils.format(
+            "source=%s firstname=Amber | where male != true | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean_not_true.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldOnlyTrue() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test single boolean filter without query_string
+    String query =
+        StringUtils.format("source=%s | where male = true | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_boolean_only_true.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldOnlyFalse() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test single boolean filter with false value without query_string
+    String query =
+        StringUtils.format("source=%s | where male = false | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_boolean_only_false.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFilterBooleanFieldOnlyNotTrue() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Test single NOT boolean filter without query_string
+    String query =
+        StringUtils.format("source=%s | where NOT male = true | fields firstname", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_filter_boolean_only_not_true.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
 }

@@ -491,9 +491,11 @@ class AggregateAnalyzerTest {
                             b.call(SqlStdOperatorTable.LIKE, b.field("c"), b.literal("%test%")))),
                     "filter_complex_count"))
         .expectDslTemplate(
-            "[{\"filter_bool_count\":{\"filter\":{\"script\":{\"script\":{\"source\":\"{\\\"langType\\\":\\\"calcite\\\",\\\"script\\\":\\\"*\\\"}\","
-                + "\"lang\":\"opensearch_compounded_script\",\"params\":{*}},\"boost\":1.0}},"
+            // filter_bool_count: Boolean field IS_TRUE is now pushed down as term query (issue
+            // #5054 fix)
+            "[{\"filter_bool_count\":{\"filter\":{\"term\":{\"d\":{\"value\":true,\"boost\":1.0}}},"
                 + "\"aggregations\":{\"filter_bool_count\":{\"value_count\":{\"field\":\"_index\"}}}}},"
+                // filter_complex_count: Complex expression still uses script query
                 + " {\"filter_complex_count\":{\"filter\":{\"script\":{\"script\":{\"source\":\"{\\\"langType\\\":\\\"calcite\\\",\\\"script\\\":\\\"*\\\"}\","
                 + "\"lang\":\"opensearch_compounded_script\",\"params\":{*}},\"boost\":1.0}},"
                 + "\"aggregations\":{\"filter_complex_count\":{\"value_count\":{\"field\":\"_index\"}}}}}]")
