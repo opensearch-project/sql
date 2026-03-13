@@ -93,19 +93,19 @@ source = employees
 The query returns the following results:
 
 ```text
-+--------+----------+----+---------------------+
-| name   | reportsTo| id | reportingHierarchy  |
-+--------+----------+----+---------------------+
-| Dev    | Eliot    | 1  | [{Eliot, Ron, 2}]   |
-| Eliot  | Ron      | 2  | [{Ron, Andrew, 3}]  |
-| Ron    | Andrew   | 3  | [{Andrew, null, 4}] |
-| Andrew | null     | 4  | []                  |
-| Asya   | Ron      | 5  | [{Ron, Andrew, 3}]  |
-| Dan    | Andrew   | 6  | [{Andrew, null, 4}] |
-+--------+----------+----+---------------------+
++--------+----------+----+-----------------------------------------------+
+| name   | reportsTo| id | reportingHierarchy                            |
++--------+----------+----+-----------------------------------------------+
+| Dev    | Eliot    | 1  | [{name:Eliot, reportsTo:Ron, id:2}]           |
+| Eliot  | Ron      | 2  | [{name:Ron, reportsTo:Andrew, id:3}]          |
+| Ron    | Andrew   | 3  | [{name:Andrew, reportsTo:null, id:4}]         |
+| Andrew | null     | 4  | []                                            |
+| Asya   | Ron      | 5  | [{name:Ron, reportsTo:Andrew, id:3}]          |
+| Dan    | Andrew   | 6  | [{name:Andrew, reportsTo:null, id:4}]         |
++--------+----------+----+-----------------------------------------------+
 ```
 
-For Dev, the traversal starts with `reportsTo="Eliot"`, finds the Eliot record, and returns it in the `reportingHierarchy` array.
+Each element in the `reportingHierarchy` array is a struct with named fields from the lookup index. For Dev, the traversal starts with `reportsTo="Eliot"`, finds the Eliot record, and returns it in the `reportingHierarchy` array.
 
 ## Example 2: Employee Hierarchy with Depth Tracking
 
@@ -123,19 +123,19 @@ source = employees
 The query returns the following results:
 
 ```text
-+--------+----------+----+------------------------+
-| name   | reportsTo| id | reportingHierarchy     |
-+--------+----------+----+------------------------+
-| Dev    | Eliot    | 1  | [{Eliot, Ron, 2, 0}]   |
-| Eliot  | Ron      | 2  | [{Ron, Andrew, 3, 0}]  |
-| Ron    | Andrew   | 3  | [{Andrew, null, 4, 0}] |
-| Andrew | null     | 4  | []                     |
-| Asya   | Ron      | 5  | [{Ron, Andrew, 3, 0}]  |
-| Dan    | Andrew   | 6  | [{Andrew, null, 4, 0}] |
-+--------+----------+----+------------------------+
++--------+----------+----+------------------------------------------------------+
+| name   | reportsTo| id | reportingHierarchy                                   |
++--------+----------+----+------------------------------------------------------+
+| Dev    | Eliot    | 1  | [{name:Eliot, reportsTo:Ron, id:2, level:0}]         |
+| Eliot  | Ron      | 2  | [{name:Ron, reportsTo:Andrew, id:3, level:0}]        |
+| Ron    | Andrew   | 3  | [{name:Andrew, reportsTo:null, id:4, level:0}]       |
+| Andrew | null     | 4  | []                                                   |
+| Asya   | Ron      | 5  | [{name:Ron, reportsTo:Andrew, id:3, level:0}]        |
+| Dan    | Andrew   | 6  | [{name:Andrew, reportsTo:null, id:4, level:0}]       |
++--------+----------+----+------------------------------------------------------+
 ```
 
-The depth field `level` is appended to each document in the result array. A value of `0` indicates the first level of matches.
+The depth field `level` is added to each struct in the result array. A value of `0` indicates the first level of matches.
 
 ## Example 3: Limited Depth Traversal
 
@@ -153,16 +153,16 @@ source = employees
 The query returns the following results:
 
 ```text
-+--------+----------+----+--------------------------------------+
-| name   | reportsTo| id | reportingHierarchy                   |
-+--------+----------+----+--------------------------------------+
-| Dev    | Eliot    | 1  | [{Eliot, Ron, 2}, {Ron, Andrew, 3}]  |
-| Eliot  | Ron      | 2  | [{Ron, Andrew, 3}, {Andrew, null, 4}]|
-| Ron    | Andrew   | 3  | [{Andrew, null, 4}]                  |
-| Andrew | null     | 4  | []                                   |
-| Asya   | Ron      | 5  | [{Ron, Andrew, 3}, {Andrew, null, 4}]|
-| Dan    | Andrew   | 6  | [{Andrew, null, 4}]                  |
-+--------+----------+----+--------------------------------------+
++--------+----------+----+---------------------------------------------------------------------------------+
+| name   | reportsTo| id | reportingHierarchy                                                              |
++--------+----------+----+---------------------------------------------------------------------------------+
+| Dev    | Eliot    | 1  | [{name:Eliot, reportsTo:Ron, id:2}, {name:Ron, reportsTo:Andrew, id:3}]         |
+| Eliot  | Ron      | 2  | [{name:Ron, reportsTo:Andrew, id:3}, {name:Andrew, reportsTo:null, id:4}]       |
+| Ron    | Andrew   | 3  | [{name:Andrew, reportsTo:null, id:4}]                                           |
+| Andrew | null     | 4  | []                                                                              |
+| Asya   | Ron      | 5  | [{name:Ron, reportsTo:Andrew, id:3}, {name:Andrew, reportsTo:null, id:4}]       |
+| Dan    | Andrew   | 6  | [{name:Andrew, reportsTo:null, id:4}]                                           |
++--------+----------+----+---------------------------------------------------------------------------------+
 ```
 
 With `maxDepth=1`, the traversal goes two levels deep (depth 0 and depth 1).
@@ -192,15 +192,15 @@ source = airports
 The query returns the following results:
 
 ```text
-+---------+------------+---------------------+
-| airport | connects   | reachableAirports   |
-+---------+------------+---------------------+
-| JFK     | [BOS, ORD] | [{JFK, [BOS, ORD]}] |
-| BOS     | [JFK, PWM] | [{BOS, [JFK, PWM]}] |
-| ORD     | [JFK]      | [{ORD, [JFK]}]      |
-| PWM     | [BOS, LHR] | [{PWM, [BOS, LHR]}] |
-| LHR     | [PWM]      | [{LHR, [PWM]}]      |
-+---------+------------+---------------------+
++---------+------------+-----------------------------------------------+
+| airport | connects   | reachableAirports                             |
++---------+------------+-----------------------------------------------+
+| JFK     | [BOS, ORD] | [{airport:JFK, connects:[BOS, ORD]}]          |
+| BOS     | [JFK, PWM] | [{airport:BOS, connects:[JFK, PWM]}]          |
+| ORD     | [JFK]      | [{airport:ORD, connects:[JFK]}]               |
+| PWM     | [BOS, LHR] | [{airport:PWM, connects:[BOS, LHR]}]          |
+| LHR     | [PWM]      | [{airport:LHR, connects:[PWM]}]               |
++---------+------------+-----------------------------------------------+
 ```
 
 ## Example 5: Cross-Index Graph Lookup
@@ -226,13 +226,13 @@ source = travelers
 The query returns the following results:
 
 ```text
-+-------+----------------+---------------------+
-| name  | nearestAirport | reachableAirports   |
-+-------+----------------+---------------------+
-| Dev   | JFK            | [{JFK, [BOS, ORD]}] |
-| Eliot | JFK            | [{JFK, [BOS, ORD]}] |
-| Jeff  | BOS            | [{BOS, [JFK, PWM]}] |
-+-------+----------------+---------------------+
++-------+----------------+-----------------------------------------------+
+| name  | nearestAirport | reachableAirports                             |
++-------+----------------+-----------------------------------------------+
+| Dev   | JFK            | [{airport:JFK, connects:[BOS, ORD]}]          |
+| Eliot | JFK            | [{airport:JFK, connects:[BOS, ORD]}]          |
+| Jeff  | BOS            | [{airport:BOS, connects:[JFK, PWM]}]          |
++-------+----------------+-----------------------------------------------+
 ```
 
 ## Example 6: Bidirectional Traversal
@@ -251,11 +251,11 @@ source = employees
 The query returns the following results:
 
 ```text
-+------+----------+----+------------------------------------------------+
-| name | reportsTo| id | connections                                    |
-+------+----------+----+------------------------------------------------+
-| Ron  | Andrew   | 3  | [{Ron, Andrew, 3}, {Andrew, null, 4}, {Dan, Andrew, 6}] |
-+------+----------+----+------------------------------------------------+
++------+----------+----+-----------------------------------------------------------------------------------------------------+
+| name | reportsTo| id | connections                                                                                          |
++------+----------+----+-----------------------------------------------------------------------------------------------------+
+| Ron  | Andrew   | 3  | [{name:Ron, reportsTo:Andrew, id:3}, {name:Andrew, reportsTo:null, id:4}, {name:Dan, reportsTo:Andrew, id:6}] |
++------+----------+----+-----------------------------------------------------------------------------------------------------+
 ```
 
 With bidirectional traversal, Ron's connections include:
@@ -294,17 +294,17 @@ source = travelers
 
 **Normal mode** (default): Each traveler gets their own list of reachable airports
 ```text
-| name  | nearestAirport | reachableAirports |
-|-------|----------------|-------------------|
-| Dev   | JFK            | [JFK, BOS, ORD]   |
-| Jeff  | BOS            | [BOS, JFK, PWM]   |
+| name  | nearestAirport | reachableAirports                    |
+|-------|----------------|--------------------------------------|
+| Dev   | JFK            | [{airport:JFK, connects:[BOS, ORD]}] |
+| Jeff  | BOS            | [{airport:BOS, connects:[JFK, PWM]}] |
 ```
 
 **Batch mode**: A single row with all travelers and all reachable airports combined
 ```text
-| travelers                              | reachableAirports           |
-|----------------------------------------|-----------------------------|
-| [{Dev, JFK}, {Jeff, BOS}]              | [JFK, BOS, ORD, PWM, ...]   |
+| travelers                                                          | reachableAirports                                           |
+|--------------------------------------------------------------------|-------------------------------------------------------------|
+| [{name:Dev, nearestAirport:JFK}, {name:Jeff, nearestAirport:BOS}] | [{airport:JFK, connects:[BOS, ORD]}, {airport:BOS, ...}]   |
 ```
 
 ## Array Field Handling
