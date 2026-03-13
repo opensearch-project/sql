@@ -75,7 +75,9 @@ public class CTimeConvertFunction extends ImplementorUDF {
       return null;
     }
     try {
-      Instant instant = Instant.ofEpochSecond(timestamp.longValue());
+      long seconds = timestamp.longValue();
+      int nanos = (int) ((timestamp - seconds) * 1_000_000_000);
+      Instant instant = Instant.ofEpochSecond(seconds, nanos);
       ZonedDateTime zdt = ZonedDateTime.ofInstant(instant, ZoneId.of("UTC"));
       return StrftimeFormatterUtil.formatZonedDateTime(zdt, format).stringValue();
     } catch (Exception e) {
