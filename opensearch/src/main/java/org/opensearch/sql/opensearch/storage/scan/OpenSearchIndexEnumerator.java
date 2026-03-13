@@ -92,6 +92,10 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   }
 
   private Object resolveForCalcite(ExprValue value, String rawPath) {
+    if ("_highlight".equals(rawPath)) {
+      ExprValue hl = ExprValueUtils.getTupleValue(value).get("_highlight");
+      return (hl != null && !hl.isMissing()) ? hl : null;
+    }
     return ExprValueUtils.resolveRefPaths(value, List.of(rawPath.split("\\."))).valueForCalcite();
   }
 

@@ -32,6 +32,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.fillNull;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.head;
+import static org.opensearch.sql.ast.dsl.AstDSL.highlight;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.map;
@@ -1104,6 +1105,28 @@ public class AstBuilderTest {
   @Test
   public void testTrendlineTooFewSamples() {
     assertThrows(SyntaxCheckException.class, () -> plan("source=t | trendline sma(0, test_field)"));
+  }
+
+  @Test
+  public void testHighlightStar() {
+    assertEqual("source=t | highlight *", highlight(relation("t"), List.of("*")));
+  }
+
+  @Test
+  public void testHighlightStringLiteral() {
+    assertEqual("source=t | highlight \"error\"", highlight(relation("t"), List.of("error")));
+  }
+
+  @Test
+  public void testHighlightMultipleStringLiterals() {
+    assertEqual(
+        "source=t | highlight \"error\", \"login\"",
+        highlight(relation("t"), List.of("error", "login")));
+  }
+
+  @Test
+  public void testHighlightFieldExpression() {
+    assertEqual("source=t | highlight fieldname", highlight(relation("t"), List.of("fieldname")));
   }
 
   @Test
