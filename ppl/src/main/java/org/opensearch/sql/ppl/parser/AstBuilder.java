@@ -89,6 +89,7 @@ import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Highlight;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
@@ -1282,6 +1283,25 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .map(Field.class::cast)
         .map(sort -> new Trendline(Optional.of(sort), trendlineComputations))
         .orElse(new Trendline(Optional.empty(), trendlineComputations));
+  }
+
+  /** highlight command. */
+  @Override
+  public UnresolvedPlan visitHighlightCommand(OpenSearchPPLParser.HighlightCommandContext ctx) {
+    List<String> highlightArgs =
+        ctx.highlightArg().stream()
+            .map(
+                arg -> {
+                  if (arg.STAR() != null) {
+                    return "*";
+                  } else if (arg.stringLiteral() != null) {
+                    return StringUtils.unquoteText(arg.stringLiteral().getText());
+                  } else {
+                    return arg.fieldExpression().getText();
+                  }
+                })
+            .collect(Collectors.toList());
+    return new Highlight(highlightArgs);
   }
 
   @Override
