@@ -74,8 +74,8 @@ public class QueryResult implements Iterable<Object[]> {
    */
   public Map<String, String> columnNameTypes() {
     Map<String, String> colNameTypes = new LinkedHashMap<>();
-    schema
-        .getColumns()
+    schema.getColumns().stream()
+        .filter(column -> !HIGHLIGHT_FIELD.equals(getColumnName(column)))
         .forEach(
             column ->
                 colNameTypes.put(
