@@ -22,6 +22,7 @@
     "user/ppl/cmd/fillnull.md",
     "user/ppl/cmd/grok.md",
     "user/ppl/cmd/head.md",
+    "user/ppl/cmd/highlight.md",
     "user/ppl/cmd/join.md",
     "user/ppl/cmd/lookup.md",
     "user/ppl/cmd/mvcombine.md",
