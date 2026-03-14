@@ -572,7 +572,6 @@ highlightCommand
 highlightArg
    : STAR
    | stringLiteral
-   | fieldExpression
    ;
 
 expandCommand

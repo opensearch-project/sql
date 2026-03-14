@@ -1294,10 +1294,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                 arg -> {
                   if (arg.STAR() != null) {
                     return "*";
-                  } else if (arg.stringLiteral() != null) {
-                    return StringUtils.unquoteText(arg.stringLiteral().getText());
                   } else {
-                    return arg.fieldExpression().getText();
+                    return StringUtils.unquoteText(arg.stringLiteral().getText());
                   }
                 })
             .collect(Collectors.toList());
