@@ -508,7 +508,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
       // Wildcard: highlight search query matches in all fields
       hb.field("*");
     } else {
-      // Splunk-like: highlight specific terms across all fields
+      // Highlight specific terms across all fields
       String queryStr =
           highlightArgs.stream()
               .map(term -> "\"" + term + "\"")
@@ -521,8 +521,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
       hb.field(field);
     }
     hb.fragmentSize(Integer.MAX_VALUE);
-    hb.preTags("@opensearch-dashboards-highlighted-field@");
-    hb.postTags("@/opensearch-dashboards-highlighted-field@");
     requestBuilder.getSourceBuilder().highlighter(hb);
   }
 }

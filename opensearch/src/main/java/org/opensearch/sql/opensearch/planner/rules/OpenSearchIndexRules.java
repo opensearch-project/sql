@@ -62,6 +62,8 @@ public class OpenSearchIndexRules {
       SortExprIndexScanRule.Config.DEFAULT.toRule();
   private static final EnumerableTopKMergeRule ENUMERABLE_TOP_K_MERGE_RULE =
       EnumerableTopKMergeRule.Config.DEFAULT.toRule();
+  private static final HighlightIndexScanRule HIGHLIGHT_INDEX_SCAN =
+      HighlightIndexScanRule.Config.DEFAULT.toRule();
 
   /** The rules will apply only when the pushdown is enabled. */
   public static final List<RelOptRule> OPEN_SEARCH_PUSHDOWN_RULES =
@@ -80,7 +82,8 @@ public class OpenSearchIndexRules {
           RARE_TOP_PUSH_DOWN,
           ENUMERABLE_TOP_K_MERGE_RULE,
           EXPAND_COLLATION_ON_PROJECT_EXPR,
-          SORT_EXPR_INDEX_SCAN);
+          SORT_EXPR_INDEX_SCAN,
+          HIGHLIGHT_INDEX_SCAN);
 
   // prevent instantiation
   private OpenSearchIndexRules() {}

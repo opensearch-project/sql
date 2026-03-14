@@ -45,9 +45,6 @@ public class CalcitePlanContext {
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
 
-  /** Highlight field patterns set by the {@code | highlight} command. */
-  @Getter @Setter private List<String> highlightArgs;
-
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
   @Getter @Setter private boolean inCoalesceFunction = false;

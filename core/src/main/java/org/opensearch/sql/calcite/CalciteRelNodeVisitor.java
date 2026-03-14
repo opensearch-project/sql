@@ -157,9 +157,9 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
-import org.opensearch.sql.calcite.plan.HighlightPushable;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.plan.rel.LogicalGraphLookup;
+import org.opensearch.sql.calcite.plan.rel.LogicalHighlight;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.BinUtils;
@@ -228,15 +228,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     context.relBuilder.scan(node.getTableQualifiedName().getParts());
     RelNode scan = context.relBuilder.peek();
-
-    if (context.getHighlightArgs() != null && scan instanceof HighlightPushable highlightPushable) {
-      RelNode newScan = highlightPushable.pushDownHighlight(context.getHighlightArgs());
-      context.relBuilder.build(); // pop old scan
-      context.relBuilder.push(newScan);
-      scan = newScan;
-      // Clear so that join's right-side scan is not affected
-      context.setHighlightArgs(null);
-    }
 
     if (scan instanceof AliasFieldsWrappable) {
       return ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
@@ -3201,9 +3192,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitHighlight(Highlight node, CalcitePlanContext context) {
-    context.setHighlightArgs(node.getHighlightArgs());
     visitChildren(node, context);
-    return context.relBuilder.peek();
+    RelNode input = context.relBuilder.build();
+    LogicalHighlight highlight = LogicalHighlight.create(input, node.getHighlightArgs());
+    context.relBuilder.push(highlight);
+    return highlight;
   }
 
   @Override
