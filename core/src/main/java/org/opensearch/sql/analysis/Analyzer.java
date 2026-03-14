@@ -76,6 +76,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Highlight;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
@@ -568,6 +569,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitGraphLookup(GraphLookup node, AnalysisContext context) {
     throw getOnlyForCalciteException("graphlookup");
+  }
+
+  @Override
+  public LogicalPlan visitHighlight(Highlight node, AnalysisContext context) {
+    throw getOnlyForCalciteException("highlight");
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */

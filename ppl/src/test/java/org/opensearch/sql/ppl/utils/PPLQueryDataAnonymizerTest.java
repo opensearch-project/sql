@@ -263,6 +263,18 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testHighlightCommand() {
+    assertEquals("source=table | highlight *", anonymize("source=t | highlight *"));
+  }
+
+  @Test
+  public void testHighlightCommandMultipleFields() {
+    assertEquals(
+        "source=table | highlight error, login",
+        anonymize("source=t | highlight \"error\", \"login\""));
+  }
+
+  @Test
   public void testHeadCommandWithNumber() {
     assertEquals("source=table | head 3", anonymize("source=t | head 3"));
   }

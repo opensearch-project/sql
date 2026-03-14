@@ -495,4 +495,32 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
   public boolean isProjectPushed() {
     return this.getPushDownContext().isProjectPushed();
   }
+
+  protected static void applyHighlightPushDown(
+      org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder requestBuilder,
+      java.util.List<String> highlightArgs) {
+    if (highlightArgs == null || highlightArgs.isEmpty()) {
+      return;
+    }
+    org.opensearch.search.fetch.subphase.highlight.HighlightBuilder hb =
+        new org.opensearch.search.fetch.subphase.highlight.HighlightBuilder();
+    if (highlightArgs.size() == 1 && "*".equals(highlightArgs.get(0))) {
+      // Wildcard: highlight search query matches in all fields
+      hb.field("*");
+    } else {
+      // Highlight specific terms across all fields
+      String queryStr =
+          highlightArgs.stream()
+              .map(term -> "\"" + term + "\"")
+              .collect(java.util.stream.Collectors.joining(" OR "));
+      org.opensearch.search.fetch.subphase.highlight.HighlightBuilder.Field field =
+          new org.opensearch.search.fetch.subphase.highlight.HighlightBuilder.Field("*")
+              .highlightQuery(
+                  org.opensearch.index.query.QueryBuilders.queryStringQuery(queryStr)
+                      .defaultField("*"));
+      hb.field(field);
+    }
+    hb.fragmentSize(Integer.MAX_VALUE);
+    requestBuilder.getSourceBuilder().highlighter(hb);
+  }
 }
