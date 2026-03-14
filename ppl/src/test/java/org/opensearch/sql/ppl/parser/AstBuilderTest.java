@@ -1125,8 +1125,8 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testHighlightFieldExpression() {
-    assertEqual("source=t | highlight fieldname", highlight(relation("t"), List.of("fieldname")));
+  public void testHighlightFieldExpressionNotSupported() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | highlight fieldname"));
   }
 
   @Test
