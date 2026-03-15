@@ -42,8 +42,6 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   private boolean isRareTopPushed = false;
   private boolean isScriptPushed = false;
 
-  @lombok.Setter private List<String> highlightArgs;
-
   public PushDownContext(OpenSearchIndex osIndex) {
     this.osIndex = osIndex;
   }
@@ -52,7 +50,6 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   public PushDownContext clone() {
     PushDownContext newContext = new PushDownContext(osIndex);
     newContext.addAll(this);
-    newContext.highlightArgs = this.highlightArgs;
     return newContext;
   }
 

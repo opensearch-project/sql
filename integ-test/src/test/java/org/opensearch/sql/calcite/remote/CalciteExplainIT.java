@@ -2795,4 +2795,29 @@ public class CalciteExplainIT extends ExplainIT {
         "Expected explain to contain both CONCAT and ARRAY_JOIN",
         result.toLowerCase().contains("concat") && result.toLowerCase().contains("array_join"));
   }
+
+  @Test
+  public void testHighlightWildcardExplain() throws IOException {
+    String query = "source=" + TEST_INDEX_ACCOUNT + " | highlight *";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_highlight_wildcard.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testHighlightSingleTermExplain() throws IOException {
+    String query = "source=" + TEST_INDEX_ACCOUNT + " | highlight \\\"Holmes\\\"";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_highlight_single_term.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testHighlightWithFilterExplain() throws IOException {
+    String query =
+        "source=" + TEST_INDEX_ACCOUNT + " | highlight * | where age > 30 | fields firstname, age";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_highlight_with_filter.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
 }

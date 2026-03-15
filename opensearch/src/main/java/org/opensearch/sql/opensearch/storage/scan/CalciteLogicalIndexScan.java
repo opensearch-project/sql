@@ -92,7 +92,13 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         HighlightExpression.HIGHLIGHT_FIELD,
         getCluster().getTypeFactory().createSqlType(SqlTypeName.ANY));
     CalciteLogicalIndexScan newScan = copyWithNewSchema(schemaBuilder.build());
-    newScan.getPushDownContext().setHighlightArgs(highlightArgs);
+    newScan
+        .getPushDownContext()
+        .add(
+            PushDownType.HIGHLIGHT,
+            highlightArgs,
+            (OSRequestBuilderAction)
+                requestBuilder -> applyHighlightPushDown(requestBuilder, highlightArgs));
     return newScan;
   }
 

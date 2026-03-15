@@ -1,0 +1,11 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(firstname=[$1], age=[$8], _highlight=[$17])
+        LogicalFilter(condition=[>($8, 30)])
+          LogicalHighlight(highlightArgs=[[*]])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..17=[{inputs}], expr#18=[30], expr#19=[>($t8, $t18)], firstname=[$t1], age=[$t8], _highlight=[$t17], $condition=[$t19])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[HIGHLIGHT->[*]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","highlight":{"fragment_size":2147483647,"fields":{"*":{}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

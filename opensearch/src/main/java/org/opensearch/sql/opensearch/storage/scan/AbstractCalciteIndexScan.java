@@ -130,7 +130,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
             (rowCount, operation) ->
                 switch (operation.type()) {
                   case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
-                  case PROJECT, SORT, SORT_EXPR -> rowCount;
+                  case PROJECT, SORT, SORT_EXPR, HIGHLIGHT -> rowCount;
                   case SORT_AGG_METRICS ->
                       NumberUtil.min(rowCount, osIndex.getQueryBucketSize().doubleValue());
                   // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
@@ -176,8 +176,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
           dRows = mq.getRowCount((RelNode) operation.digest());
           dCpu += dRows * getAggMultiplier(operation);
         }
-        // Ignored Project in cost accumulation, but it will affect the external cost
-        case PROJECT -> {}
+        // Ignored Project and Highlight in cost accumulation, but they affect the external cost
+        case PROJECT, HIGHLIGHT -> {}
         case SORT -> dCpu += dRows;
         case SORT_AGG_METRICS -> {
           dRows = dRows * .9 / 10; // *.9 because always bucket IS_NOT_NULL
