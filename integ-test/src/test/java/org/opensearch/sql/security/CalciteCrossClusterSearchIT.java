@@ -473,6 +473,16 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
   }
 
   @Test
+  public void testCrossClusterHighlightWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | highlight * | fields firstname, _highlight",
+                TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("firstname"), columnName("_highlight"));
+  }
+
+  @Test
   public void testCrossClusterMvExpandWithLimit() throws IOException {
     JSONObject result =
         executeQuery(
