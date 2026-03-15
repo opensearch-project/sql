@@ -7,8 +7,11 @@ package org.opensearch.sql.protocol.response;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
@@ -16,7 +19,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.pagination.Cursor;
 
@@ -105,5 +113,95 @@ class QueryResultTest {
       }
       i++;
     }
+  }
+
+  @Test
+  void columnNameTypesFiltersHighlightField() {
+    ExecutionEngine.Schema schemaWithHighlight =
+        new ExecutionEngine.Schema(
+            ImmutableList.of(
+                new ExecutionEngine.Schema.Column("name", null, STRING),
+                new ExecutionEngine.Schema.Column("age", null, INTEGER),
+                new ExecutionEngine.Schema.Column("_highlight", null, ARRAY)));
+    QueryResult response =
+        new QueryResult(
+            schemaWithHighlight,
+            Collections.singletonList(tupleValue(ImmutableMap.of("name", "John", "age", 20))),
+            Cursor.None);
+
+    assertEquals(ImmutableMap.of("name", "string", "age", "integer"), response.columnNameTypes());
+  }
+
+  @Test
+  void iterateFiltersHighlightField() {
+    java.util.LinkedHashMap<String, ExprValue> map = new java.util.LinkedHashMap<>();
+    map.put("name", ExprValueUtils.stringValue("John"));
+    map.put("age", ExprValueUtils.integerValue(20));
+    map.put(
+        "_highlight",
+        ExprTupleValue.fromExprValueMap(
+            Map.of("name", collectionValue(List.of("highlighted <em>John</em>")))));
+    ExprValue row = ExprTupleValue.fromExprValueMap(map);
+    QueryResult response = new QueryResult(schema, Collections.singletonList(row), Cursor.None);
+
+    for (Object[] objects : response) {
+      assertArrayEquals(new Object[] {"John", 20}, objects);
+    }
+  }
+
+  @Test
+  void highlightsExtractsHighlightData() {
+    ExprValue row =
+        ExprTupleValue.fromExprValueMap(
+            new java.util.LinkedHashMap<>(
+                Map.of(
+                    "name", ExprValueUtils.stringValue("John"),
+                    "_highlight",
+                        ExprTupleValue.fromExprValueMap(
+                            Map.of("name", collectionValue(List.of("<em>John</em>")))))));
+    QueryResult response = new QueryResult(schema, Collections.singletonList(row), Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(1, highlights.size());
+    assertEquals(Map.of("name", List.of("<em>John</em>")), highlights.get(0));
+  }
+
+  @Test
+  void highlightsReturnsNullWhenNoHighlightData() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Collections.singletonList(tupleValue(ImmutableMap.of("name", "John", "age", 20))),
+            Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(1, highlights.size());
+    assertNull(highlights.get(0));
+  }
+
+  @Test
+  void highlightsReturnsNullWhenHighlightIsMissing() {
+    java.util.LinkedHashMap<String, ExprValue> map = new java.util.LinkedHashMap<>();
+    map.put("name", ExprValueUtils.stringValue("John"));
+    map.put("_highlight", ExprValueUtils.LITERAL_MISSING);
+    ExprValue row = ExprTupleValue.fromExprValueMap(map);
+    QueryResult response = new QueryResult(schema, Collections.singletonList(row), Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(1, highlights.size());
+    assertNull(highlights.get(0));
+  }
+
+  @Test
+  void highlightsReturnsNullWhenHighlightIsNull() {
+    java.util.LinkedHashMap<String, ExprValue> map = new java.util.LinkedHashMap<>();
+    map.put("name", ExprValueUtils.stringValue("John"));
+    map.put("_highlight", ExprValueUtils.LITERAL_NULL);
+    ExprValue row = ExprTupleValue.fromExprValueMap(map);
+    QueryResult response = new QueryResult(schema, Collections.singletonList(row), Cursor.None);
+
+    List<Map<String, Object>> highlights = response.highlights();
+    assertEquals(1, highlights.size());
+    assertNull(highlights.get(0));
   }
 }

@@ -7,6 +7,7 @@ package org.opensearch.sql.protocol.response.format;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
+import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -17,8 +18,13 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.protocol.response.QueryResult;
 
@@ -158,6 +164,44 @@ class SimpleJsonResponseFormatterTest {
             + "\"datarows\":[[\"Smith\",[{\"state\":\"WA\"},{\"state\":\"NYC\"}]]],"
             + "\"total\":1,\"size\":1}",
         formatter.format(response));
+  }
+
+  @Test
+  void formatResponseWithHighlights() {
+    java.util.LinkedHashMap<String, ExprValue> map = new java.util.LinkedHashMap<>();
+    map.put("firstname", ExprValueUtils.stringValue("John"));
+    map.put("age", ExprValueUtils.integerValue(20));
+    map.put(
+        "_highlight",
+        ExprTupleValue.fromExprValueMap(
+            Map.of("firstname", collectionValue(List.of("<em>John</em>")))));
+    ExprValue row = ExprTupleValue.fromExprValueMap(map);
+    QueryResult response = new QueryResult(schema, Collections.singletonList(row));
+    SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
+    String result = formatter.format(response);
+    assertEquals(
+        "{\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"
+            + "{\"name\":\"age\",\"type\":\"integer\"}],"
+            + "\"datarows\":[[\"John\",20]],"
+            + "\"highlights\":[{\"firstname\":[\"<em>John</em>\"]}],"
+            + "\"total\":1,\"size\":1}",
+        result);
+  }
+
+  @Test
+  void formatResponseWithoutHighlights() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Collections.singletonList(tupleValue(ImmutableMap.of("firstname", "John", "age", 20))));
+    SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
+    String result = formatter.format(response);
+    // highlights field should not be present when no highlight data exists
+    assertEquals(
+        "{\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"
+            + "{\"name\":\"age\",\"type\":\"integer\"}],"
+            + "\"datarows\":[[\"John\",20]],\"total\":1,\"size\":1}",
+        result);
   }
 
   @Test
