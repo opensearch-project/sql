@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -34,7 +33,6 @@ import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
-import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.support.MultiTermsValuesSourceConfig;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
@@ -73,114 +71,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     return copiedFactories;
   }
 
-  private static Map<String, Object> copyMetadataOrNull(AggregationBuilder source) {
-    Map<String, Object> metadata = source.getMetadata();
-    return metadata == null || metadata.isEmpty() ? null : metadata;
-  }
-
-  private static final class CompositeAggregationBuilderCopy extends CompositeAggregationBuilder {
-    private CompositeAggregationBuilderCopy(CompositeAggregationBuilder source) {
-      super(source, copySubAggregations(source), copyMetadataOrNull(source));
-    }
-  }
-
-  private static final class TermsAggregationBuilderCopy extends TermsAggregationBuilder {
-    private TermsAggregationBuilderCopy(TermsAggregationBuilder source) {
-      super(source, copySubAggregations(source), copyMetadataOrNull(source));
-    }
-  }
-
-  private static final class MultiTermsAggregationBuilderCopy extends MultiTermsAggregationBuilder {
-    private MultiTermsAggregationBuilderCopy(MultiTermsAggregationBuilder source) {
-      super(source, copySubAggregations(source), copyMetadataOrNull(source));
-    }
-  }
-
-  private static final class DateHistogramAggregationBuilderCopy
-      extends DateHistogramAggregationBuilder {
-    private DateHistogramAggregationBuilderCopy(DateHistogramAggregationBuilder source) {
-      super(source, copySubAggregations(source), copyMetadataOrNull(source));
-    }
-  }
-
-  private static final class HistogramAggregationBuilderCopy extends HistogramAggregationBuilder {
-    private HistogramAggregationBuilderCopy(HistogramAggregationBuilder source) {
-      super(source, copySubAggregations(source), copyMetadataOrNull(source));
-    }
-  }
-
-  private static final class TopHitsAggregationBuilderCopy extends TopHitsAggregationBuilder {
-    private TopHitsAggregationBuilderCopy(TopHitsAggregationBuilder source) {
-      super(source, copySubAggregations(source), copyMetadataOrNull(source));
-    }
-  }
-
-  private static final class NestedAggregationBuilderCopy extends NestedAggregationBuilder {
-    private NestedAggregationBuilderCopy(NestedAggregationBuilder source) {
-      super(source, copySubAggregations(source), copyMetadataOrNull(source));
-    }
-  }
-
-  private static CompositeAggregationBuilder copyCompositeAggregationBuilder(
-      CompositeAggregationBuilder source) {
-    return new CompositeAggregationBuilderCopy(source);
-  }
-
-  private static TermsAggregationBuilder copyTermsAggregationBuilder(
-      TermsAggregationBuilder source) {
-    return new TermsAggregationBuilderCopy(source);
-  }
-
-  private static MultiTermsAggregationBuilder copyMultiTermsAggregationBuilder(
-      MultiTermsAggregationBuilder source) {
-    return new MultiTermsAggregationBuilderCopy(source);
-  }
-
-  private static DateHistogramAggregationBuilder copyDateHistogramAggregationBuilder(
-      DateHistogramAggregationBuilder source) {
-    return new DateHistogramAggregationBuilderCopy(source);
-  }
-
-  private static HistogramAggregationBuilder copyHistogramAggregationBuilder(
-      HistogramAggregationBuilder source) {
-    return new HistogramAggregationBuilderCopy(source);
-  }
-
-  private static TopHitsAggregationBuilder copyTopHitsAggregationBuilder(
-      TopHitsAggregationBuilder source) {
-    return new TopHitsAggregationBuilderCopy(source);
-  }
-
-  private static NestedAggregationBuilder copyNestedAggregationBuilder(
-      NestedAggregationBuilder source) {
-    return new NestedAggregationBuilderCopy(source);
-  }
-
-  private static AggregationBuilder copyAggregationBuilder(AggregationBuilder builder) {
-    if (builder instanceof CompositeAggregationBuilder composite) {
-      return copyCompositeAggregationBuilder(composite);
-    }
-    if (builder instanceof TermsAggregationBuilder terms) {
-      return copyTermsAggregationBuilder(terms);
-    }
-    if (builder instanceof MultiTermsAggregationBuilder multiTerms) {
-      return copyMultiTermsAggregationBuilder(multiTerms);
-    }
-    if (builder instanceof DateHistogramAggregationBuilder dateHistogram) {
-      return copyDateHistogramAggregationBuilder(dateHistogram);
-    }
-    if (builder instanceof HistogramAggregationBuilder histogram) {
-      return copyHistogramAggregationBuilder(histogram);
-    }
-    if (builder instanceof TopHitsAggregationBuilder topHits) {
-      return copyTopHitsAggregationBuilder(topHits);
-    }
-    if (builder instanceof NestedAggregationBuilder nested) {
-      return copyNestedAggregationBuilder(nested);
-    }
-    return builder;
-  }
-
   private static AggregationBuilder unwrapNestedBuilder(AggregationBuilder rootBuilder) {
     if (rootBuilder instanceof NestedAggregationBuilder nested
         && !nested.getSubAggregations().isEmpty()) {
@@ -199,21 +89,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     }
     builderAndParser =
         Pair.of(Collections.singletonList(finalBuilder), builderAndParser.getRight());
-  }
-
-  /**
-   * Create a deep copy of this action. New lists are created for builders and bucketNames so that
-   * mutations (sort/limit pushdown) on the copy do not affect the original.
-   */
-  public AggPushDownAction copy() {
-    List<AggregationBuilder> copiedBuilders =
-        builderAndParser.getLeft().stream()
-            .map(AggPushDownAction::copyAggregationBuilder)
-            .collect(Collectors.toCollection(ArrayList::new));
-    return new AggPushDownAction(
-        Pair.of(copiedBuilders, builderAndParser.getRight()),
-        extendedTypeMapping,
-        new ArrayList<>(bucketNames));
   }
 
   private static int getScriptCount(AggregationBuilder aggBuilder) {
@@ -260,7 +135,8 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     return composite.sources().stream()
         .map(TermsValuesSourceBuilder.class::cast)
         .map(TermsValuesSourceBuilder::name)
-        .collect(Collectors.joining("|")); // PIPE cannot be used in identifier
+        .reduce((left, right) -> left + "|" + right)
+        .orElse(""); // PIPE cannot be used in identifier
   }
 
   /** Re-pushdown a sort aggregation measure to replace the pushed composite aggregation */
@@ -408,17 +284,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     return termsBuilder;
   }
 
-  /**
-   * Build a new {@link TermsAggregationBuilder} by copying from an existing one with a new size.
-   * This keeps all existing terms options (e.g. include/exclude, collect mode, shard sizing).
-   */
-  private static TermsAggregationBuilder buildTermsAggregationBuilder(
-      TermsAggregationBuilder source, int newSize) {
-    TermsAggregationBuilder termsBuilder = copyTermsAggregationBuilder(source);
-    termsBuilder.size(newSize);
-    return termsBuilder;
-  }
-
   private static void copyDateHistogramInterval(
       DateHistogramValuesSourceBuilder source,
       Consumer<DateHistogramInterval> fixedIntervalSetter,
@@ -556,51 +421,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     return aggregationBuilder;
   }
 
-  /**
-   * Create a copy of a {@link CompositeValuesSourceBuilder} to avoid in-place mutation of shared
-   * bucket objects across different PushDownContext instances.
-   */
-  @SuppressWarnings("unchecked")
-  private static CompositeValuesSourceBuilder<?> copyCompositeBucket(
-      CompositeValuesSourceBuilder<?> bucket) {
-    CompositeValuesSourceBuilder<?> copy;
-    if (bucket instanceof TermsValuesSourceBuilder terms) {
-      TermsValuesSourceBuilder termsCopy = new TermsValuesSourceBuilder(terms.name());
-      if (terms.field() != null) termsCopy.field(terms.field());
-      if (terms.script() != null) termsCopy.script(terms.script());
-      if (terms.userValuetypeHint() != null) termsCopy.userValuetypeHint(terms.userValuetypeHint());
-      if (terms.format() != null) termsCopy.format(terms.format());
-      copy = termsCopy;
-    } else if (bucket instanceof DateHistogramValuesSourceBuilder dateHisto) {
-      DateHistogramValuesSourceBuilder dhCopy =
-          new DateHistogramValuesSourceBuilder(dateHisto.name());
-      if (dateHisto.field() != null) dhCopy.field(dateHisto.field());
-      if (dateHisto.script() != null) dhCopy.script(dateHisto.script());
-      if (dateHisto.userValuetypeHint() != null)
-        dhCopy.userValuetypeHint(dateHisto.userValuetypeHint());
-      copyDateHistogramInterval(dateHisto, dhCopy::fixedInterval, dhCopy::calendarInterval);
-      if (dateHisto.timeZone() != null) dhCopy.timeZone(dateHisto.timeZone());
-      if (dateHisto.offset() != 0) dhCopy.offset(dateHisto.offset());
-      if (dateHisto.format() != null) dhCopy.format(dateHisto.format());
-      copy = dhCopy;
-    } else if (bucket instanceof HistogramValuesSourceBuilder histo) {
-      HistogramValuesSourceBuilder hCopy = new HistogramValuesSourceBuilder(histo.name());
-      if (histo.field() != null) hCopy.field(histo.field());
-      if (histo.script() != null) hCopy.script(histo.script());
-      if (histo.userValuetypeHint() != null) hCopy.userValuetypeHint(histo.userValuetypeHint());
-      hCopy.interval(histo.interval());
-      if (histo.format() != null) hCopy.format(histo.format());
-      copy = hCopy;
-    } else {
-      throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
-          "Unsupported CompositeValuesSourceBuilder: " + bucket.getClass());
-    }
-    copy.missingBucket(bucket.missingBucket());
-    copy.missingOrder(bucket.missingOrder());
-    copy.order(bucket.order());
-    return copy;
-  }
-
   public void pushDownSortIntoAggBucket(
       List<RelFieldCollation> collations, List<String> fieldNames) {
     // aggregationBuilder.getLeft() could be empty when count agg optimization works
@@ -646,17 +466,16 @@ public class AggPushDownAction implements OSRequestBuilderAction {
               RelFieldCollation.Direction.DESCENDING.equals(direction)
                   ? SortOrder.DESC
                   : SortOrder.ASC;
-          CompositeValuesSourceBuilder<?> newBucket = copyCompositeBucket(bucket);
-          if (newBucket.missingBucket()) {
+          if (bucket.missingBucket()) {
             MissingOrder missingOrder =
                 switch (nullDirection) {
                   case FIRST -> MissingOrder.FIRST;
                   case LAST -> MissingOrder.LAST;
                   default -> MissingOrder.DEFAULT;
                 };
-            newBucket.missingOrder(missingOrder);
+            bucket.missingOrder(missingOrder);
           }
-          newBuckets.add(newBucket.order(order));
+          newBuckets.add(bucket.order(order));
           newBucketNames.add(bucketName);
           selected.add(bucketName);
         });
@@ -682,41 +501,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       AggregationBuilder original,
       TermsAggregationBuilder termsAggBuilder,
       List<RelFieldCollation> collations) {
-    TermsAggregationBuilder newTermsBuilder =
-        buildTermsAggregationBuilder(termsAggBuilder, termsAggBuilder.size());
-    newTermsBuilder.order(BucketOrder.key(!collations.getFirst().getDirection().isDescending()));
-    replaceRootBuilder(original, newTermsBuilder);
-  }
-
-  public boolean isCompositeAggregation() {
-    return builderAndParser.getLeft().stream()
-        .anyMatch(
-            builder ->
-                builder instanceof CompositeAggregationBuilder
-                    || (builder instanceof NestedAggregationBuilder
-                        && builder.getSubAggregations().iterator().next()
-                            instanceof CompositeAggregationBuilder));
-  }
-
-  private static CompositeAggregationBuilder copyAndResizeCompositeAggregationBuilder(
-      CompositeAggregationBuilder source, int size) {
-    CompositeAggregationBuilder copy = copyCompositeAggregationBuilder(source);
-    copy.size(size);
-    return copy;
-  }
-
-  private static MultiTermsAggregationBuilder copyAndResizeMultiTermsAggregationBuilder(
-      MultiTermsAggregationBuilder source, int size) {
-    MultiTermsAggregationBuilder copy = copyMultiTermsAggregationBuilder(source);
-    copy.size(size);
-    return copy;
-  }
-
-  private static TopHitsAggregationBuilder copyAndResizeTopHitsAggregationBuilder(
-      TopHitsAggregationBuilder source, int size) {
-    TopHitsAggregationBuilder copy = copyTopHitsAggregationBuilder(source);
-    copy.size(size);
-    return copy;
+    termsAggBuilder.order(BucketOrder.key(!collations.getFirst().getDirection().isDescending()));
   }
 
   private static Integer getBucketSize(AggregationBuilder builder) {
@@ -729,25 +514,32 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     if (builder instanceof MultiTermsAggregationBuilder multiTermsAggBuilder) {
       return multiTermsAggBuilder.size();
     }
-    if (builder instanceof TopHitsAggregationBuilder topHitsAggBuilder) {
+    if (builder
+        instanceof
+        org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder topHitsAggBuilder) {
       return topHitsAggBuilder.size();
     }
     return null;
   }
 
-  private static AggregationBuilder copyAndResizeBucketBuilder(
-      AggregationBuilder builder, int size) {
+  private static void resizeBucketBuilder(AggregationBuilder builder, int size) {
     if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
-      return copyAndResizeCompositeAggregationBuilder(compositeAggBuilder, size);
+      compositeAggBuilder.size(size);
+      return;
     }
     if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
-      return buildTermsAggregationBuilder(termsAggBuilder, size);
+      termsAggBuilder.size(size);
+      return;
     }
     if (builder instanceof MultiTermsAggregationBuilder multiTermsAggBuilder) {
-      return copyAndResizeMultiTermsAggregationBuilder(multiTermsAggBuilder, size);
+      multiTermsAggBuilder.size(size);
+      return;
     }
-    if (builder instanceof TopHitsAggregationBuilder topHitsAggBuilder) {
-      return copyAndResizeTopHitsAggregationBuilder(topHitsAggBuilder, size);
+    if (builder
+        instanceof
+        org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder topHitsAggBuilder) {
+      topHitsAggBuilder.size(size);
+      return;
     }
     throw new IllegalStateException(
         "Not a resizable bucket aggregation builder: " + builder.getClass().getSimpleName());
@@ -756,29 +548,15 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   private AggregationBuilder resizeAggregationForLimit(AggregationBuilder builder, int size) {
     Integer bucketSize = getBucketSize(builder);
     if (bucketSize != null) {
-      return size < bucketSize ? copyAndResizeBucketBuilder(builder, size) : null;
+      if (size < bucketSize) {
+        resizeBucketBuilder(builder, size);
+        return builder;
+      }
+      return null;
     }
     if (builder instanceof ValuesSourceAggregationBuilder.LeafOnly<?, ?>) {
       // all metric aggregations generate one row and are effectively already limited.
       return builder;
-    }
-    throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
-        "Unknown aggregation builder " + builder.getClass().getSimpleName());
-  }
-
-  /**
-   * Read-only probe: check if the limit can be pushed down into aggregation bucket without
-   * modifying any builder state.
-   */
-  public boolean canPushDownLimitIntoBucketSize(Integer size) {
-    if (builderAndParser.getLeft().isEmpty()) return false;
-    AggregationBuilder builder = unwrapNestedBuilder(builderAndParser.getLeft().getFirst());
-    Integer bucketSize = getBucketSize(builder);
-    if (bucketSize != null) {
-      return size < bucketSize;
-    }
-    if (builder instanceof ValuesSourceAggregationBuilder.LeafOnly<?, ?>) {
-      return true;
     }
     throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
         "Unknown aggregation builder " + builder.getClass().getSimpleName());

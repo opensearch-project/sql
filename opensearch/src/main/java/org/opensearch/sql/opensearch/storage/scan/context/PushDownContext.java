@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import javax.annotation.Nullable;
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Project;
 import org.jetbrains.annotations.NotNull;
@@ -27,7 +28,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   private ArrayDeque<PushDownOperation> operationsForRequestBuilder;
 
   private boolean isAggregatePushed = false;
-  private AggPushDownAction aggPushDownAction;
+  @Setter private AggSpec aggSpec;
   private ArrayDeque<PushDownOperation> operationsForAgg;
 
   // Records the start pos of the query, which is updated by new added limit operations.
@@ -50,8 +51,9 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   public PushDownContext clone() {
     PushDownContext newContext = new PushDownContext(osIndex);
     for (PushDownOperation operation : this) {
-      newContext.add(maybeCopyAggOperation(operation));
+      newContext.add(operation);
     }
+    newContext.aggSpec = aggSpec;
     return newContext;
   }
 
@@ -64,9 +66,10 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     PushDownContext newContext = new PushDownContext(osIndex);
     for (PushDownOperation action : this) {
       if (action.type() != PushDownType.SORT && action.type() != PushDownType.SORT_EXPR) {
-        newContext.add(maybeCopyAggOperation(action));
+        newContext.add(action);
       }
     }
+    newContext.aggSpec = aggSpec == null ? null : aggSpec.withoutBucketSort();
     return newContext;
   }
 
@@ -110,21 +113,9 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
           continue;
         }
       }
-      newContext.add(maybeCopyAggOperation(operation));
+      newContext.add(operation);
     }
     return newContext;
-  }
-
-  /**
-   * Deep-copy AGGREGATION operations so that the cloned context gets its own AggPushDownAction
-   * instance. Other operation types are immutable lambdas and can be shared safely.
-   */
-  private PushDownOperation maybeCopyAggOperation(PushDownOperation operation) {
-    if (operation.type() == PushDownType.AGGREGATION
-        && operation.action() instanceof AggPushDownAction aggAction) {
-      return new PushDownOperation(operation.type(), operation.digest(), aggAction.copy());
-    }
-    return operation;
   }
 
   @NotNull
@@ -146,20 +137,11 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     queue.add(operation);
   }
 
-  void addOperationForAgg(PushDownOperation operation) {
-    if (operationsForAgg == null) {
-      this.operationsForAgg = new ArrayDeque<>();
-    }
-    operationsForAgg.add(operation);
-    queue.add(operation);
-  }
-
   @Override
   public boolean add(PushDownOperation operation) {
     operation.action().pushOperation(this, operation);
     if (operation.type() == PushDownType.AGGREGATION) {
       isAggregatePushed = true;
-      this.aggPushDownAction = (AggPushDownAction) operation.action();
     }
     if (operation.type() == PushDownType.LIMIT) {
       startFrom += ((LimitDigest) operation.digest()).offset();
@@ -227,6 +209,10 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     if (operationsForRequestBuilder != null) {
       operationsForRequestBuilder.forEach(
           operation -> ((OSRequestBuilderAction) operation.action()).apply(newRequestBuilder));
+    }
+    if (aggSpec != null) {
+      newRequestBuilder.pushDownAggregation(aggSpec.build());
+      newRequestBuilder.pushTypeMapping(aggSpec.getExtendedTypeMapping());
     }
     return newRequestBuilder;
   }
