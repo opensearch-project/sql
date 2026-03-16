@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.ppl;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
@@ -19,13 +19,15 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /** Integration tests for PPL highlight parameter. */
-public class HighlightIT extends PPLIntegTestCase {
+public class CalciteHighlightIT extends PPLIntegTestCase {
 
   @Override
   public void init() throws Exception {
     super.init();
+    enableCalcite();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
   }
