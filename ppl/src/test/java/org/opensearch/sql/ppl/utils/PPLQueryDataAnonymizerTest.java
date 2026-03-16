@@ -1160,4 +1160,28 @@ public class PPLQueryDataAnonymizerTest {
         "source=table | mvexpand identifier limit=***",
         anonymize("source=t | mvexpand skills limit=5"));
   }
+
+  @Test
+  public void testUnion() {
+    assertEquals(
+        "| union [search source=table | where identifier < ***] [search source=table |"
+            + " where identifier >= ***]",
+        anonymize(
+            "| union [search source=accounts | where age < 30] [search source=accounts"
+                + " | where age >= 30]"));
+
+    assertEquals(
+        "| union [search source=table | where identifier > ***] [search source=table |"
+            + " where identifier = ***]",
+        anonymize(
+            "| union [search source=accounts | where balance > 20000] [search"
+                + " source=accounts | where state = 'CA']"));
+
+    assertEquals(
+        "| union [search source=table | fields + identifier,identifier] [search"
+            + " source=table | where identifier = ***]",
+        anonymize(
+            "| union [search source=accounts | fields firstname, lastname] [search"
+                + " source=accounts | where age = 25]"));
+  }
 }

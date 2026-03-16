@@ -530,4 +530,20 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       assertThat(error.getString("type"), equalTo("SyntaxCheckException"));
     }
   }
+
+  @Test
+  public void testUnionUnsupportedInV2() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "| union [search source=%s | where age < 30] [search source=%s | where age >="
+                      + " 30]",
+                  TEST_INDEX_BANK, TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
 }
