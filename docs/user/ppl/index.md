@@ -73,6 +73,7 @@ source=accounts
 | [appendcol command](cmd/appendcol.md) | 3.1 | experimental (since 3.1) | Append the result of a sub-search and attach it alongside the input search results. |
 | [lookup command](cmd/lookup.md) | 3.0 | experimental (since 3.0) | Add or replace data from a lookup index. |
 | [multisearch command](cmd/multisearch.md) | 3.4 | experimental (since 3.4) | Execute multiple search queries and combine their results. |
+| [union command](cmd/union.md) | 3.5 | experimental (since 3.5) | Combine results from multiple datasets using UNION ALL semantics. |
 | [ml command](cmd/ml.md) | 2.5 | stable (since 2.5) | Apply machine learning algorithms to analyze data. |
 | [kmeans command](cmd/kmeans.md) | 1.3 | stable (since 1.3) | Apply the kmeans algorithm on the search result returned by a PPL command. |
 | [ad command](cmd/ad.md) | 1.3 | deprecated (since 2.5) | Apply Random Cut Forest algorithm on the search result returned by a PPL command. |
