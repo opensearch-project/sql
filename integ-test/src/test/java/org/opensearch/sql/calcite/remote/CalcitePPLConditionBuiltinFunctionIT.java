@@ -93,6 +93,39 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testIsNotNullWithMultipleNotEquals() throws IOException {
+    // Reproduces the bug where isnotnull() combined with multiple != conditions
+    // gets merged by Calcite into a Sarg with NULL AS FALSE, and the null filtering
+    // was lost during pushdown to OpenSearch DSL.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where name != 'Jake' and name != 'Hello' and isnotnull(name)"
+                    + " | fields name",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"));
+
+    verifyDataRows(actual, rows("John"), rows("Jane"), rows("Kevin"), rows("    "), rows(""));
+  }
+
+  @Test
+  public void testIsNotNullWithSingleNotEquals() throws IOException {
+    // Verifies isnotnull() with a single != still works (this was not affected by the bug,
+    // since Calcite does not merge into a complemented Sarg with only one != condition).
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where name != 'Jake' and isnotnull(name) | fields name",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"));
+
+    verifyDataRows(
+        actual, rows("John"), rows("Jane"), rows("Hello"), rows("Kevin"), rows("    "), rows(""));
+  }
+
+  @Test
   public void testIsNotNullWithStruct() throws IOException {
     JSONObject actual = executeQuery("source=big5 | where isnotnull(aws) | fields aws");
     verifySchema(actual, schema("aws", "struct"));
