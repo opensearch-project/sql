@@ -21,7 +21,7 @@ import org.opensearch.sql.ast.Node;
 public class Highlight extends UnresolvedPlan {
 
   private UnresolvedPlan child;
-  private final List<String> highlightArgs;
+  private final HighlightConfig highlightConfig;
 
   @Override
   public Highlight attach(UnresolvedPlan child) {

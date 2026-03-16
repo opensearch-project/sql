@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.opensearch.sql.ast.dsl.AstDSL.*;
 import static org.opensearch.sql.executor.QueryType.PPL;
 
+import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -18,6 +19,7 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
@@ -116,8 +118,72 @@ public class AstStatementBuilderTest {
         new Query(project(head(head(relation("t"), 3, 1), 10, 0), AllFields.of()), 0, PPL));
   }
 
+  @Test
+  public void buildQueryStatementWithHighlight() {
+    // Highlight wraps the raw plan, then Project(*) wraps on top
+    HighlightConfig config = new HighlightConfig(List.of("*"));
+    assertEqualWithHighlight(
+        "search source=t a=1",
+        config,
+        new Query(
+            project(highlight(search(relation("t"), "a:1"), config), AllFields.of()), 0, PPL));
+  }
+
+  @Test
+  public void buildQueryStatementWithHighlightMultipleTerms() {
+    HighlightConfig config = new HighlightConfig(List.of("error", "login"));
+    assertEqualWithHighlight(
+        "search source=t a=1",
+        config,
+        new Query(
+            project(highlight(search(relation("t"), "a:1"), config), AllFields.of()), 0, PPL));
+  }
+
+  @Test
+  public void buildQueryStatementWithHighlightNull() {
+    // null highlight means no Highlight node injected
+    assertEqualWithHighlight(
+        "search source=t a=1",
+        null,
+        new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL));
+  }
+
+  @Test
+  public void buildQueryStatementWithHighlightAndFetchSize() {
+    // Both fetch_size and highlight: Head wraps first, then Highlight wraps Head
+    HighlightConfig config = new HighlightConfig(List.of("*"));
+    assertEqualWithHighlightAndFetchSize(
+        "search source=t a=1",
+        config,
+        100,
+        new Query(
+            project(highlight(head(search(relation("t"), "a:1"), 100, 0), config), AllFields.of()),
+            0,
+            PPL));
+  }
+
   private void assertEqualWithFetchSize(String query, int fetchSize, Statement expectedStatement) {
     Node actualPlan = planWithFetchSize(query, fetchSize);
+    assertEquals(expectedStatement, actualPlan);
+  }
+
+  private void assertEqualWithHighlight(
+      String query, HighlightConfig highlightConfig, Statement expectedStatement) {
+    Node actualPlan = planWithHighlight(query, highlightConfig);
+    assertEquals(expectedStatement, actualPlan);
+  }
+
+  private void assertEqualWithHighlightAndFetchSize(
+      String query, HighlightConfig highlightConfig, int fetchSize, Statement expectedStatement) {
+    final AstStatementBuilder builder =
+        new AstStatementBuilder(
+            new AstBuilder(query, settings),
+            AstStatementBuilder.StatementBuilderContext.builder()
+                .isExplain(false)
+                .fetchSize(fetchSize)
+                .highlightConfig(highlightConfig)
+                .build());
+    Node actualPlan = builder.visit(parser.parse(query));
     assertEquals(expectedStatement, actualPlan);
   }
 
@@ -128,6 +194,17 @@ public class AstStatementBuilderTest {
             AstStatementBuilder.StatementBuilderContext.builder()
                 .isExplain(false)
                 .fetchSize(fetchSize)
+                .build());
+    return builder.visit(parser.parse(query));
+  }
+
+  private Node planWithHighlight(String query, HighlightConfig highlightConfig) {
+    final AstStatementBuilder builder =
+        new AstStatementBuilder(
+            new AstBuilder(query, settings),
+            AstStatementBuilder.StatementBuilderContext.builder()
+                .isExplain(false)
+                .highlightConfig(highlightConfig)
                 .build());
     return builder.visit(parser.parse(query));
   }

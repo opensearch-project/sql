@@ -734,7 +734,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitHighlight(Highlight node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    String fields = String.join(", ", node.getHighlightArgs());
+    String fields = String.join(", ", node.getHighlightConfig().fields());
     return StringUtils.format("%s | highlight %s", child, fields);
   }
 

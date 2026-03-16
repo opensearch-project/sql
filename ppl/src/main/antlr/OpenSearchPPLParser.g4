@@ -95,7 +95,6 @@ commands
    | fieldformatCommand
    | nomvCommand
    | graphLookupCommand
-   | highlightCommand
    ;
 
 commandName
@@ -146,7 +145,6 @@ commandName
    | NOMV
    | TRANSPOSE
    | GRAPHLOOKUP
-   | HIGHLIGHT
    ;
 
 searchCommand
@@ -563,15 +561,6 @@ trendlineClause
 trendlineType
    : SMA
    | WMA
-   ;
-
-highlightCommand
-   : HIGHLIGHT highlightArg (COMMA highlightArg)*
-   ;
-
-highlightArg
-   : STAR
-   | stringLiteral
    ;
 
 expandCommand

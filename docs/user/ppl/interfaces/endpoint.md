@@ -201,3 +201,55 @@ Expected output (trimmed):
 - Plan node names use Calcite physical operator names (for example, `EnumerableCalc` or `CalciteEnumerableIndexScan`).
 - Plan `time_ms` is inclusive of child operators and represents wall-clock time; overlapping work can make summed plan times exceed `summary.total_time_ms`.
 - Scan nodes reflect operator wall-clock time; background prefetch can make scan time smaller than total request latency.
+
+## Highlight
+
+You can add a `highlight` parameter to the PPL request body to enable search-result highlighting. When enabled, the response includes a `_highlight` field containing matching fragments with the specified tags.
+
+Two formats are supported:
+
+### Simple array format
+
+Pass a JSON array of field names or wildcards. Use `["*"]` to highlight all fields that match the search query.
+
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+  -X POST localhost:9200/_plugins/_ppl \
+  -d '{
+        "query": "source=accounts \"Holmes\"",
+        "highlight": ["*"]
+      }'
+```
+
+### Object format (OpenSearch Dashboards)
+
+Pass a JSON object with `fields`, `pre_tags`, `post_tags`, and `fragment_size`. This is the format used by OpenSearch Dashboards.
+
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+  -X POST localhost:9200/_plugins/_ppl \
+  -d '{
+        "query": "source=accounts \"Holmes\"",
+        "highlight": {
+          "pre_tags": ["@opensearch-dashboards-highlighted-field@"],
+          "post_tags": ["@/opensearch-dashboards-highlighted-field@"],
+          "fields": {"*": {}},
+          "fragment_size": 2147483647
+        }
+      }'
+```
+
+### Parameters
+
+| Parameter       | Type            | Required | Description                                                                                                  |
+|-----------------|-----------------|----------|--------------------------------------------------------------------------------------------------------------|
+| `fields`        | Object          | Yes      | An object whose keys are field names or wildcards (e.g. `{"*": {}}`) to highlight.                           |
+| `pre_tags`      | Array of string | No       | Tags inserted before highlighted tokens. Defaults to `<em>`.                                                 |
+| `post_tags`     | Array of string | No       | Tags inserted after highlighted tokens. Defaults to `</em>`.                                                 |
+| `fragment_size` | Integer         | No       | Maximum character size of a highlight fragment. Defaults to `2147483647` (returns the full field value).      |
+
+### Notes
+
+- Highlighting requires a search query in the PPL statement (e.g. `source=accounts "Holmes"`). Without a query, the `_highlight` field will be empty.
+- In the simple array format, `["*"]` highlights all fields. Specific terms like `["error", "login"]` highlight those terms across all fields.
+- In the object format, only the keys of the `fields` object are used; per-field options inside the value objects are currently ignored.

@@ -48,7 +48,6 @@ FILLNULL:                           'FILLNULL';
 FLATTEN:                            'FLATTEN';
 CONVERT:                            'CONVERT';
 TRENDLINE:                          'TRENDLINE';
-HIGHLIGHT:                          'HIGHLIGHT';
 TRANSPOSE:                          'TRANSPOSE';
 CHART:                              'CHART';
 TIMECHART:                          'TIMECHART';

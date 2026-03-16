@@ -230,9 +230,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelNode scan = context.relBuilder.peek();
 
     if (scan instanceof AliasFieldsWrappable) {
-      return ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
+      ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
     }
-    return scan;
+
+    // Wrap with LogicalHighlight if highlight config is set on context (from API request)
+    if (context.getHighlightConfig() != null) {
+      RelNode input = context.relBuilder.build();
+      LogicalHighlight highlight = LogicalHighlight.create(input, context.getHighlightConfig());
+      context.relBuilder.push(highlight);
+      context.setHighlightConfig(null); // Clear for join safety
+    }
+
+    return context.relBuilder.peek();
   }
 
   // This is a tool method to add an existed RelOptTable to builder stack, not used for now
@@ -3192,11 +3201,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitHighlight(Highlight node, CalcitePlanContext context) {
+    context.setHighlightConfig(node.getHighlightConfig());
     visitChildren(node, context);
-    RelNode input = context.relBuilder.build();
-    LogicalHighlight highlight = LogicalHighlight.create(input, node.getHighlightArgs());
-    context.relBuilder.push(highlight);
-    return highlight;
+    return context.relBuilder.peek();
   }
 
   @Override

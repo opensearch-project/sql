@@ -61,6 +61,7 @@ import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Highlight;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.MvCombine;
@@ -585,8 +586,12 @@ public class AstDSL {
     return new Trendline(sortField, Arrays.asList(computations)).attach(input);
   }
 
-  public static Highlight highlight(UnresolvedPlan input, List<String> highlightArgs) {
-    return new Highlight(highlightArgs).attach(input);
+  public static Highlight highlight(UnresolvedPlan input, HighlightConfig highlightConfig) {
+    return new Highlight(highlightConfig).attach(input);
+  }
+
+  public static Highlight highlight(UnresolvedPlan input, List<String> highlightFields) {
+    return new Highlight(new HighlightConfig(highlightFields)).attach(input);
   }
 
   public static AppendPipe appendPipe(UnresolvedPlan input, UnresolvedPlan subquery) {

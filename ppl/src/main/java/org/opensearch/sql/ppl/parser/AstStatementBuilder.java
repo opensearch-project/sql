@@ -16,6 +16,8 @@ import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Highlight;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -34,6 +36,11 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
     UnresolvedPlan rawPlan = astBuilder.visit(ctx);
     if (context.getFetchSize() > 0) {
       rawPlan = new Head(context.getFetchSize(), 0).attach(rawPlan);
+    }
+    if (context.getHighlightConfig() != null
+        && context.getHighlightConfig().fields() != null
+        && !context.getHighlightConfig().fields().isEmpty()) {
+      rawPlan = new Highlight(context.getHighlightConfig()).attach(rawPlan);
     }
     UnresolvedPlan plan = addSelectAll(rawPlan);
     Query query = new Query(plan, 0, PPL);
@@ -64,6 +71,9 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
      * cursor support.
      */
     private final int fetchSize;
+
+    /** Highlight config from the API request. */
+    private final HighlightConfig highlightConfig;
 
     private final String format;
     private final String explainMode;

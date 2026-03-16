@@ -29,7 +29,7 @@ public class HighlightIndexScanRule extends InterruptibleRelRule<HighlightIndexS
   protected void onMatchImpl(RelOptRuleCall call) {
     final LogicalHighlight highlight = call.rel(0);
     final CalciteLogicalIndexScan scan = call.rel(1);
-    RelNode newScan = scan.pushDownHighlight(highlight.getHighlightArgs());
+    RelNode newScan = scan.pushDownHighlight(highlight.getHighlightConfig());
     if (newScan != null) {
       call.transformTo(newScan);
       PlanUtils.tryPruneRelNodes(call);

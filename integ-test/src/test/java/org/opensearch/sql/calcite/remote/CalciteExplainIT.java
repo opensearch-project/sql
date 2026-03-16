@@ -2798,26 +2798,38 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testHighlightWildcardExplain() throws IOException {
-    String query = "source=" + TEST_INDEX_ACCOUNT + " | highlight *";
-    var result = explainQueryYaml(query);
+    String query = "source=" + TEST_INDEX_ACCOUNT;
+    var result = explainQueryYaml(query, "[\"*\"]");
     String expected = loadExpectedPlan("explain_highlight_wildcard.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
   public void testHighlightSingleTermExplain() throws IOException {
-    String query = "source=" + TEST_INDEX_ACCOUNT + " | highlight \\\"Holmes\\\"";
-    var result = explainQueryYaml(query);
+    String query = "source=" + TEST_INDEX_ACCOUNT;
+    var result = explainQueryYaml(query, "[\"Holmes\"]");
     String expected = loadExpectedPlan("explain_highlight_single_term.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
   public void testHighlightWithFilterExplain() throws IOException {
-    String query =
-        "source=" + TEST_INDEX_ACCOUNT + " | highlight * | where age > 30 | fields firstname, age";
-    var result = explainQueryYaml(query);
+    String query = "source=" + TEST_INDEX_ACCOUNT + " | where age > 30 | fields firstname, age";
+    var result = explainQueryYaml(query, "[\"*\"]");
     String expected = loadExpectedPlan("explain_highlight_with_filter.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testHighlightOsdObjectFormatExplain() throws IOException {
+    // OSD sends highlight as a rich object with pre_tags, post_tags, fields, fragment_size
+    String query = "source=" + TEST_INDEX_ACCOUNT;
+    String highlightJson =
+        "{\"pre_tags\": [\"<b>\"], \"post_tags\": [\"</b>\"],"
+            + " \"fields\": {\"*\": {}}, \"fragment_size\": 2147483647}";
+    var result = explainQueryYaml(query, highlightJson);
+    // Same explain plan as wildcard (fields: {"*": {}}) — just verify it doesn't error
+    String expected = loadExpectedPlan("explain_highlight_wildcard.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 }

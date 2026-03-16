@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.security;
 
+import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -13,10 +14,14 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.apache.commons.text.StringEscapeUtils;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
 
 /** Cross Cluster Search tests with Calcite enabled for enhanced fields features. */
 public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
@@ -476,10 +481,10 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
   @Test
   public void testCrossClusterHighlightWildcard() throws IOException {
     JSONObject result =
-        executeQuery(
+        executeQueryWithHighlight(
             String.format(
-                "search source=%s \\\"Hattie\\\" | highlight * | fields firstname",
-                TEST_INDEX_BANK_REMOTE));
+                "search source=%s \\\"Hattie\\\" | fields firstname", TEST_INDEX_BANK_REMOTE),
+            "[\"*\"]");
     verifySchema(result, schema("firstname", "string"));
     verifyDataRows(result, rows("Hattie"));
     var highlights = result.getJSONArray("highlights");
@@ -487,6 +492,20 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
     Assert.assertTrue(
         "Highlight should contain <em>Hattie</em>",
         highlight.getJSONArray("firstname").getString(0).contains("<em>Hattie</em>"));
+  }
+
+  private JSONObject executeQueryWithHighlight(String query, String highlightJson)
+      throws IOException {
+    Request request = new Request("POST", "/_plugins/_ppl");
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT, "{\n  \"query\": \"%s\",\n  \"highlight\": %s\n}", query, highlightJson));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    Response response = client().performRequest(request);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    return new JSONObject(getResponseBody(response, true));
   }
 
   @Test

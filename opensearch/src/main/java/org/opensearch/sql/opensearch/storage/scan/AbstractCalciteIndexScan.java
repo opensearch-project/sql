@@ -498,19 +498,22 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
 
   protected static void applyHighlightPushDown(
       org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder requestBuilder,
-      java.util.List<String> highlightArgs) {
-    if (highlightArgs == null || highlightArgs.isEmpty()) {
+      org.opensearch.sql.ast.tree.HighlightConfig highlightConfig) {
+    if (highlightConfig == null
+        || highlightConfig.fields() == null
+        || highlightConfig.fields().isEmpty()) {
       return;
     }
+    java.util.List<String> fields = highlightConfig.fields();
     org.opensearch.search.fetch.subphase.highlight.HighlightBuilder hb =
         new org.opensearch.search.fetch.subphase.highlight.HighlightBuilder();
-    if (highlightArgs.size() == 1 && "*".equals(highlightArgs.get(0))) {
+    if (fields.size() == 1 && "*".equals(fields.get(0))) {
       // Wildcard: highlight search query matches in all fields
       hb.field("*");
     } else {
       // Highlight specific terms across all fields
       String queryStr =
-          highlightArgs.stream()
+          fields.stream()
               .map(term -> "\"" + term + "\"")
               .collect(java.util.stream.Collectors.joining(" OR "));
       org.opensearch.search.fetch.subphase.highlight.HighlightBuilder.Field field =
@@ -520,7 +523,21 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
                       .defaultField("*"));
       hb.field(field);
     }
-    hb.fragmentSize(Integer.MAX_VALUE);
+
+    // Apply pre_tags / post_tags if provided
+    if (highlightConfig.preTags() != null && !highlightConfig.preTags().isEmpty()) {
+      hb.preTags(highlightConfig.preTags().toArray(new String[0]));
+    }
+    if (highlightConfig.postTags() != null && !highlightConfig.postTags().isEmpty()) {
+      hb.postTags(highlightConfig.postTags().toArray(new String[0]));
+    }
+
+    // Apply fragment_size (default to Integer.MAX_VALUE when not specified)
+    hb.fragmentSize(
+        highlightConfig.fragmentSize() != null
+            ? highlightConfig.fragmentSize()
+            : Integer.MAX_VALUE);
+
     requestBuilder.getSourceBuilder().highlighter(hb);
   }
 }

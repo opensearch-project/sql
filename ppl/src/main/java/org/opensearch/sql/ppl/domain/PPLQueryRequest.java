@@ -5,13 +5,17 @@
 
 package org.opensearch.sql.ppl.domain;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
@@ -19,6 +23,7 @@ public class PPLQueryRequest {
 
   private static final String DEFAULT_PPL_PATH = "/_plugins/_ppl";
   private static final String FETCH_SIZE_FIELD = "fetch_size";
+  private static final String HIGHLIGHT_FIELD = "highlight";
 
   public static final PPLQueryRequest NULL = new PPLQueryRequest("", null, DEFAULT_PPL_PATH, "");
 
@@ -108,5 +113,66 @@ public class PPLQueryRequest {
       return 0;
     }
     return jsonContent.optInt(FETCH_SIZE_FIELD, 0);
+  }
+
+  /**
+   * Get highlight config from the request. Supports both the simple array format ({@code ["*"]})
+   * and the rich OSD object format with {@code pre_tags}, {@code post_tags}, {@code fields}, and
+   * {@code fragment_size}.
+   *
+   * @return highlight configuration, or null if not specified
+   */
+  public HighlightConfig getHighlightConfig() {
+    if (jsonContent == null || !jsonContent.has(HIGHLIGHT_FIELD)) {
+      return null;
+    }
+
+    // Simple array format: ["*"] or ["error", "login"]
+    JSONArray arr = jsonContent.optJSONArray(HIGHLIGHT_FIELD);
+    if (arr != null) {
+      List<String> fields = new ArrayList<>();
+      for (int i = 0; i < arr.length(); i++) {
+        fields.add(arr.getString(i));
+      }
+      return new HighlightConfig(fields);
+    }
+
+    // Rich OSD object format:
+    // { "pre_tags": [...], "post_tags": [...], "fields": {"*": {}}, "fragment_size": N }
+    JSONObject obj = jsonContent.optJSONObject(HIGHLIGHT_FIELD);
+    if (obj == null) {
+      return null;
+    }
+
+    // Parse fields from "fields" object keys
+    List<String> fields = new ArrayList<>();
+    JSONObject fieldsObj = obj.optJSONObject("fields");
+    if (fieldsObj != null) {
+      for (String key : fieldsObj.keySet()) {
+        fields.add(key);
+      }
+    }
+
+    // Parse pre_tags
+    List<String> preTags = jsonArrayToList(obj.optJSONArray("pre_tags"));
+
+    // Parse post_tags
+    List<String> postTags = jsonArrayToList(obj.optJSONArray("post_tags"));
+
+    // Parse fragment_size
+    Integer fragmentSize = obj.has("fragment_size") ? obj.getInt("fragment_size") : null;
+
+    return new HighlightConfig(fields, preTags, postTags, fragmentSize);
+  }
+
+  private static List<String> jsonArrayToList(JSONArray arr) {
+    if (arr == null) {
+      return null;
+    }
+    List<String> list = new ArrayList<>();
+    for (int i = 0; i < arr.length(); i++) {
+      list.add(arr.getString(i));
+    }
+    return list;
   }
 }

@@ -42,6 +42,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.common.setting.Settings;
@@ -85,7 +86,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         new PushDownContext(osIndex));
   }
 
-  public RelNode pushDownHighlight(List<String> highlightArgs) {
+  public RelNode pushDownHighlight(HighlightConfig highlightConfig) {
     RelDataTypeFactory.Builder schemaBuilder = getCluster().getTypeFactory().builder();
     schemaBuilder.addAll(getRowType().getFieldList());
     schemaBuilder.add(
@@ -96,9 +97,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         .getPushDownContext()
         .add(
             PushDownType.HIGHLIGHT,
-            highlightArgs,
+            highlightConfig.fields(),
             (OSRequestBuilderAction)
-                requestBuilder -> applyHighlightPushDown(requestBuilder, highlightArgs));
+                requestBuilder -> applyHighlightPushDown(requestBuilder, highlightConfig));
     return newScan;
   }
 
