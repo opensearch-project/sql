@@ -204,7 +204,7 @@ Expected output (trimmed):
 
 ## Highlight
 
-You can add a `highlight` parameter to the PPL request body to enable search-result highlighting. When enabled, the response includes a `_highlight` field containing matching fragments with the specified tags.
+You can add a `highlight` parameter to the PPL request body to enable search-result highlighting. When enabled, the response includes a top-level `highlights` array containing matching fragments with the specified tags. Each entry in the `highlights` array corresponds to the row at the same index in `datarows`.
 
 Two formats are supported:
 
@@ -239,7 +239,39 @@ curl -sS -H 'Content-Type: application/json' \
       }'
 ```
 
-### Parameters
+Expected output (trimmed):
+
+```json
+{
+  "schema": [
+    { "name": "account_number", "type": "bigint" },
+    { "name": "firstname", "type": "string" },
+    { "name": "lastname", "type": "string" }
+  ],
+  "datarows": [
+    [578, "Holmes", "Mcknight"],
+    [828, "Blanche", "Holmes"],
+    [1, "Amber", "Duke"]
+  ],
+  "highlights": [
+    {
+      "firstname": ["@opensearch-dashboards-highlighted-field@Holmes@/opensearch-dashboards-highlighted-field@"],
+      "firstname.keyword": ["@opensearch-dashboards-highlighted-field@Holmes@/opensearch-dashboards-highlighted-field@"]
+    },
+    {
+      "lastname": ["@opensearch-dashboards-highlighted-field@Holmes@/opensearch-dashboards-highlighted-field@"],
+      "lastname.keyword": ["@opensearch-dashboards-highlighted-field@Holmes@/opensearch-dashboards-highlighted-field@"]
+    },
+    {
+      "address": ["880 @opensearch-dashboards-highlighted-field@Holmes@/opensearch-dashboards-highlighted-field@ Lane"]
+    }
+  ],
+  "total": 3,
+  "size": 3
+}
+```
+
+### Parameters (object format)
 
 | Parameter       | Type            | Required | Description                                                                                                  |
 |-----------------|-----------------|----------|--------------------------------------------------------------------------------------------------------------|
@@ -250,6 +282,7 @@ curl -sS -H 'Content-Type: application/json' \
 
 ### Notes
 
-- Highlighting requires a search query in the PPL statement (e.g. `source=accounts "Holmes"`). Without a query, the `_highlight` field will be empty.
+- Highlighting requires a search query in the PPL statement (e.g. `source=accounts "Holmes"`). Without a query, the `highlights` array entries will be empty.
+- The `highlights` array in the response is parallel to `datarows` — each entry contains the highlighted fragments for the corresponding row.
 - In the simple array format, `["*"]` highlights all fields. Specific terms like `["error", "login"]` highlight those terms across all fields.
 - In the object format, only the keys of the `fields` object are used; per-field options inside the value objects are currently ignored.
