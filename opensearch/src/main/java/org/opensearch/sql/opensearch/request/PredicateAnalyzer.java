@@ -719,9 +719,7 @@ public class PredicateAnalyzer {
                     isSearchWithPoints(call)
                         ? expression
                         : CompoundQueryExpression.and(
-                            false,
-                            expression,
-                            QueryExpression.create(pair.getKey()).exists());
+                            false, expression, QueryExpression.create(pair.getKey()).exists());
                 // e.g. where isNull(a) or a = 1 or a = 2
                 case TRUE ->
                     CompoundQueryExpression.or(
