@@ -212,7 +212,7 @@ Two formats are supported:
 
 Pass a JSON array of field names or wildcards. Use `["*"]` to highlight all fields that match the search query.
 
-```bash ppl
+```bash ppl ignore
 curl -sS -H 'Content-Type: application/json' \
   -X POST localhost:9200/_plugins/_ppl \
   -d '{
@@ -225,7 +225,7 @@ curl -sS -H 'Content-Type: application/json' \
 
 Pass a JSON object with `fields`, `pre_tags`, `post_tags`, and `fragment_size`. This is the format used by OpenSearch Dashboards.
 
-```bash ppl
+```bash ppl ignore
 curl -sS -H 'Content-Type: application/json' \
   -X POST localhost:9200/_plugins/_ppl \
   -d '{
