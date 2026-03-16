@@ -94,9 +94,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testIsNotNullWithMultipleNotEquals() throws IOException {
-    // Reproduces the bug where isnotnull() combined with multiple != conditions
-    // gets merged by Calcite into a Sarg with NULL AS FALSE, and the null filtering
-    // was lost during pushdown to OpenSearch DSL.
+    // Verifies isnotnull() correctly filters null values when combined with multiple != conditions.
     JSONObject actual =
         executeQuery(
             String.format(
@@ -111,8 +109,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testIsNotNullWithSingleNotEquals() throws IOException {
-    // Verifies isnotnull() with a single != still works (this was not affected by the bug,
-    // since Calcite does not merge into a complemented Sarg with only one != condition).
+    // Verifies isnotnull() correctly filters null values when combined with a single != condition.
     JSONObject actual =
         executeQuery(
             String.format(
