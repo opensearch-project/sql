@@ -858,4 +858,71 @@ public class PrometheusQueryHandlerTest {
 
     handler.writeResources(prometheusClient, request);
   }
+
+  @Test
+  public void testGetResourcesAlertmanagerStatus() throws IOException {
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_STATUS);
+
+    JSONObject statusJson =
+        new JSONObject(
+            "{\"cluster\":{\"status\":\"ready\"},\"versionInfo\":{\"version\":\"0.27.0\"}}");
+    when(prometheusClient.getAlertmanagerStatus()).thenReturn(statusJson);
+
+    GetDirectQueryResourcesResponse<?> response =
+        handler.getResources(prometheusClient, request);
+
+    assertNotNull(response);
+    Map<?, ?> data = (Map<?, ?>) response.getData();
+    assertTrue(data.containsKey("cluster"));
+  }
+
+  @Test
+  public void testDeleteAlertmanagerSilence() throws IOException {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_SILENCES);
+    request.setResourceName("silence-12345");
+    request.setDelete(true);
+
+    when(prometheusClient.deleteAlertmanagerSilence(eq("silence-12345")))
+        .thenReturn("{\"status\":\"success\"}");
+
+    WriteDirectQueryResourcesResponse<?> response =
+        handler.writeResources(prometheusClient, request);
+
+    assertNotNull(response);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testDeleteAlertmanagerSilenceNullId() {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_SILENCES);
+    request.setResourceName(null);
+    request.setDelete(true);
+
+    handler.writeResources(prometheusClient, request);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testDeleteAlertmanagerSilenceEmptyId() {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_SILENCES);
+    request.setResourceName("");
+    request.setDelete(true);
+
+    handler.writeResources(prometheusClient, request);
+  }
+
+  @Test(expected = PrometheusClientException.class)
+  public void testDeleteAlertmanagerSilenceWithIOException() throws IOException {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_SILENCES);
+    request.setResourceName("silence-12345");
+    request.setDelete(true);
+
+    when(prometheusClient.deleteAlertmanagerSilence(eq("silence-12345")))
+        .thenThrow(new IOException("Connection failed"));
+
+    handler.writeResources(prometheusClient, request);
+  }
 }

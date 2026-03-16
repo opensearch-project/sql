@@ -35,6 +35,8 @@ public class DirectQueryResourcesRequestConverter {
       // Handle Alertmanager API endpoints
       if (path.contains("/alerts/groups")) {
         directQueryRequest.setResourceType(DirectQueryResourceType.ALERTMANAGER_ALERT_GROUPS);
+      } else if (path.contains("/status")) {
+        directQueryRequest.setResourceType(DirectQueryResourceType.ALERTMANAGER_STATUS);
       } else {
         directQueryRequest.setResourceType(
             DirectQueryResourceType.fromString(
@@ -84,7 +86,11 @@ public class DirectQueryResourcesRequestConverter {
     String path = restRequest.path();
     if (path.contains("/alertmanager/api/v2/")) {
       // Handle Alertmanager API endpoints
-      if (path.contains("/alerts/groups")) {
+      if (path.contains("/silence/")) {
+        // DELETE /alertmanager/api/v2/silence/{silenceID}
+        directQueryRequest.setResourceType(DirectQueryResourceType.ALERTMANAGER_SILENCES);
+        directQueryRequest.setResourceName(restRequest.param("silenceID"));
+      } else if (path.contains("/alerts/groups")) {
         directQueryRequest.setResourceType(DirectQueryResourceType.ALERTMANAGER_ALERT_GROUPS);
       } else {
         directQueryRequest.setResourceType(

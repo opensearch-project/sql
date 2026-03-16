@@ -490,4 +490,41 @@ public class DirectQueryResourcesRequestConverterTest {
         IllegalArgumentException.class,
         () -> DirectQueryResourcesRequestConverter.toWriteDirectRestRequest(request));
   }
+
+  @Test
+  public void testToGetDirectRestRequestForAlertmanagerStatus() {
+    when(request.param("dataSource")).thenReturn("testDataSource");
+    when(request.param("resourceType")).thenReturn("status");
+    when(request.path())
+        .thenReturn(
+            "/_plugins/_directquery/_resources/testDataSource/alertmanager/api/v2/status");
+
+    Map<String, String> params = Map.of("dataSource", "testDataSource", "resourceType", "status");
+    when(request.params()).thenReturn(ImmutableMap.copyOf(params));
+    when(request.consumedParams()).thenReturn(List.of("dataSource", "resourceType"));
+
+    GetDirectQueryResourcesRequest result =
+        DirectQueryResourcesRequestConverter.toGetDirectRestRequest(request);
+
+    assertEquals("testDataSource", result.getDataSource());
+    assertEquals(DirectQueryResourceType.ALERTMANAGER_STATUS, result.getResourceType());
+  }
+
+  @Test
+  public void testToWriteDirectRestRequestForDeleteSilence() {
+    when(request.param("dataSource")).thenReturn("testDataSource");
+    when(request.param("silenceID")).thenReturn("silence-12345");
+    when(request.method()).thenReturn(RestRequest.Method.DELETE);
+    when(request.path())
+        .thenReturn(
+            "/_plugins/_directquery/_resources/testDataSource/alertmanager/api/v2/silence/silence-12345");
+
+    WriteDirectQueryResourcesRequest result =
+        DirectQueryResourcesRequestConverter.toWriteDirectRestRequest(request);
+
+    assertEquals("testDataSource", result.getDataSource());
+    assertEquals(DirectQueryResourceType.ALERTMANAGER_SILENCES, result.getResourceType());
+    assertEquals("silence-12345", result.getResourceName());
+    assertTrue(result.isDelete());
+  }
 }

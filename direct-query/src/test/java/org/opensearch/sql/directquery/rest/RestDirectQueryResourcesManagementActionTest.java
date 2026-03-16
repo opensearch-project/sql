@@ -132,7 +132,7 @@ public class RestDirectQueryResourcesManagementActionTest {
   public void testRoutes() {
     List<RestDirectQueryResourcesManagementAction.Route> routes = unit.routes();
     Assertions.assertNotNull(routes);
-    Assertions.assertEquals(9, routes.size());
+    Assertions.assertEquals(10, routes.size());
 
     boolean foundResourceTypeRoute = false;
     boolean foundResourceValuesRoute = false;

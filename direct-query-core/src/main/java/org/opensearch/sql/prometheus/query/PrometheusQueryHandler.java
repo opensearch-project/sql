@@ -179,6 +179,11 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
             JSONArray silences = client.getAlertmanagerSilences();
             return GetDirectQueryResourcesResponse.withList(silences.toList());
           }
+        case ALERTMANAGER_STATUS:
+          {
+            JSONObject status = client.getAlertmanagerStatus();
+            return GetDirectQueryResourcesResponse.withMap(status.toMap());
+          }
         default:
           throw new IllegalArgumentException(
               "Invalid prometheus resource type: " + request.getResourceType());
@@ -203,6 +208,13 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
       switch (request.getResourceType()) {
         case ALERTMANAGER_SILENCES:
           {
+            if (request.isDelete()) {
+              if (request.getResourceName() == null || request.getResourceName().isEmpty()) {
+                throw new IllegalArgumentException("Silence ID is required for deleting a silence");
+              }
+              String result = client.deleteAlertmanagerSilence(request.getResourceName());
+              return WriteDirectQueryResourcesResponse.withStringList(List.of(result));
+            }
             String createdSilence = client.createAlertmanagerSilences(request.getRequest());
             return WriteDirectQueryResourcesResponse.withList(List.of(createdSilence));
           }

@@ -336,6 +336,63 @@ public class PrometheusClientImpl implements PrometheusClient {
   }
 
   @Override
+  public String deleteAlertmanagerSilence(String silenceId) throws IOException {
+    String baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
+    String queryUrl =
+        String.format(
+            "%s/api/v2/silence/%s",
+            baseUrl, URLEncoder.encode(silenceId, StandardCharsets.UTF_8));
+
+    logger.debug("Making Delete Alertmanager silence request: {}", queryUrl);
+    Request request = new Request.Builder().url(queryUrl).delete().build();
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.alertmanagerHttpClient.newCall(request).execute());
+
+    if (response.isSuccessful()) {
+      return "{\"status\":\"success\"}";
+    } else {
+      String errorBody = response.body() != null ? response.body().string() : "No response body";
+      logger.error(
+          "Delete Alertmanager Silence request failed with code: {}, error body: {}",
+          response.code(),
+          errorBody);
+      throw new PrometheusClientException(
+          String.format(
+              "Alertmanager request failed with code: %s. Error details: %s",
+              response.code(), errorBody));
+    }
+  }
+
+  @Override
+  public JSONObject getAlertmanagerStatus() throws IOException {
+    String baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
+    String queryUrl = String.format("%s/api/v2/status", baseUrl);
+
+    logger.debug("Making Alertmanager status request: {}", queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.alertmanagerHttpClient.newCall(request).execute());
+
+    if (response.isSuccessful()) {
+      String bodyString = Objects.requireNonNull(response.body()).string();
+      logger.debug("Alertmanager status response body: {}", bodyString);
+      return new JSONObject(bodyString);
+    } else {
+      String errorBody = response.body() != null ? response.body().string() : "No response body";
+      logger.error(
+          "Alertmanager status request failed with code: {}, error body: {}",
+          response.code(),
+          errorBody);
+      throw new PrometheusClientException(
+          String.format(
+              "Alertmanager request failed with code: %s. Error details: %s",
+              response.code(), errorBody));
+    }
+  }
+
+  @Override
   public JSONObject getRulesByNamespace(String namespace, Map<String, String> queryParams)
       throws IOException {
     String queryString = this.paramsToQueryString(queryParams);

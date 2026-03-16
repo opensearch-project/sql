@@ -111,6 +111,23 @@ public interface PrometheusClient extends DataSourceClient {
   String createAlertmanagerSilences(String silenceJson) throws IOException;
 
   /**
+   * Expire (delete) a silence in Alertmanager.
+   *
+   * @param silenceId The ID of the silence to expire
+   * @return String containing the response
+   * @throws IOException If there is an issue with the request
+   */
+  String deleteAlertmanagerSilence(String silenceId) throws IOException;
+
+  /**
+   * Get Alertmanager status including configuration, version, and cluster info.
+   *
+   * @return JSONObject containing the Alertmanager status
+   * @throws IOException If there is an issue with the request
+   */
+  JSONObject getAlertmanagerStatus() throws IOException;
+
+  /**
    * Get rules for a specific namespace, normalized to a consistent JSON format. Handles
    * Cortex/Thanos YAML and AMP JSON responses, returning them all as a {"groups":[...]} structure.
    *

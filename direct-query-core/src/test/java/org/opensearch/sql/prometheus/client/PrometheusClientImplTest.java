@@ -1011,4 +1011,116 @@ public class PrometheusClientImplTest {
     assertTrue(path.contains("ns+with+spaces") || path.contains("ns%20with%20spaces"));
     assertTrue(path.contains("group%2Fname"));
   }
+
+  @Test
+  public void testDeleteAlertmanagerSilenceSuccess() throws IOException {
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200));
+
+    String result = client.deleteAlertmanagerSilence("silence-12345");
+
+    assertNotNull(result);
+    assertTrue(result.contains("success"));
+  }
+
+  @Test
+  public void testDeleteAlertmanagerSilenceHttpError() {
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(404).setBody("silence silence-bad not found"));
+
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> client.deleteAlertmanagerSilence("silence-bad"));
+    assertTrue(exception.getMessage().contains("404"));
+  }
+
+  @Test
+  public void testDeleteAlertmanagerSilenceHttpErrorWithNullBody() throws IOException {
+    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
+    Response nullBodyResponse =
+        new Response.Builder()
+            .request(dummyRequest)
+            .protocol(Protocol.HTTP_1_1)
+            .code(500)
+            .message("Server Error")
+            .body(null)
+            .build();
+
+    OkHttpClient spyClient = spy(new OkHttpClient());
+    Call mockCall = mock(Call.class);
+    when(mockCall.execute()).thenReturn(nullBodyResponse);
+    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
+
+    PrometheusClientImpl nullBodyClient =
+        new PrometheusClientImpl(
+            new OkHttpClient(),
+            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())),
+            spyClient,
+            URI.create(
+                String.format(
+                    "http://%s:%s/alertmanager", "localhost", mockWebServer.getPort())));
+
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> nullBodyClient.deleteAlertmanagerSilence("silence-bad"));
+    assertTrue(exception.getMessage().contains("No response body"));
+  }
+
+  @Test
+  public void testGetAlertmanagerStatusSuccess() throws IOException {
+    String statusResponse =
+        "{\"cluster\":{\"status\":\"ready\"},\"versionInfo\":{\"version\":\"0.27.0\"},\"config\":{\"original\":\"route:\\n  receiver: default\"}}";
+    mockWebServer.enqueue(new MockResponse().setBody(statusResponse));
+
+    JSONObject result = client.getAlertmanagerStatus();
+
+    assertNotNull(result);
+    assertTrue(result.has("cluster"));
+    assertTrue(result.has("versionInfo"));
+    assertTrue(result.has("config"));
+  }
+
+  @Test
+  public void testGetAlertmanagerStatusHttpError() {
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(500).setBody("Internal server error"));
+
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class, () -> client.getAlertmanagerStatus());
+    assertTrue(exception.getMessage().contains("500"));
+  }
+
+  @Test
+  public void testGetAlertmanagerStatusHttpErrorWithNullBody() throws IOException {
+    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
+    Response nullBodyResponse =
+        new Response.Builder()
+            .request(dummyRequest)
+            .protocol(Protocol.HTTP_1_1)
+            .code(500)
+            .message("Server Error")
+            .body(null)
+            .build();
+
+    OkHttpClient spyClient = spy(new OkHttpClient());
+    Call mockCall = mock(Call.class);
+    when(mockCall.execute()).thenReturn(nullBodyResponse);
+    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
+
+    PrometheusClientImpl nullBodyClient =
+        new PrometheusClientImpl(
+            new OkHttpClient(),
+            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())),
+            spyClient,
+            URI.create(
+                String.format(
+                    "http://%s:%s/alertmanager", "localhost", mockWebServer.getPort())));
+
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class, () -> nullBodyClient.getAlertmanagerStatus());
+    assertTrue(exception.getMessage().contains("No response body"));
+  }
 }

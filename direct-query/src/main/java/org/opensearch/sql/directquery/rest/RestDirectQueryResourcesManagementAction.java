@@ -108,12 +108,19 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
                 Locale.ROOT,
                 "%s/alertmanager/api/v2/{resourceType}",
                 BASE_DIRECT_QUERY_RESOURCES_URL)),
-        // Only support creating alert silences for prometheus for now
+        // Create alert silences
         new Route(
             POST,
             String.format(
                 Locale.ROOT,
                 "%s/alertmanager/api/v2/{resourceType}",
+                BASE_DIRECT_QUERY_RESOURCES_URL)),
+        // Expire (delete) a specific silence
+        new Route(
+            DELETE,
+            String.format(
+                Locale.ROOT,
+                "%s/alertmanager/api/v2/silence/{silenceID}",
                 BASE_DIRECT_QUERY_RESOURCES_URL)));
   }
 
