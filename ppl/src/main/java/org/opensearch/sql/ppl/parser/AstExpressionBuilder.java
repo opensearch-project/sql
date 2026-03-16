@@ -223,7 +223,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       String raw = ((Literal) right).getValue().toString();
       String escaped = raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
       String wrapped = "%" + escaped + "%";
-      return new Compare(ILIKE.getName().getFunctionName(), left, new Literal(wrapped, DataType.STRING));
+      return new Compare(
+          ILIKE.getName().getFunctionName(), left, new Literal(wrapped, DataType.STRING));
     } else if (LIKE.getName().getFunctionName().equalsIgnoreCase(operator)
         && UnresolvedPlanHelper.isCalciteEnabled(astBuilder.getSettings())) {
       operator =
