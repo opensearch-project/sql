@@ -15,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.apache.commons.text.StringEscapeUtils;
 import org.json.JSONObject;
+import org.junit.Assert;
 import org.junit.Test;
 
 /** Cross Cluster Search tests with Calcite enabled for enhanced fields features. */
@@ -477,9 +478,15 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | highlight * | fields firstname, _highlight",
+                "search source=%s \\\"Hattie\\\" | highlight * | fields firstname",
                 TEST_INDEX_BANK_REMOTE));
-    verifyColumn(result, columnName("firstname"), columnName("_highlight"));
+    verifySchema(result, schema("firstname", "string"));
+    verifyDataRows(result, rows("Hattie"));
+    var highlights = result.getJSONArray("highlights");
+    var highlight = highlights.getJSONObject(0);
+    Assert.assertTrue(
+        "Highlight should contain <em>Hattie</em>",
+        highlight.getJSONArray("firstname").getString(0).contains("<em>Hattie</em>"));
   }
 
   @Test
