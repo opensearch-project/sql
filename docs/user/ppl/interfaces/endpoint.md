@@ -204,7 +204,7 @@ Expected output (trimmed):
 
 ## Highlight
 
-You can add a `highlight` parameter to the PPL request body to enable search-result highlighting. When enabled, the response includes a top-level `highlights` array containing matching fragments with the specified tags. Each entry in the `highlights` array corresponds to the row at the same index in `datarows`.
+You can add a `highlight` parameter to the PPL request body to enable search-result highlighting. This parameter follows the same semantics as the [OpenSearch highlight API](https://docs.opensearch.org/latest/search-plugins/searching-data/highlight/). When enabled, the response includes a top-level `highlights` array containing matching fragments with the specified tags. Each entry in the `highlights` array corresponds to the row at the same index in `datarows`.
 
 Two formats are supported:
 
@@ -278,11 +278,11 @@ Expected output (trimmed):
 | `fields`        | Object          | Yes      | An object whose keys are field names or wildcards (e.g. `{"*": {}}`) to highlight.                           |
 | `pre_tags`      | Array of string | No       | Tags inserted before highlighted tokens. Defaults to `<em>`.                                                 |
 | `post_tags`     | Array of string | No       | Tags inserted after highlighted tokens. Defaults to `</em>`.                                                 |
-| `fragment_size` | Integer         | No       | Maximum character size of a highlight fragment. Defaults to `2147483647` (returns the full field value).      |
+| `fragment_size` | Integer         | No       | Maximum character size of a highlight fragment. Defaults to `100`.                                            |
 
 ### Notes
 
 - Highlighting requires a search query in the PPL statement (e.g. `source=accounts "Holmes"`). Without a query, the `highlights` array entries will be empty.
 - The `highlights` array in the response is parallel to `datarows` — each entry contains the highlighted fragments for the corresponding row.
-- In the simple array format, `["*"]` highlights all fields. Specific terms like `["error", "login"]` highlight those terms across all fields.
+- In the simple array format, `["*"]` highlights all fields. Specific field names like `["firstname", "lastname"]` scope highlighting to those fields only.
 - In the object format, only the keys of the `fields` object are used; per-field options inside the value objects are currently ignored.
