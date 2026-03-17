@@ -11,7 +11,6 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 
 import java.io.IOException;
-import java.util.Locale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
@@ -34,38 +33,33 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
 
   @Test
   public void testHighlightWildcardWithSearchQuery() throws IOException {
-    // Search for "Holmes" with wildcard highlight — _highlight should appear in results
     JSONObject result =
         executeQueryWithHighlight("source=" + TEST_INDEX_ACCOUNT + " \"Holmes\"", "[\"*\"]");
     JSONArray dataRows = result.getJSONArray("datarows");
     assertTrue(dataRows.length() > 0);
-    assertSchemaContains(result, "_highlight");
+    assertHighlightsExist(result);
   }
 
   @Test
   public void testHighlightContainsMatchingFragments() throws IOException {
     JSONObject result =
         executeQueryWithHighlight("source=" + TEST_INDEX_ACCOUNT + " \"Holmes\"", "[\"*\"]");
-    JSONArray dataRows = result.getJSONArray("datarows");
-    assertTrue(dataRows.length() > 0);
-    // Find the _highlight column index and verify it contains highlighted fragments
-    int highlightIdx = getFieldIndex(result, "_highlight");
-    assertTrue("_highlight column should exist", highlightIdx >= 0);
-    // At least one row should have non-empty highlight data
-    boolean foundHighlight = false;
-    for (int i = 0; i < dataRows.length(); i++) {
-      Object hlValue = dataRows.getJSONArray(i).get(highlightIdx);
-      if (hlValue != null && !hlValue.equals(JSONObject.NULL)) {
-        foundHighlight = true;
+    JSONArray highlights = result.getJSONArray("highlights");
+    assertTrue("highlights array should not be empty", highlights.length() > 0);
+    // At least one highlight entry should have non-empty data
+    boolean foundFragment = false;
+    for (int i = 0; i < highlights.length(); i++) {
+      JSONObject hlEntry = highlights.getJSONObject(i);
+      if (hlEntry.length() > 0) {
+        foundFragment = true;
         break;
       }
     }
-    assertTrue("At least one row should have highlight data", foundHighlight);
+    assertTrue("At least one highlight entry should have fragment data", foundFragment);
   }
 
   @Test
   public void testHighlightOsdObjectFormat() throws IOException {
-    // OSD sends highlight as a rich object with custom tags
     String highlightJson =
         "{\"pre_tags\": [\"<b>\"], \"post_tags\": [\"</b>\"],"
             + " \"fields\": {\"*\": {}}, \"fragment_size\": 2147483647}";
@@ -73,12 +67,22 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
         executeQueryWithHighlight("source=" + TEST_INDEX_ACCOUNT + " \"Holmes\"", highlightJson);
     JSONArray dataRows = result.getJSONArray("datarows");
     assertTrue(dataRows.length() > 0);
-    assertSchemaContains(result, "_highlight");
+    assertHighlightsExist(result);
+    // Verify custom tags are applied
+    JSONArray highlights = result.getJSONArray("highlights");
+    boolean foundCustomTag = false;
+    for (int i = 0; i < highlights.length(); i++) {
+      String hlStr = highlights.getJSONObject(i).toString();
+      if (hlStr.contains("<b>")) {
+        foundCustomTag = true;
+        break;
+      }
+    }
+    assertTrue("Highlights should use custom <b> tags", foundCustomTag);
   }
 
   @Test
   public void testHighlightOsdObjectFormatWithDashboardsTags() throws IOException {
-    // The exact format OSD uses with @opensearch-dashboards-highlighted-field@ tags
     String highlightJson =
         "{\"pre_tags\": [\"@opensearch-dashboards-highlighted-field@\"],"
             + " \"post_tags\": [\"@/opensearch-dashboards-highlighted-field@\"],"
@@ -87,7 +91,18 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
         executeQueryWithHighlight("source=" + TEST_INDEX_ACCOUNT + " \"Holmes\"", highlightJson);
     JSONArray dataRows = result.getJSONArray("datarows");
     assertTrue(dataRows.length() > 0);
-    assertSchemaContains(result, "_highlight");
+    assertHighlightsExist(result);
+    // Verify dashboards tags are applied
+    JSONArray highlights = result.getJSONArray("highlights");
+    boolean foundDashboardsTag = false;
+    for (int i = 0; i < highlights.length(); i++) {
+      String hlStr = highlights.getJSONObject(i).toString();
+      if (hlStr.contains("@opensearch-dashboards-highlighted-field@")) {
+        foundDashboardsTag = true;
+        break;
+      }
+    }
+    assertTrue("Highlights should use OSD dashboards tags", foundDashboardsTag);
   }
 
   @Test
@@ -95,7 +110,7 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
     JSONObject result =
         executeQueryWithHighlight(
             "source=" + TEST_INDEX_ACCOUNT + " \"Holmes\" | where age > 30", "[\"*\"]");
-    assertSchemaContains(result, "_highlight");
+    assertHighlightsExist(result);
   }
 
   @Test
@@ -103,28 +118,24 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
     JSONObject result =
         executeQueryWithHighlight(
             "source=" + TEST_INDEX_ACCOUNT + " \"Holmes\" | fields firstname, lastname", "[\"*\"]");
-    assertSchemaContains(result, "_highlight");
+    assertHighlightsExist(result);
   }
 
   @Test
   public void testHighlightWithFetchSize() throws IOException {
-    // Highlight combined with fetch_size
     Request request = new Request("POST", QUERY_API_ENDPOINT);
-    String jsonBody =
-        String.format(
-            Locale.ROOT,
-            "{\n  \"query\": \"source=%s \\\"Holmes\\\"\",\n"
-                + "  \"fetch_size\": 5,\n"
-                + "  \"highlight\": [\"*\"]\n}",
-            TEST_INDEX_ACCOUNT);
-    request.setJsonEntity(jsonBody);
+    JSONObject body = new JSONObject();
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " \"Holmes\"");
+    body.put("fetch_size", 5);
+    body.put("highlight", new JSONArray("[\"*\"]"));
+    request.setJsonEntity(body.toString());
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
     Response response = client().performRequest(request);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     JSONObject result = jsonify(getResponseBody(response, true));
-    assertSchemaContains(result, "_highlight");
+    assertHighlightsExist(result);
   }
 
   @Test
@@ -132,7 +143,7 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
     JSONObject result =
         executeQueryWithHighlight(
             "source=" + TEST_INDEX_ACCOUNT + " \"Holmes\" | sort age", "[\"*\"]");
-    assertSchemaContains(result, "_highlight");
+    assertHighlightsExist(result);
   }
 
   @Test
@@ -143,21 +154,21 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
                 + TEST_INDEX_ACCOUNT
                 + " \"Holmes\" | eval age_plus_10 = age + 10 | fields firstname, age_plus_10",
             "[\"*\"]");
-    assertSchemaContains(result, "_highlight");
+    assertHighlightsExist(result);
   }
 
   @Test
   public void testHighlightNoSearchQuery() throws IOException {
-    // Without a search query, _highlight column appears but fragments may be empty
+    // Without a search query, request should still succeed (highlights may or may not be present)
     JSONObject result = executeQueryWithHighlight("source=" + TEST_INDEX_BANK, "[\"*\"]");
-    assertSchemaContains(result, "_highlight");
+    assertTrue("Response should contain datarows", result.has("datarows"));
   }
 
   @Test
-  public void testWithoutHighlightNoHighlightColumn() throws IOException {
-    // Without highlight parameter, _highlight should NOT appear in schema
+  public void testWithoutHighlightNoHighlightArray() throws IOException {
+    // Without highlight parameter, highlights array should NOT appear
     JSONObject result = executeQuery("source=" + TEST_INDEX_BANK);
-    assertSchemaDoesNotContain(result, "_highlight");
+    assertFalse("Response should NOT contain highlights array", result.has("highlights"));
   }
 
   /**
@@ -170,9 +181,15 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
   protected JSONObject executeQueryWithHighlight(String query, String highlightJson)
       throws IOException {
     Request request = new Request("POST", QUERY_API_ENDPOINT);
-    request.setJsonEntity(
-        String.format(
-            Locale.ROOT, "{\n  \"query\": \"%s\",\n  \"highlight\": %s\n}", query, highlightJson));
+    JSONObject body = new JSONObject();
+    body.put("query", query);
+    // Parse highlightJson to proper JSON type (array or object) so it serializes correctly
+    Object highlightValue =
+        highlightJson.trim().startsWith("[")
+            ? new JSONArray(highlightJson)
+            : new JSONObject(highlightJson);
+    body.put("highlight", highlightValue);
+    request.setJsonEntity(body.toString());
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
@@ -182,35 +199,10 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
     return jsonify(getResponseBody(response, true));
   }
 
-  /** Assert that the response schema contains a field with the given name. */
-  private void assertSchemaContains(JSONObject result, String fieldName) {
-    JSONArray schema = result.getJSONArray("schema");
-    for (int i = 0; i < schema.length(); i++) {
-      if (schema.getJSONObject(i).getString("name").equals(fieldName)) {
-        return;
-      }
-    }
-    Assert.fail("Schema should contain field: " + fieldName);
-  }
-
-  /** Assert that the response schema does NOT contain a field with the given name. */
-  private void assertSchemaDoesNotContain(JSONObject result, String fieldName) {
-    JSONArray schema = result.getJSONArray("schema");
-    for (int i = 0; i < schema.length(); i++) {
-      if (schema.getJSONObject(i).getString("name").equals(fieldName)) {
-        Assert.fail("Schema should NOT contain field: " + fieldName);
-      }
-    }
-  }
-
-  /** Get the column index for a field name from the schema. */
-  private int getFieldIndex(JSONObject result, String fieldName) {
-    JSONArray schema = result.getJSONArray("schema");
-    for (int i = 0; i < schema.length(); i++) {
-      if (schema.getJSONObject(i).getString("name").equals(fieldName)) {
-        return i;
-      }
-    }
-    return -1;
+  /** Assert that the response contains a non-empty highlights array. */
+  private void assertHighlightsExist(JSONObject result) {
+    assertTrue("Response should contain highlights array", result.has("highlights"));
+    JSONArray highlights = result.getJSONArray("highlights");
+    assertTrue("Highlights array should not be empty", highlights.length() > 0);
   }
 }

@@ -2828,8 +2828,8 @@ public class CalciteExplainIT extends ExplainIT {
         "{\"pre_tags\": [\"<b>\"], \"post_tags\": [\"</b>\"],"
             + " \"fields\": {\"*\": {}}, \"fragment_size\": 2147483647}";
     var result = explainQueryYaml(query, highlightJson);
-    // Same explain plan as wildcard (fields: {"*": {}}) — just verify it doesn't error
-    String expected = loadExpectedPlan("explain_highlight_wildcard.yaml");
+    // OSD format includes pre_tags/post_tags in the highlight builder output
+    String expected = loadExpectedPlan("explain_highlight_osd_format.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 }
