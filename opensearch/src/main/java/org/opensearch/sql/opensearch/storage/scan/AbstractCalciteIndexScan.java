@@ -520,11 +520,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
       hb.postTags(highlightConfig.postTags().toArray(new String[0]));
     }
 
-    // Apply fragment_size (default to Integer.MAX_VALUE when not specified)
-    hb.fragmentSize(
-        highlightConfig.fragmentSize() != null
-            ? highlightConfig.fragmentSize()
-            : Integer.MAX_VALUE);
+    // Apply fragment_size only when explicitly specified; otherwise let OpenSearch use its default
+    if (highlightConfig.fragmentSize() != null) {
+      hb.fragmentSize(highlightConfig.fragmentSize());
+    }
 
     requestBuilder.getSourceBuilder().highlighter(hb);
   }

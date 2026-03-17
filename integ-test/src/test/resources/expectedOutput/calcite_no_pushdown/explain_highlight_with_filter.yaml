@@ -8,4 +8,4 @@ calcite:
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableCalc(expr#0..17=[{inputs}], expr#18=[30], expr#19=[>($t8, $t18)], firstname=[$t1], age=[$t8], _highlight=[$t17], $condition=[$t19])
-        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[HIGHLIGHT->[*]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","highlight":{"fragment_size":2147483647,"fields":{"*":{}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[HIGHLIGHT->[*]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","highlight":{"fields":{"*":{}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
