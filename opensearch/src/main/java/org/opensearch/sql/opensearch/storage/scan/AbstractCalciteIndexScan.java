@@ -45,15 +45,18 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.ScriptSortBuilder.ScriptSortType;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.context.AbstractAction;
@@ -497,31 +500,16 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
   }
 
   protected static void applyHighlightPushDown(
-      org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder requestBuilder,
-      org.opensearch.sql.ast.tree.HighlightConfig highlightConfig) {
+      OpenSearchRequestBuilder requestBuilder, HighlightConfig highlightConfig) {
     if (highlightConfig == null
         || highlightConfig.fields() == null
         || highlightConfig.fields().isEmpty()) {
       return;
     }
-    java.util.List<String> fields = highlightConfig.fields();
-    org.opensearch.search.fetch.subphase.highlight.HighlightBuilder hb =
-        new org.opensearch.search.fetch.subphase.highlight.HighlightBuilder();
-    if (fields.size() == 1 && "*".equals(fields.get(0))) {
-      // Wildcard: highlight search query matches in all fields
-      hb.field("*");
-    } else {
-      // Highlight specific terms across all fields
-      String queryStr =
-          fields.stream()
-              .map(term -> "\"" + term + "\"")
-              .collect(java.util.stream.Collectors.joining(" OR "));
-      org.opensearch.search.fetch.subphase.highlight.HighlightBuilder.Field field =
-          new org.opensearch.search.fetch.subphase.highlight.HighlightBuilder.Field("*")
-              .highlightQuery(
-                  org.opensearch.index.query.QueryBuilders.queryStringQuery(queryStr)
-                      .defaultField("*"));
-      hb.field(field);
+    List<String> fields = highlightConfig.fields();
+    HighlightBuilder hb = new HighlightBuilder();
+    for (String fieldName : fields) {
+      hb.field(fieldName);
     }
 
     // Apply pre_tags / post_tags if provided
