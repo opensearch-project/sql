@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.storage.scan.context;
 
+import static org.opensearch.search.aggregations.MultiBucketConsumerService.DEFAULT_MAX_BUCKETS;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,7 @@ import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder
 import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
+import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
@@ -60,6 +63,7 @@ public final class AggSpec {
   private final long scriptCount;
   private final AggKind kind;
   @Nullable private final AggKind measureSortTarget;
+  private final boolean rareTopSupported;
   @Nullable private final List<RelFieldCollation> bucketSortCollations;
   @Nullable private final List<String> bucketSortFieldNames;
   @Nullable private final List<RelFieldCollation> measureSortCollations;
@@ -82,6 +86,7 @@ public final class AggSpec {
       long scriptCount,
       AggKind kind,
       @Nullable AggKind measureSortTarget,
+      boolean rareTopSupported,
       @Nullable List<RelFieldCollation> bucketSortCollations,
       @Nullable List<String> bucketSortFieldNames,
       @Nullable List<RelFieldCollation> measureSortCollations,
@@ -102,6 +107,7 @@ public final class AggSpec {
     this.scriptCount = scriptCount;
     this.kind = kind;
     this.measureSortTarget = measureSortTarget;
+    this.rareTopSupported = rareTopSupported;
     this.bucketSortCollations =
         bucketSortCollations == null ? null : List.copyOf(bucketSortCollations);
     this.bucketSortFieldNames =
@@ -144,6 +150,7 @@ public final class AggSpec {
         new AggPushDownAction(builderAndParser, extendedTypeMapping, bucketNames).getScriptCount(),
         kind,
         inferMeasureSortTarget(rootBuilder),
+        isRareTopSupported(rootBuilder),
         null,
         null,
         null,
@@ -204,6 +211,7 @@ public final class AggSpec {
         scriptCount,
         kind,
         measureSortTarget,
+        rareTopSupported,
         collations,
         fieldNames,
         measureSortCollations,
@@ -231,6 +239,7 @@ public final class AggSpec {
         scriptCount,
         kind,
         measureSortTarget,
+        rareTopSupported,
         null,
         null,
         measureSortCollations,
@@ -264,6 +273,7 @@ public final class AggSpec {
         scriptCount,
         measureSortTarget,
         null,
+        rareTopSupported,
         bucketSortCollations,
         bucketSortFieldNames,
         collations,
@@ -273,7 +283,7 @@ public final class AggSpec {
   }
 
   public AggSpec withRareTop(RareTopDigest digest) {
-    if (kind != AggKind.COMPOSITE) {
+    if (kind != AggKind.COMPOSITE || !rareTopSupported) {
       throw new OpenSearchRequestBuilder.PushDownUnSupportedException("Cannot pushdown " + digest);
     }
     return new AggSpec(
@@ -291,12 +301,13 @@ public final class AggSpec {
         scriptCount,
         AggKind.RARE_TOP,
         null,
+        rareTopSupported,
         bucketSortCollations,
         bucketSortFieldNames,
         measureSortCollations,
         measureSortFieldNames,
         digest,
-        null);
+        digest.byList().isEmpty() ? digest.number() : DEFAULT_MAX_BUCKETS);
   }
 
   public AggSpec withLimit(int size) {
@@ -318,6 +329,7 @@ public final class AggSpec {
         scriptCount,
         kind,
         measureSortTarget,
+        rareTopSupported,
         bucketSortCollations,
         bucketSortFieldNames,
         measureSortCollations,
@@ -382,10 +394,27 @@ public final class AggSpec {
     return AggKind.OTHER;
   }
 
+  private static boolean isRareTopSupported(@Nullable AggregationBuilder rootBuilder) {
+    AggregationBuilder builder = unwrapNestedBuilder(rootBuilder);
+    if (!(builder instanceof CompositeAggregationBuilder composite)) {
+      return false;
+    }
+    if (composite.sources().size() == 1) {
+      return composite.sources().getFirst() instanceof TermsValuesSourceBuilder terms
+          && !terms.missingBucket();
+    }
+    return composite.sources().stream()
+        .allMatch(src -> src instanceof TermsValuesSourceBuilder terms && !terms.missingBucket());
+  }
+
   @Nullable
   private static AggKind inferMeasureSortTarget(@Nullable AggregationBuilder rootBuilder) {
     AggregationBuilder builder = unwrapNestedBuilder(rootBuilder);
     if (!(builder instanceof CompositeAggregationBuilder composite)) {
+      return null;
+    }
+    if (composite.getSubAggregations().stream()
+        .anyMatch(metric -> !(metric instanceof ValuesSourceAggregationBuilder.LeafOnly<?, ?>))) {
       return null;
     }
     if (composite.sources().size() == 1) {
