@@ -473,15 +473,12 @@ public class CalciteIndexScanCostTest {
         .add(new PushDownOperation(PushDownType.AGGREGATION, aggregate, NO_OP_ACTION));
     List<String> projectDigest2 = List.of("COUNT");
     scan.getPushDownContext()
-        .add(
-            new PushDownOperation(
-                PushDownType.PROJECT, projectDigest2, NO_OP_ACTION));
+        .add(new PushDownOperation(PushDownType.PROJECT, projectDigest2, NO_OP_ACTION));
     scan.getPushDownContext()
         .add(new PushDownOperation(PushDownType.SORT, null, (OSRequestBuilderAction) req -> {}));
     LimitDigest limitDigest = new LimitDigest(100, 0);
     scan.getPushDownContext()
-        .add(
-            new PushDownOperation(PushDownType.LIMIT, limitDigest, NO_OP_ACTION));
+        .add(new PushDownOperation(PushDownType.LIMIT, limitDigest, NO_OP_ACTION));
     lenient().when(relDataType.getFieldList()).thenReturn(new MockFieldList(projectDigest2.size()));
     assertEquals(
         2102.8500643730163, Objects.requireNonNull(scan.computeSelfCost(planner, mq)).getRows());
