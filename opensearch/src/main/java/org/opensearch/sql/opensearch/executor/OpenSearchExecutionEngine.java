@@ -13,10 +13,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -320,9 +322,114 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       }
       columns.add(new Column(columnName, null, exprType));
     }
+    // Timewrap post-processing: strip null columns, remove __base_offset__, rename to absolute
+    if (CalcitePlanContext.stripNullColumns.get()) {
+      try {
+        // 1. Find all-null columns and always strip __base_offset__
+        Set<String> dropColumns = new HashSet<>();
+        dropColumns.add("__base_offset__");
+        if (!values.isEmpty()) {
+          Set<String> allNullCandidates = new HashSet<>();
+          for (Column col : columns) {
+            allNullCandidates.add(col.getName());
+          }
+          for (ExprValue row : values) {
+            java.util.Map<String, ExprValue> tupleValues = row.tupleValue();
+            allNullCandidates.removeIf(
+                colName -> {
+                  ExprValue v = tupleValues.get(colName);
+                  return v != null && !v.isNull();
+                });
+            if (allNullCandidates.isEmpty()) break;
+          }
+          dropColumns.addAll(allNullCandidates);
+        }
+
+        // 2. Read __base_offset__ for absolute naming
+        long baseOffset = 0;
+        if (!values.isEmpty()) {
+          ExprValue boVal = values.getFirst().tupleValue().get("__base_offset__");
+          if (boVal != null && !boVal.isNull()) {
+            baseOffset = boVal.longValue();
+          }
+        }
+
+        // 3. Build new column list: drop nulls, rename periods to absolute offsets
+        String unitInfo = CalcitePlanContext.timewrapUnitName.get();
+        List<String> origNames = new ArrayList<>(); // original names of kept columns
+        List<Column> newColumns = new ArrayList<>();
+        for (Column col : columns) {
+          if (dropColumns.contains(col.getName())) continue;
+          String origName = col.getName();
+          String newName = origName;
+          if (unitInfo != null) {
+            newName = renameTimewrapColumn(origName, baseOffset, unitInfo);
+          }
+          origNames.add(origName);
+          newColumns.add(new Column(newName, col.getAlias(), col.getExprType()));
+        }
+        columns = newColumns;
+
+        // 4. Rebuild rows with only kept columns, re-keyed to new names
+        List<ExprValue> filteredValues = new ArrayList<>();
+        for (ExprValue row : values) {
+          java.util.Map<String, ExprValue> original = row.tupleValue();
+          Map<String, ExprValue> filtered = new LinkedHashMap<>();
+          for (int i = 0; i < origNames.size(); i++) {
+            filtered.put(columns.get(i).getName(), original.get(origNames.get(i)));
+          }
+          filteredValues.add(ExprTupleValue.fromExprValueMap(filtered));
+        }
+        values = filteredValues;
+      } finally {
+        CalcitePlanContext.stripNullColumns.set(false);
+        CalcitePlanContext.timewrapUnitName.set(null);
+      }
+    }
+
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
     return response;
+  }
+
+  /**
+   * Rename a timewrap period column from relative to absolute offset. Uses the formula:
+   * periodFromNow = (baseOffset + relativePeriod - 1) * spanValue. Naming rules (matching Splunk):
+   * periodFromNow == 0 → "latest_<unit>", > 0 → "<N><unit>_before", < 0 → "<N><unit>_after".
+   * unitInfo format: "spanValue|singular|plural|_before" e.g., "1|day|days|_before".
+   */
+  private String renameTimewrapColumn(String name, long baseOffset, String unitInfo) {
+    String[] parts = unitInfo.split("\\|", -1);
+    if (parts.length < 4) return name;
+    int spanValue = Integer.parseInt(parts[0]);
+    String singular = parts[1];
+    String plural = parts[2];
+    String nameSuffix = parts[3];
+
+    if (!name.endsWith(nameSuffix)) return name;
+    String beforeSuffix = name.substring(0, name.length() - nameSuffix.length());
+    int lastUnderscore = beforeSuffix.lastIndexOf('_');
+    if (lastUnderscore < 0) return name;
+
+    String prefix = beforeSuffix.substring(0, lastUnderscore);
+    String periodStr = beforeSuffix.substring(lastUnderscore + 1);
+    try {
+      int relativePeriod = Integer.parseInt(periodStr);
+      long periodFromNow = (baseOffset + relativePeriod - 1) * spanValue;
+
+      if (periodFromNow == 0) {
+        return prefix + "_latest_" + singular;
+      } else if (periodFromNow > 0) {
+        String unit = periodFromNow == 1 ? singular : plural;
+        return prefix + "_" + periodFromNow + unit + "_before";
+      } else {
+        long absPeriod = Math.abs(periodFromNow);
+        String unit = absPeriod == 1 ? singular : plural;
+        return prefix + "_" + absPeriod + unit + "_after";
+      }
+    } catch (NumberFormatException e) {
+      return name;
+    }
   }
 
   /** Registers opensearch-dependent functions */

@@ -41,6 +41,15 @@ public class CalcitePlanContext {
   /** This thread local variable is only used to skip script encoding in script pushdown. */
   public static final ThreadLocal<Boolean> skipEncoding = ThreadLocal.withInitial(() -> false);
 
+  /** When true, the execution engine strips all-null columns from the result (used by timewrap). */
+  public static final ThreadLocal<Boolean> stripNullColumns = ThreadLocal.withInitial(() -> false);
+
+  /**
+   * Timewrap span unit name for column renaming in the execution engine. When set, the execution
+   * engine uses __base_offset__ to compute absolute period names (e.g., "501days_before").
+   */
+  public static final ThreadLocal<String> timewrapUnitName = new ThreadLocal<>();
+
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);

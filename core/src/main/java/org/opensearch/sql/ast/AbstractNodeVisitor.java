@@ -91,6 +91,7 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timewrap;
 import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Values;
@@ -297,6 +298,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitChart(Chart node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitTimewrap(Timewrap node, C context) {
     return visitChildren(node, context);
   }
 

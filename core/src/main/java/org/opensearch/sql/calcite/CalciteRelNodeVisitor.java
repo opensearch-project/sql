@@ -29,6 +29,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -86,8 +87,10 @@ import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
+import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
+import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
@@ -150,6 +153,7 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timewrap;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -172,6 +176,7 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.utils.ParseUtils;
@@ -3089,6 +3094,249 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // The output of chart is expected to be ordered by row and column split names
     relBuilder.sort(relBuilder.field(0), relBuilder.field(1));
     return relBuilder.peek();
+  }
+
+  private static final int TIMEWRAP_MAX_PERIODS = 20;
+
+  @Override
+  public RelNode visitTimewrap(Timewrap node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    // Signal the execution engine to strip all-null columns and rename with absolute offsets
+    CalcitePlanContext.stripNullColumns.set(true);
+    // Both align=now and align=end use _before suffix (matching Splunk behavior).
+    // align=end would use search end time as reference, but PPL has no search time range
+    // context, so both modes currently use query execution time.
+    CalcitePlanContext.timewrapUnitName.set(
+        timewrapUnitBaseName(node.getUnit(), node.getValue()) + "|_before");
+
+    RelBuilder b = context.relBuilder;
+    RexBuilder rx = context.rexBuilder;
+
+    List<String> fieldNames =
+        b.peek().getRowType().getFieldNames().stream().filter(f -> !isMetadataField(f)).toList();
+    String tsFieldName = fieldNames.get(0);
+    List<String> valueFieldNames = fieldNames.subList(1, fieldNames.size());
+
+    long spanSec = timewrapSpanToSeconds(node.getUnit(), node.getValue());
+    RelDataType bigintType = rx.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+
+    // Step 1: Convert timestamps to epoch seconds via UNIX_TIMESTAMP, add MAX OVER()
+    RexNode tsEpochExpr =
+        rx.makeCast(
+            bigintType,
+            rx.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, b.field(tsFieldName)),
+            true);
+    b.projectPlus(
+        b.alias(tsEpochExpr, "__ts_epoch__"),
+        b.aggregateCall(SqlStdOperatorTable.MAX, tsEpochExpr).over().as("__max_epoch__"));
+
+    // Step 2: Compute period_number and offset
+    RexNode tsEpoch = b.field("__ts_epoch__");
+    RexNode maxEpoch = b.field("__max_epoch__");
+    RexNode spanLit = rx.makeBigintLiteral(BigDecimal.valueOf(spanSec));
+
+    // period = (max_epoch - ts_epoch) / span_sec + 1 (integer division truncates)
+    RexNode diff = rx.makeCall(SqlStdOperatorTable.MINUS, maxEpoch, tsEpoch);
+    RexNode periodNum =
+        rx.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rx.makeCall(SqlStdOperatorTable.DIVIDE, diff, spanLit),
+            rx.makeExactLiteral(BigDecimal.ONE, bigintType));
+
+    // offset_sec = ts_epoch MOD span_sec
+    // Convert back to actual timestamp: latest_period_start + offset
+    RexNode offsetSec = rx.makeCall(SqlStdOperatorTable.MOD, tsEpoch, spanLit);
+    RexNode latestPeriodStart =
+        rx.makeCall(
+            SqlStdOperatorTable.MINUS,
+            maxEpoch,
+            rx.makeCall(SqlStdOperatorTable.MOD, maxEpoch, spanLit));
+    RexNode displayEpoch = rx.makeCall(SqlStdOperatorTable.PLUS, latestPeriodStart, offsetSec);
+    RexNode displayTimestamp = rx.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, displayEpoch);
+
+    // Compute base_offset for absolute period naming in execution engine.
+    // align=now: reference = current time
+    // align=end: reference = WHERE upper bound (search end time), fallback to now
+    RexNode baseOffset;
+    long nowEpochSec = context.functionProperties.getQueryStartClock().millis() / 1000;
+    Long referenceEpoch = null;
+    if ("end".equals(node.getAlign())) {
+      // Try to extract the upper bound from a WHERE clause on the timestamp field
+      referenceEpoch = extractTimestampUpperBound(node);
+    }
+    if (referenceEpoch == null) {
+      referenceEpoch = nowEpochSec;
+    }
+    RexNode refLit = rx.makeBigintLiteral(BigDecimal.valueOf(referenceEpoch));
+    baseOffset =
+        rx.makeCall(
+            SqlStdOperatorTable.DIVIDE,
+            rx.makeCall(SqlStdOperatorTable.MINUS, refLit, maxEpoch),
+            spanLit);
+
+    // Step 3: Project [display_timestamp, value_columns..., base_offset, period]
+    // base_offset is included in the group key so it survives the PIVOT
+    List<RexNode> projections = new ArrayList<>();
+    projections.add(b.alias(displayTimestamp, tsFieldName));
+    for (String vf : valueFieldNames) {
+      projections.add(b.field(vf));
+    }
+    projections.add(b.alias(baseOffset, "__base_offset__"));
+    projections.add(b.alias(periodNum, "__period__"));
+    b.project(projections);
+
+    // Step 4: PIVOT on period, grouped by [offset, __base_offset__]
+    // __base_offset__ is constant across all rows so it doesn't affect grouping,
+    // but survives the PIVOT so the execution engine can use it for absolute column naming
+    b.pivot(
+        b.groupKey(b.field(tsFieldName), b.field("__base_offset__")),
+        valueFieldNames.stream().map(f -> (RelBuilder.AggCall) b.max(b.field(f)).as("")).toList(),
+        ImmutableList.of(b.field("__period__")),
+        IntStream.rangeClosed(1, TIMEWRAP_MAX_PERIODS)
+            .map(i -> TIMEWRAP_MAX_PERIODS + 1 - i) // reverse: oldest period first
+            .mapToObj(
+                i ->
+                    Map.entry(
+                        // Use placeholder relative names; execution engine renames to absolute
+                        String.valueOf(i), ImmutableList.of((RexNode) b.literal((long) i))))
+            .collect(Collectors.toList()));
+
+    // Step 5: Rename columns — add agg name prefix, clean up pivot artifacts
+    // Use relative period numbers as temporary names; the execution engine will compute
+    // absolute offsets using __base_offset__ and rename accordingly
+    List<String> pivotColNames = b.peek().getRowType().getFieldNames();
+    List<String> cleanNames = new ArrayList<>();
+    cleanNames.add(tsFieldName);
+    cleanNames.add("__base_offset__");
+    for (int i = 2; i < pivotColNames.size(); i++) {
+      String name = pivotColNames.get(i);
+      if (name.endsWith("_")) {
+        name = name.substring(0, name.length() - 1);
+      }
+      // Prefix with agg name and _before suffix
+      if (valueFieldNames.size() == 1) {
+        name = valueFieldNames.get(0) + "_" + name + "_before";
+      }
+      cleanNames.add(name);
+    }
+    b.rename(cleanNames);
+
+    // Step 6: Sort by offset
+    b.sort(b.field(0));
+
+    return b.peek();
+  }
+
+  /**
+   * Convert a span unit and value to approximate seconds. Variable-length units use standard
+   * approximations: month=30 days, quarter=91 days, year=365 days.
+   */
+  private long timewrapSpanToSeconds(SpanUnit unit, int value) {
+    return switch (unit.getName()) {
+      case "s" -> value;
+      case "m" -> value * 60L;
+      case "h" -> value * 3_600L;
+      case "d" -> value * 86_400L;
+      case "w" -> value * 7L * 86_400L;
+      case "M" -> value * 30L * 86_400L; // month ≈ 30 days
+      case "q" -> value * 91L * 86_400L; // quarter ≈ 91 days
+      case "y" -> value * 365L * 86_400L; // year ≈ 365 days
+      default ->
+          throw new SemanticCheckException("Unsupported time unit in timewrap: " + unit.getName());
+    };
+  }
+
+  /**
+   * Get the timescale base name for timewrap column naming. Returns singular and plural forms
+   * separated by "|", e.g., "day|days". Used by the execution engine to build absolute period names
+   * like "501days_before".
+   */
+  private String timewrapUnitBaseName(SpanUnit unit, int value) {
+    String singular =
+        switch (unit.getName()) {
+          case "s" -> "second";
+          case "m" -> "minute";
+          case "h" -> "hour";
+          case "d" -> "day";
+          case "w" -> "week";
+          case "M" -> "month";
+          case "q" -> "quarter";
+          case "y" -> "year";
+          default -> "period";
+        };
+    String plural = singular + "s";
+    // Encode value so execution engine can compute totalUnits = (base_offset + period) * value
+    return value + "|" + singular + "|" + plural;
+  }
+
+  /**
+   * Walk the AST from a Timewrap node to find a WHERE clause with an upper bound on the timestamp
+   * field (e.g., @timestamp <= '2024-07-03 18:00:00'). Returns the upper bound as epoch seconds, or
+   * null if not found.
+   */
+  private Long extractTimestampUpperBound(Timewrap node) {
+    // Walk: Timewrap → Chart → Filter → inspect condition
+    Node current = node;
+    while (current != null && !current.getChild().isEmpty()) {
+      current = current.getChild().get(0);
+      if (current instanceof Filter filter) {
+        return findUpperBound(filter.getCondition());
+      }
+    }
+    return null;
+  }
+
+  /** Recursively search an expression tree for a timestamp upper bound (<=). */
+  private Long findUpperBound(UnresolvedExpression expr) {
+    if (expr instanceof And) {
+      And and = (And) expr;
+      Long left = findUpperBound(and.getLeft());
+      Long right = findUpperBound(and.getRight());
+      // If both sides have upper bounds, use the smaller one (tighter bound)
+      if (left != null && right != null) return Math.min(left, right);
+      return left != null ? left : right;
+    }
+    if (expr instanceof Compare cmp) {
+      String op = cmp.getOperator();
+      // Check for @timestamp <= X or @timestamp < X
+      if (("<=".equals(op) || "<".equals(op)) && isTimestampField(cmp.getLeft())) {
+        return parseTimestampLiteral(cmp.getRight());
+      }
+      // Check for X >= @timestamp or X > @timestamp
+      if ((">=".equals(op) || ">".equals(op)) && isTimestampField(cmp.getRight())) {
+        return parseTimestampLiteral(cmp.getLeft());
+      }
+    }
+    return null;
+  }
+
+  private boolean isTimestampField(UnresolvedExpression expr) {
+    if (expr instanceof Field field) {
+      String name = field.getField().toString();
+      return "@timestamp".equals(name) || "timestamp".equals(name);
+    }
+    return false;
+  }
+
+  private Long parseTimestampLiteral(UnresolvedExpression expr) {
+    if (expr instanceof Literal lit && lit.getValue() instanceof String s) {
+      try {
+        // Parse "yyyy-MM-dd HH:mm:ss" format
+        java.time.LocalDateTime ldt =
+            java.time.LocalDateTime.parse(
+                s, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        return ldt.toEpochSecond(java.time.ZoneOffset.UTC);
+      } catch (Exception e) {
+        // Try ISO format
+        try {
+          return java.time.Instant.parse(s).getEpochSecond();
+        } catch (Exception ignored) {
+          return null;
+        }
+      }
+    }
+    return null;
   }
 
   /**

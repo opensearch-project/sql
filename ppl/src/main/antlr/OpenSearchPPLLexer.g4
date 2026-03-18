@@ -55,6 +55,8 @@ APPENDCOL:                          'APPENDCOL';
 ADDTOTALS:                          'ADDTOTALS';
 ADDCOLTOTALS:                       'ADDCOLTOTALS';
 GRAPHLOOKUP:                        'GRAPHLOOKUP';
+TIMEWRAP:                           'TIMEWRAP';
+ALIGN:                              'ALIGN';
 EDGE:                               'EDGE';
 MAX_DEPTH:                          'MAXDEPTH';
 DEPTH_FIELD:                        'DEPTHFIELD';
