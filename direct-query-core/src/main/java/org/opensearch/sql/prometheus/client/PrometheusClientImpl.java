@@ -145,8 +145,8 @@ public class PrometheusClientImpl implements PrometheusClient {
     Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
 
     logger.info("Received Prometheus response for instant query: code={}", response);
-    // Return the full response object, not just the data field
-    return readResponse(response);
+    JSONObject jsonObject = readResponse(response);
+    return jsonObject.getJSONObject("data");
   }
 
   @Override
@@ -249,7 +249,7 @@ public class PrometheusClientImpl implements PrometheusClient {
     String queryUrl =
         String.format(
             "%s/api/v1/rules%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
-    logger.debug("Making Ruler GET request for all rules");
+    logger.debug("Making Prometheus GET rules request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     try (Response response =
         AccessController.doPrivilegedChecked(
@@ -345,22 +345,23 @@ public class PrometheusClientImpl implements PrometheusClient {
 
     logger.debug("Making Delete Alertmanager silence request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).delete().build();
-    Response response =
+    try (Response response =
         AccessController.doPrivilegedChecked(
-            () -> this.alertmanagerHttpClient.newCall(request).execute());
-
-    if (response.isSuccessful()) {
-      return "{\"status\":\"success\"}";
-    } else {
-      String errorBody = response.body() != null ? response.body().string() : "No response body";
-      logger.error(
-          "Delete Alertmanager Silence request failed with code: {}, error body: {}",
-          response.code(),
-          errorBody);
-      throw new PrometheusClientException(
-          String.format(
-              "Alertmanager request failed with code: %s. Error details: %s",
-              response.code(), errorBody));
+            () -> this.alertmanagerHttpClient.newCall(request).execute())) {
+      if (response.isSuccessful()) {
+        return "{\"status\":\"success\"}";
+      } else {
+        String errorBody =
+            response.body() != null ? response.body().string() : "No response body";
+        logger.error(
+            "Delete Alertmanager Silence request failed with code: {}, error body: {}",
+            response.code(),
+            errorBody);
+        throw new PrometheusClientException(
+            String.format(
+                "Alertmanager request failed with code: %s. Error details: %s",
+                response.code(), errorBody));
+      }
     }
   }
 
@@ -371,24 +372,25 @@ public class PrometheusClientImpl implements PrometheusClient {
 
     logger.debug("Making Alertmanager status request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response =
+    try (Response response =
         AccessController.doPrivilegedChecked(
-            () -> this.alertmanagerHttpClient.newCall(request).execute());
-
-    if (response.isSuccessful()) {
-      String bodyString = Objects.requireNonNull(response.body()).string();
-      logger.debug("Alertmanager status response body: {}", bodyString);
-      return new JSONObject(bodyString);
-    } else {
-      String errorBody = response.body() != null ? response.body().string() : "No response body";
-      logger.error(
-          "Alertmanager status request failed with code: {}, error body: {}",
-          response.code(),
-          errorBody);
-      throw new PrometheusClientException(
-          String.format(
-              "Alertmanager request failed with code: %s. Error details: %s",
-              response.code(), errorBody));
+            () -> this.alertmanagerHttpClient.newCall(request).execute())) {
+      if (response.isSuccessful()) {
+        String bodyString = Objects.requireNonNull(response.body()).string();
+        logger.debug("Alertmanager status response body: {}", bodyString);
+        return new JSONObject(bodyString);
+      } else {
+        String errorBody =
+            response.body() != null ? response.body().string() : "No response body";
+        logger.error(
+            "Alertmanager status request failed with code: {}, error body: {}",
+            response.code(),
+            errorBody);
+        throw new PrometheusClientException(
+            String.format(
+                "Alertmanager request failed with code: %s. Error details: %s",
+                response.code(), errorBody));
+      }
     }
   }
 
