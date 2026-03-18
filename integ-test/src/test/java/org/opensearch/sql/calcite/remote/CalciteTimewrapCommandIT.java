@@ -544,21 +544,22 @@ public class CalciteTimewrapCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTimewrapMonthSpan() throws IOException {
-    // Jun 15 to Jul 4: all data within ~19 days → single 30-day month period
+    // Jul 1-4 only: all data within same month → single month period
     JSONObject result =
         executeQuery(
-            "source=timewrap_test | where @timestamp >= '2024-06-15 00:00:00' and @timestamp <="
+            "source=timewrap_test | where @timestamp >= '2024-07-01 00:00:00' and @timestamp <="
                 + " '2024-07-04 06:00:00' | timechart span=1day sum(requests) | timewrap 1month");
 
     verifySchema(
         result, schema("@timestamp", "timestamp"), schema("sum(requests)_latest_month", "bigint"));
-    // Display timestamps anchored to latest period — Jun 15 maps to Jul 15 offset
-    verifyDataRowsSome(result, rows("2024-07-15 00:00:00", 200), rows("2024-07-01 00:00:00", 920));
+    verifyDataRowsSome(result, rows("2024-07-01 00:00:00", 920), rows("2024-07-04 00:00:00", 180));
   }
 
   @Test
   public void testTimewrapQuarterSpan() throws IOException {
-    // Jan 15 to Apr 15 = ~91 days → 2 quarter periods (Jan in one, Apr in another)
+    // Jan 15 (Q1) and Apr 15 (Q2) → 2 quarter periods
+    // With precise day-within-quarter offset: Jan 15 = day 15 of Q1, Apr 15 = day 15 of Q2
+    // Both are at the same offset (day 15) → they align on the same row
     JSONObject result =
         executeQuery(
             "source=timewrap_test | where @timestamp >= '2024-01-15 00:00:00' and @timestamp <="
@@ -569,14 +570,14 @@ public class CalciteTimewrapCommandIT extends PPLIntegTestCase {
         schema("@timestamp", "timestamp"),
         schema("sum(requests)_1quarter_before", "bigint"),
         schema("sum(requests)_latest_quarter", "bigint"));
+    // Day 15 of each quarter aligns — both values on the same row
     verifyDataRowsSome(result, rows("2024-04-15 00:00:00", 300, 350));
   }
 
   @Test
   public void testTimewrapYearSpan() throws IOException {
-    // Jan 2024 to Jan 2025 = ~365 days → 2 year periods
-    // Period 1 (1year_before): Jan 2024 data (300)
-    // Period 2 (latest_year): everything else
+    // Jan 2024 to Jan 2025 → 2 year periods (2024 and 2025)
+    // Jan 15 offset exists in both years: 2024=300, 2025=400
     JSONObject result =
         executeQuery(
             "source=timewrap_test | where @timestamp >= '2024-01-15 00:00:00' and @timestamp <="
@@ -587,6 +588,6 @@ public class CalciteTimewrapCommandIT extends PPLIntegTestCase {
         schema("@timestamp", "timestamp"),
         schema("sum(requests)_1year_before", "bigint"),
         schema("sum(requests)_latest_year", "bigint"));
-    verifyDataRowsSome(result, rows("2025-01-15 00:00:00", null, 400));
+    verifyDataRowsSome(result, rows("2025-01-15 00:00:00", 300, 400));
   }
 }
