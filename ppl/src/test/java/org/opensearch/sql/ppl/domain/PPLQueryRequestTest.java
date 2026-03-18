@@ -116,7 +116,7 @@ public class PPLQueryRequestTest {
     PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
     HighlightConfig config = request.getHighlightConfig();
     assertNotNull(config);
-    assertEquals(List.of("*"), config.fields());
+    assertEquals(List.of("*"), config.fieldNames());
     assertNull(config.preTags());
     assertNull(config.postTags());
     assertNull(config.fragmentSize());
@@ -129,7 +129,7 @@ public class PPLQueryRequestTest {
     PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
     HighlightConfig config = request.getHighlightConfig();
     assertNotNull(config);
-    assertEquals(List.of("error", "login"), config.fields());
+    assertEquals(List.of("error", "login"), config.fieldNames());
     assertNull(config.preTags());
     assertNull(config.postTags());
     assertNull(config.fragmentSize());
@@ -145,7 +145,7 @@ public class PPLQueryRequestTest {
     PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
     HighlightConfig config = request.getHighlightConfig();
     assertNotNull(config);
-    assertEquals(List.of("*"), config.fields());
+    assertEquals(List.of("*"), config.fieldNames());
     assertEquals(List.of("<b>"), config.preTags());
     assertEquals(List.of("</b>"), config.postTags());
     assertEquals(Integer.valueOf(2147483647), config.fragmentSize());
@@ -162,8 +162,8 @@ public class PPLQueryRequestTest {
     HighlightConfig config = request.getHighlightConfig();
     assertNotNull(config);
     assertEquals(2, config.fields().size());
-    assertTrue(config.fields().contains("title"));
-    assertTrue(config.fields().contains("body"));
+    assertTrue(config.fields().containsKey("title"));
+    assertTrue(config.fields().containsKey("body"));
     assertEquals(List.of("<em>", "<b>"), config.preTags());
     assertEquals(List.of("</em>", "</b>"), config.postTags());
     assertNull(config.fragmentSize());
@@ -177,9 +177,25 @@ public class PPLQueryRequestTest {
     PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
     HighlightConfig config = request.getHighlightConfig();
     assertNotNull(config);
-    assertEquals(List.of("*"), config.fields());
+    assertEquals(List.of("*"), config.fieldNames());
     assertNull(config.preTags());
     assertNull(config.postTags());
     assertNull(config.fragmentSize());
+  }
+
+  @Test
+  public void testGetHighlightConfigPerFieldOptions() {
+    JSONObject json =
+        new JSONObject(
+            "{\"query\": \"source=t\", \"highlight\": {"
+                + "\"fields\": {\"title\": {\"fragment_size\": 200, \"number_of_fragments\": 3},"
+                + " \"body\": {\"type\": \"plain\"}}}}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    HighlightConfig config = request.getHighlightConfig();
+    assertNotNull(config);
+    assertEquals(2, config.fields().size());
+    assertEquals(200, config.fields().get("title").get("fragment_size"));
+    assertEquals(3, config.fields().get("title").get("number_of_fragments"));
+    assertEquals("plain", config.fields().get("body").get("type"));
   }
 }

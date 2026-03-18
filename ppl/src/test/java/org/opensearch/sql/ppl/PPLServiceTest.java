@@ -102,12 +102,12 @@ public class PPLServiceTest {
   public void testExecuteShouldPass() {
     doAnswer(
             invocation -> {
-              ResponseListener<QueryResponse> listener = invocation.getArgument(2);
+              ResponseListener<QueryResponse> listener = invocation.getArgument(3);
               listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
               return null;
             })
         .when(queryService)
-        .execute(any(), any(), any());
+        .execute(any(), any(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY),
@@ -119,12 +119,12 @@ public class PPLServiceTest {
   public void testExecuteCsvFormatShouldPass() {
     doAnswer(
             invocation -> {
-              ResponseListener<QueryResponse> listener = invocation.getArgument(2);
+              ResponseListener<QueryResponse> listener = invocation.getArgument(3);
               listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
               return null;
             })
         .when(queryService)
-        .execute(any(), any(), any());
+        .execute(any(), any(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY, "csv"),
@@ -136,12 +136,12 @@ public class PPLServiceTest {
   public void testExplainShouldPass() {
     doAnswer(
             invocation -> {
-              ResponseListener<ExplainResponse> listener = invocation.getArgument(1);
+              ResponseListener<ExplainResponse> listener = invocation.getArgument(3);
               listener.onResponse(new ExplainResponse(new ExplainResponseNode("test")));
               return null;
             })
         .when(queryService)
-        .explain(any(), any(), any(), any());
+        .explain(any(), any(), any(), any(), any());
 
     pplService.explain(
         new PPLQueryRequest("search source=t a=1", null, EXPLAIN),
@@ -173,12 +173,12 @@ public class PPLServiceTest {
   public void testPrometheusQuery() {
     doAnswer(
             invocation -> {
-              ResponseListener<QueryResponse> listener = invocation.getArgument(2);
+              ResponseListener<QueryResponse> listener = invocation.getArgument(3);
               listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
               return null;
             })
         .when(queryService)
-        .execute(any(), any(), any());
+        .execute(any(), any(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("source = prometheus.http_requests_total", null, QUERY),

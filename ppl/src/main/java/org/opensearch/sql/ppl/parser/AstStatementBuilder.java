@@ -16,7 +16,6 @@ import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Head;
-import org.opensearch.sql.ast.tree.Highlight;
 import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -37,13 +36,13 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
     if (context.getFetchSize() > 0) {
       rawPlan = new Head(context.getFetchSize(), 0).attach(rawPlan);
     }
+    UnresolvedPlan plan = addSelectAll(rawPlan);
+    Query query = new Query(plan, 0, PPL);
     if (context.getHighlightConfig() != null
         && context.getHighlightConfig().fields() != null
         && !context.getHighlightConfig().fields().isEmpty()) {
-      rawPlan = new Highlight(context.getHighlightConfig()).attach(rawPlan);
+      query.setHighlightConfig(context.getHighlightConfig());
     }
-    UnresolvedPlan plan = addSelectAll(rawPlan);
-    Query query = new Query(plan, 0, PPL);
     if (ctx.explainStatement() != null) {
       if (ctx.explainStatement().explainMode() == null) {
         return new Explain(query, PPL);

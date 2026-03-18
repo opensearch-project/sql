@@ -14,6 +14,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
@@ -92,9 +93,9 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   }
 
   private Object resolveForCalcite(ExprValue value, String rawPath) {
-    if ("_highlight".equals(rawPath)) {
-      ExprValue hl = ExprValueUtils.getTupleValue(value).get("_highlight");
-      return (hl != null && !hl.isMissing()) ? hl : null;
+    if (HighlightExpression.HIGHLIGHT_FIELD.equals(rawPath)) {
+      ExprValue hl = ExprValueUtils.getTupleValue(value).get(HighlightExpression.HIGHLIGHT_FIELD);
+      return (hl != null && !hl.isMissing() && !hl.isNull()) ? hl : null;
     }
     return ExprValueUtils.resolveRefPaths(value, List.of(rawPath.split("\\."))).valueForCalcite();
   }

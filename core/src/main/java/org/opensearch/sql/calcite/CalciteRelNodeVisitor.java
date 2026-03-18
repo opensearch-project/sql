@@ -123,7 +123,6 @@ import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
-import org.opensearch.sql.ast.tree.Highlight;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
@@ -157,9 +156,9 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
+import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.plan.rel.LogicalGraphLookup;
-import org.opensearch.sql.calcite.plan.rel.LogicalHighlight;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.BinUtils;
@@ -229,16 +228,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.scan(node.getTableQualifiedName().getParts());
     RelNode scan = context.relBuilder.peek();
 
-    if (scan instanceof AliasFieldsWrappable) {
-      ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
+    // Eagerly push down highlight config to the scan (highlight is a scan hint, not an operator)
+    if (context.getHighlightConfig() != null && scan instanceof HighlightPushDown) {
+      RelNode newScan = ((HighlightPushDown) scan).pushDownHighlight(context.getHighlightConfig());
+      context.relBuilder.build(); // pop old scan
+      context.relBuilder.push(newScan);
+      scan = newScan;
+      context.setHighlightConfig(null); // consumed
     }
 
-    // Wrap with LogicalHighlight if highlight config is set on context (from API request)
-    if (context.getHighlightConfig() != null) {
-      RelNode input = context.relBuilder.build();
-      LogicalHighlight highlight = LogicalHighlight.create(input, context.getHighlightConfig());
-      context.relBuilder.push(highlight);
-      context.setHighlightConfig(null); // Clear for join safety
+    if (scan instanceof AliasFieldsWrappable) {
+      ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
     }
 
     return context.relBuilder.peek();
@@ -3197,13 +3197,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String nullStr = (String) argMap.getOrDefault("nullstr", Chart.DEFAULT_NULL_STR).getValue();
       return new ChartConfig(limit, top, useOther, useNull, otherStr, nullStr);
     }
-  }
-
-  @Override
-  public RelNode visitHighlight(Highlight node, CalcitePlanContext context) {
-    context.setHighlightConfig(node.getHighlightConfig());
-    visitChildren(node, context);
-    return context.relBuilder.peek();
   }
 
   @Override

@@ -80,7 +80,6 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
-import org.opensearch.sql.ast.tree.Highlight;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.MinSpanBin;
@@ -729,13 +728,6 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().getFirst().accept(this, context);
     String field = visitExpression(node.getField());
     return StringUtils.format("%s | flatten %s", child, field);
-  }
-
-  @Override
-  public String visitHighlight(Highlight node, String context) {
-    String child = node.getChild().get(0).accept(this, context);
-    String fields = String.join(", ", node.getHighlightConfig().fields());
-    return StringUtils.format("%s | highlight %s", child, fields);
   }
 
   @Override

@@ -2,8 +2,7 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _highlight=[$17])
-        LogicalHighlight(highlightConfig=[[*]])
-          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[HIGHLIGHT->[*]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","highlight":{"fields":{"*":{}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableCalc(expr#0..17=[{inputs}], proj#0..10=[{exprs}], _highlight=[$t17])

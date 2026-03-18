@@ -506,13 +506,14 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
         || highlightConfig.fields().isEmpty()) {
       return;
     }
-    List<String> fields = highlightConfig.fields();
     HighlightBuilder hb = new HighlightBuilder();
-    for (String fieldName : fields) {
-      hb.field(fieldName);
+    for (Map.Entry<String, Map<String, Object>> entry : highlightConfig.fields().entrySet()) {
+      HighlightBuilder.Field field = new HighlightBuilder.Field(entry.getKey());
+      applyPerFieldOptions(field, entry.getValue());
+      hb.field(field);
     }
 
-    // Apply pre_tags / post_tags if provided
+    // Apply global pre_tags / post_tags if provided
     if (highlightConfig.preTags() != null && !highlightConfig.preTags().isEmpty()) {
       hb.preTags(highlightConfig.preTags().toArray(new String[0]));
     }
@@ -520,11 +521,44 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
       hb.postTags(highlightConfig.postTags().toArray(new String[0]));
     }
 
-    // Apply fragment_size only when explicitly specified; otherwise let OpenSearch use its default
+    // Apply global fragment_size only when explicitly specified
     if (highlightConfig.fragmentSize() != null) {
       hb.fragmentSize(highlightConfig.fragmentSize());
     }
 
     requestBuilder.getSourceBuilder().highlighter(hb);
+  }
+
+  @SuppressWarnings(
+      "unchecked") // values are trusted types from PPLQueryRequest.parsePerFieldOptions
+  private static void applyPerFieldOptions(
+      HighlightBuilder.Field field, Map<String, Object> options) {
+    if (options == null || options.isEmpty()) {
+      return;
+    }
+    if (options.containsKey("fragment_size")) {
+      field.fragmentSize(((Number) options.get("fragment_size")).intValue());
+    }
+    if (options.containsKey("number_of_fragments")) {
+      field.numOfFragments(((Number) options.get("number_of_fragments")).intValue());
+    }
+    if (options.containsKey("type")) {
+      field.highlighterType((String) options.get("type"));
+    }
+    if (options.containsKey("pre_tags")) {
+      field.preTags(((List<String>) options.get("pre_tags")).toArray(new String[0]));
+    }
+    if (options.containsKey("post_tags")) {
+      field.postTags(((List<String>) options.get("post_tags")).toArray(new String[0]));
+    }
+    if (options.containsKey("require_field_match")) {
+      field.requireFieldMatch((Boolean) options.get("require_field_match"));
+    }
+    if (options.containsKey("no_match_size")) {
+      field.noMatchSize(((Number) options.get("no_match_size")).intValue());
+    }
+    if (options.containsKey("order")) {
+      field.order((String) options.get("order"));
+    }
   }
 }

@@ -120,28 +120,24 @@ public class AstStatementBuilderTest {
 
   @Test
   public void buildQueryStatementWithHighlight() {
-    // Highlight wraps the raw plan, then Project(*) wraps on top
+    // Highlight config is set on the Query statement, not as an AST wrapper
     HighlightConfig config = new HighlightConfig(List.of("*"));
-    assertEqualWithHighlight(
-        "search source=t a=1",
-        config,
-        new Query(
-            project(highlight(search(relation("t"), "a:1"), config), AllFields.of()), 0, PPL));
+    Query expected = new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL);
+    expected.setHighlightConfig(config);
+    assertEqualWithHighlight("search source=t a=1", config, expected);
   }
 
   @Test
   public void buildQueryStatementWithHighlightMultipleTerms() {
     HighlightConfig config = new HighlightConfig(List.of("error", "login"));
-    assertEqualWithHighlight(
-        "search source=t a=1",
-        config,
-        new Query(
-            project(highlight(search(relation("t"), "a:1"), config), AllFields.of()), 0, PPL));
+    Query expected = new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL);
+    expected.setHighlightConfig(config);
+    assertEqualWithHighlight("search source=t a=1", config, expected);
   }
 
   @Test
   public void buildQueryStatementWithHighlightNull() {
-    // null highlight means no Highlight node injected
+    // null highlight means no config on the Query
     assertEqualWithHighlight(
         "search source=t a=1",
         null,
@@ -150,16 +146,12 @@ public class AstStatementBuilderTest {
 
   @Test
   public void buildQueryStatementWithHighlightAndFetchSize() {
-    // Both fetch_size and highlight: Head wraps first, then Highlight wraps Head
+    // Both fetch_size and highlight: Head wraps the plan, config is on the Query
     HighlightConfig config = new HighlightConfig(List.of("*"));
-    assertEqualWithHighlightAndFetchSize(
-        "search source=t a=1",
-        config,
-        100,
-        new Query(
-            project(highlight(head(search(relation("t"), "a:1"), 100, 0), config), AllFields.of()),
-            0,
-            PPL));
+    Query expected =
+        new Query(project(head(search(relation("t"), "a:1"), 100, 0), AllFields.of()), 0, PPL);
+    expected.setHighlightConfig(config);
+    assertEqualWithHighlightAndFetchSize("search source=t a=1", config, 100, expected);
   }
 
   private void assertEqualWithFetchSize(String query, int fetchSize, Statement expectedStatement) {

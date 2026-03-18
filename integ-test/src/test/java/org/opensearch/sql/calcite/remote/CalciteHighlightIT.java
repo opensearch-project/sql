@@ -158,6 +158,62 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testHighlightWildcardInSearchText() throws IOException {
+    JSONObject result =
+        executeQueryWithHighlight("source=" + TEST_INDEX_ACCOUNT + " \"Holm*\"", "[\"*\"]");
+    assertTrue("Response should contain datarows", result.has("datarows"));
+    assertTrue("Response should contain highlights array", result.has("highlights"));
+  }
+
+  @Test
+  public void testHighlightMixedFullTextAndStructuredFilter() throws IOException {
+    JSONObject result =
+        executeQueryWithHighlight(
+            "source=" + TEST_INDEX_ACCOUNT + " \"Holmes\" | where age > 30 | fields firstname, age",
+            "[\"*\"]");
+    assertTrue("Response should contain datarows", result.has("datarows"));
+    assertTrue("Response should contain highlights array", result.has("highlights"));
+  }
+
+  @Test
+  public void testHighlightPerFieldOptions() throws IOException {
+    String highlightJson =
+        "{\"fields\": {\"firstname\": {\"fragment_size\": 200},"
+            + " \"lastname\": {\"number_of_fragments\": 3}}}";
+    JSONObject result =
+        executeQueryWithHighlight("source=" + TEST_INDEX_ACCOUNT + " \"Holmes\"", highlightJson);
+    assertHighlightsExist(result);
+  }
+
+  @Test
+  public void testHighlightSpecificFields() throws IOException {
+    String highlightJson = "[\"firstname\", \"lastname\"]";
+    JSONObject result =
+        executeQueryWithHighlight("source=" + TEST_INDEX_ACCOUNT + " \"Holmes\"", highlightJson);
+    assertHighlightsExist(result);
+  }
+
+  @Test
+  public void testHighlightWithHead() throws IOException {
+    JSONObject result =
+        executeQueryWithHighlight(
+            "source=" + TEST_INDEX_ACCOUNT + " \"Holmes\" | head 2", "[\"*\"]");
+    assertTrue("Response should contain datarows", result.has("datarows"));
+    JSONArray dataRows = result.getJSONArray("datarows");
+    assertTrue("Should return at most 2 rows", dataRows.length() <= 2);
+    assertTrue("Response should contain highlights array", result.has("highlights"));
+  }
+
+  @Test
+  public void testHighlightWithStats() throws IOException {
+    // Stats aggregation with highlight - verify request succeeds
+    JSONObject result =
+        executeQueryWithHighlight(
+            "source=" + TEST_INDEX_ACCOUNT + " \"Holmes\" | stats count()", "[\"*\"]");
+    assertTrue("Response should contain datarows", result.has("datarows"));
+  }
+
+  @Test
   public void testHighlightNoSearchQuery() throws IOException {
     // Without a search query, request should still succeed (highlights may or may not be present)
     JSONObject result = executeQueryWithHighlight("source=" + TEST_INDEX_BANK, "[\"*\"]");

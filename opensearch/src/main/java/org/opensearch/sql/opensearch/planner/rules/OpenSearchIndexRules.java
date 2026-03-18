@@ -21,10 +21,6 @@ public class OpenSearchIndexRules {
   // Rule that always pushes down relevance functions regardless of pushdown settings
   private static final RelevanceFunctionPushdownRule RELEVANCE_FUNCTION_RULE =
       RelevanceFunctionPushdownRule.Config.DEFAULT.toRule();
-  // Rule that always pushes down highlight regardless of pushdown settings,
-  // consistent with V2 engine where PUSH_DOWN_HIGHLIGHT is always in the default rules
-  private static final HighlightIndexScanRule HIGHLIGHT_INDEX_SCAN =
-      HighlightIndexScanRule.Config.DEFAULT.toRule();
 
   /** The rules will apply whatever the pushdown setting is. */
   public static final List<RelOptRule> OPEN_SEARCH_NON_PUSHDOWN_RULES =
@@ -33,8 +29,7 @@ public class OpenSearchIndexRules {
           SYSTEM_INDEX_SCAN_RULE,
           NESTED_AGGREGATE_RULE,
           GRAPH_LOOKUP_RULE,
-          RELEVANCE_FUNCTION_RULE,
-          HIGHLIGHT_INDEX_SCAN);
+          RELEVANCE_FUNCTION_RULE);
 
   private static final ProjectIndexScanRule PROJECT_INDEX_SCAN =
       ProjectIndexScanRule.Config.DEFAULT.toRule();

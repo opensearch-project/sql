@@ -275,14 +275,15 @@ Expected output (trimmed):
 
 | Parameter       | Type            | Required | Description                                                                                                  |
 |-----------------|-----------------|----------|--------------------------------------------------------------------------------------------------------------|
-| `fields`        | Object          | Yes      | An object whose keys are field names or wildcards (e.g. `{"*": {}}`) to highlight.                           |
+| `fields`        | Object          | Yes      | An object whose keys are field names or wildcards to highlight. Each value is an object of per-field options (see Notes). Use `{}` for defaults. Example: `{"*": {}}` or `{"title": {"fragment_size": 200}}`. |
 | `pre_tags`      | Array of string | No       | Tags inserted before highlighted tokens. Defaults to `<em>`.                                                 |
 | `post_tags`     | Array of string | No       | Tags inserted after highlighted tokens. Defaults to `</em>`.                                                 |
 | `fragment_size` | Integer         | No       | Maximum character size of a highlight fragment. Defaults to `100`.                                            |
 
 ### Notes
 
-- Highlighting requires a search query in the PPL statement (e.g. `source=accounts "Holmes"`). Without a query, the `highlights` array entries will be empty.
+- Highlighting requires a search term in the PPL statement (e.g. `source=accounts "Holmes"`). Without a search term (e.g. just `source=accounts`), the `highlights` array entries will be empty.
 - The `highlights` array in the response is parallel to `datarows` — each entry contains the highlighted fragments for the corresponding row.
 - In the simple array format, `["*"]` highlights all fields. Specific field names like `["firstname", "lastname"]` scope highlighting to those fields only.
-- In the object format, only the keys of the `fields` object are used; per-field options inside the value objects are currently ignored.
+- In the object format, each key in the `fields` object is a field name or wildcard. Each value is an object of per-field highlight options. Supported per-field options: `fragment_size`, `number_of_fragments`, `type` (`plain`, `unified`, `fvh`), `pre_tags`, `post_tags`, `require_field_match`, `no_match_size`, `order`. Use `{}` for defaults. Example: `{"title": {"fragment_size": 200}, "body": {"type": "plain"}}`.
+- Highlights may include fields that are not explicitly projected in the `schema`/`datarows`. For example, using `{"*": {}}` highlights all fields that matched the search query, including fields not selected by `| fields`. In the example above, the `address` field appears in `highlights` because it contains a match ("880 Holmes Lane") even though only `account_number`, `firstname`, and `lastname` are projected.

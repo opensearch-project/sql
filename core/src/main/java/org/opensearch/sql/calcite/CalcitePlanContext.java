@@ -98,6 +98,7 @@ public class CalcitePlanContext {
     this.relBuilder = parent.relBuilder; // Share the same relBuilder
     this.rexBuilder = parent.rexBuilder; // Share the same rexBuilder
     this.functionProperties = parent.functionProperties;
+    this.highlightConfig = parent.highlightConfig;
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
