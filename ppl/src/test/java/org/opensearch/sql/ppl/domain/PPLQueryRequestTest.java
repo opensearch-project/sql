@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.domain;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
@@ -197,5 +198,88 @@ public class PPLQueryRequestTest {
     assertEquals(200, config.fields().get("title").get("fragment_size"));
     assertEquals(3, config.fields().get("title").get("number_of_fragments"));
     assertEquals("plain", config.fields().get("body").get("type"));
+  }
+
+  @Test
+  public void testGetHighlightConfigEmptyFieldNameThrows() {
+    JSONObject json = new JSONObject("{\"query\": \"source=t\", \"highlight\": [\"\"]}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
+    assertTrue(e.getMessage().contains("non-empty"));
+  }
+
+  @Test
+  public void testGetHighlightConfigNegativeFragmentSizeThrows() {
+    JSONObject json =
+        new JSONObject(
+            "{\"query\": \"source=t\", \"highlight\": {"
+                + "\"fields\": {\"*\": {}}, \"fragment_size\": -1}}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
+    assertTrue(e.getMessage().contains("fragment_size must be a positive integer"));
+  }
+
+  @Test
+  public void testGetHighlightConfigZeroFragmentSizeThrows() {
+    JSONObject json =
+        new JSONObject(
+            "{\"query\": \"source=t\", \"highlight\": {"
+                + "\"fields\": {\"*\": {}}, \"fragment_size\": 0}}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
+    assertTrue(e.getMessage().contains("fragment_size must be a positive integer"));
+  }
+
+  @Test
+  public void testGetHighlightConfigExceedMaxFieldsArrayThrows() {
+    // Build an array with 101 fields
+    StringBuilder sb = new StringBuilder("{\"query\": \"source=t\", \"highlight\": [");
+    for (int i = 0; i < 101; i++) {
+      if (i > 0) sb.append(",");
+      sb.append("\"field").append(i).append("\"");
+    }
+    sb.append("]}");
+    JSONObject json = new JSONObject(sb.toString());
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
+    assertTrue(e.getMessage().contains("fields count exceeds maximum"));
+  }
+
+  @Test
+  public void testGetHighlightConfigExceedMaxFieldsObjectThrows() {
+    // Build an object with 101 fields
+    StringBuilder sb = new StringBuilder("{\"query\": \"source=t\", \"highlight\": {\"fields\": {");
+    for (int i = 0; i < 101; i++) {
+      if (i > 0) sb.append(",");
+      sb.append("\"field").append(i).append("\": {}");
+    }
+    sb.append("}}}");
+    JSONObject json = new JSONObject(sb.toString());
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
+    assertTrue(e.getMessage().contains("fields count exceeds maximum"));
+  }
+
+  @Test
+  public void testGetHighlightConfigExceedMaxTagsThrows() {
+    // Build pre_tags array with 11 entries
+    StringBuilder sb =
+        new StringBuilder(
+            "{\"query\": \"source=t\", \"highlight\": {\"fields\": {\"*\": {}}, \"pre_tags\": [");
+    for (int i = 0; i < 11; i++) {
+      if (i > 0) sb.append(",");
+      sb.append("\"tag").append(i).append("\"");
+    }
+    sb.append("]}}");
+    JSONObject json = new JSONObject(sb.toString());
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
+    assertTrue(e.getMessage().contains("pre_tags count exceeds maximum"));
   }
 }

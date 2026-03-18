@@ -214,6 +214,67 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testHighlightBooleanOrSearch() throws IOException {
+    JSONObject result =
+        executeQueryWithHighlight(
+            "source=" + TEST_INDEX_ACCOUNT + " \"Holmes\" OR \"Bond\"", "[\"*\"]");
+    JSONArray dataRows = result.getJSONArray("datarows");
+    assertTrue("OR search should return results", dataRows.length() > 0);
+    assertHighlightsExist(result);
+    // Verify highlights contain fragments for both search terms
+    JSONArray highlights = result.getJSONArray("highlights");
+    boolean foundHolmes = false;
+    boolean foundBond = false;
+    for (int i = 0; i < highlights.length(); i++) {
+      String hlStr = highlights.getJSONObject(i).toString();
+      if (hlStr.contains("Holmes")) foundHolmes = true;
+      if (hlStr.contains("Bond")) foundBond = true;
+    }
+    assertTrue("Highlights should contain Holmes fragments", foundHolmes);
+    assertTrue("Highlights should contain Bond fragments", foundBond);
+  }
+
+  @Test
+  public void testHighlightBooleanAndSearch() throws IOException {
+    JSONObject result =
+        executeQueryWithHighlight(
+            "source=" + TEST_INDEX_ACCOUNT + " \"Holmes\" AND \"Lane\"", "[\"*\"]");
+    JSONArray dataRows = result.getJSONArray("datarows");
+    assertTrue("AND search should return results", dataRows.length() > 0);
+    assertHighlightsExist(result);
+    // Verify highlights contain fragments for both terms
+    JSONArray highlights = result.getJSONArray("highlights");
+    boolean foundHolmes = false;
+    boolean foundLane = false;
+    for (int i = 0; i < highlights.length(); i++) {
+      String hlStr = highlights.getJSONObject(i).toString();
+      if (hlStr.contains("Holmes")) foundHolmes = true;
+      if (hlStr.contains("Lane")) foundLane = true;
+    }
+    assertTrue("Highlights should contain Holmes fragments", foundHolmes);
+    assertTrue("Highlights should contain Lane fragments", foundLane);
+  }
+
+  @Test
+  public void testHighlightNotSearch() throws IOException {
+    // NOT queries negate the match — the query succeeds but highlights are empty
+    // because there are no positive matches to highlight
+    JSONObject result =
+        executeQueryWithHighlight("source=" + TEST_INDEX_ACCOUNT + " NOT \"Holmes\"", "[\"*\"]");
+    JSONArray dataRows = result.getJSONArray("datarows");
+    assertTrue("NOT search should return results", dataRows.length() > 0);
+  }
+
+  @Test
+  public void testHighlightBooleanOrWithFilter() throws IOException {
+    JSONObject result =
+        executeQueryWithHighlight(
+            "source=" + TEST_INDEX_ACCOUNT + " \"Holmes\" OR \"Bond\" | where age > 30", "[\"*\"]");
+    assertTrue("Response should contain datarows", result.has("datarows"));
+    assertHighlightsExist(result);
+  }
+
+  @Test
   public void testHighlightNoSearchQuery() throws IOException {
     // Without a search query, request should still succeed (highlights may or may not be present)
     JSONObject result = executeQueryWithHighlight("source=" + TEST_INDEX_BANK, "[\"*\"]");
