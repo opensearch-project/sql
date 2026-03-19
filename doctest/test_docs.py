@@ -472,9 +472,9 @@ def create_markdown_suite(filepaths, category_name, setup_func):
         transform=transform,
     )
 
-    # Prepare globs for bash commands
+    # Prepare globs for bash commands (needed when input_langs includes "bash ppl")
     test_globs = {}
-    if "bash" in category_name:
+    if "bash" in category_name or "bash ppl" in input_langs:
         test_globs = {
             "sh": partial(
                 subprocess.run,

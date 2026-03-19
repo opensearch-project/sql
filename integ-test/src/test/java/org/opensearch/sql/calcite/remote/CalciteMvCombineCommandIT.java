@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.After;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
@@ -31,6 +32,12 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
     loadIndex(Index.MVCOMBINE);
+    updateIndexSettings(INDEX, "{ \"index\": { \"max_inner_result_window\":" + 10000 + " } }");
+  }
+
+  @After
+  public void afterTest() throws IOException {
+    updateIndexSettings(INDEX, "{ \"index\": { \"max_inner_result_window\":" + 100 + " } }");
   }
 
   // ---------------------------

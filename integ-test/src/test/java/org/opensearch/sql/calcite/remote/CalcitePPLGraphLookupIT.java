@@ -30,7 +30,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  *
  * <ul>
  *   <li>graph_employees: Employee hierarchy (Dev->Eliot->Ron->Andrew, Asya->Ron, Dan->Andrew)
- *   <li>graph_travelers: Travelers with nearest airport (Dev->JFK, Eliot->JFK, Jeff->BOS)
+ *   <li>graph_travelers: Travelers the nearest airport (Dev->JFK, Eliot->JFK, Jeff->BOS)
  *   <li>graph_airports: Airport connections (JFK, BOS, ORD, PWM, LHR)
  * </ul>
  *
