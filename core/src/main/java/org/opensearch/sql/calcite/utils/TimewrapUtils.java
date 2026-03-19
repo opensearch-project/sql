@@ -276,18 +276,31 @@ public class TimewrapUtils {
   }
 
   /**
-   * Walk the AST from a Timewrap node to find a WHERE clause with an upper bound on the timestamp
-   * field. Returns the upper bound as epoch seconds, or null if not found.
+   * Walk the AST from a Timewrap node to the deepest Filter node and extract the timestamp upper
+   * bound. The frontend time picker always appends the timestamp filter as the first pipe (closest
+   * to source), making it the deepest Filter in the AST chain:
+   *
+   * <pre>
+   *   Timewrap -> Chart -> [user filters] -> Filter(@timestamp >= X AND @timestamp <= Y) -> Source
+   * </pre>
+   *
+   * We walk all Filter nodes and return the last (deepest) timestamp upper bound found. This
+   * ensures user filters like `where age > 30` between timechart and the time picker filter don't
+   * interfere.
    */
   public static Long extractTimestampUpperBound(Timewrap node) {
     Node current = node;
+    Long lastBound = null;
     while (current != null && !current.getChild().isEmpty()) {
       current = current.getChild().get(0);
       if (current instanceof Filter filter) {
-        return findUpperBound(filter.getCondition());
+        Long bound = findUpperBound(filter.getCondition());
+        if (bound != null) {
+          lastBound = bound;
+        }
       }
     }
-    return null;
+    return lastBound;
   }
 
   private static Long findUpperBound(UnresolvedExpression expr) {

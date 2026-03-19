@@ -24,6 +24,8 @@ public class Timewrap extends UnresolvedPlan {
   private final SpanUnit unit;
   private final int value;
   private final String align; // "end" or "now"
+  private final String series; // "relative", "short", or "exact"
+  private final String timeFormat; // format string for series=exact, nullable
   private final Literal spanLiteral; // original span literal for display
 
   private UnresolvedPlan child;

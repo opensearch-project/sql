@@ -354,12 +354,24 @@ transposeParameter
    ;
 
 timewrapCommand
-   : TIMEWRAP spanLiteral (ALIGN EQUAL timewrapAlign)?
+   : TIMEWRAP spanLiteral timewrapParameter*
+   ;
+
+timewrapParameter
+   : ALIGN EQUAL timewrapAlign
+   | SERIES EQUAL timewrapSeries
+   | TIME_FORMAT EQUAL stringLiteral
    ;
 
 timewrapAlign
    : NOW
    | END
+   ;
+
+timewrapSeries
+   : RELATIVE
+   | SHORT
+   | EXACT
    ;
 
 

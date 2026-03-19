@@ -50,6 +50,12 @@ public class CalcitePlanContext {
    */
   public static final ThreadLocal<String> timewrapUnitName = new ThreadLocal<>();
 
+  /** Timewrap series mode: "relative", "short", or "exact". */
+  public static final ThreadLocal<String> timewrapSeries = new ThreadLocal<>();
+
+  /** Timewrap time_format string for series=exact (e.g., "%Y-%m-%d"). */
+  public static final ThreadLocal<String> timewrapTimeFormat = new ThreadLocal<>();
+
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);

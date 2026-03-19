@@ -833,9 +833,25 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (unit == SpanUnit.UNKNOWN || unit == SpanUnit.NONE) {
       throw new SemanticCheckException("Invalid timewrap span unit: " + unitStr);
     }
-    String align =
-        ctx.timewrapAlign() != null ? ctx.timewrapAlign().getText().toLowerCase() : "end";
-    return new Timewrap(unit, value, align, spanLiteral);
+    String align = "end";
+    String series = "relative";
+    String timeFormat = null;
+    for (var param : ctx.timewrapParameter()) {
+      if (param.timewrapAlign() != null) {
+        align = param.timewrapAlign().getText().toLowerCase();
+      } else if (param.timewrapSeries() != null) {
+        series = param.timewrapSeries().getText().toLowerCase();
+      } else if (param.TIME_FORMAT() != null) {
+        timeFormat = param.stringLiteral().getText();
+        // Strip surrounding quotes
+        if (timeFormat.length() >= 2
+            && ((timeFormat.startsWith("\"") && timeFormat.endsWith("\""))
+                || (timeFormat.startsWith("'") && timeFormat.endsWith("'")))) {
+          timeFormat = timeFormat.substring(1, timeFormat.length() - 1);
+        }
+      }
+    }
+    return new Timewrap(unit, value, align, series, timeFormat, spanLiteral);
   }
 
   /** Eval command. */

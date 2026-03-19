@@ -3103,6 +3103,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     CalcitePlanContext.stripNullColumns.set(true);
     CalcitePlanContext.timewrapUnitName.set(
         TimewrapUtils.unitBaseName(node.getUnit(), node.getValue()) + "|_before");
+    CalcitePlanContext.timewrapSeries.set(node.getSeries());
+    CalcitePlanContext.timewrapTimeFormat.set(node.getTimeFormat());
 
     RelBuilder b = context.relBuilder;
     RexBuilder rx = context.rexBuilder;
@@ -3218,44 +3220,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     projections.add(b.alias(periodNum, "__period__"));
     b.project(projections);
 
-    // Step 4: PIVOT on period, grouped by [offset, __base_offset__]
-    // __base_offset__ is constant across all rows so it doesn't affect grouping,
-    // but survives the PIVOT so the execution engine can use it for absolute column naming
-    b.pivot(
-        b.groupKey(b.field(tsFieldName), b.field("__base_offset__")),
-        valueFieldNames.stream().map(f -> (RelBuilder.AggCall) b.max(b.field(f)).as("")).toList(),
-        ImmutableList.of(b.field("__period__")),
-        IntStream.rangeClosed(1, TimewrapUtils.MAX_PERIODS)
-            .map(i -> TimewrapUtils.MAX_PERIODS + 1 - i) // reverse: oldest period first
-            .mapToObj(
-                i ->
-                    Map.entry(
-                        // Use placeholder relative names; execution engine renames to absolute
-                        String.valueOf(i), ImmutableList.of((RexNode) b.literal((long) i))))
-            .collect(Collectors.toList()));
-
-    // Step 5: Rename columns — add agg name prefix, clean up pivot artifacts
-    // Use relative period numbers as temporary names; the execution engine will compute
-    // absolute offsets using __base_offset__ and rename accordingly
-    List<String> pivotColNames = b.peek().getRowType().getFieldNames();
-    List<String> cleanNames = new ArrayList<>();
-    cleanNames.add(tsFieldName);
-    cleanNames.add("__base_offset__");
-    for (int i = 2; i < pivotColNames.size(); i++) {
-      String name = pivotColNames.get(i);
-      if (name.endsWith("_")) {
-        name = name.substring(0, name.length() - 1);
-      }
-      // Prefix with agg name and _before suffix
-      if (valueFieldNames.size() == 1) {
-        name = valueFieldNames.get(0) + "_" + name + "_before";
-      }
-      cleanNames.add(name);
-    }
-    b.rename(cleanNames);
-
-    // Step 6: Sort by offset
-    b.sort(b.field(0));
+    // Step 4: Sort by offset, then period (execution engine will pivot)
+    // No Calcite PIVOT -- the execution engine pivots dynamically after reading all rows.
+    // Output schema: [display_timestamp, value_columns..., __base_offset__, __period__]
+    b.sort(b.field(tsFieldName), b.field("__period__"));
 
     return b.peek();
   }
