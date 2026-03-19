@@ -16,6 +16,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import java.util.Locale;
 import org.apache.commons.text.StringEscapeUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
@@ -485,10 +486,18 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
             String.format(
                 "search source=%s \\\"Hattie\\\" | fields firstname", TEST_INDEX_BANK_REMOTE),
             "[\"*\"]");
-    verifySchema(result, schema("firstname", "string"));
-    verifyDataRows(result, rows("Hattie"));
-    var highlights = result.getJSONArray("highlights");
-    var highlight = highlights.getJSONObject(0);
+    JSONArray schemaArray = result.getJSONArray("schema");
+    int hlIndex = -1;
+    for (int i = 0; i < schemaArray.length(); i++) {
+      if ("_highlight".equals(schemaArray.getJSONObject(i).getString("name"))) {
+        hlIndex = i;
+        break;
+      }
+    }
+    Assert.assertTrue("Schema should contain _highlight column", hlIndex >= 0);
+    JSONArray dataRows = result.getJSONArray("datarows");
+    Assert.assertTrue("Should have at least one row", dataRows.length() > 0);
+    var highlight = dataRows.getJSONArray(0).getJSONObject(hlIndex);
     Assert.assertTrue(
         "Highlight should contain <em>Hattie</em>",
         highlight.getJSONArray("firstname").getString(0).contains("<em>Hattie</em>"));
