@@ -280,6 +280,16 @@ Expected output (trimmed):
 | `post_tags`     | Array of string | No       | Tags inserted after highlighted tokens. Defaults to `</em>`.                                                 |
 | `fragment_size` | Integer         | No       | Maximum character size of a highlight fragment. Defaults to `100`.                                            |
 
+### Limits
+
+| Constraint | Max value | Description |
+|---|---|---|
+| Highlight fields | 100 | Maximum number of fields in the `highlight` array or `fields` object. |
+| Pre/post tags | 10 | Maximum number of entries in each `pre_tags` or `post_tags` array. |
+| Fragment size | > 0 | Must be a positive integer. |
+
+Exceeding these limits returns an error.
+
 ### Notes
 
 - Highlighting requires a search term in the PPL statement (e.g. `source=accounts "Holmes"`). Without a search term (e.g. just `source=accounts`), the `highlights` array entries will be empty.
