@@ -57,8 +57,6 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.context.AbstractAction;
-import org.opensearch.sql.opensearch.storage.scan.context.AggPushDownAction;
-import org.opensearch.sql.opensearch.storage.scan.context.AggregationBuilderAction;
 import org.opensearch.sql.opensearch.storage.scan.context.FilterDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
@@ -174,7 +172,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
       switch (operation.type()) {
         case AGGREGATION -> {
           dRows = mq.getRowCount((RelNode) operation.digest());
-          dCpu += dRows * getAggMultiplier(operation);
+          dCpu += dRows * getAggMultiplier(operation, pushDownContext);
         }
         // Ignored Project in cost accumulation, but it will affect the external cost
         case PROJECT -> {}
@@ -233,7 +231,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
   }
 
   /** See source in {@link org.apache.calcite.rel.core.Aggregate::computeSelfCost} */
-  private static float getAggMultiplier(PushDownOperation operation) {
+  private static float getAggMultiplier(
+      PushDownOperation operation, PushDownContext pushDownContext) {
     // START CALCITE
     List<AggregateCall> aggCalls = ((Aggregate) operation.digest()).getAggCallList();
     float multiplier = 1f + (float) aggCalls.size() * 0.125f;
@@ -248,7 +247,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
 
     // For script aggregation, we need to multiply the multiplier by 1.1 to make up the cost. As we
     // prefer to have non-script agg push down after optimized by {@link PPLAggregateConvertRule}
-    multiplier *= (float) Math.pow(1.1f, ((AggPushDownAction) operation.action()).getScriptCount());
+    long scriptCount =
+        pushDownContext.getAggSpec() == null ? 0 : pushDownContext.getAggSpec().getScriptCount();
+    multiplier *= (float) Math.pow(1.1f, scriptCount);
     return multiplier;
   }
 
@@ -325,10 +326,11 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
       Object digest;
       if (pushDownContext.isAggregatePushed()) {
         // Push down the sort into the aggregation bucket
-        action =
-            (AggregationBuilderAction)
-                aggAction ->
-                    aggAction.pushDownSortIntoAggBucket(collations, getRowType().getFieldNames());
+        pushDownContextWithoutSort.setAggSpec(
+            pushDownContextWithoutSort
+                .getAggSpec()
+                .withBucketSort(collations, getRowType().getFieldNames()));
+        action = (OSRequestBuilderAction) requestBuilder -> {};
         digest = collations;
         pushDownContextWithoutSort.add(PushDownType.SORT, digest, action);
         return buildScan(
