@@ -168,6 +168,12 @@ class SimpleJsonResponseFormatterTest {
 
   @Test
   void formatResponseWithHighlights() {
+    ExecutionEngine.Schema schemaWithHighlight =
+        new ExecutionEngine.Schema(
+            ImmutableList.of(
+                new ExecutionEngine.Schema.Column("firstname", null, STRING),
+                new ExecutionEngine.Schema.Column("age", null, INTEGER),
+                new ExecutionEngine.Schema.Column("_highlight", null, STRING)));
     java.util.LinkedHashMap<String, ExprValue> map = new java.util.LinkedHashMap<>();
     map.put("firstname", ExprValueUtils.stringValue("John"));
     map.put("age", ExprValueUtils.integerValue(20));
@@ -176,14 +182,14 @@ class SimpleJsonResponseFormatterTest {
         ExprTupleValue.fromExprValueMap(
             Map.of("firstname", collectionValue(List.of("<em>John</em>")))));
     ExprValue row = ExprTupleValue.fromExprValueMap(map);
-    QueryResult response = new QueryResult(schema, Collections.singletonList(row));
+    QueryResult response = new QueryResult(schemaWithHighlight, Collections.singletonList(row));
     SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
     String result = formatter.format(response);
     assertEquals(
         "{\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"
-            + "{\"name\":\"age\",\"type\":\"integer\"}],"
-            + "\"datarows\":[[\"John\",20]],"
-            + "\"highlights\":[{\"firstname\":[\"<em>John</em>\"]}],"
+            + "{\"name\":\"age\",\"type\":\"integer\"},"
+            + "{\"name\":\"_highlight\",\"type\":\"string\"}],"
+            + "\"datarows\":[[\"John\",20,{\"firstname\":[\"<em>John</em>\"]}]],"
             + "\"total\":1,\"size\":1}",
         result);
   }

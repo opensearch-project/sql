@@ -44,13 +44,15 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
   public void testHighlightContainsMatchingFragments() throws IOException {
     JSONObject result =
         executeQueryWithHighlight("source=" + TEST_INDEX_ACCOUNT + " \"Holmes\"", "[\"*\"]");
-    JSONArray highlights = result.getJSONArray("highlights");
-    assertTrue("highlights array should not be empty", highlights.length() > 0);
+    int hlIndex = getHighlightColumnIndex(result);
+    assertTrue("_highlight column should exist in schema", hlIndex >= 0);
+    JSONArray dataRows = result.getJSONArray("datarows");
+    assertTrue("datarows should not be empty", dataRows.length() > 0);
     // At least one highlight entry should have non-empty data
     boolean foundFragment = false;
-    for (int i = 0; i < highlights.length(); i++) {
-      JSONObject hlEntry = highlights.getJSONObject(i);
-      if (hlEntry.length() > 0) {
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONObject hlEntry = dataRows.getJSONArray(i).optJSONObject(hlIndex);
+      if (hlEntry != null && hlEntry.length() > 0) {
         foundFragment = true;
         break;
       }
@@ -69,11 +71,11 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
     assertTrue(dataRows.length() > 0);
     assertHighlightsExist(result);
     // Verify custom tags are applied
-    JSONArray highlights = result.getJSONArray("highlights");
+    int hlIndex = getHighlightColumnIndex(result);
     boolean foundCustomTag = false;
-    for (int i = 0; i < highlights.length(); i++) {
-      String hlStr = highlights.getJSONObject(i).toString();
-      if (hlStr.contains("<b>")) {
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONObject hlEntry = dataRows.getJSONArray(i).optJSONObject(hlIndex);
+      if (hlEntry != null && hlEntry.toString().contains("<b>")) {
         foundCustomTag = true;
         break;
       }
@@ -93,11 +95,12 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
     assertTrue(dataRows.length() > 0);
     assertHighlightsExist(result);
     // Verify dashboards tags are applied
-    JSONArray highlights = result.getJSONArray("highlights");
+    int hlIndex = getHighlightColumnIndex(result);
     boolean foundDashboardsTag = false;
-    for (int i = 0; i < highlights.length(); i++) {
-      String hlStr = highlights.getJSONObject(i).toString();
-      if (hlStr.contains("@opensearch-dashboards-highlighted-field@")) {
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONObject hlEntry = dataRows.getJSONArray(i).optJSONObject(hlIndex);
+      if (hlEntry != null
+          && hlEntry.toString().contains("@opensearch-dashboards-highlighted-field@")) {
         foundDashboardsTag = true;
         break;
       }
@@ -162,7 +165,7 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
     JSONObject result =
         executeQueryWithHighlight("source=" + TEST_INDEX_ACCOUNT + " \"Holm*\"", "[\"*\"]");
     assertTrue("Response should contain datarows", result.has("datarows"));
-    assertTrue("Response should contain highlights array", result.has("highlights"));
+    assertHighlightsExist(result);
   }
 
   @Test
@@ -172,7 +175,7 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
             "source=" + TEST_INDEX_ACCOUNT + " \"Holmes\" | where age > 30 | fields firstname, age",
             "[\"*\"]");
     assertTrue("Response should contain datarows", result.has("datarows"));
-    assertTrue("Response should contain highlights array", result.has("highlights"));
+    assertHighlightsExist(result);
   }
 
   @Test
@@ -201,7 +204,7 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
     assertTrue("Response should contain datarows", result.has("datarows"));
     JSONArray dataRows = result.getJSONArray("datarows");
     assertTrue("Should return at most 2 rows", dataRows.length() <= 2);
-    assertTrue("Response should contain highlights array", result.has("highlights"));
+    assertHighlightsExist(result);
   }
 
   @Test
@@ -222,13 +225,16 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
     assertTrue("OR search should return results", dataRows.length() > 0);
     assertHighlightsExist(result);
     // Verify highlights contain fragments for both search terms
-    JSONArray highlights = result.getJSONArray("highlights");
+    int hlIndex = getHighlightColumnIndex(result);
     boolean foundHolmes = false;
     boolean foundBond = false;
-    for (int i = 0; i < highlights.length(); i++) {
-      String hlStr = highlights.getJSONObject(i).toString();
-      if (hlStr.contains("Holmes")) foundHolmes = true;
-      if (hlStr.contains("Bond")) foundBond = true;
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONObject hlEntry = dataRows.getJSONArray(i).optJSONObject(hlIndex);
+      if (hlEntry != null) {
+        String hlStr = hlEntry.toString();
+        if (hlStr.contains("Holmes")) foundHolmes = true;
+        if (hlStr.contains("Bond")) foundBond = true;
+      }
     }
     assertTrue("Highlights should contain Holmes fragments", foundHolmes);
     assertTrue("Highlights should contain Bond fragments", foundBond);
@@ -243,13 +249,16 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
     assertTrue("AND search should return results", dataRows.length() > 0);
     assertHighlightsExist(result);
     // Verify highlights contain fragments for both terms
-    JSONArray highlights = result.getJSONArray("highlights");
+    int hlIndex = getHighlightColumnIndex(result);
     boolean foundHolmes = false;
     boolean foundLane = false;
-    for (int i = 0; i < highlights.length(); i++) {
-      String hlStr = highlights.getJSONObject(i).toString();
-      if (hlStr.contains("Holmes")) foundHolmes = true;
-      if (hlStr.contains("Lane")) foundLane = true;
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONObject hlEntry = dataRows.getJSONArray(i).optJSONObject(hlIndex);
+      if (hlEntry != null) {
+        String hlStr = hlEntry.toString();
+        if (hlStr.contains("Holmes")) foundHolmes = true;
+        if (hlStr.contains("Lane")) foundLane = true;
+      }
     }
     assertTrue("Highlights should contain Holmes fragments", foundHolmes);
     assertTrue("Highlights should contain Lane fragments", foundLane);
@@ -282,10 +291,10 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testWithoutHighlightNoHighlightArray() throws IOException {
-    // Without highlight parameter, highlights array should NOT appear
+  public void testWithoutHighlightNoHighlightColumn() throws IOException {
+    // Without highlight parameter, _highlight column should NOT appear in schema
     JSONObject result = executeQuery("source=" + TEST_INDEX_BANK);
-    assertFalse("Response should NOT contain highlights array", result.has("highlights"));
+    assertTrue("_highlight column should NOT be in schema", getHighlightColumnIndex(result) < 0);
   }
 
   /**
@@ -316,10 +325,26 @@ public class CalciteHighlightIT extends PPLIntegTestCase {
     return jsonify(getResponseBody(response, true));
   }
 
-  /** Assert that the response contains a non-empty highlights array. */
+  /**
+   * Find the index of the _highlight column in the schema array.
+   *
+   * @return the column index, or -1 if not present
+   */
+  private int getHighlightColumnIndex(JSONObject result) {
+    JSONArray schema = result.getJSONArray("schema");
+    for (int i = 0; i < schema.length(); i++) {
+      if ("_highlight".equals(schema.getJSONObject(i).getString("name"))) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  /** Assert that the response contains a _highlight column with non-empty highlight data. */
   private void assertHighlightsExist(JSONObject result) {
-    assertTrue("Response should contain highlights array", result.has("highlights"));
-    JSONArray highlights = result.getJSONArray("highlights");
-    assertTrue("Highlights array should not be empty", highlights.length() > 0);
+    int hlIndex = getHighlightColumnIndex(result);
+    assertTrue("Schema should contain _highlight column", hlIndex >= 0);
+    JSONArray dataRows = result.getJSONArray("datarows");
+    assertTrue("datarows should not be empty", dataRows.length() > 0);
   }
 }

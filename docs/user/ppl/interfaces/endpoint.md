@@ -204,7 +204,7 @@ Expected output (trimmed):
 
 ## Highlight
 
-You can add a `highlight` parameter to the PPL request body to enable search-result highlighting. This parameter follows the same semantics as the [OpenSearch highlight API](https://docs.opensearch.org/latest/search-plugins/searching-data/highlight/). When enabled, the response includes a top-level `highlights` array containing matching fragments with the specified tags. Each entry in the `highlights` array corresponds to the row at the same index in `datarows`.
+You can add a `highlight` parameter to the PPL request body to enable search-result highlighting. This parameter follows the same semantics as the [OpenSearch highlight API](https://docs.opensearch.org/latest/search-plugins/searching-data/highlight/). When enabled, the response includes a `_highlight` column in `schema` and `datarows` containing matching fragments with the specified tags. Each `_highlight` value in a datarow is an object whose keys are field names and whose values are arrays of highlight fragments for the corresponding row.
 
 Two formats are supported:
 
@@ -246,25 +246,21 @@ Expected output (trimmed):
   "schema": [
     { "name": "account_number", "type": "bigint" },
     { "name": "firstname", "type": "string" },
-    { "name": "lastname", "type": "string" }
+    { "name": "lastname", "type": "string" },
+    { "name": "_highlight", "type": "struct" }
   ],
   "datarows": [
-    [578, "Holmes", "Mcknight"],
-    [828, "Blanche", "Holmes"],
-    [1, "Amber", "Duke"]
-  ],
-  "highlights": [
-    {
+    [578, "Holmes", "Mcknight", {
       "firstname": ["@opensearch-dashboards-highlighted-field@Holmes@/opensearch-dashboards-highlighted-field@"],
       "firstname.keyword": ["@opensearch-dashboards-highlighted-field@Holmes@/opensearch-dashboards-highlighted-field@"]
-    },
-    {
+    }],
+    [828, "Blanche", "Holmes", {
       "lastname": ["@opensearch-dashboards-highlighted-field@Holmes@/opensearch-dashboards-highlighted-field@"],
       "lastname.keyword": ["@opensearch-dashboards-highlighted-field@Holmes@/opensearch-dashboards-highlighted-field@"]
-    },
-    {
+    }],
+    [1, "Amber", "Duke", {
       "address": ["880 @opensearch-dashboards-highlighted-field@Holmes@/opensearch-dashboards-highlighted-field@ Lane"]
-    }
+    }]
   ],
   "total": 3,
   "size": 3
@@ -292,8 +288,8 @@ Exceeding these limits returns an error.
 
 ### Notes
 
-- Highlighting requires a search term in the PPL statement (e.g. `source=accounts "Holmes"`). Without a search term (e.g. just `source=accounts`), the `highlights` array entries will be empty.
-- The `highlights` array in the response is parallel to `datarows` — each entry contains the highlighted fragments for the corresponding row.
+- Highlighting requires a search term in the PPL statement (e.g. `source=accounts "Holmes"`). Without a search term (e.g. just `source=accounts`), the `_highlight` values in datarows will be empty objects.
+- The `_highlight` column appears in `schema` and `datarows` as a regular column. Each `_highlight` value is an object whose keys are field names and whose values are arrays of highlight fragments.
 - In the simple array format, `["*"]` highlights all fields. Specific field names like `["firstname", "lastname"]` scope highlighting to those fields only.
 - In the object format, each key in the `fields` object is a field name or wildcard. Each value is an object of per-field highlight options. Supported per-field options: `fragment_size`, `number_of_fragments`, `type` (`plain`, `unified`, `fvh`), `pre_tags`, `post_tags`, `require_field_match`, `no_match_size`, `order`. Use `{}` for defaults. Example: `{"title": {"fragment_size": 200}, "body": {"type": "plain"}}`.
-- Highlights may include fields that are not explicitly projected in the `schema`/`datarows`. For example, using `{"*": {}}` highlights all fields that matched the search query, including fields not selected by `| fields`. In the example above, the `address` field appears in `highlights` because it contains a match ("880 Holmes Lane") even though only `account_number`, `firstname`, and `lastname` are projected.
+- Highlights may include fields that are not explicitly projected in the other columns. For example, using `{"*": {}}` highlights all fields that matched the search query, including fields not selected by `| fields`. In the example above, the `address` field appears in `_highlight` because it contains a match ("880 Holmes Lane") even though only `account_number`, `firstname`, and `lastname` are projected as separate columns.
