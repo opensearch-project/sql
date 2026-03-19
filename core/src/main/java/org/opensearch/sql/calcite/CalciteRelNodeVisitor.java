@@ -156,6 +156,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
+import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.plan.rel.LogicalGraphLookup;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
@@ -171,6 +172,7 @@ import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.expression.parse.RegexCommonUtils;
@@ -225,10 +227,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     context.relBuilder.scan(node.getTableQualifiedName().getParts());
     RelNode scan = context.relBuilder.peek();
-    if (scan instanceof AliasFieldsWrappable) {
-      return ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
+
+    // Eagerly push down highlight config to the scan (highlight is a scan hint, not an operator)
+    if (context.getHighlightConfig() != null && scan instanceof HighlightPushDown) {
+      RelNode newScan = ((HighlightPushDown) scan).pushDownHighlight(context.getHighlightConfig());
+      context.relBuilder.build(); // pop old scan
+      context.relBuilder.push(newScan);
+      scan = newScan;
+      context.setHighlightConfig(null); // consumed
     }
-    return scan;
+
+    if (scan instanceof AliasFieldsWrappable) {
+      ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
+    }
+
+    return context.relBuilder.peek();
   }
 
   // This is a tool method to add an existed RelOptTable to builder stack, not used for now
@@ -418,6 +431,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> expandedFields =
         expandProjectFields(node.getProjectList(), currentFields, context);
+
+    // Include _highlight in projections when the highlight column is present in the schema
+    int hlIndex = currentFields.indexOf(HighlightExpression.HIGHLIGHT_FIELD);
+    if (hlIndex >= 0) {
+      expandedFields.add(context.relBuilder.field(hlIndex));
+    }
 
     if (node.isExcluded()) {
       validateExclusion(expandedFields, currentFields);

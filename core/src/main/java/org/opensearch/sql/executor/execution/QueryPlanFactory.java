@@ -122,7 +122,12 @@ public class QueryPlanFactory
       }
     } else {
       return new QueryPlan(
-          QueryId.queryId(), node.getQueryType(), node.getPlan(), queryService, context.getLeft());
+          QueryId.queryId(),
+          node.getQueryType(),
+          node.getPlan(),
+          queryService,
+          context.getLeft(),
+          node.getHighlightConfig());
     }
   }
 
