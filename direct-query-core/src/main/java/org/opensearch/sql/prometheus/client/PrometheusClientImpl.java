@@ -44,6 +44,9 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   private final URI prometheusUri;
   private final URI alertmanagerUri;
+  // Ruler API may be on a different host (e.g. Cortex ruler vs query-frontend) but shares
+  // the same authentication as prometheusHttpClient. All supported backends (Cortex, AMP)
+  // use identical credentials for both query and ruler endpoints.
   private final URI rulerUri;
 
   public PrometheusClientImpl(OkHttpClient prometheusHttpClient, URI prometheusUri) {
@@ -267,9 +270,11 @@ public class PrometheusClientImpl implements PrometheusClient {
 
     logger.debug("Making Alertmanager alerts request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.alertmanagerHttpClient.newCall(request).execute());
-
-    return readAlertmanagerResponse(response);
+    try (Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.alertmanagerHttpClient.newCall(request).execute())) {
+      return readAlertmanagerResponse(response);
+    }
   }
 
   @Override
@@ -280,9 +285,11 @@ public class PrometheusClientImpl implements PrometheusClient {
 
     logger.debug("Making Alertmanager alert groups request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.alertmanagerHttpClient.newCall(request).execute());
-
-    return readAlertmanagerResponse(response);
+    try (Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.alertmanagerHttpClient.newCall(request).execute())) {
+      return readAlertmanagerResponse(response);
+    }
   }
 
   @Override
@@ -292,9 +299,11 @@ public class PrometheusClientImpl implements PrometheusClient {
 
     logger.debug("Making Alertmanager receivers request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.alertmanagerHttpClient.newCall(request).execute());
-
-    return readAlertmanagerResponse(response);
+    try (Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.alertmanagerHttpClient.newCall(request).execute())) {
+      return readAlertmanagerResponse(response);
+    }
   }
 
   @Override
@@ -304,9 +313,11 @@ public class PrometheusClientImpl implements PrometheusClient {
 
     logger.debug("Making Get Alertmanager silences request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.alertmanagerHttpClient.newCall(request).execute());
-
-    return readAlertmanagerResponse(response);
+    try (Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.alertmanagerHttpClient.newCall(request).execute())) {
+      return readAlertmanagerResponse(response);
+    }
   }
 
   @Override
@@ -315,23 +326,31 @@ public class PrometheusClientImpl implements PrometheusClient {
     String queryUrl = String.format("%s/api/v2/silences", baseUrl);
 
     logger.debug("Making Create Alertmanager silences request: {}", queryUrl);
-    Request request = new Request.Builder()
+    Request request =
+        new Request.Builder()
             .url(queryUrl)
             .header("Content-Type", "application/json")
             .post(RequestBody.create(silenceJson.getBytes(StandardCharsets.UTF_8)))
             .build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.alertmanagerHttpClient.newCall(request).execute());
-
-    if (response.isSuccessful()) {
-      return Objects.requireNonNull(response.body()).string();
-    } else {
-      String errorBody = response.body() != null ? response.body().string() : "No response body";
-      logger.error(
-              "create Alertmanager Silence request failed with code: {}, error body: {}", response.code(), errorBody);
-      throw new PrometheusClientException(
-              String.format(
-                      "Alertmanager request failed with code: %s. Error details: %s",
-                      response.code(), errorBody));
+    try (Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.alertmanagerHttpClient.newCall(request).execute())) {
+      if (response.isSuccessful()) {
+        return Objects.requireNonNull(
+                response.body(), "Alertmanager create silence response body is null")
+            .string();
+      } else {
+        String errorBody =
+            response.body() != null ? response.body().string() : "No response body";
+        logger.error(
+            "Create Alertmanager Silence request failed with code: {}, error body: {}",
+            response.code(),
+            errorBody);
+        throw new PrometheusClientException(
+            String.format(
+                "Alertmanager request failed with code: %s. Error details: %s",
+                response.code(), errorBody));
+      }
     }
   }
 
@@ -377,7 +396,6 @@ public class PrometheusClientImpl implements PrometheusClient {
             () -> this.alertmanagerHttpClient.newCall(request).execute())) {
       if (response.isSuccessful()) {
         String bodyString = Objects.requireNonNull(response.body()).string();
-        logger.debug("Alertmanager status response body: {}", bodyString);
         return new JSONObject(bodyString);
       } else {
         String errorBody =
@@ -477,7 +495,7 @@ public class PrometheusClientImpl implements PrometheusClient {
    *
    * @param response The HTTP response
    * @param operationDescription Description for log messages (e.g., "GET all rules")
-   * @return The response body as a string (empty string if body is null)
+   * @return The response body as a string
    * @throws IOException If there is an issue reading the response
    */
   private String readRulerResponse(Response response, String operationDescription)
@@ -532,39 +550,50 @@ public class PrometheusClientImpl implements PrometheusClient {
       // Not JSON — fall through to YAML parsing
     }
 
-    // 2. Parse as YAML (Cortex/Thanos format)
+    // 2. Parse as YAML (Cortex/Thanos format).
+    // Multi-namespace responses are Map<String, List<RuleGroup>>;
+    // single-namespace responses are List<RuleGroup>.
+    JSONArray groupsArray = new JSONArray();
     try {
-      Object parsed = YAML_MAPPER.readValue(body, Object.class);
-      JSONArray groupsArray = new JSONArray();
+      Map<String, Object> parsed =
+          YAML_MAPPER.readValue(body, new TypeReference<Map<String, Object>>() {});
       addGroupsFromParsed(parsed, namespace, groupsArray);
       return new JSONObject().put("groups", groupsArray);
-    } catch (Exception e) {
-      logger.warn(
-          "Failed to parse rules response body, returning empty groups: {}", e.getMessage());
-      return new JSONObject().put("groups", new JSONArray());
+    } catch (Exception mapEx) {
+      // Not a map — try as a bare list of rule groups
+      try {
+        List<Map<String, Object>> parsed =
+            YAML_MAPPER.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
+        addGroupsFromList(parsed, namespace, groupsArray);
+        return new JSONObject().put("groups", groupsArray);
+      } catch (Exception listEx) {
+        logger.warn(
+            "Failed to parse rules response body, returning empty groups: {}",
+            listEx.getMessage());
+        return new JSONObject().put("groups", new JSONArray());
+      }
     }
   }
 
   @SuppressWarnings("unchecked")
-  private void addGroupsFromParsed(Object parsed, String namespace, JSONArray groupsArray) {
-    if (parsed instanceof Map) {
-      // All-namespaces format: Map<String, List<RuleGroup>>
-      Map<String, Object> namespacesMap = (Map<String, Object>) parsed;
-      for (Map.Entry<String, Object> entry : namespacesMap.entrySet()) {
-        if (entry.getValue() instanceof List) {
-          addGroupsFromParsed(entry.getValue(), entry.getKey(), groupsArray);
-        }
+  private void addGroupsFromParsed(
+      Map<String, Object> namespacesMap, String namespace, JSONArray groupsArray) {
+    for (Map.Entry<String, Object> entry : namespacesMap.entrySet()) {
+      if (entry.getValue() instanceof List) {
+        addGroupsFromList(
+            (List<Map<String, Object>>) entry.getValue(), entry.getKey(), groupsArray);
       }
-    } else if (parsed instanceof List) {
-      // Single-namespace format: List<RuleGroup>
-      List<Map<String, Object>> groups = (List<Map<String, Object>>) parsed;
-      for (Map<String, Object> group : groups) {
-        JSONObject groupObj = new JSONObject(group);
-        if (namespace != null) {
-          groupObj.put("file", namespace);
-        }
-        groupsArray.put(groupObj);
+    }
+  }
+
+  private void addGroupsFromList(
+      List<Map<String, Object>> groups, String namespace, JSONArray groupsArray) {
+    for (Map<String, Object> group : groups) {
+      JSONObject groupObj = new JSONObject(group);
+      if (namespace != null) {
+        groupObj.put("file", namespace);
       }
+      groupsArray.put(groupObj);
     }
   }
 
@@ -577,10 +606,8 @@ public class PrometheusClientImpl implements PrometheusClient {
    */
   private JSONArray readAlertmanagerResponse(Response response) throws IOException {
     if (response.isSuccessful()) {
-      String bodyString = Objects.requireNonNull(response.body()).string();
-      logger.debug("Alertmanager response body: {}", bodyString);
-
-      // Parse the response body directly as JSON array
+      String bodyString =
+          Objects.requireNonNull(response.body(), "Alertmanager response body is null").string();
       return new JSONArray(bodyString);
     } else {
       String errorBody = response.body() != null ? response.body().string() : "No response body";
