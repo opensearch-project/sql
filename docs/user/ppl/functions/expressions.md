@@ -18,8 +18,22 @@ Arithmetic expression is an expression formed by numeric literals and binary ari
    [plugins.ppl.syntax.legacy.preferred](../admin/settings.md) is `true` (default). When the
    setting is `false` the operands are promoted to floating point, preserving
    the fractional part. Division by zero still returns `NULL`.
-5. `%`: Modulo. This can be used with integers only with remainder of the division as result.  
-  
+5. `%`: Modulo. This can be used with integers only with remainder of the division as result.
+
+#### Overflow Behavior
+
+Integer and long arithmetic operations detect overflow and return an error
+instead of silently wrapping. For example, `2147483647 + 1` (integer max + 1)
+returns an error rather than `-2147483648`. This applies to `+`, `-`, and `*`
+on integer and long types.
+
+Floating-point arithmetic (`float`, `double`) follows IEEE 754 and does not
+produce overflow errors.
+
+This behavior is controlled by the `plugins.calcite.checked_arithmetic.enabled`
+setting (default: `true`). When disabled, arithmetic wraps silently as in
+standard Java.
+
 #### Precedence  
 
 Parentheses can be used to control the precedence of arithmetic operators. Otherwise, operators of higher precedence is performed first.

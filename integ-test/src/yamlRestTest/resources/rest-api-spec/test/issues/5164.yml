@@ -1,0 +1,149 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+  - do:
+      indices.create:
+        index: test_overflow
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              int_field:
+                type: integer
+              long_field:
+                type: long
+              small_int:
+                type: integer
+
+  - do:
+      bulk:
+        index: test_overflow
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"int_field": 2147483647, "long_field": 9223372036854775807, "small_int": 10}'
+          - '{"index": {"_id": "2"}}'
+          - '{"int_field": 100, "long_field": 200, "small_int": 5}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+  - do:
+      indices.delete:
+        index: test_overflow
+        ignore_unavailable: true
+
+---
+"Normal integer addition does not error":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow | where small_int = 5 | eval sum = int_field + small_int | fields int_field, small_int, sum
+  - match: { total: 1 }
+  - match: { datarows: [[100, 5, 105]] }
+  - match: { schema: [{ name: "int_field", type: "int" }, { name: "small_int", type: "int" }, { name: "sum", type: "int" }] }
+
+---
+"Integer addition overflow throws error":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow | where int_field = 2147483647 | eval overflow = int_field + 1 | fields overflow
+  - match: { "$body": "/overflow/" }
+
+---
+"Long addition overflow throws error":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow | where long_field = 9223372036854775807 | eval overflow = long_field + 1 | fields overflow
+  - match: { "$body": "/overflow/" }
+
+---
+"Integer multiplication overflow throws error":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow | where int_field = 2147483647 | eval overflow = int_field * 2 | fields overflow
+  - match: { "$body": "/overflow/" }
+
+---
+"Long multiplication overflow throws error":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow | where long_field = 9223372036854775807 | eval overflow = long_field * 2 | fields overflow
+  - match: { "$body": "/overflow/" }
+
+---
+"Integer subtraction overflow throws error":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow | where int_field = 2147483647 | eval overflow = int_field - (-1) | fields overflow
+  - match: { "$body": "/overflow/" }
+
+---
+"Normal arithmetic with doubles does not error on large values":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow | where small_int = 5 | eval result = small_int * 1.0 + 999999999999.0 | fields result
+  - match: { total: 1 }
