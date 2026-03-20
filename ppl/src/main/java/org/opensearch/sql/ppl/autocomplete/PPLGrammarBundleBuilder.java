@@ -162,7 +162,7 @@ public final class PPLGrammarBundleBuilder {
             "integerLiteral",
             "decimalLiteral",
             "keywordsCanBeId",
-            "renameClasue",
+            "renameClause",
             "qualifiedName",
             "tableQualifiedName",
             "wcQualifiedName",
