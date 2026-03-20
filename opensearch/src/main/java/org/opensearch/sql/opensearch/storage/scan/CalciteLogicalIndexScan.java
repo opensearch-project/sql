@@ -430,24 +430,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                     .map(op -> (LimitDigest) op.digest())
                     .map(d -> totalSize < d.offset() + d.limit())
                     .orElse(true);
-        boolean canUpdateBuilder = aggSpec.canPushDownLimitIntoBucketSize(totalSize);
-        boolean alreadyBoundedByCurrentBucketSize =
-            aggSpec.getBucketSize() != null && totalSize <= aggSpec.getBucketSize();
-        boolean alreadyEnforcedByExistingLimit =
-            pushDownContext.isLimitPushed() && !canReduceEstimatedRowsCount;
-        boolean canEnforceLimit =
-            aggSpec.isCompositeAggregation()
-                || canUpdateBuilder
-                || alreadyBoundedByCurrentBucketSize
-                || alreadyEnforcedByExistingLimit
-                || (aggSpec.isSingleRowAggregation() && offset == 0);
-
-        // Push down the limit into the aggregation bucket in advance to detect whether the limit
-        // can update the aggregation builder
-        boolean canUpdate = canReduceEstimatedRowsCount || canUpdateBuilder;
-        if (!canEnforceLimit || (!canUpdate && offset > 0)) return null;
+        boolean canUpdate =
+            canReduceEstimatedRowsCount || aggSpec.canPushDownLimitIntoBucketSize(totalSize);
+        if (!canUpdate && offset > 0) return null;
         CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
-        if (canUpdateBuilder) {
+        if (canUpdate) {
           newScan.pushDownContext.setAggSpec(aggSpec.withLimit(limit + offset));
         }
         AbstractAction action;

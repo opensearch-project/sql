@@ -49,6 +49,13 @@ public final class AggSpec {
     RARE_TOP
   }
 
+  private enum LimitPushdownMode {
+    UNSUPPORTED,
+    ESTIMATE_ONLY,
+    LEAF_METRIC,
+    BUCKET_SIZE
+  }
+
   private final Aggregate aggregate;
   @Nullable private final Project project;
   private final List<String> outputFields;
@@ -62,6 +69,7 @@ public final class AggSpec {
   private final List<String> bucketNames;
   private final long scriptCount;
   private final AggKind kind;
+  private final LimitPushdownMode limitPushdownMode;
   @Nullable private final AggKind measureSortTarget;
   private final boolean rareTopSupported;
   @Nullable private final List<RelFieldCollation> bucketSortCollations;
@@ -85,6 +93,7 @@ public final class AggSpec {
       List<String> bucketNames,
       long scriptCount,
       AggKind kind,
+      LimitPushdownMode limitPushdownMode,
       @Nullable AggKind measureSortTarget,
       boolean rareTopSupported,
       @Nullable List<RelFieldCollation> bucketSortCollations,
@@ -106,6 +115,7 @@ public final class AggSpec {
     this.bucketNames = List.copyOf(bucketNames);
     this.scriptCount = scriptCount;
     this.kind = kind;
+    this.limitPushdownMode = limitPushdownMode;
     this.measureSortTarget = measureSortTarget;
     this.rareTopSupported = rareTopSupported;
     this.bucketSortCollations =
@@ -149,6 +159,7 @@ public final class AggSpec {
         bucketNames,
         new AggPushDownAction(builderAndParser, extendedTypeMapping, bucketNames).getScriptCount(),
         kind,
+        inferLimitPushdownMode(builderAndParser.getLeft(), rootBuilder),
         inferMeasureSortTarget(rootBuilder),
         isRareTopSupported(rootBuilder),
         null,
@@ -168,7 +179,14 @@ public final class AggSpec {
   }
 
   public boolean canPushDownLimitIntoBucketSize(int size) {
-    return bucketSize != null && size < bucketSize;
+    return switch (limitPushdownMode) {
+      case BUCKET_SIZE -> bucketSize != null && size < bucketSize;
+      case LEAF_METRIC -> true;
+      case ESTIMATE_ONLY -> false;
+      case UNSUPPORTED ->
+          throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+              "Cannot pushdown limit into aggregation bucket");
+    };
   }
 
   public AggSpec withBucketSort(List<RelFieldCollation> collations, List<String> fieldNames) {
@@ -210,6 +228,7 @@ public final class AggSpec {
         newBucketNames,
         scriptCount,
         kind,
+        limitPushdownMode,
         measureSortTarget,
         rareTopSupported,
         collations,
@@ -238,6 +257,7 @@ public final class AggSpec {
         initialBucketNames,
         scriptCount,
         kind,
+        limitPushdownMode,
         measureSortTarget,
         rareTopSupported,
         null,
@@ -272,6 +292,7 @@ public final class AggSpec {
         bucketNames,
         scriptCount,
         measureSortTarget,
+        inferLimitPushdownMode(measureSortTarget),
         null,
         rareTopSupported,
         bucketSortCollations,
@@ -300,6 +321,7 @@ public final class AggSpec {
         bucketNames,
         scriptCount,
         AggKind.RARE_TOP,
+        LimitPushdownMode.BUCKET_SIZE,
         null,
         rareTopSupported,
         bucketSortCollations,
@@ -311,8 +333,17 @@ public final class AggSpec {
   }
 
   public AggSpec withLimit(int size) {
-    if (!canPushDownLimitIntoBucketSize(size)) {
-      return this;
+    switch (limitPushdownMode) {
+      case ESTIMATE_ONLY, LEAF_METRIC:
+        return this;
+      case UNSUPPORTED:
+        throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+            "Cannot pushdown limit into aggregation bucket");
+      case BUCKET_SIZE:
+        if (!canPushDownLimitIntoBucketSize(size)) {
+          return this;
+        }
+        break;
     }
     return new AggSpec(
         aggregate,
@@ -328,6 +359,7 @@ public final class AggSpec {
         bucketNames,
         scriptCount,
         kind,
+        limitPushdownMode,
         measureSortTarget,
         rareTopSupported,
         bucketSortCollations,
@@ -392,6 +424,28 @@ public final class AggSpec {
       return AggKind.TOP_HITS;
     }
     return AggKind.OTHER;
+  }
+
+  private static LimitPushdownMode inferLimitPushdownMode(AggKind kind) {
+    return switch (kind) {
+      case COMPOSITE, TERMS, MULTI_TERMS, TOP_HITS, RARE_TOP -> LimitPushdownMode.BUCKET_SIZE;
+      case OTHER, DATE_HISTOGRAM, HISTOGRAM -> LimitPushdownMode.UNSUPPORTED;
+    };
+  }
+
+  private static LimitPushdownMode inferLimitPushdownMode(
+      List<AggregationBuilder> builders, @Nullable AggregationBuilder rootBuilder) {
+    if (builders.isEmpty()) {
+      // count() optimization uses hits.total and leaves the builder list empty. Main still keeps
+      // LIMIT in PushDownContext for these cases even though no request-side limit is applied.
+      return LimitPushdownMode.ESTIMATE_ONLY;
+    }
+    AggregationBuilder builder = unwrapNestedBuilder(rootBuilder);
+    if (builder instanceof ValuesSourceAggregationBuilder.LeafOnly<?, ?>) {
+      // Main treats leaf metric aggregations as limit-pushable because they produce a single row.
+      return LimitPushdownMode.LEAF_METRIC;
+    }
+    return inferLimitPushdownMode(inferKind(rootBuilder));
   }
 
   private static boolean isRareTopSupported(@Nullable AggregationBuilder rootBuilder) {
