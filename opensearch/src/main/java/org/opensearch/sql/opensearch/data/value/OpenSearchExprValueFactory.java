@@ -195,6 +195,19 @@ public class OpenSearchExprValueFactory {
       return ExprNullValue.of();
     }
 
+    // Check for arrays first, even if field type is not defined in mapping.
+    // This handles nested arrays in aggregation results where inner fields
+    // (like sample_logs in pattern aggregation) may not have type mappings.
+    // Exclude GeoPoint types as they have special array handling (e.g., [lon, lat] format).
+    if (content.isArray()
+        && (fieldType.isEmpty() || supportArrays)
+        && !fieldType
+            .map(t -> t.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint)))
+            .orElse(false)) {
+      ExprType type = fieldType.orElse(ARRAY);
+      return parseArray(content, field, type, supportArrays);
+    }
+
     // Field type may be not defined in mapping if users have disabled dynamic mapping.
     // Then try to parse content directly based on the value itself
     // Besides, sub-fields of generated objects are also of type UNDEFINED. We parse the content
@@ -481,24 +494,31 @@ public class OpenSearchExprValueFactory {
    */
   private ExprValue parseArray(
       Content content, String prefix, ExprType type, boolean supportArrays) {
-    List<ExprValue> result = new ArrayList<>();
-
     // ARRAY is mapped to nested but can take the json structure of an Object.
     if (content.objectValue() instanceof ObjectNode) {
+      List<ExprValue> result = new ArrayList<>();
       result.add(parseStruct(content, prefix, supportArrays));
-      // non-object type arrays are only supported when parsing inner_hits of OS response.
-    } else if (!(type instanceof OpenSearchDataType
+      return new ExprCollectionValue(result);
+    }
+
+    // Get the array iterator once and reuse it
+    var arrayIterator = content.array();
+
+    // Handle empty arrays early
+    if (!arrayIterator.hasNext()) {
+      return supportArrays ? new ExprCollectionValue(List.of()) : ExprNullValue.of();
+    }
+
+    // non-object type arrays are only supported when parsing inner_hits of OS response.
+    if (!(type instanceof OpenSearchDataType
             && ((OpenSearchDataType) type).getExprType().equals(ARRAY))
         && !supportArrays) {
-      return parseInnerArrayValue(content.array().next(), prefix, type, supportArrays);
-    } else {
-      content
-          .array()
-          .forEachRemaining(
-              v -> {
-                result.add(parseInnerArrayValue(v, prefix, type, supportArrays));
-              });
+      return parseInnerArrayValue(arrayIterator.next(), prefix, type, supportArrays);
     }
+
+    List<ExprValue> result = new ArrayList<>();
+    arrayIterator.forEachRemaining(
+        v -> result.add(parseInnerArrayValue(v, prefix, type, supportArrays)));
     return new ExprCollectionValue(result);
   }
 
