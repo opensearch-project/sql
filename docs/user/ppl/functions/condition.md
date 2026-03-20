@@ -780,48 +780,47 @@ Syntax: `<field> contains '<string_literal>'`
 Basic substring filter:
 
 ```ppl
-source=logs
-| where message contains 'error'
-| fields timestamp, message
+source=accounts
+| where firstname contains 'mbe'
+| fields firstname, age
 ```
 
 Expected output:
 
 ```text
-fetched rows / total rows = 2/5
-+---------------------+----------------------------------+
-| timestamp           | message                          |
-|---------------------+----------------------------------|
-| 2024-01-15 10:23:45 | ERROR: Connection timeout        |
-| 2024-01-15 11:02:10 | An error occurred during startup |
-+---------------------+----------------------------------+
+fetched rows / total rows = 1/1
++-----------+-----+
+| firstname | age |
+|-----------+-----|
+| Amber     | 32  |
++-----------+-----+
 ```
 
 Case-insensitive matching (all of the following are equivalent):
 
-```ppl
-source=logs | where message contains 'error'
-source=logs | where message CONTAINS 'error'
-source=logs | where message Contains 'Error'
+```ppl ignore
+source=accounts | where firstname contains 'mbe'
+source=accounts | where firstname CONTAINS 'MBE'
+source=accounts | where firstname Contains 'Mbe'
 ```
 
 Combining with other conditions:
 
 ```ppl
 source=accounts
-| where employer contains 'tech' AND age > 30
+| where employer contains 'ami' AND age > 30
 | fields firstname, employer, age
 ```
 
 Expected output:
 
 ```text
-fetched rows / total rows = 1/4
-+-----------+----------------+-----+
-| firstname | employer       | age |
-+-----------+----------------+-----|
-| Amber     | TechCorp       | 32  |
-+-----------+----------------+-----+
+fetched rows / total rows = 1/1
++-----------+----------+-----+
+| firstname | employer | age |
+|-----------+----------+-----|
+| Amber     | Pyrami   | 32  |
++-----------+----------+-----+
 ```
 
 ## REGEXP_MATCH  

@@ -151,7 +151,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | where firstname contains 'mbe' | fields firstname",
                 TEST_INDEX_ACCOUNT));
-    verifyDataRows(result, rows("Amber"));
+    verifyDataRows(result, rows("Amber"), rows("Chambers"));
 
     result =
         executeQuery(
@@ -169,7 +169,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | where firstname contains 'MBE' | fields firstname",
                 TEST_INDEX_ACCOUNT));
-    verifyDataRows(result, rows("Amber"));
+    verifyDataRows(result, rows("Amber"), rows("Chambers"));
   }
 
   @Test
