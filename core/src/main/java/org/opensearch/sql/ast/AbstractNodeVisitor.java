@@ -93,6 +93,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 
@@ -469,6 +470,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitMultisearch(Multisearch node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitUnion(Union node, C context) {
     return visitChildren(node, context);
   }
 

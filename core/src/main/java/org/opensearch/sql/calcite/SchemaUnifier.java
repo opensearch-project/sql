@@ -14,10 +14,16 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
- * Utility class for unifying schemas across multiple RelNodes. Throws an exception when type
- * conflicts are detected.
+ * Utility class for unifying schemas across multiple RelNodes. Supports two strategies:
+ *
+ * <ul>
+ *   <li>Conflict resolution (multisearch): throws on type mismatch, fills missing fields with NULL
+ *   <li>Type coercion (union): widens compatible types (e.g. INTEGER→BIGINT), falls back to VARCHAR
+ *       for incompatible types, fills missing fields with NULL
+ * </ul>
  */
 public class SchemaUnifier {
 
@@ -146,5 +152,237 @@ public class SchemaUnifier {
     RelDataType getType() {
       return type;
     }
+  }
+
+  /**
+   * Builds unified schema with type coercion for UNION command. Coerces compatible types to a
+   * common supertype (e.g. int+float→float), falls back to VARCHAR for incompatible types, and
+   * fills missing fields with NULL.
+   */
+  public static List<RelNode> buildUnifiedSchemaWithTypeCoercion(
+      List<RelNode> inputs, CalcitePlanContext context) {
+    if (inputs.isEmpty() || inputs.size() == 1) {
+      return inputs;
+    }
+
+    List<RelNode> coercedInputs = coerceUnionTypes(inputs, context);
+    return unifySchemasForUnion(coercedInputs, context);
+  }
+
+  /**
+   * Aligns schemas by projecting NULL for missing fields and CAST for type mismatches. Uses
+   * force=true to clear collation traits and prevent EnumerableMergeUnion cast exception.
+   */
+  private static List<RelNode> unifySchemasForUnion(
+      List<RelNode> inputs, CalcitePlanContext context) {
+    List<SchemaField> unifiedSchema = buildUnifiedSchemaForUnion(inputs);
+    List<String> fieldNames =
+        unifiedSchema.stream().map(SchemaField::getName).collect(Collectors.toList());
+
+    List<RelNode> projectedNodes = new ArrayList<>();
+    for (RelNode node : inputs) {
+      List<RexNode> projection = buildProjectionForUnion(node, unifiedSchema, context);
+      RelNode projectedNode =
+          context.relBuilder.push(node).project(projection, fieldNames, true).build();
+      projectedNodes.add(projectedNode);
+    }
+    return projectedNodes;
+  }
+
+  private static List<SchemaField> buildUnifiedSchemaForUnion(List<RelNode> nodes) {
+    List<SchemaField> schema = new ArrayList<>();
+    Map<String, RelDataType> seenFields = new HashMap<>();
+
+    for (RelNode node : nodes) {
+      for (RelDataTypeField field : node.getRowType().getFieldList()) {
+        if (!seenFields.containsKey(field.getName())) {
+          schema.add(new SchemaField(field.getName(), field.getType()));
+          seenFields.put(field.getName(), field.getType());
+        }
+      }
+    }
+    return schema;
+  }
+
+  private static List<RexNode> buildProjectionForUnion(
+      RelNode node, List<SchemaField> unifiedSchema, CalcitePlanContext context) {
+    Map<String, RelDataTypeField> nodeFieldMap =
+        node.getRowType().getFieldList().stream()
+            .collect(Collectors.toMap(RelDataTypeField::getName, field -> field));
+
+    List<RexNode> projection = new ArrayList<>();
+    for (SchemaField schemaField : unifiedSchema) {
+      RelDataTypeField nodeField = nodeFieldMap.get(schemaField.getName());
+
+      if (nodeField != null) {
+        RexNode fieldRef = context.rexBuilder.makeInputRef(node, nodeField.getIndex());
+        if (!nodeField.getType().equals(schemaField.getType())) {
+          projection.add(context.rexBuilder.makeCast(schemaField.getType(), fieldRef));
+        } else {
+          projection.add(fieldRef);
+        }
+      } else {
+        projection.add(context.rexBuilder.makeNullLiteral(schemaField.getType()));
+      }
+    }
+    return projection;
+  }
+
+  /** Casts fields to their common supertypes across all inputs when types differ. */
+  private static List<RelNode> coerceUnionTypes(List<RelNode> inputs, CalcitePlanContext context) {
+    Map<String, List<SqlTypeName>> fieldTypeMap = new HashMap<>();
+    for (RelNode input : inputs) {
+      for (RelDataTypeField field : input.getRowType().getFieldList()) {
+        String fieldName = field.getName();
+        SqlTypeName typeName = field.getType().getSqlTypeName();
+        if (typeName != null) {
+          fieldTypeMap.computeIfAbsent(fieldName, k -> new ArrayList<>()).add(typeName);
+        }
+      }
+    }
+
+    Map<String, SqlTypeName> targetTypeMap = new HashMap<>();
+    for (Map.Entry<String, List<SqlTypeName>> entry : fieldTypeMap.entrySet()) {
+      String fieldName = entry.getKey();
+      List<SqlTypeName> types = entry.getValue();
+
+      SqlTypeName commonType = types.getFirst();
+      for (int i = 1; i < types.size(); i++) {
+        commonType = findCommonTypeForUnion(commonType, types.get(i));
+      }
+      targetTypeMap.put(fieldName, commonType);
+    }
+
+    boolean needsCoercion = false;
+    for (RelNode input : inputs) {
+      for (RelDataTypeField field : input.getRowType().getFieldList()) {
+        SqlTypeName targetType = targetTypeMap.get(field.getName());
+        if (targetType != null && field.getType().getSqlTypeName() != targetType) {
+          needsCoercion = true;
+          break;
+        }
+      }
+      if (needsCoercion) break;
+    }
+
+    if (!needsCoercion) {
+      return inputs;
+    }
+
+    List<RelNode> coercedInputs = new ArrayList<>();
+    for (RelNode input : inputs) {
+      List<RexNode> projections = new ArrayList<>();
+      List<String> projectionNames = new ArrayList<>();
+      boolean needsProjection = false;
+
+      for (RelDataTypeField field : input.getRowType().getFieldList()) {
+        String fieldName = field.getName();
+        SqlTypeName currentType = field.getType().getSqlTypeName();
+        SqlTypeName targetType = targetTypeMap.get(fieldName);
+
+        RexNode fieldRef = context.rexBuilder.makeInputRef(input, field.getIndex());
+
+        if (currentType != targetType && targetType != null) {
+          projections.add(context.relBuilder.cast(fieldRef, targetType));
+          needsProjection = true;
+        } else {
+          projections.add(fieldRef);
+        }
+        projectionNames.add(fieldName);
+      }
+
+      if (needsProjection) {
+        context.relBuilder.push(input);
+        context.relBuilder.project(projections, projectionNames, true);
+        coercedInputs.add(context.relBuilder.build());
+      } else {
+        coercedInputs.add(input);
+      }
+    }
+
+    return coercedInputs;
+  }
+
+  /**
+   * Returns the wider type for two SqlTypeNames. Within the same family, returns the wider type
+   * (e.g. INTEGER+BIGINT-->BIGINT). Across families, falls back to VARCHAR.
+   */
+  private static SqlTypeName findCommonTypeForUnion(SqlTypeName type1, SqlTypeName type2) {
+    if (type1 == type2) {
+      return type1;
+    }
+
+    if (type1 == SqlTypeName.NULL) {
+      return type2;
+    }
+    if (type2 == SqlTypeName.NULL) {
+      return type1;
+    }
+
+    if (isNumericTypeForUnion(type1) && isNumericTypeForUnion(type2)) {
+      return getWiderNumericTypeForUnion(type1, type2);
+    }
+
+    if (isStringTypeForUnion(type1) && isStringTypeForUnion(type2)) {
+      return SqlTypeName.VARCHAR;
+    }
+
+    if (isTemporalTypeForUnion(type1) && isTemporalTypeForUnion(type2)) {
+      return getWiderTemporalTypeForUnion(type1, type2);
+    }
+
+    return SqlTypeName.VARCHAR;
+  }
+
+  private static boolean isNumericTypeForUnion(SqlTypeName typeName) {
+    return typeName == SqlTypeName.TINYINT
+        || typeName == SqlTypeName.SMALLINT
+        || typeName == SqlTypeName.INTEGER
+        || typeName == SqlTypeName.BIGINT
+        || typeName == SqlTypeName.FLOAT
+        || typeName == SqlTypeName.REAL
+        || typeName == SqlTypeName.DOUBLE
+        || typeName == SqlTypeName.DECIMAL;
+  }
+
+  private static boolean isStringTypeForUnion(SqlTypeName typeName) {
+    return typeName == SqlTypeName.CHAR || typeName == SqlTypeName.VARCHAR;
+  }
+
+  private static boolean isTemporalTypeForUnion(SqlTypeName typeName) {
+    return typeName == SqlTypeName.DATE
+        || typeName == SqlTypeName.TIMESTAMP
+        || typeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
+  }
+
+  private static SqlTypeName getWiderNumericTypeForUnion(SqlTypeName type1, SqlTypeName type2) {
+    int rank1 = getNumericTypeRankForUnion(type1);
+    int rank2 = getNumericTypeRankForUnion(type2);
+    return rank1 >= rank2 ? type1 : type2;
+  }
+
+  private static int getNumericTypeRankForUnion(SqlTypeName typeName) {
+    return switch (typeName) {
+      case TINYINT -> 1;
+      case SMALLINT -> 2;
+      case INTEGER -> 3;
+      case BIGINT -> 4;
+      case DECIMAL -> 5;
+      case REAL -> 6;
+      case FLOAT -> 7;
+      case DOUBLE -> 8;
+      default -> 0;
+    };
+  }
+
+  private static SqlTypeName getWiderTemporalTypeForUnion(SqlTypeName type1, SqlTypeName type2) {
+    if (type1 == SqlTypeName.TIMESTAMP || type2 == SqlTypeName.TIMESTAMP) {
+      return SqlTypeName.TIMESTAMP;
+    }
+    if (type1 == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+        || type2 == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+      return SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
+    }
+    return SqlTypeName.DATE;
   }
 }
