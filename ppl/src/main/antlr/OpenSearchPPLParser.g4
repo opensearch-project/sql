@@ -543,7 +543,7 @@ replacementPair
    ;
 
 convertCommand
-   : CONVERT convertFunction (COMMA? convertFunction)*
+   : CONVERT (TIMEFORMAT EQUAL timeFormat=stringLiteral)? convertFunction (COMMA? convertFunction)*
    ;
 
 convertFunction
