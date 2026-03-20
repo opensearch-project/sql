@@ -95,6 +95,7 @@ commands
    | fieldformatCommand
    | nomvCommand
    | graphLookupCommand
+   | timewrapCommand
    ;
 
 commandName
@@ -145,6 +146,7 @@ commandName
    | NOMV
    | TRANSPOSE
    | GRAPHLOOKUP
+   | TIMEWRAP
    ;
 
 searchCommand
@@ -349,6 +351,27 @@ transposeCommand
 transposeParameter
    : (number = integerLiteral)
    | (COLUMN_NAME EQUAL stringLiteral)
+   ;
+
+timewrapCommand
+   : TIMEWRAP spanLiteral timewrapParameter*
+   ;
+
+timewrapParameter
+   : ALIGN EQUAL timewrapAlign
+   | SERIES EQUAL timewrapSeries
+   | TIME_FORMAT EQUAL stringLiteral
+   ;
+
+timewrapAlign
+   : NOW
+   | END
+   ;
+
+timewrapSeries
+   : RELATIVE
+   | SHORT
+   | EXACT
    ;
 
 
