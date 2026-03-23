@@ -436,13 +436,13 @@ public final class AggSpec {
   private static LimitPushdownMode inferLimitPushdownMode(
       List<AggregationBuilder> builders, @Nullable AggregationBuilder rootBuilder) {
     if (builders.isEmpty()) {
-      // count() optimization uses hits.total and leaves the builder list empty. Main still keeps
+      // count() optimization uses hits.total and leaves the builder list empty. Keeps
       // LIMIT in PushDownContext for these cases even though no request-side limit is applied.
       return LimitPushdownMode.ESTIMATE_ONLY;
     }
     AggregationBuilder builder = unwrapNestedBuilder(rootBuilder);
     if (builder instanceof ValuesSourceAggregationBuilder.LeafOnly<?, ?>) {
-      // Main treats leaf metric aggregations as limit-pushable because they produce a single row.
+      // Treats leaf metric aggregations as limit-pushable because they produce a single row.
       return LimitPushdownMode.LEAF_METRIC;
     }
     return inferLimitPushdownMode(inferKind(rootBuilder));

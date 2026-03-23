@@ -33,6 +33,7 @@ import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.support.MultiTermsValuesSourceConfig;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
@@ -432,7 +433,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       return;
     }
     if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
-      pushDownSortIntoTermsBucket(original, termsAggBuilder, collations);
+      termsAggBuilder.order(BucketOrder.key(!collations.getFirst().getDirection().isDescending()));
     }
     // TODO for MultiTermsAggregationBuilder
   }
@@ -497,13 +498,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     bucketNames = newBucketNames;
   }
 
-  private void pushDownSortIntoTermsBucket(
-      AggregationBuilder original,
-      TermsAggregationBuilder termsAggBuilder,
-      List<RelFieldCollation> collations) {
-    termsAggBuilder.order(BucketOrder.key(!collations.getFirst().getDirection().isDescending()));
-  }
-
   private static Integer getBucketSize(AggregationBuilder builder) {
     if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
       return compositeAggBuilder.size();
@@ -514,9 +508,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     if (builder instanceof MultiTermsAggregationBuilder multiTermsAggBuilder) {
       return multiTermsAggBuilder.size();
     }
-    if (builder
-        instanceof
-        org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder topHitsAggBuilder) {
+    if (builder instanceof TopHitsAggregationBuilder topHitsAggBuilder) {
       return topHitsAggBuilder.size();
     }
     return null;
@@ -535,9 +527,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       multiTermsAggBuilder.size(size);
       return;
     }
-    if (builder
-        instanceof
-        org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder topHitsAggBuilder) {
+    if (builder instanceof TopHitsAggregationBuilder topHitsAggBuilder) {
       topHitsAggBuilder.size(size);
       return;
     }

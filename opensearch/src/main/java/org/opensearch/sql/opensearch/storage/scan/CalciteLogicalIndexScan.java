@@ -428,6 +428,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
               extendedTypeMapping,
               bucketNames,
               builderAndParser);
+      // Now agg state and request is lazily built by AggSpec.build(). Agg operation in
+      // PushDownContext is a no_op marker
       newScan.pushDownContext.setAggSpec(aggSpec);
       newScan.pushDownContext.add(
           PushDownType.AGGREGATION, aggregate, (OSRequestBuilderAction) requestBuilder -> {});
