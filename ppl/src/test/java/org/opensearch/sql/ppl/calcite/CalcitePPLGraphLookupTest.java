@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertTrue;
+
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +16,6 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelCollations;
-import static org.junit.Assert.assertTrue;
-
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -191,8 +191,7 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
         "source=employee | graphLookup employee start=\"Dev\" edge=reportsTo-->name"
             + " as reportingHierarchy";
 
-    Throwable t =
-        Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
+    Throwable t = Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
     assertTrue(t.getMessage().contains("Literal start values cannot be used in piped mode"));
   }
 
@@ -202,8 +201,7 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
     String ppl =
         "graphLookup employee start=reportsTo edge=reportsTo-->name" + " as reportingHierarchy";
 
-    Throwable t =
-        Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
+    Throwable t = Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
     assertTrue(t.getMessage().contains("Field reference start requires a piped source"));
   }
 
