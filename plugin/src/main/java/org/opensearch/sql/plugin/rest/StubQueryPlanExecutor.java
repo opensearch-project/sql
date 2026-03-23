@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.plugin.rest;
 
-import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
@@ -29,19 +29,19 @@ public class StubQueryPlanExecutor implements QueryPlanExecutor {
     if (tableName != null && tableName.contains("parquet_logs")) {
       return List.of(
           new Object[] {
-            Timestamp.valueOf("2024-01-15 10:30:00"), 200, "Request completed", "192.168.1.1"
+            Instant.parse("2024-01-15T10:30:00Z"), 200, "Request completed", "192.168.1.1"
           },
           new Object[] {
-            Timestamp.valueOf("2024-01-15 10:31:00"), 200, "Health check OK", "192.168.1.2"
+            Instant.parse("2024-01-15T10:31:00Z"), 200, "Health check OK", "192.168.1.2"
           },
           new Object[] {
-            Timestamp.valueOf("2024-01-15 10:32:00"), 500, "Internal server error", "192.168.1.3"
+            Instant.parse("2024-01-15T10:32:00Z"), 500, "Internal server error", "192.168.1.3"
           });
     }
     if (tableName != null && tableName.contains("parquet_metrics")) {
       return List.of(
-          new Object[] {Timestamp.valueOf("2024-01-15 10:30:00"), 75.5, 8192.0, "host-1"},
-          new Object[] {Timestamp.valueOf("2024-01-15 10:31:00"), 82.3, 7680.0, "host-2"});
+          new Object[] {Instant.parse("2024-01-15T10:30:00Z"), 75.5, 8192.5, "host-1"},
+          new Object[] {Instant.parse("2024-01-15T10:31:00Z"), 82.3, 7680.5, "host-2"});
     }
     return List.of();
   }

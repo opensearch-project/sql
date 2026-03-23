@@ -25,13 +25,16 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryPlanner;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
@@ -255,20 +258,41 @@ public class RestUnifiedQueryAction {
     };
   }
 
+  /** Classify whether the exception is a client error (bad query) or server error (engine bug). */
+  private static boolean isClientError(Exception e) {
+    return e instanceof SyntaxCheckException
+        || e instanceof SemanticCheckException
+        || e instanceof IllegalArgumentException
+        || e instanceof NullPointerException;
+  }
+
   private static void recordFailureMetric(Exception e) {
-    LOG.error("[unified] Query execution failed", e);
-    Metrics.getInstance().getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_SYS).increment();
+    if (isClientError(e)) {
+      LOG.warn("[unified] Client error in query execution", e);
+      Metrics.getInstance().getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS).increment();
+    } else {
+      LOG.error("[unified] Server error in query execution", e);
+      Metrics.getInstance().getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_SYS).increment();
+    }
   }
 
   private static void reportError(RestChannel channel, Exception e) {
+    RestStatus status =
+        isClientError(e) ? RestStatus.BAD_REQUEST : RestStatus.INTERNAL_SERVER_ERROR;
+    String reason = e.getMessage() != null ? e.getMessage() : "Unknown error";
+    // Escape characters that would break JSON
+    reason =
+        reason.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
     channel.sendResponse(
         new BytesRestResponse(
-            org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR,
+            status,
             "application/json; charset=UTF-8",
             "{\"error\":{\"type\":\""
                 + e.getClass().getSimpleName()
                 + "\",\"reason\":\""
-                + (e.getMessage() != null ? e.getMessage().replace("\"", "\\\"") : "Unknown error")
-                + "\"},\"status\":500}"));
+                + reason
+                + "\"},\"status\":"
+                + status.getStatus()
+                + "}"));
   }
 }
