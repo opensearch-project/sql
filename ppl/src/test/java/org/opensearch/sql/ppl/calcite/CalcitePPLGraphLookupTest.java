@@ -43,8 +43,8 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupBasic() {
     // Test basic graphLookup with same source and lookup table
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name as reportingHierarchy";
+        "source=employee | graphLookup employee start=reportsTo edge=reportsTo-->name"
+            + " as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -61,8 +61,8 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupWithDepthField() {
     // Test graphLookup with depthField parameter
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name depthField=level as reportingHierarchy";
+        "source=employee | graphLookup employee start=reportsTo edge=reportsTo-->name"
+            + " depthField=level as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -79,8 +79,8 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupWithMaxDepth() {
     // Test graphLookup with maxDepth parameter
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name maxDepth=3 as reportingHierarchy";
+        "source=employee | graphLookup employee start=reportsTo edge=reportsTo-->name"
+            + " maxDepth=3 as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -97,8 +97,8 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupWithFilter() {
     // Test graphLookup with filter parameter
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name filter=(id > 2) as reportingHierarchy";
+        "source=employee | graphLookup employee start=reportsTo edge=reportsTo-->name"
+            + " filter=(id > 2) as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -115,8 +115,8 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupWithCompoundFilter() {
     // Test graphLookup with compound filter condition
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name filter=(id > 1 AND name != 'Andrew') as reportingHierarchy";
+        "source=employee | graphLookup employee start=reportsTo edge=reportsTo-->name"
+            + " filter=(id > 1 AND name != 'Andrew') as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -133,8 +133,8 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupBidirectional() {
     // Test graphLookup with bidirectional traversal
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name direction=bi as reportingHierarchy";
+        "source=employee | graphLookup employee start=reportsTo edge=reportsTo<->name"
+            + " as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =

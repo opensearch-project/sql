@@ -23,6 +23,7 @@ import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
@@ -35,15 +36,19 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.sql.ast.tree.HighlightConfig;
+import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules;
@@ -65,7 +70,7 @@ import org.opensearch.sql.utils.Utils;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
-public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
+public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements HighlightPushDown {
   private static final Logger LOG = LogManager.getLogger(CalciteLogicalIndexScan.class);
 
   public CalciteLogicalIndexScan(
@@ -78,6 +83,23 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         osIndex,
         table.getRowType(),
         new PushDownContext(osIndex));
+  }
+
+  public RelNode pushDownHighlight(HighlightConfig highlightConfig) {
+    RelDataTypeFactory.Builder schemaBuilder = getCluster().getTypeFactory().builder();
+    schemaBuilder.addAll(getRowType().getFieldList());
+    schemaBuilder.add(
+        HighlightExpression.HIGHLIGHT_FIELD,
+        getCluster().getTypeFactory().createSqlType(SqlTypeName.ANY));
+    CalciteLogicalIndexScan newScan = copyWithNewSchema(schemaBuilder.build());
+    newScan
+        .getPushDownContext()
+        .add(
+            PushDownType.HIGHLIGHT,
+            highlightConfig.fieldNames(),
+            (OSRequestBuilderAction)
+                requestBuilder -> applyHighlightPushDown(requestBuilder, highlightConfig));
+    return newScan;
   }
 
   protected CalciteLogicalIndexScan(
@@ -277,7 +299,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       action =
           (OSRequestBuilderAction)
               requestBuilder ->
-                  requestBuilder.pushDownProjectStream(newSchema.getFieldNames().stream());
+                  requestBuilder.pushDownProjectStream(
+                      newSchema.getFieldNames().stream()
+                          .filter(f -> !HighlightExpression.HIGHLIGHT_FIELD.equals(f)));
     }
     newScan.pushDownContext.add(
         PushDownType.PROJECT,

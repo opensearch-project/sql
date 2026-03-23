@@ -74,6 +74,7 @@ commands
    | adCommand
    | mlCommand
    | fillnullCommand
+   | convertCommand
    | trendlineCommand
    | appendcolCommand
    | addtotalsCommand
@@ -124,6 +125,7 @@ commandName
    | AD
    | ML
    | FILLNULL
+   | CONVERT
    | EXPAND
     | MVEXPAND
    | FLATTEN
@@ -227,7 +229,7 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA? renameClasue)*
+   : RENAME renameClause (COMMA? renameClause)*
    ;
 
 replaceCommand
@@ -540,6 +542,14 @@ replacementPair
    : fieldExpression EQUAL replacement = valueExpression
    ;
 
+convertCommand
+   : CONVERT convertFunction (COMMA? convertFunction)*
+   ;
+
+convertFunction
+   : functionName = ident LT_PRTHS fieldExpression RT_PRTHS (AS alias = fieldExpression)?
+   ;
+
 trendlineCommand
    : TRENDLINE (SORT sortField)? trendlineClause (trendlineClause)*
    ;
@@ -646,16 +656,20 @@ addcoltotalsOption
    ;
 
 graphLookupCommand
-   : GRAPHLOOKUP lookupTable = tableSourceClause graphLookupOption* AS outputField = fieldExpression
+   : GRAPHLOOKUP lookupTable = tableSourceClause startClause edgeClause graphLookupArgs* AS outputField = fieldExpression
    ;
 
-graphLookupOption
-   : (START_FIELD EQUAL fieldExpression)
-   | (FROM_FIELD EQUAL fieldExpression)
-   | (TO_FIELD EQUAL fieldExpression)
-   | (MAX_DEPTH EQUAL integerLiteral)
+startClause
+   : START EQUAL startField = fieldExpression
+   ;
+
+edgeClause
+   : edgeClauseToken = EDGE_CLAUSE
+   ;
+
+graphLookupArgs
+   : (MAX_DEPTH EQUAL integerLiteral)
    | (DEPTH_FIELD EQUAL fieldExpression)
-   | (DIRECTION EQUAL (UNI | BI))
    | (SUPPORT_ARRAY EQUAL booleanLiteral)
    | (BATCH_MODE EQUAL booleanLiteral)
    | (USE_PIT EQUAL booleanLiteral)
@@ -744,7 +758,7 @@ joinOption
    | MAX EQUAL integerLiteral                           # maxOption
    ;
 
-renameClasue
+renameClause
    : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
@@ -1725,11 +1739,7 @@ searchableKeyWord
    | ROW
    | COL
    | COLUMN_NAME
-   | FROM_FIELD
-   | TO_FIELD
    | MAX_DEPTH
    | DEPTH_FIELD
-   | DIRECTION
-   | UNI
-   | BI
+   | EDGE
    ;

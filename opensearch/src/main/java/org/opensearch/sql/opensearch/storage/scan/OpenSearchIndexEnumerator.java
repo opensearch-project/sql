@@ -14,6 +14,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
@@ -62,8 +63,14 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       int queryBucketSize,
       OpenSearchRequest request,
       ResourceMonitor monitor) {
-    if (!monitor.isHealthy()) {
-      throw new NonFallbackCalciteException("insufficient resources to run the query, quit.");
+    org.opensearch.sql.monitor.ResourceStatus status = monitor.getStatus();
+    if (!status.isHealthy()) {
+      throw new NonFallbackCalciteException(
+          String.format(
+              "Insufficient resources to start query: %s. "
+                  + "To increase the limit, adjust the 'plugins.query.memory_limit' setting "
+                  + "(default: 85%%).",
+              status.getFormattedDescription()));
     }
 
     this.fields = fields;
@@ -92,6 +99,10 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   }
 
   private Object resolveForCalcite(ExprValue value, String rawPath) {
+    if (HighlightExpression.HIGHLIGHT_FIELD.equals(rawPath)) {
+      ExprValue hl = ExprValueUtils.getTupleValue(value).get(HighlightExpression.HIGHLIGHT_FIELD);
+      return (hl != null && !hl.isMissing() && !hl.isNull()) ? hl : null;
+    }
     return ExprValueUtils.resolveRefPaths(value, List.of(rawPath.split("\\."))).valueForCalcite();
   }
 
@@ -102,8 +113,17 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     }
 
     boolean shouldCheck = (queryCount % NUMBER_OF_NEXT_CALL_TO_CHECK == 0);
-    if (shouldCheck && !this.monitor.isHealthy()) {
-      throw new NonFallbackCalciteException("insufficient resources to load next row, quit.");
+    if (shouldCheck) {
+      org.opensearch.sql.monitor.ResourceStatus status = this.monitor.getStatus();
+      if (!status.isHealthy()) {
+        throw new NonFallbackCalciteException(
+            String.format(
+                "Insufficient resources to continue processing query: %s. "
+                    + "Rows processed: %d. "
+                    + "To increase the limit, adjust the 'plugins.query.memory_limit' setting "
+                    + "(default: 85%%).",
+                status.getFormattedDescription(), queryCount));
+      }
     }
 
     if (iterator == null || (!iterator.hasNext() && !this.bgScanner.isScanDone())) {

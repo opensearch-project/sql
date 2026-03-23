@@ -45,15 +45,18 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.ScriptSortBuilder.ScriptSortType;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.context.AbstractAction;
@@ -128,7 +131,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
             (rowCount, operation) ->
                 switch (operation.type()) {
                   case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
-                  case PROJECT, SORT, SORT_EXPR -> rowCount;
+                  case PROJECT, SORT, SORT_EXPR, HIGHLIGHT -> rowCount;
                   case SORT_AGG_METRICS ->
                       NumberUtil.min(rowCount, osIndex.getQueryBucketSize().doubleValue());
                   // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
@@ -174,8 +177,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
           dRows = mq.getRowCount((RelNode) operation.digest());
           dCpu += dRows * getAggMultiplier(operation, pushDownContext);
         }
-        // Ignored Project in cost accumulation, but it will affect the external cost
-        case PROJECT -> {}
+        // Ignored Project and Highlight in cost accumulation, but they affect the external cost
+        case PROJECT, HIGHLIGHT -> {}
         case SORT -> dCpu += dRows;
         case SORT_AGG_METRICS -> {
           dRows = dRows * .9 / 10; // *.9 because always bucket IS_NOT_NULL
@@ -496,5 +499,68 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
 
   public boolean isProjectPushed() {
     return this.getPushDownContext().isProjectPushed();
+  }
+
+  protected static void applyHighlightPushDown(
+      OpenSearchRequestBuilder requestBuilder, HighlightConfig highlightConfig) {
+    if (highlightConfig == null
+        || highlightConfig.fields() == null
+        || highlightConfig.fields().isEmpty()) {
+      return;
+    }
+    HighlightBuilder hb = new HighlightBuilder();
+    for (Map.Entry<String, Map<String, Object>> entry : highlightConfig.fields().entrySet()) {
+      HighlightBuilder.Field field = new HighlightBuilder.Field(entry.getKey());
+      applyPerFieldOptions(field, entry.getValue());
+      hb.field(field);
+    }
+
+    // Apply global pre_tags / post_tags if provided
+    if (highlightConfig.preTags() != null && !highlightConfig.preTags().isEmpty()) {
+      hb.preTags(highlightConfig.preTags().toArray(new String[0]));
+    }
+    if (highlightConfig.postTags() != null && !highlightConfig.postTags().isEmpty()) {
+      hb.postTags(highlightConfig.postTags().toArray(new String[0]));
+    }
+
+    // Apply global fragment_size only when explicitly specified
+    if (highlightConfig.fragmentSize() != null) {
+      hb.fragmentSize(highlightConfig.fragmentSize());
+    }
+
+    requestBuilder.getSourceBuilder().highlighter(hb);
+  }
+
+  @SuppressWarnings(
+      "unchecked") // values are trusted types from PPLQueryRequest.parsePerFieldOptions
+  private static void applyPerFieldOptions(
+      HighlightBuilder.Field field, Map<String, Object> options) {
+    if (options == null || options.isEmpty()) {
+      return;
+    }
+    if (options.containsKey("fragment_size")) {
+      field.fragmentSize(((Number) options.get("fragment_size")).intValue());
+    }
+    if (options.containsKey("number_of_fragments")) {
+      field.numOfFragments(((Number) options.get("number_of_fragments")).intValue());
+    }
+    if (options.containsKey("type")) {
+      field.highlighterType((String) options.get("type"));
+    }
+    if (options.containsKey("pre_tags")) {
+      field.preTags(((List<String>) options.get("pre_tags")).toArray(new String[0]));
+    }
+    if (options.containsKey("post_tags")) {
+      field.postTags(((List<String>) options.get("post_tags")).toArray(new String[0]));
+    }
+    if (options.containsKey("require_field_match")) {
+      field.requireFieldMatch((Boolean) options.get("require_field_match"));
+    }
+    if (options.containsKey("no_match_size")) {
+      field.noMatchSize(((Number) options.get("no_match_size")).intValue());
+    }
+    if (options.containsKey("order")) {
+      field.order((String) options.get("order"));
+    }
   }
 }

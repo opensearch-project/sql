@@ -359,6 +359,22 @@ public class CalciteIndexScanCostTest {
   }
 
   @Test
+  void test_cost_on_highlight_pushdown() {
+    RelDataType relDataType = mock(RelDataType.class);
+    lenient().when(relDataType.getFieldList()).thenReturn(new MockFieldList(10));
+    lenient().when(table.getRowType()).thenReturn(relDataType);
+    CalciteLogicalIndexScan scan = new CalciteLogicalIndexScan(cluster, table, osIndex);
+
+    List<String> highlightArgs = List.of("*");
+    scan.getPushDownContext()
+        .add(
+            new PushDownOperation(
+                PushDownType.HIGHLIGHT, highlightArgs, (OSRequestBuilderAction) req -> {}));
+    // Highlight should not change cost compared to non-pushdown (same as PROJECT behavior)
+    assertEquals(90000, Objects.requireNonNull(scan.computeSelfCost(planner, mq)).getRows());
+  }
+
+  @Test
   void test_cost_on_project_limit_pushdown() {
     RelDataType relDataType = mock(RelDataType.class);
     lenient().when(table.getRowType()).thenReturn(relDataType);

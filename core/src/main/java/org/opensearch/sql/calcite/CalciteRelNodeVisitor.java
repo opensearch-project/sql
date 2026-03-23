@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -111,6 +112,7 @@ import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -154,6 +156,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
+import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.plan.rel.LogicalGraphLookup;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
@@ -169,6 +172,7 @@ import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.expression.parse.RegexCommonUtils;
@@ -180,15 +184,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final CalciteRexNodeVisitor rexVisitor;
   private final CalciteAggCallVisitor aggVisitor;
   private final DataSourceService dataSourceService;
+  private final MapPathPreMaterializer mapPathMaterializer;
 
   public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
     this.dataSourceService = dataSourceService;
+    this.mapPathMaterializer = new MapPathPreMaterializer(rexVisitor);
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
     return unresolved.accept(this, context);
+  }
+
+  @Override
+  public RelNode visitChildren(Node node, CalcitePlanContext context) {
+    RelNode result = super.visitChildren(node, context);
+    if (node instanceof UnresolvedPlan plan) {
+      // Materialize MAP dotted paths as flat columns after children are analyzed
+      // (so MAP/struct types are known) but before the command's own visit logic runs.
+      mapPathMaterializer.materializePaths(plan, context);
+    }
+    return result;
   }
 
   @Override
@@ -210,10 +227,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     context.relBuilder.scan(node.getTableQualifiedName().getParts());
     RelNode scan = context.relBuilder.peek();
-    if (scan instanceof AliasFieldsWrappable) {
-      return ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
+
+    // Eagerly push down highlight config to the scan (highlight is a scan hint, not an operator)
+    if (context.getHighlightConfig() != null && scan instanceof HighlightPushDown) {
+      RelNode newScan = ((HighlightPushDown) scan).pushDownHighlight(context.getHighlightConfig());
+      context.relBuilder.build(); // pop old scan
+      context.relBuilder.push(newScan);
+      scan = newScan;
+      context.setHighlightConfig(null); // consumed
     }
-    return scan;
+
+    if (scan instanceof AliasFieldsWrappable) {
+      ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
+    }
+
+    return context.relBuilder.peek();
   }
 
   // This is a tool method to add an existed RelOptTable to builder stack, not used for now
@@ -403,6 +431,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> expandedFields =
         expandProjectFields(node.getProjectList(), currentFields, context);
+
+    // Include _highlight in projections when the highlight column is present in the schema
+    int hlIndex = currentFields.indexOf(HighlightExpression.HIGHLIGHT_FIELD);
+    if (hlIndex >= 0) {
+      expandedFields.add(context.relBuilder.field(hlIndex));
+    }
 
     if (node.isExcluded()) {
       validateExclusion(expandedFields, currentFields);
@@ -982,6 +1016,117 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  @Override
+  public RelNode visitConvert(Convert node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    if (node.getConversions() == null || node.getConversions().isEmpty()) {
+      return context.relBuilder.peek();
+    }
+
+    ConversionState state = new ConversionState();
+
+    for (Let conversion : node.getConversions()) {
+      processConversion(conversion, state, context);
+    }
+
+    return buildConversionProjection(state, context);
+  }
+
+  private static class ConversionState {
+    final Map<String, RexNode> replacements = new HashMap<>();
+    final List<Pair<String, RexNode>> additions = new ArrayList<>();
+    final Set<String> seenFields = new HashSet<>();
+  }
+
+  private void processConversion(
+      Let conversion, ConversionState state, CalcitePlanContext context) {
+    String target = conversion.getVar().getField().toString();
+    UnresolvedExpression expression = conversion.getExpression();
+
+    if (expression instanceof Field) {
+      processFieldCopyConversion(target, (Field) expression, state, context);
+    } else if (expression instanceof Function) {
+      processFunctionConversion(target, (Function) expression, state, context);
+    } else {
+      throw new SemanticCheckException("Convert command requires function call expressions");
+    }
+  }
+
+  private void processFieldCopyConversion(
+      String target, Field field, ConversionState state, CalcitePlanContext context) {
+    String source = field.getField().toString();
+
+    if (state.seenFields.contains(source)) {
+      throw new SemanticCheckException(
+          String.format("Field '%s' cannot be converted more than once", source));
+    }
+    state.seenFields.add(source);
+
+    if (!target.equals(source)) {
+      RexNode sourceField = context.relBuilder.field(source);
+      state.additions.add(Pair.of(target, context.relBuilder.alias(sourceField, target)));
+    }
+  }
+
+  private void processFunctionConversion(
+      String target, Function function, ConversionState state, CalcitePlanContext context) {
+    String functionName = function.getFuncName();
+    List<UnresolvedExpression> args = function.getFuncArgs();
+
+    if (args.size() != 1 || !(args.get(0) instanceof Field)) {
+      throw new SemanticCheckException("Convert function must have exactly one field argument");
+    }
+
+    String source = ((Field) args.get(0)).getField().toString();
+
+    if (state.seenFields.contains(source)) {
+      throw new SemanticCheckException(
+          String.format("Field '%s' cannot be converted more than once", source));
+    }
+    state.seenFields.add(source);
+
+    RexNode sourceField = context.relBuilder.field(source);
+    RexNode convertCall =
+        PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, sourceField);
+
+    if (!target.equals(source)) {
+      state.additions.add(Pair.of(target, context.relBuilder.alias(convertCall, target)));
+    } else {
+      state.replacements.put(source, context.relBuilder.alias(convertCall, source));
+    }
+  }
+
+  private RelNode buildConversionProjection(ConversionState state, CalcitePlanContext context) {
+    List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> projectList = new ArrayList<>();
+
+    for (String fieldName : originalFields) {
+      projectList.add(
+          state.replacements.getOrDefault(fieldName, context.relBuilder.field(fieldName)));
+    }
+
+    Set<String> addedAsNames = new HashSet<>();
+    for (Pair<String, RexNode> addition : state.additions) {
+      String asName = addition.getLeft();
+
+      if (originalFields.contains(asName)) {
+        throw new SemanticCheckException(
+            String.format("AS name '%s' conflicts with existing field", asName));
+      }
+      if (addedAsNames.contains(asName)) {
+        throw new SemanticCheckException(
+            String.format("AS name '%s' is used multiple times in convert", asName));
+      }
+
+      addedAsNames.add(asName);
+      projectList.add(addition.getRight());
+    }
+
+    context.relBuilder.project(projectList);
+    return context.relBuilder.peek();
+  }
+
   private void projectPlusOverriding(
       List<RexNode> newFields, List<String> newNames, CalcitePlanContext context) {
     List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
@@ -1368,6 +1513,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
+    // Trigger manually since Join bypass visitChildren and getChild
+    mapPathMaterializer.materializePaths(node, context);
+
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
       List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();

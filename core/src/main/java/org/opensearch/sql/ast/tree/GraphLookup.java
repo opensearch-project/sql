@@ -23,8 +23,8 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 /**
  * AST node for graphLookup command. Performs BFS graph traversal on a lookup table.
  *
- * <p>Example: source=employees | graphLookup employees fromField=manager toField=name maxDepth=3
- * depthField=level direction=uni as hierarchy
+ * <p>Example: source=employees | graphLookup employees start=reportsTo edge=manager-->name
+ * maxDepth=3 depthField=level as hierarchy
  */
 @Getter
 @Setter

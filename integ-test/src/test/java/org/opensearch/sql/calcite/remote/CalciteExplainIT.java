@@ -2392,6 +2392,35 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testConvertCommandExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_command.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | convert auto(balance) | fields balance"));
+  }
+
+  @Test
+  public void testConvertWithAliasExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_with_alias.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | convert auto(balance) AS balance_num | fields"
+                + " balance_num"));
+  }
+
+  @Test
+  public void testConvertMultipleFunctionsExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_multiple.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | convert auto(balance), num(age) | fields"
+                + " balance, age"));
+  }
+
+  @Test
   public void testNotBetweenPushDownExplain() throws Exception {
     // test for issue https://github.com/opensearch-project/sql/issues/4903
     enabledOnlyWhenPushdownIsEnabled();
@@ -2765,6 +2794,43 @@ public class CalciteExplainIT extends ExplainIT {
     Assert.assertTrue(
         "Expected explain to contain both CONCAT and ARRAY_JOIN",
         result.toLowerCase().contains("concat") && result.toLowerCase().contains("array_join"));
+  }
+
+  @Test
+  public void testHighlightWildcardExplain() throws IOException {
+    String query = "source=" + TEST_INDEX_ACCOUNT;
+    var result = explainQueryYaml(query, "[\"*\"]");
+    String expected = loadExpectedPlan("explain_highlight_wildcard.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testHighlightSingleTermExplain() throws IOException {
+    String query = "source=" + TEST_INDEX_ACCOUNT;
+    var result = explainQueryYaml(query, "[\"Holmes\"]");
+    String expected = loadExpectedPlan("explain_highlight_single_term.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testHighlightWithFilterExplain() throws IOException {
+    String query = "source=" + TEST_INDEX_ACCOUNT + " | where age > 30 | fields firstname, age";
+    var result = explainQueryYaml(query, "[\"*\"]");
+    String expected = loadExpectedPlan("explain_highlight_with_filter.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testHighlightOsdObjectFormatExplain() throws IOException {
+    // OSD sends highlight as a rich object with pre_tags, post_tags, fields, fragment_size
+    String query = "source=" + TEST_INDEX_ACCOUNT;
+    String highlightJson =
+        "{\"pre_tags\": [\"<b>\"], \"post_tags\": [\"</b>\"],"
+            + " \"fields\": {\"*\": {}}, \"fragment_size\": 2147483647}";
+    var result = explainQueryYaml(query, highlightJson);
+    // OSD format includes pre_tags/post_tags in the highlight builder output
+    String expected = loadExpectedPlan("explain_highlight_osd_format.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test

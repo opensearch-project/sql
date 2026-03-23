@@ -195,6 +195,36 @@ public class CalcitePPLJsonBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testJsonExtractReturnsNullForMissingPathAndNullValue() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = json_extract('{}', 'name'),"
+                    + " b = json_extract('{\\\"name\\\": null}', 'name')"
+                    + " | fields a, b | head 1",
+                TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "string"), schema("b", "string"));
+
+    verifyDataRows(actual, rows(null, null));
+  }
+
+  @Test
+  public void testJsonExtractMultiPathWithMissingPath() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = json_extract('{\\\"name\\\": \\\"John\\\"}',"
+                    + " 'name', 'age')"
+                    + " | fields a | head 1",
+                TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "string"));
+
+    verifyDataRows(actual, rows("[\"John\",null]"));
+  }
+
+  @Test
   public void testJsonKeys() throws IOException {
     JSONObject actual =
         executeQuery(
