@@ -86,6 +86,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PARSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_CLUSTER_LABEL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN_PARSER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4;
@@ -1349,6 +1350,7 @@ public class PPLFuncImpTable {
       registerOperator(STDDEV_POP, PPLBuiltinOperators.STDDEV_POP_NULLABLE);
       registerOperator(TAKE, PPLBuiltinOperators.TAKE);
       registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);
+      registerOperator(INTERNAL_CLUSTER_LABEL, PPLBuiltinOperators.CLUSTER_LABEL);
       registerOperator(LIST, PPLBuiltinOperators.LIST);
       registerOperator(VALUES, PPLBuiltinOperators.VALUES);
 

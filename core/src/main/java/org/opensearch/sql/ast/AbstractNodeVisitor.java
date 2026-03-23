@@ -66,6 +66,7 @@ import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.Cluster;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
@@ -430,6 +431,10 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitPatterns(Patterns patterns, C context) {
     return visitChildren(patterns, context);
+  }
+
+  public T visitCluster(Cluster node, C context) {
+    return visitChildren(node, context);
   }
 
   public T visitWindow(Window window, C context) {

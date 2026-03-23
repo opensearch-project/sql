@@ -2479,6 +2479,95 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
+  public RelNode visitCluster(
+      org.opensearch.sql.ast.tree.Cluster node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    // Resolve clustering as a window function over all rows (unbounded frame).
+    // The window function buffers all rows, runs the greedy clustering algorithm,
+    // and returns an array of cluster labels (one per input row, in order).
+    List<UnresolvedExpression> funcParams = new ArrayList<>();
+    funcParams.add(node.getSourceField());
+    funcParams.add(AstDSL.doubleLiteral(node.getThreshold()));
+    funcParams.add(AstDSL.stringLiteral(node.getMatchMode()));
+    funcParams.add(AstDSL.stringLiteral(node.getDelims()));
+
+    RexNode clusterWindow =
+        rexVisitor.analyze(
+            new WindowFunction(
+                new Function(
+                    BuiltinFunctionName.INTERNAL_CLUSTER_LABEL.getName().getFunctionName(),
+                    funcParams),
+                List.of(),
+                List.of()),
+            context);
+    String arrayAlias = "_cluster_labels_array";
+    context.relBuilder.projectPlus(context.relBuilder.alias(clusterWindow, arrayAlias));
+
+    // Add ROW_NUMBER to index into the array (1-based).
+    String rowNumAlias = "_cluster_row_idx";
+    RexNode rowNum =
+        context
+            .relBuilder
+            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+            .over()
+            .rowsBetween(RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.CURRENT_ROW)
+            .as(rowNumAlias);
+    context.relBuilder.projectPlus(rowNum);
+
+    // Extract the label for this row: array[row_number] (ITEM access is 1-based).
+    RexNode rowIdxAsInt =
+        context.rexBuilder.makeCast(
+            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER),
+            context.relBuilder.field(rowNumAlias));
+    RexNode labelExpr =
+        context.rexBuilder.makeCall(
+            SqlStdOperatorTable.ITEM,
+            context.relBuilder.field(arrayAlias),
+            rowIdxAsInt);
+    context.relBuilder.projectPlus(context.relBuilder.alias(labelExpr, node.getLabelField()));
+
+    // Remove the temporary array and row index columns.
+    context.relBuilder.projectExcept(
+        context.relBuilder.field(arrayAlias), context.relBuilder.field(rowNumAlias));
+
+    if (node.isShowCount()) {
+      // cluster_count = COUNT(*) OVER (PARTITION BY cluster_label)
+      RexNode countWindow =
+          context
+              .relBuilder
+              .aggregateCall(SqlStdOperatorTable.COUNT)
+              .over()
+              .partitionBy(context.relBuilder.field(node.getLabelField()))
+              .rowsBetween(RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING)
+              .as(node.getCountField());
+      context.relBuilder.projectPlus(countWindow);
+    }
+
+    if (!node.isLabelOnly()) {
+      // Filter to representative rows only: keep the first event per cluster.
+      String convergenceRowNum = "_cluster_convergence_row_num";
+      RexNode convergenceRn =
+          context
+              .relBuilder
+              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+              .over()
+              .partitionBy(context.relBuilder.field(node.getLabelField()))
+              .rowsTo(RexWindowBounds.CURRENT_ROW)
+              .as(convergenceRowNum);
+      context.relBuilder.projectPlus(convergenceRn);
+      context.relBuilder.filter(
+          context.rexBuilder.makeCall(
+              SqlStdOperatorTable.EQUALS,
+              context.relBuilder.field(convergenceRowNum),
+              context.rexBuilder.makeExactLiteral(java.math.BigDecimal.ONE)));
+      context.relBuilder.projectExcept(context.relBuilder.field(convergenceRowNum));
+    }
+
+    return context.relBuilder.peek();
+  }
+
+  @Override
   public RelNode visitRareTopN(RareTopN node, CalcitePlanContext context) {
     visitChildren(node, context);
     ArgumentMap argumentMap = ArgumentMap.of(node.getArguments());

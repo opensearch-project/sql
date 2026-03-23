@@ -26,13 +26,16 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.udf.udaf.FirstAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LastAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.ListAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.ClusterLabelAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
@@ -482,6 +485,16 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           LogPatternAggFunction.class,
           "pattern",
           ReturnTypes.explicit(UserDefinedFunctionUtils.nullablePatternAggList),
+          null);
+  public static final SqlAggFunction CLUSTER_LABEL =
+      createUserDefinedAggFunction(
+          ClusterLabelAggFunction.class,
+          "cluster_label",
+          opBinding ->
+              SqlTypeUtil.createArrayType(
+                  opBinding.getTypeFactory(),
+                  opBinding.getTypeFactory().createSqlType(SqlTypeName.INTEGER),
+                  true),
           null);
   public static final SqlAggFunction LIST =
       createUserDefinedAggFunction(
