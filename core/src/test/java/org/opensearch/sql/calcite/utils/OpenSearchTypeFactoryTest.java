@@ -89,10 +89,9 @@ public class OpenSearchTypeFactoryTest {
 
     RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(udt, plain));
 
-    // Falls back to super.leastRestrictive which may return a plain type or null
-    if (result != null) {
-      assertEquals(SqlTypeName.VARCHAR, result.getSqlTypeName());
-    }
+    // Falls back to super.leastRestrictive — both backed by VARCHAR, so result is non-null
+    assertNotNull(result);
+    assertEquals(SqlTypeName.VARCHAR, result.getSqlTypeName());
   }
 
   @Test
@@ -102,10 +101,9 @@ public class OpenSearchTypeFactoryTest {
 
     RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(timestamp, date));
 
-    // Different UDTs — falls back to super.leastRestrictive
-    if (result != null) {
-      assertEquals(SqlTypeName.VARCHAR, result.getSqlTypeName());
-    }
+    // Different UDTs — falls back to super.leastRestrictive, both backed by VARCHAR
+    assertNotNull(result);
+    assertEquals(SqlTypeName.VARCHAR, result.getSqlTypeName());
   }
 
   @Test
