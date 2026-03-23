@@ -5,10 +5,19 @@ The `graphLookup` command performs recursive graph traversal on a collection usi
 
 ## Syntax
 
-The `graphLookup` command has the following syntax:
+The `graphLookup` command supports two modes:
+
+### Piped mode (with source)
 
 ```syntax
-graphLookup <lookupIndex> start=<startField> edge=<fromField><operator><toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [supportArray=(true | false)] [batchMode=(true | false)] [usePIT=(true | false)] [filter=(<condition>)] as <outputField>
+source = <sourceIndex> | graphLookup <lookupIndex> start=<startField> edge=<fromField><operator><toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [supportArray=(true | false)] [batchMode=(true | false)] [usePIT=(true | false)] [filter=(<condition>)] as <outputField>
+```
+
+### Top-level mode (with literal start values)
+
+```syntax
+graphLookup <lookupIndex> start=<literalValue> edge=<fromField><operator><toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [usePIT=(true | false)] [filter=(<condition>)] as <outputField>
+graphLookup <lookupIndex> start=(<literalValue1>, <literalValue2>, ...) edge=<fromField><operator><toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [usePIT=(true | false)] [filter=(<condition>)] as <outputField>
 ```
 
 The following are examples of the `graphLookup` command syntax:
@@ -21,6 +30,9 @@ source = employees | graphLookup employees start=reportsTo edge=reportsTo<->name
 source = travelers | graphLookup airports start=nearestAirport edge=connects-->airport supportArray=true as reachableAirports
 source = airports | graphLookup airports start=airport edge=connects-->airport supportArray=true as reachableAirports
 source = employees | graphLookup employees start=reportsTo edge=reportsTo-->name filter=(status = 'active' AND age > 18) as reportingHierarchy
+graphLookup employees start="Eliot" edge=reportsTo-->name as reportingHierarchy
+graphLookup employees start=("Eliot", "Andrew") edge=reportsTo-->name as reportingHierarchy
+graphLookup employees start="Eliot" edge=reportsTo-->name maxDepth=1 depthField=level as reportingHierarchy
 ```
 
 ## Parameters
@@ -30,7 +42,7 @@ The `graphLookup` command supports the following parameters.
 | Parameter | Required/Optional | Description |
 |---|---|---|
 | `<lookupIndex>` | Required | The name of the index to perform the graph traversal on. Can be the same as the source index for self-referential graphs. |
-| `start=<startField>` | Required | The field in the source documents whose value is used to initiate the recursive search. The value of this field is matched against `toField` in the lookup index. Supports both single values and array values as starting points. |
+| `start=<startField>` or `start=<literal>` or `start=(<literal>, ...)` | Required | In **piped mode**, specifies the field in the source documents whose value initiates the recursive search. In **top-level mode**, specifies one or more literal values (e.g., `start="Eliot"` or `start=("Eliot", "Andrew")`) to seed the BFS traversal directly. The value is matched against `toField` in the lookup index. |
 | `edge=<fromField><operator><toField>` | Required | Defines the traversal path between nodes, specifying the connection fields and the direction of traversal. See [Edge Sub-parameters](#edge-sub-parameters) below. |
 | `maxDepth=<maxDepth>` | Optional | The maximum recursion depth (number of hops). Default is `0`. A value of `0` returns only direct connections to the start values. A value of `1` returns the initial matches plus one additional recursive step, and so on. |
 | `depthField=<depthField>` | Optional | The name of the field added to each traversed document to indicate its recursion depth. If not specified, no depth field is added. Depth starts at `0` for the first level of matches. |
@@ -353,6 +365,50 @@ source = employees
 ```
 
 The filter is applied at the OpenSearch query level, so it combines efficiently with the BFS traversal queries. At each BFS level, the query sent to OpenSearch is effectively: `bool { filter: [user_filter, bfs_terms_query] }`.
+
+## Top-Level Mode (Literal Start Values)
+
+When used as a top-level command (without `source = ...`), `graphLookup` accepts literal start values instead of a field reference. This is useful when you know the specific starting points for graph traversal.
+
+### Example: Single Start Value
+
+```ppl ignore
+graphLookup employees
+  start="Eliot"
+  edge=reportsTo-->name
+  as reportingHierarchy
+```
+
+The query returns a single row containing the BFS results:
+
+```text
++---------------------------------------------------------------+
+| reportingHierarchy                                            |
++---------------------------------------------------------------+
+| [{name:Eliot, reportsTo:Ron, id:2}, {name:Ron, ...}, ...]    |
++---------------------------------------------------------------+
+```
+
+### Example: Multiple Start Values
+
+```ppl ignore
+graphLookup employees
+  start=("Eliot", "Andrew")
+  edge=reportsTo-->name
+  as reportingHierarchy
+```
+
+All literal start values are combined into a single BFS traversal. The output is a single row with all discovered nodes.
+
+### Example: With Depth Tracking
+
+```ppl ignore
+graphLookup employees
+  start="Eliot"
+  edge=reportsTo-->name
+  depthField=level
+  as reportingHierarchy
+```
 
 ## Limitations
 

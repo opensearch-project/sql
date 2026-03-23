@@ -230,11 +230,27 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitGraphLookup(GraphLookup node, String context) {
-    String child = node.getChild().get(0).accept(this, context);
     StringBuilder command = new StringBuilder();
-    command.append(child).append(" | graphlookup ").append(MASK_TABLE);
-    if (node.getStartField() != null) {
-      command.append(" start=").append(MASK_COLUMN);
+    if (node.getStartValues() != null) {
+      // Top-level mode: no child/pipe prefix
+      command.append("graphlookup ").append(MASK_TABLE);
+      if (node.getStartValues().size() == 1) {
+        command.append(" start=").append(MASK_LITERAL);
+      } else {
+        command.append(" start=(");
+        for (int i = 0; i < node.getStartValues().size(); i++) {
+          if (i > 0) command.append(", ");
+          command.append(MASK_LITERAL);
+        }
+        command.append(")");
+      }
+    } else {
+      // Piped mode: has child
+      String child = node.getChild().get(0).accept(this, context);
+      command.append(child).append(" | graphlookup ").append(MASK_TABLE);
+      if (node.getStartField() != null) {
+        command.append(" start=").append(MASK_COLUMN);
+      }
     }
     String arrow = node.getDirection() == GraphLookup.Direction.BI ? "<->" : "-->";
     command.append(" edge=").append(MASK_COLUMN).append(arrow).append(MASK_COLUMN);

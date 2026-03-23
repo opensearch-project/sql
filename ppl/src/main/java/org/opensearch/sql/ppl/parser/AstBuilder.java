@@ -1570,7 +1570,30 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     // Parse required base: start and edge
     OpenSearchPPLParser.StartClauseContext startCtx = ctx.startClause();
-    Field startField = (Field) internalVisitExpression(startCtx.startField);
+    Field startField = null;
+    List<Literal> startValues = null;
+    if (startCtx.startField != null) {
+      // Piped mode: start=fieldExpression
+      startField = (Field) internalVisitExpression(startCtx.startField);
+    } else if (startCtx.startValue != null) {
+      // Top-level mode: single literal e.g. start="Jack"
+      startValues = List.of((Literal) internalVisitExpression(startCtx.startValue));
+    } else if (startCtx.searchLiteralList() != null) {
+      // Top-level mode: literal list e.g. start=("Jack", "Eliot")
+      OpenSearchPPLParser.SearchLiteralsContext listCtx =
+          (OpenSearchPPLParser.SearchLiteralsContext) startCtx.searchLiteralList();
+      startValues = new ArrayList<>();
+      for (OpenSearchPPLParser.SearchLiteralContext lit : listCtx.searchLiteral()) {
+        if (lit.stringLiteral() != null) {
+          startValues.add((Literal) internalVisitExpression(lit.stringLiteral()));
+        } else if (lit.numericLiteral() != null) {
+          startValues.add((Literal) internalVisitExpression(lit.numericLiteral()));
+        } else {
+          // ID, NUMERIC_ID, searchableKeyWord — treat as string
+          startValues.add(new Literal(lit.getText(), DataType.STRING));
+        }
+      }
+    }
     // Parse edge clause from EDGE_CLAUSE token (e.g., "edge=manager-->name")
     OpenSearchPPLParser.EdgeClauseContext edgeCtx = ctx.edgeClause();
     String edgeClauseText = edgeCtx.edgeClauseToken.getText();
@@ -1630,6 +1653,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .as(as)
         .maxDepth(maxDepth)
         .startField(startField)
+        .startValues(startValues)
         .depthField(depthField)
         .direction(direction)
         .supportArray(supportArray)

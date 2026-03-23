@@ -790,4 +790,127 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 mapOf("name", "Dan", "reportsTo", "Andrew", "id", 6, "depth", 0),
                 mapOf("name", "Asya", "reportsTo", "Ron", "id", 5, "depth", 1))));
   }
+
+  // ==================== Top-Level Literal Start Tests ====================
+
+  /**
+   * Test 20: Top-level graphLookup with single literal start value. BFS from "Eliot" finds the
+   * reporting chain: Eliot->Ron->Andrew.
+   */
+  @Test
+  public void testTopLevelGraphLookupSingleLiteral() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='Eliot'"
+                    + " edge=reportsTo-->name"
+                    + " maxDepth=5"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES));
+
+    // Output is single row with just the reportingHierarchy array
+    verifySchema(result, schema("reportingHierarchy", "array"));
+    // BFS from "Eliot": toField=name matches Eliot -> Eliot row has reportsTo=Ron
+    // -> then name matches Ron -> Ron row has reportsTo=Andrew
+    // -> then name matches Andrew -> Andrew row has reportsTo=null (no further traversal)
+    verifyDataRows(
+        result,
+        rows(
+            (Object)
+                List.of(
+                    Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2),
+                    Map.of("name", "Ron", "reportsTo", "Andrew", "id", 3),
+                    mapOf("name", "Andrew", "reportsTo", null, "id", 4))));
+  }
+
+  /**
+   * Test 21: Top-level graphLookup with literal list start values. Combined BFS from "Eliot" and
+   * "Andrew".
+   */
+  @Test
+  public void testTopLevelGraphLookupLiteralList() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start=('Eliot', 'Andrew')"
+                    + " edge=reportsTo-->name"
+                    + " maxDepth=5"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(result, schema("reportingHierarchy", "array"));
+    // Combined BFS from {Eliot, Andrew}:
+    // Depth 0: name IN (Eliot, Andrew) → finds Eliot (reportsTo=Ron) and Andrew (reportsTo=null)
+    // Depth 1: name IN (Ron) AND reportsTo NOT IN (Eliot, Andrew, Ron) → Ron excluded
+    //   because Ron.reportsTo=Andrew is in visited set
+    verifyDataRows(
+        result,
+        rows(
+            (Object)
+                List.of(
+                    Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2),
+                    mapOf("name", "Andrew", "reportsTo", null, "id", 4))));
+  }
+
+  /** Test 22: Top-level graphLookup with maxDepth. */
+  @Test
+  public void testTopLevelGraphLookupWithMaxDepth() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='Eliot'"
+                    + " edge=reportsTo-->name"
+                    + " maxDepth=0"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(result, schema("reportingHierarchy", "array"));
+    // maxDepth=0: Only immediate match for "Eliot" (Eliot row), no further traversal
+    verifyDataRows(
+        result, rows((Object) List.of(Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2))));
+  }
+
+  /** Test 23: Top-level graphLookup with depthField and maxDepth. */
+  @Test
+  public void testTopLevelGraphLookupWithDepthField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='Eliot'"
+                    + " edge=reportsTo-->name"
+                    + " depthField=level"
+                    + " maxDepth=5"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(result, schema("reportingHierarchy", "array"));
+    verifyDataRows(
+        result,
+        rows(
+            (Object)
+                List.of(
+                    mapOf("name", "Eliot", "reportsTo", "Ron", "id", 2, "level", 0),
+                    mapOf("name", "Ron", "reportsTo", "Andrew", "id", 3, "level", 1),
+                    mapOf("name", "Andrew", "reportsTo", null, "id", 4, "level", 2))));
+  }
+
+  /** Test 24: Top-level graphLookup with non-existent start value yields empty results. */
+  @Test
+  public void testTopLevelGraphLookupNonExistentStart() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='NonExistent'"
+                    + " edge=reportsTo-->name"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(result, schema("reportingHierarchy", "array"));
+    verifyDataRows(result, rows((Object) Collections.emptyList()));
+  }
 }

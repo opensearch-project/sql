@@ -711,6 +711,27 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testGraphLookupTopLevel() {
+    // Top-level graphLookup with single literal
+    assertEquals(
+        "graphlookup table start=*** edge=identifier-->identifier as identifier",
+        anonymize(
+            "graphLookup employees start=\"Jack\" edge=manager-->name" + " as reportingHierarchy"));
+    // Top-level graphLookup with literal list
+    assertEquals(
+        "graphlookup table start=(***, ***) edge=identifier-->identifier as identifier",
+        anonymize(
+            "graphLookup employees start=(\"Jack\", \"Eliot\") edge=manager-->name"
+                + " as reportingHierarchy"));
+    // Top-level graphLookup with maxDepth
+    assertEquals(
+        "graphlookup table start=*** edge=identifier-->identifier maxDepth=*** as identifier",
+        anonymize(
+            "graphLookup employees start=\"Jack\" edge=manager-->name"
+                + " maxDepth=3 as reportingHierarchy"));
+  }
+
+  @Test
   public void testInSubquery() {
     assertEquals(
         "source=table | where (identifier) in [ source=table | fields + identifier ] | fields +"

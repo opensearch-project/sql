@@ -48,6 +48,7 @@ pplCommands
    | showDataSourcesCommand
    | searchCommand
    | multisearchCommand
+   | graphLookupCommand
    ;
 
 commands
@@ -660,7 +661,9 @@ graphLookupCommand
    ;
 
 startClause
-   : START EQUAL startField = fieldExpression
+   : START EQUAL LT_PRTHS searchLiteralList RT_PRTHS
+   | START EQUAL startField = fieldExpression
+   | START EQUAL startValue = literalValue
    ;
 
 edgeClause
