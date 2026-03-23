@@ -2694,23 +2694,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitGraphLookup(GraphLookup node, CalcitePlanContext context) {
     RelBuilder builder = context.relBuilder;
 
-    // 1. Handle source: piped mode (child exists) vs literal start mode
-    boolean hasPipedSource = !node.getChild().isEmpty();
-    if (hasPipedSource && node.getStartValues() != null) {
-      throw new SemanticCheckException(
-          "Literal start values cannot be used in piped mode."
-              + " Use a field reference (e.g. start=fieldName) or remove the source pipe.");
-    }
-    if (!hasPipedSource && node.getStartField() != null) {
-      throw new SemanticCheckException(
-          "Field reference start requires a piped source."
-              + " Use literal start values (e.g. start='value') for top-level graphLookup.");
-    }
-
     List<Object> startValuesForCalcite = null;
     String startFieldName;
     if (node.getStartValues() != null) {
       // Literal start mode: create empty LogicalValues as dummy source (BiRel needs two inputs)
+      // And will ignore the previous pipe then.
       RelDataType dummyType =
           builder
               .getTypeFactory()
@@ -2724,6 +2712,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         startValuesForCalcite.add(lit.getValue());
       }
     } else {
+      if (node.getChild().isEmpty()) {
+        throw new SemanticCheckException(
+            "Field reference start requires a piped source."
+                + " Use literal start values (e.g. start='value') for top-level graphLookup.");
+      }
       // Piped mode: visit source child
       visitChildren(node, context);
       // TODO: Limit the number of source rows to 100 for now, make it configurable.

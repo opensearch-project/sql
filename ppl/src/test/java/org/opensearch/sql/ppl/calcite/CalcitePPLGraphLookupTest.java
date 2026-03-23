@@ -185,14 +185,20 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testGraphLookupLiteralStartInPipedModeRejectsError() {
+  public void testGraphLookupLiteralStartInPipedModeIgnoreChild() {
     // Literal start values should not be allowed in piped mode
     String ppl =
-        "source=employee | graphLookup employee start=\"Dev\" edge=reportsTo-->name"
-            + " as reportingHierarchy";
+        "source=employee | where name=\"Dev\" | graphLookup employee start=\"Dev\""
+            + " edge=reportsTo-->name as reportingHierarchy";
 
-    Throwable t = Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
-    assertTrue(t.getMessage().contains("Literal start values cannot be used in piped mode"));
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
+            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[0],"
+            + " bidirectional=[false], startValues=[[Dev]])\n"
+            + "  LogicalValues(tuples=[[]])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
