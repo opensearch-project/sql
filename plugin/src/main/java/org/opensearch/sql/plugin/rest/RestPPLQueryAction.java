@@ -17,6 +17,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
@@ -29,6 +30,7 @@ import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
@@ -44,9 +46,13 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   private static final Logger LOG = LogManager.getLogger();
 
+  /** Unified query handler for Parquet-backed indices (Analytics engine path). */
+  private final RestUnifiedQueryAction unifiedQueryHandler;
+
   /** Constructor of RestPPLQueryAction. */
-  public RestPPLQueryAction() {
+  public RestPPLQueryAction(ClusterService clusterService, NodeClient client) {
     super();
+    this.unifiedQueryHandler = new RestUnifiedQueryAction(client, new StubQueryPlanExecutor());
   }
 
   private static boolean isClientError(Exception e) {
@@ -85,6 +91,13 @@ public class RestPPLQueryAction extends BaseRestHandler {
   protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient nodeClient) {
     TransportPPLQueryRequest transportPPLQueryRequest =
         new TransportPPLQueryRequest(PPLQueryRequestFactory.getPPLRequest(request));
+
+    // Route to unified query pipeline for Parquet-backed indices
+    String pplQuery = transportPPLQueryRequest.toPPLQueryRequest().getRequest();
+    if (RestUnifiedQueryAction.isUnifiedQueryPath(pplQuery)) {
+      boolean isExplain = request.path().endsWith("/_explain");
+      return channel -> unifiedQueryHandler.execute(pplQuery, QueryType.PPL, channel, isExplain);
+    }
 
     return channel ->
         nodeClient.execute(

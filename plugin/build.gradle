@@ -160,6 +160,7 @@ dependencies {
     api "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
 
     api project(":ppl")
+    api project(':api')
     api project(':legacy')
     api project(':opensearch')
     api project(':prometheus')

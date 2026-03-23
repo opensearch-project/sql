@@ -1,0 +1,274 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.plugin.rest;
+
+import static org.opensearch.core.rest.RestStatus.OK;
+import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
+import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
+import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
+
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.sql.api.UnifiedQueryContext;
+import org.opensearch.sql.api.UnifiedQueryPlanner;
+import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
+import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
+import org.opensearch.sql.legacy.metrics.MetricName;
+import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.protocol.response.QueryResult;
+import org.opensearch.sql.protocol.response.format.JdbcResponseFormatter;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
+import org.opensearch.sql.protocol.response.format.ResponseFormatter;
+import org.opensearch.transport.client.node.NodeClient;
+
+/**
+ * Handles queries routed to the Analytics engine via the unified query pipeline. Parses PPL queries
+ * using {@link UnifiedQueryPlanner} to generate a Calcite {@link RelNode}, then delegates to {@link
+ * AnalyticsExecutionEngine} for execution.
+ */
+public class RestUnifiedQueryAction {
+
+  private static final Logger LOG = LogManager.getLogger(RestUnifiedQueryAction.class);
+  private static final String SCHEMA_NAME = "opensearch";
+
+  /**
+   * Pattern to extract index name from PPL source clause. Matches: source = index, source=index,
+   * source = `index`, source = catalog.index
+   */
+  private static final Pattern SOURCE_PATTERN =
+      Pattern.compile(
+          "source\\s*=\\s*`?([a-zA-Z0-9_.*]+(?:\\.[a-zA-Z0-9_.*]+)*)`?", Pattern.CASE_INSENSITIVE);
+
+  private final AnalyticsExecutionEngine analyticsEngine;
+  private final NodeClient client;
+
+  public RestUnifiedQueryAction(NodeClient client, QueryPlanExecutor planExecutor) {
+    this.client = client;
+    this.analyticsEngine = new AnalyticsExecutionEngine(planExecutor);
+  }
+
+  /**
+   * Check if the query targets a non-Lucene (Parquet-backed) index. Currently uses a prefix
+   * convention ("parquet_"). In production, this will check index settings.
+   */
+  public static boolean isUnifiedQueryPath(String query) {
+    if (query == null) {
+      return false;
+    }
+    String indexName = extractIndexName(query);
+    if (indexName == null) {
+      return false;
+    }
+    // Handle qualified names like "catalog.parquet_logs" — check the last segment
+    int lastDot = indexName.lastIndexOf('.');
+    String tableName = lastDot >= 0 ? indexName.substring(lastDot + 1) : indexName;
+    return tableName.startsWith("parquet_");
+  }
+
+  /**
+   * Extract the source index name from a PPL query string.
+   *
+   * @param query the PPL query string
+   * @return the index name, or null if not found
+   */
+  static String extractIndexName(String query) {
+    Matcher matcher = SOURCE_PATTERN.matcher(query);
+    if (matcher.find()) {
+      return matcher.group(1);
+    }
+    return null;
+  }
+
+  /**
+   * Execute a query through the unified query pipeline on the sql-worker thread pool.
+   *
+   * @param query the PPL query string
+   * @param queryType SQL or PPL
+   * @param channel the REST channel for sending the response
+   * @param isExplain whether this is an explain request
+   */
+  public void execute(String query, QueryType queryType, RestChannel channel, boolean isExplain) {
+    client
+        .threadPool()
+        .schedule(
+            () -> doExecute(query, queryType, channel, isExplain),
+            new TimeValue(0),
+            SQL_WORKER_THREAD_POOL_NAME);
+  }
+
+  private void doExecute(
+      String query, QueryType queryType, RestChannel channel, boolean isExplain) {
+    try {
+      long startTime = System.nanoTime();
+
+      // TODO: Replace stub schema with EngineContext.getSchema() when analytics engine is ready
+      AbstractSchema schema = buildStubSchema();
+
+      try (UnifiedQueryContext context =
+          UnifiedQueryContext.builder()
+              .language(queryType)
+              .catalog(SCHEMA_NAME, schema)
+              .defaultNamespace(SCHEMA_NAME)
+              .build()) {
+
+        UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+        RelNode plan = planner.plan(query);
+        long planTime = System.nanoTime();
+        LOG.info(
+            "[unified] Planning completed in {}ms for {} query",
+            (planTime - startTime) / 1_000_000,
+            queryType);
+
+        CalcitePlanContext planContext = context.getPlanContext();
+
+        if (isExplain) {
+          analyticsEngine.explain(
+              plan, ExplainMode.STANDARD, planContext, createExplainListener(channel));
+        } else {
+          analyticsEngine.execute(plan, planContext, createQueryListener(channel, planTime));
+        }
+      }
+    } catch (Exception e) {
+      recordFailureMetric(e);
+      reportError(channel, e);
+    }
+  }
+
+  private ResponseListener<QueryResponse> createQueryListener(
+      RestChannel channel, long planEndTime) {
+    ResponseFormatter<QueryResult> formatter = new JdbcResponseFormatter(PRETTY);
+    return new ResponseListener<QueryResponse>() {
+      @Override
+      public void onResponse(QueryResponse response) {
+        long execTime = System.nanoTime();
+        LOG.info(
+            "[unified] Execution completed in {}ms, {} rows returned",
+            (execTime - planEndTime) / 1_000_000,
+            response.getResults().size());
+        Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
+        Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
+        String result =
+            formatter.format(
+                new QueryResult(
+                    response.getSchema(), response.getResults(), response.getCursor(), PPL_SPEC));
+        channel.sendResponse(new BytesRestResponse(OK, formatter.contentType(), result));
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        recordFailureMetric(e);
+        reportError(channel, e);
+      }
+    };
+  }
+
+  private ResponseListener<ExplainResponse> createExplainListener(RestChannel channel) {
+    return new ResponseListener<ExplainResponse>() {
+      @Override
+      public void onResponse(ExplainResponse response) {
+        Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
+        Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
+        JsonResponseFormatter<ExplainResponse> formatter =
+            new JsonResponseFormatter<ExplainResponse>(PRETTY) {
+              @Override
+              protected Object buildJsonObject(ExplainResponse resp) {
+                return resp;
+              }
+            };
+        channel.sendResponse(
+            new BytesRestResponse(OK, formatter.contentType(), formatter.format(response)));
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        recordFailureMetric(e);
+        reportError(channel, e);
+      }
+    };
+  }
+
+  /**
+   * Stub schema for development and testing. Returns a hardcoded table definition for any
+   * "parquet_*" table. Will be replaced by EngineContext.getSchema() when the analytics engine is
+   * ready.
+   */
+  private static AbstractSchema buildStubSchema() {
+    return new AbstractSchema() {
+      @Override
+      protected Map<String, Table> getTableMap() {
+        return Map.of(
+            "parquet_logs", buildStubTable(),
+            "parquet_metrics", buildStubMetricsTable());
+      }
+    };
+  }
+
+  private static Table buildStubTable() {
+    return new AbstractTable() {
+      @Override
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory
+            .builder()
+            .add("ts", SqlTypeName.TIMESTAMP)
+            .add("status", SqlTypeName.INTEGER)
+            .add("message", SqlTypeName.VARCHAR)
+            .add("ip_addr", SqlTypeName.VARCHAR)
+            .build();
+      }
+    };
+  }
+
+  private static Table buildStubMetricsTable() {
+    return new AbstractTable() {
+      @Override
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory
+            .builder()
+            .add("ts", SqlTypeName.TIMESTAMP)
+            .add("cpu", SqlTypeName.DOUBLE)
+            .add("memory", SqlTypeName.DOUBLE)
+            .add("host", SqlTypeName.VARCHAR)
+            .build();
+      }
+    };
+  }
+
+  private static void recordFailureMetric(Exception e) {
+    LOG.error("[unified] Query execution failed", e);
+    Metrics.getInstance().getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_SYS).increment();
+  }
+
+  private static void reportError(RestChannel channel, Exception e) {
+    channel.sendResponse(
+        new BytesRestResponse(
+            org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR,
+            "application/json; charset=UTF-8",
+            "{\"error\":{\"type\":\""
+                + e.getClass().getSimpleName()
+                + "\",\"reason\":\""
+                + (e.getMessage() != null ? e.getMessage().replace("\"", "\\\"") : "Unknown error")
+                + "\"},\"status\":500}"));
+  }
+}
