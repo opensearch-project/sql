@@ -57,6 +57,7 @@ PPL supports a wide range of built-in functions for data processing and analysis
   - [EARLIEST](condition.md/#earliest)
   - [LATEST](condition.md/#latest)
   - [REGEXP_MATCH](condition.md/#regexp_match)
+  - [CONTAINS](condition.md/#contains)
 
 - [Type Conversion Functions](conversion.md)
   - [CAST](conversion.md/#cast)

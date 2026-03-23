@@ -945,6 +945,7 @@ geoIpProperty
    | GREATER
    | NOT_GREATER
    | REGEXP
+   | CONTAINS
    ;
 
 singleFieldRelevanceFunctionName

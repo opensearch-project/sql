@@ -464,6 +464,7 @@ CAST:                               'CAST';
 // BOOL FUNCTIONS
 LIKE:                               'LIKE';
 ILIKE:                              'ILIKE';
+CONTAINS:                           'CONTAINS';
 ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
