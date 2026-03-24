@@ -8,368 +8,212 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLSpathCommandIT extends CalcitePPLSpathTestBase {
+public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
     enableCalcite();
 
-    putJsonItem(1, "simple", sj("{'a': 1, 'b': 2, 'c': 3}"));
-    putJsonItem(2, "simple", sj("{'a': 1, 'b': 2, 'c': 3}"));
-    putJsonItem(3, "nested", sj("{'nested': {'d': [1, 2, 3], 'e': 'str'}}"));
-    putJsonItem(4, "overwrap", sj("{'a.b': 1, 'a': {'b': 2, 'c': 3}}"));
-    putJsonItem(
-        5, "types", sj("{'string': 'STRING', 'boolean': true, 'number': 10.1, 'null': null}"));
+    loadIndex(Index.BANK);
+
+    // Simple JSON docs for path-based extraction
+    Request request1 = new Request("PUT", "/test_spath/_doc/1?refresh=true");
+    request1.setJsonEntity("{\"doc\": \"{\\\"n\\\": 1}\"}");
+    client().performRequest(request1);
+
+    Request request2 = new Request("PUT", "/test_spath/_doc/2?refresh=true");
+    request2.setJsonEntity("{\"doc\": \"{\\\"n\\\": 2}\"}");
+    client().performRequest(request2);
+
+    Request request3 = new Request("PUT", "/test_spath/_doc/3?refresh=true");
+    request3.setJsonEntity("{\"doc\": \"{\\\"n\\\": 3}\"}");
+    client().performRequest(request3);
+
+    // Auto-extract mode: flatten rules and edge cases (empty, malformed)
+    Request autoExtractDoc = new Request("PUT", "/test_spath_auto/_doc/1?refresh=true");
+    autoExtractDoc.setJsonEntity(
+        "{\"nested_doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\"}}\","
+            + " \"array_doc\": \"{\\\"tags\\\":[\\\"java\\\",\\\"sql\\\"]}\","
+            + " \"merge_doc\": \"{\\\"a\\\":{\\\"b\\\":1},\\\"a.b\\\":2}\","
+            + " \"stringify_doc\": \"{\\\"n\\\":30,\\\"b\\\":true,\\\"x\\\":null}\","
+            + " \"empty_doc\": \"{}\","
+            + " \"malformed_doc\": \"{\\\"user\\\":{\\\"name\\\":\"}");
+    client().performRequest(autoExtractDoc);
+
+    // Auto-extract mode: 2-doc index for spath + command (eval/where/stats/sort) tests
+    Request cmdDoc1 = new Request("PUT", "/test_spath_cmd/_doc/1?refresh=true");
+    cmdDoc1.setJsonEntity(
+        "{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\",\\\"age\\\":30}}\"}");
+    client().performRequest(cmdDoc1);
+
+    Request cmdDoc2 = new Request("PUT", "/test_spath_cmd/_doc/2?refresh=true");
+    cmdDoc2.setJsonEntity(
+        "{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"Alice\\\",\\\"age\\\":25}}\"}");
+    client().performRequest(cmdDoc2);
+
+    // Auto-extract mode: null input handling (doc 1 establishes mapping, doc 2 has null)
+    Request nullDoc1 = new Request("PUT", "/test_spath_null/_doc/1?refresh=true");
+    nullDoc1.setJsonEntity("{\"doc\": \"{\\\"n\\\": 1}\"}");
+    client().performRequest(nullDoc1);
+
+    Request nullDoc2 = new Request("PUT", "/test_spath_null/_doc/2?refresh=true");
+    nullDoc2.setJsonEntity("{\"doc\": null}");
+    client().performRequest(nullDoc2);
   }
 
   @Test
   public void testSimpleSpath() throws IOException {
     JSONObject result =
-        executeQuery(
-            "source=test_json | where category='simple' | spath input=userData output=result path=a"
-                + " | fields result | head 2");
+        executeQuery("source=test_spath | spath input=doc output=result path=n | fields result");
     verifySchema(result, schema("result", "string"));
-    verifyDataRows(result, rows("1"), rows("1"));
-  }
-
-  private static final String EXPECTED_SPATH_WILDCARD_ERROR =
-      "Spath command cannot be used with partial wildcard such as `prefix*`.";
-
-  @Test
-  public void testSpathWithWildcard() throws IOException {
-    verifyExplainException(
-        "source=test_json | spath input=userData | fields a, b*", EXPECTED_SPATH_WILDCARD_ERROR);
+    verifyDataRows(result, rows("1"), rows("2"), rows("3"));
   }
 
   @Test
-  public void testSpathWithoutFields() throws IOException {
-    JSONObject result =
-        executeQuery("source=test_json | where category='simple' | spath input=userData | head 1");
-    verifySchema(
-        result,
-        schema("a", "string"),
-        schema("b", "string"),
-        schema("c", "string"),
-        schema("category", "string"),
-        schema("userData", "string"));
-    verifyDataRows(result, rows("1", "2", "3", "simple", sj("{'a': 1, 'b': 2, 'c': 3}")));
-  }
-
-  @Test
-  public void testSpathWithOnlyWildcard() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_json | where category='simple' | spath input=userData | fields * | head"
-                + " 1");
-    verifySchema(
-        result,
-        schema("a", "string"),
-        schema("b", "string"),
-        schema("c", "string"),
-        schema("category", "string"),
-        schema("userData", "string"));
-    verifyDataRows(result, rows("1", "2", "3", "simple", sj("{'a': 1, 'b': 2, 'c': 3}")));
-  }
-
-  @Test
-  public void testSpathWithFieldAndWildcard() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_json | where category='simple' | spath input=userData | fields c, * | head"
-                + " 1");
-    verifySchema(
-        result,
-        schema("c", "string"),
-        schema("a", "string"),
-        schema("b", "string"),
-        schema("category", "string"),
-        schema("userData", "string"));
-    verifyDataRows(result, rows("3", "1", "2", "simple", sj("{'a': 1, 'b': 2, 'c': 3}")));
-  }
-
-  @Test
-  public void testSpathWithFieldAndWildcardAtMiddle() throws IOException {
-    verifyExplainException(
-        "source=test_json | where category='simple' | spath input=userData | fields c, *, b",
-        "Wildcard can be placed only at the end of the fields list (limit of spath command).");
-  }
-
-  @Test
-  public void testSpathTypes() throws IOException {
-    JSONObject result =
-        executeQuery("source=test_json | where category='types' | spath input=userData | head 1");
-    verifySchema(
-        result,
-        schema("boolean", "string"),
-        schema("category", "string"),
-        schema("null", "string"),
-        schema("number", "string"),
-        schema("string", "string"),
-        schema("userData", "string"));
+  public void testSpathAutoExtract() throws IOException {
+    JSONObject result = executeQuery("source=test_spath | spath input=doc");
+    verifySchema(result, schema("doc", "struct"));
     verifyDataRows(
         result,
-        rows(
-            "true",
-            "types",
-            null,
-            "10.1",
-            "STRING",
-            sj("{'string': 'STRING', 'boolean': true, 'number': 10.1, 'null': null}")));
-  }
-
-  private static final String EXPECTED_SUBQUERY_ERROR =
-      "Filter by subquery is not supported with field resolution.";
-
-  @Test
-  public void testSpathWithSubsearch() throws IOException {
-    verifyExplainException(
-        "source=test_json | spath input=userData | where b in [source=test_json | fields a] |"
-            + " fields b",
-        EXPECTED_SUBQUERY_ERROR);
+        rows(new JSONObject("{\"n\":\"1\"}")),
+        rows(new JSONObject("{\"n\":\"2\"}")),
+        rows(new JSONObject("{\"n\":\"3\"}")));
   }
 
   @Test
-  public void testSpathWithFields() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_json | where category='simple' | spath input=userData | fields a, b, c |"
-                + " head 1");
-    verifySchema(result, schema("a", "string"), schema("b", "string"), schema("c", "string"));
-    verifyDataRows(result, rows("1", "2", "3"));
-  }
-
-  @Test
-  public void testSpathWithAbsentField() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_json | where category='simple' | spath input=userData | fields a, x | head"
-                + " 1");
-    verifySchema(result, schema("a", "string"), schema("x", "string"));
-    verifyDataRows(result, rows("1", null));
-  }
-
-  @Test
-  public void testOverwrap() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_json | where category='overwrap' | spath input=userData | fields a.b |"
-                + " head 1");
-    verifySchema(result, schema("a.b", "string"));
-    verifyDataRows(result, rows("[1, 2]"));
-  }
-
-  @Test
-  public void testSpathTwice() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_json | where category='simple' | spath input=userData | spath"
-                + " input=userData | fields a, userData | head 1");
-    verifySchema(result, schema("a", "string"), schema("userData", "string"));
-    verifyDataRows(result, rows("[1, 1]", sj("{'a': 1, 'b': 2, 'c': 3}")));
-  }
-
-  @Test
-  public void testSpathTwiceWithDynamicFields() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_json | where category='simple' | spath input=userData | spath"
-                + " input=userData | fields b, * | head 1");
-    verifySchema(
-        result,
-        schema("b", "string"),
-        schema("a", "string"),
-        schema("c", "string"),
-        schema("category", "string"),
-        schema("userData", "string"));
-    verifyDataRows(
-        result, rows("[2, 2]", "[1, 1]", "[3, 3]", "simple", sj("{'a': 1, 'b': 2, 'c': 3}")));
-  }
-
-  @Test
-  public void testSpathWithEval() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_json | where category='simple' | spath input=userData |"
-                + " eval result = a * b * c | fields result | head 1");
-    verifySchema(result, schema("result", "double"));
-    verifyDataRows(result, rows(6));
-  }
-
-  @Test
-  public void testSpathWithStats() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_json | where category='simple' | spath input=userData |"
-                + "stats count by a, b | head 1");
-    verifySchema(result, schema("count", "bigint"), schema("a", "string"), schema("b", "string"));
-    verifyDataRows(result, rows(2, "1", "2"));
-  }
-
-  @Test
-  public void testSpathWithNestedFields() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_json | where category='nested' | spath input=userData | fields"
-                + " `nested.d{}`, nested.e");
-    verifySchema(result, schema("nested.d{}", "string"), schema("nested.e", "string"));
-    verifyDataRows(result, rows("[1, 2, 3]", "str"));
-  }
-
-  @Test
-  public void testAppendWithSpathInMainAndDynamicFields() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_json | where category='simple' | spath input=userData | head 1 | append"
-                + " [source=test_json | where category='simple' | eval d = 4 | head 1 ] | fields"
-                + " a, c, *");
-    verifySchema(
-        result,
-        schema("a", "string"),
-        schema("c", "string"),
-        schema("b", "string"),
-        schema("category", "string"),
-        schema("d", "string"),
-        schema("userData", "string"));
+  public void testSpathAutoExtractWithOutput() throws IOException {
+    JSONObject result = executeQuery("source=test_spath | spath input=doc output=result");
+    verifySchema(result, schema("doc", "string"), schema("result", "struct"));
     verifyDataRows(
         result,
-        rows("1", "3", "2", "simple", null, sj("{'a': 1, 'b': 2, 'c': 3}")),
-        rows(null, null, null, "simple", "4", sj("{'a': 1, 'b': 2, 'c': 3}")));
+        rows("{\"n\": 1}", new JSONObject("{\"n\":\"1\"}")),
+        rows("{\"n\": 2}", new JSONObject("{\"n\":\"2\"}")),
+        rows("{\"n\": 3}", new JSONObject("{\"n\":\"3\"}")));
   }
 
   @Test
-  public void testAppendWithSpathInSubsearchDynamicFields() throws IOException {
+  public void testSpathAutoExtractNestedFields() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_json | where category='simple' | eval d = 4 | head 1 | append"
-                + " [source=test_json | where category='simple' | spath input=userData | head 1 ] |"
-                + " fields a, c, *");
-    verifySchema(
-        result,
-        schema("a", "string"),
-        schema("c", "string"),
-        schema("b", "string"),
-        schema("category", "string"),
-        schema("d", "string"),
-        schema("userData", "string"));
-    verifyDataRows(
-        result,
-        rows(null, null, null, "simple", "4", sj("{'a': 1, 'b': 2, 'c': 3}")),
-        rows("1", "3", "2", "simple", null, sj("{'a': 1, 'b': 2, 'c': 3}")));
+            "source=test_spath_auto | spath input=nested_doc output=result | fields result");
+
+    // Nested objects flatten to dotted keys: user.name
+    verifySchema(result, schema("result", "struct"));
+    verifyDataRows(result, rows(new JSONObject("{\"user.name\":\"John\"}")));
   }
 
   @Test
-  public void testAppendColWithSpathInMain() throws IOException {
+  public void testSpathAutoExtractArraySuffix() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_json | where category='simple' | spath input=userData | appendcol [where"
-                + " category='simple'] | fields a, c, *");
-    verifySchema(
-        result,
-        schema("a", "string"),
-        schema("c", "string"),
-        schema("category", "string"),
-        schema("userData", "string"),
-        schema("b", "string"));
-    verifyDataRows(
-        result,
-        rows("1", "3", "simple", sj("{'a': 1, 'b': 2, 'c': 3}"), "2"),
-        rows("1", "3", "simple", sj("{'a': 1, 'b': 2, 'c': 3}"), "2"));
+            "source=test_spath_auto | spath input=array_doc output=result | fields result");
+
+    // Arrays use {} suffix: tags{}
+    verifySchema(result, schema("result", "struct"));
+    verifyDataRows(result, rows(new JSONObject("{\"tags{}\":\"[java, sql]\"}")));
   }
 
   @Test
-  public void testAppendColWithSpathInSubsearch() throws IOException {
+  public void testSpathAutoExtractDuplicateKeysMerge() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_json | where category='simple' | appendcol [where category='simple' |"
-                + " spath input=userData] | fields a, c, *");
-    verifySchema(
-        result,
-        schema("a", "string"),
-        schema("c", "string"),
-        schema("category", "string"),
-        schema("userData", "string"),
-        schema("b", "string"));
-    verifyDataRows(
-        result,
-        rows("1", "3", "simple", sj("{'a': 1, 'b': 2, 'c': 3}"), "2"),
-        rows("1", "3", "simple", sj("{'a': 1, 'b': 2, 'c': 3}"), "2"));
+            "source=test_spath_auto | spath input=merge_doc output=result | fields result");
+
+    // Duplicate logical keys merge into arrays: a.b from nested and dotted key
+    verifySchema(result, schema("result", "struct"));
+    verifyDataRows(result, rows(new JSONObject("{\"a.b\":\"[1, 2]\"}")));
   }
 
   @Test
-  public void testAppendColWithSpathInBothInputs() throws IOException {
+  public void testSpathAutoExtractStringifyAndNull() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_json | where category='simple' | spath input=userData | appendcol [where"
-                + " category='simple' | spath input=userData ] | fields a, c, *");
-    verifySchema(
-        result,
-        schema("a", "string"),
-        schema("c", "string"),
-        schema("b", "string"),
-        schema("category", "string"),
-        schema("userData", "string"));
-    verifyDataRows(
-        result,
-        rows("1", "3", "2", "simple", sj("{'a': 1, 'b': 2, 'c': 3}")),
-        rows("1", "3", "2", "simple", sj("{'a': 1, 'b': 2, 'c': 3}")));
+            "source=test_spath_auto | spath input=stringify_doc output=result | fields result");
+
+    // All values stringified, null preserved
+    verifySchema(result, schema("result", "struct"));
+    verifyDataRows(result, rows(new JSONObject("{\"n\":\"30\",\"b\":\"true\",\"x\":\"null\"}")));
   }
 
   @Test
-  public void testAppendPipeWithSpathInMain() throws IOException {
+  public void testSpathAutoExtractNullInput() throws IOException {
     JSONObject result =
-        executeQuery(
-            "source=test_json | where category='simple' | spath input=userData | stats sum(a) as"
-                + " total by b | appendpipe [stats sum(total) as total] | head 5");
-    verifySchema(result, schema("total", "double"), schema("b", "string"));
-    verifyDataRows(result, rows(2, "2"), rows(2, null));
+        executeQuery("source=test_spath_null | spath input=doc output=result | fields result");
+
+    // Non-null doc extracts normally, null doc returns null
+    verifySchema(result, schema("result", "struct"));
+    verifyDataRows(result, rows(new JSONObject("{\"n\":\"1\"}")), rows((Object) null));
   }
 
   @Test
-  public void testMultisearchWithSpath() throws IOException {
+  public void testSpathAutoExtractEmptyJson() throws IOException {
     JSONObject result =
         executeQuery(
-            "| multisearch [source=test_json | where category='simple' | spath input=userData |"
-                + " head 1] [source=test_json | where category='nested' | spath input=userData] |"
-                + " fields a, c, *");
-    verifySchema(
-        result,
-        schema("a", "string"),
-        schema("c", "string"),
-        schema("b", "string"),
-        schema("category", "string"),
-        schema("nested.d{}", "string"),
-        schema("nested.e", "string"),
-        schema("userData", "string"));
-    verifyDataRows(
-        result,
-        rows("1", "3", "2", "simple", null, null, sj("{'a': 1, 'b': 2, 'c': 3}")),
-        rows(
-            null,
-            null,
-            null,
-            "nested",
-            "[1, 2, 3]",
-            "str",
-            sj("{'nested': {'d': [1, 2, 3], 'e': 'str'}}")));
+            "source=test_spath_auto | spath input=empty_doc output=result | fields result");
+
+    // Empty JSON object returns empty map
+    verifySchema(result, schema("result", "struct"));
+    verifyDataRows(result, rows(new JSONObject("{}")));
   }
 
   @Test
-  public void testSpathWithMvCombine() throws IOException {
+  public void testSpathAutoExtractMalformedJson() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_json | where category='simple' "
-                + "| spath input=userData "
-                + "| fields a, b, c "
-                + "| mvcombine c");
+            "source=test_spath_auto | spath input=malformed_doc output=result | fields result");
 
-    verifySchema(result, schema("a", "string"), schema("b", "string"), schema("c", "array"));
+    // Malformed JSON returns partial results parsed before the error
+    verifySchema(result, schema("result", "struct"));
+    verifyDataRows(result, rows(new JSONObject("{}")));
+  }
 
-    verifyDataRows(result, rows("1", "2", new String[] {"3", "3"}));
+  @Test
+  public void testSpathAutoExtractWithEval() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc"
+                + " | eval name = doc.user.name | fields name");
+    verifySchema(result, schema("name", "string"));
+    verifyDataRows(result, rows("Alice"), rows("John"));
+  }
+
+  @Test
+  public void testSpathAutoExtractWithWhere() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc"
+                + " | where doc.user.name = 'John' | fields doc.user.name");
+    verifySchema(result, schema("doc.user.name", "string"));
+    verifyDataRows(result, rows("John"));
+  }
+
+  @Test
+  public void testSpathAutoExtractWithStats() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc"
+                + " | stats sum(doc.user.age) by doc.user.name");
+    verifySchema(result, schema("sum(doc.user.age)", "double"), schema("doc.user.name", "string"));
+    verifyDataRows(result, rows(25, "Alice"), rows(30, "John"));
+  }
+
+  @Test
+  public void testSpathAutoExtractWithSort() throws IOException {
+    // spath auto-extract + sort by path navigation on result
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc"
+                + " | sort doc.user.name | fields doc.user.name");
+    verifySchema(result, schema("doc.user.name", "string"));
+    verifyDataRowsInOrder(result, rows("Alice"), rows("John"));
   }
 }

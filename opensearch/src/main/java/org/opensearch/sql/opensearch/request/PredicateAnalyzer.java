@@ -93,6 +93,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.ScriptQueryBuilder;
 import org.opensearch.script.Script;
+import org.opensearch.search.sort.ScriptSortBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprSqlType;
@@ -103,6 +104,7 @@ import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchAliasType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
@@ -710,9 +712,14 @@ public class PredicateAnalyzer {
           QueryExpression finalExpression =
               switch (nullAs) {
                 // e.g. where isNotNull(a) and ( a = 1 or a = 2)
-                // For this case, return `expression` is equivalent
-                // But DSL `bool.must` could slow down the query, so we return `expression`
-                case FALSE -> expression;
+                // For positive matches (IN), the expression naturally excludes nulls.
+                // For negations (NOT IN, ranges), we must add an exists check
+                // to ensure null values are filtered out.
+                case FALSE ->
+                    isSearchWithPoints(call)
+                        ? expression
+                        : CompoundQueryExpression.and(
+                            false, expression, QueryExpression.create(pair.getKey()).exists());
                 // e.g. where isNull(a) or a = 1 or a = 2
                 case TRUE ->
                     CompoundQueryExpression.or(
@@ -1122,7 +1129,7 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException("notIn cannot be applied to " + this.getClass());
     }
 
-    static QueryExpression create(TerminalExpression expression) {
+    public static QueryExpression create(TerminalExpression expression) {
       if (expression instanceof CastExpression) {
         expression = CastExpression.unpack(expression);
       }
@@ -1660,6 +1667,24 @@ public class PredicateAnalyzer {
     public List<RexNode> getUnAnalyzableNodes() {
       return List.of();
     }
+
+    /**
+     * Determine the appropriate ScriptSortType based on the expression's return type.
+     *
+     * @param relDataType the return type of the expression
+     * @return the appropriate ScriptSortType
+     */
+    public static ScriptSortBuilder.ScriptSortType getScriptSortType(RelDataType relDataType) {
+      if (SqlTypeName.CHAR_TYPES.contains(relDataType.getSqlTypeName())) {
+        return ScriptSortBuilder.ScriptSortType.STRING;
+      } else if (SqlTypeName.INT_TYPES.contains(relDataType.getSqlTypeName())
+          || SqlTypeName.APPROX_TYPES.contains(relDataType.getSqlTypeName())) {
+        return ScriptSortBuilder.ScriptSortType.NUMBER;
+      } else {
+        throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+            "Unsupported type for sort expression pushdown: " + relDataType);
+      }
+    }
   }
 
   /**
@@ -1775,6 +1800,14 @@ public class PredicateAnalyzer {
       return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(getRootName());
     }
 
+    boolean isStructField() {
+      return type != null && type.getOriginalExprType() == ExprCoreType.STRUCT;
+    }
+
+    boolean isAliasField() {
+      return type != null && type instanceof OpenSearchAliasType;
+    }
+
     String getReference() {
       return getRootName();
     }
@@ -1785,11 +1818,11 @@ public class PredicateAnalyzer {
   }
 
   /** Literal like {@code 'foo' or 42 or true} etc. */
-  static final class LiteralExpression implements TerminalExpression {
+  public static final class LiteralExpression implements TerminalExpression {
 
     final RexLiteral literal;
 
-    LiteralExpression(RexLiteral literal) {
+    public LiteralExpression(RexLiteral literal) {
       this.literal = literal;
     }
 

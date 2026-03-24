@@ -77,6 +77,7 @@ import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -670,6 +671,16 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testEdgeAsFieldName() {
+    // EDGE keyword can be used as a field name outside graphLookup command
+    assertEqual("source=t | eval edge=1", eval(relation("t"), let(field("edge"), intLiteral(1))));
+    assertEqual("source=t | eval edge = 1", eval(relation("t"), let(field("edge"), intLiteral(1))));
+    assertEqual(
+        "source=t | where edge > 5",
+        filter(relation("t"), compare(">", field("edge"), intLiteral(5))));
+  }
+
+  @Test
   public void testIndexName() {
     assertEqual(
         "source=`log.2020.04.20.` | where a=1",
@@ -935,6 +946,16 @@ public class AstBuilderTest {
   public void testSpathWithNoPathKeyword() {
     assertEqual(
         "source=t | spath input=f simple.nested", spath(relation("t"), "f", null, "simple.nested"));
+  }
+
+  @Test
+  public void testSpathWithNoPath() {
+    assertEqual("source=t | spath input=f", spath(relation("t"), "f", null, null));
+  }
+
+  @Test
+  public void testSpathWithNoPathButOutput() {
+    assertEqual("source=t | spath input=f output=o", spath(relation("t"), "f", "o", null));
   }
 
   @Test
@@ -1642,5 +1663,169 @@ public class AstBuilderTest {
                 SyntaxCheckException.class,
                 () -> plan("source=t | eval result = mvmap(123, 123 * 10)"))
             .getMessage());
+  }
+
+  @Test
+  public void testGraphLookupCommand() {
+    // Basic graphLookup with required parameters
+    assertEqual(
+        "source=t | graphLookup employees start=reportsTo edge=manager-->name maxDepth=3"
+            + " as reportingHierarchy",
+        GraphLookup.builder()
+            .child(relation("t"))
+            .fromTable(relation("employees"))
+            .fromField(field("manager"))
+            .toField(field("name"))
+            .as(field("reportingHierarchy"))
+            .maxDepth(intLiteral(3))
+            .startField(field("reportsTo"))
+            .depthField(null)
+            .direction(GraphLookup.Direction.UNI)
+            .build());
+
+    // graphLookup with startField
+    assertEqual(
+        "source=t | graphLookup employees start=id edge=manager-->name" + " as reportingHierarchy",
+        GraphLookup.builder()
+            .child(relation("t"))
+            .fromTable(relation("employees"))
+            .fromField(field("manager"))
+            .toField(field("name"))
+            .as(field("reportingHierarchy"))
+            .maxDepth(intLiteral(0))
+            .startField(field("id"))
+            .depthField(null)
+            .direction(GraphLookup.Direction.UNI)
+            .build());
+
+    // graphLookup with depthField and bidirectional
+    assertEqual(
+        "source=t | graphLookup employees start=reportsTo edge=manager<->name"
+            + " depthField=level as reportingHierarchy",
+        GraphLookup.builder()
+            .child(relation("t"))
+            .fromTable(relation("employees"))
+            .fromField(field("manager"))
+            .toField(field("name"))
+            .as(field("reportingHierarchy"))
+            .maxDepth(intLiteral(0))
+            .startField(field("reportsTo"))
+            .depthField(field("level"))
+            .direction(GraphLookup.Direction.BI)
+            .build());
+
+    // Error: missing edge - SyntaxCheckException from grammar
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> plan("source=t | graphLookup employees start=id as" + " reportingHierarchy"));
+
+    // Error: missing lookup table - SyntaxCheckException from grammar
+    assertThrows(
+        SyntaxCheckException.class,
+        () ->
+            plan("source=t | graphLookup start=id edge=manager-->name as" + " reportingHierarchy"));
+
+    // Error: missing start - SyntaxCheckException from grammar
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> plan("source=t | graphLookup employees edge=manager-->name as reportingHierarchy"));
+
+    // graphLookup with hyphenated fromField (space before arrow)
+    assertEqual(
+        "source=t | graphLookup employees start=reportsTo edge=manager- --> name"
+            + " as reportingHierarchy",
+        GraphLookup.builder()
+            .child(relation("t"))
+            .fromTable(relation("employees"))
+            .fromField(field("manager-"))
+            .toField(field("name"))
+            .as(field("reportingHierarchy"))
+            .maxDepth(intLiteral(0))
+            .startField(field("reportsTo"))
+            .depthField(null)
+            .direction(GraphLookup.Direction.UNI)
+            .build());
+  }
+
+  @Test
+  public void testTrailingPipeAfterSource() {
+    // Test that trailing pipe after source produces same AST
+    assertEqual("source=t |", relation("t"));
+  }
+
+  @Test
+  public void testTrailingPipeAfterStats() {
+    // Test trailing pipe after stats command
+    assertEqual(
+        "source=t | stats count(a) by b |",
+        agg(
+            relation("t"),
+            exprList(alias("count(a)", aggregate("count", field("a")))),
+            emptyList(),
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testTrailingPipeWithComplexQuery() {
+    // Test trailing pipe with complex query including where, stats, and sort
+    assertEqual(
+        "source=t | where a > 1 | stats count(b) by c | sort c |",
+        sort(
+            agg(
+                filter(relation("t"), compare(">", field("a"), intLiteral(1))),
+                exprList(alias("count(b)", aggregate("count", field("b")))),
+                emptyList(),
+                exprList(alias("c", field("c"))),
+                defaultStatsArgs()),
+            field("c", defaultSortFieldArgs())));
+  }
+
+  @Test
+  public void testEmptyPipeAfterSource() {
+    // Test that empty pipe after source is ignored
+    assertEqual("source=t | |", relation("t"));
+  }
+
+  @Test
+  public void testEmptyPipeInMiddle() {
+    // Test that empty pipe in middle is ignored
+    assertEqual(
+        "source=t | | where a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+  }
+
+  @Test
+  public void testMultipleEmptyPipes() {
+    // Test multiple empty pipes are ignored
+    assertEqual(
+        "source=t | | where a=1 | | fields b | |",
+        projectWithArg(
+            filter(relation("t"), compare("=", field("a"), intLiteral(1))),
+            defaultFieldsArgs(),
+            field("b")));
+  }
+
+  /**
+   * Tests that a combination of empty pipes in the middle and a trailing pipe at the end are
+   * properly handled and produce the same AST as a query without these extraneous pipes.
+   */
+  @Test
+  public void testEmptyPipeAndTrailingPipeTogether() {
+    // Test both empty pipe in middle and trailing pipe at end
+    assertEqual(
+        "source=t | | where a=1 | fields b |",
+        projectWithArg(
+            filter(relation("t"), compare("=", field("a"), intLiteral(1))),
+            defaultFieldsArgs(),
+            field("b")));
+  }
+
+  /**
+   * Tests that the parser correctly rejects queries with invalid command tokens after a pipe,
+   * ensuring proper error detection for malformed queries.
+   */
+  @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
+  public void testMalformedPipeProducesSyntaxError() {
+    plan("source=t | invalidCmd |");
   }
 }

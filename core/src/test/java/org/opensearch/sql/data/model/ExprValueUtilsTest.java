@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -241,6 +242,28 @@ public class ExprValueUtilsTest {
     assertEquals(
         new ExprTimestampValue("2012-07-07 01:01:01"),
         ExprValueUtils.fromObjectValue("2012-07-07 01:01:01", TIMESTAMP));
+  }
+
+  @Test
+  public void fromObjectValue_double_infinity_returns_null() {
+    assertTrue(ExprValueUtils.fromObjectValue(Double.POSITIVE_INFINITY).isNull());
+    assertTrue(ExprValueUtils.fromObjectValue(Double.NEGATIVE_INFINITY).isNull());
+  }
+
+  @Test
+  public void fromObjectValue_float_infinity_returns_null() {
+    assertTrue(ExprValueUtils.fromObjectValue(Float.POSITIVE_INFINITY).isNull());
+    assertTrue(ExprValueUtils.fromObjectValue(Float.NEGATIVE_INFINITY).isNull());
+  }
+
+  @Test
+  public void fromObjectValue_double_nan_returns_null() {
+    assertTrue(ExprValueUtils.fromObjectValue(Double.NaN).isNull());
+  }
+
+  @Test
+  public void fromObjectValue_float_nan_returns_null() {
+    assertTrue(ExprValueUtils.fromObjectValue(Float.NaN).isNull());
   }
 
   @Test

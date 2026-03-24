@@ -18,7 +18,6 @@ import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRespon
  * Interface for handling queries for specific data source types.
  *
  * @param <T> The client type this handler works with, extending DataSourceClient
- *
  * @opensearch.experimental
  */
 public interface QueryHandler<T extends DataSourceClient> {
@@ -52,15 +51,15 @@ public interface QueryHandler<T extends DataSourceClient> {
       throws IOException;
 
   /**
-   * Writes resources to the data source.
+   * Writes resources to the data source. Supports create, update, and delete operations.
    *
    * @param client The client instance to use
    * @param request The resources request
-   * @return Response containing the requested resources
-   * @throws IOException If resource retrieval fails
+   * @return Response containing the result
+   * @throws IOException If the operation fails
    */
-  WriteDirectQueryResourcesResponse<?> writeResources(T client, WriteDirectQueryResourcesRequest request)
-          throws IOException;
+  WriteDirectQueryResourcesResponse<?> writeResources(
+      T client, WriteDirectQueryResourcesRequest request) throws IOException;
 
   /**
    * Checks if this handler can handle the given client type.

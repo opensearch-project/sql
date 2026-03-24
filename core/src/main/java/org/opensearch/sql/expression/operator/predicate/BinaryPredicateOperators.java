@@ -53,6 +53,7 @@ public class BinaryPredicateOperators {
     repository.register(greater());
     repository.register(gte());
     repository.register(like());
+    repository.register(ilike());
     repository.register(notLike());
     repository.register(regexp());
   }
@@ -389,6 +390,12 @@ public class BinaryPredicateOperators {
         BuiltinFunctionName.LIKE.getName(),
         impl(nullMissingHandling(OperatorUtils::matches2), BOOLEAN, STRING, STRING),
         impl(nullMissingHandling(OperatorUtils::matches3), BOOLEAN, STRING, STRING, BOOLEAN));
+  }
+
+  private static DefaultFunctionResolver ilike() {
+    return define(
+        BuiltinFunctionName.ILIKE.getName(),
+        impl(nullMissingHandling(OperatorUtils::matches2), BOOLEAN, STRING, STRING));
   }
 
   private static DefaultFunctionResolver regexp() {

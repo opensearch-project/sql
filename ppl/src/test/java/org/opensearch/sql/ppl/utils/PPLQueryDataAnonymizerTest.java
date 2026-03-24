@@ -644,6 +644,73 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testGraphLookup() {
+    // Basic graphLookup with required parameters
+    assertEquals(
+        "source=table | graphlookup table start=identifier edge=identifier-->identifier"
+            + " as identifier",
+        anonymize(
+            "source=t | graphLookup employees start=reportsTo edge=manager-->name"
+                + " as reportingHierarchy"));
+    // graphLookup with maxDepth
+    assertEquals(
+        "source=table | graphlookup table start=identifier edge=identifier-->identifier"
+            + " maxDepth=*** as identifier",
+        anonymize(
+            "source=t | graphLookup employees start=reportsTo edge=manager-->name"
+                + " maxDepth=3 as reportingHierarchy"));
+    // graphLookup with depthField
+    assertEquals(
+        "source=table | graphlookup table start=identifier edge=identifier-->identifier"
+            + " depthField=identifier as identifier",
+        anonymize(
+            "source=t | graphLookup employees start=reportsTo edge=manager-->name"
+                + " depthField=level as reportingHierarchy"));
+    // graphLookup with bidirectional mode
+    assertEquals(
+        "source=table | graphlookup table start=identifier edge=identifier<->identifier"
+            + " as identifier",
+        anonymize(
+            "source=t | graphLookup employees start=reportsTo edge=manager<->name"
+                + " as reportingHierarchy"));
+    // graphLookup with all optional parameters
+    assertEquals(
+        "source=table | graphlookup table start=identifier edge=identifier<->identifier"
+            + " maxDepth=*** depthField=identifier as identifier",
+        anonymize(
+            "source=t | graphLookup employees start=id edge=manager<->name"
+                + " maxDepth=5 depthField=level as reportingHierarchy"));
+    // graphLookup with supportArray
+    assertEquals(
+        "source=table | graphlookup table start=identifier edge=identifier-->identifier"
+            + " supportArray=true as identifier",
+        anonymize(
+            "source=t | graphLookup airports start=nearestAirport edge=connects-->airport"
+                + " supportArray=true as reachableAirports"));
+    // graphLookup with batchMode
+    assertEquals(
+        "source=table | graphlookup table start=identifier edge=identifier-->identifier"
+            + " batchMode=true as identifier",
+        anonymize(
+            "source=t | graphLookup employees start=reportsTo edge=manager-->name"
+                + " batchMode=true as reportingHierarchy"));
+    // graphLookup with filter
+    assertEquals(
+        "source=table | graphlookup table start=identifier edge=identifier-->identifier"
+            + " filter=(identifier = ***) as identifier",
+        anonymize(
+            "source=t | graphLookup employees start=reportsTo edge=manager-->name"
+                + " filter=(status = 'active') as reportingHierarchy"));
+    // graphLookup with compound filter
+    assertEquals(
+        "source=table | graphlookup table start=identifier edge=identifier-->identifier"
+            + " filter=(identifier = *** and identifier > ***) as identifier",
+        anonymize(
+            "source=t | graphLookup employees start=reportsTo edge=manager-->name"
+                + " filter=(status = 'active' AND id > 2) as reportingHierarchy"));
+  }
+
+  @Test
   public void testInSubquery() {
     assertEquals(
         "source=table | where (identifier) in [ source=table | fields + identifier ] | fields +"
@@ -1010,6 +1077,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testSpathNoPath() {
+    assertEquals(
+        "source=table | spath input=identifier",
+        anonymize("search source=t | spath input=json_attr"));
+  }
+
+  @Test
   public void testMvfind() {
     assertEquals(
         "source=table | eval identifier=mvfind(array(***,***,***),***) | fields + identifier",
@@ -1029,5 +1103,40 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | mvcombine delim=*** identifier",
         anonymize("source=t | mvcombine age delim=','"));
+  }
+
+  @Test
+  public void testNoMvCommand() {
+    assertEquals("source=table | nomv identifier", anonymize("source=t | nomv firstname"));
+  }
+
+  @Test
+  public void testConvertCommand() {
+    assertEquals(
+        "source=table | convert auto(identifier)", anonymize("source=t | convert auto(salary)"));
+    assertEquals(
+        "source=table | convert auto(identifier) AS identifier",
+        anonymize("source=t | convert auto(salary) AS salary_num"));
+    assertEquals(
+        "source=table | convert auto(identifier),num(identifier)",
+        anonymize("source=t | convert auto(salary), num(commission)"));
+    assertEquals(
+        "source=table | convert rmcomma(identifier),rmunit(identifier),(identifier) AS identifier",
+        anonymize("source=t | convert rmcomma(name), rmunit(revenue), none(id)"));
+    assertEquals(
+        "source=table | convert (identifier) AS identifier",
+        anonymize("source=t | convert none(empno) AS empno_same"));
+  }
+
+  @Test
+  public void testMvexpandCommand() {
+    assertEquals("source=table | mvexpand identifier", anonymize("source=t | mvexpand skills"));
+  }
+
+  @Test
+  public void testMvexpandCommandWithLimit() {
+    assertEquals(
+        "source=table | mvexpand identifier limit=***",
+        anonymize("source=t | mvexpand skills limit=5"));
   }
 }

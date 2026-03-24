@@ -21,7 +21,8 @@ public enum DirectQueryResourceType {
   ALERTMANAGER_ALERTS,
   ALERTMANAGER_ALERT_GROUPS,
   ALERTMANAGER_RECEIVERS,
-  ALERTMANAGER_SILENCES;
+  ALERTMANAGER_SILENCES,
+  ALERTMANAGER_STATUS;
 
   /**
    * Convert a string to the corresponding enum value, case-insensitive.

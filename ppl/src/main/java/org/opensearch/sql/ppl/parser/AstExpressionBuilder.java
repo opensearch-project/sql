@@ -105,6 +105,54 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Let((Field) visit(ctx.fieldExpression()), visit(ctx.logicalExpression()));
   }
 
+  /** Field format eval clause - similar to evalClause but for fieldformat command. */
+  @Override
+  public UnresolvedExpression visitFieldFormatEvalClause(
+      OpenSearchPPLParser.FieldFormatEvalClauseContext ctx) {
+    OpenSearchPPLParser.FfLogicalExpressionContext ffLogicalExpressionCtx =
+        ctx.ffLogicalExpression();
+    OpenSearchPPLParser.LogicalExpressionContext logicalExpression = null;
+    Literal prefix = null;
+    Literal suffix = null;
+    switch (ffLogicalExpressionCtx) {
+      case OpenSearchPPLParser.FfStandardLogicalExpressionContext
+              ffStandardLogicalExpressionContext -> {
+        // Standard logical expression
+        logicalExpression = ffStandardLogicalExpressionContext.logicalExpression();
+        return new Let((Field) visit(ctx.fieldExpression()), visit(logicalExpression));
+      }
+      case OpenSearchPPLParser.StringDotlogicalExpressionContext
+              stringDotlogicalExpressionContext -> {
+        // String dot logical expression
+        logicalExpression = stringDotlogicalExpressionContext.logicalExpression();
+        prefix = (Literal) visit(stringDotlogicalExpressionContext.stringLiteral());
+        return new Let(
+            (Field) visit(ctx.fieldExpression()), visit(logicalExpression), prefix, suffix);
+      }
+      case OpenSearchPPLParser.LogicalExpressionDotStringContext
+              logicalExpressionDotStringContext -> {
+        // Logical expression dot string
+        logicalExpression = logicalExpressionDotStringContext.logicalExpression();
+        suffix = (Literal) visit(logicalExpressionDotStringContext.stringLiteral());
+        return new Let(
+            (Field) visit(ctx.fieldExpression()), visit(logicalExpression), prefix, suffix);
+      }
+      case OpenSearchPPLParser.StringDotlogicalExpressionDotStringContext
+              stringDotlogicalExpressionDotStringContext -> {
+        // Logical expression dot string
+        logicalExpression = stringDotlogicalExpressionDotStringContext.logicalExpression();
+        prefix = (Literal) visit(stringDotlogicalExpressionDotStringContext.stringLiteral(0));
+
+        suffix = (Literal) visit(stringDotlogicalExpressionDotStringContext.stringLiteral(1));
+        return new Let(
+            (Field) visit(ctx.fieldExpression()), visit(logicalExpression), prefix, suffix);
+      }
+      case null, default ->
+          throw new IllegalArgumentException(
+              "Unknown ffLogicalExpression context type: " + ctx.getClass());
+    }
+  }
+
   /** Trendline clause. */
   @Override
   public Trendline.TrendlineComputation visitTrendlineClause(
@@ -165,6 +213,18 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     String operator = ctx.comparisonOperator().getText();
     if ("==".equals(operator)) {
       operator = EQUAL.getName().getFunctionName();
+    } else if ("contains".equalsIgnoreCase(operator)) {
+      UnresolvedExpression left = visit(ctx.left);
+      UnresolvedExpression right = visit(ctx.right);
+      if (!(right instanceof Literal) || ((Literal) right).getType() != DataType.STRING) {
+        throw new SemanticCheckException(
+            "The right-hand side of 'contains' must be a string literal");
+      }
+      String raw = ((Literal) right).getValue().toString();
+      String escaped = raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+      String wrapped = "%" + escaped + "%";
+      return new Compare(
+          ILIKE.getName().getFunctionName(), left, new Literal(wrapped, DataType.STRING));
     } else if (LIKE.getName().getFunctionName().equalsIgnoreCase(operator)
         && UnresolvedPlanHelper.isCalciteEnabled(astBuilder.getSettings())) {
       operator =

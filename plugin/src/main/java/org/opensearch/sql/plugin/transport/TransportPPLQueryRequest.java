@@ -119,7 +119,16 @@ public class TransportPPLQueryRequest extends ActionRequest {
    * @return true if it is an explain request
    */
   public boolean isExplainRequest() {
-    return path.endsWith("/_explain");
+    return path != null && path.endsWith("/_explain");
+  }
+
+  /**
+   * Check if request is for grammar metadata endpoint.
+   *
+   * @return true if it is a grammar metadata request
+   */
+  public boolean isGrammarRequest() {
+    return path != null && path.endsWith("/_grammar");
   }
 
   /** Decide on the formatter by the requested format. */

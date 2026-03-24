@@ -1,0 +1,85 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  - do:
+      indices.create:
+        index: issue5176
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              id:
+                type: integer
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5176", "_id": "1"}}'
+          - '{"id": 1}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5176
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5176: json_extract returns null for missing path":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5176 | eval a = json_extract('{}', 'name') | fields a
+
+  - match: { total: 1 }
+  - match: { schema: [ { name: a, type: string } ] }
+  - match: { datarows: [ [ null ] ] }
+
+---
+"Issue 5176: json_extract returns null for explicit JSON null value":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5176 | eval a = json_extract('{\"name\": null}', 'name') | fields a"
+
+  - match: { total: 1 }
+  - match: { schema: [ { name: a, type: string } ] }
+  - match: { datarows: [ [ null ] ] }
+
+---
+"Issue 5176: json_extract multi-path with missing path returns array with null":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5176 | eval a = json_extract('{\"name\": \"John\"}', 'name', 'age') | fields a"
+
+  - match: { total: 1 }
+  - match: { schema: [ { name: a, type: string } ] }
+  - match: { datarows: [ [ "[\"John\",null]" ] ] }
