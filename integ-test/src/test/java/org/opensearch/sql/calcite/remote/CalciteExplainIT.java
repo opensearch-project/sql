@@ -12,6 +12,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CASCADED_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_EMPLOYEES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
@@ -60,6 +61,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.DEEP_NESTED);
     loadIndex(Index.CASCADED_NESTED);
     loadIndex(Index.MVEXPAND_EDGE_CASES);
+    loadIndex(Index.GRAPH_EMPLOYEES);
   }
 
   @Override
@@ -2817,6 +2819,31 @@ public class CalciteExplainIT extends ExplainIT {
     String query = "source=" + TEST_INDEX_ACCOUNT + " | where age > 30 | fields firstname, age";
     var result = explainQueryYaml(query, "[\"*\"]");
     String expected = loadExpectedPlan("explain_highlight_with_filter.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainGraphLookup() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        String.format(
+            "source=%s | graphLookup %s start=reportsTo edge=reportsTo-->name"
+                + " as reportingHierarchy",
+            TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_graphlookup.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainGraphLookupTopLevel() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        String.format(
+            "graphLookup %s start='Eliot' edge=reportsTo-->name as reportingHierarchy",
+            TEST_INDEX_GRAPH_EMPLOYEES);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_graphlookup_top_level.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 

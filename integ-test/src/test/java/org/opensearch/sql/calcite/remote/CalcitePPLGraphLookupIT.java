@@ -44,6 +44,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
+    // Skip test if pushdown is disabled
+    // TODO: support no-pushdown config for graph lookup
+    enabledOnlyWhenPushdownIsEnabled();
 
     loadIndex(Index.GRAPH_EMPLOYEES);
     loadIndex(Index.GRAPH_TRAVELERS);

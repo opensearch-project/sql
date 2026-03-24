@@ -5,19 +5,14 @@ The `graphLookup` command performs recursive graph traversal on a collection usi
 
 ## Syntax
 
-The `graphLookup` command supports two modes:
-
-### Piped mode (with source)
-
 ```syntax
-source = <sourceIndex> | graphLookup <lookupIndex> start=<startField> edge=<fromField><operator><toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [supportArray=(true | false)] [batchMode=(true | false)] [usePIT=(true | false)] [filter=(<condition>)] as <outputField>
+source = <sourceIndex> | graphLookup <lookupIndex> start=<startExpression> edge=<fromField><operator><toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [supportArray=(true | false)] [batchMode=(true | false)] [usePIT=(true | false)] [filter=(<condition>)] as <outputField>
 ```
 
-### Top-level mode (with literal start values)
+`graphLookup` can be used as the first command (without `source`):
 
 ```syntax
-graphLookup <lookupIndex> start=<literalValue> edge=<fromField><operator><toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [usePIT=(true | false)] [filter=(<condition>)] as <outputField>
-graphLookup <lookupIndex> start=(<literalValue1>, <literalValue2>, ...) edge=<fromField><operator><toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [usePIT=(true | false)] [filter=(<condition>)] as <outputField>
+graphLookup <lookupIndex> start=<startExpression> edge=<fromField><operator><toField> [maxDepth=<maxDepth>] [depthField=<depthField>] [usePIT=(true | false)] [filter=(<condition>)] as <outputField>
 ```
 
 The following are examples of the `graphLookup` command syntax:
@@ -30,27 +25,27 @@ source = employees | graphLookup employees start=reportsTo edge=reportsTo<->name
 source = travelers | graphLookup airports start=nearestAirport edge=connects-->airport supportArray=true as reachableAirports
 source = airports | graphLookup airports start=airport edge=connects-->airport supportArray=true as reachableAirports
 source = employees | graphLookup employees start=reportsTo edge=reportsTo-->name filter=(status = 'active' AND age > 18) as reportingHierarchy
-graphLookup employees start="Eliot" edge=reportsTo-->name as reportingHierarchy
-graphLookup employees start=("Eliot", "Andrew") edge=reportsTo-->name as reportingHierarchy
-graphLookup employees start="Eliot" edge=reportsTo-->name maxDepth=1 depthField=level as reportingHierarchy
+graphLookup employees start='Eliot' edge=reportsTo-->name as reportingHierarchy
+graphLookup employees start=('Eliot', 'Andrew') edge=reportsTo-->name as reportingHierarchy
+graphLookup employees start='Eliot' edge=reportsTo-->name maxDepth=1 depthField=level as reportingHierarchy
 ```
 
 ## Parameters
 
 The `graphLookup` command supports the following parameters.
 
-| Parameter | Required/Optional | Description |
-|---|---|---|
-| `<lookupIndex>` | Required | The name of the index to perform the graph traversal on. Can be the same as the source index for self-referential graphs. |
-| `start=<startField>` or `start=<literal>` or `start=(<literal>, ...)` | Required | In **piped mode**, specifies the field in the source documents whose value initiates the recursive search. In **top-level mode**, specifies one or more literal values (e.g., `start="Eliot"` or `start=("Eliot", "Andrew")`) to seed the BFS traversal directly. The value is matched against `toField` in the lookup index. |
-| `edge=<fromField><operator><toField>` | Required | Defines the traversal path between nodes, specifying the connection fields and the direction of traversal. See [Edge Sub-parameters](#edge-sub-parameters) below. |
-| `maxDepth=<maxDepth>` | Optional | The maximum recursion depth (number of hops). Default is `0`. A value of `0` returns only direct connections to the start values. A value of `1` returns the initial matches plus one additional recursive step, and so on. |
-| `depthField=<depthField>` | Optional | The name of the field added to each traversed document to indicate its recursion depth. If not specified, no depth field is added. Depth starts at `0` for the first level of matches. |
-| `supportArray=(true \| false)` | Optional | When `true`, disables early visited-node filter pushdown to OpenSearch. Default is `false`. Set to `true` when `fromField` or `toField` contains array values to ensure correct traversal behavior. See [Array Field Handling](#array-field-handling) for details. |
-| `batchMode=(true \| false)` | Optional | When `true`, collects all start values from all source rows and performs a single unified BFS traversal. Default is `false`. The output changes to two arrays: `[Array<sourceRows>, Array<lookupResults>]`. See [Batch Mode](#batch-mode) for details. |
-| `usePIT=(true \| false)` | Optional | When `true`, enables Point In Time (PIT) search for the lookup index, allowing paginated retrieval of complete results without the `max_result_window` size limit. Default is `false`. See [PIT Search](#pit-search) for details. |
-| `filter=(<condition>)` | Optional | A filter condition that restricts which lookup index documents participate in the graph traversal. Only documents matching the condition are considered as candidates during BFS. Parentheses around the condition are required. Example: `filter=(status = 'active' AND age > 18)`. |
-| `as <outputField>` | Required | The name of the output array field that will contain all documents discovered during the graph traversal. |
+| Parameter | Required/Optional | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+|---|---|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `<lookupIndex>` | Required | The name of the index to perform the graph traversal on. Can be the same as the source index for self-referential graphs.                                                                                                                                                                                                                                                                                                                                                              |
+| `start=<startExpression>` | Required | The starting point for the BFS traversal. The `startExpression` can be a **field reference** (e.g., `start=reportsTo`) from the previous pipe, a **literal value** (e.g., `start='Eliot'`), or a **literal list** (e.g., `start=('Eliot', 'Andrew')`). When a field reference is used, the value of that field in each source row initiates the traversal. When literal values are used, they seed the BFS directly. The start value is matched against `toField` in the lookup index. |
+| `edge=<fromField><operator><toField>` | Required | Defines the traversal path between nodes, specifying the connection fields and the direction of traversal. See [Edge Sub-parameters](#edge-sub-parameters) below.                                                                                                                                                                                                                                                                                                                      |
+| `maxDepth=<maxDepth>` | Optional | The maximum recursion depth (number of hops). Default is `0`. A value of `0` returns only direct connections to the start values. A value of `1` returns the initial matches plus one additional recursive step, and so on.                                                                                                                                                                                                                                                            |
+| `depthField=<depthField>` | Optional | The name of the field added to each traversed document to indicate its recursion depth. If not specified, no depth field is added. Depth starts at `0` for the first level of matches.                                                                                                                                                                                                                                                                                                 |
+| `supportArray=(true \| false)` | Optional | When `true`, disables early visited-node filter pushdown to OpenSearch. Default is `false`. Set to `true` when `fromField` or `toField` contains array values to ensure correct traversal behavior. See [Array Field Handling](#array-field-handling) for details.                                                                                                                                                                                                                     |
+| `batchMode=(true \| false)` | Optional | When `true`, collects all start values from all source rows and performs a single unified BFS traversal. Default is `false`. The output changes to two arrays: `[Array<sourceRows>, Array<lookupResults>]`. See [Batch Mode](#batch-mode) for details.                                                                                                                                                                                                                                 |
+| `usePIT=(true \| false)` | Optional | When `true`, enables Point In Time (PIT) search for the lookup index, allowing paginated retrieval of complete results without the `max_result_window` size limit. Default is `false`. See [PIT Search](#pit-search) for details.                                                                                                                                                                                                                                                      |
+| `filter=(<condition>)` | Optional | A filter condition that restricts which lookup index documents participate in the graph traversal. Only documents matching the condition are considered as candidates during BFS. Parentheses around the condition are required. Example: `filter=(status = 'active' AND age > 18)`.                                                                                                                                                                                                   |
+| `as <outputField>` | Required | The name of the output array field that will contain all documents discovered during the graph traversal.                                                                                                                                                                                                                                                                                                                                                                              |
 
 ### Edge Sub-parameters
 
@@ -366,15 +361,20 @@ source = employees
 
 The filter is applied at the OpenSearch query level, so it combines efficiently with the BFS traversal queries. At each BFS level, the query sent to OpenSearch is effectively: `bool { filter: [user_filter, bfs_terms_query] }`.
 
-## Top-Level Mode (Literal Start Values)
+### When to Use as First Command
 
-When used as a top-level command (without `source = ...`), `graphLookup` accepts literal start values instead of a field reference. This is useful when you know the specific starting points for graph traversal.
+When the starting points for graph traversal are known in advance, `graphLookup` can be used as the first command in a pipeline without `source`. In this case, `start` accepts literal values instead of a field reference.
 
-### Example: Single Start Value
+This is useful when:
+- You want to explore the graph from specific known nodes
+- You don't need source document fields in the output
+- You want a quick lookup without creating a source query first
+
+**Single start value:**
 
 ```ppl ignore
 graphLookup employees
-  start="Eliot"
+  start='Eliot'
   edge=reportsTo-->name
   as reportingHierarchy
 ```
@@ -389,22 +389,22 @@ The query returns a single row containing the BFS results:
 +---------------------------------------------------------------+
 ```
 
-### Example: Multiple Start Values
+**Multiple start values:**
 
 ```ppl ignore
 graphLookup employees
-  start=("Eliot", "Andrew")
+  start=('Eliot', 'Andrew')
   edge=reportsTo-->name
   as reportingHierarchy
 ```
 
 All literal start values are combined into a single BFS traversal. The output is a single row with all discovered nodes.
 
-### Example: With Depth Tracking
+**With depth tracking:**
 
 ```ppl ignore
 graphLookup employees
-  start="Eliot"
+  start='Eliot'
   edge=reportsTo-->name
   depthField=level
   as reportingHierarchy
