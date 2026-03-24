@@ -229,7 +229,7 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA? renameClasue)*
+   : RENAME renameClause (COMMA? renameClause)*
    ;
 
 replaceCommand
@@ -758,7 +758,7 @@ joinOption
    | MAX EQUAL integerLiteral                           # maxOption
    ;
 
-renameClasue
+renameClause
    : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
@@ -1448,6 +1448,7 @@ positionFunctionName
    | REGEXP
    | LIKE
    | ILIKE
+   | CONTAINS
    ;
 
 singleFieldRelevanceFunctionName
@@ -1613,6 +1614,7 @@ searchableKeyWord
    | ELSE
    | ARROW
    | BETWEEN
+   | CONTAINS
    | EXISTS
    | SOURCE
    | INDEX

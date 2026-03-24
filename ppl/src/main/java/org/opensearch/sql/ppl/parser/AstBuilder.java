@@ -429,7 +429,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitRenameCommand(RenameCommandContext ctx) {
     return new Rename(
-        ctx.renameClasue().stream()
+        ctx.renameClause().stream()
             .map(
                 ct ->
                     new Map(

@@ -339,6 +339,23 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     return new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
   }
 
+  /** Executes a grammar metadata request as a specific user with basic authentication. */
+  private JSONObject executeGrammarAsUser(String username) throws IOException {
+    Request request = new Request("GET", "/_plugins/_ppl/_grammar");
+
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader(
+        "Authorization",
+        "Basic "
+            + java.util.Base64.getEncoder()
+                .encodeToString((username + ":" + STRONG_PASSWORD).getBytes()));
+    request.setOptions(restOptionsBuilder);
+
+    Response response = client().performRequest(request);
+    assertEquals(200, response.getStatusLine().getStatusCode());
+    return new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
+  }
+
   @Test
   public void testUserWithBankPermissionCanAccessBankIndex() throws IOException {
     // Test that bank_user can access bank index - this should work with the fix
@@ -510,6 +527,32 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK),
             BANK_USER);
     verifyColumn(result, columnName("full_name"));
+  }
+
+  @Test
+  public void testUserWithPPLPermissionCanAccessGrammarEndpoint() throws IOException {
+    JSONObject result = executeGrammarAsUser(BANK_USER);
+    assertTrue(result.has("bundleVersion"));
+    assertTrue(result.has("antlrVersion"));
+    assertTrue(result.has("grammarHash"));
+    assertTrue(result.has("tokenDictionary"));
+  }
+
+  @Test
+  public void testUserWithoutPPLPermissionCannotAccessGrammarEndpoint() throws IOException {
+    try {
+      executeGrammarAsUser(NO_PPL_USER);
+      fail("Expected security exception for user without PPL permission");
+    } catch (ResponseException e) {
+      assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+      String responseBody =
+          org.opensearch.sql.legacy.TestUtils.getResponseBody(e.getResponse(), false);
+      assertTrue(
+          "Response should contain permission error message",
+          responseBody.contains("no permissions")
+              || responseBody.contains("Forbidden")
+              || responseBody.contains("cluster:admin/opensearch/ppl"));
+    }
   }
 
   // Negative test cases for missing permissions

@@ -213,6 +213,18 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     String operator = ctx.comparisonOperator().getText();
     if ("==".equals(operator)) {
       operator = EQUAL.getName().getFunctionName();
+    } else if ("contains".equalsIgnoreCase(operator)) {
+      UnresolvedExpression left = visit(ctx.left);
+      UnresolvedExpression right = visit(ctx.right);
+      if (!(right instanceof Literal) || ((Literal) right).getType() != DataType.STRING) {
+        throw new SemanticCheckException(
+            "The right-hand side of 'contains' must be a string literal");
+      }
+      String raw = ((Literal) right).getValue().toString();
+      String escaped = raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+      String wrapped = "%" + escaped + "%";
+      return new Compare(
+          ILIKE.getName().getFunctionName(), left, new Literal(wrapped, DataType.STRING));
     } else if (LIKE.getName().getFunctionName().equalsIgnoreCase(operator)
         && UnresolvedPlanHelper.isCalciteEnabled(astBuilder.getSettings())) {
       operator =
