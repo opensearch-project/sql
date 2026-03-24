@@ -116,7 +116,7 @@ public class PPLQueryRequestFactory {
       // set queryId
       String queryId = jsonContent.optString("queryId", null);
       if (queryId != null) {
-          pplRequest.queryId(queryId);
+        pplRequest.queryId(queryId);
       }
       return pplRequest;
     } catch (JSONException e) {

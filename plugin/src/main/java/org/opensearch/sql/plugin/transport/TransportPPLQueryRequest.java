@@ -26,7 +26,6 @@ import org.opensearch.core.tasks.TaskId;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
-import org.opensearch.tasks.Task;
 
 @RequiredArgsConstructor
 public class TransportPPLQueryRequest extends ActionRequest {
@@ -159,20 +158,15 @@ public class TransportPPLQueryRequest extends ActionRequest {
   }
 
   @Override
-  public SQLQueryTask createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
-      return new SQLQueryTask(id, type, action, getDescription() , parentTaskId, headers);
+  public PPLQueryTask createTask(
+      long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
+    return new PPLQueryTask(id, type, action, getDescription(), parentTaskId, headers);
   }
 
   @Override
-  public String getDescription()
-  {
-      String prefix = (queryId != null) ? "PPL [queryId=" + queryId + "]: " : "PPL: ";
-
-      if (pplQuery != null && pplQuery.length() > 512) {
-          return prefix + pplQuery.substring(0,512) + "...";
-      }
-
-      return prefix + pplQuery;
+  public String getDescription() {
+    String prefix = (queryId != null) ? "PPL [queryId=" + queryId + "]: " : "PPL: ";
+    return prefix + pplQuery;
   }
 
   /** Convert to PPLQueryRequest. */

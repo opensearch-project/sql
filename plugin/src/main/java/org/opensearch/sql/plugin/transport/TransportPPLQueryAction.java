@@ -110,24 +110,8 @@ public class TransportPPLQueryAction
       return;
     }
 
-    if (task instanceof SQLQueryTask sqlQueryTask) {
-
-        OpenSearchQueryManager.setCancellationCallback(new OpenSearchQueryManager.CancellationCallBack() {
-            @Override
-            public void onExecutionThreadAvailable(Thread thread) {
-                sqlQueryTask.setExecutionThread(thread);
-            }
-
-            @Override
-            public void onExecutionComplete() {
-                sqlQueryTask.clearExecutionThread();
-            }
-
-            @Override
-            public boolean isCancelled() {
-                return sqlQueryTask.isCancelled();
-            }
-        });
+    if (task instanceof PPLQueryTask pplQueryTask) {
+      OpenSearchQueryManager.setCancellableTask(pplQueryTask);
     }
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();

@@ -10,13 +10,13 @@ import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
-import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.execution.AbstractPlan;
+import org.opensearch.tasks.CancellableTask;
 import org.opensearch.threadpool.Scheduler;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
@@ -34,43 +34,38 @@ public class OpenSearchQueryManager implements QueryManager {
   public static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
   public static final String SQL_BACKGROUND_THREAD_POOL_NAME = "sql_background_io";
 
-  public interface CancellationCallBack {
-        void onExecutionThreadAvailable(Thread thread);
-        void onExecutionComplete();
-        boolean isCancelled();
+  private static final ThreadLocal<CancellableTask> cancellableTask = new ThreadLocal<>();
+
+  public static void setCancellableTask(CancellableTask task) {
+    cancellableTask.set(task);
   }
 
-  public static ThreadLocal<CancellationCallBack> cancellationCallBackThreadLocal = new ThreadLocal<>();
-
-  public static void setCancellationCallback(CancellationCallBack value) {
-      cancellationCallBackThreadLocal.set(value);
+  public static CancellableTask getCancellableTask() {
+    return cancellableTask.get();
   }
 
-  public static void clearCancellationCallback() {
-      cancellationCallBackThreadLocal.remove();
+  public static void clearCancellableTask() {
+    cancellableTask.remove();
   }
 
   @Override
   public QueryId submit(AbstractPlan queryPlan) {
     TimeValue timeout = settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT);
-    CancellationCallBack callBack = cancellationCallBackThreadLocal.get();
-    cancellationCallBackThreadLocal.remove();
-    schedule(nodeClient, queryPlan::execute, timeout, callBack);
+    CancellableTask cancelTask = cancellableTask.get();
+    cancellableTask.remove();
+    schedule(nodeClient, queryPlan::execute, timeout, cancelTask);
 
     return queryPlan.getQueryId();
   }
 
-  private void schedule(NodeClient client, Runnable task, TimeValue timeout, CancellationCallBack callBack) {
+  private void schedule(
+      NodeClient client, Runnable task, TimeValue timeout, CancellableTask cancelTask) {
     ThreadPool threadPool = client.threadPool();
 
     Runnable wrappedTask =
         withCurrentContext(
             () -> {
               final Thread executionThread = Thread.currentThread();
-
-              if (callBack != null) {
-                  callBack.onExecutionThreadAvailable(executionThread);
-              }
 
               Scheduler.ScheduledCancellable timeoutTask =
                   threadPool.schedule(
@@ -83,6 +78,8 @@ public class OpenSearchQueryManager implements QueryManager {
                       timeout,
                       ThreadPool.Names.GENERIC);
 
+              setCancellableTask(cancelTask);
+
               try {
                 task.run();
                 timeoutTask.cancel();
@@ -93,21 +90,14 @@ public class OpenSearchQueryManager implements QueryManager {
 
                 // Special-case handling of timeout-related interruptions
                 if (Thread.interrupted() || e.getCause() instanceof InterruptedException) {
-                    if (callBack != null && callBack.isCancelled()) {
-                        LOG.info("Query was cancelled");
-                        throw new OpenSearchException("Query was cancelled.");
-                    }
                   LOG.error("Query was interrupted due to timeout after {}", timeout);
                   throw new OpenSearchTimeoutException(
                       "Query execution timed out after " + timeout);
                 }
 
                 throw e;
-              }
-              finally {
-                  if (callBack != null) {
-                      callBack.onExecutionComplete();
-                  }
+              } finally {
+                clearCancellableTask();
               }
             });
 
