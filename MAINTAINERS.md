@@ -25,21 +25,21 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 
 ## Emeritus Maintainers
 
-| Maintainer        | GitHub ID                                               | Affiliation |
-| ----------------- | ------------------------------------------------------- | ----------- |
-| Charlotte Henkle  | [CEHENKLE](https://github.com/CEHENKLE)                 | Amazon      |
-| Nick Knize        | [nknize](https://github.com/nknize)                     | Amazon      |
-| David Cui         | [davidcui1225](https://github.com/davidcui1225)         | Amazon      |
-| Eugene Lee        | [eugenesk24](https://github.com/eugenesk24)             | Amazon      |
-| Zhongnan Su       | [zhongnansu](https://github.com/zhongnansu)             | Amazon      |
-| Chloe Zhang       | [chloe-zh](https://github.com/chloe-zh)                 | Amazon      |
-| Peter Fitzgibbons | [pjfitzgibbons](https://github.com/pjfitzgibbons)       | Amazon      |
-| Rupal Mahajan     | [rupal-bq](https://github.com/rupal-bq)                 | Amazon      |
-| Kavitha Mohan     | [kavithacm](https://github.com/kavithacm)           | Amazon      |
-| Derek Ho          | [derek-ho](https://github.com/derek-ho)             | Amazon      |
-| Lior Perry        | [YANG-DB](https://github.com/YANG-DB)               | Amazon      |
-| Sean Kao          | [seankao-az](https://github.com/seankao-az)         | Amazon      |
-| Max Ksyunz        | [MaxKsyunz](https://github.com/MaxKsyunz)           | Improving   |
-| Yury Fridlyand    | [Yury-Fridlyand](https://github.com/Yury-Fridlyand) | Improving   |
-| Forest Vey        | [forestmvey](https://github.com/forestmvey)         | Improving   |
-| Guian Gumpac      | [GumpacG](https://github.com/GumpacG)               | Improving   |
+| Maintainer        | GitHub ID                                               |
+| ----------------- | ------------------------------------------------------- |
+| Charlotte Henkle  | [CEHENKLE](https://github.com/CEHENKLE)                 |
+| Nick Knize        | [nknize](https://github.com/nknize)                     |
+| David Cui         | [davidcui1225](https://github.com/davidcui1225)         |
+| Eugene Lee        | [eugenesk24](https://github.com/eugenesk24)             |
+| Zhongnan Su       | [zhongnansu](https://github.com/zhongnansu)             |
+| Chloe Zhang       | [chloe-zh](https://github.com/chloe-zh)                 |
+| Peter Fitzgibbons | [pjfitzgibbons](https://github.com/pjfitzgibbons)       |
+| Rupal Mahajan     | [rupal-bq](https://github.com/rupal-bq)                 |
+| Kavitha Mohan     | [kavithacm](https://github.com/kavithacm)           |
+| Derek Ho          | [derek-ho](https://github.com/derek-ho)             |
+| Lior Perry        | [YANG-DB](https://github.com/YANG-DB)               |
+| Sean Kao          | [seankao-az](https://github.com/seankao-az)         |
+| Max Ksyunz        | [MaxKsyunz](https://github.com/MaxKsyunz)           |
+| Yury Fridlyand    | [Yury-Fridlyand](https://github.com/Yury-Fridlyand) |
+| Forest Vey        | [forestmvey](https://github.com/forestmvey)         |
+| Guian Gumpac      | [GumpacG](https://github.com/GumpacG)               |
