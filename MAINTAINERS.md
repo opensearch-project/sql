@@ -21,8 +21,8 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Yuanchun Shen     | [yuancu](https://github.com/yuancu)                 | Amazon      |
 | Ryan Liang        | [RyanL1997](https://github.com/RyanL1997)           | Amazon      |
 | Kai Huang         | [ahkcs](https://github.com/ahkcs)                   | Amazon      |
-| Andrew Carbonetto | [acarbonetto](https://github.com/acarbonetto)       | Improving   |
 | Songkan Tang      | [songkant-aws](https://github.com/songkant-aws)     | Amazon      |
+| Andrew Carbonetto | [acarbonetto](https://github.com/acarbonetto)       | Improving   |
 
 ## Emeritus Maintainers
 
