@@ -29,7 +29,6 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   private boolean isAggregatePushed = false;
   @Setter private AggSpec aggSpec;
-  private ArrayDeque<PushDownOperation> operationsForAgg;
 
   // Records the start pos of the query, which is updated by new added limit operations.
   private int startFrom = 0;
@@ -211,8 +210,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
           operation -> ((OSRequestBuilderAction) operation.action()).apply(newRequestBuilder));
     }
     if (aggSpec != null) {
-      newRequestBuilder.pushDownAggregation(aggSpec.build());
-      newRequestBuilder.pushTypeMapping(aggSpec.getExtendedTypeMapping());
+      aggSpec.buildAction().apply(newRequestBuilder);
     }
     return newRequestBuilder;
   }

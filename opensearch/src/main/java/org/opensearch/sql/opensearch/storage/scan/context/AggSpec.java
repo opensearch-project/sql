@@ -12,11 +12,7 @@ import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
 import lombok.Getter;
-import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
@@ -24,18 +20,18 @@ import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSource
 import org.opensearch.search.aggregations.bucket.composite.DateHistogramValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.HistogramValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
-import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
-/** Immutable aggregation pushdown specification used during planning. */
+/** Immutable aggregation pushdown state and ordered replay plan. */
 @Getter
 public final class AggSpec {
   private enum AggKind {
@@ -56,89 +52,47 @@ public final class AggSpec {
     BUCKET_SIZE
   }
 
-  private final Aggregate aggregate;
-  @Nullable private final Project project;
-  private final List<String> outputFields;
-  private final RelDataType rowType;
-  private final Map<String, ExprType> fieldTypes;
-  private final RelOptCluster cluster;
-  private final boolean bucketNullable;
-  private final int queryBucketSize;
+  private interface BuildAction extends AbstractAction<AggPushDownAction> {
+    @Override
+    default void pushOperation(PushDownContext context, PushDownOperation operation) {
+      throw new UnsupportedOperationException("Internal aggregation build action cannot be queued");
+    }
+  }
+
+  private final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser>
+      baseBuilderAndParser;
   private final Map<String, OpenSearchDataType> extendedTypeMapping;
   private final List<String> initialBucketNames;
-  private final List<String> bucketNames;
+  // Cost model uses the script count of the base logical aggregation. Supported rewrites keep the
+  // same scripted sources/metrics semantically, while replay-time builders are request-scoped and
+  // may not preserve a structure that can be re-counted accurately after rewrite.
   private final long scriptCount;
   private final AggKind kind;
   private final LimitPushdownMode limitPushdownMode;
-  @Nullable private final AggKind measureSortTarget;
-  private final boolean rareTopSupported;
-  @Nullable private final List<RelFieldCollation> bucketSortCollations;
-  @Nullable private final List<String> bucketSortFieldNames;
-  @Nullable private final List<RelFieldCollation> measureSortCollations;
-  @Nullable private final List<String> measureSortFieldNames;
-  @Nullable private final RareTopDigest rareTopDigest;
+  // The pushdown operation queue to rewrite base agg
+  private final List<PushDownOperation> operationsForAgg;
   @Nullable private final Integer bucketSize;
 
   private AggSpec(
-      Aggregate aggregate,
-      @Nullable Project project,
-      List<String> outputFields,
-      RelDataType rowType,
-      Map<String, ExprType> fieldTypes,
-      RelOptCluster cluster,
-      boolean bucketNullable,
-      int queryBucketSize,
+      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> baseBuilderAndParser,
       Map<String, OpenSearchDataType> extendedTypeMapping,
       List<String> initialBucketNames,
-      List<String> bucketNames,
       long scriptCount,
       AggKind kind,
       LimitPushdownMode limitPushdownMode,
-      @Nullable AggKind measureSortTarget,
-      boolean rareTopSupported,
-      @Nullable List<RelFieldCollation> bucketSortCollations,
-      @Nullable List<String> bucketSortFieldNames,
-      @Nullable List<RelFieldCollation> measureSortCollations,
-      @Nullable List<String> measureSortFieldNames,
-      @Nullable RareTopDigest rareTopDigest,
+      List<PushDownOperation> operationsForAgg,
       @Nullable Integer bucketSize) {
-    this.aggregate = aggregate;
-    this.project = project;
-    this.outputFields = List.copyOf(outputFields);
-    this.rowType = rowType;
-    this.fieldTypes = Map.copyOf(fieldTypes);
-    this.cluster = cluster;
-    this.bucketNullable = bucketNullable;
-    this.queryBucketSize = queryBucketSize;
+    this.baseBuilderAndParser = baseBuilderAndParser;
     this.extendedTypeMapping = Map.copyOf(extendedTypeMapping);
     this.initialBucketNames = List.copyOf(initialBucketNames);
-    this.bucketNames = List.copyOf(bucketNames);
     this.scriptCount = scriptCount;
     this.kind = kind;
     this.limitPushdownMode = limitPushdownMode;
-    this.measureSortTarget = measureSortTarget;
-    this.rareTopSupported = rareTopSupported;
-    this.bucketSortCollations =
-        bucketSortCollations == null ? null : List.copyOf(bucketSortCollations);
-    this.bucketSortFieldNames =
-        bucketSortFieldNames == null ? null : List.copyOf(bucketSortFieldNames);
-    this.measureSortCollations =
-        measureSortCollations == null ? null : List.copyOf(measureSortCollations);
-    this.measureSortFieldNames =
-        measureSortFieldNames == null ? null : List.copyOf(measureSortFieldNames);
-    this.rareTopDigest = rareTopDigest;
+    this.operationsForAgg = List.copyOf(operationsForAgg);
     this.bucketSize = bucketSize;
   }
 
   public static AggSpec create(
-      Aggregate aggregate,
-      @Nullable Project project,
-      List<String> outputFields,
-      RelDataType rowType,
-      Map<String, ExprType> fieldTypes,
-      RelOptCluster cluster,
-      boolean bucketNullable,
-      int queryBucketSize,
       Map<String, OpenSearchDataType> extendedTypeMapping,
       List<String> bucketNames,
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser) {
@@ -146,36 +100,18 @@ public final class AggSpec {
         builderAndParser.getLeft().isEmpty() ? null : builderAndParser.getLeft().getFirst();
     AggKind kind = inferKind(rootBuilder);
     return new AggSpec(
-        aggregate,
-        project,
-        outputFields,
-        rowType,
-        fieldTypes,
-        cluster,
-        bucketNullable,
-        queryBucketSize,
+        builderAndParser,
         extendedTypeMapping,
         bucketNames,
-        bucketNames,
-        new AggPushDownAction(builderAndParser, extendedTypeMapping, bucketNames).getScriptCount(),
+        builderAndParser.getLeft().stream().mapToInt(AggPushDownAction::getScriptCount).sum(),
         kind,
-        inferLimitPushdownMode(builderAndParser.getLeft(), rootBuilder),
-        inferMeasureSortTarget(rootBuilder),
-        isRareTopSupported(rootBuilder),
-        null,
-        null,
-        null,
-        null,
-        null,
+        inferBaseLimitPushdownMode(rootBuilder, kind),
+        List.of(),
         inferBucketSize(rootBuilder));
   }
 
   public boolean isCompositeAggregation() {
     return kind == AggKind.COMPOSITE;
-  }
-
-  public boolean isSingleRowAggregation() {
-    return aggregate.getGroupSet().isEmpty();
   }
 
   public boolean canPushDownLimitIntoBucketSize(int size) {
@@ -194,141 +130,82 @@ public final class AggSpec {
       throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
           "Cannot pushdown sort into aggregation bucket");
     }
-    List<String> newBucketNames = bucketNames;
     if (kind == AggKind.COMPOSITE) {
-      List<String> reordered = new ArrayList<>(bucketNames.size());
-      List<String> selected = new ArrayList<>(collations.size());
       for (RelFieldCollation collation : collations) {
         String bucketName = fieldNames.get(collation.getFieldIndex());
-        if (!bucketNames.contains(bucketName)) {
+        if (!initialBucketNames.contains(bucketName)) {
           throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
               "Cannot pushdown sort into aggregation bucket");
         }
-        reordered.add(bucketName);
-        selected.add(bucketName);
       }
-      for (String name : bucketNames) {
-        if (!selected.contains(name)) {
-          reordered.add(name);
-        }
-      }
-      newBucketNames = reordered;
     }
     return new AggSpec(
-        aggregate,
-        project,
-        outputFields,
-        rowType,
-        fieldTypes,
-        cluster,
-        bucketNullable,
-        queryBucketSize,
+        baseBuilderAndParser,
         extendedTypeMapping,
         initialBucketNames,
-        newBucketNames,
         scriptCount,
         kind,
         limitPushdownMode,
-        measureSortTarget,
-        rareTopSupported,
-        collations,
-        fieldNames,
-        measureSortCollations,
-        measureSortFieldNames,
-        rareTopDigest,
+        replaceOperations(
+            PushDownType.SORT,
+            collations,
+            action -> action.pushDownSortIntoAggBucket(collations, fieldNames)),
         bucketSize);
   }
 
   public AggSpec withoutBucketSort() {
-    if (bucketSortCollations == null) {
+    if (operationsForAgg.stream().noneMatch(operation -> operation.type() == PushDownType.SORT)) {
       return this;
     }
     return new AggSpec(
-        aggregate,
-        project,
-        outputFields,
-        rowType,
-        fieldTypes,
-        cluster,
-        bucketNullable,
-        queryBucketSize,
+        baseBuilderAndParser,
         extendedTypeMapping,
-        initialBucketNames,
         initialBucketNames,
         scriptCount,
         kind,
         limitPushdownMode,
-        measureSortTarget,
-        rareTopSupported,
-        null,
-        null,
-        measureSortCollations,
-        measureSortFieldNames,
-        rareTopDigest,
+        removeOperations(PushDownType.SORT),
         bucketSize);
   }
 
   public AggSpec withSortMeasure(List<RelFieldCollation> collations, List<String> fieldNames) {
-    if (kind != AggKind.COMPOSITE || measureSortTarget == null) {
+    AggKind rewriteTarget = inferMeasureSortTarget();
+    if (rewriteTarget == null) {
       throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
           "Cannot pushdown sort aggregate measure");
     }
     Integer resizedBucketSize =
-        switch (measureSortTarget) {
+        switch (rewriteTarget) {
           case TERMS, MULTI_TERMS -> bucketSize;
           default -> null;
         };
     return new AggSpec(
-        aggregate,
-        project,
-        outputFields,
-        rowType,
-        fieldTypes,
-        cluster,
-        bucketNullable,
-        queryBucketSize,
+        baseBuilderAndParser,
         extendedTypeMapping,
         initialBucketNames,
-        bucketNames,
         scriptCount,
-        measureSortTarget,
-        inferLimitPushdownMode(measureSortTarget),
-        null,
-        rareTopSupported,
-        bucketSortCollations,
-        bucketSortFieldNames,
-        collations,
-        fieldNames,
-        rareTopDigest,
+        rewriteTarget,
+        inferLimitPushdownMode(rewriteTarget),
+        replaceOperations(
+            PushDownType.SORT_AGG_METRICS,
+            collations,
+            action -> action.rePushDownSortAggMeasure(collations, fieldNames)),
         resizedBucketSize);
   }
 
   public AggSpec withRareTop(RareTopDigest digest) {
-    if (kind != AggKind.COMPOSITE || !rareTopSupported) {
+    if (!supportsCurrentRareTop()) {
       throw new OpenSearchRequestBuilder.PushDownUnSupportedException("Cannot pushdown " + digest);
     }
     return new AggSpec(
-        aggregate,
-        project,
-        outputFields,
-        rowType,
-        fieldTypes,
-        cluster,
-        bucketNullable,
-        queryBucketSize,
+        baseBuilderAndParser,
         extendedTypeMapping,
         initialBucketNames,
-        bucketNames,
         scriptCount,
         AggKind.RARE_TOP,
-        LimitPushdownMode.BUCKET_SIZE,
-        null,
-        rareTopSupported,
-        bucketSortCollations,
-        bucketSortFieldNames,
-        measureSortCollations,
-        measureSortFieldNames,
-        digest,
+        inferLimitPushdownMode(AggKind.RARE_TOP),
+        replaceOperations(
+            PushDownType.RARE_TOP, digest, action -> action.rePushDownRareTop(digest)),
         digest.byList().isEmpty() ? digest.number() : DEFAULT_MAX_BUCKETS);
   }
 
@@ -346,57 +223,37 @@ public final class AggSpec {
         break;
     }
     return new AggSpec(
-        aggregate,
-        project,
-        outputFields,
-        rowType,
-        fieldTypes,
-        cluster,
-        bucketNullable,
-        queryBucketSize,
+        baseBuilderAndParser,
         extendedTypeMapping,
         initialBucketNames,
-        bucketNames,
         scriptCount,
         kind,
         limitPushdownMode,
-        measureSortTarget,
-        rareTopSupported,
-        bucketSortCollations,
-        bucketSortFieldNames,
-        measureSortCollations,
-        measureSortFieldNames,
-        rareTopDigest,
+        replaceOperations(
+            PushDownType.LIMIT,
+            new LimitDigest(size, 0),
+            action -> action.pushDownLimitIntoBucketSize(size)),
         size);
   }
 
-  public Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> build() {
-    try {
-      AggregateAnalyzer.AggregateBuilderHelper helper =
-          new AggregateAnalyzer.AggregateBuilderHelper(
-              rowType, fieldTypes, cluster, bucketNullable, queryBucketSize);
-      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser =
-          AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
-      AggPushDownAction temp =
-          new AggPushDownAction(
-              builderAndParser, extendedTypeMapping, new ArrayList<>(initialBucketNames));
-      if (bucketSortCollations != null) {
-        temp.pushDownSortIntoAggBucket(bucketSortCollations, bucketSortFieldNames);
-      }
-      if (measureSortCollations != null) {
-        temp.rePushDownSortAggMeasure(measureSortCollations, measureSortFieldNames);
-      }
-      if (rareTopDigest != null) {
-        temp.rePushDownRareTop(rareTopDigest);
-      }
-      if (bucketSize != null) {
-        temp.pushDownLimitIntoBucketSize(bucketSize);
-      }
-      return temp.getBuilderAndParser();
-    } catch (AggregateAnalyzer.ExpressionNotAnalyzableException e) {
-      throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
-          "Cannot materialize aggregation pushdown", e);
-    }
+  public AggPushDownAction buildAction() {
+    AggPushDownAction action =
+        new AggPushDownAction(
+            baseBuilderAndParser, extendedTypeMapping, new ArrayList<>(initialBucketNames));
+    operationsForAgg.forEach(operation -> ((BuildAction) operation.action()).apply(action));
+    return action;
+  }
+
+  private List<PushDownOperation> replaceOperations(
+      PushDownType type, Object digest, BuildAction action) {
+    List<PushDownOperation> newOperations = removeOperations(type);
+    newOperations.add(new PushDownOperation(type, digest, action));
+    return newOperations;
+  }
+
+  private List<PushDownOperation> removeOperations(PushDownType type) {
+    return new ArrayList<>(
+        operationsForAgg.stream().filter(operation -> operation.type() != type).toList());
   }
 
   private static AggKind inferKind(@Nullable AggregationBuilder rootBuilder) {
@@ -410,14 +267,10 @@ public final class AggSpec {
     if (builder instanceof MultiTermsAggregationBuilder) {
       return AggKind.MULTI_TERMS;
     }
-    if (builder
-        instanceof
-        org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder) {
+    if (builder instanceof DateHistogramAggregationBuilder) {
       return AggKind.DATE_HISTOGRAM;
     }
-    if (builder
-        instanceof
-        org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder) {
+    if (builder instanceof HistogramAggregationBuilder) {
       return AggKind.HISTOGRAM;
     }
     if (builder instanceof TopHitsAggregationBuilder) {
@@ -433,9 +286,9 @@ public final class AggSpec {
     };
   }
 
-  private static LimitPushdownMode inferLimitPushdownMode(
-      List<AggregationBuilder> builders, @Nullable AggregationBuilder rootBuilder) {
-    if (builders.isEmpty()) {
+  private static LimitPushdownMode inferBaseLimitPushdownMode(
+      @Nullable AggregationBuilder rootBuilder, AggKind kind) {
+    if (rootBuilder == null) {
       // count() optimization uses hits.total and leaves the builder list empty. Keeps
       // LIMIT in PushDownContext for these cases even though no request-side limit is applied.
       return LimitPushdownMode.ESTIMATE_ONLY;
@@ -445,10 +298,10 @@ public final class AggSpec {
       // Treats leaf metric aggregations as limit-pushable because they produce a single row.
       return LimitPushdownMode.LEAF_METRIC;
     }
-    return inferLimitPushdownMode(inferKind(rootBuilder));
+    return inferLimitPushdownMode(kind);
   }
 
-  private static boolean isRareTopSupported(@Nullable AggregationBuilder rootBuilder) {
+  private static boolean supportsBaseRareTop(@Nullable AggregationBuilder rootBuilder) {
     AggregationBuilder builder = unwrapNestedBuilder(rootBuilder);
     if (!(builder instanceof CompositeAggregationBuilder composite)) {
       return false;
@@ -462,7 +315,12 @@ public final class AggSpec {
   }
 
   @Nullable
-  private static AggKind inferMeasureSortTarget(@Nullable AggregationBuilder rootBuilder) {
+  private AggKind inferMeasureSortTarget() {
+    if (kind != AggKind.COMPOSITE) {
+      return null;
+    }
+    AggregationBuilder rootBuilder =
+        baseBuilderAndParser.getLeft().isEmpty() ? null : baseBuilderAndParser.getLeft().getFirst();
     AggregationBuilder builder = unwrapNestedBuilder(rootBuilder);
     if (!(builder instanceof CompositeAggregationBuilder composite)) {
       return null;
@@ -489,6 +347,14 @@ public final class AggSpec {
                 src -> src instanceof TermsValuesSourceBuilder terms && !terms.missingBucket())
         ? AggKind.MULTI_TERMS
         : null;
+  }
+
+  private boolean supportsCurrentRareTop() {
+    return kind == AggKind.COMPOSITE
+        && supportsBaseRareTop(
+            baseBuilderAndParser.getLeft().isEmpty()
+                ? null
+                : baseBuilderAndParser.getLeft().getFirst());
   }
 
   @Nullable

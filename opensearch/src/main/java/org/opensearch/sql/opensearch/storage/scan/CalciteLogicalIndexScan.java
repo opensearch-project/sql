@@ -415,21 +415,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
                           OpenSearchDataType.of(
                               OpenSearchTypeFactory.convertRelDataTypeToExprType(
                                   field.getType()))));
-      AggSpec aggSpec =
-          AggSpec.create(
-              aggregate,
-              project,
-              outputFields,
-              getRowType(),
-              fieldTypes,
-              getCluster(),
-              bucketNullable,
-              queryBucketSize,
-              extendedTypeMapping,
-              bucketNames,
-              builderAndParser);
-      // Now agg state and request is lazily built by AggSpec.build(). Agg operation in
-      // PushDownContext is a no_op marker
+      AggSpec aggSpec = AggSpec.create(extendedTypeMapping, bucketNames, builderAndParser);
+      // AggPushDownAction is lazily materialized by AggSpec.buildAction() and then this action
+      // will materialize agg request builder.
+      // The AGGREGATION pushdown operation in PushDownContext remains a no-op marker here.
       newScan.pushDownContext.setAggSpec(aggSpec);
       newScan.pushDownContext.add(
           PushDownType.AGGREGATION, aggregate, (OSRequestBuilderAction) requestBuilder -> {});
