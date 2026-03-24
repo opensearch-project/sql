@@ -28,6 +28,9 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -591,6 +594,37 @@ public interface PlanUtils {
     } catch (Exception e) {
       return true;
     }
+  }
+
+  /**
+   * Reverses the direction of a RelCollation.
+   *
+   * @param original The original collation to reverse
+   * @return A new RelCollation with reversed directions
+   */
+  public static RelCollation reverseCollation(RelCollation original) {
+    if (original == null || original.getFieldCollations().isEmpty()) {
+      return original;
+    }
+
+    List<RelFieldCollation> reversedFields = new ArrayList<>();
+    for (RelFieldCollation field : original.getFieldCollations()) {
+      RelFieldCollation.Direction reversedDirection = field.direction.reverse();
+
+      // Handle null direction properly - reverse it as well
+      RelFieldCollation.NullDirection reversedNullDirection =
+          field.nullDirection == RelFieldCollation.NullDirection.FIRST
+              ? RelFieldCollation.NullDirection.LAST
+              : field.nullDirection == RelFieldCollation.NullDirection.LAST
+                  ? RelFieldCollation.NullDirection.FIRST
+                  : field.nullDirection;
+
+      RelFieldCollation reversedField =
+          new RelFieldCollation(field.getFieldIndex(), reversedDirection, reversedNullDirection);
+      reversedFields.add(reversedField);
+    }
+
+    return RelCollations.of(reversedFields);
   }
 
   /** Adds a rel node to the top of the stack while preserving the field names and aliases. */

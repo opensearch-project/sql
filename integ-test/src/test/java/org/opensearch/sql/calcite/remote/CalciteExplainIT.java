@@ -448,17 +448,63 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainWithReverse() throws IOException {
-    String result =
-        executeWithReplace(
-            "explain source=opensearch-sql_test_index_account | sort age | reverse | head 5");
+  public void testExplainWithReverseIgnored() throws IOException {
+    // Reverse is ignored when there's no existing sort and no @timestamp field
+    String query = "source=opensearch-sql_test_index_account | reverse | head 5";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_reverse_ignored.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
 
-    // Verify that the plan contains a LogicalSort with fetch (from head 5)
-    assertTrue(result.contains("LogicalSort") && result.contains("fetch=[5]"));
+  @Test
+  public void testExplainWithReversePushdown() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | sort - age | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_reverse_pushdown_single.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
 
-    // Verify that reverse added a ROW_NUMBER and another sort (descending)
-    assertTrue(result.contains("ROW_NUMBER()"));
-    assertTrue(result.contains("dir0=[DESC]"));
+  @Test
+  public void testExplainWithReversePushdownMultipleFields() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_reverse_pushdown_multiple.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainWithDoubleReverseIgnored() throws IOException {
+    // Double reverse is ignored when there's no existing sort and no @timestamp field
+    String query = "source=opensearch-sql_test_index_account | reverse | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_double_reverse_ignored.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainWithDoubleReversePushdown() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | sort - age | reverse | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_double_reverse_pushdown_single.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainWithDoubleReversePushdownMultipleFields() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_double_reverse_pushdown_multiple.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainReverseWithTimestamp() throws IOException {
+    // Test that reverse with @timestamp field sorts by @timestamp DESC
+    String query = "source=opensearch-sql_test_index_time_data | reverse | head 5";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_reverse_with_timestamp.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
