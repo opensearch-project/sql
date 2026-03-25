@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.api.UnifiedQueryContext;
@@ -32,6 +33,9 @@ import org.opensearch.sql.api.UnifiedQueryPlanner;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
@@ -223,12 +227,20 @@ public class RestUnifiedQueryAction {
     };
   }
 
-  /** Classify whether the exception is a client error (bad query) or server error (engine bug). */
+  /**
+   * Classify whether the exception is a client error (bad query) or server error (engine bug).
+   * Matches the classification in {@link RestPPLQueryAction#isClientError}.
+   */
   private static boolean isClientError(Exception e) {
-    return e instanceof SyntaxCheckException
-        || e instanceof SemanticCheckException
+    return e instanceof NullPointerException
         || e instanceof IllegalArgumentException
-        || e instanceof NullPointerException;
+        || e instanceof IndexNotFoundException
+        || e instanceof SemanticCheckException
+        || e instanceof ExpressionEvaluationException
+        || e instanceof QueryEngineException
+        || e instanceof SyntaxCheckException
+        || e instanceof DataSourceClientException
+        || e instanceof IllegalAccessException;
   }
 
   private static void recordFailureMetric(Exception e) {
