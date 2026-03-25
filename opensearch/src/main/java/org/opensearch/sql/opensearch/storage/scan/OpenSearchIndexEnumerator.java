@@ -11,13 +11,16 @@ import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.calcite.linq4j.Enumerator;
+import org.opensearch.core.tasks.TaskCancelledException;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.tasks.CancellableTask;
 
 /**
  * Supports a simple iteration over a collection for OpenSearch index
@@ -55,6 +58,8 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   private ExprValue current = null;
 
+  private CancellableTask cancellableTask;
+
   public OpenSearchIndexEnumerator(
       OpenSearchClient client,
       List<String> fields,
@@ -80,6 +85,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     this.client = client;
     this.bgScanner = new BackgroundSearchScanner(client, maxResultWindow, queryBucketSize);
     this.bgScanner.startScanning(request);
+    this.cancellableTask = OpenSearchQueryManager.getCancellableTask();
   }
 
   private Iterator<ExprValue> fetchNextBatch() {
@@ -110,6 +116,10 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   public boolean moveNext() {
     if (queryCount >= maxResponseSize) {
       return false;
+    }
+
+    if (cancellableTask != null && cancellableTask.isCancelled()) {
+      throw new TaskCancelledException("The task is cancelled.");
     }
 
     boolean shouldCheck = (queryCount % NUMBER_OF_NEXT_CALL_TO_CHECK == 0);
