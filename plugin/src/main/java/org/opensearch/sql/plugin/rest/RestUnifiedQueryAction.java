@@ -16,6 +16,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.rest.BytesRestResponse;
@@ -38,6 +39,8 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 import org.opensearch.sql.plugin.rest.analytics.stub.StubIndexDetector;
 import org.opensearch.sql.plugin.rest.analytics.stub.StubSchemaProvider;
+import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
+import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.JdbcResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
@@ -83,6 +86,90 @@ public class RestUnifiedQueryAction {
             () -> doExecute(query, queryType, channel),
             new TimeValue(0),
             SQL_WORKER_THREAD_POOL_NAME);
+  }
+
+  /**
+   * Execute a query through the unified query pipeline, returning the result via transport action
+   * listener. Called from {@code TransportPPLQueryAction} for proper PPL enabled check, metrics,
+   * and request ID handling.
+   *
+   * @param query the PPL query string
+   * @param queryType SQL or PPL
+   * @param pplRequest the original PPL request (for format selection)
+   * @param listener the transport action listener
+   */
+  public void executeViaTransport(
+      String query,
+      QueryType queryType,
+      PPLQueryRequest pplRequest,
+      ActionListener<TransportPPLQueryResponse> listener) {
+    client
+        .threadPool()
+        .schedule(
+            () -> doExecuteViaTransport(query, queryType, pplRequest, listener),
+            new TimeValue(0),
+            SQL_WORKER_THREAD_POOL_NAME);
+  }
+
+  private void doExecuteViaTransport(
+      String query,
+      QueryType queryType,
+      PPLQueryRequest pplRequest,
+      ActionListener<TransportPPLQueryResponse> listener) {
+    try {
+      long startTime = System.nanoTime();
+      AbstractSchema schema = StubSchemaProvider.buildSchema();
+
+      try (UnifiedQueryContext context =
+          UnifiedQueryContext.builder()
+              .language(queryType)
+              .catalog(SCHEMA_NAME, schema)
+              .defaultNamespace(SCHEMA_NAME)
+              .build()) {
+
+        UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+        RelNode plan = planner.plan(query);
+        long planTime = System.nanoTime();
+        LOG.info(
+            "[unified] Planning completed in {}ms for {} query",
+            (planTime - startTime) / 1_000_000,
+            queryType);
+
+        CalcitePlanContext planContext = context.getPlanContext();
+        analyticsEngine.execute(
+            plan, planContext, createTransportQueryListener(queryType, planTime, listener));
+      }
+    } catch (Exception e) {
+      listener.onFailure(e);
+    }
+  }
+
+  private ResponseListener<QueryResponse> createTransportQueryListener(
+      QueryType queryType,
+      long planEndTime,
+      ActionListener<TransportPPLQueryResponse> transportListener) {
+    ResponseFormatter<QueryResult> formatter = new JdbcResponseFormatter(PRETTY);
+    return new ResponseListener<QueryResponse>() {
+      @Override
+      public void onResponse(QueryResponse response) {
+        long execTime = System.nanoTime();
+        LOG.info(
+            "[unified] Execution completed in {}ms, {} rows returned",
+            (execTime - planEndTime) / 1_000_000,
+            response.getResults().size());
+        LangSpec langSpec = queryType == QueryType.PPL ? PPL_SPEC : LangSpec.SQL_SPEC;
+        String result =
+            formatter.format(
+                new QueryResult(
+                    response.getSchema(), response.getResults(), response.getCursor(), langSpec));
+        transportListener.onResponse(new TransportPPLQueryResponse(result));
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        transportListener.onFailure(e);
+      }
+    };
   }
 
   private void doExecute(String query, QueryType queryType, RestChannel channel) {

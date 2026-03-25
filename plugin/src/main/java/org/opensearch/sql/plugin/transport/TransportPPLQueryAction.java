@@ -28,11 +28,14 @@ import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
+import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
+import org.opensearch.sql.plugin.rest.analytics.stub.StubQueryPlanExecutor;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -56,6 +59,8 @@ public class TransportPPLQueryAction
 
   private final Supplier<Boolean> pplEnabled;
 
+  private final RestUnifiedQueryAction unifiedQueryHandler;
+
   /** Constructor of TransportPPLQueryAction. */
   @Inject
   public TransportPPLQueryAction(
@@ -77,6 +82,7 @@ public class TransportPPLQueryAction
           b.bind(DataSourceService.class).toInstance(dataSourceService);
         });
     this.injector = Guice.createInjector(modules);
+    this.unifiedQueryHandler = new RestUnifiedQueryAction(client, new StubQueryPlanExecutor());
     this.pplEnabled =
         () ->
             MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)
@@ -114,9 +120,17 @@ public class TransportPPLQueryAction
 
     QueryContext.addRequestId();
 
-    PPLService pplService = injector.getInstance(PPLService.class);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
+
+    // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices
+    if (RestUnifiedQueryAction.isAnalyticsIndex(transformedRequest.getRequest())) {
+      unifiedQueryHandler.executeViaTransport(
+          transformedRequest.getRequest(), QueryType.PPL, transformedRequest, listener);
+      return;
+    }
+
+    PPLService pplService = injector.getInstance(PPLService.class);
     QueryContext.setProfile(transformedRequest.profile());
     ActionListener<TransportPPLQueryResponse> clearingListener = wrapWithProfilingClear(listener);
 
