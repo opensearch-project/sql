@@ -133,7 +133,7 @@ public class ExprValueUtils {
     } else if (o instanceof Boolean) {
       return booleanValue((Boolean) o);
     } else if (o instanceof Double d) {
-      if (Double.isNaN(d)) {
+      if (!Double.isFinite(d)) {
         return LITERAL_NULL;
       }
       return doubleValue(d);
@@ -144,7 +144,7 @@ public class ExprValueUtils {
     } else if (o instanceof String) {
       return stringValue((String) o);
     } else if (o instanceof Float f) {
-      if (Float.isNaN(f)) {
+      if (!Float.isFinite(f)) {
         return LITERAL_NULL;
       }
       return floatValue(f);

@@ -52,7 +52,7 @@ class QueryPlanTest {
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
     query.execute();
 
-    verify(queryService, times(1)).execute(any(), any(), any());
+    verify(queryService, times(1)).execute(any(), any(), any(), any());
   }
 
   @Test
@@ -60,7 +60,7 @@ class QueryPlanTest {
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
     query.explain(explainListener, mode);
 
-    verify(queryService, times(1)).explain(plan, queryType, explainListener, mode);
+    verify(queryService, times(1)).explain(plan, queryType, null, explainListener, mode);
   }
 
   @Test

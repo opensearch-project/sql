@@ -76,6 +76,7 @@ import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DefaultBin;
@@ -85,6 +86,8 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
+import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -93,6 +96,7 @@ import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
 import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -425,7 +429,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitRenameCommand(RenameCommandContext ctx) {
     return new Rename(
-        ctx.renameClasue().stream()
+        ctx.renameClause().stream()
             .map(
                 ct ->
                     new Map(
@@ -916,6 +920,19 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
+  public UnresolvedPlan visitMvexpandCommand(OpenSearchPPLParser.MvexpandCommandContext ctx) {
+    Field field = (Field) expressionBuilder.visit(ctx.fieldExpression());
+    Integer limit =
+        ctx.INTEGER_LITERAL() != null ? Integer.parseInt(ctx.INTEGER_LITERAL().getText()) : null;
+
+    if (limit != null && limit <= 0) {
+      throw new IllegalArgumentException("Limit must be a positive number, got: " + limit);
+    }
+
+    return new MvExpand(field, limit);
+  }
+
+  @Override
   public UnresolvedPlan visitGrokCommand(OpenSearchPPLParser.GrokCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
     Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
@@ -1186,6 +1203,55 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitFillNullValueAllFields(
       OpenSearchPPLParser.FillNullValueAllFieldsContext ctx) {
     return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of(), true);
+  }
+
+  @Override
+  public UnresolvedPlan visitConvertCommand(OpenSearchPPLParser.ConvertCommandContext ctx) {
+    List<Let> conversions =
+        ctx.convertFunction().stream()
+            .map(this::buildConversion)
+            .filter(conversion -> conversion != null)
+            .collect(Collectors.toList());
+    return new Convert(conversions);
+  }
+
+  /** Supported PPL convert function names (case-insensitive). */
+  private static final Set<String> SUPPORTED_CONVERSION_FUNCTIONS =
+      Set.of("auto", "num", "rmcomma", "rmunit", "memk", "none");
+
+  private Let buildConversion(OpenSearchPPLParser.ConvertFunctionContext funcCtx) {
+    if (funcCtx.fieldExpression().isEmpty()) {
+      throw new IllegalArgumentException("Convert function requires a field argument");
+    }
+
+    String functionName = funcCtx.functionName.getText();
+
+    // Validate function name against supported conversion functions
+    if (!SUPPORTED_CONVERSION_FUNCTIONS.contains(functionName.toLowerCase())) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Unsupported conversion function '%s'. Supported functions are: %s",
+              functionName, SUPPORTED_CONVERSION_FUNCTIONS));
+    }
+
+    UnresolvedExpression fieldArg = internalVisitExpression(funcCtx.fieldExpression(0));
+    Field targetField = determineTargetField(funcCtx, fieldArg);
+
+    if ("none".equalsIgnoreCase(functionName)) {
+      return fieldArg.toString().equals(targetField.getField().toString())
+          ? null
+          : new Let(targetField, fieldArg);
+    }
+
+    return new Let(targetField, AstDSL.function(functionName, fieldArg));
+  }
+
+  private Field determineTargetField(
+      OpenSearchPPLParser.ConvertFunctionContext funcCtx, UnresolvedExpression fieldArg) {
+    if (funcCtx.alias != null) {
+      return AstDSL.field(StringUtils.unquoteIdentifier(funcCtx.alias.getText()));
+    }
+    return fieldArg instanceof Field ? (Field) fieldArg : AstDSL.field(fieldArg.toString());
   }
 
   @Override
@@ -1495,5 +1561,81 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             });
     java.util.Map<String, Literal> options = cmdOptionsBuilder.build();
     return new AddColTotals(fieldList, options);
+  }
+
+  @Override
+  public UnresolvedPlan visitGraphLookupCommand(OpenSearchPPLParser.GraphLookupCommandContext ctx) {
+    // Parse lookup table
+    UnresolvedPlan fromTable = visitTableSourceClause(ctx.lookupTable);
+
+    // Parse required base: start and edge
+    OpenSearchPPLParser.StartClauseContext startCtx = ctx.startClause();
+    Field startField = (Field) internalVisitExpression(startCtx.startField);
+    // Parse edge clause from EDGE_CLAUSE token (e.g., "edge=manager-->name")
+    OpenSearchPPLParser.EdgeClauseContext edgeCtx = ctx.edgeClause();
+    String edgeClauseText = edgeCtx.edgeClauseToken.getText();
+    // Remove "edge=" prefix (case-insensitive)
+    String edgeBody = edgeClauseText.substring(edgeClauseText.indexOf('=') + 1).trim();
+    // Determine direction and split by arrow
+    Direction direction;
+    String[] parts;
+    if (edgeBody.contains("<->")) {
+      direction = Direction.BI;
+      parts = edgeBody.split("<->", 2);
+    } else {
+      direction = Direction.UNI;
+      parts = edgeBody.split("-->", 2);
+    }
+    Field fromField = new Field(new QualifiedName(parts[0].trim()));
+    Field toField = new Field(new QualifiedName(parts[1].trim()));
+
+    // Parse optional args with defaults
+    Literal maxDepth = Literal.ZERO;
+    Field depthField = null;
+    boolean supportArray = false;
+    boolean batchMode = false;
+    boolean usePIT = false;
+    UnresolvedExpression filter = null;
+
+    for (OpenSearchPPLParser.GraphLookupArgsContext arg : ctx.graphLookupArgs()) {
+      if (arg.MAX_DEPTH() != null) {
+        maxDepth = (Literal) internalVisitExpression(arg.integerLiteral());
+      }
+      if (arg.DEPTH_FIELD() != null) {
+        depthField = (Field) internalVisitExpression(arg.fieldExpression());
+      }
+      if (arg.SUPPORT_ARRAY() != null) {
+        Literal literal = (Literal) internalVisitExpression(arg.booleanLiteral());
+        supportArray = Boolean.TRUE.equals(literal.getValue());
+      }
+      if (arg.BATCH_MODE() != null) {
+        Literal literal = (Literal) internalVisitExpression(arg.booleanLiteral());
+        batchMode = Boolean.TRUE.equals(literal.getValue());
+      }
+      if (arg.USE_PIT() != null) {
+        Literal literal = (Literal) internalVisitExpression(arg.booleanLiteral());
+        usePIT = Boolean.TRUE.equals(literal.getValue());
+      }
+      if (arg.FILTER() != null) {
+        filter = internalVisitExpression(arg.logicalExpression());
+      }
+    }
+
+    Field as = (Field) internalVisitExpression(ctx.outputField);
+
+    return GraphLookup.builder()
+        .fromTable(fromTable)
+        .fromField(fromField)
+        .toField(toField)
+        .as(as)
+        .maxDepth(maxDepth)
+        .startField(startField)
+        .depthField(depthField)
+        .direction(direction)
+        .supportArray(supportArray)
+        .batchMode(batchMode)
+        .usePIT(usePIT)
+        .filter(filter)
+        .build();
   }
 }

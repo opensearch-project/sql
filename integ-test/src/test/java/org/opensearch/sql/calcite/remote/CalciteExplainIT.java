@@ -59,6 +59,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.DATA_TYPE_ALIAS);
     loadIndex(Index.DEEP_NESTED);
     loadIndex(Index.CASCADED_NESTED);
+    loadIndex(Index.MVEXPAND_EDGE_CASES);
   }
 
   @Override
@@ -447,17 +448,63 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainWithReverse() throws IOException {
-    String result =
-        executeWithReplace(
-            "explain source=opensearch-sql_test_index_account | sort age | reverse | head 5");
+  public void testExplainWithReverseIgnored() throws IOException {
+    // Reverse is ignored when there's no existing sort and no @timestamp field
+    String query = "source=opensearch-sql_test_index_account | reverse | head 5";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_reverse_ignored.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
 
-    // Verify that the plan contains a LogicalSort with fetch (from head 5)
-    assertTrue(result.contains("LogicalSort") && result.contains("fetch=[5]"));
+  @Test
+  public void testExplainWithReversePushdown() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | sort - age | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_reverse_pushdown_single.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
 
-    // Verify that reverse added a ROW_NUMBER and another sort (descending)
-    assertTrue(result.contains("ROW_NUMBER()"));
-    assertTrue(result.contains("dir0=[DESC]"));
+  @Test
+  public void testExplainWithReversePushdownMultipleFields() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_reverse_pushdown_multiple.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainWithDoubleReverseIgnored() throws IOException {
+    // Double reverse is ignored when there's no existing sort and no @timestamp field
+    String query = "source=opensearch-sql_test_index_account | reverse | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_double_reverse_ignored.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainWithDoubleReversePushdown() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | sort - age | reverse | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_double_reverse_pushdown_single.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainWithDoubleReversePushdownMultipleFields() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_double_reverse_pushdown_multiple.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainReverseWithTimestamp() throws IOException {
+    // Test that reverse with @timestamp field sorts by @timestamp DESC
+    String query = "source=opensearch-sql_test_index_time_data | reverse | head 5";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_reverse_with_timestamp.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -2391,6 +2438,35 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testConvertCommandExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_command.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | convert auto(balance) | fields balance"));
+  }
+
+  @Test
+  public void testConvertWithAliasExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_with_alias.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | convert auto(balance) AS balance_num | fields"
+                + " balance_num"));
+  }
+
+  @Test
+  public void testConvertMultipleFunctionsExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_multiple.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | convert auto(balance), num(age) | fields"
+                + " balance, age"));
+  }
+
+  @Test
   public void testNotBetweenPushDownExplain() throws Exception {
     // test for issue https://github.com/opensearch-project/sql/issues/4903
     enabledOnlyWhenPushdownIsEnabled();
@@ -2550,6 +2626,15 @@ public class CalciteExplainIT extends ExplainIT {
 
     String actual = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_nomv.yaml");
+    assertYamlEqualsIgnoreId(expected, actual);
+  }
+
+  @Test
+  public void testMvexpandExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_mvexpand.yaml");
+    String actual =
+        explainQueryYaml(
+            "source=mvexpand_edge_cases | eval skills_arr = array(1, 2, 3) | mvexpand skills_arr");
     assertYamlEqualsIgnoreId(expected, actual);
   }
 
@@ -2755,5 +2840,42 @@ public class CalciteExplainIT extends ExplainIT {
     Assert.assertTrue(
         "Expected explain to contain both CONCAT and ARRAY_JOIN",
         result.toLowerCase().contains("concat") && result.toLowerCase().contains("array_join"));
+  }
+
+  @Test
+  public void testHighlightWildcardExplain() throws IOException {
+    String query = "source=" + TEST_INDEX_ACCOUNT;
+    var result = explainQueryYaml(query, "[\"*\"]");
+    String expected = loadExpectedPlan("explain_highlight_wildcard.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testHighlightSingleTermExplain() throws IOException {
+    String query = "source=" + TEST_INDEX_ACCOUNT;
+    var result = explainQueryYaml(query, "[\"Holmes\"]");
+    String expected = loadExpectedPlan("explain_highlight_single_term.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testHighlightWithFilterExplain() throws IOException {
+    String query = "source=" + TEST_INDEX_ACCOUNT + " | where age > 30 | fields firstname, age";
+    var result = explainQueryYaml(query, "[\"*\"]");
+    String expected = loadExpectedPlan("explain_highlight_with_filter.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testHighlightOsdObjectFormatExplain() throws IOException {
+    // OSD sends highlight as a rich object with pre_tags, post_tags, fields, fragment_size
+    String query = "source=" + TEST_INDEX_ACCOUNT;
+    String highlightJson =
+        "{\"pre_tags\": [\"<b>\"], \"post_tags\": [\"</b>\"],"
+            + " \"fields\": {\"*\": {}}, \"fragment_size\": 2147483647}";
+    var result = explainQueryYaml(query, highlightJson);
+    // OSD format includes pre_tags/post_tags in the highlight builder output
+    String expected = loadExpectedPlan("explain_highlight_osd_format.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 }

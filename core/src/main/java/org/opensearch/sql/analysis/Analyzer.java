@@ -66,6 +66,7 @@ import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -73,6 +74,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -81,6 +83,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
 import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
@@ -533,6 +536,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitConvert(Convert node, AnalysisContext context) {
+    throw getOnlyForCalciteException("convert");
+  }
+
+  @Override
   public LogicalPlan visitAddTotals(AddTotals node, AnalysisContext context) {
     throw getOnlyForCalciteException("addtotals");
   }
@@ -550,6 +558,16 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitNoMv(NoMv node, AnalysisContext context) {
     throw getOnlyForCalciteException("nomv");
+  }
+
+  @Override
+  public LogicalPlan visitMvExpand(MvExpand node, AnalysisContext context) {
+    throw getOnlyForCalciteException("mvexpand");
+  }
+
+  @Override
+  public LogicalPlan visitGraphLookup(GraphLookup node, AnalysisContext context) {
+    throw getOnlyForCalciteException("graphlookup");
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */

@@ -27,6 +27,7 @@ import org.apache.calcite.tools.Programs;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
@@ -89,8 +90,17 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    execute(plan, queryType, null, listener);
+  }
+
+  /** Execute with optional highlight config. */
+  public void execute(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
     if (shouldUseCalcite(queryType)) {
-      executeWithCalcite(plan, queryType, listener);
+      executeWithCalcite(plan, queryType, highlightConfig, listener);
     } else {
       executeWithLegacy(plan, queryType, listener, Optional.empty());
     }
@@ -102,8 +112,18 @@ public class QueryService {
       QueryType queryType,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode) {
+    explain(plan, queryType, null, listener, mode);
+  }
+
+  /** Explain with optional highlight config. */
+  public void explain(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      ResponseListener<ExecutionEngine.ExplainResponse> listener,
+      ExplainMode mode) {
     if (shouldUseCalcite(queryType)) {
-      explainWithCalcite(plan, queryType, listener, mode);
+      explainWithCalcite(plan, queryType, highlightConfig, listener, mode);
     } else {
       explainWithLegacy(plan, queryType, listener, mode, Optional.empty());
     }
@@ -112,6 +132,7 @@ public class QueryService {
   public void executeWithCalcite(
       UnresolvedPlan plan,
       QueryType queryType,
+      HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
     CalcitePlanContext.run(
         () -> {
@@ -123,6 +144,8 @@ public class QueryService {
             CalcitePlanContext context =
                 CalcitePlanContext.create(
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+
+            context.setHighlightConfig(highlightConfig);
 
             // Wrap analyze with ANALYZING stage tracking
             RelNode relNode =
@@ -160,6 +183,7 @@ public class QueryService {
   public void explainWithCalcite(
       UnresolvedPlan plan,
       QueryType queryType,
+      HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode) {
     CalcitePlanContext.run(
@@ -169,6 +193,7 @@ public class QueryService {
             CalcitePlanContext context =
                 CalcitePlanContext.create(
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+            context.setHighlightConfig(highlightConfig);
             context.run(
                 () -> {
                   RelNode relNode = analyze(plan, context);

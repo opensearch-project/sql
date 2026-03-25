@@ -68,6 +68,7 @@ import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DefaultBin;
@@ -77,12 +78,14 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
 import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -223,6 +226,41 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String outputFields = formatFieldAlias(node.getOutputAliasMap());
     return StringUtils.format(
         "%s | lookup %s %s%s%s", child, MASK_TABLE, mappingFields, strategy, outputFields);
+  }
+
+  @Override
+  public String visitGraphLookup(GraphLookup node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder command = new StringBuilder();
+    command.append(child).append(" | graphlookup ").append(MASK_TABLE);
+    if (node.getStartField() != null) {
+      command.append(" start=").append(MASK_COLUMN);
+    }
+    String arrow = node.getDirection() == GraphLookup.Direction.BI ? "<->" : "-->";
+    command.append(" edge=").append(MASK_COLUMN).append(arrow).append(MASK_COLUMN);
+    if (node.getMaxDepth() != null && !Integer.valueOf(0).equals(node.getMaxDepth().getValue())) {
+      command.append(" maxDepth=").append(MASK_LITERAL);
+    }
+    if (node.getDepthField() != null) {
+      command.append(" depthField=").append(MASK_COLUMN);
+    }
+    if (node.isSupportArray()) {
+      command.append(" supportArray=true");
+    }
+    if (node.isBatchMode()) {
+      command.append(" batchMode=true");
+    }
+    if (node.isUsePIT()) {
+      command.append(" usePIT=true");
+    }
+    if (node.getFilter() != null) {
+      command
+          .append(" filter=(")
+          .append(expressionAnalyzer.analyze(node.getFilter(), context))
+          .append(")");
+    }
+    command.append(" as ").append(MASK_COLUMN);
+    return command.toString();
   }
 
   private String formatFieldAlias(java.util.Map<String, String> fieldMap) {
@@ -459,6 +497,40 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
+  public String visitConvert(Convert node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String conversions =
+        node.getConversions().stream()
+            .map(
+                conversion -> {
+                  String functionName = "";
+                  String fields = MASK_COLUMN;
+                  String actualSourceField = "";
+
+                  if (conversion.getExpression() instanceof Function) {
+                    Function func = (Function) conversion.getExpression();
+                    functionName = func.getFuncName().toLowerCase(Locale.ROOT);
+                    if (!func.getFuncArgs().isEmpty()
+                        && func.getFuncArgs().get(0) instanceof Field) {
+                      actualSourceField = ((Field) func.getFuncArgs().get(0)).getField().toString();
+                    }
+                    fields =
+                        func.getFuncArgs().stream()
+                            .map(arg -> MASK_COLUMN)
+                            .collect(Collectors.joining(","));
+                  }
+
+                  String targetField = conversion.getVar().getField().toString();
+
+                  String asClause =
+                      !targetField.equals(actualSourceField) ? " AS " + MASK_COLUMN : "";
+                  return StringUtils.format("%s(%s)%s", functionName, fields, asClause);
+                })
+            .collect(Collectors.joining(","));
+    return StringUtils.format("%s | convert %s", child, conversions);
+  }
+
+  @Override
   public String visitExpand(Expand node, String context) {
     String child = node.getChild().getFirst().accept(this, context);
     String field = visitExpression(node.getField());
@@ -480,6 +552,16 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String field = visitExpression(node.getField());
 
     return StringUtils.format("%s | nomv %s", child, field);
+  }
+
+  @Override
+  public String visitMvExpand(MvExpand node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String field = MASK_COLUMN; // Always anonymize field names
+    if (node.getLimit() != null) {
+      return StringUtils.format("%s | mvexpand %s limit=%s", child, field, MASK_LITERAL);
+    }
+    return StringUtils.format("%s | mvexpand %s", child, field);
   }
 
   /** Build {@link LogicalSort}. */

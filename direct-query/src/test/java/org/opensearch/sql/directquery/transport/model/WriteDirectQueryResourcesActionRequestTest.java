@@ -6,8 +6,10 @@
 package org.opensearch.sql.directquery.transport.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -203,6 +205,58 @@ public class WriteDirectQueryResourcesActionRequestTest {
 
       assertEquals(resourceType, deserializedRequest.getDirectQueryRequest().getResourceType());
     }
+  }
+
+  @Test
+  public void testStreamSerializationWithGroupNameAndDelete() throws IOException {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setDataSource("prometheus");
+    request.setResourceType(DirectQueryResourceType.RULES);
+    request.setResourceName("test_namespace");
+    request.setRequest("name: test\nrules: []\n");
+    request.setGroupName("test_group");
+    request.setDelete(true);
+
+    WriteDirectQueryResourcesActionRequest actionRequest =
+        new WriteDirectQueryResourcesActionRequest(request);
+
+    BytesStreamOutput outputStream = new BytesStreamOutput();
+    actionRequest.writeTo(outputStream);
+    outputStream.flush();
+
+    BytesStreamInput inputStream = new BytesStreamInput(outputStream.bytes().toBytesRef().bytes);
+    WriteDirectQueryResourcesActionRequest deserialized =
+        new WriteDirectQueryResourcesActionRequest(inputStream);
+    inputStream.close();
+
+    assertEquals("prometheus", deserialized.getDirectQueryRequest().getDataSource());
+    assertEquals(DirectQueryResourceType.RULES, deserialized.getDirectQueryRequest().getResourceType());
+    assertEquals("test_namespace", deserialized.getDirectQueryRequest().getResourceName());
+    assertEquals("name: test\nrules: []\n", deserialized.getDirectQueryRequest().getRequest());
+    assertEquals("test_group", deserialized.getDirectQueryRequest().getGroupName());
+    assertTrue(deserialized.getDirectQueryRequest().isDelete());
+  }
+
+  @Test
+  public void testStreamSerializationWithNullGroupNameAndFalseDelete() throws IOException {
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setDataSource("prometheus");
+    request.setResourceType(DirectQueryResourceType.RULES);
+
+    WriteDirectQueryResourcesActionRequest actionRequest =
+        new WriteDirectQueryResourcesActionRequest(request);
+
+    BytesStreamOutput outputStream = new BytesStreamOutput();
+    actionRequest.writeTo(outputStream);
+    outputStream.flush();
+
+    BytesStreamInput inputStream = new BytesStreamInput(outputStream.bytes().toBytesRef().bytes);
+    WriteDirectQueryResourcesActionRequest deserialized =
+        new WriteDirectQueryResourcesActionRequest(inputStream);
+    inputStream.close();
+
+    assertNull(deserialized.getDirectQueryRequest().getGroupName());
+    assertFalse(deserialized.getDirectQueryRequest().isDelete());
   }
 
   @Test

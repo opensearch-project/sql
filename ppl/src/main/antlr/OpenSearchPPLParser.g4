@@ -20,11 +20,11 @@ pplStatement
    ;
 
 subPipeline
-   : PIPE? commands (PIPE commands)*
+   : PIPE? commands (PIPE commands?)*
    ;
 
 queryStatement
-   : (PIPE)? pplCommands (PIPE commands)*
+   : (PIPE)? pplCommands (PIPE commands?)*
    ;
 
 explainStatement
@@ -39,7 +39,7 @@ explainMode
     ;
 
 subSearch
-   : searchCommand (PIPE commands)*
+   : searchCommand (PIPE commands?)*
    ;
 
 // commands
@@ -74,12 +74,14 @@ commands
    | adCommand
    | mlCommand
    | fillnullCommand
+   | convertCommand
    | trendlineCommand
    | appendcolCommand
    | addtotalsCommand
    | addcoltotalsCommand
    | appendCommand
    | expandCommand
+    | mvexpandCommand
    | flattenCommand
    | reverseCommand
    | regexCommand
@@ -92,6 +94,7 @@ commands
    | mvcombineCommand
    | fieldformatCommand
    | nomvCommand
+   | graphLookupCommand
    ;
 
 commandName
@@ -122,7 +125,9 @@ commandName
    | AD
    | ML
    | FILLNULL
+   | CONVERT
    | EXPAND
+    | MVEXPAND
    | FLATTEN
    | TRENDLINE
    | TIMECHART
@@ -139,6 +144,7 @@ commandName
    | MVCOMBINE
    | NOMV
    | TRANSPOSE
+   | GRAPHLOOKUP
    ;
 
 searchCommand
@@ -223,7 +229,7 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA? renameClasue)*
+   : RENAME renameClause (COMMA? renameClause)*
    ;
 
 replaceCommand
@@ -536,6 +542,14 @@ replacementPair
    : fieldExpression EQUAL replacement = valueExpression
    ;
 
+convertCommand
+   : CONVERT convertFunction (COMMA? convertFunction)*
+   ;
+
+convertFunction
+   : functionName = ident LT_PRTHS fieldExpression RT_PRTHS (AS alias = fieldExpression)?
+   ;
+
 trendlineCommand
    : TRENDLINE (SORT sortField)? trendlineClause (trendlineClause)*
    ;
@@ -560,6 +574,10 @@ mvcombineCommand
 nomvCommand
   : NOMV fieldExpression
   ;
+
+mvexpandCommand
+    : MVEXPAND fieldExpression (LIMIT EQUAL INTEGER_LITERAL)?
+    ;
 
 flattenCommand
    : FLATTEN fieldExpression (AS aliases = identifierSeq)?
@@ -635,6 +653,27 @@ addcoltotalsCommand
 addcoltotalsOption
    : (LABEL EQUAL stringLiteral)
    | (LABELFIELD EQUAL stringLiteral)
+   ;
+
+graphLookupCommand
+   : GRAPHLOOKUP lookupTable = tableSourceClause startClause edgeClause graphLookupArgs* AS outputField = fieldExpression
+   ;
+
+startClause
+   : START EQUAL startField = fieldExpression
+   ;
+
+edgeClause
+   : edgeClauseToken = EDGE_CLAUSE
+   ;
+
+graphLookupArgs
+   : (MAX_DEPTH EQUAL integerLiteral)
+   | (DEPTH_FIELD EQUAL fieldExpression)
+   | (SUPPORT_ARRAY EQUAL booleanLiteral)
+   | (BATCH_MODE EQUAL booleanLiteral)
+   | (USE_PIT EQUAL booleanLiteral)
+   | (FILTER EQUAL LT_PRTHS logicalExpression RT_PRTHS)
    ;
 
 // clauses
@@ -719,7 +758,7 @@ joinOption
    | MAX EQUAL integerLiteral                           # maxOption
    ;
 
-renameClasue
+renameClause
    : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
@@ -1409,6 +1448,7 @@ positionFunctionName
    | REGEXP
    | LIKE
    | ILIKE
+   | CONTAINS
    ;
 
 singleFieldRelevanceFunctionName
@@ -1574,6 +1614,7 @@ searchableKeyWord
    | ELSE
    | ARROW
    | BETWEEN
+   | CONTAINS
    | EXISTS
    | SOURCE
    | INDEX
@@ -1700,5 +1741,7 @@ searchableKeyWord
    | ROW
    | COL
    | COLUMN_NAME
+   | MAX_DEPTH
+   | DEPTH_FIELD
+   | EDGE
    ;
-
