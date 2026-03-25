@@ -49,7 +49,8 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
     String stageDescription = context.getString("stage_description");
     assertTrue(
         "Stage description should be user-friendly",
-        stageDescription.contains("Checking") || stageDescription.contains("Query"));
+        stageDescription.toLowerCase().contains("checking")
+            || stageDescription.toLowerCase().contains("query"));
 
     // Verify error has location chain
     assertTrue("Error should have location", error.has("location"));

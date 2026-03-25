@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Getter;
 
 /**
  * Error report that wraps exceptions and accumulates contextual information as errors bubble up
@@ -37,12 +38,12 @@ import java.util.Map;
 public class ErrorReport extends RuntimeException {
 
   private final Throwable cause;
-  private final ErrorCode code;
-  private final QueryProcessingStage stage;
+  @Getter private final ErrorCode code;
+  @Getter private final QueryProcessingStage stage;
   private final List<String> locationChain;
   private final Map<String, Object> context;
-  private final String suggestion;
-  private final String details;
+  @Getter private final String suggestion;
+  @Getter private final String details;
 
   private ErrorReport(Builder builder) {
     super(builder.cause.getMessage(), builder.cause);
@@ -63,8 +64,7 @@ public class ErrorReport extends RuntimeException {
    * @return A builder for constructing the error report
    */
   public static Builder wrap(Throwable cause) {
-    if (cause instanceof ErrorReport) {
-      ErrorReport existing = (ErrorReport) cause;
+    if (cause instanceof ErrorReport existing) {
       return new Builder(existing.cause)
           .code(existing.code)
           .stage(existing.stage)
@@ -76,28 +76,12 @@ public class ErrorReport extends RuntimeException {
     return new Builder(cause);
   }
 
-  public ErrorCode getCode() {
-    return code;
-  }
-
-  public QueryProcessingStage getStage() {
-    return stage;
-  }
-
   public List<String> getLocationChain() {
     return new ArrayList<>(locationChain);
   }
 
   public Map<String, Object> getContext() {
     return new LinkedHashMap<>(context);
-  }
-
-  public String getSuggestion() {
-    return suggestion;
-  }
-
-  public String getDetails() {
-    return details;
   }
 
   /** Get the original exception type name. */
@@ -155,7 +139,7 @@ public class ErrorReport extends RuntimeException {
 
     json.put("type", getExceptionType());
 
-    if (code != null && code != ErrorCode.UNKNOWN) {
+    if (code != null) {
       json.put("code", code.name());
     }
 
@@ -168,12 +152,12 @@ public class ErrorReport extends RuntimeException {
     }
 
     // Build context with stage information included
-    if (!context.isEmpty() || stage != null) {
-      Map<String, Object> contextMap = new LinkedHashMap<>(context);
-      if (stage != null) {
-        contextMap.put("stage", stage.toJsonKey());
-        contextMap.put("stage_description", stage.getDisplayName());
-      }
+    Map<String, Object> contextMap = new LinkedHashMap<>(context);
+    if (stage != null) {
+      contextMap.put("stage", stage.toJsonKey());
+      contextMap.put("stage_description", stage.getDisplayName());
+    }
+    if (!contextMap.isEmpty()) {
       json.put("context", contextMap);
     }
 

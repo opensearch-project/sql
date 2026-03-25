@@ -25,6 +25,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReportStatusCodeHelper;
 import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.QueryEngineException;
@@ -50,16 +51,19 @@ public class RestPPLQueryAction extends BaseRestHandler {
   }
 
   private static boolean isClientError(Exception e) {
-    return e instanceof NullPointerException
-        // NPE is hard to differentiate but more likely caused by bad query
-        || e instanceof IllegalArgumentException
-        || e instanceof IndexNotFoundException
-        || e instanceof SemanticCheckException
-        || e instanceof ExpressionEvaluationException
-        || e instanceof QueryEngineException
-        || e instanceof SyntaxCheckException
-        || e instanceof DataSourceClientException
-        || e instanceof IllegalAccessException;
+    return ErrorReportStatusCodeHelper.isClientError(
+        e,
+        ex ->
+            ex instanceof NullPointerException
+                // NPE is hard to differentiate but more likely caused by bad query
+                || ex instanceof IllegalArgumentException
+                || ex instanceof IndexNotFoundException
+                || ex instanceof SemanticCheckException
+                || ex instanceof ExpressionEvaluationException
+                || ex instanceof QueryEngineException
+                || ex instanceof SyntaxCheckException
+                || ex instanceof DataSourceClientException
+                || ex instanceof IllegalAccessException);
   }
 
   @Override
