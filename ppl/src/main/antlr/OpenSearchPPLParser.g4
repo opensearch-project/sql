@@ -661,7 +661,7 @@ graphLookupCommand
    ;
 
 startClause
-   : START EQUAL LT_PRTHS searchLiteralList RT_PRTHS
+   : START EQUAL valueList
    | START EQUAL startField = fieldExpression
    | START EQUAL startValue = literalValue
    ;
@@ -708,7 +708,7 @@ sourceReference
 
 sourceFilterArg
    : ident EQUAL literalValue
-   | ident IN valueList
+   | ident IN LT_PRTHS valueList RT_PRTHS
    ;
 
 // join
@@ -909,7 +909,7 @@ expression
    : valueExpression                                            # valueExpr
    | relevanceExpression                                        # relevanceExpr
    | left = expression comparisonOperator right = expression    # compareExpr
-   | expression NOT? IN valueList                               # inExpr
+   | expression NOT? IN LT_PRTHS valueList RT_PRTHS             # inExpr
    | expression NOT? BETWEEN expression AND expression          # between
    ;
 
@@ -1552,7 +1552,7 @@ intervalUnit
    ;
 
 valueList
-   : LT_PRTHS literalValue (COMMA literalValue)* RT_PRTHS
+   : literalValue (COMMA literalValue)*
    ;
 
 qualifiedName

@@ -153,7 +153,7 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupTopLevelLiteralList() {
     // Top-level graphLookup with multiple literal start values
     String ppl =
-        "graphLookup employee start=(\"Dev\", \"Eliot\") edge=reportsTo-->name"
+        "graphLookup employee start=\"Dev\", \"Eliot\" edge=reportsTo-->name"
             + " as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);

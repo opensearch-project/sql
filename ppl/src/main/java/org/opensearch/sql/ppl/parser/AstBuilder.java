@@ -1578,20 +1578,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     } else if (startCtx.startValue != null) {
       // Top-level mode: single literal e.g. start="Jack"
       startValues = List.of((Literal) internalVisitExpression(startCtx.startValue));
-    } else if (startCtx.searchLiteralList() != null) {
-      // Top-level mode: literal list e.g. start=("Jack", "Eliot")
-      OpenSearchPPLParser.SearchLiteralsContext listCtx =
-          (OpenSearchPPLParser.SearchLiteralsContext) startCtx.searchLiteralList();
+    } else if (startCtx.valueList() != null) {
+      // Top-level mode: literal list e.g. start="Jack", "Eliot"
+      OpenSearchPPLParser.ValueListContext listCtx = startCtx.valueList();
       startValues = new ArrayList<>();
-      for (OpenSearchPPLParser.SearchLiteralContext lit : listCtx.searchLiteral()) {
-        if (lit.stringLiteral() != null) {
-          startValues.add((Literal) internalVisitExpression(lit.stringLiteral()));
-        } else if (lit.numericLiteral() != null) {
-          startValues.add((Literal) internalVisitExpression(lit.numericLiteral()));
-        } else {
-          // ID, NUMERIC_ID, searchableKeyWord — treat as string
-          startValues.add(new Literal(lit.getText(), DataType.STRING));
-        }
+      for (OpenSearchPPLParser.LiteralValueContext lit : listCtx.literalValue()) {
+        startValues.add((Literal) internalVisitExpression(lit));
       }
     }
     // Parse edge clause from EDGE_CLAUSE token (e.g., "edge=manager-->name")

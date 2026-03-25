@@ -26,7 +26,7 @@ source = travelers | graphLookup airports start=nearestAirport edge=connects-->a
 source = airports | graphLookup airports start=airport edge=connects-->airport supportArray=true as reachableAirports
 source = employees | graphLookup employees start=reportsTo edge=reportsTo-->name filter=(status = 'active' AND age > 18) as reportingHierarchy
 graphLookup employees start='Eliot' edge=reportsTo-->name as reportingHierarchy
-graphLookup employees start=('Eliot', 'Andrew') edge=reportsTo-->name as reportingHierarchy
+graphLookup employees start='Eliot', 'Andrew' edge=reportsTo-->name as reportingHierarchy
 graphLookup employees start='Eliot' edge=reportsTo-->name maxDepth=1 depthField=level as reportingHierarchy
 ```
 
@@ -37,7 +37,7 @@ The `graphLookup` command supports the following parameters.
 | Parameter | Required/Optional | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 |---|---|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `<lookupIndex>` | Required | The name of the index to perform the graph traversal on. Can be the same as the source index for self-referential graphs.                                                                                                                                                                                                                                                                                                                                                              |
-| `start=<startExpression>` | Required | The starting point for the BFS traversal. The `startExpression` can be a **field reference** (e.g., `start=reportsTo`) from the previous pipe, a **literal value** (e.g., `start='Eliot'`), or a **literal list** (e.g., `start=('Eliot', 'Andrew')`). When a field reference is used, the value of that field in each source row initiates the traversal. When literal values are used, they seed the BFS directly. The start value is matched against `toField` in the lookup index. |
+| `start=<startExpression>` | Required | The starting point for the BFS traversal. The `startExpression` can be a **field reference** (e.g., `start=reportsTo`) from the previous pipe, a **literal value** (e.g., `start='Eliot'`), or a **literal list** (e.g., `start='Eliot', 'Andrew'`). When a field reference is used, the value of that field in each source row initiates the traversal. When literal values are used, they seed the BFS directly. The start value is matched against `toField` in the lookup index. |
 | `edge=<fromField><operator><toField>` | Required | Defines the traversal path between nodes, specifying the connection fields and the direction of traversal. See [Edge Sub-parameters](#edge-sub-parameters) below.                                                                                                                                                                                                                                                                                                                      |
 | `maxDepth=<maxDepth>` | Optional | The maximum recursion depth (number of hops). Default is `0`. A value of `0` returns only direct connections to the start values. A value of `1` returns the initial matches plus one additional recursive step, and so on.                                                                                                                                                                                                                                                            |
 | `depthField=<depthField>` | Optional | The name of the field added to each traversed document to indicate its recursion depth. If not specified, no depth field is added. Depth starts at `0` for the first level of matches.                                                                                                                                                                                                                                                                                                 |
@@ -393,7 +393,7 @@ The query returns a single row containing the BFS results:
 
 ```ppl ignore
 graphLookup employees
-  start=('Eliot', 'Andrew')
+  start='Eliot', 'Andrew'
   edge=reportsTo-->name
   as reportingHierarchy
 ```

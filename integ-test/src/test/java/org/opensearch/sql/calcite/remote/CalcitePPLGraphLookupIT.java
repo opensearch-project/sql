@@ -837,7 +837,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "graphLookup %s"
-                    + " start=('Eliot', 'Andrew')"
+                    + " start='Eliot', 'Andrew'"
                     + " edge=reportsTo-->name"
                     + " maxDepth=5"
                     + " as reportingHierarchy",

@@ -237,12 +237,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       if (node.getStartValues().size() == 1) {
         command.append(" start=").append(MASK_LITERAL);
       } else {
-        command.append(" start=(");
+        command.append(" start=");
         for (int i = 0; i < node.getStartValues().size(); i++) {
           if (i > 0) command.append(", ");
           command.append(MASK_LITERAL);
         }
-        command.append(")");
       }
     } else {
       // Piped mode: has child
