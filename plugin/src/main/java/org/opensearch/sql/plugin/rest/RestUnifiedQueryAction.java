@@ -11,16 +11,8 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-import org.apache.calcite.schema.impl.AbstractTable;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
@@ -42,6 +34,8 @@ import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.plugin.rest.analytics.stub.StubIndexDetector;
+import org.opensearch.sql.plugin.rest.analytics.stub.StubSchemaProvider;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.JdbcResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
@@ -57,14 +51,6 @@ public class RestUnifiedQueryAction {
   private static final Logger LOG = LogManager.getLogger(RestUnifiedQueryAction.class);
   private static final String SCHEMA_NAME = "opensearch";
 
-  /**
-   * Pattern to extract index name from PPL source clause. Matches: source = index, source=index,
-   * source = `index`, source = catalog.index
-   */
-  private static final Pattern SOURCE_PATTERN =
-      Pattern.compile(
-          "source\\s*=\\s*`?([a-zA-Z0-9_.*]+(?:\\.[a-zA-Z0-9_.*]+)*)`?", Pattern.CASE_INSENSITIVE);
-
   private final AnalyticsExecutionEngine analyticsEngine;
   private final NodeClient client;
 
@@ -74,36 +60,11 @@ public class RestUnifiedQueryAction {
   }
 
   /**
-   * Check if the query targets an analytics engine index (e.g., Parquet-backed). Currently uses a
-   * prefix convention ("parquet_"). In production, this will check index settings such as
-   * index.storage_type.
+   * Check if the query targets an analytics engine index. Delegates to {@link StubIndexDetector}
+   * which will be replaced by UnifiedQueryParser and index settings when available.
    */
   public static boolean isAnalyticsIndex(String query) {
-    if (query == null) {
-      return false;
-    }
-    String indexName = extractIndexName(query);
-    if (indexName == null) {
-      return false;
-    }
-    // Handle qualified names like "catalog.parquet_logs" — check the last segment
-    int lastDot = indexName.lastIndexOf('.');
-    String tableName = lastDot >= 0 ? indexName.substring(lastDot + 1) : indexName;
-    return tableName.startsWith("parquet_");
-  }
-
-  /**
-   * Extract the source index name from a PPL query string.
-   *
-   * @param query the PPL query string
-   * @return the index name, or null if not found
-   */
-  static String extractIndexName(String query) {
-    Matcher matcher = SOURCE_PATTERN.matcher(query);
-    if (matcher.find()) {
-      return matcher.group(1);
-    }
-    return null;
+    return StubIndexDetector.isAnalyticsIndex(query);
   }
 
   /**
@@ -126,8 +87,8 @@ public class RestUnifiedQueryAction {
     try {
       long startTime = System.nanoTime();
 
-      // TODO: Replace stub schema with EngineContext.getSchema() when analytics engine is ready
-      AbstractSchema schema = buildStubSchema();
+      // TODO: Replace with EngineContext.getSchema() when analytics engine is ready
+      AbstractSchema schema = StubSchemaProvider.buildSchema();
 
       try (UnifiedQueryContext context =
           UnifiedQueryContext.builder()
@@ -182,52 +143,6 @@ public class RestUnifiedQueryAction {
   }
 
   /**
-   * Stub schema for development and testing. Returns a hardcoded table definition for any
-   * "parquet_*" table. Will be replaced by EngineContext.getSchema() when the analytics engine is
-   * ready.
-   */
-  private static AbstractSchema buildStubSchema() {
-    return new AbstractSchema() {
-      @Override
-      protected Map<String, Table> getTableMap() {
-        return Map.of(
-            "parquet_logs", buildStubTable(),
-            "parquet_metrics", buildStubMetricsTable());
-      }
-    };
-  }
-
-  private static Table buildStubTable() {
-    return new AbstractTable() {
-      @Override
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return typeFactory
-            .builder()
-            .add("ts", SqlTypeName.TIMESTAMP)
-            .add("status", SqlTypeName.INTEGER)
-            .add("message", SqlTypeName.VARCHAR)
-            .add("ip_addr", SqlTypeName.VARCHAR)
-            .build();
-      }
-    };
-  }
-
-  private static Table buildStubMetricsTable() {
-    return new AbstractTable() {
-      @Override
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return typeFactory
-            .builder()
-            .add("ts", SqlTypeName.TIMESTAMP)
-            .add("cpu", SqlTypeName.DOUBLE)
-            .add("memory", SqlTypeName.DOUBLE)
-            .add("host", SqlTypeName.VARCHAR)
-            .build();
-      }
-    };
-  }
-
-  /**
    * Classify whether the exception is a client error (bad query) or server error (engine bug).
    * Matches the classification in {@link RestPPLQueryAction#isClientError}.
    */
@@ -257,7 +172,6 @@ public class RestUnifiedQueryAction {
     RestStatus status =
         isClientError(e) ? RestStatus.BAD_REQUEST : RestStatus.INTERNAL_SERVER_ERROR;
     String reason = e.getMessage() != null ? e.getMessage() : "Unknown error";
-    // Escape characters that would break JSON
     reason =
         reason.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
     channel.sendResponse(

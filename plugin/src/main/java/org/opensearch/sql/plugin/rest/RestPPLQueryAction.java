@@ -52,7 +52,9 @@ public class RestPPLQueryAction extends BaseRestHandler {
   /** Constructor of RestPPLQueryAction. */
   public RestPPLQueryAction(ClusterService clusterService, NodeClient client) {
     super();
-    this.unifiedQueryHandler = new RestUnifiedQueryAction(client, new StubQueryPlanExecutor());
+    this.unifiedQueryHandler =
+        new RestUnifiedQueryAction(
+            client, new org.opensearch.sql.plugin.rest.analytics.stub.StubQueryPlanExecutor());
   }
 
   private static boolean isClientError(Exception e) {
