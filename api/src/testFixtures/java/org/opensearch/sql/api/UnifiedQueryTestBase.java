@@ -158,7 +158,9 @@ public abstract class UnifiedQueryTestBase {
 
     /** Assert the logical plan matches the expected tree string. */
     public QueryAssert assertPlan(String expected) {
-      assertEquals(expected, RelOptUtil.toString(plan));
+      assertEquals(
+          expected.stripTrailing(),
+          RelOptUtil.toString(plan).replaceAll("\\r\\n", "\n").stripTrailing());
       return this;
     }
 
