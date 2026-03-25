@@ -24,6 +24,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryPlanner;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
@@ -129,19 +130,35 @@ public class RestUnifiedQueryAction {
 
         UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
         RelNode plan = planner.plan(query);
+
+        // Add query size limit to the plan so the analytics engine can enforce it
+        // during execution, consistent with PPL V3 (see QueryService.convertToCalcitePlan)
+        CalcitePlanContext planContext = context.getPlanContext();
+        plan = addQuerySizeLimit(plan, planContext);
+
         long planTime = System.nanoTime();
         LOG.info(
             "[unified] Planning completed in {}ms for {} query",
             (planTime - startTime) / 1_000_000,
             queryType);
 
-        CalcitePlanContext planContext = context.getPlanContext();
         analyticsEngine.execute(
             plan, planContext, createTransportQueryListener(queryType, planTime, listener));
       }
     } catch (Exception e) {
       listener.onFailure(e);
     }
+  }
+
+  /**
+   * Add a system-level query size limit to the plan. This ensures the analytics engine enforces the
+   * limit during execution rather than returning all rows for post-processing truncation.
+   */
+  private static RelNode addQuerySizeLimit(RelNode plan, CalcitePlanContext context) {
+    return LogicalSystemLimit.create(
+        LogicalSystemLimit.SystemLimitType.QUERY_SIZE_LIMIT,
+        plan,
+        context.relBuilder.literal(context.sysLimit.querySizeLimit()));
   }
 
   private ResponseListener<QueryResponse> createTransportQueryListener(
@@ -188,13 +205,16 @@ public class RestUnifiedQueryAction {
 
         UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
         RelNode plan = planner.plan(query);
+
+        CalcitePlanContext planContext = context.getPlanContext();
+        plan = addQuerySizeLimit(plan, planContext);
+
         long planTime = System.nanoTime();
         LOG.info(
             "[unified] Planning completed in {}ms for {} query",
             (planTime - startTime) / 1_000_000,
             queryType);
 
-        CalcitePlanContext planContext = context.getPlanContext();
         analyticsEngine.execute(
             plan, planContext, createQueryListener(queryType, channel, planTime));
       }

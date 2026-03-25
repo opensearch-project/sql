@@ -12,10 +12,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.RelNode;
@@ -148,24 +146,8 @@ class AnalyticsExecutionEngineTest {
     assertEquals(0, response.getResults().size(), "Should have 0 rows. " + dump);
   }
 
-  @Test
-  void executeRelNode_querySizeLimit() throws Exception {
-    RelNode relNode = mockRelNode("id", SqlTypeName.INTEGER);
-    List<Object[]> manyRows = new ArrayList<>();
-    for (int i = 0; i < 100; i++) {
-      manyRows.add(new Object[] {i});
-    }
-    when(mockExecutor.execute(relNode, null)).thenReturn(manyRows);
-    setSysLimit(mockContext, new SysLimit(10, 10000, 50000));
-
-    QueryResponse response = executeAndCapture(relNode);
-    String dump = dumpResponse(response);
-
-    assertEquals(
-        10,
-        response.getResults().size(),
-        "Should truncate to querySizeLimit=10, got " + response.getResults().size() + ". " + dump);
-  }
+  // Query size limit is now enforced in the RelNode plan (LogicalSystemLimit) before it reaches
+  // AnalyticsExecutionEngine. The engine trusts the executor to honor the limit.
 
   @Test
   void executeRelNode_emptyResults() {

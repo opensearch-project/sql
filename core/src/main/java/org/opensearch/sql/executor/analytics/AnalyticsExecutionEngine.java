@@ -65,11 +65,10 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
   public void execute(
       RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
     try {
-      Integer querySizeLimit = context.sysLimit.querySizeLimit();
       Iterable<Object[]> rows = planExecutor.execute(plan, null);
 
       List<RelDataTypeField> fields = plan.getRowType().getFieldList();
-      List<ExprValue> results = convertRows(rows, fields, querySizeLimit);
+      List<ExprValue> results = convertRows(rows, fields);
       Schema schema = buildSchema(fields);
 
       listener.onResponse(new QueryResponse(schema, results, Cursor.None));
@@ -78,13 +77,9 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     }
   }
 
-  private List<ExprValue> convertRows(
-      Iterable<Object[]> rows, List<RelDataTypeField> fields, Integer querySizeLimit) {
+  private List<ExprValue> convertRows(Iterable<Object[]> rows, List<RelDataTypeField> fields) {
     List<ExprValue> results = new ArrayList<>();
     for (Object[] row : rows) {
-      if (querySizeLimit != null && results.size() >= querySizeLimit) {
-        break;
-      }
       Map<String, ExprValue> valueMap = new LinkedHashMap<>();
       for (int i = 0; i < fields.size(); i++) {
         String columnName = fields.get(i).getName();
