@@ -47,6 +47,15 @@ public interface ExecutionEngine {
    */
   void explain(PhysicalPlan plan, ResponseListener<ExplainResponse> listener);
 
+  /**
+   * Check if this engine supports vectorized execution of the given Calcite RelNode plan.
+   * Vectorized execution engines (e.g. Velox) override this to advertise support for specific plan
+   * shapes. The default returns {@code false}.
+   */
+  default boolean canVectorize(RelNode plan) {
+    return false;
+  }
+
   /** Execute calcite RelNode plan with {@link ExecutionContext} and call back response listener. */
   default void execute(
       RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {}
