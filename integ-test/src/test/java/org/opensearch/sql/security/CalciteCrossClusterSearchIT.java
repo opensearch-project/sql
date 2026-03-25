@@ -528,4 +528,15 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
     verifySchema(result, schema("username", "string"), schema("skills.name", "string"));
     verifyDataRows(result, rows("limituser", "a"), rows("limituser", "b"));
   }
+
+  @Test
+  public void testCrossClusterUnion() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "| union [search source=%s | where age < 30] [search source=%s | where age >= 30] |"
+                    + " stats count() by gender",
+                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("count()"), columnName("gender"));
+  }
 }

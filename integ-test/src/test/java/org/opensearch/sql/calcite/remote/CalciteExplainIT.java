@@ -2878,4 +2878,17 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_highlight_osd_format.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
+
+  @Test
+  public void testExplainUnion() throws IOException {
+    String query =
+        "| union "
+            + "[search source=opensearch-sql_test_index_account | where age < 30] "
+            + "[search source=opensearch-sql_test_index_account | where age >= 30] "
+            + "| stats count() by gender";
+
+    String actual = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_union.yaml");
+    assertYamlEqualsIgnoreId(expected, actual);
+  }
 }

@@ -1,0 +1,20 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(count()=[$1], gender=[$0])
+        LogicalAggregate(group=[{0}], count()=[COUNT()])
+          LogicalProject(gender=[$4])
+            LogicalUnion(all=[true])
+              LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10])
+                LogicalFilter(condition=[<($8, 30)])
+                  CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+              LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10])
+                LogicalFilter(condition=[>=($8, 30)])
+                  CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..1=[{inputs}], count()=[$t1], gender=[$t0])
+        EnumerableAggregate(group=[{0}], count()=[COUNT()])
+          EnumerableUnion(all=[true])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[gender, age], FILTER-><($1, 30), PROJECT->[gender]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","query":{"range":{"age":{"from":null,"to":30,"include_lower":true,"include_upper":false,"boost":1.0}}},"_source":{"includes":["gender"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[gender, age], FILTER->>=($1, 30), PROJECT->[gender]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","query":{"range":{"age":{"from":30,"to":null,"include_lower":true,"include_upper":true,"boost":1.0}}},"_source":{"includes":["gender"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
