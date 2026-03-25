@@ -34,6 +34,7 @@ import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 import org.opensearch.sql.plugin.rest.analytics.stub.StubIndexDetector;
 import org.opensearch.sql.plugin.rest.analytics.stub.StubSchemaProvider;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -171,19 +172,8 @@ public class RestUnifiedQueryAction {
   private static void reportError(RestChannel channel, Exception e) {
     RestStatus status =
         isClientError(e) ? RestStatus.BAD_REQUEST : RestStatus.INTERNAL_SERVER_ERROR;
-    String reason = e.getMessage() != null ? e.getMessage() : "Unknown error";
-    reason =
-        reason.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
     channel.sendResponse(
         new BytesRestResponse(
-            status,
-            "application/json; charset=UTF-8",
-            "{\"error\":{\"type\":\""
-                + e.getClass().getSimpleName()
-                + "\",\"reason\":\""
-                + reason
-                + "\"},\"status\":"
-                + status.getStatus()
-                + "}"));
+            status, ErrorMessageFactory.createErrorMessage(e, status.getStatus()).toString()));
   }
 }
