@@ -32,6 +32,7 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
+import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
@@ -107,16 +108,17 @@ public class RestUnifiedQueryAction {
             queryType);
 
         CalcitePlanContext planContext = context.getPlanContext();
-        analyticsEngine.execute(plan, planContext, createQueryListener(channel, planTime));
+        analyticsEngine.execute(
+            plan, planContext, createQueryListener(queryType, channel, planTime));
       }
     } catch (Exception e) {
-      recordFailureMetric(e);
+      recordFailureMetric(queryType, e);
       reportError(channel, e);
     }
   }
 
   private ResponseListener<QueryResponse> createQueryListener(
-      RestChannel channel, long planEndTime) {
+      QueryType queryType, RestChannel channel, long planEndTime) {
     ResponseFormatter<QueryResult> formatter = new JdbcResponseFormatter(PRETTY);
     return new ResponseListener<QueryResponse>() {
       @Override
@@ -126,18 +128,18 @@ public class RestUnifiedQueryAction {
             "[unified] Execution completed in {}ms, {} rows returned",
             (execTime - planEndTime) / 1_000_000,
             response.getResults().size());
-        Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
-        Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
+        recordSuccessMetric(queryType);
+        LangSpec langSpec = queryType == QueryType.PPL ? PPL_SPEC : LangSpec.SQL_SPEC;
         String result =
             formatter.format(
                 new QueryResult(
-                    response.getSchema(), response.getResults(), response.getCursor(), PPL_SPEC));
+                    response.getSchema(), response.getResults(), response.getCursor(), langSpec));
         channel.sendResponse(new BytesRestResponse(OK, formatter.contentType(), result));
       }
 
       @Override
       public void onFailure(Exception e) {
-        recordFailureMetric(e);
+        recordFailureMetric(queryType, e);
         reportError(channel, e);
       }
     };
@@ -159,13 +161,33 @@ public class RestUnifiedQueryAction {
         || e instanceof IllegalAccessException;
   }
 
-  private static void recordFailureMetric(Exception e) {
+  private static void recordSuccessMetric(QueryType queryType) {
+    if (queryType == QueryType.PPL) {
+      Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
+      Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
+    } else {
+      Metrics.getInstance().getNumericalMetric(MetricName.REQ_TOTAL).increment();
+      Metrics.getInstance().getNumericalMetric(MetricName.REQ_COUNT_TOTAL).increment();
+    }
+  }
+
+  private static void recordFailureMetric(QueryType queryType, Exception e) {
     if (isClientError(e)) {
       LOG.warn("[unified] Client error in query execution", e);
-      Metrics.getInstance().getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS).increment();
+      Metrics.getInstance()
+          .getNumericalMetric(
+              queryType == QueryType.PPL
+                  ? MetricName.PPL_FAILED_REQ_COUNT_CUS
+                  : MetricName.FAILED_REQ_COUNT_CUS)
+          .increment();
     } else {
       LOG.error("[unified] Server error in query execution", e);
-      Metrics.getInstance().getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_SYS).increment();
+      Metrics.getInstance()
+          .getNumericalMetric(
+              queryType == QueryType.PPL
+                  ? MetricName.PPL_FAILED_REQ_COUNT_SYS
+                  : MetricName.FAILED_REQ_COUNT_SYS)
+          .increment();
     }
   }
 
