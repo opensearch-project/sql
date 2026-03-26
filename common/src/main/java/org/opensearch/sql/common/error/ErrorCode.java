@@ -7,7 +7,10 @@ package org.opensearch.sql.common.error;
 
 /**
  * Machine-readable error codes for categorizing exceptions. These codes help clients handle
- * specific error types programmatically.
+ * specific error types programmatically. <br>
+ * <br>
+ * Not a complete list, currently seeded with some initial values. Feel free to add variants or
+ * remove dead variants over time.
  */
 public enum ErrorCode {
   /** Field not found in the index mapping */
@@ -43,6 +46,9 @@ public enum ErrorCode {
   /** Query execution failed */
   EXECUTION_ERROR,
 
-  /** Unknown or unclassified error */
+  /**
+   * Unknown or unclassified error -- don't set this manually, it's filled in as the default if no
+   * other code applies.
+   */
   UNKNOWN
 }

@@ -160,7 +160,7 @@ public class QueryService {
                 StageErrorHandler.executeStage(
                     QueryProcessingStage.PLAN_CONVERSION,
                     () -> convertToCalcitePlan(relNode, context),
-                    "while preparing to execute the query");
+                    "while converting the query to an executable plan");
 
             analyzeMetric.set(System.nanoTime() - analyzeStart);
 
@@ -168,7 +168,7 @@ public class QueryService {
             StageErrorHandler.executeStageVoid(
                 QueryProcessingStage.EXECUTING,
                 () -> executionEngine.execute(calcitePlan, context, listener),
-                "while running the query on the cluster");
+                "while running the query");
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
