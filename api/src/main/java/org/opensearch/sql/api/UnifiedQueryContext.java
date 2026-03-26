@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.Value;
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
@@ -176,11 +177,16 @@ public class UnifiedQueryContext implements AutoCloseable {
 
       SchemaPlus defaultSchema = findSchemaByPath(rootSchema, defaultNamespace);
       return Frameworks.newConfigBuilder()
-          .parserConfig(SqlParser.Config.DEFAULT)
+          .parserConfig(buildParserConfig())
           .defaultSchema(defaultSchema)
           .traitDefs((List<RelTraitDef>) null)
           .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
           .build();
+    }
+
+    private SqlParser.Config buildParserConfig() {
+      // Preserve identifier case for lowercase OpenSearch index names
+      return SqlParser.Config.DEFAULT.withUnquotedCasing(Casing.UNCHANGED);
     }
 
     private SchemaPlus findSchemaByPath(SchemaPlus rootSchema, String defaultPath) {

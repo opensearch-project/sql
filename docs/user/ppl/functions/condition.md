@@ -825,6 +825,71 @@ fetched rows / total rows = 1/1
 +-----+
 ```
   
+## CONTAINS
+
+### Description
+
+Usage: `field contains 'substring'` returns TRUE if the field value contains the given substring (case-insensitive), FALSE otherwise.
+
+The `contains` operator is a CloudWatch-style comparison operator that performs case-insensitive substring matching. It is sugar for an `ilike` comparison with `%substring%` wildcards.
+
+Syntax: `<field> contains '<string_literal>'`
+
+- The left-hand side must be a field reference.
+- The right-hand side must be a string literal. Using a field reference on the right-hand side will raise a semantic error.
+- Matching is case-insensitive.
+
+**Argument type:** `STRING`
+**Return type:** `BOOLEAN`
+
+### Example
+
+The following example filters accounts using a substring match to find names containing 'mbe':
+
+```ppl
+source=accounts
+| where firstname contains 'mbe'
+| fields firstname, age
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++-----------+-----+
+| firstname | age |
+|-----------+-----|
+| Amber     | 32  |
++-----------+-----+
+```
+
+The following queries are all equivalent due to case-insensitive matching:
+
+```ppl ignore
+source=accounts | where firstname contains 'mbe'
+source=accounts | where firstname CONTAINS 'MBE'
+source=accounts | where firstname Contains 'Mbe'
+```
+
+The following example combines substring filtering with other conditions:
+
+```ppl
+source=accounts
+| where employer contains 'ami' AND age > 30
+| fields firstname, employer, age
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++-----------+----------+-----+
+| firstname | employer | age |
+|-----------+----------+-----|
+| Amber     | Pyrami   | 32  |
++-----------+----------+-----+
+```
+
 ## REGEXP_MATCH
 
 **Usage**: `regexp_match(string, pattern)`

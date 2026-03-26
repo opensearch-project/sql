@@ -80,7 +80,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   @Getter private final Settings settings;
 
   /** {@link OpenSearchRequest.IndexName}. */
-  private final OpenSearchRequest.IndexName indexName;
+  @Getter private final OpenSearchRequest.IndexName indexName;
 
   /** The cached mapping of field and type in index. */
   private Map<String, OpenSearchDataType> cachedFieldOpenSearchTypes = null;

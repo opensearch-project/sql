@@ -712,9 +712,14 @@ public class PredicateAnalyzer {
           QueryExpression finalExpression =
               switch (nullAs) {
                 // e.g. where isNotNull(a) and ( a = 1 or a = 2)
-                // For this case, return `expression` is equivalent
-                // But DSL `bool.must` could slow down the query, so we return `expression`
-                case FALSE -> expression;
+                // For positive matches (IN), the expression naturally excludes nulls.
+                // For negations (NOT IN, ranges), we must add an exists check
+                // to ensure null values are filtered out.
+                case FALSE ->
+                    isSearchWithPoints(call)
+                        ? expression
+                        : CompoundQueryExpression.and(
+                            false, expression, QueryExpression.create(pair.getKey()).exists());
                 // e.g. where isNull(a) or a = 1 or a = 2
                 case TRUE ->
                     CompoundQueryExpression.or(
@@ -1124,7 +1129,7 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException("notIn cannot be applied to " + this.getClass());
     }
 
-    static QueryExpression create(TerminalExpression expression) {
+    public static QueryExpression create(TerminalExpression expression) {
       if (expression instanceof CastExpression) {
         expression = CastExpression.unpack(expression);
       }
@@ -1813,11 +1818,11 @@ public class PredicateAnalyzer {
   }
 
   /** Literal like {@code 'foo' or 42 or true} etc. */
-  static final class LiteralExpression implements TerminalExpression {
+  public static final class LiteralExpression implements TerminalExpression {
 
     final RexLiteral literal;
 
-    LiteralExpression(RexLiteral literal) {
+    public LiteralExpression(RexLiteral literal) {
       this.literal = literal;
     }
 

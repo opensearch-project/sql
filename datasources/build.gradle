@@ -28,12 +28,14 @@ dependencies {
     implementation ('com.amazonaws:aws-encryption-sdk-java:2.4.1') {
         exclude group: 'org.bouncycastle', module: 'bcprov-ext-jdk18on'
     }
+
     // When building with -Pcrypto.standard=FIPS-140-3, bcFips jars are provided by OpenSearch
     if (FipsBuildParams.isInFipsMode()) {
         compileOnly "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
     } else {
         implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
     }
+    testImplementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
