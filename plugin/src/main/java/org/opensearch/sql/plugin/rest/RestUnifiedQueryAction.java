@@ -11,10 +11,12 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
+import java.util.Map;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -84,7 +86,7 @@ public class RestUnifiedQueryAction {
     client
         .threadPool()
         .schedule(
-            () -> doExecute(query, queryType, channel),
+            withCurrentContext(() -> doExecute(query, queryType, channel)),
             new TimeValue(0),
             SQL_WORKER_THREAD_POOL_NAME);
   }
@@ -107,7 +109,7 @@ public class RestUnifiedQueryAction {
     client
         .threadPool()
         .schedule(
-            () -> doExecuteViaTransport(query, queryType, pplRequest, listener),
+            withCurrentContext(() -> doExecuteViaTransport(query, queryType, pplRequest, listener)),
             new TimeValue(0),
             SQL_WORKER_THREAD_POOL_NAME);
   }
@@ -296,6 +298,19 @@ public class RestUnifiedQueryAction {
                   : MetricName.FAILED_REQ_COUNT_SYS)
           .increment();
     }
+  }
+
+  /**
+   * Capture current thread context and restore it on the worker thread. Ensures security context
+   * (user identity, permissions) is propagated. Same pattern as {@link
+   * org.opensearch.sql.opensearch.executor.OpenSearchQueryManager#withCurrentContext}.
+   */
+  private static Runnable withCurrentContext(final Runnable task) {
+    final Map<String, String> currentContext = ThreadContext.getImmutableContext();
+    return () -> {
+      ThreadContext.putAll(currentContext);
+      task.run();
+    };
   }
 
   private static void reportError(RestChannel channel, Exception e) {
