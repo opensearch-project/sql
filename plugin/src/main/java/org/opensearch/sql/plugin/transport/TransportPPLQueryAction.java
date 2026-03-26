@@ -122,17 +122,17 @@ public class TransportPPLQueryAction
 
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
+    QueryContext.setProfile(transformedRequest.profile());
+    ActionListener<TransportPPLQueryResponse> clearingListener = wrapWithProfilingClear(listener);
 
     // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices
     if (RestUnifiedQueryAction.isAnalyticsIndex(transformedRequest.getRequest())) {
       unifiedQueryHandler.executeViaTransport(
-          transformedRequest.getRequest(), QueryType.PPL, transformedRequest, listener);
+          transformedRequest.getRequest(), QueryType.PPL, transformedRequest, clearingListener);
       return;
     }
 
     PPLService pplService = injector.getInstance(PPLService.class);
-    QueryContext.setProfile(transformedRequest.profile());
-    ActionListener<TransportPPLQueryResponse> clearingListener = wrapWithProfilingClear(listener);
 
     if (transformedRequest.isExplainRequest()) {
       pplService.explain(
