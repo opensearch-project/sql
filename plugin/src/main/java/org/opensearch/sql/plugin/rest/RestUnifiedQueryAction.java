@@ -255,12 +255,12 @@ public class RestUnifiedQueryAction {
   }
 
   /**
-   * Classify whether the exception is a client error (bad query) or server error (engine bug).
-   * Matches the classification in {@link RestPPLQueryAction#isClientError}.
+   * Classify whether the exception is a client error (bad query) or server error (engine bug). Will
+   * be synced with RestPPLQueryAction#isClientError updates in
+   * https://github.com/opensearch-project/sql/pull/5266.
    */
   private static boolean isClientError(Exception e) {
-    return e instanceof NullPointerException
-        || e instanceof IllegalArgumentException
+    return e instanceof IllegalArgumentException
         || e instanceof IndexNotFoundException
         || e instanceof SemanticCheckException
         || e instanceof ExpressionEvaluationException
