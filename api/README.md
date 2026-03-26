@@ -8,7 +8,8 @@ This module provides components organized into two main areas aligned with the [
 
 ### Unified Language Specification
 
-- **`UnifiedQueryPlanner`**: Accepts PPL (Piped Processing Language) or SQL queries and returns Calcite `RelNode` logical plans as intermediate representation.
+- **`UnifiedQueryParser`**: Parses PPL (Piped Processing Language) or SQL queries and returns the native parse result (`UnresolvedPlan` for PPL, `SqlNode` for Calcite SQL).
+- **`UnifiedQueryPlanner`**: Accepts PPL or SQL queries and returns Calcite `RelNode` logical plans as intermediate representation.
 - **`UnifiedQueryTranspiler`**: Converts Calcite logical plans (`RelNode`) into SQL strings for various target databases using different SQL dialects.
 
 ### Unified Execution Runtime
@@ -41,6 +42,20 @@ UnifiedQueryContext context = UnifiedQueryContext.builder()
     .setting("plugins.query.size_limit", 200)
     .build();
 ```
+
+### UnifiedQueryParser
+
+Use `UnifiedQueryParser` to parse queries into their native parse tree. The parser is owned by `UnifiedQueryContext` and returns the native parse result for each language.
+
+```java
+// PPL parsing
+UnresolvedPlan ast = (UnresolvedPlan) context.getParser().parse("source = logs | where status = 200");
+
+// SQL parsing (with QueryType.SQL context)
+SqlNode sqlNode = (SqlNode) sqlContext.getParser().parse("SELECT * FROM logs WHERE status = 200");
+```
+
+Callers can then use each language's native visitor infrastructure (`AbstractNodeVisitor` for PPL, `SqlBasicVisitor` for Calcite SQL) on the typed result for further analysis.
 
 ### UnifiedQueryPlanner
 
