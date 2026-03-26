@@ -70,8 +70,6 @@ public class StageErrorHandler {
       QueryProcessingStage stage, Runnable operation, String location) {
     try {
       operation.run();
-    } catch (ErrorReport e) {
-      throw ErrorReport.wrap(e).stage(stage).location(location).build();
     } catch (Exception e) {
       throw ErrorReport.wrap(e).stage(stage).location(location).build();
     }
@@ -98,7 +96,7 @@ public class StageErrorHandler {
    * @return ErrorReport with stage context
    */
   public static ErrorReport wrapWithStage(
-      QueryProcessingStage stage, Throwable e, String location) {
+      QueryProcessingStage stage, Exception e, String location) {
     ErrorReport.Builder builder = ErrorReport.wrap(e).stage(stage);
     if (location != null) {
       builder.location(location);

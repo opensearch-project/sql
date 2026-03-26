@@ -14,16 +14,17 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.calcite.standalone.CalcitePPLIntegTestCase;
 import org.opensearch.sql.util.TestUtils;
 
 /**
  * Integration tests for ErrorReport status code handling. Validates that exceptions wrapped in
  * ErrorReport are correctly mapped to HTTP status codes based on the ErrorCode.
  */
-public class ErrorReportStatusCodeIT extends PPLIntegTestCase {
+public class ErrorReportStatusCodeIT extends CalcitePPLIntegTestCase {
 
   @Override
-  public void init() throws Exception {
+  public void init() throws IOException {
     super.init();
     loadIndex(Index.ACCOUNT);
   }

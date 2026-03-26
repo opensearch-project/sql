@@ -37,7 +37,7 @@ import lombok.Getter;
  */
 public class ErrorReport extends RuntimeException {
 
-  private final Throwable cause;
+  @Getter private final Exception cause;
   @Getter private final ErrorCode code;
   @Getter private final QueryProcessingStage stage;
   private final List<String> locationChain;
@@ -63,7 +63,7 @@ public class ErrorReport extends RuntimeException {
    * @param cause The underlying exception
    * @return A builder for constructing the error report
    */
-  public static Builder wrap(Throwable cause) {
+  public static Builder wrap(Exception cause) {
     if (cause instanceof ErrorReport existing) {
       return new Builder(existing.cause)
           .code(existing.code)
@@ -170,7 +170,7 @@ public class ErrorReport extends RuntimeException {
 
   /** Builder for constructing error reports with contextual information. */
   public static class Builder {
-    private final Throwable cause;
+    private final Exception cause;
     private ErrorCode code = ErrorCode.UNKNOWN;
     private QueryProcessingStage stage = null;
     private final List<String> locationChain = new ArrayList<>();
@@ -178,7 +178,7 @@ public class ErrorReport extends RuntimeException {
     private String suggestion = null;
     private String details = null;
 
-    private Builder(Throwable cause) {
+    private Builder(Exception cause) {
       this.cause = cause;
       // Default details to the original exception message
       this.details = cause.getLocalizedMessage();

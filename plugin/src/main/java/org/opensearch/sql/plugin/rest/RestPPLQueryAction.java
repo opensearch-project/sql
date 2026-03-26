@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.plugin.rest;
 
-import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
-import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.core.rest.RestStatus.OK;
 
 import com.google.common.collect.ImmutableList;
@@ -25,11 +23,9 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.common.error.ErrorReportStatusCodeHelper;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.QueryEngineException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
@@ -50,20 +46,39 @@ public class RestPPLQueryAction extends BaseRestHandler {
     super();
   }
 
-  private static boolean isClientError(Exception e) {
-    return ErrorReportStatusCodeHelper.isClientError(
-        e,
-        ex ->
-            ex instanceof NullPointerException
-                // NPE is hard to differentiate but more likely caused by bad query
-                || ex instanceof IllegalArgumentException
-                || ex instanceof IndexNotFoundException
-                || ex instanceof SemanticCheckException
-                || ex instanceof ExpressionEvaluationException
-                || ex instanceof QueryEngineException
-                || ex instanceof SyntaxCheckException
-                || ex instanceof DataSourceClientException
-                || ex instanceof IllegalAccessException);
+  private static boolean isClientError(Exception ex) {
+    return ex instanceof IllegalArgumentException
+        || ex instanceof IndexNotFoundException
+        || ex instanceof QueryEngineException
+        || ex instanceof SyntaxCheckException
+        || ex instanceof DataSourceClientException
+        || ex instanceof IllegalAccessException;
+  }
+
+  private static int getRawErrorCode(Exception ex) {
+    if (ex instanceof ErrorReport) {
+      return getRawErrorCode(((ErrorReport) ex).getCause());
+    }
+    if (ex instanceof OpenSearchException) {
+      return ((OpenSearchException) ex).status().getStatus();
+    }
+    if (isClientError(ex)) {
+      return 400;
+    }
+    return 500;
+  }
+
+  private static RestStatus loggedErrorCode(Exception ex) {
+    int code = getRawErrorCode(ex);
+
+    // If we hit neither branch, no-op as false alarm error? I don't believe we can ever hit this
+    // scenario.
+    if (400 <= code && code < 500) {
+      Metrics.getInstance().getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS).increment();
+    } else if (500 <= code && code < 600) {
+      Metrics.getInstance().getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_SYS).increment();
+    }
+    return RestStatus.fromCode(code);
   }
 
   @Override
@@ -102,33 +117,13 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
               @Override
               public void onFailure(Exception e) {
+                RestStatus status = loggedErrorCode(e);
                 if (transportPPLQueryRequest.isExplainRequest()) {
-                  LOG.error("Error happened during explain", e);
-                  if (isClientError(e)) {
-                    reportError(channel, e, BAD_REQUEST);
-                  } else {
-                    reportError(channel, e, INTERNAL_SERVER_ERROR);
-                  }
-                } else if (e instanceof OpenSearchException) {
-                  Metrics.getInstance()
-                      .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS)
-                      .increment();
-                  OpenSearchException exception = (OpenSearchException) e;
-                  reportError(channel, exception, exception.status());
+                  LOG.error("Error happened during explain (status {})", status, e);
                 } else {
-                  LOG.error("Error happened during query handling", e);
-                  if (isClientError(e)) {
-                    Metrics.getInstance()
-                        .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS)
-                        .increment();
-                    reportError(channel, e, BAD_REQUEST);
-                  } else {
-                    Metrics.getInstance()
-                        .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_SYS)
-                        .increment();
-                    reportError(channel, e, INTERNAL_SERVER_ERROR);
-                  }
+                  LOG.error("Error happened during query handling (status {})", status, e);
                 }
+                reportError(channel, e, status);
               }
             });
   }

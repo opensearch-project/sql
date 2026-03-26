@@ -30,6 +30,8 @@ import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.IndexSettings;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
@@ -99,7 +101,11 @@ public class OpenSearchNodeClient implements OpenSearchClient {
                   Map.Entry::getKey, cursor -> new IndexMapping(cursor.getValue())));
     } catch (IndexNotFoundException | OpenSearchSecurityException e) {
       // Re-throw directly to be treated as client error finally
-      throw e;
+      throw ErrorReport.wrap(e)
+          .code(ErrorCode.INDEX_NOT_FOUND)
+          .location("while fetching index mappings")
+          .context("index_name", indexExpression[0])
+          .build();
     } catch (Exception e) {
       throw new IllegalStateException(
           "Failed to read mapping for index pattern [" + indexExpression + "]", e);
