@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.response.error;
 
 import lombok.experimental.UtilityClass;
 import org.opensearch.OpenSearchException;
+import org.opensearch.core.tasks.TaskCancelledException;
 
 @UtilityClass
 public class ErrorMessageFactory {
@@ -21,6 +22,9 @@ public class ErrorMessageFactory {
    */
   public static ErrorMessage createErrorMessage(Throwable e, int status) {
     Throwable cause = unwrapCause(e);
+    if (cause instanceof TaskCancelledException) {
+      return new ErrorMessage(cause, status);
+    }
     if (cause instanceof OpenSearchException) {
       OpenSearchException exception = (OpenSearchException) cause;
       return new OpenSearchErrorMessage(exception, exception.status().getStatus());
