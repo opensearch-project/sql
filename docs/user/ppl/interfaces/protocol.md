@@ -120,8 +120,17 @@ Expected output:
 ```json
 {
   "error": {
-    "reason": "Error occurred in OpenSearch engine: no such index [unknown]",
-    "details": "[unknown] IndexNotFoundException[no such index [unknown]]\nFor more details, please send request for Json format to see the raw response from OpenSearch engine.",
+    "context": {
+      "stage": "analyzing",
+      "index_name": "unknown",
+      "stage_description": "Validating the query"
+    },
+    "details": "no such index [unknown]",
+    "location": [
+      "while preparing and validating the query plan",
+      "while fetching index mappings"
+    ],
+    "code": "INDEX_NOT_FOUND",
     "type": "IndexNotFoundException"
   },
   "status": 404

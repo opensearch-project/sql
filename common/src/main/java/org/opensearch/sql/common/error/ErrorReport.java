@@ -112,7 +112,13 @@ public class ErrorReport extends RuntimeException {
     if (!locationChain.isEmpty()) {
       sb.append("\nLocation chain:\n");
       for (int i = 0; i < locationChain.size(); i++) {
-        sb.append("  ").append(i + 1).append(". ").append(locationChain.get(i)).append("\n");
+        // The location chain is typically appended to as we traverse up the stack, but for reading
+        // the error it makes more sense to go down the stack. So we reverse it.
+        sb.append("  ")
+            .append(i + 1)
+            .append(". ")
+            .append(locationChain.get(locationChain.size() - i - 1))
+            .append("\n");
       }
     }
 
@@ -148,7 +154,9 @@ public class ErrorReport extends RuntimeException {
     }
 
     if (!locationChain.isEmpty()) {
-      json.put("location", new ArrayList<>(locationChain));
+      // The location chain is typically appended to as we traverse up the stack, but for reading
+      // the error it makes more sense to go down the stack. So we reverse it.
+      json.put("location", locationChain.reversed());
     }
 
     // Build context with stage information included

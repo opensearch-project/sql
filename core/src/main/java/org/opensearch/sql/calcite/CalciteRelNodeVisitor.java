@@ -174,6 +174,8 @@ import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -344,7 +346,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  public RelNode visitRex(Rex node, CalcitePlanContext context) {
+  private RelNode innerRex(Rex node, CalcitePlanContext context) {
     visitChildren(node, context);
 
     RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
@@ -407,6 +409,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     projectPlusOverriding(newFields, newFieldNames, context);
     return context.relBuilder.peek();
+  }
+
+  public RelNode visitRex(Rex node, CalcitePlanContext context) {
+    try {
+      return innerRex(node, context);
+    } catch (RuntimeException ex) {
+      throw ErrorReport.wrap(ex)
+          .location("while processing the rex command")
+          .context("command", "rex")
+          .build();
+    }
   }
 
   private boolean containsSubqueryExpression(Node expr) {
@@ -3717,8 +3730,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         inputType.getField(fieldName, /*caseSensitive*/ true, /*elideRecord*/ false);
 
     if (inputField == null) {
-      throw new SemanticCheckException(
-          String.format("Field '%s' not found in the schema", fieldName));
+      throw ErrorReport.wrap(
+              new SemanticCheckException(
+                  String.format("Field '%s' not found in the schema", fieldName)))
+          .code(ErrorCode.FIELD_NOT_FOUND)
+          .location("while evaluating the input field for mvexpand")
+          .context("command", "mvexpand")
+          .build();
     }
 
     final RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(field, context);
