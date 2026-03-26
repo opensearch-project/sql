@@ -8,7 +8,7 @@ This module provides components organized into two main areas aligned with the [
 
 ### Unified Language Specification
 
-- **`UnifiedQueryPlanner`**: Accepts PPL (Piped Processing Language) queries and returns Calcite `RelNode` logical plans as intermediate representation.
+- **`UnifiedQueryPlanner`**: Accepts PPL (Piped Processing Language) or SQL queries and returns Calcite `RelNode` logical plans as intermediate representation.
 - **`UnifiedQueryTranspiler`**: Converts Calcite logical plans (`RelNode`) into SQL strings for various target databases using different SQL dialects.
 
 ### Unified Execution Runtime
@@ -17,7 +17,7 @@ This module provides components organized into two main areas aligned with the [
 - **`UnifiedFunction`**: Engine-agnostic function interface that enables functions to be evaluated across different execution engines without engine-specific code duplication.
 - **`UnifiedFunctionRepository`**: Repository for discovering and loading functions as `UnifiedFunction` instances, providing a bridge between function definitions and external execution engines.
 
-Together, these components enable complete workflows: parse PPL queries into logical plans, transpile those plans into target database SQL, compile and execute queries directly, or export PPL functions for use in external execution engines.
+Together, these components enable complete workflows: parse PPL or SQL queries into logical plans, transpile those plans into target database SQL, compile and execute queries directly, or export PPL functions for use in external execution engines.
 
 ### Experimental API Design
 
@@ -33,7 +33,7 @@ Create a context with catalog configuration, query type, and optional settings:
 
 ```java
 UnifiedQueryContext context = UnifiedQueryContext.builder()
-    .language(QueryType.PPL)
+    .language(QueryType.PPL)       // or QueryType.SQL for SQL
     .catalog("opensearch", opensearchSchema)
     .catalog("spark_catalog", sparkSchema)
     .defaultNamespace("opensearch")
@@ -44,7 +44,7 @@ UnifiedQueryContext context = UnifiedQueryContext.builder()
 
 ### UnifiedQueryPlanner
 
-Use `UnifiedQueryPlanner` to parse and analyze PPL queries into Calcite logical plans. The planner accepts a `UnifiedQueryContext` and can be reused for multiple queries.
+Use `UnifiedQueryPlanner` to parse and analyze PPL or SQL queries into Calcite logical plans. The planner accepts a `UnifiedQueryContext` and can be reused for multiple queries.
 
 ```java
 // Create planner with context
@@ -53,6 +53,9 @@ UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 // Plan multiple queries (context is reused)
 RelNode plan1 = planner.plan("source = logs | where status = 200");
 RelNode plan2 = planner.plan("source = metrics | stats avg(cpu)");
+
+// SQL queries are also supported (with QueryType.SQL context)
+RelNode plan3 = planner.plan("SELECT * FROM logs WHERE status = 200");
 ```
 
 ### UnifiedQueryTranspiler
@@ -226,5 +229,4 @@ public class MySchema extends AbstractSchema {
 
 ## Future Work
 
-- Expand support to SQL language.
 - Extend planner to generate optimized physical plans using Calcite's optimization frameworks.
