@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.tasks.TaskCancelledException;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
@@ -59,7 +60,17 @@ public class RestPPLQueryAction extends BaseRestHandler {
         || e instanceof QueryEngineException
         || e instanceof SyntaxCheckException
         || e instanceof DataSourceClientException
-        || e instanceof IllegalAccessException;
+        || e instanceof IllegalAccessException
+        || hasCauseOf(e, TaskCancelledException.class);
+  }
+
+  private static boolean hasCauseOf(Throwable e, Class<? extends Throwable> target) {
+    for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+      if (target.isInstance(cause)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
