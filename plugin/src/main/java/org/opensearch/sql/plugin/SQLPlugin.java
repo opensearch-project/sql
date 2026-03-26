@@ -95,6 +95,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine;
+import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.plugin.rest.RestPPLGrammarAction;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
@@ -158,7 +159,7 @@ public class SQLPlugin extends Plugin
   @Override
   public void loadExtensions(ExtensionLoader loader) {
     this.executionEngineExtensions = loader.loadExtensions(ExecutionEngine.class);
-    if (!executionEngineExtensions.isEmpty()) {
+    if (executionEngineExtensions != null && !executionEngineExtensions.isEmpty()) {
       LOGGER.info(
           "Loaded {} execution engine extension(s): {}",
           executionEngineExtensions.size(),
@@ -305,12 +306,15 @@ public class SQLPlugin extends Plugin
     ScheduledAsyncQueryJobRunner.getJobRunnerInstance()
         .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
+    EngineExtensionsHolder extensionsHolder = new EngineExtensionsHolder(executionEngineExtensions);
+
     return ImmutableList.of(
         dataSourceService,
         asyncQueryExecutorService,
         clusterManagerEventListener,
         pluginSettings,
-        directQueryExecutorService);
+        directQueryExecutorService,
+        extensionsHolder);
   }
 
   @Override

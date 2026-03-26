@@ -45,7 +45,7 @@ public class OpenSearchPluginModule extends AbstractModule {
 
   private final List<ExecutionEngine> executionEngineExtensions;
 
-  /** Default constructor for when no extensions are available. */
+  /** Default constructor for when no engines are available. */
   public OpenSearchPluginModule() {
     this(List.of());
   }
