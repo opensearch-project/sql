@@ -60,6 +60,7 @@ public class ErrorMessageFactoryTest {
         ErrorMessageFactory.createErrorMessage(wrapped, RestStatus.BAD_REQUEST.getStatus());
     assertFalse(msg instanceof OpenSearchErrorMessage);
     assertTrue(msg.toString().contains("\"status\": 400"));
+    assertTrue(msg.toString().contains("\"reason\": \"Query cancelled\""));
   }
 
   @Test
@@ -69,5 +70,6 @@ public class ErrorMessageFactoryTest {
         ErrorMessageFactory.createErrorMessage(cancelled, RestStatus.BAD_REQUEST.getStatus());
     assertFalse(msg instanceof OpenSearchErrorMessage);
     assertTrue(msg.toString().contains("\"status\": 400"));
+    assertTrue(msg.toString().contains("\"reason\": \"Query cancelled\""));
   }
 }
