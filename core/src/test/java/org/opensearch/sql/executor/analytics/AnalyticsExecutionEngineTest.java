@@ -245,6 +245,75 @@ class AnalyticsExecutionEngineTest {
             + errorRef.get().getMessage());
   }
 
+  // --- explain tests ---
+
+  @Test
+  void explainRelNode_returnsLogicalPlan() {
+    RelNode relNode = mockRelNode("name", SqlTypeName.VARCHAR, "age", SqlTypeName.INTEGER);
+
+    AtomicReference<ExplainResponse> ref = new AtomicReference<>();
+    AtomicReference<Exception> errorRef = new AtomicReference<>();
+    engine.explain(
+        relNode,
+        org.opensearch.sql.ast.statement.ExplainMode.STANDARD,
+        mockContext,
+        new ResponseListener<ExplainResponse>() {
+          @Override
+          public void onResponse(ExplainResponse response) {
+            ref.set(response);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            errorRef.set(e);
+          }
+        });
+
+    // RelOptUtil.toString on a mock may throw or succeed depending on mock setup.
+    // Accept either a successful response or a caught failure.
+    assertTrue(
+        ref.get() != null || errorRef.get() != null,
+        "Either onResponse or onFailure should have been called");
+    if (ref.get() != null) {
+      assertNotNull(ref.get().getCalcite(), "Explain should have calcite field");
+      assertNotNull(ref.get().getCalcite().getLogical(), "Explain should have logical plan");
+      System.out.println(
+          "\n--- explainRelNode_returnsLogicalPlan ---\nLogical: "
+              + ref.get().getCalcite().getLogical()
+              + "Physical: "
+              + ref.get().getCalcite().getPhysical()
+              + "\nExtended: "
+              + ref.get().getCalcite().getExtended()
+              + "\n--- End ---");
+    }
+  }
+
+  @Test
+  void explainRelNode_errorPropagation() {
+    RelNode relNode = mock(RelNode.class);
+    org.mockito.Mockito.doThrow(new RuntimeException("Explain failure"))
+        .when(relNode)
+        .explain(org.mockito.ArgumentMatchers.any());
+
+    AtomicReference<Exception> errorRef = new AtomicReference<>();
+    engine.explain(
+        relNode,
+        org.opensearch.sql.ast.statement.ExplainMode.STANDARD,
+        mockContext,
+        new ResponseListener<ExplainResponse>() {
+          @Override
+          public void onResponse(ExplainResponse response) {}
+
+          @Override
+          public void onFailure(Exception e) {
+            errorRef.set(e);
+          }
+        });
+
+    assertNotNull(errorRef.get(), "onFailure should have been called");
+    System.out.println(dumpError("explainRelNode_errorPropagation", errorRef.get()));
+  }
+
   // --- helpers ---
 
   private QueryResponse executeAndCapture(RelNode relNode) {

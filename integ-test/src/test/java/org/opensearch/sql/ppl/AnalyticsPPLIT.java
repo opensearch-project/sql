@@ -150,6 +150,84 @@ public class AnalyticsPPLIT extends PPLIntegTestCase {
     verifyNumOfRows(result, 3);
   }
 
+  // --- Explain tests ---
+
+  @Test
+  public void testExplainResponseStructure() throws IOException {
+    String query = "source = opensearch.parquet_logs | fields ts, message";
+    String raw = explainQueryToString(query);
+    LOG.info("[testExplainResponseStructure] query: {}\nresponse: {}", query, raw);
+    JSONObject response = new JSONObject(raw);
+
+    assertTrue("Explain should have 'calcite' key. Response: " + raw, response.has("calcite"));
+    JSONObject calcite = response.getJSONObject("calcite");
+    assertTrue("Explain should have 'logical' key. Response: " + raw, calcite.has("logical"));
+    String logical = calcite.getString("logical");
+    assertFalse("Logical plan should not be empty. Response: " + raw, logical.isEmpty());
+    assertTrue("Physical plan should be null. Response: " + raw, calcite.isNull("physical"));
+    assertTrue("Extended plan should be null. Response: " + raw, calcite.isNull("extended"));
+  }
+
+  @Test
+  public void testExplainProjectAndScan() throws IOException {
+    String query = "source = opensearch.parquet_logs | fields ts, message";
+    String raw = explainQueryToString(query);
+    String logical = extractLogicalPlan(raw);
+    LOG.info("[testExplainProjectAndScan] query: {}\nlogical plan:\n{}", query, logical);
+
+    assertTrue(
+        "Plan should contain LogicalProject. Plan:\n" + logical,
+        logical.contains("LogicalProject"));
+    assertTrue(
+        "Plan should contain LogicalTableScan. Plan:\n" + logical,
+        logical.contains("LogicalTableScan"));
+    assertTrue(
+        "Plan should reference parquet_logs. Plan:\n" + logical, logical.contains("parquet_logs"));
+  }
+
+  @Test
+  public void testExplainFilterPlan() throws IOException {
+    String query = "source = opensearch.parquet_logs | where status = 200 | fields ts, message";
+    String raw = explainQueryToString(query);
+    String logical = extractLogicalPlan(raw);
+    LOG.info("[testExplainFilterPlan] query: {}\nlogical plan:\n{}", query, logical);
+
+    assertTrue(
+        "Plan should contain LogicalFilter. Plan:\n" + logical, logical.contains("LogicalFilter"));
+    assertTrue(
+        "Plan should contain filter condition 200. Plan:\n" + logical, logical.contains("200"));
+  }
+
+  @Test
+  public void testExplainAggregationPlan() throws IOException {
+    String query = "source = opensearch.parquet_logs | stats count() by status";
+    String raw = explainQueryToString(query);
+    String logical = extractLogicalPlan(raw);
+    LOG.info("[testExplainAggregationPlan] query: {}\nlogical plan:\n{}", query, logical);
+
+    assertTrue(
+        "Plan should contain LogicalAggregate. Plan:\n" + logical,
+        logical.contains("LogicalAggregate"));
+    assertTrue("Plan should contain COUNT(). Plan:\n" + logical, logical.contains("COUNT()"));
+  }
+
+  @Test
+  public void testExplainSortPlan() throws IOException {
+    String query = "source = opensearch.parquet_logs | sort ts";
+    String raw = explainQueryToString(query);
+    String logical = extractLogicalPlan(raw);
+    LOG.info("[testExplainSortPlan] query: {}\nlogical plan:\n{}", query, logical);
+
+    assertTrue(
+        "Plan should contain LogicalSort. Plan:\n" + logical, logical.contains("LogicalSort"));
+  }
+
+  /** Extract the logical plan string from the explain JSON response. */
+  private String extractLogicalPlan(String explainResponse) {
+    JSONObject response = new JSONObject(explainResponse);
+    return response.getJSONObject("calcite").getString("logical");
+  }
+
   // --- Error handling tests ---
 
   @Test

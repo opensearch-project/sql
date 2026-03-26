@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.plugin.rest;
 
+import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
+import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse.normalizeLf;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
@@ -19,6 +21,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryPlanner;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -33,6 +36,7 @@ import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.JdbcResponseFormatter;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -72,6 +76,7 @@ public class RestUnifiedQueryAction {
    * @param pplRequest the original PPL request
    * @param listener the transport action listener
    */
+  /** Execute a query through the unified query pipeline on the sql-worker thread pool. */
   public void execute(
       String query,
       QueryType queryType,
@@ -80,7 +85,21 @@ public class RestUnifiedQueryAction {
     client
         .threadPool()
         .schedule(
-            withCurrentContext(() -> doExecute(query, queryType, pplRequest, listener)),
+            withCurrentContext(() -> doExecute(query, queryType, pplRequest, false, listener)),
+            new TimeValue(0),
+            SQL_WORKER_THREAD_POOL_NAME);
+  }
+
+  /** Explain a query through the unified query pipeline on the sql-worker thread pool. */
+  public void explain(
+      String query,
+      QueryType queryType,
+      PPLQueryRequest pplRequest,
+      ActionListener<TransportPPLQueryResponse> listener) {
+    client
+        .threadPool()
+        .schedule(
+            withCurrentContext(() -> doExecute(query, queryType, pplRequest, true, listener)),
             new TimeValue(0),
             SQL_WORKER_THREAD_POOL_NAME);
   }
@@ -89,6 +108,7 @@ public class RestUnifiedQueryAction {
       String query,
       QueryType queryType,
       PPLQueryRequest pplRequest,
+      boolean isExplain,
       ActionListener<TransportPPLQueryResponse> listener) {
     try {
       long startTime = System.nanoTime();
@@ -104,8 +124,6 @@ public class RestUnifiedQueryAction {
         UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
         RelNode plan = planner.plan(query);
 
-        // Add query size limit to the plan so the analytics engine can enforce it
-        // during execution, consistent with PPL V3 (see QueryService.convertToCalcitePlan)
         CalcitePlanContext planContext = context.getPlanContext();
         plan = addQuerySizeLimit(plan, planContext);
 
@@ -115,8 +133,13 @@ public class RestUnifiedQueryAction {
             (planTime - startTime) / 1_000_000,
             queryType);
 
-        analyticsEngine.execute(
-            plan, planContext, createQueryListener(queryType, planTime, listener));
+        if (isExplain) {
+          analyticsEngine.explain(
+              plan, ExplainMode.STANDARD, planContext, createExplainListener(listener));
+        } else {
+          analyticsEngine.execute(
+              plan, planContext, createQueryListener(queryType, planTime, listener));
+        }
       }
     } catch (Exception e) {
       listener.onFailure(e);
@@ -153,6 +176,29 @@ public class RestUnifiedQueryAction {
                 new QueryResult(
                     response.getSchema(), response.getResults(), response.getCursor(), langSpec));
         transportListener.onResponse(new TransportPPLQueryResponse(result));
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        transportListener.onFailure(e);
+      }
+    };
+  }
+
+  private ResponseListener<ExplainResponse> createExplainListener(
+      ActionListener<TransportPPLQueryResponse> transportListener) {
+    return new ResponseListener<ExplainResponse>() {
+      @Override
+      public void onResponse(ExplainResponse response) {
+        JsonResponseFormatter<ExplainResponse> formatter =
+            new JsonResponseFormatter<ExplainResponse>(PRETTY) {
+              @Override
+              protected Object buildJsonObject(ExplainResponse resp) {
+                return normalizeLf(resp);
+              }
+            };
+        transportListener.onResponse(
+            new TransportPPLQueryResponse(formatter.format(response), formatter.contentType()));
       }
 
       @Override

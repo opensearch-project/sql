@@ -127,8 +127,13 @@ public class TransportPPLQueryAction
 
     // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices
     if (RestUnifiedQueryAction.isAnalyticsIndex(transformedRequest.getRequest())) {
-      unifiedQueryHandler.execute(
-          transformedRequest.getRequest(), QueryType.PPL, transformedRequest, clearingListener);
+      if (transformedRequest.isExplainRequest()) {
+        unifiedQueryHandler.explain(
+            transformedRequest.getRequest(), QueryType.PPL, transformedRequest, clearingListener);
+      } else {
+        unifiedQueryHandler.execute(
+            transformedRequest.getRequest(), QueryType.PPL, transformedRequest, clearingListener);
+      }
       return;
     }
 
