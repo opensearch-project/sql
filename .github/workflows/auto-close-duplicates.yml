@@ -1,0 +1,129 @@
+name: Auto-close duplicate issues
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  auto-close-duplicates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Close stale duplicate issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+            const now = Date.now();
+
+            // Find all open issues with the autoclose label
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              labels: 'autoclose',
+              per_page: 100,
+            });
+
+            console.log(`Found ${issues.length} open issues with autoclose label`);
+
+            let closedCount = 0;
+
+            for (const issue of issues) {
+              console.log(`Processing issue #${issue.number}: ${issue.title}`);
+
+              // Get comments to find the duplicate detection comment
+              const comments = await github.rest.issues.listComments({
+                owner,
+                repo,
+                issue_number: issue.number,
+                per_page: 100,
+              });
+
+              // Find the duplicate detection comment (posted by our script)
+              const dupeComments = comments.data.filter(c =>
+                c.body.includes('<!-- duplicate-detection -->')
+              );
+
+              if (dupeComments.length === 0) {
+                console.log(`  No duplicate detection comment found, skipping`);
+                continue;
+              }
+
+              const lastDupeComment = dupeComments[dupeComments.length - 1];
+              const dupeCommentAge = now - new Date(lastDupeComment.created_at).getTime();
+
+              if (dupeCommentAge < THREE_DAYS_MS) {
+                const daysLeft = ((THREE_DAYS_MS - dupeCommentAge) / (24 * 60 * 60 * 1000)).toFixed(1);
+                console.log(`  Duplicate comment is too recent (${daysLeft} days remaining), skipping`);
+                continue;
+              }
+
+              // Check for human comments after the duplicate detection comment
+              const humanCommentsAfter = comments.data.filter(c =>
+                new Date(c.created_at) > new Date(lastDupeComment.created_at) &&
+                c.user.type !== 'Bot' &&
+                !c.body.includes('<!-- duplicate-detection -->') &&
+                !c.body.includes('automatically closed as a duplicate')
+              );
+
+              if (humanCommentsAfter.length > 0) {
+                console.log(`  Has ${humanCommentsAfter.length} human comment(s) after detection, skipping`);
+                continue;
+              }
+
+              // Check for thumbs-down reaction from the issue author
+              const reactions = await github.rest.reactions.listForIssueComment({
+                owner,
+                repo,
+                comment_id: lastDupeComment.id,
+                per_page: 100,
+              });
+
+              const authorThumbsDown = reactions.data.some(r =>
+                r.user.id === issue.user.id && r.content === '-1'
+              );
+
+              if (authorThumbsDown) {
+                console.log(`  Issue author gave thumbs-down on duplicate comment, skipping`);
+                continue;
+              }
+
+              // Extract the primary duplicate issue number from the comment
+              const dupeMatch = lastDupeComment.body.match(/#(\d+)/);
+              const dupeNumber = dupeMatch ? dupeMatch[1] : 'unknown';
+
+              // Close the issue
+              console.log(`  Closing as duplicate of #${dupeNumber}`);
+
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'not_planned',
+              });
+
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: issue.number,
+                labels: ['duplicate'],
+              });
+
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issue.number,
+                body: `This issue has been automatically closed as a duplicate of #${dupeNumber}.\n\nIf this is incorrect, please reopen this issue or create a new one.\n\n🤖 Generated with [Claude Code](https://claude.ai/code)`,
+              });
+
+              closedCount++;
+            }
+
+            console.log(`Done. Closed ${closedCount} duplicate issue(s).`);
