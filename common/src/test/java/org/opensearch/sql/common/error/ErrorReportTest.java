@@ -141,7 +141,7 @@ public class ErrorReportTest {
     String message = report.toDetailedMessage();
 
     assertTrue(message.contains("FIELD_NOT_FOUND"));
-    assertTrue(message.contains("Semantic Analysis"));
+    assertTrue(message.contains("Validating the query"));
     assertTrue(message.contains("Field not found"));
     assertTrue(message.contains("while resolving fields"));
     assertTrue(message.contains("field_name"));
