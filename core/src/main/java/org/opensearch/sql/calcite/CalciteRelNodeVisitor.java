@@ -2835,18 +2835,43 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitGraphLookup(GraphLookup node, CalcitePlanContext context) {
-    // 1. Visit source (child) table
-    visitChildren(node, context);
     RelBuilder builder = context.relBuilder;
-    // TODO: Limit the number of source rows to 100 for now, make it configurable.
-    builder.limit(0, 100);
-    if (node.isBatchMode()) {
-      tryToRemoveMetaFields(context, true);
+
+    List<Object> startValuesForCalcite = null;
+    String startFieldName;
+    if (node.getStartValues() != null) {
+      // Literal start mode: create empty LogicalValues as dummy source (BiRel needs two inputs)
+      // And will ignore the previous pipe then.
+      RelDataType dummyType =
+          builder
+              .getTypeFactory()
+              .createStructType(
+                  List.of(builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR)),
+                  List.of("_dummy"));
+      builder.values(dummyType);
+      startFieldName = null;
+      startValuesForCalcite = new ArrayList<>();
+      for (var lit : node.getStartValues()) {
+        startValuesForCalcite.add(lit.getValue());
+      }
+    } else {
+      if (node.getChild().isEmpty()) {
+        throw new SemanticCheckException(
+            "Field reference start requires a piped source."
+                + " Use literal start values (e.g. start='value') for top-level graphLookup.");
+      }
+      // Piped mode: visit source child
+      visitChildren(node, context);
+      // TODO: Limit the number of source rows to 100 for now, make it configurable.
+      builder.limit(0, 100);
+      if (node.isBatchMode()) {
+        tryToRemoveMetaFields(context, true);
+      }
+      startFieldName = node.getStartField().getField().toString();
     }
     RelNode sourceTable = builder.build();
 
     // 2. Extract parameters
-    String startFieldName = node.getStartField().getField().toString();
     String fromFieldName = node.getFromField().getField().toString();
     String toFieldName = node.getToField().getField().toString();
     String outputFieldName = node.getAs().getField().toString();
@@ -2879,6 +2904,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             sourceTable,
             lookupTable,
             startFieldName,
+            startValuesForCalcite,
             fromFieldName,
             toFieldName,
             outputFieldName,

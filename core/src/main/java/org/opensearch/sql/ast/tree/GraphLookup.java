@@ -45,8 +45,11 @@ public class GraphLookup extends UnresolvedPlan {
   /** Target table for graph traversal lookup. */
   private final UnresolvedPlan fromTable;
 
-  /** Field in sourceTable to start with. */
-  private final Field startField;
+  /** Field in sourceTable to start with (piped mode). Null when using literal start values. */
+  private @Nullable final Field startField;
+
+  /** Literal start values for top-level graphlookup (mutually exclusive with startField). */
+  private @Nullable final List<Literal> startValues;
 
   /** Field in fromTable that represents the outgoing edge. */
   private final Field fromField;
