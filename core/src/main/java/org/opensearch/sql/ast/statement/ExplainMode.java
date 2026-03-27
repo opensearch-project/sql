@@ -8,6 +8,7 @@ package org.opensearch.sql.ast.statement;
 import java.util.Locale;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.sql.SqlExplainLevel;
 
 @RequiredArgsConstructor
 public enum ExplainMode {
@@ -25,5 +26,14 @@ public enum ExplainMode {
     } catch (Exception e) {
       return ExplainMode.STANDARD;
     }
+  }
+
+  /** Convert to Calcite SqlExplainLevel for RelOptUtil.toString(). */
+  public SqlExplainLevel toExplainLevel() {
+    return switch (this) {
+      case SIMPLE -> SqlExplainLevel.NO_ATTRIBUTES;
+      case COST -> SqlExplainLevel.ALL_ATTRIBUTES;
+      default -> SqlExplainLevel.EXPPLAN_ATTRIBUTES;
+    };
   }
 }

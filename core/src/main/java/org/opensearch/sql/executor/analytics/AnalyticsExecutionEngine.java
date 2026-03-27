@@ -13,7 +13,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.sql.SqlExplainLevel;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -87,13 +86,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
       CalcitePlanContext context,
       ResponseListener<ExplainResponse> listener) {
     try {
-      SqlExplainLevel level =
-          mode == ExplainMode.SIMPLE
-              ? SqlExplainLevel.NO_ATTRIBUTES
-              : mode == ExplainMode.COST
-                  ? SqlExplainLevel.ALL_ATTRIBUTES
-                  : SqlExplainLevel.EXPPLAN_ATTRIBUTES;
-      String logical = RelOptUtil.toString(plan, level);
+      String logical = RelOptUtil.toString(plan, mode.toExplainLevel());
       listener.onResponse(new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
     } catch (Exception e) {
       listener.onFailure(e);
