@@ -77,6 +77,8 @@ public class RestPPLQueryAction extends BaseRestHandler {
       Metrics.getInstance().getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS).increment();
     } else if (500 <= code && code < 600) {
       Metrics.getInstance().getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_SYS).increment();
+    } else {
+      LOG.warn("Got an exception returning non-error status {}", RestStatus.fromCode(code), ex);
     }
     return RestStatus.fromCode(code);
   }
