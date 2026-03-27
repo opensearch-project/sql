@@ -208,7 +208,7 @@ public class RestUnifiedQueryAction {
               new JsonResponseFormatter<ExplainResponse>(PRETTY) {
                 @Override
                 protected Object buildJsonObject(ExplainResponse resp) {
-                  return normalizeLf(resp);
+                  return resp;
                 }
               };
         }
