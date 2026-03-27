@@ -179,6 +179,59 @@ try (UnifiedQueryContext context = UnifiedQueryContext.builder()
 }
 ```
 
+## Profiling
+
+The unified query API supports the same [profiling capability](../docs/user/ppl/interfaces/endpoint.md#profile-experimental) as the PPL REST endpoint. When enabled, each unified query component automatically collects per-phase timing metrics. For code outside unified query components (e.g., `PreparedStatement.executeQuery()` or response formatting), `context.measure()` records custom phases into the same profile.
+
+```java
+try (UnifiedQueryContext context = UnifiedQueryContext.builder()
+    .language(QueryType.PPL)
+    .catalog("catalog", schema)
+    .defaultNamespace("catalog")
+    .profiling(true)
+    .build()) {
+
+  // Auto-profiled: ANALYZE
+  RelNode plan = new UnifiedQueryPlanner(context).plan(query);
+
+  // Auto-profiled: OPTIMIZE
+  PreparedStatement stmt = new UnifiedQueryCompiler(context).compile(plan);
+
+  // User-profiled via measure()
+  ResultSet rs = context.measure(MetricName.EXECUTE, stmt::executeQuery);
+  String json = context.measure(MetricName.FORMAT, () -> formatter.format(result));
+
+  // Retrieve profile snapshot
+  QueryProfile profile = context.getProfile();
+}
+```
+
+The returned `QueryProfile` follows the same JSON structure as the REST API:
+
+```json
+{
+  "summary": {
+    "total_time_ms": 33.34
+  },
+  "phases": {
+    "analyze": { "time_ms": 8.68 },
+    "optimize": { "time_ms": 18.2 },
+    "execute": { "time_ms": 4.87 },
+    "format": { "time_ms": 0.05 }
+  },
+  "plan": {
+    "node": "EnumerableCalc",
+    "time_ms": 4.82,
+    "rows": 2,
+    "children": [
+      { "node": "CalciteEnumerableIndexScan", "time_ms": 4.12, "rows": 2 }
+    ]
+  }
+}
+```
+
+When profiling is disabled (the default), all components execute with zero overhead.
+
 ## Development & Testing
 
 A set of unit tests is provided to validate planner behavior.

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.api;
 
+import static org.opensearch.sql.monitor.profile.MetricName.ANALYZE;
+
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.calcite.rel.RelCollation;
@@ -36,12 +38,16 @@ public class UnifiedQueryPlanner {
   /** Planning strategy selected at construction time based on query type. */
   private final PlanningStrategy strategy;
 
+  /** Unified query context for profiling support. */
+  private final UnifiedQueryContext context;
+
   /**
    * Constructs a UnifiedQueryPlanner with a unified query context.
    *
    * @param context the unified query context containing CalcitePlanContext
    */
   public UnifiedQueryPlanner(UnifiedQueryContext context) {
+    this.context = context;
     this.strategy =
         context.getPlanContext().queryType == QueryType.SQL
             ? new CalciteNativeStrategy(context)
@@ -57,7 +63,7 @@ public class UnifiedQueryPlanner {
    */
   public RelNode plan(String query) {
     try {
-      return strategy.plan(query);
+      return context.measure(ANALYZE, () -> strategy.plan(query));
     } catch (SyntaxCheckException e) {
       // Re-throw syntax error without wrapping
       throw e;

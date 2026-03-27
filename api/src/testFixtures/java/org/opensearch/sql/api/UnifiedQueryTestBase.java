@@ -58,7 +58,7 @@ public abstract class UnifiedQueryTestBase {
           }
         };
 
-    context = buildContext(queryType());
+    context = contextBuilder().build();
     planner = new UnifiedQueryPlanner(context);
   }
 
@@ -69,12 +69,12 @@ public abstract class UnifiedQueryTestBase {
     return QueryType.PPL;
   }
 
-  /** Builds a UnifiedQueryContext with the test schema for the given query type. */
-  protected UnifiedQueryContext buildContext(QueryType queryType) {
-    return UnifiedQueryContext.builder()
-        .language(queryType)
-        .catalog(DEFAULT_CATALOG, testSchema)
-        .build();
+  /**
+   * Creates a pre-configured context builder with test schema. Subclasses can override to customize
+   * context configuration (e.g., enable profiling).
+   */
+  protected UnifiedQueryContext.Builder contextBuilder() {
+    return UnifiedQueryContext.builder().language(queryType()).catalog(DEFAULT_CATALOG, testSchema);
   }
 
   @After
