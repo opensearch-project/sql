@@ -71,7 +71,7 @@ If this is **not** a duplicate:
 - Add a comment on this issue, and the \`duplicate\` label will be removed automatically, or
 - 👎 this comment to prevent auto-closure
 
-Otherwise, this issue will be **automatically closed in 3 days**.
+Otherwise, this issue will be **automatically closed in ${DUPLICATE_GRACE_DAYS:-7} days**.
 
 🤖 Generated with [Claude Code](https://claude.ai/code)"
 

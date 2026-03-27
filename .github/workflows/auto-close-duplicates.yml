@@ -15,10 +15,13 @@ jobs:
     steps:
       - name: Close stale duplicate issues
         uses: actions/github-script@v7
+        env:
+          GRACE_DAYS: ${{ vars.DUPLICATE_GRACE_DAYS || '7' }}
         with:
           script: |
             const { owner, repo } = context.repo;
-            const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+            const graceDays = parseInt(process.env.GRACE_DAYS, 10) || 7;
+            const GRACE_PERIOD_MS = graceDays * 24 * 60 * 60 * 1000;
             const now = Date.now();
 
             // Find all open issues with the duplicate label
@@ -58,8 +61,8 @@ jobs:
               const lastDupeComment = dupeComments[dupeComments.length - 1];
               const dupeCommentAge = now - new Date(lastDupeComment.created_at).getTime();
 
-              if (dupeCommentAge < THREE_DAYS_MS) {
-                const daysLeft = ((THREE_DAYS_MS - dupeCommentAge) / (24 * 60 * 60 * 1000)).toFixed(1);
+              if (dupeCommentAge < GRACE_PERIOD_MS) {
+                const daysLeft = ((GRACE_PERIOD_MS - dupeCommentAge) / (24 * 60 * 60 * 1000)).toFixed(1);
                 console.log(`  Duplicate comment is too recent (${daysLeft} days remaining), skipping`);
                 continue;
               }
