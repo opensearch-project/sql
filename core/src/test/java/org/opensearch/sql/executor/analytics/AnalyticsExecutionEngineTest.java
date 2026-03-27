@@ -7,7 +7,6 @@ package org.opensearch.sql.executor.analytics;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -246,60 +245,7 @@ class AnalyticsExecutionEngineTest {
             + errorRef.get().getMessage());
   }
 
-  // --- explain tests ---
-
-  @Test
-  void explainRelNode_returnsLogicalPlan() {
-    // Build a real RelNode so RelOptUtil.toString() produces a deterministic plan
-    org.apache.calcite.tools.FrameworkConfig config =
-        org.apache.calcite.tools.Frameworks.newConfigBuilder().build();
-    org.apache.calcite.tools.RelBuilder builder =
-        org.apache.calcite.tools.RelBuilder.create(config);
-    RelNode relNode = builder.values(new String[] {"name", "age"}, "Alice", 30, "Bob", 25).build();
-
-    AtomicReference<ExplainResponse> ref = new AtomicReference<>();
-    engine.explain(
-        relNode,
-        org.opensearch.sql.ast.statement.ExplainMode.STANDARD,
-        mockContext,
-        captureExplainListener(ref));
-
-    assertNotNull(ref.get(), "ExplainResponse should not be null");
-    String expectedLogical = "LogicalValues(tuples=[[{ 'Alice', 30 }, { 'Bob', 25 }]])\n";
-    assertEquals(expectedLogical, ref.get().getCalcite().getLogical(), "Logical plan mismatch");
-    assertNull(ref.get().getCalcite().getPhysical(), "Physical plan should be null");
-    assertNull(ref.get().getCalcite().getExtended(), "Extended plan should be null");
-    System.out.println(
-        "\n--- explainRelNode_returnsLogicalPlan ---\n"
-            + ref.get().getCalcite().getLogical()
-            + "--- End ---");
-  }
-
-  @Test
-  void explainRelNode_errorPropagation() {
-    RelNode relNode = mock(RelNode.class);
-    org.mockito.Mockito.doThrow(new RuntimeException("Explain failure"))
-        .when(relNode)
-        .explain(org.mockito.ArgumentMatchers.any());
-
-    AtomicReference<Exception> errorRef = new AtomicReference<>();
-    engine.explain(
-        relNode,
-        org.opensearch.sql.ast.statement.ExplainMode.STANDARD,
-        mockContext,
-        new ResponseListener<ExplainResponse>() {
-          @Override
-          public void onResponse(ExplainResponse response) {}
-
-          @Override
-          public void onFailure(Exception e) {
-            errorRef.set(e);
-          }
-        });
-
-    assertNotNull(errorRef.get(), "onFailure should have been called");
-    System.out.println(dumpError("explainRelNode_errorPropagation", errorRef.get()));
-  }
+  // Explain is covered by AnalyticsExplainIT with expected output file comparison.
 
   // --- helpers ---
 
@@ -310,21 +256,6 @@ class AnalyticsExecutionEngineTest {
     // Always print the full response so test output shows exact results
     System.out.println(dumpResponse(ref.get()));
     return ref.get();
-  }
-
-  private ResponseListener<ExplainResponse> captureExplainListener(
-      AtomicReference<ExplainResponse> ref) {
-    return new ResponseListener<ExplainResponse>() {
-      @Override
-      public void onResponse(ExplainResponse response) {
-        ref.set(response);
-      }
-
-      @Override
-      public void onFailure(Exception e) {
-        throw new AssertionError("Unexpected failure", e);
-      }
-    };
   }
 
   private Exception executeAndCaptureError(RelNode relNode) {
