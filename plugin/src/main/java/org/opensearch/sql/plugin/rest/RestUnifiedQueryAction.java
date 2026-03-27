@@ -22,7 +22,6 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryPlanner;
-import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -138,7 +137,7 @@ public class RestUnifiedQueryAction {
 
         if (isExplain) {
           analyticsEngine.explain(
-              plan, ExplainMode.STANDARD, planContext, createExplainListener(pplRequest, listener));
+              plan, pplRequest.mode(), planContext, createExplainListener(pplRequest, listener));
         } else {
           analyticsEngine.execute(
               plan, planContext, createQueryListener(queryType, planTime, listener));
