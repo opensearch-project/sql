@@ -26,8 +26,8 @@ jobs:
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-west-2
+          role-to-assume: ${{ secrets.BEDROCK_ACCESS_ROLE }}
+          aws-region: us-east-1
 
       - name: Run duplicate detection
         uses: anthropics/claude-code-action@v1
