@@ -29,11 +29,17 @@ jobs:
     steps:
       - name: Backfill duplicate detection
         uses: actions/github-script@v7
+        env:
+          INPUT_DAYS_BACK: ${{ inputs.days_back }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
         with:
           script: |
             const { owner, repo } = context.repo;
-            const daysBack = parseInt('${{ inputs.days_back }}', 10);
-            const dryRun = '${{ inputs.dry_run }}' === 'true';
+            const daysBackRaw = process.env.INPUT_DAYS_BACK;
+            const dryRunRaw = process.env.INPUT_DRY_RUN;
+            const daysBack = parseInt(daysBackRaw, 10);
+            if (isNaN(daysBack) || daysBack <= 0) throw new Error(`Invalid days_back: ${daysBackRaw}`);
+            const dryRun = dryRunRaw === 'true';
             const since = new Date();
             since.setDate(since.getDate() - daysBack);
 

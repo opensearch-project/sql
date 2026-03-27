@@ -44,15 +44,15 @@ if [[ ${#DUPLICATES[@]} -eq 0 ]]; then
   exit 1
 fi
 
-REPO_FLAG=""
+REPO_FLAG=()
 if [[ -n "$REPO" ]]; then
-  REPO_FLAG="--repo $REPO"
+  REPO_FLAG=("--repo" "$REPO")
 fi
 
 # Build duplicate list
 DUP_LIST=""
 for dup in "${DUPLICATES[@]}"; do
-  TITLE=$(gh issue view "$dup" $REPO_FLAG --json title -q .title 2>/dev/null || echo "")
+  TITLE=$(gh issue view "$dup" "${REPO_FLAG[@]}" --json title -q .title 2>/dev/null || echo "")
   if [[ -n "$TITLE" ]]; then
     DUP_LIST+="- #${dup} — ${TITLE}"$'\n'
   else
@@ -76,15 +76,15 @@ Otherwise, this issue will be **automatically closed in 3 days**.
 🤖 Generated with [Claude Code](https://claude.ai/code)"
 
 # Post the comment
-echo "$BODY" | gh issue comment "$BASE_ISSUE" $REPO_FLAG --body-file -
+echo "$BODY" | gh issue comment "$BASE_ISSUE" "${REPO_FLAG[@]}" --body-file -
 
 # Ensure the duplicate label exists
 gh label create "duplicate" \
   --description "Issue is a duplicate of an existing issue" \
   --color "cccccc" \
-  $REPO_FLAG 2>/dev/null || true
+  "${REPO_FLAG[@]}" 2>/dev/null || true
 
 # Add duplicate label
-gh issue edit "$BASE_ISSUE" $REPO_FLAG --add-label "duplicate"
+gh issue edit "$BASE_ISSUE" "${REPO_FLAG[@]}" --add-label "duplicate"
 
 echo "Posted duplicate comment and added duplicate label to issue #${BASE_ISSUE}"
