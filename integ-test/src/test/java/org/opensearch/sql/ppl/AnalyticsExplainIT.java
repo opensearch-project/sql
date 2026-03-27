@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
+import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
 
 import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
@@ -18,7 +18,7 @@ import org.junit.Test;
  * _plugins/_ppl/_explain endpoint.
  *
  * <p>Expected output files are in resources/expectedOutput/analytics/. Each test compares the
- * explain JSON output against its expected file, following the same pattern as CalciteExplainIT.
+ * explain YAML output against its expected file, following the same pattern as CalciteExplainIT.
  *
  * <p>Since the analytics engine is not yet available, physical and extended plans are null. Only
  * the logical plan (Calcite RelNode tree) is verified.
@@ -39,48 +39,48 @@ public class AnalyticsExplainIT extends PPLIntegTestCase {
   @Test
   public void testExplainSimpleScan() throws IOException {
     String query = "source = opensearch.parquet_logs";
-    String result = explainQueryToString(query);
+    String result = explainQueryYaml(query);
     LOG.info("[testExplainSimpleScan] query: {}\nresult:\n{}", query, result);
-    assertJsonEqualsIgnoreId(loadAnalyticsExpectedPlan("explain_simple_scan.json"), result);
+    assertYamlEqualsIgnoreId(loadAnalyticsExpectedPlan("explain_simple_scan.yaml"), result);
   }
 
   @Test
   public void testExplainProject() throws IOException {
     String query = "source = opensearch.parquet_logs | fields ts, message";
-    String result = explainQueryToString(query);
+    String result = explainQueryYaml(query);
     LOG.info("[testExplainProject] query: {}\nresult:\n{}", query, result);
-    assertJsonEqualsIgnoreId(loadAnalyticsExpectedPlan("explain_project.json"), result);
+    assertYamlEqualsIgnoreId(loadAnalyticsExpectedPlan("explain_project.yaml"), result);
   }
 
   @Test
   public void testExplainFilterAndProject() throws IOException {
     String query = "source = opensearch.parquet_logs | where status = 200 | fields ts, message";
-    String result = explainQueryToString(query);
+    String result = explainQueryYaml(query);
     LOG.info("[testExplainFilterAndProject] query: {}\nresult:\n{}", query, result);
-    assertJsonEqualsIgnoreId(loadAnalyticsExpectedPlan("explain_filter_project.json"), result);
+    assertYamlEqualsIgnoreId(loadAnalyticsExpectedPlan("explain_filter_project.yaml"), result);
   }
 
   @Test
   public void testExplainAggregation() throws IOException {
     String query = "source = opensearch.parquet_logs | stats count() by status";
-    String result = explainQueryToString(query);
+    String result = explainQueryYaml(query);
     LOG.info("[testExplainAggregation] query: {}\nresult:\n{}", query, result);
-    assertJsonEqualsIgnoreId(loadAnalyticsExpectedPlan("explain_aggregation.json"), result);
+    assertYamlEqualsIgnoreId(loadAnalyticsExpectedPlan("explain_aggregation.yaml"), result);
   }
 
   @Test
   public void testExplainSort() throws IOException {
     String query = "source = opensearch.parquet_logs | sort ts";
-    String result = explainQueryToString(query);
+    String result = explainQueryYaml(query);
     LOG.info("[testExplainSort] query: {}\nresult:\n{}", query, result);
-    assertJsonEqualsIgnoreId(loadAnalyticsExpectedPlan("explain_sort.json"), result);
+    assertYamlEqualsIgnoreId(loadAnalyticsExpectedPlan("explain_sort.yaml"), result);
   }
 
   @Test
   public void testExplainEval() throws IOException {
     String query = "source = opensearch.parquet_logs | eval error = status = 500";
-    String result = explainQueryToString(query);
+    String result = explainQueryYaml(query);
     LOG.info("[testExplainEval] query: {}\nresult:\n{}", query, result);
-    assertJsonEqualsIgnoreId(loadAnalyticsExpectedPlan("explain_eval.json"), result);
+    assertYamlEqualsIgnoreId(loadAnalyticsExpectedPlan("explain_eval.yaml"), result);
   }
 }

@@ -12,6 +12,7 @@ import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.util.Map;
+import java.util.Optional;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.logging.log4j.LogManager;
@@ -35,9 +36,11 @@ import org.opensearch.sql.plugin.rest.analytics.stub.StubSchemaProvider;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
+import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JdbcResponseFormatter;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
+import org.opensearch.sql.protocol.response.format.YamlResponseFormatter;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
@@ -135,7 +138,7 @@ public class RestUnifiedQueryAction {
 
         if (isExplain) {
           analyticsEngine.explain(
-              plan, ExplainMode.STANDARD, planContext, createExplainListener(listener));
+              plan, ExplainMode.STANDARD, planContext, createExplainListener(pplRequest, listener));
         } else {
           analyticsEngine.execute(
               plan, planContext, createQueryListener(queryType, planTime, listener));
@@ -186,17 +189,30 @@ public class RestUnifiedQueryAction {
   }
 
   private ResponseListener<ExplainResponse> createExplainListener(
-      ActionListener<TransportPPLQueryResponse> transportListener) {
+      PPLQueryRequest pplRequest, ActionListener<TransportPPLQueryResponse> transportListener) {
     return new ResponseListener<ExplainResponse>() {
       @Override
       public void onResponse(ExplainResponse response) {
-        JsonResponseFormatter<ExplainResponse> formatter =
-            new JsonResponseFormatter<ExplainResponse>(PRETTY) {
-              @Override
-              protected Object buildJsonObject(ExplainResponse resp) {
-                return normalizeLf(resp);
-              }
-            };
+        Optional<Format> isYamlFormat =
+            Format.ofExplain(pplRequest.getFormat()).filter(f -> f.equals(Format.YAML));
+        ResponseFormatter<ExplainResponse> formatter;
+        if (isYamlFormat.isPresent()) {
+          formatter =
+              new YamlResponseFormatter<ExplainResponse>() {
+                @Override
+                protected Object buildYamlObject(ExplainResponse resp) {
+                  return normalizeLf(resp);
+                }
+              };
+        } else {
+          formatter =
+              new JsonResponseFormatter<ExplainResponse>(PRETTY) {
+                @Override
+                protected Object buildJsonObject(ExplainResponse resp) {
+                  return normalizeLf(resp);
+                }
+              };
+        }
         transportListener.onResponse(
             new TransportPPLQueryResponse(formatter.format(response), formatter.contentType()));
       }

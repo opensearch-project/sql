@@ -1,0 +1,5 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$0], dir0=[ASC-nulls-first], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])
+        LogicalTableScan(table=[[opensearch, parquet_logs]])
