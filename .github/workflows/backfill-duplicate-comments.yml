@@ -1,0 +1,111 @@
+name: Backfill Duplicate Comments
+
+on:
+  workflow_dispatch:
+    inputs:
+      days_back:
+        description: 'How many days back to look for issues'
+        required: false
+        default: '90'
+        type: string
+      dry_run:
+        description: 'Dry run mode (true to only log what would be done)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: read
+  issues: read
+  actions: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Backfill duplicate detection
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const daysBack = parseInt('${{ inputs.days_back }}', 10);
+            const dryRun = '${{ inputs.dry_run }}' === 'true';
+            const since = new Date();
+            since.setDate(since.getDate() - daysBack);
+
+            console.log(`Repository: ${owner}/${repo}`);
+            console.log(`Dry run: ${dryRun}`);
+            console.log(`Looking back ${daysBack} days (since ${since.toISOString()})`);
+
+            // Fetch open issues created within the lookback period
+            const allIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              since: since.toISOString(),
+              sort: 'created',
+              direction: 'desc',
+              per_page: 100,
+            });
+
+            // Filter out pull requests (GitHub API returns PRs in issues endpoint)
+            const issues = allIssues.filter(i => !i.pull_request);
+            console.log(`Found ${issues.length} open issues in the last ${daysBack} days`);
+
+            let processed = 0;
+            let triggered = 0;
+            let skipped = 0;
+
+            for (const issue of issues) {
+              processed++;
+              console.log(`[${processed}/${issues.length}] Checking issue #${issue.number}: ${issue.title}`);
+
+              // Check if issue already has a duplicate detection comment
+              const comments = await github.rest.issues.listComments({
+                owner,
+                repo,
+                issue_number: issue.number,
+                per_page: 100,
+              });
+
+              const hasDupeComment = comments.data.some(c =>
+                c.body.includes('<!-- duplicate-detection -->')
+              );
+
+              if (hasDupeComment) {
+                console.log(`  Already has duplicate detection comment, skipping`);
+                skipped++;
+                continue;
+              }
+
+              if (dryRun) {
+                console.log(`  [DRY RUN] Would trigger dedupe workflow for issue #${issue.number}`);
+                triggered++;
+                continue;
+              }
+
+              try {
+                await github.rest.actions.createWorkflowDispatch({
+                  owner,
+                  repo,
+                  workflow_id: 'claude-dedupe-issues.yml',
+                  ref: 'main',
+                  inputs: {
+                    issue_number: issue.number.toString(),
+                  },
+                });
+                console.log(`  Triggered dedupe workflow for issue #${issue.number}`);
+                triggered++;
+
+                // Delay between triggers to avoid overwhelming the system
+                await new Promise(r => setTimeout(r, 2000));
+              } catch (error) {
+                console.error(`  Failed to trigger workflow for issue #${issue.number}: ${error.message}`);
+              }
+            }
+
+            console.log(`\nDone. Processed: ${processed}, Triggered: ${triggered}, Skipped (already has comment): ${skipped}`);

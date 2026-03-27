@@ -67,7 +67,9 @@ BODY="<!-- duplicate-detection -->
 Found **${#DUPLICATES[@]}** possible duplicate issue(s):
 
 ${DUP_LIST}
-If this is **not** a duplicate, please comment on this issue and the \`duplicate\` label will be removed automatically.
+If this is **not** a duplicate:
+- Add a comment on this issue, and the \`duplicate\` label will be removed automatically, or
+- 👎 this comment to prevent auto-closure
 
 Otherwise, this issue will be **automatically closed in 3 days**.
 
