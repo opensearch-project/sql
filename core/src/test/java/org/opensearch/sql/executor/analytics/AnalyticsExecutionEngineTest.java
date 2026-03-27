@@ -245,8 +245,6 @@ class AnalyticsExecutionEngineTest {
             + errorRef.get().getMessage());
   }
 
-  // Explain is covered by AnalyticsExplainIT with expected output file comparison.
-
   // --- helpers ---
 
   private QueryResponse executeAndCapture(RelNode relNode) {

@@ -150,8 +150,6 @@ public class AnalyticsPPLIT extends PPLIntegTestCase {
     verifyNumOfRows(result, 3);
   }
 
-  // Explain is covered by AnalyticsExplainIT with expected output file comparison.
-
   // --- Error handling tests ---
 
   @Test
