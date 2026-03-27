@@ -47,6 +47,9 @@ public class RestPPLQueryAction extends BaseRestHandler {
   }
 
   private static boolean isClientError(Exception ex) {
+    // (Tombstone) NullPointerException has historically been treated as a client error, but
+    // nowadays they're rare and should be treated as system errors, since it represents a broken
+    // data model in our logic.
     return ex instanceof IllegalArgumentException
         || ex instanceof IndexNotFoundException
         || ex instanceof QueryEngineException
@@ -62,6 +65,9 @@ public class RestPPLQueryAction extends BaseRestHandler {
     if (ex instanceof OpenSearchException) {
       return ((OpenSearchException) ex).status().getStatus();
     }
+    // Possible future work: We currently do this on exception types, when we have more robust
+    // ErrorCodes in more locations it may be worth switching this to be based on those instead.
+    // That lets us identify specific error cases at a granularity higher than exception types.
     if (isClientError(ex)) {
       return 400;
     }

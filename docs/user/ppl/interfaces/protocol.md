@@ -123,7 +123,7 @@ Expected output:
     "context": {
       "stage": "analyzing",
       "index_name": "unknown",
-      "stage_description": "Validating the query"
+      "stage_description": "Parsing and validating the query"
     },
     "details": "no such index [unknown]",
     "location": [

@@ -34,14 +34,6 @@ public class ErrorMessage {
   }
 
   private String fetchType() {
-    // For ErrorReport, use the ErrorCode as the type (if present and not UNKNOWN)
-    if (exception instanceof ErrorReport) {
-      ErrorReport report = (ErrorReport) exception;
-      if (report.getCode() != null
-          && report.getCode() != org.opensearch.sql.common.error.ErrorCode.UNKNOWN) {
-        return report.getCode().name();
-      }
-    }
     return exception.getClass().getSimpleName();
   }
 

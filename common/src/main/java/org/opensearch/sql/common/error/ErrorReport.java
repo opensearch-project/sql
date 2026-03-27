@@ -189,7 +189,8 @@ public class ErrorReport extends RuntimeException {
     private Builder(Exception cause) {
       this.cause = cause;
       // Default details to the original exception message
-      this.details = cause.getLocalizedMessage();
+      this.details =
+          cause.getLocalizedMessage() != null ? cause.getLocalizedMessage() : cause.getMessage();
     }
 
     /** Set the machine-readable error code. */
@@ -200,7 +201,10 @@ public class ErrorReport extends RuntimeException {
 
     /** Set the query processing stage where the error occurred. */
     public Builder stage(QueryProcessingStage stage) {
-      this.stage = stage;
+      // Don't overwrite more-specific stages with less-specific ones
+      if (this.stage == null) {
+        this.stage = stage;
+      }
       return this;
     }
 

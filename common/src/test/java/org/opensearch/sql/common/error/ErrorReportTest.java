@@ -8,6 +8,8 @@ package org.opensearch.sql.common.error;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Map;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 
 /** Unit tests for ErrorReport. */
@@ -64,7 +66,7 @@ public class ErrorReportTest {
     @SuppressWarnings("unchecked")
     Map<String, Object> context = (Map<String, Object>) json.get("context");
     assertEquals("analyzing", context.get("stage"));
-    assertEquals("Validating the query", context.get("stage_description"));
+    assertEquals("Parsing and validating the query", context.get("stage_description"));
     assertEquals("test", context.get("field_name"));
   }
 
@@ -140,11 +142,11 @@ public class ErrorReportTest {
 
     String message = report.toDetailedMessage();
 
-    assertTrue(message.contains("FIELD_NOT_FOUND"));
-    assertTrue(message.contains("Validating the query"));
-    assertTrue(message.contains("Field not found"));
-    assertTrue(message.contains("while resolving fields"));
-    assertTrue(message.contains("field_name"));
-    assertTrue(message.contains("Check field name"));
+    MatcherAssert.assertThat(message, CoreMatchers.containsString("FIELD_NOT_FOUND"));
+    MatcherAssert.assertThat(message, CoreMatchers.containsString("validating the query"));
+    MatcherAssert.assertThat(message, CoreMatchers.containsString("Field not found"));
+    MatcherAssert.assertThat(message, CoreMatchers.containsString("while resolving fields"));
+    MatcherAssert.assertThat(message, CoreMatchers.containsString("field_name"));
+    MatcherAssert.assertThat(message, CoreMatchers.containsString("Check field name"));
   }
 }

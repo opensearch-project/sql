@@ -37,9 +37,6 @@ public class StageErrorHandler {
       QueryProcessingStage stage, Supplier<T> operation, String location) {
     try {
       return operation.get();
-    } catch (ErrorReport e) {
-      // If already an ErrorReport, just add stage if not set
-      throw ErrorReport.wrap(e).stage(stage).location(location).build();
     } catch (Exception e) {
       throw ErrorReport.wrap(e).stage(stage).location(location).build();
     }

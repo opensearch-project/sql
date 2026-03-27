@@ -68,7 +68,7 @@ public class CursorResultExecutor implements CursorRestExecutor {
                           "Malformed cursor: unable to extract cursor information"),
                       RestStatus.BAD_REQUEST.getStatus())
                   .toString()));
-    } catch (OpenSearchException e) { // RESUME: need to leverage this logic with error reports
+    } catch (OpenSearchException e) {
       int status = (e.status().getStatus());
       if (status > 399 && status < 500) {
         Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();

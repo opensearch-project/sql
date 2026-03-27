@@ -200,8 +200,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               case IllegalArgumentException illegalArgumentException ->
                   // most exceptions thrown by Calcite when resolve a plan.
                   throw illegalArgumentException;
-              case null, default ->
-                  throw new IllegalStateException("Exception happened during execution", e);
+              default -> throw new IllegalStateException("Exception happened during execution", e);
             }
           }
         },

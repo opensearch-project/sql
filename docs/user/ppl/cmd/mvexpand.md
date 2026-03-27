@@ -132,6 +132,6 @@ source=people
 
 Expected output:
 ```text
-{'context': {'stage': 'analyzing', 'stage_description': 'Validating the query', 'command': 'mvexpand'}, 'details': "Field 'tags' not found in the schema", 'location': ['while preparing and validating the query plan', 'while evaluating the input field for mvexpand'], 'code': 'FIELD_NOT_FOUND', 'type': 'SemanticCheckException'}
+{'context': {'stage': 'analyzing', 'stage_description': 'Parsing and validating the query', 'command': 'mvexpand'}, 'details': "Field 'tags' not found in the schema", 'location': ['while preparing and validating the query plan', 'while evaluating the input field for mvexpand'], 'code': 'FIELD_NOT_FOUND', 'type': 'SemanticCheckException'}
 Error: Query returned no data
 ```

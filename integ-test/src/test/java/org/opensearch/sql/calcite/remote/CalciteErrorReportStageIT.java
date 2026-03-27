@@ -108,7 +108,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testErrorReportTypeIsCorrect() throws IOException {
+  public void testErrorReportTypeMatchesExceptionType() throws IOException {
     ResponseException exception =
         assertThrows(
             ResponseException.class,
@@ -126,7 +126,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testErrorCodePresent() throws IOException {
+  public void testFieldNotFoundIncludesErrorCode() throws IOException {
     ResponseException exception =
         assertThrows(
             ResponseException.class,
@@ -136,12 +136,9 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
     JSONObject response = new JSONObject(responseBody);
     JSONObject error = response.getJSONObject("error");
 
-    // Verify error may have code field (optional, but if present should be valid)
-    if (error.has("code")) {
-      String code = error.getString("code");
-      assertFalse("Error code should not be empty", code.isEmpty());
-      assertFalse("Error code should not be UNKNOWN", code.equals("UNKNOWN"));
-    }
+    String code = error.getString("code");
+    assertFalse("Error code should not be empty", code.isEmpty());
+    assertFalse("Error code should not be UNKNOWN", code.equals("UNKNOWN"));
   }
 
   @Test
