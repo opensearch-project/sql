@@ -6,13 +6,11 @@
 package org.opensearch.sql.plugin.rest;
 
 import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
-import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse.normalizeLf;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.util.Map;
-import java.util.Optional;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.logging.log4j.LogManager;
@@ -35,11 +33,8 @@ import org.opensearch.sql.plugin.rest.analytics.stub.StubSchemaProvider;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
-import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JdbcResponseFormatter;
-import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
-import org.opensearch.sql.protocol.response.format.YamlResponseFormatter;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
@@ -87,21 +82,25 @@ public class RestUnifiedQueryAction {
     client
         .threadPool()
         .schedule(
-            withCurrentContext(() -> doExecute(query, queryType, pplRequest, false, listener)),
+            withCurrentContext(() -> doExecute(query, queryType, pplRequest, listener)),
             new TimeValue(0),
             SQL_WORKER_THREAD_POOL_NAME);
   }
 
-  /** Explain a query through the unified query pipeline on the sql-worker thread pool. */
+  /**
+   * Explain a query through the unified query pipeline on the sql-worker thread pool. Returns
+   * ExplainResponse via ResponseListener so the caller (TransportPPLQueryAction) can format it
+   * using its own createExplainResponseListener, reusing the existing format-aware logic.
+   */
   public void explain(
       String query,
       QueryType queryType,
       PPLQueryRequest pplRequest,
-      ActionListener<TransportPPLQueryResponse> listener) {
+      ResponseListener<ExplainResponse> listener) {
     client
         .threadPool()
         .schedule(
-            withCurrentContext(() -> doExecute(query, queryType, pplRequest, true, listener)),
+            withCurrentContext(() -> doExplain(query, queryType, pplRequest, listener)),
             new TimeValue(0),
             SQL_WORKER_THREAD_POOL_NAME);
   }
@@ -110,7 +109,6 @@ public class RestUnifiedQueryAction {
       String query,
       QueryType queryType,
       PPLQueryRequest pplRequest,
-      boolean isExplain,
       ActionListener<TransportPPLQueryResponse> listener) {
     try {
       long startTime = System.nanoTime();
@@ -135,13 +133,43 @@ public class RestUnifiedQueryAction {
             (planTime - startTime) / 1_000_000,
             queryType);
 
-        if (isExplain) {
-          analyticsEngine.explain(
-              plan, pplRequest.mode(), planContext, createExplainListener(pplRequest, listener));
-        } else {
-          analyticsEngine.execute(
-              plan, planContext, createQueryListener(queryType, planTime, listener));
-        }
+        analyticsEngine.execute(
+            plan, planContext, createQueryListener(queryType, planTime, listener));
+      }
+    } catch (Exception e) {
+      listener.onFailure(e);
+    }
+  }
+
+  private void doExplain(
+      String query,
+      QueryType queryType,
+      PPLQueryRequest pplRequest,
+      ResponseListener<ExplainResponse> listener) {
+    try {
+      long startTime = System.nanoTime();
+      AbstractSchema schema = StubSchemaProvider.buildSchema();
+
+      try (UnifiedQueryContext context =
+          UnifiedQueryContext.builder()
+              .language(queryType)
+              .catalog(SCHEMA_NAME, schema)
+              .defaultNamespace(SCHEMA_NAME)
+              .build()) {
+
+        UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+        RelNode plan = planner.plan(query);
+
+        CalcitePlanContext planContext = context.getPlanContext();
+        plan = addQuerySizeLimit(plan, planContext);
+
+        long planTime = System.nanoTime();
+        LOG.info(
+            "[unified] Planning completed in {}ms for {} query",
+            (planTime - startTime) / 1_000_000,
+            queryType);
+
+        analyticsEngine.explain(plan, pplRequest.mode(), planContext, listener);
       }
     } catch (Exception e) {
       listener.onFailure(e);
@@ -178,42 +206,6 @@ public class RestUnifiedQueryAction {
                 new QueryResult(
                     response.getSchema(), response.getResults(), response.getCursor(), langSpec));
         transportListener.onResponse(new TransportPPLQueryResponse(result));
-      }
-
-      @Override
-      public void onFailure(Exception e) {
-        transportListener.onFailure(e);
-      }
-    };
-  }
-
-  private ResponseListener<ExplainResponse> createExplainListener(
-      PPLQueryRequest pplRequest, ActionListener<TransportPPLQueryResponse> transportListener) {
-    return new ResponseListener<ExplainResponse>() {
-      @Override
-      public void onResponse(ExplainResponse response) {
-        Optional<Format> isYamlFormat =
-            Format.ofExplain(pplRequest.getFormat()).filter(f -> f.equals(Format.YAML));
-        ResponseFormatter<ExplainResponse> formatter;
-        if (isYamlFormat.isPresent()) {
-          formatter =
-              new YamlResponseFormatter<ExplainResponse>() {
-                @Override
-                protected Object buildYamlObject(ExplainResponse resp) {
-                  return normalizeLf(resp);
-                }
-              };
-        } else {
-          formatter =
-              new JsonResponseFormatter<ExplainResponse>(PRETTY) {
-                @Override
-                protected Object buildJsonObject(ExplainResponse resp) {
-                  return resp;
-                }
-              };
-        }
-        transportListener.onResponse(
-            new TransportPPLQueryResponse(formatter.format(response), formatter.contentType()));
       }
 
       @Override

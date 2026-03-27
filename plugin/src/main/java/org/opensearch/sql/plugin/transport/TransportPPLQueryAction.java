@@ -129,7 +129,10 @@ public class TransportPPLQueryAction
     if (RestUnifiedQueryAction.isAnalyticsIndex(transformedRequest.getRequest())) {
       if (transformedRequest.isExplainRequest()) {
         unifiedQueryHandler.explain(
-            transformedRequest.getRequest(), QueryType.PPL, transformedRequest, clearingListener);
+            transformedRequest.getRequest(),
+            QueryType.PPL,
+            transformedRequest,
+            createExplainResponseListener(transformedRequest, clearingListener));
       } else {
         unifiedQueryHandler.execute(
             transformedRequest.getRequest(), QueryType.PPL, transformedRequest, clearingListener);
