@@ -8,7 +8,6 @@ package org.opensearch.sql.api;
 import static org.opensearch.sql.monitor.profile.MetricName.ANALYZE;
 
 import lombok.RequiredArgsConstructor;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
@@ -18,15 +17,11 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
-import org.opensearch.sql.ast.statement.Query;
-import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.executor.QueryType;
-import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
-import org.opensearch.sql.ppl.parser.AstBuilder;
-import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 
 /**
  * {@code UnifiedQueryPlanner} provides a high-level API for parsing and analyzing queries using the
@@ -93,34 +88,24 @@ public class UnifiedQueryPlanner {
     }
   }
 
-  /** AST-based planning via ANTLR parser → UnresolvedPlan → CalciteRelNodeVisitor. */
-  @RequiredArgsConstructor
+  /** AST-based planning via context-owned parser → UnresolvedPlan → CalciteRelNodeVisitor. */
   private static class CustomVisitorStrategy implements PlanningStrategy {
     private final UnifiedQueryContext context;
-    private final PPLSyntaxParser parser = new PPLSyntaxParser();
+    private final UnifiedQueryParser<UnresolvedPlan> parser;
     private final CalciteRelNodeVisitor relNodeVisitor =
         new CalciteRelNodeVisitor(new EmptyDataSourceService());
 
-    @Override
-    public RelNode plan(String query) {
-      UnresolvedPlan ast = parse(query);
-      RelNode logical = relNodeVisitor.analyze(ast, context.getPlanContext());
-      return preserveCollation(logical);
+    @SuppressWarnings("unchecked")
+    CustomVisitorStrategy(UnifiedQueryContext context) {
+      this.context = context;
+      this.parser = (UnifiedQueryParser<UnresolvedPlan>) context.getParser();
     }
 
-    private UnresolvedPlan parse(String query) {
-      ParseTree cst = parser.parse(query);
-      AstStatementBuilder astStmtBuilder =
-          new AstStatementBuilder(
-              new AstBuilder(query, context.getSettings()),
-              AstStatementBuilder.StatementBuilderContext.builder().build());
-      Statement statement = cst.accept(astStmtBuilder);
-
-      if (statement instanceof Query) {
-        return ((Query) statement).getPlan();
-      }
-      throw new UnsupportedOperationException(
-          "Only query statements are supported but got " + statement.getClass().getSimpleName());
+    @Override
+    public RelNode plan(String query) {
+      UnresolvedPlan ast = parser.parse(query);
+      RelNode logical = relNodeVisitor.analyze(ast, context.getPlanContext());
+      return preserveCollation(logical);
     }
 
     private RelNode preserveCollation(RelNode logical) {

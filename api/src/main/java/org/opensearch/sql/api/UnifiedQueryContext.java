@@ -15,7 +15,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import lombok.Value;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
@@ -26,6 +27,9 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
+import org.opensearch.sql.api.parser.CalciteSqlQueryParser;
+import org.opensearch.sql.api.parser.PPLQueryParser;
+import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.common.setting.Settings;
@@ -40,14 +44,18 @@ import org.opensearch.sql.monitor.profile.QueryProfiling;
  * centralizes configuration for catalog schemas, query type, execution limits, and other settings,
  * enabling consistent behavior across all unified query operations.
  */
-@Value
+@AllArgsConstructor
+@Getter
 public class UnifiedQueryContext implements AutoCloseable {
 
   /** CalcitePlanContext containing Calcite framework configuration and query type. */
-  CalcitePlanContext planContext;
+  private final CalcitePlanContext planContext;
 
   /** Settings containing execution limits and feature flags used by parsers and planners. */
-  Settings settings;
+  private final Settings settings;
+
+  /** Query parser created eagerly from this context's configuration. */
+  private final UnifiedQueryParser<?> parser;
 
   /**
    * Returns the profiling result. Call after query execution to retrieve collected metrics. Returns
@@ -202,7 +210,14 @@ public class UnifiedQueryContext implements AutoCloseable {
           CalcitePlanContext.create(
               buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
       QueryProfiling.activate(profiling);
-      return new UnifiedQueryContext(planContext, settings);
+      return new UnifiedQueryContext(planContext, settings, createParser(planContext, settings));
+    }
+
+    private UnifiedQueryParser<?> createParser(CalcitePlanContext planContext, Settings settings) {
+      return switch (queryType) {
+        case PPL -> new PPLQueryParser(settings);
+        case SQL -> new CalciteSqlQueryParser(planContext);
+      };
     }
 
     private Settings buildSettings() {
