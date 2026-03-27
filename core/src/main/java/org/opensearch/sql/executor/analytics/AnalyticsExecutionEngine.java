@@ -9,9 +9,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -72,6 +74,20 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
       Schema schema = buildSchema(fields);
 
       listener.onResponse(new QueryResponse(schema, results, Cursor.None));
+    } catch (Exception e) {
+      listener.onFailure(e);
+    }
+  }
+
+  @Override
+  public void explain(
+      RelNode plan,
+      ExplainMode mode,
+      CalcitePlanContext context,
+      ResponseListener<ExplainResponse> listener) {
+    try {
+      String logical = RelOptUtil.toString(plan, mode.toExplainLevel());
+      listener.onResponse(new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
     } catch (Exception e) {
       listener.onFailure(e);
     }
