@@ -64,6 +64,7 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.SearchAnd;
 import org.opensearch.sql.ast.expression.SearchExpression;
 import org.opensearch.sql.ast.expression.SearchGroup;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
@@ -118,6 +119,7 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timewrap;
 import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -817,6 +819,39 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .columnSplit(byField)
         .arguments(arguments)
         .build();
+  }
+
+  /** Timewrap command. */
+  @Override
+  public UnresolvedPlan visitTimewrapCommand(OpenSearchPPLParser.TimewrapCommandContext ctx) {
+    Literal spanLiteral = (Literal) expressionBuilder.visit(ctx.spanLiteral());
+    String spanText = spanLiteral.getValue().toString();
+    String valueStr = spanText.replaceAll("[^0-9]", "");
+    String unitStr = spanText.replaceAll("[0-9]", "");
+    int value = valueStr.isEmpty() ? 1 : Integer.parseInt(valueStr);
+    SpanUnit unit = SpanUnit.of(unitStr);
+    if (unit == SpanUnit.UNKNOWN || unit == SpanUnit.NONE) {
+      throw new SemanticCheckException("Invalid timewrap span unit: " + unitStr);
+    }
+    String align = "end";
+    String series = "relative";
+    String timeFormat = null;
+    for (var param : ctx.timewrapParameter()) {
+      if (param.timewrapAlign() != null) {
+        align = param.timewrapAlign().getText().toLowerCase();
+      } else if (param.timewrapSeries() != null) {
+        series = param.timewrapSeries().getText().toLowerCase();
+      } else if (param.TIME_FORMAT() != null) {
+        timeFormat = param.stringLiteral().getText();
+        // Strip surrounding quotes
+        if (timeFormat.length() >= 2
+            && ((timeFormat.startsWith("\"") && timeFormat.endsWith("\""))
+                || (timeFormat.startsWith("'") && timeFormat.endsWith("'")))) {
+          timeFormat = timeFormat.substring(1, timeFormat.length() - 1);
+        }
+      }
+    }
+    return new Timewrap(unit, value, align, series, timeFormat, spanLiteral);
   }
 
   /** Eval command. */

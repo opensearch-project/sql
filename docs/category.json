@@ -45,6 +45,7 @@
     "user/ppl/cmd/syntax.md",
     "user/ppl/cmd/chart.md",
     "user/ppl/cmd/timechart.md",
+    "user/ppl/cmd/timewrap.md",
     "user/ppl/cmd/top.md",
     "user/ppl/cmd/trendline.md",
     "user/ppl/cmd/transpose.md",
