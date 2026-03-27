@@ -1,0 +1,5 @@
+{
+  "calcite": {
+    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(ts=[$0], message=[$2])\n    LogicalFilter(condition=[=($1, 200)])\n      LogicalTableScan(table=[[opensearch, parquet_logs]])\n"
+  }
+}
