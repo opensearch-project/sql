@@ -3,7 +3,7 @@
 # Copyright OpenSearch Contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Posts a formatted duplicate detection comment and adds the autoclose label.
+# Posts a formatted duplicate detection comment and adds the duplicate label.
 #
 # Usage:
 #   ./scripts/comment-on-duplicates.sh --base-issue 123 --potential-duplicates 456 789
@@ -67,7 +67,7 @@ BODY="<!-- duplicate-detection -->
 Found **${#DUPLICATES[@]}** possible duplicate issue(s):
 
 ${DUP_LIST}
-If this is **not** a duplicate, please comment on this issue and the \`autoclose\` label will be removed automatically.
+If this is **not** a duplicate, please comment on this issue and the \`duplicate\` label will be removed automatically.
 
 Otherwise, this issue will be **automatically closed in 3 days**.
 
@@ -76,13 +76,13 @@ Otherwise, this issue will be **automatically closed in 3 days**.
 # Post the comment
 echo "$BODY" | gh issue comment "$BASE_ISSUE" $REPO_FLAG --body-file -
 
-# Ensure the autoclose label exists
-gh label create "autoclose" \
-  --description "Issue will be auto-closed as duplicate" \
+# Ensure the duplicate label exists
+gh label create "duplicate" \
+  --description "Issue is a duplicate of an existing issue" \
   --color "cccccc" \
   $REPO_FLAG 2>/dev/null || true
 
-# Add autoclose label
-gh issue edit "$BASE_ISSUE" $REPO_FLAG --add-label "autoclose"
+# Add duplicate label
+gh issue edit "$BASE_ISSUE" $REPO_FLAG --add-label "duplicate"
 
-echo "Posted duplicate comment and added autoclose label to issue #${BASE_ISSUE}"
+echo "Posted duplicate comment and added duplicate label to issue #${BASE_ISSUE}"
