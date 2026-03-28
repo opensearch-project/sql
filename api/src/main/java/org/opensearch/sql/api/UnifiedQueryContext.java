@@ -23,10 +23,14 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
+import org.opensearch.sql.api.function.RelevanceSearchConvertletTable;
+import org.opensearch.sql.api.function.SqlExtensionFunctions;
 import org.opensearch.sql.api.parser.CalciteSqlQueryParser;
 import org.opensearch.sql.api.parser.PPLQueryParser;
 import org.opensearch.sql.api.parser.UnifiedQueryParser;
@@ -243,6 +247,10 @@ public class UnifiedQueryContext implements AutoCloseable {
       SchemaPlus defaultSchema = findSchemaByPath(rootSchema, defaultNamespace);
       return Frameworks.newConfigBuilder()
           .parserConfig(buildParserConfig())
+          .convertletTable(new RelevanceSearchConvertletTable())
+          .operatorTable(
+              SqlOperatorTables.chain(
+                  SqlStdOperatorTable.instance(), SqlExtensionFunctions.OPERATOR_TABLE))
           .defaultSchema(defaultSchema)
           .traitDefs((List<RelTraitDef>) null)
           .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
