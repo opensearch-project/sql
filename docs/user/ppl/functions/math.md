@@ -1,12 +1,19 @@
-# Mathematical Functions  
+# Mathematical functions
 
-## ABS  
+The following mathematical functions are supported in PPL.
 
-### Description  
+## ABS
 
-Usage: `abs(x)` calculates the abs x.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Usage**: `ABS(x)`
+
+Calculates the absolute value of `x`.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` (same type as input)
+
 ### Example
   
 ```ppl
@@ -15,7 +22,7 @@ source=people
 | fields `ABS(-1)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -26,14 +33,21 @@ fetched rows / total rows = 1/1
 +---------+
 ```
   
-## ADD  
+## ADD
 
-### Description  
+**Usage**: `ADD(x, y)`
 
-Usage: `add(x, y)` calculates x plus y.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `Wider number between x and y`
-Synonyms: Addition Symbol (+)
+Calculates the sum of `x` and `y`.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+- `y` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: The wider numeric type between `x` and `y`
+
+**Synonyms**: Addition Symbol (`+`)
+
 ### Example
   
 ```ppl
@@ -42,7 +56,7 @@ source=people
 | fields `ADD(2, 1)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -53,14 +67,21 @@ fetched rows / total rows = 1/1
 +-----------+
 ```
   
-## SUBTRACT  
+## SUBTRACT
 
-### Description  
+**Usage**: `SUBTRACT(x, y)`
 
-Usage: `subtract(x, y)` calculates x minus y.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `Wider number between x and y`
-Synonyms: Subtraction Symbol (-)
+Calculates `x` minus `y`.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+- `y` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: The wider numeric type between `x` and `y`
+
+**Synonyms**: Subtraction Symbol (`-`)
+
 ### Example
   
 ```ppl
@@ -69,7 +90,7 @@ source=people
 | fields `SUBTRACT(2, 1)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -80,14 +101,21 @@ fetched rows / total rows = 1/1
 +----------------+
 ```
   
-## MULTIPLY  
+## MULTIPLY
 
-### Description  
+**Usage**: `MULTIPLY(x, y)`
 
-Usage: `multiply(x, y)` calculates the multiplication of x and y.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `Wider number between x and y. If y equals to 0, then returns NULL.`
-Synonyms: Multiplication Symbol (\*)
+Calculates the product of `x` and `y`.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+- `y` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: The wider numeric type between `x` and `y`
+
+**Synonyms**: Multiplication Symbol (`*`)
+
 ### Example
   
 ```ppl
@@ -96,7 +124,7 @@ source=people
 | fields `MULTIPLY(2, 1)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -107,14 +135,21 @@ fetched rows / total rows = 1/1
 +----------------+
 ```
   
-## DIVIDE  
+## DIVIDE
 
-### Description  
+**Usage**: `DIVIDE(x, y)`
 
-Usage: `divide(x, y)` calculates x divided by y.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `Wider number between x and y`
-Synonyms: Division Symbol (/)
+Calculates `x` divided by `y`.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+- `y` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: The wider numeric type between `x` and `y`
+
+**Synonyms**: Division Symbol (`/`)
+
 ### Example
   
 ```ppl
@@ -123,7 +158,7 @@ source=people
 | fields `DIVIDE(2, 1)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -134,14 +169,21 @@ fetched rows / total rows = 1/1
 +--------------+
 ```
   
-## SUM  
+## SUM
 
-### Description  
+**Usage**: `SUM(x, y, ...)`
 
-Usage: `sum(x, y, ...)` calculates the sum of all provided arguments. This function accepts a variable number of arguments.
-Note: This function is only available in the eval command context and is rewritten to arithmetic addition while query parsing.
-**Argument type:** `Variable number of INTEGER/LONG/FLOAT/DOUBLE arguments`
-**Return type:** `Wider number type among all arguments`
+Calculates the sum of all provided arguments. This function accepts a variable number of arguments.
+
+This function is only available in the `eval` command context and is rewritten to arithmetic addition during query parsing.
+{: .note}
+
+**Parameters**:
+
+- `x, y, ...` (Required): Variable number of `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` arguments.
+
+**Return type**: The widest numeric type among all arguments
+
 ### Example
   
 ```ppl
@@ -150,7 +192,7 @@ source=accounts
 | fields `SUM(1, 2, 3)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -170,7 +212,7 @@ source=accounts
 | fields age, total
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -184,14 +226,21 @@ fetched rows / total rows = 4/4
 +-----+-------+
 ```
   
-## AVG  
+## AVG
 
-### Description  
+**Usage**: `AVG(x, y, ...)`
 
-Usage: `avg(x, y, ...)` calculates the average (arithmetic mean) of all provided arguments. This function accepts a variable number of arguments.
-Note: This function is only available in the eval command context and is rewritten to arithmetic expression (sum / count) at query parsing time.
-**Argument type:** `Variable number of INTEGER/LONG/FLOAT/DOUBLE arguments`
-**Return type:** `DOUBLE`
+Calculates the average (arithmetic mean) of all provided arguments. This function accepts a variable number of arguments.
+
+This function is only available in the `eval` command context and is rewritten to an arithmetic expression (sum or count) during query parsing.
+{: .note}
+
+**Parameters**:
+
+- `x, y, ...` (Required): Variable number of `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` arguments.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -200,7 +249,7 @@ source=accounts
 | fields `AVG(1, 2, 3)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -220,7 +269,7 @@ source=accounts
 | fields age, average
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -234,13 +283,18 @@ fetched rows / total rows = 4/4
 +-----+---------+
 ```
   
-## ACOS  
+## ACOS
 
-### Description  
+**Usage**: `ACOS(x)`
 
-Usage: `acos(x)` calculates the arc cosine of x. Returns NULL if x is not in the range -1 to 1.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Calculates the arccosine of `x`. Returns `NULL` if `x` is not in the `[-1, 1]` range.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -249,7 +303,7 @@ source=people
 | fields `ACOS(0)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -260,13 +314,18 @@ fetched rows / total rows = 1/1
 +--------------------+
 ```
   
-## ASIN  
+## ASIN
 
-### Description  
+**Usage**: `ASIN(x)`
 
-Usage: `asin(x)` calculate the arc sine of x. Returns NULL if x is not in the range -1 to 1.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Calculates the arcsine of `x`. Returns `NULL` if `x` is not in the `[-1, 1]` range.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -275,7 +334,7 @@ source=people
 | fields `ASIN(0)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -286,13 +345,19 @@ fetched rows / total rows = 1/1
 +---------+
 ```
   
-## ATAN  
+## ATAN
 
-### Description  
+**Usage**: `ATAN(x)`, `ATAN(y, x)`
 
-Usage: `atan(x)` calculates the arc tangent of x. atan(y, x) calculates the arc tangent of y / x, except that the signs of both arguments are used to determine the quadrant of the result.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Calculates the arctangent of `x`. `ATAN(y, x)` calculates the arctangent of the quotient y / x, using the signs of both arguments to determine the quadrant of the result.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+- `y` (Optional): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value (when using two-argument form).
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -301,7 +366,7 @@ source=people
 | fields `ATAN(2)`, `ATAN(2, 3)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -312,13 +377,19 @@ fetched rows / total rows = 1/1
 +--------------------+--------------------+
 ```
   
-## ATAN2  
+## ATAN2
 
-### Description  
+**Usage**: `ATAN2(y, x)`
 
-Usage: atan2(y, x) calculates the arc tangent of y / x, except that the signs of both arguments are used to determine the quadrant of the result.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Calculates the arctangent of the quotient y / x, using the signs of both arguments to determine the quadrant of the result.
+
+**Parameters**:
+
+- `y` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -327,7 +398,7 @@ source=people
 | fields `ATAN2(2, 3)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -340,16 +411,35 @@ fetched rows / total rows = 1/1
   
 ## CEIL  
 
+**Usage**: `CEIL(x)`
+
+Returns the ceiling of the value `x`.
+
 An alias for [CEILING](#ceiling) function.
-## CEILING  
 
-### Description  
+**Parameters**:
 
-Usage: `CEILING(T)` takes the ceiling of value T.
-Note: [CEIL](#ceil) and CEILING functions have the same implementation & functionality
-Limitation: CEILING only works as expected when IEEE 754 double type displays decimal when stored.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `same type with input`
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: Same type as input
+
+## CEILING
+
+**Usage**: `CEILING(x)`
+
+Returns the ceiling of the value `x`.
+
+The [`CEIL`](#ceil) and `CEILING` functions have the same implementation and functionality.
+{: .note}
+
+Limitation: `CEILING` only works as expected when the IEEE 754 double type displays a decimal when stored.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: Same type as input
+
 ### Example
   
 ```ppl
@@ -358,7 +448,7 @@ source=people
 | fields `CEILING(0)`, `CEILING(50.00005)`, `CEILING(-50.00005)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -375,7 +465,7 @@ source=people
 | fields `CEILING(3147483647.12345)`, `CEILING(113147483647.12345)`, `CEILING(3147483647.00001)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -386,13 +476,20 @@ fetched rows / total rows = 1/1
 +---------------------------+-----------------------------+---------------------------+
 ```
   
-## CONV  
+## CONV
 
-### Description  
+**Usage**: `CONV(x, a, b)`
 
-Usage: `CONV(x, a, b)` converts the number x from a base to b base.
-**Argument type:** `x: STRING, a: INTEGER, b: INTEGER`
-**Return type:** `STRING`
+Converts the number `x` from base `a` to base `b`.
+
+**Parameters**:
+
+- `x` (Required): A `STRING` value.
+- `a` (Required): An `INTEGER` value.
+- `b` (Required): An `INTEGER` value.
+
+**Return type**: `STRING`
+
 ### Example
   
 ```ppl
@@ -401,7 +498,7 @@ source=people
 | fields `CONV('12', 10, 16)`, `CONV('2C', 16, 10)`, `CONV(12, 10, 2)`, `CONV(1111, 2, 10)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -412,13 +509,18 @@ fetched rows / total rows = 1/1
 +--------------------+--------------------+-----------------+-------------------+
 ```
   
-## COS  
+## COS
 
-### Description  
+**Usage**: `COS(x)`
 
-Usage: `cos(x)` calculates the cosine of x, where x is given in radians.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Calculates the cosine of `x`, where `x` is given in radians.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -427,7 +529,7 @@ source=people
 | fields `COS(0)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -438,13 +540,18 @@ fetched rows / total rows = 1/1
 +--------+
 ```
   
-## COSH  
+## COSH
 
-### Description  
+**Usage**: `COSH(x)`
 
-Usage: `cosh(x)` calculates the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2).
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Calculates the hyperbolic cosine of `x`, defined as (((e^x) + (e^(-x))) / 2).
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -453,7 +560,7 @@ source=people
 | fields `COSH(2)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -464,13 +571,18 @@ fetched rows / total rows = 1/1
 +--------------------+
 ```
   
-## COT  
+## COT
 
-### Description  
+**Usage**: `COT(x)`
 
-Usage: `cot(x)` calculates the cotangent of x. Returns out-of-range error if x equals to 0.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Calculates the cotangent of `x`. Returns an error if `x` equals 0.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -479,7 +591,7 @@ source=people
 | fields `COT(1)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -490,13 +602,18 @@ fetched rows / total rows = 1/1
 +--------------------+
 ```
   
-## CRC32  
+## CRC32
 
-### Description  
+**Usage**: `CRC32(expr)`
 
-Usage: Calculates a cyclic redundancy check value and returns a 32-bit unsigned value.
-**Argument type:** `STRING`
-**Return type:** `LONG`
+Calculates a cyclic redundancy check value and returns a 32-bit unsigned value.
+
+**Parameters**:
+
+- `expr` (Required): A `STRING` value.
+
+**Return type**: `LONG`
+
 ### Example
   
 ```ppl
@@ -505,7 +622,7 @@ source=people
 | fields `CRC32('MySQL')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -516,13 +633,18 @@ fetched rows / total rows = 1/1
 +----------------+
 ```
   
-## DEGREES  
+## DEGREES
 
-### Description  
+**Usage**: `DEGREES(x)`
 
-Usage: `degrees(x)` converts x from radians to degrees.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Converts `x` from radians to degrees.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -531,7 +653,7 @@ source=people
 | fields `DEGREES(1.57)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows  = 1/1
@@ -542,12 +664,16 @@ fetched rows / total rows  = 1/1
 +-------------------+
 ```
   
-## E  
+## E
 
-### Description  
+**Usage**: `E()`
 
-Usage: `E()` returns the Euler's number
-**Return type:** `DOUBLE`
+Returns Euler's number (e ≈ 2.718281828459045).
+
+**Parameters**: None
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -556,7 +682,7 @@ source=people
 | fields `E()`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -567,13 +693,18 @@ fetched rows / total rows = 1/1
 +-------------------+
 ```
   
-## EXP  
+## EXP
 
-### Description  
+**Usage**: `EXP(x)`
 
-Usage: `exp(x)` return e raised to the power of x.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Returns e raised to the power of `x`.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -582,7 +713,7 @@ source=people
 | fields `EXP(2)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -593,13 +724,18 @@ fetched rows / total rows = 1/1
 +------------------+
 ```
   
-## EXPM1  
+## EXPM1
 
-### Description  
+**Usage**: `EXPM1(x)`
 
-Usage: expm1(NUMBER T) returns the exponential of T, minus 1.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Returns e^x - 1 (exponential of `x` minus 1).
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -608,7 +744,7 @@ source=people
 | fields `EXPM1(1)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -619,14 +755,20 @@ fetched rows / total rows = 1/1
 +-------------------+
 ```
   
-## FLOOR  
+## FLOOR
 
-### Description  
+**Usage**: `FLOOR(x)`
 
-Usage: `FLOOR(T)` takes the floor of value T.
-Limitation: FLOOR only works as expected when IEEE 754 double type displays decimal when stored.
-**Argument type:** `a: INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `same type with input`
+Returns the floor of the value `x`.
+
+Limitation: `FLOOR` only works as expected when the IEEE 754 double type displays a decimal when stored.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: Same type as input
+
 ### Example
   
 ```ppl
@@ -635,7 +777,7 @@ source=people
 | fields `FLOOR(0)`, `FLOOR(50.00005)`, `FLOOR(-50.00005)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -652,7 +794,7 @@ source=people
 | fields `FLOOR(3147483647.12345)`, `FLOOR(113147483647.12345)`, `FLOOR(3147483647.00001)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -669,7 +811,7 @@ source=people
 | fields `FLOOR(282474973688888.022)`, `FLOOR(9223372036854775807.022)`, `FLOOR(9223372036854775807.0000001)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -680,13 +822,18 @@ fetched rows / total rows = 1/1
 +----------------------------+--------------------------------+------------------------------------+
 ```
   
-## LN  
+## LN
 
-### Description  
+**Usage**: `LN(x)`
 
-Usage: `ln(x)` return the the natural logarithm of x.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Returns the natural logarithm of `x`.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -695,7 +842,7 @@ source=people
 | fields `LN(2)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -706,14 +853,19 @@ fetched rows / total rows = 1/1
 +--------------------+
 ```
   
-## LOG  
+## LOG
 
-### Description  
+**Usage**: `LOG(x)`, `LOG(B, x)`
 
-Specifications:
-Usage: `log(x)` returns the natural logarithm of x that is the base e logarithm of the x. log(B, x) is equivalent to log(x)/log(B).
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Returns the natural logarithm of `x` (base e logarithm). `LOG(B, x)` is equivalent to log(x)/log(B).
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+- `B` (Optional): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value (when using two-argument form).
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -722,7 +874,7 @@ source=people
 | fields `LOG(2)`, `LOG(2, 8)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -733,14 +885,18 @@ fetched rows / total rows = 1/1
 +--------------------+-----------+
 ```
   
-## LOG2  
+## LOG2
 
-### Description  
+**Usage**: `LOG2(x)`
 
-Specifications:
-Usage: log2(x) is equivalent to log(x)/log(2).
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Returns the base-2 logarithm of `x`. Equivalent to log(x)/log(2).
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -749,7 +905,7 @@ source=people
 | fields `LOG2(8)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -760,14 +916,18 @@ fetched rows / total rows = 1/1
 +---------+
 ```
   
-## LOG10  
+## LOG10
 
-### Description  
+**Usage**: `LOG10(x)`
 
-Specifications:
-Usage: log10(x) is equivalent to log(x)/log(10).
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Returns the base-10 logarithm of `x`. Equivalent to log(x)/log(10).
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -776,7 +936,7 @@ source=people
 | fields `LOG10(100)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -787,13 +947,19 @@ fetched rows / total rows = 1/1
 +------------+
 ```
   
-## MOD  
+## MOD
 
-### Description  
+**Usage**: `MOD(n, m)`
 
-Usage: `MOD(n, m)` calculates the remainder of the number n divided by m.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `Wider type between types of n and m if m is nonzero value. If m equals to 0, then returns NULL.`
+Calculates the remainder of the number `n` divided by `m`.
+
+**Parameters**:
+
+- `n` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+- `m` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: The wider type between `n` and `m` if `m` is nonzero value. If `m` equals `0`, then returns `NULL`.
+
 ### Example
   
 ```ppl
@@ -802,7 +968,7 @@ source=people
 | fields `MOD(3, 2)`, `MOD(3.1, 2)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -813,13 +979,19 @@ fetched rows / total rows = 1/1
 +-----------+-------------+
 ```
   
-## MODULUS  
+## MODULUS
 
-### Description  
+**Usage**: `MODULUS(n, m)`
 
-Usage: `MODULUS(n, m)` calculates the remainder of the number n divided by m.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `Wider type between types of n and m if m is nonzero value. If m equals to 0, then returns NULL.`
+Calculates the remainder of the number `n` divided by `m`.
+
+**Parameters**:
+
+- `n` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+- `m` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: The wider type between `n` and `m` if `m` is nonzero value. If `m` equals `0`, then returns `NULL`.
+
 ### Example
   
 ```ppl
@@ -828,7 +1000,7 @@ source=people
 | fields `MODULUS(3, 2)`, `MODULUS(3.1, 2)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -839,12 +1011,16 @@ fetched rows / total rows = 1/1
 +---------------+-----------------+
 ```
   
-## PI  
+## PI
 
-### Description  
+**Usage**: `PI()`
 
-Usage: `PI()` returns the constant pi
-**Return type:** `DOUBLE`
+Returns the mathematical constant π (pi ≈ 3.141592653589793).
+
+**Parameters**: None
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -853,7 +1029,7 @@ source=people
 | fields `PI()`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -864,14 +1040,21 @@ fetched rows / total rows = 1/1
 +-------------------+
 ```
   
-## POW  
+## POW
 
-### Description  
+**Usage**: `POW(x, y)`
 
-Usage: `POW(x, y)` calculates the value of x raised to the power of y. Bad inputs return NULL result.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
-Synonyms: [POWER](#power)
+Calculates the value of `x` raised to the power of `y`. Invalid inputs return `NULL`.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+- `y` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
+**Synonyms**: [POWER](#power)
+
 ### Example
   
 ```ppl
@@ -880,7 +1063,7 @@ source=people
 | fields `POW(3, 2)`, `POW(-3, 2)`, `POW(3, -2)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -891,14 +1074,21 @@ fetched rows / total rows = 1/1
 +-----------+------------+--------------------+
 ```
   
-## POWER  
+## POWER
 
-### Description  
+**Usage**: `POWER(x, y)`
 
-Usage: `POWER(x, y)` calculates the value of x raised to the power of y. Bad inputs return NULL result.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
-Synonyms: [POW](#pow)
+Calculates the value of `x` raised to the power of `y`. Invalid inputs return `NULL`.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+- `y` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
+**Synonyms**: [POW](#pow)
+
 ### Example
   
 ```ppl
@@ -907,7 +1097,7 @@ source=people
 | fields `POWER(3, 2)`, `POWER(-3, 2)`, `POWER(3, -2)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -918,13 +1108,18 @@ fetched rows / total rows = 1/1
 +-------------+--------------+--------------------+
 ```
   
-## RADIANS  
+## RADIANS
 
-### Description  
+**Usage**: `RADIANS(x)`
 
-Usage: `radians(x)` converts x from degrees to radians.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Converts x from degrees to radians.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -933,7 +1128,7 @@ source=people
 | fields `RADIANS(90)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows  = 1/1
@@ -944,13 +1139,18 @@ fetched rows / total rows  = 1/1
 +--------------------+
 ```
   
-## RAND  
+## RAND
 
-### Description  
+**Usage**: `RAND()`, `RAND(N)`
 
-Usage: `RAND()`/`RAND(`N) returns a random floating-point value in the range 0 <= value < 1.0. If integer N is specified, the seed is initialized prior to execution. One implication of this behavior is with identical argument N, rand(N) returns the same value each time, and thus produces a repeatable sequence of column values.
-**Argument type:** `INTEGER`
-**Return type:** `FLOAT`
+Returns a random floating-point value in the `[0, 1)` range. If an integer `N` is specified, the seed is initialized prior to execution. As a result, calling `RAND(N)` with the same value of `N` always returns the same result, producing a repeatable sequence of column values.
+
+**Parameters**:
+
+- `N` (Optional): An `INTEGER` value.
+
+**Return type**: `FLOAT`
+
 ### Example
   
 ```ppl
@@ -959,7 +1159,7 @@ source=people
 | fields `RAND(3)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -970,15 +1170,21 @@ fetched rows / total rows = 1/1
 +---------------------+
 ```
   
-## ROUND  
+## ROUND
 
-### Description  
+**Usage**: `ROUND(x, d)`
 
-Usage: `ROUND(x, d)` rounds the argument x to d decimal places, d defaults to 0 if not specified
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-Return type map:
-(INTEGER/LONG [,INTEGER]) -> LONG
-(FLOAT/DOUBLE [,INTEGER]) -> LONG
+Rounds the argument `x` to `d` decimal places. `d` defaults to `0`.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+- `d` (Optional): An `INTEGER` value.
+
+**Return type**:
+- `(INTEGER/LONG [,INTEGER])` -> `LONG`.
+- `(FLOAT/DOUBLE [,INTEGER])` -> `LONG`.
+
 ### Example
   
 ```ppl
@@ -987,7 +1193,7 @@ source=people
 | fields `ROUND(12.34)`, `ROUND(12.34, 1)`, `ROUND(12.34, -1)`, `ROUND(12, 1)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -998,13 +1204,18 @@ fetched rows / total rows = 1/1
 +--------------+-----------------+------------------+--------------+
 ```
   
-## SIGN  
+## SIGN
 
-### Description  
+**Usage**: `SIGN(x)`
 
-Usage: Returns the sign of the argument as -1, 0, or 1, depending on whether the number is negative, zero, or positive
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `same type with input`
+Returns the sign of the argument as `-1`, `0`, or `1`, depending on whether the number is negative, zero, or positive.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: Same type as input
+
 ### Example
   
 ```ppl
@@ -1013,7 +1224,7 @@ source=people
 | fields `SIGN(1)`, `SIGN(0)`, `SIGN(-1.1)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1024,14 +1235,20 @@ fetched rows / total rows = 1/1
 +---------+---------+------------+
 ```
   
-## SIGNUM  
+## SIGNUM
 
-### Description  
+**Usage**: `SIGNUM(x)`
 
-Usage: Returns the sign of the argument as -1, 0, or 1, depending on whether the number is negative, zero, or positive
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `INTEGER`
-Synonyms: `SIGN`
+Returns the sign of the argument as `-1`, `0`, or `1`, depending on whether the number is negative, zero, or positive.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `INTEGER`
+
+**Synonyms**: `SIGN`
+
 ### Example
   
 ```ppl
@@ -1040,7 +1257,7 @@ source=people
 | fields `SIGNUM(1)`, `SIGNUM(0)`, `SIGNUM(-1.1)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1051,13 +1268,18 @@ fetched rows / total rows = 1/1
 +-----------+-----------+--------------+
 ```
   
-## SIN  
+## SIN
 
-### Description  
+**Usage**: `SIN(x)`
 
-Usage: `sin(x)` calculates the sine of x, where x is given in radians.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Calculates the sine of `x`, where `x` is given in radians.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -1066,7 +1288,7 @@ source=people
 | fields `SIN(0)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1077,13 +1299,18 @@ fetched rows / total rows = 1/1
 +--------+
 ```
   
-## SINH  
+## SINH
 
-### Description  
+**Usage**: `SINH(x)`
 
-Usage: `sinh(x)` calculates the hyperbolic sine of x, defined as (((e^x) - (e^(-x))) / 2).
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Calculates the hyperbolic sine of `x`, defined as (((e^x) - (e^(-x))) / 2).
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -1092,7 +1319,7 @@ source=people
 | fields `SINH(2)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1103,15 +1330,20 @@ fetched rows / total rows = 1/1
 +-------------------+
 ```
   
-## SQRT  
+## SQRT
 
-### Description  
+**Usage**: `SQRT(x)`
 
-Usage: Calculates the square root of a non-negative number
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-Return type map:
-(Non-negative) INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
-(Negative) INTEGER/LONG/FLOAT/DOUBLE -> NULL
+Calculates the square root of a non-negative number `x`.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**:
+- `(Non-negative) INTEGER/LONG/FLOAT/DOUBLE` -> `DOUBLE`.
+- `(Negative) INTEGER/LONG/FLOAT/DOUBLE` -> `NULL`.
+
 ### Example
   
 ```ppl
@@ -1120,7 +1352,7 @@ source=people
 | fields `SQRT(4)`, `SQRT(4.41)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1131,14 +1363,18 @@ fetched rows / total rows = 1/1
 +---------+------------+
 ```
   
-## CBRT  
+## CBRT
 
-### Description  
+**Usage**: `CBRT(x)`
 
-Usage: Calculates the cube root of a number
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-Return type DOUBLE:
-INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+Calculates the cube root of a number `x`.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl ignore
@@ -1147,7 +1383,7 @@ source=location
 | fields `CBRT(8)`, `CBRT(9.261)`, `CBRT(-27)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -1159,13 +1395,18 @@ fetched rows / total rows = 2/2
 +---------+-------------+-----------+
 ```
   
-## RINT  
+## RINT
 
-### Description  
+**Usage**: `RINT(x)`
 
-Usage: `rint(NUMBER T)` returns T rounded to the closest whole integer number.
-**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
-**Return type:** `DOUBLE`
+Returns `x` rounded to the nearest integer.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
 ### Example
   
 ```ppl
@@ -1174,7 +1415,7 @@ source=people
 | fields `RINT(1.7)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1

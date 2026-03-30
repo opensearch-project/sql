@@ -13,7 +13,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import lombok.Value;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
@@ -24,24 +27,64 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
+import org.opensearch.sql.api.parser.CalciteSqlQueryParser;
+import org.opensearch.sql.api.parser.PPLQueryParser;
+import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.monitor.profile.MetricName;
+import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.QueryProfile;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 
 /**
  * A reusable abstraction shared across unified query components (planner, compiler, etc.). This
  * centralizes configuration for catalog schemas, query type, execution limits, and other settings,
  * enabling consistent behavior across all unified query operations.
  */
-@Value
+@AllArgsConstructor
+@Getter
 public class UnifiedQueryContext implements AutoCloseable {
 
   /** CalcitePlanContext containing Calcite framework configuration and query type. */
-  CalcitePlanContext planContext;
+  private final CalcitePlanContext planContext;
 
   /** Settings containing execution limits and feature flags used by parsers and planners. */
-  Settings settings;
+  private final Settings settings;
+
+  /** Query parser created eagerly from this context's configuration. */
+  private final UnifiedQueryParser<?> parser;
+
+  /**
+   * Returns the profiling result. Call after query execution to retrieve collected metrics. Returns
+   * empty if profiling was not enabled.
+   */
+  public Optional<QueryProfile> getProfile() {
+    return Optional.ofNullable(QueryProfiling.current().finish());
+  }
+
+  /**
+   * Measures the execution time of the given action and records it as a profiling metric. When
+   * profiling is disabled, the action executes with no overhead. Use this for phases outside
+   * unified query components (e.g., execution, formatting).
+   *
+   * @param <T> the return type of the action
+   * @param metricName the metric to record
+   * @param action the action to measure
+   * @return the result of the action
+   * @throws Exception if the action throws
+   */
+  public <T> T measure(MetricName metricName, Callable<T> action) throws Exception {
+    ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(metricName);
+    long start = System.nanoTime();
+    try {
+      return action.call();
+    } finally {
+      metric.set(System.nanoTime() - start);
+    }
+  }
 
   /**
    * Closes the underlying resource managed by this context.
@@ -50,6 +93,7 @@ public class UnifiedQueryContext implements AutoCloseable {
    */
   @Override
   public void close() throws Exception {
+    QueryProfiling.clear();
     if (planContext != null && planContext.connection != null) {
       planContext.connection.close();
     }
@@ -66,6 +110,7 @@ public class UnifiedQueryContext implements AutoCloseable {
     private final Map<String, Schema> catalogs = new HashMap<>();
     private String defaultNamespace;
     private boolean cacheMetadata = false;
+    private boolean profiling = false;
 
     /**
      * Setting values with defaults from SysLimit.DEFAULT. Only includes planning-required settings
@@ -126,6 +171,18 @@ public class UnifiedQueryContext implements AutoCloseable {
     }
 
     /**
+     * Enables or disables query profiling. When enabled, profiling metrics are collected during
+     * query planning and execution, retrievable via {@link UnifiedQueryContext#getProfile()}.
+     *
+     * @param enabled whether to enable profiling
+     * @return this builder instance
+     */
+    public Builder profiling(boolean enabled) {
+      this.profiling = enabled;
+      return this;
+    }
+
+    /**
      * Sets a specific setting value by name.
      *
      * @param name the setting key name (e.g., "plugins.query.size_limit")
@@ -152,7 +209,15 @@ public class UnifiedQueryContext implements AutoCloseable {
       CalcitePlanContext planContext =
           CalcitePlanContext.create(
               buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-      return new UnifiedQueryContext(planContext, settings);
+      QueryProfiling.activate(profiling);
+      return new UnifiedQueryContext(planContext, settings, createParser(planContext, settings));
+    }
+
+    private UnifiedQueryParser<?> createParser(CalcitePlanContext planContext, Settings settings) {
+      return switch (queryType) {
+        case PPL -> new PPLQueryParser(settings);
+        case SQL -> new CalciteSqlQueryParser(planContext);
+      };
     }
 
     private Settings buildSettings() {
