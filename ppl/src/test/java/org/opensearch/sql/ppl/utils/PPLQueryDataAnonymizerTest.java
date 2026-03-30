@@ -1013,6 +1013,23 @@ public class PPLQueryDataAnonymizerTest {
                 + " [search source=accounts | where age = 25]"));
   }
 
+  @Test
+  public void testClusterCommand() {
+    assertEquals(
+        "source=table | cluster identifier t=0.8", anonymize("source=t | cluster message"));
+    assertEquals(
+        "source=table | cluster identifier t=0.8", anonymize("source=t | cluster message t=0.8"));
+    assertEquals(
+        "source=table | cluster identifier t=0.8 match=termset",
+        anonymize("source=t | cluster message match=termset"));
+    assertEquals(
+        "source=table | cluster identifier t=0.7 match=ngramset labelfield=identifier"
+            + " countfield=identifier",
+        anonymize(
+            "source=t | cluster message t=0.7 match=ngramset labelfield=cluster_id"
+                + " countfield=cluster_size"));
+  }
+
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(query, settings);
     return anonymize(astBuilder.visit(parser.parse(query)));

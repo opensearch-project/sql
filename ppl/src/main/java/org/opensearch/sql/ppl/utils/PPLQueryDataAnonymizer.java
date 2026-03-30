@@ -971,7 +971,24 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitCluster(org.opensearch.sql.ast.tree.Cluster node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     String sourceField = visitExpression(node.getSourceField());
-    return child + " | cluster " + sourceField + " t=" + node.getThreshold();
+    StringBuilder command = new StringBuilder();
+    command.append(child).append(" | cluster ").append(sourceField);
+
+    command.append(" t=").append(node.getThreshold());
+
+    if (!"termlist".equals(node.getMatchMode())) {
+      command.append(" match=").append(node.getMatchMode());
+    }
+
+    if (!"cluster_label".equals(node.getLabelField())) {
+      command.append(" labelfield=").append(MASK_COLUMN);
+    }
+
+    if (!"cluster_count".equals(node.getCountField())) {
+      command.append(" countfield=").append(MASK_COLUMN);
+    }
+
+    return command.toString();
   }
 
   private String groupBy(String groupBy) {

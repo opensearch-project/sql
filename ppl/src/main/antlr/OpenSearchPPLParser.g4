@@ -613,8 +613,8 @@ clusterCommand
 
 clusterParameter
    : (MATCH EQUAL match = clusterMatchMode)
-   | (LABELFIELD EQUAL labelfield = stringLiteral)
-   | (COUNTFIELD EQUAL countfield = stringLiteral)
+   | (LABELFIELD EQUAL labelfield = qualifiedName)
+   | (COUNTFIELD EQUAL countfield = qualifiedName)
    | (LABELONLY EQUAL labelonly = booleanLiteral)
    | (SHOWCOUNT EQUAL showcount = booleanLiteral)
    | (DELIMS EQUAL delims = stringLiteral)
@@ -1592,10 +1592,9 @@ identifierSeq
    ;
 
 ident
-   : (DOT)? ID
+   : (DOT)? (ID | keywordsCanBeId)
    | BACKTICK ident BACKTICK
    | BQUOTA_STRING
-   | keywordsCanBeId
    ;
 
 tableIdent
@@ -1764,4 +1763,11 @@ searchableKeyWord
    | MAX_DEPTH
    | DEPTH_FIELD
    | EDGE
+   // CLUSTER COMMAND KEYWORDS
+   | T
+   | DELIMS
+   | LABELONLY
+   | TERMLIST
+   | TERMSET
+   | NGRAMSET
    ;

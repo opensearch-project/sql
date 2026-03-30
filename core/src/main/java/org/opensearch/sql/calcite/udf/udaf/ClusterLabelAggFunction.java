@@ -8,19 +8,19 @@ package org.opensearch.sql.calcite.udf.udaf;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.common.cluster.TextSimilarityClustering;
-import org.opensearch.sql.common.cluster.TextSimilarityClustering.ClusterResult;
 
 /**
- * Aggregate function for the cluster command. Uses buffered processing similar to LogPatternAggFunction
- * to handle large datasets efficiently. Processes events in configurable batches to avoid memory issues.
+ * Aggregate function for the cluster command. Uses buffered processing similar to
+ * LogPatternAggFunction to handle large datasets efficiently. Processes events in configurable
+ * batches to avoid memory issues.
  *
  * <p>When used as a window function over an unbounded frame, the result is a List where each
  * element corresponds to the cluster label for that row position.
  */
-public class ClusterLabelAggFunction implements UserDefinedAggFunction<ClusterLabelAggFunction.Acc> {
+public class ClusterLabelAggFunction
+    implements UserDefinedAggFunction<ClusterLabelAggFunction.Acc> {
 
   private int bufferLimit = 50000; // Configurable buffer size
   private int maxClusters = 10000; // Limit cluster count to prevent memory explosion
@@ -47,8 +47,14 @@ public class ClusterLabelAggFunction implements UserDefinedAggFunction<ClusterLa
     return add(acc, field, threshold, matchMode, delims, bufferLimit, maxClusters);
   }
 
-  public Acc add(Acc acc, String field, double threshold, String matchMode, String delims,
-                 int bufferLimit, int maxClusters) {
+  public Acc add(
+      Acc acc,
+      String field,
+      double threshold,
+      String matchMode,
+      String delims,
+      int bufferLimit,
+      int maxClusters) {
     if (field == null) {
       return acc;
     }
@@ -71,13 +77,17 @@ public class ClusterLabelAggFunction implements UserDefinedAggFunction<ClusterLa
     return acc;
   }
 
-  /** Accumulator that processes events in batches to avoid memory issues. Thread-safe implementation. */
+  /**
+   * Accumulator that processes events in batches to avoid memory issues. Thread-safe
+   * implementation.
+   */
   public static class Acc implements Accumulator {
     // Current buffer being accumulated - using thread-safe collections
     private final List<String> buffer = Collections.synchronizedList(new ArrayList<>());
 
     // Global cluster state maintained across batches - thread-safe
-    private final List<ClusterRepresentative> globalClusters = Collections.synchronizedList(new ArrayList<>());
+    private final List<ClusterRepresentative> globalClusters =
+        Collections.synchronizedList(new ArrayList<>());
     private final List<Integer> allLabels = Collections.synchronizedList(new ArrayList<>());
     private final List<Integer> allCounts = Collections.synchronizedList(new ArrayList<>());
 
@@ -109,7 +119,8 @@ public class ClusterLabelAggFunction implements UserDefinedAggFunction<ClusterLa
         return;
       }
 
-      TextSimilarityClustering clustering = new TextSimilarityClustering(threshold, matchMode, delims);
+      TextSimilarityClustering clustering =
+          new TextSimilarityClustering(threshold, matchMode, delims);
 
       // Create local copy of buffer to avoid concurrent modification
       List<String> bufferCopy = new ArrayList<>(buffer);
@@ -122,7 +133,8 @@ public class ClusterLabelAggFunction implements UserDefinedAggFunction<ClusterLa
     }
 
     /** Find best matching global cluster or create new one - synchronized for thread safety */
-    private synchronized ClusterAssignment findOrCreateCluster(String value, TextSimilarityClustering clustering) {
+    private synchronized ClusterAssignment findOrCreateCluster(
+        String value, TextSimilarityClustering clustering) {
       double bestSimilarity = -1.0;
       ClusterRepresentative bestCluster = null;
 
@@ -137,7 +149,11 @@ public class ClusterLabelAggFunction implements UserDefinedAggFunction<ClusterLa
         } catch (Exception e) {
           // Log error but continue processing - don't fail entire clustering
           // In production, would use proper logging framework
-          System.err.println("Warning: Error computing similarity for cluster " + cluster.id + ": " + e.getMessage());
+          System.err.println(
+              "Warning: Error computing similarity for cluster "
+                  + cluster.id
+                  + ": "
+                  + e.getMessage());
         }
       }
 
@@ -147,8 +163,7 @@ public class ClusterLabelAggFunction implements UserDefinedAggFunction<ClusterLa
         return new ClusterAssignment(bestCluster.id, bestCluster.size);
       } else if (globalClusters.size() < maxClusters) {
         // Create new cluster
-        ClusterRepresentative newCluster = new ClusterRepresentative(
-            nextClusterId++, value, 1);
+        ClusterRepresentative newCluster = new ClusterRepresentative(nextClusterId++, value, 1);
         globalClusters.add(newCluster);
         return new ClusterAssignment(newCluster.id, 1);
       } else {

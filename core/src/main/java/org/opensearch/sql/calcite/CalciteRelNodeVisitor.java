@@ -2522,9 +2522,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             context.relBuilder.field(rowNumAlias));
     RexNode labelExpr =
         context.rexBuilder.makeCall(
-            SqlStdOperatorTable.ITEM,
-            context.relBuilder.field(arrayAlias),
-            rowIdxAsInt);
+            SqlStdOperatorTable.ITEM, context.relBuilder.field(arrayAlias), rowIdxAsInt);
     context.relBuilder.projectPlus(context.relBuilder.alias(labelExpr, node.getLabelField()));
 
     // Remove the temporary array and row index columns.

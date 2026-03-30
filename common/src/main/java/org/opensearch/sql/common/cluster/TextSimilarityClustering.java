@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.text.similarity.CosineSimilarity;
 
 /**
- * Greedy single-pass text similarity clustering, compatible with Splunk's cluster command behavior.
+ * Greedy single-pass text similarity clustering for grouping similar text values.
  * Events are processed in order; each is compared to existing cluster representatives using cosine
  * similarity. If the best match meets the threshold, the event joins that cluster; otherwise a new
  * cluster is created.
@@ -39,8 +39,8 @@ public class TextSimilarityClustering {
   }
 
   private static double validateThreshold(double threshold) {
-    if (threshold < 0.0 || threshold > 1.0) {
-      throw new IllegalArgumentException("Threshold must be between 0.0 and 1.0, got: " + threshold);
+    if (threshold <= 0.0 || threshold >= 1.0) {
+      throw new IllegalArgumentException("The threshold must be > 0.0 and < 1.0, got: " + threshold);
     }
     return threshold;
   }
@@ -139,14 +139,21 @@ public class TextSimilarityClustering {
     };
   }
 
+  private static final java.util.regex.Pattern NUMERIC_PATTERN =
+      java.util.regex.Pattern.compile("^\\d+$");
+
+  private static String normalizeToken(String token) {
+    return NUMERIC_PATTERN.matcher(token).matches() ? "*" : token;
+  }
+
   /** Positional term frequency — token order matters. */
   private Map<CharSequence, Integer> vectorizeTermList(String value) {
     String[] tokens = tokenize(value);
     Map<CharSequence, Integer> vector = new HashMap<>((int) (tokens.length * 1.4));
 
     for (int i = 0; i < tokens.length; i++) {
-      if (!tokens[i].isEmpty()) { // Skip empty tokens
-        String key = i + "-" + tokens[i];
+      if (!tokens[i].isEmpty()) {
+        String key = i + "-" + normalizeToken(tokens[i]);
         vector.merge(key, 1, Integer::sum);
       }
     }
@@ -159,8 +166,8 @@ public class TextSimilarityClustering {
     Map<CharSequence, Integer> vector = new HashMap<>((int) (tokens.length * 1.4));
 
     for (String token : tokens) {
-      if (!token.isEmpty()) { // Skip empty tokens
-        vector.merge(token, 1, Integer::sum);
+      if (!token.isEmpty()) {
+        vector.merge(normalizeToken(token), 1, Integer::sum);
       }
     }
     return vector;
@@ -203,9 +210,8 @@ public class TextSimilarityClustering {
       this.clusterSizes = clusterSizes;
     }
 
-    /** 0-based cluster index for each input event. */
     public int getClusterLabel(int eventIndex) {
-      return assignments.get(eventIndex) + 1; // 1-based like Splunk
+      return assignments.get(eventIndex) + 1; // Convert to 1-based indexing
     }
 
     /** Total events in the cluster that the given event belongs to. */
