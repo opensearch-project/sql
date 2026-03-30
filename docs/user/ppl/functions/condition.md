@@ -7,6 +7,8 @@ PPL conditional functions enable global filtering of query results based on spec
 
 Returns `TRUE` if the field is `NULL`, `FALSE` otherwise.
 
+The `field IS NULL` predicate syntax is also supported as a synonym.
+
 The `isnull()` function is commonly used:
 - In `eval` expressions to create conditional fields.
 - With the `if()` function to provide default values.
@@ -69,6 +71,14 @@ source=accounts
 | where isnull(employer)
 | fields account_number, firstname, employer
 ```
+
+The `IS NULL` predicate syntax can be used as an equivalent alternative:
+
+```ppl
+source=accounts
+| where employer IS NULL
+| fields account_number, firstname, employer
+```
   
 The query returns the following results:
   
@@ -86,6 +96,8 @@ fetched rows / total rows = 1/1
 **Usage**: `isnotnull(field)`
 
 Returns `TRUE` if the field is NOT `NULL`, `FALSE` otherwise.
+
+The `field IS NOT NULL` predicate syntax is also supported as a synonym.
 
 The `isnotnull()` function is commonly used:
 - In `eval` expressions to create Boolean flags.
@@ -128,6 +140,14 @@ The following example shows how to filter records using `isnotnull` in a `where`
 ```ppl
 source=accounts
 | where not isnotnull(employer)
+| fields account_number, employer
+```
+
+The `IS NOT NULL` predicate syntax can be used as an equivalent alternative:
+
+```ppl
+source=accounts
+| where employer IS NOT NULL
 | fields account_number, employer
 ```
   

@@ -249,6 +249,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return ctx.NOT() != null ? new Not(expr) : expr;
   }
 
+  @Override
+  public UnresolvedExpression visitIsNullPredicate(
+      OpenSearchPPLParser.IsNullPredicateContext ctx) {
+    return new Function(
+        ctx.nullNotnull().NOT() == null
+            ? IS_NULL.getName().getFunctionName()
+            : IS_NOT_NULL.getName().getFunctionName(),
+        Arrays.asList(visit(ctx.expression())));
+  }
+
   /** Value Expression. */
   @Override
   public UnresolvedExpression visitBinaryArithmetic(BinaryArithmeticContext ctx) {

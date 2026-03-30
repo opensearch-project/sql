@@ -187,7 +187,9 @@ PATH:                               'PATH';
 CASE:                               'CASE';
 ELSE:                               'ELSE';
 IN:                                 'IN';
+IS:                                 'IS';
 EXISTS:                             'EXISTS';
+NULL:                               'NULL';
 
 // Geo IP eval function
 GEOIP:                              'GEOIP';
