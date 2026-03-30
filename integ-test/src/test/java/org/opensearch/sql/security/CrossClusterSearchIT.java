@@ -28,6 +28,7 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.OTELLOGS);
   }
 
   @Test
