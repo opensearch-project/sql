@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.api.compiler;
 
+import static org.opensearch.sql.monitor.profile.MetricName.OPTIMIZE;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import lombok.NonNull;
@@ -46,26 +48,29 @@ public class UnifiedQueryCompiler {
    */
   public PreparedStatement compile(@NonNull RelNode plan) {
     try {
-      // Apply shuttle to convert LogicalTableScan to BindableTableScan
-      final RelHomogeneousShuttle shuttle =
-          new RelHomogeneousShuttle() {
-            @Override
-            public RelNode visit(TableScan scan) {
-              final RelOptTable table = scan.getTable();
-              if (scan instanceof LogicalTableScan
-                  && Bindables.BindableTableScan.canHandle(table)) {
-                return Bindables.BindableTableScan.create(scan.getCluster(), table);
-              }
-              return super.visit(scan);
-            }
-          };
-      RelNode transformedPlan = plan.accept(shuttle);
-
-      Connection connection = context.getPlanContext().connection;
-      final RelRunner runner = connection.unwrap(RelRunner.class);
-      return runner.prepareStatement(transformedPlan);
+      return context.measure(OPTIMIZE, () -> doCompile(plan));
     } catch (Exception e) {
       throw new IllegalStateException("Failed to compile logical plan", e);
     }
+  }
+
+  private PreparedStatement doCompile(RelNode plan) throws Exception {
+    // Apply shuttle to convert LogicalTableScan to BindableTableScan
+    final RelHomogeneousShuttle shuttle =
+        new RelHomogeneousShuttle() {
+          @Override
+          public RelNode visit(TableScan scan) {
+            final RelOptTable table = scan.getTable();
+            if (scan instanceof LogicalTableScan && Bindables.BindableTableScan.canHandle(table)) {
+              return Bindables.BindableTableScan.create(scan.getCluster(), table);
+            }
+            return super.visit(scan);
+          }
+        };
+    RelNode transformedPlan = plan.accept(shuttle);
+
+    Connection connection = context.getPlanContext().connection;
+    final RelRunner runner = connection.unwrap(RelRunner.class);
+    return runner.prepareStatement(transformedPlan);
   }
 }
