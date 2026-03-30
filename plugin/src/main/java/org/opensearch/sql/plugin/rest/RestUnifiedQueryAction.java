@@ -36,8 +36,8 @@ import org.opensearch.sql.plugin.rest.analytics.stub.StubSchemaProvider;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
-import org.opensearch.sql.protocol.response.format.JdbcResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
+import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
@@ -204,7 +204,7 @@ public class RestUnifiedQueryAction {
 
   private ResponseListener<QueryResponse> createQueryListener(
       QueryType queryType, ActionListener<TransportPPLQueryResponse> transportListener) {
-    ResponseFormatter<QueryResult> formatter = new JdbcResponseFormatter(PRETTY);
+    ResponseFormatter<QueryResult> formatter = new SimpleJsonResponseFormatter(PRETTY);
     return new ResponseListener<QueryResponse>() {
       @Override
       public void onResponse(QueryResponse response) {

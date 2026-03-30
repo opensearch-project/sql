@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -14,10 +15,12 @@ import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 
 /**
@@ -35,8 +38,6 @@ import org.opensearch.client.ResponseException;
  */
 public class AnalyticsPPLIT extends PPLIntegTestCase {
 
-  private static final Logger LOG = LogManager.getLogger(AnalyticsPPLIT.class);
-
   @Override
   protected void init() throws Exception {
     // No index loading needed -- stub schema and data are hardcoded
@@ -47,16 +48,13 @@ public class AnalyticsPPLIT extends PPLIntegTestCase {
 
   @Test
   public void testBasicQuerySchemaAndData() throws IOException {
-    String query = "source = opensearch.parquet_logs";
-    JSONObject result = executeQuery(query);
-    LOG.info("[testBasicQuerySchemaAndData] query: {}\nresponse: {}", query, result.toString(2));
-
+    JSONObject result = executeQuery("source = opensearch.parquet_logs");
     verifySchema(
         result,
         schema("ts", "timestamp"),
-        schema("status", "integer"),
-        schema("message", "keyword"),
-        schema("ip_addr", "keyword"));
+        schema("status", "int"),
+        schema("message", "string"),
+        schema("ip_addr", "string"));
     verifyNumOfRows(result, 3);
     verifyDataRows(
         result,
@@ -67,17 +65,13 @@ public class AnalyticsPPLIT extends PPLIntegTestCase {
 
   @Test
   public void testParquetMetricsSchemaAndData() throws IOException {
-    String query = "source = opensearch.parquet_metrics";
-    JSONObject result = executeQuery(query);
-    LOG.info(
-        "[testParquetMetricsSchemaAndData] query: {}\nresponse: {}", query, result.toString(2));
-
+    JSONObject result = executeQuery("source = opensearch.parquet_metrics");
     verifySchema(
         result,
         schema("ts", "timestamp"),
         schema("cpu", "double"),
         schema("memory", "double"),
-        schema("host", "keyword"));
+        schema("host", "string"));
     verifyNumOfRows(result, 2);
     verifyDataRows(
         result,
@@ -89,85 +83,67 @@ public class AnalyticsPPLIT extends PPLIntegTestCase {
 
   @Test
   public void testResponseFormatHasRequiredFields() throws IOException {
-    String query = "source = opensearch.parquet_logs";
-    JSONObject result = executeQuery(query);
-    LOG.info(
-        "[testResponseFormatHasRequiredFields] query: {}\nresponse: {}", query, result.toString(2));
-
-    String msg = "Full response: " + result.toString(2);
-    assertTrue("Response missing 'schema'. " + msg, result.has("schema"));
-    assertTrue("Response missing 'datarows'. " + msg, result.has("datarows"));
-    assertTrue("Response missing 'total'. " + msg, result.has("total"));
-    assertTrue("Response missing 'size'. " + msg, result.has("size"));
-    assertTrue("Response missing 'status'. " + msg, result.has("status"));
-    assertEquals(
-        "Expected status 200 but got " + result.getInt("status") + ". " + msg,
-        200,
-        result.getInt("status"));
+    JSONObject result = executeQuery("source = opensearch.parquet_logs");
+    assertTrue("Response missing 'schema'", result.has("schema"));
+    assertTrue("Response missing 'datarows'", result.has("datarows"));
+    assertTrue("Response missing 'total'", result.has("total"));
+    assertTrue("Response missing 'size'", result.has("size"));
   }
 
   @Test
   public void testTotalAndSizeMatchRowCount() throws IOException {
-    String query = "source = opensearch.parquet_logs";
-    JSONObject result = executeQuery(query);
-    LOG.info("[testTotalAndSizeMatchRowCount] query: {}\nresponse: {}", query, result.toString(2));
-
+    JSONObject result = executeQuery("source = opensearch.parquet_logs");
     int rowCount = result.getJSONArray("datarows").length();
-    assertEquals(
-        String.format(
-            "total should match row count. rows=%d, total=%d, size=%d. Response: %s",
-            rowCount, result.getInt("total"), result.getInt("size"), result.toString(2)),
-        rowCount,
-        result.getInt("total"));
-    assertEquals(
-        String.format(
-            "size should match row count. rows=%d, size=%d. Response: %s",
-            rowCount, result.getInt("size"), result.toString(2)),
-        rowCount,
-        result.getInt("size"));
+    assertEquals(rowCount, result.getInt("total"));
+    assertEquals(rowCount, result.getInt("size"));
   }
 
   // --- Projection tests (schema verification -- stub doesn't evaluate projections) ---
 
   @Test
   public void testFieldsProjectionChangesSchema() throws IOException {
-    String query = "source = opensearch.parquet_logs | fields ts, message";
-    JSONObject result = executeQuery(query);
-    LOG.info(
-        "[testFieldsProjectionChangesSchema] query: {}\nresponse: {}", query, result.toString(2));
-
-    verifySchema(result, schema("ts", "timestamp"), schema("message", "keyword"));
+    JSONObject result = executeQuery("source = opensearch.parquet_logs | fields ts, message");
+    verifySchema(result, schema("ts", "timestamp"), schema("message", "string"));
     verifyNumOfRows(result, 3);
   }
 
   @Test
   public void testSingleFieldProjection() throws IOException {
-    String query = "source = opensearch.parquet_logs | fields status";
-    JSONObject result = executeQuery(query);
-    LOG.info("[testSingleFieldProjection] query: {}\nresponse: {}", query, result.toString(2));
-
-    verifySchema(result, schema("status", "integer"));
+    JSONObject result = executeQuery("source = opensearch.parquet_logs | fields status");
+    verifySchema(result, schema("status", "int"));
     verifyNumOfRows(result, 3);
+  }
+
+  // --- Profiling tests ---
+
+  @Test
+  public void testProfileResponseIncludesProfilingData() throws IOException {
+    Request request = new Request("POST", QUERY_API_ENDPOINT);
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT,
+            "{\n  \"query\": \"%s\",\n  \"profile\": true\n}",
+            "source = opensearch.parquet_logs"));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    Response response = client().performRequest(request);
+    JSONObject result = new JSONObject(getResponseBody(response, true));
+
+    assertTrue("Response should have 'profile' field when profile=true", result.has("profile"));
   }
 
   // --- Error handling tests ---
 
   @Test
-  public void testSyntaxErrorReturnsClientError() throws IOException {
-    String query = "source = opensearch.parquet_logs | invalid_command";
-    ResponseException e = assertThrows(ResponseException.class, () -> executeQuery(query));
+  public void testSyntaxErrorReturnsClientError() {
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () -> executeQuery("source = opensearch.parquet_logs | invalid_command"));
     int statusCode = e.getResponse().getStatusLine().getStatusCode();
-    String responseBody = getResponseBody(e.getResponse(), true);
-    LOG.info(
-        "[testSyntaxErrorReturnsClientError] query: {}\nstatus: {}\nresponse: {}",
-        query,
-        statusCode,
-        responseBody);
-
     assertTrue(
-        String.format(
-            "Syntax error should return 4xx, got %d. Response: %s", statusCode, responseBody),
-        statusCode >= 400 && statusCode < 500);
+        "Syntax error should return 4xx, got " + statusCode, statusCode >= 400 && statusCode < 500);
   }
 
   // --- Regression tests ---
@@ -175,34 +151,19 @@ public class AnalyticsPPLIT extends PPLIntegTestCase {
   @Test
   public void testNonParquetQueryStillWorks() throws IOException {
     loadIndex(Index.ACCOUNT);
-    String query = String.format("source=%s | head 1 | fields firstname", TEST_INDEX_ACCOUNT);
-    JSONObject result = executeQuery(query);
-    LOG.info("[testNonParquetQueryStillWorks] query: {}\nresponse: {}", query, result.toString(2));
-
-    assertNotNull("Non-parquet query returned null. Query: " + query, result);
+    JSONObject result =
+        executeQuery(String.format("source=%s | head 1 | fields firstname", TEST_INDEX_ACCOUNT));
+    assertNotNull(result);
+    assertTrue("Non-parquet query should have datarows", result.has("datarows"));
     assertTrue(
-        "Non-parquet query missing 'datarows'. Response: " + result.toString(2),
-        result.has("datarows"));
-    int rowCount = result.getJSONArray("datarows").length();
-    assertTrue(
-        String.format(
-            "Non-parquet query returned 0 rows. Expected > 0. Response: %s", result.toString(2)),
-        rowCount > 0);
+        "Non-parquet query should return data", result.getJSONArray("datarows").length() > 0);
   }
 
   @Test
   public void testNonParquetAggregationStillWorks() throws IOException {
     loadIndex(Index.ACCOUNT);
-    String query = String.format("source=%s | stats count()", TEST_INDEX_ACCOUNT);
-    JSONObject result = executeQuery(query);
-    LOG.info(
-        "[testNonParquetAggregationStillWorks] query: {}\nresponse: {}", query, result.toString(2));
-
-    int total = result.getInt("total");
-    assertTrue(
-        String.format(
-            "Non-parquet aggregation returned total=%d, expected > 0. Response: %s",
-            total, result.toString(2)),
-        total > 0);
+    JSONObject result =
+        executeQuery(String.format("source=%s | stats count()", TEST_INDEX_ACCOUNT));
+    assertTrue("Non-parquet aggregation should work", result.getInt("total") > 0);
   }
 }
