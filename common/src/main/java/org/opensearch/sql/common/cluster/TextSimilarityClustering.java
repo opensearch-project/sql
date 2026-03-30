@@ -13,10 +13,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.text.similarity.CosineSimilarity;
 
 /**
- * Greedy single-pass text similarity clustering for grouping similar text values.
- * Events are processed in order; each is compared to existing cluster representatives using cosine
- * similarity. If the best match meets the threshold, the event joins that cluster; otherwise a new
- * cluster is created.
+ * Greedy single-pass text similarity clustering for grouping similar text values. Events are
+ * processed in order; each is compared to existing cluster representatives using cosine similarity.
+ * If the best match meets the threshold, the event joins that cluster; otherwise a new cluster is
+ * created.
  *
  * <p>Optimized for incremental processing with vector caching and memory-efficient operations.
  */
@@ -40,7 +40,8 @@ public class TextSimilarityClustering {
 
   private static double validateThreshold(double threshold) {
     if (threshold <= 0.0 || threshold >= 1.0) {
-      throw new IllegalArgumentException("The threshold must be > 0.0 and < 1.0, got: " + threshold);
+      throw new IllegalArgumentException(
+          "The threshold must be > 0.0 and < 1.0, got: " + threshold);
     }
     return threshold;
   }
@@ -55,16 +56,18 @@ public class TextSimilarityClustering {
       case "ngramset":
         return matchMode.toLowerCase();
       default:
-        throw new IllegalArgumentException("Invalid match mode: " + matchMode
-            + ". Must be one of: termlist, termset, ngramset");
+        throw new IllegalArgumentException(
+            "Invalid match mode: " + matchMode + ". Must be one of: termlist, termset, ngramset");
     }
   }
 
   /**
-   * Compute similarity between two text values using the configured match mode.
-   * Used for incremental clustering against cluster representatives.
+   * Compute similarity between two text values using the configured match mode. Used for
+   * incremental clustering against cluster representatives.
    */
   public double computeSimilarity(String text1, String text2) {
+    cleanCacheIfNeeded();
+
     if (text1 == null || text2 == null || text1.isEmpty() || text2.isEmpty()) {
       return 0.0;
     }
@@ -80,6 +83,8 @@ public class TextSimilarityClustering {
    * clusters list) parallel to the input.
    */
   public ClusterResult cluster(List<String> values) {
+    cleanCacheIfNeeded();
+
     List<Map<CharSequence, Integer>> repVectors = new ArrayList<>();
     List<Integer> assignments = new ArrayList<>();
     List<Integer> clusterSizes = new ArrayList<>();
@@ -112,18 +117,12 @@ public class TextSimilarityClustering {
 
   /** Vectorize with caching to avoid repeated computation */
   private Map<CharSequence, Integer> vectorizeWithCache(String value) {
-    // Clean cache periodically
-    cleanCacheIfNeeded();
-
-    // Use cache for common strings to improve performance
     return vectorCache.computeIfAbsent(value, this::vectorize);
   }
 
   /** Clean cache when it gets too large */
-  private void cleanCacheIfNeeded() {
+  private synchronized void cleanCacheIfNeeded() {
     if (vectorCache.size() > MAX_CACHE_SIZE) {
-      // Remove oldest 50% of entries (simple cleanup strategy)
-      // In production, could use LRU cache instead
       vectorCache.clear();
     }
   }

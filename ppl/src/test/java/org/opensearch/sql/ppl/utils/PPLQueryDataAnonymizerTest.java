@@ -1026,8 +1026,8 @@ public class PPLQueryDataAnonymizerTest {
         "source=table | cluster identifier t=0.7 match=ngramset labelfield=identifier"
             + " countfield=identifier",
         anonymize(
-            "source=t | cluster message t=0.7 match=ngramset labelfield=cluster_id"
-                + " countfield=cluster_size"));
+            "source=t | cluster message t=0.7 match=ngramset labelfield=cluster_label"
+                + " countfield=cluster_count"));
   }
 
   private String anonymize(String query) {

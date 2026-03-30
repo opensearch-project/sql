@@ -245,9 +245,10 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval message = 'login error' | cluster message | fields cluster_id, cluster_size",
+                "search source=%s | eval message = 'login error' | cluster message | fields"
+                    + " cluster_label, cluster_count",
                 TEST_INDEX_BANK_REMOTE));
-    verifyColumn(result, columnName("cluster_id"), columnName("cluster_size"));
+    verifyColumn(result, columnName("cluster_label"), columnName("cluster_count"));
 
     disableCalcite();
   }
@@ -259,9 +260,11 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval message = firstname | cluster message t=0.8 match=termset | fields cluster_id, cluster_size, message",
+                "search source=%s | eval message = firstname | cluster message t=0.8 match=termset"
+                    + " | fields cluster_label, cluster_count, message",
                 TEST_INDEX_BANK_REMOTE));
-    verifyColumn(result, columnName("cluster_id"), columnName("cluster_size"), columnName("message"));
+    verifyColumn(
+        result, columnName("cluster_label"), columnName("cluster_count"), columnName("message"));
 
     disableCalcite();
   }
@@ -273,9 +276,11 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s,%s | eval message = firstname | cluster message | fields cluster_id, cluster_size, message",
+                "search source=%s,%s | eval message = firstname | cluster message | fields"
+                    + " cluster_label, cluster_count, message",
                 TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK));
-    verifyColumn(result, columnName("cluster_id"), columnName("cluster_size"), columnName("message"));
+    verifyColumn(
+        result, columnName("cluster_label"), columnName("cluster_count"), columnName("message"));
 
     disableCalcite();
   }

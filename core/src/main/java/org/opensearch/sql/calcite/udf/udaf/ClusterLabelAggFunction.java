@@ -6,9 +6,10 @@
 package org.opensearch.sql.calcite.udf.udaf;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.cluster.TextSimilarityClustering;
 
 /**
@@ -35,16 +36,18 @@ public class ClusterLabelAggFunction
 
   @Override
   public Object result(Acc acc) {
-    return acc.labels();
+    return acc.value(threshold, matchMode, delims, maxClusters);
   }
 
   @Override
   public Acc add(Acc acc, Object... values) {
-    throw new UnsupportedOperationException("Use typed add method");
-  }
-
-  public Acc add(Acc acc, String field, double threshold, String matchMode, String delims) {
-    return add(acc, field, threshold, matchMode, delims, bufferLimit, maxClusters);
+    throw new SyntaxCheckException(
+        "Unsupported function signature for cluster aggregate. Valid parameters include (field:"
+            + " required string), (t: optional double threshold 0.0-1.0, default 0.8), (match:"
+            + " optional string algorithm 'termlist'|'termset'|'ngramset', default 'termlist'),"
+            + " (delims: optional string delimiters, default ' '), (labelfield: optional string"
+            + " output field name, default 'cluster_label'), (countfield: optional string count"
+            + " field name, default 'cluster_count')");
   }
 
   public Acc add(
@@ -55,105 +58,95 @@ public class ClusterLabelAggFunction
       String delims,
       int bufferLimit,
       int maxClusters) {
-    if (field == null) {
+    if (Objects.isNull(field)) {
       return acc;
     }
 
-    this.bufferLimit = bufferLimit;
-    this.maxClusters = maxClusters;
     this.threshold = threshold;
     this.matchMode = matchMode;
     this.delims = delims;
+    this.bufferLimit = bufferLimit;
+    this.maxClusters = maxClusters;
 
-    acc.addValue(field);
-    acc.setParams(threshold, matchMode, delims, maxClusters);
+    acc.evaluate(field);
 
-    // Process buffer when it reaches limit (like patterns command)
-    if (bufferLimit > 0 && acc.bufferSize() >= bufferLimit) {
-      acc.partialProcess();
+    if (bufferLimit > 0 && acc.bufferSize() == bufferLimit) {
+      acc.partialMerge(threshold, matchMode, delims, maxClusters);
       acc.clearBuffer();
     }
 
     return acc;
   }
 
-  /**
-   * Accumulator that processes events in batches to avoid memory issues. Thread-safe
-   * implementation.
-   */
+  public Acc add(Acc acc, String field, double threshold, String matchMode, String delims) {
+    return add(acc, field, threshold, matchMode, delims, this.bufferLimit, this.maxClusters);
+  }
+
+  public Acc add(Acc acc, String field, double threshold, String matchMode) {
+    return add(acc, field, threshold, matchMode, this.delims, this.bufferLimit, this.maxClusters);
+  }
+
+  public Acc add(Acc acc, String field, double threshold) {
+    return add(
+        acc, field, threshold, this.matchMode, this.delims, this.bufferLimit, this.maxClusters);
+  }
+
+  public Acc add(Acc acc, String field) {
+    return add(
+        acc,
+        field,
+        this.threshold,
+        this.matchMode,
+        this.delims,
+        this.bufferLimit,
+        this.maxClusters);
+  }
+
   public static class Acc implements Accumulator {
-    // Current buffer being accumulated - using thread-safe collections
-    private final List<String> buffer = Collections.synchronizedList(new ArrayList<>());
-
-    // Global cluster state maintained across batches - thread-safe
-    private final List<ClusterRepresentative> globalClusters =
-        Collections.synchronizedList(new ArrayList<>());
-    private final List<Integer> allLabels = Collections.synchronizedList(new ArrayList<>());
-    private final List<Integer> allCounts = Collections.synchronizedList(new ArrayList<>());
-
-    private double threshold = 0.8;
-    private String matchMode = "termlist";
-    private String delims = " ";
-    private int maxClusters = 10000;
+    private final List<String> buffer = new ArrayList<>();
+    private final List<ClusterRepresentative> globalClusters = new ArrayList<>();
+    private final List<Integer> allLabels = new ArrayList<>();
     private int nextClusterId = 1;
-
-    /** Add value to current buffer */
-    public void addValue(String value) {
-      buffer.add(value != null ? value : "");
-    }
-
-    public void setParams(double threshold, String matchMode, String delims, int maxClusters) {
-      this.threshold = threshold;
-      this.matchMode = matchMode;
-      this.delims = delims;
-      this.maxClusters = maxClusters;
-    }
 
     public int bufferSize() {
       return buffer.size();
     }
 
-    /** Process current buffer against existing global clusters */
-    public synchronized void partialProcess() {
+    public void evaluate(String value) {
+      buffer.add(value != null ? value : "");
+    }
+
+    public void partialMerge(Object... argList) {
       if (buffer.isEmpty()) {
         return;
       }
 
+      double threshold = (Double) argList[0];
+      String matchMode = (String) argList[1];
+      String delims = (String) argList[2];
+      int maxClusters = (Integer) argList[3];
+
       TextSimilarityClustering clustering =
           new TextSimilarityClustering(threshold, matchMode, delims);
 
-      // Create local copy of buffer to avoid concurrent modification
-      List<String> bufferCopy = new ArrayList<>(buffer);
-
-      for (String value : bufferCopy) {
-        ClusterAssignment assignment = findOrCreateCluster(value, clustering);
+      for (String value : buffer) {
+        ClusterAssignment assignment =
+            findOrCreateCluster(value, clustering, threshold, maxClusters);
         allLabels.add(assignment.clusterId);
-        allCounts.add(assignment.clusterSize);
       }
     }
 
-    /** Find best matching global cluster or create new one - synchronized for thread safety */
-    private synchronized ClusterAssignment findOrCreateCluster(
-        String value, TextSimilarityClustering clustering) {
+    private ClusterAssignment findOrCreateCluster(
+        String value, TextSimilarityClustering clustering, double threshold, int maxClusters) {
       double bestSimilarity = -1.0;
       ClusterRepresentative bestCluster = null;
 
       // Compare against existing global clusters
       for (ClusterRepresentative cluster : globalClusters) {
-        try {
-          double similarity = clustering.computeSimilarity(value, cluster.representative);
-          if (similarity > bestSimilarity) {
-            bestSimilarity = similarity;
-            bestCluster = cluster;
-          }
-        } catch (Exception e) {
-          // Log error but continue processing - don't fail entire clustering
-          // In production, would use proper logging framework
-          System.err.println(
-              "Warning: Error computing similarity for cluster "
-                  + cluster.id
-                  + ": "
-                  + e.getMessage());
+        double similarity = clustering.computeSimilarity(value, cluster.representative);
+        if (similarity > bestSimilarity) {
+          bestSimilarity = similarity;
+          bestCluster = cluster;
         }
       }
 
@@ -189,29 +182,11 @@ public class ClusterLabelAggFunction
       buffer.clear();
     }
 
-    /** Returns the list of 1-based cluster labels, one per input row. */
-    public List<Integer> labels() {
-      // Process any remaining buffer
-      if (!buffer.isEmpty()) {
-        partialProcess();
-        clearBuffer();
-      }
-      return new ArrayList<>(allLabels);
-    }
-
-    /** Returns the list of cluster counts, one per input row. */
-    public List<Integer> counts() {
-      // Process any remaining buffer
-      if (!buffer.isEmpty()) {
-        partialProcess();
-        clearBuffer();
-      }
-      return new ArrayList<>(allCounts);
-    }
-
     @Override
     public Object value(Object... argList) {
-      return labels();
+      partialMerge(argList);
+      clearBuffer();
+      return new ArrayList<>(allLabels);
     }
 
     /** Represents a cluster with its representative text and current size */

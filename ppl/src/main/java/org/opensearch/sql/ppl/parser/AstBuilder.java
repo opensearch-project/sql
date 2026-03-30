@@ -1147,15 +1147,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       if (param.match != null) {
         matchMode = param.match.getText().toLowerCase(java.util.Locale.ROOT);
       } else if (param.labelfield != null) {
-        labelField = param.labelfield.getText().replace("'", "").replace("\"", "");
+        labelField = StringUtils.unquoteText(param.labelfield.getText());
       } else if (param.countfield != null) {
-        countField = param.countfield.getText().replace("'", "").replace("\"", "");
+        countField = StringUtils.unquoteText(param.countfield.getText());
       } else if (param.labelonly != null) {
         labelOnly = Boolean.parseBoolean(param.labelonly.getText());
       } else if (param.showcount != null) {
         showCount = Boolean.parseBoolean(param.showcount.getText());
       } else if (param.delims != null) {
-        delims = param.delims.getText().replace("'", "").replace("\"", "");
+        delims = StringUtils.unquoteText(param.delims.getText());
       } else if (param.t != null) {
         threshold = Double.parseDouble(param.t.getText());
       }

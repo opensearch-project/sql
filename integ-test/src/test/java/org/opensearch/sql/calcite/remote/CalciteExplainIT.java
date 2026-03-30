@@ -608,7 +608,9 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainClusterCommand() throws IOException {
-    String query = "source=opensearch-sql_test_index_account | eval message='login error' | cluster message | head 5";
+    String query =
+        "source=opensearch-sql_test_index_account | eval message='login error' | cluster message |"
+            + " head 5";
     var result = explainQueryYaml(query);
 
     String expected = loadExpectedPlan("explain_cluster.yaml");
