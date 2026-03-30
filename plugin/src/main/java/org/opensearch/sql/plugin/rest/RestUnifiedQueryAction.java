@@ -31,6 +31,7 @@ import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
 import org.opensearch.sql.lang.LangSpec;
+import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.plugin.rest.analytics.stub.StubSchemaProvider;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
@@ -122,7 +123,14 @@ public class RestUnifiedQueryAction {
       CalcitePlanContext planContext = context.getPlanContext();
       plan = addQuerySizeLimit(plan, planContext);
 
-      analyticsEngine.execute(plan, planContext, createQueryListener(queryType, listener));
+      RelNode finalPlan = plan;
+      context.measure(
+          MetricName.EXECUTE,
+          () -> {
+            analyticsEngine.execute(
+                finalPlan, planContext, createQueryListener(queryType, listener));
+            return null;
+          });
     } catch (Exception e) {
       listener.onFailure(e);
     }
@@ -140,7 +148,13 @@ public class RestUnifiedQueryAction {
       CalcitePlanContext planContext = context.getPlanContext();
       plan = addQuerySizeLimit(plan, planContext);
 
-      analyticsEngine.explain(plan, pplRequest.mode(), planContext, listener);
+      RelNode finalPlan = plan;
+      context.measure(
+          MetricName.EXECUTE,
+          () -> {
+            analyticsEngine.explain(finalPlan, pplRequest.mode(), planContext, listener);
+            return null;
+          });
     } catch (Exception e) {
       listener.onFailure(e);
     }
