@@ -7,7 +7,6 @@ package org.opensearch.sql.calcite.udf.udaf;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.cluster.TextSimilarityClustering;
@@ -41,6 +40,12 @@ public class ClusterLabelAggFunction
 
   @Override
   public Acc add(Acc acc, Object... values) {
+    // Handle case where Calcite calls generic method with null field value
+    if (values.length == 1) {
+      String field = (values[0] != null) ? values[0].toString() : null;
+      return add(acc, field);
+    }
+
     throw new SyntaxCheckException(
         "Unsupported function signature for cluster aggregate. Valid parameters include (field:"
             + " required string), (t: optional double threshold 0.0-1.0, default 0.8), (match:"
@@ -58,9 +63,9 @@ public class ClusterLabelAggFunction
       String delims,
       int bufferLimit,
       int maxClusters) {
-    if (Objects.isNull(field)) {
-      return acc;
-    }
+    // Process all rows, even when field is null - convert null to empty string
+    // This ensures the result array matches input row count
+    String processedField = (field != null) ? field : "";
 
     this.threshold = threshold;
     this.matchMode = matchMode;
@@ -68,7 +73,7 @@ public class ClusterLabelAggFunction
     this.bufferLimit = bufferLimit;
     this.maxClusters = maxClusters;
 
-    acc.evaluate(field);
+    acc.evaluate(processedField);
 
     if (bufferLimit > 0 && acc.bufferSize() == bufferLimit) {
       acc.partialMerge(threshold, matchMode, delims, maxClusters);

@@ -2483,6 +2483,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       org.opensearch.sql.ast.tree.Cluster node, CalcitePlanContext context) {
     visitChildren(node, context);
 
+    // Filter out rows where the source field is null before clustering.
+    RexNode sourceFieldRex = rexVisitor.analyze(node.getSourceField(), context);
+    context.relBuilder.filter(
+        context.rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, sourceFieldRex));
+
     // Resolve clustering as a window function over all rows (unbounded frame).
     // The window function buffers all rows, runs the greedy clustering algorithm,
     // and returns an array of cluster labels (one per input row, in order).
