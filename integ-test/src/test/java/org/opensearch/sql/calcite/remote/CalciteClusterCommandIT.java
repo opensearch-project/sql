@@ -91,11 +91,12 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "search source=%s | eval message = 'server unavailable' | cluster message"
-                    + " countfield=cluster_count | fields cluster_label, cluster_count | head 1",
+                    + " countfield=cluster_count showcount=true | fields cluster_label,"
+                    + " cluster_count | head 1",
                 TEST_INDEX_BANK));
     verifySchema(
-        result, schema("cluster_label", null, "int"), schema("cluster_count", null, "int"));
-    verifyDataRows(result, rows(1, 1));
+        result, schema("cluster_label", null, "int"), schema("cluster_count", null, "bigint"));
+    verifyDataRows(result, rows(1, 7));
   }
 
   @Test
@@ -103,15 +104,13 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval message = case when account_number=1 then 'login failed'"
-                    + " when account_number=6 then 'login error' else 'connection timeout' end"
-                    + " | cluster message | fields message, cluster_label | head 3",
+                "search source=%s | eval message = case(account_number=1, 'login failed',"
+                    + " account_number=6, 'login error' else 'connection timeout') | cluster"
+                    + " message | fields message, cluster_label | head 3",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("message", null, "string"), schema("cluster_label", null, "int"));
-    // Similar messages "login failed" and "login error" should cluster together
-    // Different message "connection timeout" should get different cluster
     verifyDataRows(
-        result, rows("login failed", 1), rows("login error", 1), rows("connection timeout", 2));
+        result, rows("login failed", 1), rows("login error", 2), rows("connection timeout", 3));
   }
 
   @Test

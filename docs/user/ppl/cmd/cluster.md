@@ -28,23 +28,25 @@ The `cluster` command supports the following parameters.
 The following query groups log messages by similarity:
 
 ```ppl
-source=logs
-| cluster message
-| fields message, cluster_label, cluster_count
+source=otellogs
+| cluster body showcount=true
+| fields body, cluster_label, cluster_count
+| head 5
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
-+------------------------+---------------+---------------+
-| message                | cluster_label | cluster_count |
-|------------------------+---------------+---------------|
-| login successful       | 0             | 2             |
-| login failed           | 1             | 1             |
-| logout successful      | 0             | 2             |
-| connection timeout     | 2             | 1             |
-+------------------------+---------------+---------------+
+fetched rows / total rows = 5/5
++----------------------------------------------------------------------------------+---------------+---------------+
+| body                                                                             | cluster_label | cluster_count |
+|----------------------------------------------------------------------------------+---------------+---------------|
+| null                                                                             | null          | 30            |
+| null                                                                             | 1             | 1             |
+| User e1ce63e6-8501-11f0-930d-c2fcbdc05f14 adding 4 of product HQTGWGPNH4 to cart | 2             | 1             |
+| null                                                                             | 3             | 1             |
+| Payment failed: Insufficient funds for user@example.com                          | 4             | 1             |
++----------------------------------------------------------------------------------+---------------+---------------+
 ```
 
 
@@ -53,23 +55,28 @@ fetched rows / total rows = 4/4
 The following query uses a higher similarity threshold to create more distinct clusters:
 
 ```ppl
-source=logs
-| cluster message t=0.8
-| fields message, cluster_label, cluster_count
+source=otellogs
+| cluster body t=0.9 showcount=true
+| fields body, cluster_label, cluster_count
+| head 8
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
-+------------------------+---------------+---------------+
-| message                | cluster_label | cluster_count |
-|------------------------+---------------+---------------|
-| login successful       | 0             | 1             |
-| login failed           | 1             | 1             |
-| logout successful      | 2             | 1             |
-| connection timeout     | 3             | 1             |
-+------------------------+---------------+---------------+
+fetched rows / total rows = 8/8
++--------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+---------------+
+| body                                                                                                                                                   | cluster_label | cluster_count |
+|--------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+---------------|
+| null                                                                                                                                                   | null          | 30            |
+| null                                                                                                                                                   | 1             | 1             |
+| User e1ce63e6-8501-11f0-930d-c2fcbdc05f14 adding 4 of product HQTGWGPNH4 to cart                                                                       | 2             | 1             |
+| null                                                                                                                                                   | 3             | 1             |
+| Payment failed: Insufficient funds for user@example.com                                                                                                | 4             | 1             |
+| null                                                                                                                                                   | 5             | 1             |
+| Query contains Lucene special characters: +field:value -excluded AND (grouped OR terms) NOT "exact phrase" wildcard* fuzzy~2 /regex/ [range TO search] | 6             | 1             |
+| null                                                                                                                                                   | 7             | 1             |
++--------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+---------------+
 ```
 
 
@@ -78,23 +85,24 @@ fetched rows / total rows = 4/4
 The following query uses the `termset` algorithm for more precise matching:
 
 ```ppl
-source=logs
-| cluster message match=termset
-| fields message, cluster_label, cluster_count
+source=otellogs
+| cluster body match=termset showcount=true
+| fields body, cluster_label, cluster_count
+| head 4
 ```
 
 The query returns the following results:
 
 ```text
 fetched rows / total rows = 4/4
-+------------------------+---------------+---------------+
-| message                | cluster_label | cluster_count |
-|------------------------+---------------+---------------|
-| user authentication    | 0             | 2             |
-| user authorization     | 0             | 2             |
-| system error           | 1             | 1             |
-| network failure        | 2             | 1             |
-+------------------------+---------------+---------------+
++----------------------------------------------------------------------------------+---------------+---------------+
+| body                                                                             | cluster_label | cluster_count |
+|----------------------------------------------------------------------------------+---------------+---------------|
+| null                                                                             | null          | 30            |
+| null                                                                             | 1             | 1             |
+| User e1ce63e6-8501-11f0-930d-c2fcbdc05f14 adding 4 of product HQTGWGPNH4 to cart | 2             | 1             |
+| null                                                                             | 3             | 1             |
++----------------------------------------------------------------------------------+---------------+---------------+
 ```
 
 
@@ -103,47 +111,25 @@ fetched rows / total rows = 4/4
 The following query uses custom field names for the cluster results:
 
 ```ppl
-source=logs
-| cluster message labelfield=log_group countfield=group_size
-| fields message, log_group, group_size
+source=otellogs
+| cluster body labelfield=log_group countfield=group_size showcount=true
+| fields body, log_group, group_size
+| head 4
 ```
 
 The query returns the following results:
 
 ```text
 fetched rows / total rows = 4/4
-+------------------------+-----------+------------+
-| message                | log_group | group_size |
-|------------------------+-----------+------------|
-| error processing       | 0         | 3          |
-| error handling         | 0         | 3          |
-| error occurred         | 0         | 3          |
-| success message        | 1         | 1          |
-+------------------------+-----------+------------+
++----------------------------------------------------------------------------------+-----------+------------+
+| body                                                                             | log_group | group_size |
+|----------------------------------------------------------------------------------+-----------+------------|
+| null                                                                             | null      | 30         |
+| null                                                                             | 1         | 1          |
+| User e1ce63e6-8501-11f0-930d-c2fcbdc05f14 adding 4 of product HQTGWGPNH4 to cart | 2         | 1          |
+| null                                                                             | 3         | 1          |
++----------------------------------------------------------------------------------+-----------+------------+
 ```
 
 
-## Example 5: Clustering with complex analysis
-
-The following query combines clustering with additional analysis operations:
-
-```ppl
-source=application_logs
-| cluster error_message t=0.7 match=ngramset
-| stats count() as occurrence_count by cluster_label, cluster_count
-| sort occurrence_count desc
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 3/3
-+---------------+---------------+------------------+
-| cluster_label | cluster_count | occurrence_count |
-|---------------+---------------+------------------|
-| 0             | 5             | 5                |
-| 1             | 3             | 3                |
-| 2             | 1             | 1                |
-+---------------+---------------+------------------+
-```
 

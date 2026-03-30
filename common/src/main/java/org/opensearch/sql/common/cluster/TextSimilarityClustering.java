@@ -86,14 +86,16 @@ public class TextSimilarityClustering {
   }
 
   private Map<CharSequence, Integer> vectorizeWithCache(String value) {
-    return vectorCache.computeIfAbsent(value, k -> {
-      if (vectorCache.size() > MAX_CACHE_SIZE) {
-        vectorCache.keySet().parallelStream()
-            .limit(MAX_CACHE_SIZE / 2)
-            .forEach(vectorCache::remove);
-      }
-      return vectorize(k);
-    });
+    return vectorCache.computeIfAbsent(
+        value,
+        k -> {
+          if (vectorCache.size() > MAX_CACHE_SIZE) {
+            vectorCache.keySet().parallelStream()
+                .limit(MAX_CACHE_SIZE / 2)
+                .forEach(vectorCache::remove);
+          }
+          return vectorize(k);
+        });
   }
 
   private Map<CharSequence, Integer> vectorize(String value) {
