@@ -1,0 +1,21 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], message=[$17], cluster_label=[$18])
+        LogicalSort(fetch=[5])
+          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16], message=[$17], cluster_label=[$18])
+            LogicalFilter(condition=[=($19, 1)])
+              LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16], message=[$17], cluster_label=[$18], _cluster_convergence_row_num=[ROW_NUMBER() OVER (PARTITION BY $18)])
+                LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16], message=[$17], cluster_label=[ITEM($18, CAST(ROW_NUMBER() OVER ()):INTEGER NOT NULL)])
+                  LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16], message=['login error':VARCHAR], _cluster_labels_array=[cluster_label('login error':VARCHAR, 0.8E0:DOUBLE, 'termlist':VARCHAR, 'non-alphanumeric':VARCHAR) OVER ()])
+                    CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..13=[{inputs}], proj#0..12=[{exprs}])
+        EnumerableLimit(fetch=[5])
+          EnumerableCalc(expr#0..13=[{inputs}], expr#14=[1], expr#15=[=($t13, $t14)], proj#0..13=[{exprs}], $condition=[$t15])
+            EnumerableWindow(window#0=[window(partition {12} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+              EnumerableCalc(expr#0..12=[{inputs}], expr#13=['login error':VARCHAR], expr#14=[CAST($t12):INTEGER NOT NULL], expr#15=[ITEM($t11, $t14)], proj#0..10=[{exprs}], message=[$t13], cluster_label=[$t15])
+                EnumerableWindow(window#0=[window(rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+                  EnumerableWindow(window#0=[window(aggs [cluster_label($11, $12, $13, $14)])], constants=[['login error':VARCHAR, 0.8E0:DOUBLE, 'termlist':VARCHAR, 'non-alphanumeric':VARCHAR]])
+                    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[account_number, firstname, address, balance, gender, city, employer, state, age, email, lastname]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["account_number","firstname","address","balance","gender","city","employer","state","age","email","lastname"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

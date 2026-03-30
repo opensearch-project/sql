@@ -237,4 +237,51 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
 
     disableCalcite();
   }
+
+  @Test
+  public void testCrossClusterClusterCommand() throws IOException {
+    enableCalcite();
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval message = 'login error' | cluster message | fields"
+                    + " cluster_label, cluster_count",
+                TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("cluster_label"), columnName("cluster_count"));
+
+    disableCalcite();
+  }
+
+  @Test
+  public void testCrossClusterClusterCommandWithParameters() throws IOException {
+    enableCalcite();
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval message = firstname | cluster message t=0.8 match=termset"
+                    + " | fields cluster_label, cluster_count, message",
+                TEST_INDEX_BANK_REMOTE));
+    verifyColumn(
+        result, columnName("cluster_label"), columnName("cluster_count"), columnName("message"));
+
+    disableCalcite();
+  }
+
+  @Test
+  public void testCrossClusterClusterCommandMultiCluster() throws IOException {
+    enableCalcite();
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s,%s | eval message = firstname | cluster message | fields"
+                    + " cluster_label, cluster_count, message",
+                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK));
+    verifyColumn(
+        result, columnName("cluster_label"), columnName("cluster_count"), columnName("message"));
+
+    disableCalcite();
+  }
 }

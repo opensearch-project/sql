@@ -54,6 +54,7 @@ import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Cluster;
 import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -430,6 +431,10 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitPatterns(Patterns patterns, C context) {
     return visitChildren(patterns, context);
+  }
+
+  public T visitCluster(Cluster node, C context) {
+    return visitChildren(node, context);
   }
 
   public T visitWindow(Window window, C context) {

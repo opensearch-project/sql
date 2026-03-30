@@ -72,6 +72,7 @@ commands
    | patternsCommand
    | lookupCommand
    | kmeansCommand
+   | clusterCommand
    | adCommand
    | mlCommand
    | fillnullCommand
@@ -123,6 +124,7 @@ commandName
    | PATTERNS
    | LOOKUP
    | KMEANS
+   | CLUSTER_CMD
    | AD
    | ML
    | FILLNULL
@@ -604,6 +606,26 @@ kmeansParameter
    : (CENTROIDS EQUAL centroids = integerLiteral)
    | (ITERATIONS EQUAL iterations = integerLiteral)
    | (DISTANCE_TYPE EQUAL distance_type = stringLiteral)
+   ;
+
+clusterCommand
+   : CLUSTER_CMD source_field = expression (clusterParameter)*
+   ;
+
+clusterParameter
+   : (MATCH EQUAL match = clusterMatchMode)
+   | (LABELFIELD EQUAL labelfield = qualifiedName)
+   | (COUNTFIELD EQUAL countfield = qualifiedName)
+   | (LABELONLY EQUAL labelonly = booleanLiteral)
+   | (SHOWCOUNT EQUAL showcount = booleanLiteral)
+   | (DELIMS EQUAL delims = stringLiteral)
+   | (T EQUAL t = decimalLiteral)
+   ;
+
+clusterMatchMode
+   : TERMLIST
+   | TERMSET
+   | NGRAMSET
    ;
 
 adCommand
@@ -1574,10 +1596,9 @@ identifierSeq
    ;
 
 ident
-   : (DOT)? ID
+   : (DOT)? (ID | keywordsCanBeId)
    | BACKTICK ident BACKTICK
    | BQUOTA_STRING
-   | keywordsCanBeId
    ;
 
 tableIdent
@@ -1747,4 +1768,11 @@ searchableKeyWord
    | MAX_DEPTH
    | DEPTH_FIELD
    | EDGE
+   // CLUSTER COMMAND KEYWORDS
+   | T
+   | DELIMS
+   | LABELONLY
+   | TERMLIST
+   | TERMSET
+   | NGRAMSET
    ;
