@@ -32,6 +32,7 @@ import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
+import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
@@ -115,6 +116,9 @@ public class TransportPPLQueryAction
       return;
     }
 
+    if (task instanceof PPLQueryTask pplQueryTask) {
+      OpenSearchQueryManager.setCancellableTask(pplQueryTask);
+    }
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
 

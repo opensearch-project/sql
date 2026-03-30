@@ -52,6 +52,11 @@ public class PPLQueryRequest {
   @Accessors(fluent = true)
   private boolean profile = false;
 
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private String queryId = null;
+
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
     this(pplQuery, jsonContent, path, "");
   }
