@@ -301,21 +301,49 @@ public class MatcherUtils {
     };
   }
 
+  public static Approx approx(double value, double error) {
+    return new Approx(value, error);
+  }
+
+  public static class Approx {
+    final double value;
+    final double error;
+
+    Approx(double value, double error) {
+      this.value = value;
+      this.error = error;
+    }
+  }
+
   public static TypeSafeMatcher<JSONArray> closeTo(Object... values) {
-    final double error = 1e-10;
+    final double defaultError = 1e-10;
     return new TypeSafeMatcher<JSONArray>() {
       @Override
       protected boolean matchesSafely(JSONArray item) {
         List<Object> expectedValues = new ArrayList<>(Arrays.asList(values));
         List<Object> actualValues = new ArrayList<>();
         item.iterator().forEachRemaining(v -> actualValues.add((Object) v));
-        return actualValues.stream()
-            .allMatch(
-                v ->
-                    v instanceof Number
-                        ? valuesAreClose(
-                            (Number) v, (Number) expectedValues.get(actualValues.indexOf(v)))
-                        : v.equals(expectedValues.get(actualValues.indexOf(v))));
+        if (actualValues.size() != expectedValues.size()) {
+          return false;
+        }
+        for (int i = 0; i < actualValues.size(); i++) {
+          Object actual = actualValues.get(i);
+          Object expected = expectedValues.get(i);
+          if (expected instanceof Approx) {
+            if (!(actual instanceof Number)
+                || Math.abs(((Number) actual).doubleValue() - ((Approx) expected).value)
+                    > ((Approx) expected).error) {
+              return false;
+            }
+          } else if (actual instanceof Number && expected instanceof Number) {
+            if (!valuesAreClose((Number) actual, (Number) expected)) {
+              return false;
+            }
+          } else if (!actual.equals(expected)) {
+            return false;
+          }
+        }
+        return true;
       }
 
       @Override
@@ -324,7 +352,7 @@ public class MatcherUtils {
       }
 
       private boolean valuesAreClose(Number v1, Number v2) {
-        return Math.abs(v1.doubleValue() - v2.doubleValue()) <= error;
+        return Math.abs(v1.doubleValue() - v2.doubleValue()) <= defaultError;
       }
     };
   }

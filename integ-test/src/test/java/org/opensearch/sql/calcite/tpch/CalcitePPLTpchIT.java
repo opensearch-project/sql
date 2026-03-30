@@ -5,13 +5,7 @@
 
 package org.opensearch.sql.calcite.tpch;
 
-import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
-import static org.opensearch.sql.util.MatcherUtils.closeTo;
-import static org.opensearch.sql.util.MatcherUtils.rows;
-import static org.opensearch.sql.util.MatcherUtils.schema;
-import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
-import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
-import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
+import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -62,7 +56,9 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
             "F",
             37474,
             isPushdownDisabled() ? 37569624.63999998 : 37569624.64,
-            isPushdownDisabled() ? 35676192.096999995 : 35676192.097,
+            isPushdownDisabled()
+                ? 35676192.096999995
+                : approx(35676192.097, 1e-6), // workaround for arm64
             isPushdownDisabled() ? 37101416.22242404 : 37101416.222424,
             25.354533152909337,
             isPushdownDisabled() ? 25419.231826792948 : 25419.231826792962,
