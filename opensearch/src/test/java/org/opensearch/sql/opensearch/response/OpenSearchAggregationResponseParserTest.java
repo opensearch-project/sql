@@ -570,6 +570,57 @@ class OpenSearchAggregationResponseParserTest {
                 ImmutableMap.of("percentiles", List.of(21.0, 27.0, 30.0, 35.0, 55.0, 58.0, 60.0))));
   }
 
+  /**
+   * Test for issue #5150: dedup aggregation pushdown with renamed fields. When a field is renamed
+   * (e.g., rename value as val), the top_hits response uses original field names. The TopHitsParser
+   * with fieldNameMapping should translate them to the renamed names.
+   */
+  @Test
+  void dedup_top_hits_with_field_name_mapping_should_remap_fields() {
+    String response =
+        "{\n"
+            + "  \"composite#composite_buckets\": {\n"
+            + "    \"buckets\": [\n"
+            + "      {\n"
+            + "        \"key\": {\n"
+            + "          \"category\": \"X\"\n"
+            + "        },\n"
+            + "        \"doc_count\": 2,\n"
+            + "        \"top_hits#dedup\": {\n"
+            + "          \"hits\": {\n"
+            + "            \"total\": { \"value\": 1, \"relation\": \"eq\" },\n"
+            + "            \"max_score\": 1.0,\n"
+            + "            \"hits\": [\n"
+            + "              {\n"
+            + "                \"_index\": \"test\",\n"
+            + "                \"_id\": \"1\",\n"
+            + "                \"_score\": 1.0,\n"
+            + "                \"fields\": {\n"
+            + "                  \"category\": [\"X\"],\n"
+            + "                  \"value\": [100]\n"
+            + "                }\n"
+            + "              }\n"
+            + "            ]\n"
+            + "          }\n"
+            + "        }\n"
+            + "      }\n"
+            + "    ]\n"
+            + "  }\n"
+            + "}";
+    // "value" is renamed to "val" — the mapping should translate it in the response.
+    // Use BucketAggregationParser as used by the dedup aggregation pushdown path.
+    OpenSearchAggregationResponseParser parser =
+        new BucketAggregationParser(
+            List.of(new TopHitsParser("dedup", false, false, Map.of("value", "val"))), List.of());
+    List<Map<String, Object>> result = parse(parser, response);
+    assertEquals(1, result.size());
+    Map<String, Object> row = result.get(0);
+    // The renamed field "val" should be present, not the original "value"
+    assertEquals(100, row.get("val"));
+    assertNull(row.get("value"));
+    assertEquals("X", row.get("category"));
+  }
+
   public List<Map<String, Object>> parse(OpenSearchAggregationResponseParser parser, String json) {
     return parser.parse(fromJson(json));
   }
