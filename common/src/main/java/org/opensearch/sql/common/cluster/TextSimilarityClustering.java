@@ -7,7 +7,6 @@ package org.opensearch.sql.common.cluster;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.text.similarity.CosineSimilarity;
 
 /**
@@ -23,7 +22,7 @@ public class TextSimilarityClustering {
   private static final CosineSimilarity COSINE = new CosineSimilarity();
 
   // Cache vectorized representations to avoid recomputation
-  private final Map<String, Map<CharSequence, Integer>> vectorCache = new ConcurrentHashMap<>();
+  private final Map<String, Map<CharSequence, Integer>> vectorCache = new HashMap<>();
   private static final int MAX_CACHE_SIZE = 10000;
 
   private final double threshold;
@@ -86,16 +85,20 @@ public class TextSimilarityClustering {
   }
 
   private Map<CharSequence, Integer> vectorizeWithCache(String value) {
-    return vectorCache.computeIfAbsent(
-        value,
-        k -> {
-          if (vectorCache.size() > MAX_CACHE_SIZE) {
-            vectorCache.keySet().parallelStream()
-                .limit(MAX_CACHE_SIZE / 2)
-                .forEach(vectorCache::remove);
-          }
-          return vectorize(k);
-        });
+    Map<CharSequence, Integer> cached = vectorCache.get(value);
+    if (cached != null) {
+      return cached;
+    }
+    if (vectorCache.size() > MAX_CACHE_SIZE) {
+      var it = vectorCache.keySet().iterator();
+      for (int i = 0; i < MAX_CACHE_SIZE / 2 && it.hasNext(); i++) {
+        it.next();
+        it.remove();
+      }
+    }
+    Map<CharSequence, Integer> result = vectorize(value);
+    vectorCache.put(value, result);
+    return result;
   }
 
   private Map<CharSequence, Integer> vectorize(String value) {
