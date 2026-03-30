@@ -20,13 +20,11 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryPlanner;
-import org.opensearch.sql.api.parser.PPLQueryParser;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.common.response.ResponseListener;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
@@ -41,9 +39,9 @@ import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
- * Handles queries routed to the Analytics engine via the unified query pipeline. Parses PPL queries
- * using {@link UnifiedQueryPlanner} to generate a Calcite {@link RelNode}, then delegates to {@link
- * AnalyticsExecutionEngine} for execution.
+ * Handles queries routed to the Analytics engine via the unified query pipeline. Parses PPL/SQL
+ * queries using {@link UnifiedQueryPlanner} to generate a Calcite {@link RelNode}, then delegates
+ * to {@link AnalyticsExecutionEngine} for execution.
  */
 public class RestUnifiedQueryAction {
 
@@ -52,25 +50,22 @@ public class RestUnifiedQueryAction {
 
   private final AnalyticsExecutionEngine analyticsEngine;
   private final NodeClient client;
-  private final PPLQueryParser pplParser;
 
-  public RestUnifiedQueryAction(
-      NodeClient client, QueryPlanExecutor planExecutor, Settings settings) {
+  public RestUnifiedQueryAction(NodeClient client, QueryPlanExecutor planExecutor) {
     this.client = client;
     this.analyticsEngine = new AnalyticsExecutionEngine(planExecutor);
-    this.pplParser = new PPLQueryParser(settings);
   }
 
   /**
-   * Check if the query targets an analytics engine index (e.g., Parquet-backed). Uses {@link
-   * PPLQueryParser} to parse the query and extract the index name from the AST.
+   * Check if the query targets an analytics engine index (e.g., Parquet-backed). Creates a {@link
+   * UnifiedQueryContext} to use its parser for index name extraction, supporting both PPL and SQL.
    */
-  public boolean isAnalyticsIndex(String query) {
+  public boolean isAnalyticsIndex(String query, QueryType queryType) {
     if (query == null || query.isEmpty()) {
       return false;
     }
-    try {
-      String indexName = extractIndexName(query);
+    try (UnifiedQueryContext context = buildContext(queryType, false)) {
+      String indexName = extractIndexName(query, context);
       if (indexName == null) {
         return false;
       }
@@ -80,29 +75,6 @@ public class RestUnifiedQueryAction {
     } catch (Exception e) {
       return false;
     }
-  }
-
-  /** Extract the source index name by parsing the PPL AST and finding the Relation node. */
-  private String extractIndexName(String query) {
-    UnresolvedPlan plan = pplParser.parse(query);
-    Relation relation = findRelation(plan);
-    return relation != null ? relation.getTableQualifiedName().toString() : null;
-  }
-
-  /** Walk the AST to find the Relation (table scan) node. */
-  private static Relation findRelation(UnresolvedPlan plan) {
-    if (plan instanceof Relation) {
-      return (Relation) plan;
-    }
-    for (var child : plan.getChild()) {
-      if (child instanceof UnresolvedPlan unresolvedChild) {
-        Relation found = findRelation(unresolvedChild);
-        if (found != null) {
-          return found;
-        }
-      }
-    }
-    return null;
   }
 
   /** Execute a query through the unified query pipeline on the sql-worker thread pool. */
@@ -142,25 +114,14 @@ public class RestUnifiedQueryAction {
       QueryType queryType,
       PPLQueryRequest pplRequest,
       ActionListener<TransportPPLQueryResponse> listener) {
-    try {
-      AbstractSchema schema = StubSchemaProvider.buildSchema();
+    try (UnifiedQueryContext context = buildContext(queryType, pplRequest.profile())) {
+      UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+      RelNode plan = planner.plan(query);
 
-      try (UnifiedQueryContext context =
-          UnifiedQueryContext.builder()
-              .language(queryType)
-              .catalog(SCHEMA_NAME, schema)
-              .defaultNamespace(SCHEMA_NAME)
-              .profiling(pplRequest.profile())
-              .build()) {
+      CalcitePlanContext planContext = context.getPlanContext();
+      plan = addQuerySizeLimit(plan, planContext);
 
-        UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-        RelNode plan = planner.plan(query);
-
-        CalcitePlanContext planContext = context.getPlanContext();
-        plan = addQuerySizeLimit(plan, planContext);
-
-        analyticsEngine.execute(plan, planContext, createQueryListener(queryType, listener));
-      }
+      analyticsEngine.execute(plan, planContext, createQueryListener(queryType, listener));
     } catch (Exception e) {
       listener.onFailure(e);
     }
@@ -171,28 +132,59 @@ public class RestUnifiedQueryAction {
       QueryType queryType,
       PPLQueryRequest pplRequest,
       ResponseListener<ExplainResponse> listener) {
-    try {
-      AbstractSchema schema = StubSchemaProvider.buildSchema();
+    try (UnifiedQueryContext context = buildContext(queryType, pplRequest.profile())) {
+      UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+      RelNode plan = planner.plan(query);
 
-      try (UnifiedQueryContext context =
-          UnifiedQueryContext.builder()
-              .language(queryType)
-              .catalog(SCHEMA_NAME, schema)
-              .defaultNamespace(SCHEMA_NAME)
-              .profiling(pplRequest.profile())
-              .build()) {
+      CalcitePlanContext planContext = context.getPlanContext();
+      plan = addQuerySizeLimit(plan, planContext);
 
-        UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-        RelNode plan = planner.plan(query);
-
-        CalcitePlanContext planContext = context.getPlanContext();
-        plan = addQuerySizeLimit(plan, planContext);
-
-        analyticsEngine.explain(plan, pplRequest.mode(), planContext, listener);
-      }
+      analyticsEngine.explain(plan, pplRequest.mode(), planContext, listener);
     } catch (Exception e) {
       listener.onFailure(e);
     }
+  }
+
+  private UnifiedQueryContext buildContext(QueryType queryType, boolean profiling) {
+    AbstractSchema schema = StubSchemaProvider.buildSchema();
+    return UnifiedQueryContext.builder()
+        .language(queryType)
+        .catalog(SCHEMA_NAME, schema)
+        .defaultNamespace(SCHEMA_NAME)
+        .profiling(profiling)
+        .build();
+  }
+
+  /**
+   * Extract the source index name by parsing the query using the context's parser and finding the
+   * Relation node in the AST. Works for both PPL and SQL via {@link
+   * UnifiedQueryContext#getParser()}.
+   */
+  @SuppressWarnings("unchecked")
+  private static String extractIndexName(String query, UnifiedQueryContext context) {
+    Object parseResult = context.getParser().parse(query);
+    if (parseResult instanceof UnresolvedPlan unresolvedPlan) {
+      Relation relation = findRelation(unresolvedPlan);
+      return relation != null ? relation.getTableQualifiedName().toString() : null;
+    }
+    // TODO: handle SQL SqlNode for table extraction when unified SQL is enabled
+    return null;
+  }
+
+  /** Walk the AST to find the Relation (table scan) node. */
+  private static Relation findRelation(UnresolvedPlan plan) {
+    if (plan instanceof Relation) {
+      return (Relation) plan;
+    }
+    for (var child : plan.getChild()) {
+      if (child instanceof UnresolvedPlan unresolvedChild) {
+        Relation found = findRelation(unresolvedChild);
+        if (found != null) {
+          return found;
+        }
+      }
+    }
+    return null;
   }
 
   private static RelNode addQuerySizeLimit(RelNode plan, CalcitePlanContext context) {

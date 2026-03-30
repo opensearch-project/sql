@@ -11,12 +11,12 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
- * Tests for analytics index routing in RestUnifiedQueryAction. Uses PPLQueryParser for AST-based
+ * Tests for analytics index routing in RestUnifiedQueryAction. Uses context parser for AST-based
  * index name extraction.
  */
 public class RestUnifiedQueryActionTest {
@@ -25,21 +25,20 @@ public class RestUnifiedQueryActionTest {
 
   @Before
   public void setUp() {
-    action =
-        new RestUnifiedQueryAction(
-            mock(NodeClient.class), mock(QueryPlanExecutor.class), mock(Settings.class));
+    action = new RestUnifiedQueryAction(mock(NodeClient.class), mock(QueryPlanExecutor.class));
   }
 
   @Test
   public void parquetIndexRoutesToAnalytics() {
-    assertTrue(action.isAnalyticsIndex("source = parquet_logs | fields ts"));
-    assertTrue(action.isAnalyticsIndex("source = opensearch.parquet_logs | fields ts"));
+    assertTrue(action.isAnalyticsIndex("source = parquet_logs | fields ts", QueryType.PPL));
+    assertTrue(
+        action.isAnalyticsIndex("source = opensearch.parquet_logs | fields ts", QueryType.PPL));
   }
 
   @Test
   public void nonParquetIndexRoutesToLucene() {
-    assertFalse(action.isAnalyticsIndex("source = my_logs | fields ts"));
-    assertFalse(action.isAnalyticsIndex(null));
-    assertFalse(action.isAnalyticsIndex(""));
+    assertFalse(action.isAnalyticsIndex("source = my_logs | fields ts", QueryType.PPL));
+    assertFalse(action.isAnalyticsIndex(null, QueryType.PPL));
+    assertFalse(action.isAnalyticsIndex("", QueryType.PPL));
   }
 }
