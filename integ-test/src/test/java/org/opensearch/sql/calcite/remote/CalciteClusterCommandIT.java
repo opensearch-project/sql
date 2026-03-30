@@ -18,6 +18,13 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteClusterCommandIT extends PPLIntegTestCase {
 
+  @Override
+  public void init() throws Exception {
+    super.init();
+    enableCalcite();
+    loadIndex(Index.BANK);
+  }
+
   @Test
   public void testBasicCluster() throws IOException {
     JSONObject result =
@@ -26,7 +33,7 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
                 "search source=%s | eval message = 'user login failed' | cluster message | fields"
                     + " cluster_label | head 1",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("cluster_label", null, "integer"));
+    verifySchema(result, schema("cluster_label", null, "int"));
     verifyDataRows(result, rows(1));
   }
 
@@ -38,7 +45,7 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
                 "search source=%s | eval message = 'error connecting to database' | cluster message"
                     + " t=0.8 | fields cluster_label | head 1",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("cluster_label", null, "integer"));
+    verifySchema(result, schema("cluster_label", null, "int"));
     verifyDataRows(result, rows(1));
   }
 
@@ -50,7 +57,7 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
                 "search source=%s | eval message = 'user authentication failed' | cluster message"
                     + " match=termset | fields cluster_label | head 1",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("cluster_label", null, "integer"));
+    verifySchema(result, schema("cluster_label", null, "int"));
     verifyDataRows(result, rows(1));
   }
 
@@ -62,7 +69,7 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
                 "search source=%s | eval message = 'connection timeout error' | cluster message"
                     + " match=ngramset | fields cluster_label | head 1",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("cluster_label", null, "integer"));
+    verifySchema(result, schema("cluster_label", null, "int"));
     verifyDataRows(result, rows(1));
   }
 
@@ -74,7 +81,7 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
                 "search source=%s | eval message = 'database error occurred' | cluster message"
                     + " labelfield=my_cluster | fields my_cluster | head 1",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("my_cluster", null, "integer"));
+    verifySchema(result, schema("my_cluster", null, "int"));
     verifyDataRows(result, rows(1));
   }
 
@@ -87,7 +94,7 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
                     + " countfield=cluster_count | fields cluster_label, cluster_count | head 1",
                 TEST_INDEX_BANK));
     verifySchema(
-        result, schema("cluster_label", null, "integer"), schema("cluster_count", null, "integer"));
+        result, schema("cluster_label", null, "int"), schema("cluster_count", null, "int"));
     verifyDataRows(result, rows(1, 1));
   }
 
@@ -96,12 +103,11 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval message = case(account_number=1, 'login failed',"
-                    + " account_number=6, 'login error', 'connection timeout') | cluster message |"
-                    + " fields message, cluster_label | head 3",
+                "search source=%s | eval message = case when account_number=1 then 'login failed'"
+                    + " when account_number=6 then 'login error' else 'connection timeout' end"
+                    + " | cluster message | fields message, cluster_label | head 3",
                 TEST_INDEX_BANK));
-    verifySchema(
-        result, schema("message", null, "string"), schema("cluster_label", null, "integer"));
+    verifySchema(result, schema("message", null, "string"), schema("cluster_label", null, "int"));
     // Similar messages "login failed" and "login error" should cluster together
     // Different message "connection timeout" should get different cluster
     verifyDataRows(
@@ -117,8 +123,7 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
                     + " match=termset labelfield=custom_label countfield=custom_count | fields"
                     + " custom_label, custom_count | head 1",
                 TEST_INDEX_BANK));
-    verifySchema(
-        result, schema("custom_label", null, "integer"), schema("custom_count", null, "integer"));
+    verifySchema(result, schema("custom_label", null, "int"), schema("custom_count", null, "int"));
     verifyDataRows(result, rows(1, 1));
   }
 
@@ -130,7 +135,7 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
                 "search source=%s | eval message = 'user-login-failed' | cluster message delims='-'"
                     + " | fields cluster_label | head 1",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("cluster_label", null, "integer"));
+    verifySchema(result, schema("cluster_label", null, "int"));
     verifyDataRows(result, rows(1));
   }
 
@@ -146,7 +151,7 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
         result,
         schema("account_number", null, "bigint"),
         schema("message", null, "string"),
-        schema("cluster_label", null, "integer"));
+        schema("cluster_label", null, "int"));
     // Should preserve original fields along with cluster results
     verifyDataRows(result, rows(1, "system alert", 1));
   }

@@ -8,7 +8,9 @@ package org.opensearch.sql.security;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
+import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -244,8 +246,7 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | cluster body | fields cluster_label",
-                TEST_INDEX_OTEL_LOGS));
+                "search source=%s | cluster body | fields cluster_label", TEST_INDEX_OTEL_LOGS));
     verifyColumn(result, columnName("cluster_label"));
 
     disableCalcite();

@@ -1,0 +1,11 @@
+calcite:
+  logical: |
+    LogicalLimit(fetch=[5])
+      LogicalProject(cluster_label=[CLUSTER_LABEL($1)])
+        LogicalProject(account_number=[$0], message=['login error':VARCHAR], firstname=[$2], address=[$3], balance=[$4], gender=[$5], city=[$6], employer=[$7], state=[$8], age=[$9], email=[$10], lastname=[$11])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[5])
+      EnumerableCalc(expr#0..11=[{inputs}], cluster_label=[CLUSTER_LABEL($t1)])
+        EnumerableCalc(expr#0..10=[{inputs}], expr#11=['login error':VARCHAR], proj#0=[{exprs}], message=[$t11], proj#2..10=[{exprs}])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
