@@ -24,6 +24,9 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.pagination.Cursor;
+import org.opensearch.sql.monitor.profile.MetricName;
+import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 /**
@@ -67,11 +70,19 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
   public void execute(
       RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
     try {
+      // Record EXECUTE metric before calling listener, because the listener's onResponse
+      // triggers SimpleJsonResponseFormatter which calls QueryProfiling.finish() to snapshot
+      // all metrics. The metric must be written before that snapshot.
+      ProfileMetric execMetric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
+      long execStart = System.nanoTime();
+
       Iterable<Object[]> rows = planExecutor.execute(plan, null);
 
       List<RelDataTypeField> fields = plan.getRowType().getFieldList();
       List<ExprValue> results = convertRows(rows, fields);
       Schema schema = buildSchema(fields);
+
+      execMetric.set(System.nanoTime() - execStart);
 
       listener.onResponse(new QueryResponse(schema, results, Cursor.None));
     } catch (Exception e) {

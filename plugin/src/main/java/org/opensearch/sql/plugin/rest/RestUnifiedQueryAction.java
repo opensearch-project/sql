@@ -31,7 +31,6 @@ import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
 import org.opensearch.sql.lang.LangSpec;
-import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.plugin.rest.analytics.stub.StubSchemaProvider;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
@@ -59,8 +58,13 @@ public class RestUnifiedQueryAction {
   }
 
   /**
-   * Check if the query targets an analytics engine index (e.g., Parquet-backed). Creates a {@link
-   * UnifiedQueryContext} to use its parser for index name extraction, supporting both PPL and SQL.
+   * Check if the query targets an analytics engine index (e.g., Parquet-backed). Uses the context's
+   * parser for index name extraction, supporting both PPL and SQL.
+   *
+   * <p>Note: This creates a separate UnifiedQueryContext for parsing. The context cannot be shared
+   * with doExecute/doExplain because UnifiedQueryContext holds a Calcite JDBC connection that fails
+   * when used across threads (transport thread -> sql-worker thread). When real catalog metadata
+   * makes this expensive, consider moving the routing check to the sql-worker thread.
    */
   public boolean isAnalyticsIndex(String query, QueryType queryType) {
     if (query == null || query.isEmpty()) {
@@ -123,14 +127,7 @@ public class RestUnifiedQueryAction {
       CalcitePlanContext planContext = context.getPlanContext();
       plan = addQuerySizeLimit(plan, planContext);
 
-      RelNode finalPlan = plan;
-      context.measure(
-          MetricName.EXECUTE,
-          () -> {
-            analyticsEngine.execute(
-                finalPlan, planContext, createQueryListener(queryType, listener));
-            return null;
-          });
+      analyticsEngine.execute(plan, planContext, createQueryListener(queryType, listener));
     } catch (Exception e) {
       listener.onFailure(e);
     }
@@ -148,13 +145,7 @@ public class RestUnifiedQueryAction {
       CalcitePlanContext planContext = context.getPlanContext();
       plan = addQuerySizeLimit(plan, planContext);
 
-      RelNode finalPlan = plan;
-      context.measure(
-          MetricName.EXECUTE,
-          () -> {
-            analyticsEngine.explain(finalPlan, pplRequest.mode(), planContext, listener);
-            return null;
-          });
+      analyticsEngine.explain(plan, pplRequest.mode(), planContext, listener);
     } catch (Exception e) {
       listener.onFailure(e);
     }
