@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.response.error;
 import lombok.Getter;
 import org.json.JSONObject;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.sql.common.error.ErrorReport;
 
 /** Error Message. */
 public class ErrorMessage {
@@ -62,12 +63,14 @@ public class ErrorMessage {
   }
 
   private JSONObject getErrorAsJson() {
-    JSONObject errorJson = new JSONObject();
+    if (exception instanceof ErrorReport) {
+      return new JSONObject(((ErrorReport) exception).toJsonMap());
+    }
 
+    JSONObject errorJson = new JSONObject();
     errorJson.put("type", type);
     errorJson.put("reason", reason);
     errorJson.put("details", details);
-
     return errorJson;
   }
 }

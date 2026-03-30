@@ -30,6 +30,7 @@ package org.opensearch.sql.calcite.utils;
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.monitor.profile.MetricName.OPTIMIZE;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Type;
 import java.sql.Connection;
@@ -104,6 +105,8 @@ import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
 import org.opensearch.sql.calcite.profile.PlanProfileBuilder;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.ProfileMetric;
@@ -398,6 +401,54 @@ public class CalciteToolsHelper {
   }
 
   public static class OpenSearchRelRunners {
+    private static boolean isNonPushdownEnumerableAggregate(String message) {
+      return message.contains("Error while preparing plan")
+          && message.contains("CalciteEnumerableNestedAggregate");
+    }
+
+    // Detect if error is due to window functions in unsupported context (bins on time fields)
+    private static boolean isWindowBinOnTimeField(SQLException e) {
+      String errorMsg = e.getMessage();
+      return errorMsg != null
+          && errorMsg.contains("Error while preparing plan")
+          && errorMsg.contains("WIDTH_BUCKET");
+    }
+
+    // Traverse Calcite SQL exceptions in search of the root cause, since Calcite's outer error
+    // messages aren't really usable for users
+    private static String rootCauseMessage(Throwable e) {
+      String rc = null;
+      if (e.getCause() != null) {
+        rc = rootCauseMessage(e.getCause());
+      }
+      for (int i = 0; rc == null && i < e.getSuppressed().length; i++) {
+        rc = rootCauseMessage(e.getSuppressed()[i]);
+      }
+      return rc != null ? rc : e.getMessage();
+    }
+
+    private static void enrichErrorsForSpecialCases(ErrorReport.Builder report, SQLException e) {
+      if (e.getMessage().contains("Error while preparing plan [") && e.getCause() != null) {
+        // Generic 'something went wrong' planning error, try to get the cause
+        int planStart = e.getMessage().indexOf('[');
+        int planEnd = e.getMessage().lastIndexOf(']');
+        report
+            .context("plan", e.getMessage().substring(planStart + 1, planEnd))
+            .details(rootCauseMessage(e));
+      }
+      if (isWindowBinOnTimeField(e)) {
+        report
+            .details(
+                "The 'bins' parameter on timestamp fields requires: (1) pushdown to be enabled"
+                    + " (controlled by plugins.calcite.pushdown.enabled, enabled by default), and"
+                    + " (2) the timestamp field to be used as an aggregation bucket (e.g., 'stats"
+                    + " count() by @timestamp').")
+            .code(ErrorCode.UNSUPPORTED_OPERATION)
+            .context("is_window_bin_on_time_field", true)
+            .suggestion("check pushdown is enabled and review the aggregation");
+      }
+    }
+
     /**
      * Runs a relational expression by existing connection. This class copied from {@link
      * org.apache.calcite.tools.RelRunners#run(RelNode)}
@@ -429,18 +480,15 @@ public class CalciteToolsHelper {
         optimizeTime.set(System.nanoTime() - startTime);
         return preparedStatement;
       } catch (SQLException e) {
+        Throwables.throwIfUnchecked(e);
+
         // Detect if error is due to window functions in unsupported context (bins on time fields)
-        String errorMsg = e.getMessage();
-        if (errorMsg != null
-            && errorMsg.contains("Error while preparing plan")
-            && errorMsg.contains("WIDTH_BUCKET")) {
-          throw new UnsupportedOperationException(
-              "The 'bins' parameter on timestamp fields requires: (1) pushdown to be enabled"
-                  + " (controlled by plugins.calcite.pushdown.enabled, enabled by default), and"
-                  + " (2) the timestamp field to be used as an aggregation bucket (e.g., 'stats"
-                  + " count() by @timestamp').");
-        }
-        throw Util.throwAsRuntime(e);
+        ErrorReport.Builder report =
+            ErrorReport.wrap(e)
+                .location("while compiling the optimized query plan for physical execution")
+                .code(ErrorCode.PLANNING_ERROR);
+        enrichErrorsForSpecialCases(report, e);
+        throw report.build();
       }
     }
   }

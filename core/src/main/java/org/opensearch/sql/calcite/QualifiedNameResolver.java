@@ -16,6 +16,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
@@ -322,7 +324,10 @@ public class QualifiedNameResolver {
     return Optional.empty();
   }
 
-  private static RuntimeException getNotFoundException(QualifiedName node) {
-    return new IllegalArgumentException(String.format("Field [%s] not found.", node.toString()));
+  private static ErrorReport getNotFoundException(QualifiedName node) {
+    return ErrorReport.wrap(
+            new IllegalArgumentException(String.format("Field [%s] not found.", node.toString())))
+        .code(ErrorCode.FIELD_NOT_FOUND)
+        .build();
   }
 }
