@@ -83,7 +83,11 @@ public class TransportPPLQueryAction
           b.bind(DataSourceService.class).toInstance(dataSourceService);
         });
     this.injector = Guice.createInjector(modules);
-    this.unifiedQueryHandler = new RestUnifiedQueryAction(client, new StubQueryPlanExecutor());
+    this.unifiedQueryHandler =
+        new RestUnifiedQueryAction(
+            client,
+            new StubQueryPlanExecutor(),
+            new OpenSearchSettings(clusterService.getClusterSettings()));
     this.pplEnabled =
         () ->
             MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)
@@ -130,7 +134,7 @@ public class TransportPPLQueryAction
     ActionListener<TransportPPLQueryResponse> clearingListener = wrapWithProfilingClear(listener);
 
     // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices
-    if (RestUnifiedQueryAction.isAnalyticsIndex(transformedRequest.getRequest())) {
+    if (unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest())) {
       if (transformedRequest.isExplainRequest()) {
         unifiedQueryHandler.explain(
             transformedRequest.getRequest(),
