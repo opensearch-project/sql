@@ -980,13 +980,8 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       command.append(" match=").append(node.getMatchMode());
     }
 
-    if (!"cluster_label".equals(node.getLabelField())) {
-      command.append(" labelfield=").append(MASK_COLUMN);
-    }
-
-    if (!"cluster_count".equals(node.getCountField())) {
-      command.append(" countfield=").append(MASK_COLUMN);
-    }
+    command.append(" labelfield=").append(MASK_COLUMN);
+    command.append(" countfield=").append(MASK_COLUMN);
 
     return command.toString();
   }

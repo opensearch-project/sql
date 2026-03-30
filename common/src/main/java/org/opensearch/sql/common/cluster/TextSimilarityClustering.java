@@ -5,9 +5,7 @@
 
 package org.opensearch.sql.common.cluster;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.text.similarity.CosineSimilarity;
@@ -66,8 +64,6 @@ public class TextSimilarityClustering {
    * incremental clustering against cluster representatives.
    */
   public double computeSimilarity(String text1, String text2) {
-    cleanCacheIfNeeded();
-
     if (text1 == null || text2 == null || text1.isEmpty() || text2.isEmpty()) {
       return 0.0;
     }
@@ -78,50 +74,14 @@ public class TextSimilarityClustering {
     return COSINE.cosineSimilarity(vector1, vector2);
   }
 
-  /**
-   * Cluster a list of text values. Returns a list of cluster assignments (0-based index into the
-   * clusters list) parallel to the input.
-   */
-  public ClusterResult cluster(List<String> values) {
-    cleanCacheIfNeeded();
-
-    List<Map<CharSequence, Integer>> repVectors = new ArrayList<>();
-    List<Integer> assignments = new ArrayList<>();
-    List<Integer> clusterSizes = new ArrayList<>();
-
-    for (String value : values) {
-      Map<CharSequence, Integer> vector = vectorizeWithCache(value);
-      int bestCluster = -1;
-      double bestSim = -1;
-
-      for (int i = 0; i < repVectors.size(); i++) {
-        double sim = COSINE.cosineSimilarity(vector, repVectors.get(i));
-        if (sim > bestSim) {
-          bestSim = sim;
-          bestCluster = i;
-        }
-      }
-
-      if (bestSim >= threshold - 1e-9 && bestCluster >= 0) {
-        assignments.add(bestCluster);
-        clusterSizes.set(bestCluster, clusterSizes.get(bestCluster) + 1);
-      } else {
-        assignments.add(repVectors.size());
-        repVectors.add(vector);
-        clusterSizes.add(1);
-      }
-    }
-
-    return new ClusterResult(assignments, clusterSizes);
-  }
-
   /** Vectorize with caching to avoid repeated computation */
-  private Map<CharSequence, Integer> vectorizeWithCache(String value) {
+  private synchronized Map<CharSequence, Integer> vectorizeWithCache(String value) {
+    cleanCacheIfNeeded();
     return vectorCache.computeIfAbsent(value, this::vectorize);
   }
 
   /** Clean cache when it gets too large */
-  private synchronized void cleanCacheIfNeeded() {
+  private void cleanCacheIfNeeded() {
     if (vectorCache.size() > MAX_CACHE_SIZE) {
       vectorCache.clear();
     }
@@ -197,33 +157,5 @@ public class TextSimilarityClustering {
     }
     String pattern = "[" + java.util.regex.Pattern.quote(delims) + "]+";
     return value.split(pattern);
-  }
-
-  /** Result of clustering: parallel assignments and cluster sizes. */
-  public static class ClusterResult {
-    private final List<Integer> assignments;
-    private final List<Integer> clusterSizes;
-
-    public ClusterResult(List<Integer> assignments, List<Integer> clusterSizes) {
-      this.assignments = assignments;
-      this.clusterSizes = clusterSizes;
-    }
-
-    public int getClusterLabel(int eventIndex) {
-      return assignments.get(eventIndex) + 1; // Convert to 1-based indexing
-    }
-
-    /** Total events in the cluster that the given event belongs to. */
-    public int getClusterCount(int eventIndex) {
-      return clusterSizes.get(assignments.get(eventIndex));
-    }
-
-    public int size() {
-      return assignments.size();
-    }
-
-    public int numClusters() {
-      return clusterSizes.size();
-    }
   }
 }

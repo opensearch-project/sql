@@ -1016,11 +1016,14 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testClusterCommand() {
     assertEquals(
-        "source=table | cluster identifier t=0.8", anonymize("source=t | cluster message"));
+        "source=table | cluster identifier t=0.8 labelfield=identifier countfield=identifier",
+        anonymize("source=t | cluster message"));
     assertEquals(
-        "source=table | cluster identifier t=0.8", anonymize("source=t | cluster message t=0.8"));
+        "source=table | cluster identifier t=0.8 labelfield=identifier countfield=identifier",
+        anonymize("source=t | cluster message t=0.8"));
     assertEquals(
-        "source=table | cluster identifier t=0.8 match=termset",
+        "source=table | cluster identifier t=0.8 match=termset labelfield=identifier"
+            + " countfield=identifier",
         anonymize("source=t | cluster message match=termset"));
     assertEquals(
         "source=table | cluster identifier t=0.7 match=ngramset labelfield=identifier"
