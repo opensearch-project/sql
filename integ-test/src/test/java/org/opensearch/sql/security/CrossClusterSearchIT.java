@@ -6,10 +6,9 @@
 package org.opensearch.sql.security;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
-import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
-import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -245,10 +244,9 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval message = 'login error' | cluster message | fields"
-                    + " cluster_label, cluster_count",
-                TEST_INDEX_BANK_REMOTE));
-    verifyColumn(result, columnName("cluster_label"), columnName("cluster_count"));
+                "search source=%s | cluster body | fields cluster_label",
+                TEST_INDEX_OTEL_LOGS));
+    verifyColumn(result, columnName("cluster_label"));
 
     disableCalcite();
   }
@@ -260,11 +258,11 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval message = firstname | cluster message t=0.8 match=termset"
-                    + " | fields cluster_label, cluster_count, message",
-                TEST_INDEX_BANK_REMOTE));
+                "search source=%s | cluster body t=0.8 match=termset showcount=true"
+                    + " | fields cluster_label, cluster_count, body",
+                TEST_INDEX_OTEL_LOGS));
     verifyColumn(
-        result, columnName("cluster_label"), columnName("cluster_count"), columnName("message"));
+        result, columnName("cluster_label"), columnName("cluster_count"), columnName("body"));
 
     disableCalcite();
   }
@@ -276,11 +274,11 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s,%s | eval message = firstname | cluster message | fields"
-                    + " cluster_label, cluster_count, message",
-                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK));
+                "search source=%s | cluster body showcount=true | fields"
+                    + " cluster_label, cluster_count, body",
+                TEST_INDEX_OTEL_LOGS));
     verifyColumn(
-        result, columnName("cluster_label"), columnName("cluster_count"), columnName("message"));
+        result, columnName("cluster_label"), columnName("cluster_count"), columnName("body"));
 
     disableCalcite();
   }

@@ -64,27 +64,36 @@ public class TextSimilarityClustering {
    * incremental clustering against cluster representatives.
    */
   public double computeSimilarity(String text1, String text2) {
-    if (text1 == null || text2 == null || text1.isEmpty() || text2.isEmpty()) {
+    // Normalize nulls to empty strings
+    String normalizedText1 = (text1 == null) ? "" : text1;
+    String normalizedText2 = (text2 == null) ? "" : text2;
+
+    // Both are empty - perfect match
+    if (normalizedText1.isEmpty() && normalizedText2.isEmpty()) {
+      return 1.0;
+    }
+
+    // One is empty, other isn't - no match
+    if (normalizedText1.isEmpty() || normalizedText2.isEmpty()) {
       return 0.0;
     }
 
-    Map<CharSequence, Integer> vector1 = vectorizeWithCache(text1);
-    Map<CharSequence, Integer> vector2 = vectorizeWithCache(text2);
+    // Both non-empty - compute cosine similarity
+    Map<CharSequence, Integer> vector1 = vectorizeWithCache(normalizedText1);
+    Map<CharSequence, Integer> vector2 = vectorizeWithCache(normalizedText2);
 
     return COSINE.cosineSimilarity(vector1, vector2);
   }
 
-  /** Vectorize with caching to avoid repeated computation */
-  private synchronized Map<CharSequence, Integer> vectorizeWithCache(String value) {
-    cleanCacheIfNeeded();
-    return vectorCache.computeIfAbsent(value, this::vectorize);
-  }
-
-  /** Clean cache when it gets too large */
-  private void cleanCacheIfNeeded() {
-    if (vectorCache.size() > MAX_CACHE_SIZE) {
-      vectorCache.clear();
-    }
+  private Map<CharSequence, Integer> vectorizeWithCache(String value) {
+    return vectorCache.computeIfAbsent(value, k -> {
+      if (vectorCache.size() > MAX_CACHE_SIZE) {
+        vectorCache.keySet().parallelStream()
+            .limit(MAX_CACHE_SIZE / 2)
+            .forEach(vectorCache::remove);
+      }
+      return vectorize(k);
+    });
   }
 
   private Map<CharSequence, Integer> vectorize(String value) {
