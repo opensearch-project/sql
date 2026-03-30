@@ -42,6 +42,12 @@ import org.opensearch.sql.utils.YamlFormatter;
 
 public class MatcherUtils {
 
+  /** Absolute tolerance floor for {@link #closeTo} numeric comparisons. */
+  private static final double ABSOLUTE_TOLERANCE = 1e-10;
+
+  /** Number of ULPs tolerated by {@link #closeTo} to absorb platform-dependent rounding. */
+  private static final int ULP_TOLERANCE_FACTOR = 4;
+
   private static final Logger LOG = LogManager.getLogger();
   private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
@@ -301,22 +307,7 @@ public class MatcherUtils {
     };
   }
 
-  public static Approx approx(double value, double error) {
-    return new Approx(value, error);
-  }
-
-  public static class Approx {
-    final double value;
-    final double error;
-
-    Approx(double value, double error) {
-      this.value = value;
-      this.error = error;
-    }
-  }
-
   public static TypeSafeMatcher<JSONArray> closeTo(Object... values) {
-    final double defaultError = 1e-10;
     return new TypeSafeMatcher<JSONArray>() {
       @Override
       protected boolean matchesSafely(JSONArray item) {
@@ -329,13 +320,7 @@ public class MatcherUtils {
         for (int i = 0; i < actualValues.size(); i++) {
           Object actual = actualValues.get(i);
           Object expected = expectedValues.get(i);
-          if (expected instanceof Approx) {
-            if (!(actual instanceof Number)
-                || Math.abs(((Number) actual).doubleValue() - ((Approx) expected).value)
-                    > ((Approx) expected).error) {
-              return false;
-            }
-          } else if (actual instanceof Number && expected instanceof Number) {
+          if (actual instanceof Number && expected instanceof Number) {
             if (!valuesAreClose((Number) actual, (Number) expected)) {
               return false;
             }
@@ -351,8 +336,16 @@ public class MatcherUtils {
         description.appendText(Arrays.toString(values));
       }
 
+      /**
+       * ULP-aware comparison: tolerates up to {@link #ULP_TOLERANCE_FACTOR} ULPs or {@link
+       * #ABSOLUTE_TOLERANCE}, whichever is larger.
+       */
       private boolean valuesAreClose(Number v1, Number v2) {
-        return Math.abs(v1.doubleValue() - v2.doubleValue()) <= defaultError;
+        double d1 = v1.doubleValue();
+        double d2 = v2.doubleValue();
+        double diff = Math.abs(d1 - d2);
+        double ulpTolerance = ULP_TOLERANCE_FACTOR * Math.max(Math.ulp(d1), Math.ulp(d2));
+        return diff <= Math.max(ABSOLUTE_TOLERANCE, ulpTolerance);
       }
     };
   }
