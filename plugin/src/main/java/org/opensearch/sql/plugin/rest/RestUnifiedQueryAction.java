@@ -20,6 +20,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryPlanner;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -156,35 +157,24 @@ public class RestUnifiedQueryAction {
   }
 
   /**
-   * Extract the source index name by parsing the query using the context's parser and finding the
-   * Relation node in the AST. Works for both PPL and SQL via {@link
-   * UnifiedQueryContext#getParser()}.
+   * Extract the source index name by parsing the query and visiting the AST to find the Relation
+   * node. Uses the context's parser which supports both PPL and SQL.
    */
-  @SuppressWarnings("unchecked")
   private static String extractIndexName(String query, UnifiedQueryContext context) {
     Object parseResult = context.getParser().parse(query);
     if (parseResult instanceof UnresolvedPlan unresolvedPlan) {
-      Relation relation = findRelation(unresolvedPlan);
-      return relation != null ? relation.getTableQualifiedName().toString() : null;
+      return unresolvedPlan.accept(new IndexNameExtractor(), null);
     }
     // TODO: handle SQL SqlNode for table extraction when unified SQL is enabled
     return null;
   }
 
-  /** Walk the AST to find the Relation (table scan) node. */
-  private static Relation findRelation(UnresolvedPlan plan) {
-    if (plan instanceof Relation) {
-      return (Relation) plan;
+  /** AST visitor that extracts the source index name from a Relation node. */
+  private static class IndexNameExtractor extends AbstractNodeVisitor<String, Void> {
+    @Override
+    public String visitRelation(Relation node, Void context) {
+      return node.getTableQualifiedName().toString();
     }
-    for (var child : plan.getChild()) {
-      if (child instanceof UnresolvedPlan unresolvedChild) {
-        Relation found = findRelation(unresolvedChild);
-        if (found != null) {
-          return found;
-        }
-      }
-    }
-    return null;
   }
 
   private static RelNode addQuerySizeLimit(RelNode plan, CalcitePlanContext context) {
