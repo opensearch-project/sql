@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         java: [21, 25]
-        test-type: ['unit', 'integration', 'doc']
+        test-type: ['unit', 'integration-calcite', 'integration-non-calcite', 'doc']
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
@@ -53,8 +53,10 @@ jobs:
           chown -R 1000:1000 `pwd`
           if [ "${{ matrix.test-type }}" = "unit" ]; then
             su `id -un 1000` -c "./gradlew --continue build -x integTest -x yamlRestTest -x doctest"
-          elif [ "${{ matrix.test-type }}" = "integration" ]; then
-            su `id -un 1000` -c "./gradlew --continue integTest yamlRestTest"
+          elif [ "${{ matrix.test-type }}" = "integration-calcite" ]; then
+            su `id -un 1000` -c "./gradlew --continue integTestCalcite yamlRestTest"
+          elif [ "${{ matrix.test-type }}" = "integration-non-calcite" ]; then
+            su `id -un 1000` -c "./gradlew --continue integTestNonCalcite"
           else
             su `id -un 1000` -c "./gradlew --continue doctest"
           fi
@@ -109,7 +111,7 @@ jobs:
           - { os: windows-latest, java: 25, os_build_args: -PbuildPlatform=windows }
           - { os: macos-14, java: 21, os_build_args: '' }
           - { os: macos-14, java: 25, os_build_args: '' }
-        test-type: ['unit', 'integration', 'doc']
+        test-type: ['unit', 'integration-calcite', 'integration-non-calcite', 'doc']
         exclude:
           # Exclude doctest for Windows
           - test-type: doc
@@ -131,8 +133,10 @@ jobs:
         run: |
           if [ "${{ matrix.test-type }}" = "unit" ]; then
             ./gradlew --continue build -x integTest -x yamlRestTest -x doctest ${{ matrix.entry.os_build_args }}
-          elif [ "${{ matrix.test-type }}" = "integration" ]; then
-            ./gradlew --continue integTest yamlRestTest ${{ matrix.entry.os_build_args }}
+          elif [ "${{ matrix.test-type }}" = "integration-calcite" ]; then
+            ./gradlew --continue integTestCalcite yamlRestTest ${{ matrix.entry.os_build_args }}
+          elif [ "${{ matrix.test-type }}" = "integration-non-calcite" ]; then
+            ./gradlew --continue integTestNonCalcite ${{ matrix.entry.os_build_args }}
           else
             ./gradlew --continue doctest ${{ matrix.entry.os_build_args }}
           fi
