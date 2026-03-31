@@ -20,6 +20,9 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryPlanner;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.tree.Relation;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -28,19 +31,18 @@ import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
 import org.opensearch.sql.lang.LangSpec;
-import org.opensearch.sql.plugin.rest.analytics.stub.StubIndexDetector;
 import org.opensearch.sql.plugin.rest.analytics.stub.StubSchemaProvider;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
-import org.opensearch.sql.protocol.response.format.JdbcResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
+import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
- * Handles queries routed to the Analytics engine via the unified query pipeline. Parses PPL queries
- * using {@link UnifiedQueryPlanner} to generate a Calcite {@link RelNode}, then delegates to {@link
- * AnalyticsExecutionEngine} for execution.
+ * Handles queries routed to the Analytics engine via the unified query pipeline. Parses PPL/SQL
+ * queries using {@link UnifiedQueryPlanner} to generate a Calcite {@link RelNode}, then delegates
+ * to {@link AnalyticsExecutionEngine} for execution.
  */
 public class RestUnifiedQueryAction {
 
@@ -56,23 +58,31 @@ public class RestUnifiedQueryAction {
   }
 
   /**
-   * Check if the query targets an analytics engine index. Delegates to {@link StubIndexDetector}
-   * which will be replaced by UnifiedQueryParser and index settings when available.
+   * Check if the query targets an analytics engine index (e.g., Parquet-backed). Uses the context's
+   * parser for index name extraction, supporting both PPL and SQL.
+   *
+   * <p>Note: This creates a separate UnifiedQueryContext for parsing. The context cannot be shared
+   * with doExecute/doExplain because UnifiedQueryContext holds a Calcite JDBC connection that fails
+   * when used across threads (transport thread -> sql-worker thread). When real catalog metadata
+   * makes this expensive, consider moving the routing check to the sql-worker thread.
    */
-  public static boolean isAnalyticsIndex(String query) {
-    return StubIndexDetector.isAnalyticsIndex(query);
+  public boolean isAnalyticsIndex(String query, QueryType queryType) {
+    if (query == null || query.isEmpty()) {
+      return false;
+    }
+    try (UnifiedQueryContext context = buildContext(queryType, false)) {
+      String indexName = extractIndexName(query, context);
+      if (indexName == null) {
+        return false;
+      }
+      int lastDot = indexName.lastIndexOf('.');
+      String tableName = lastDot >= 0 ? indexName.substring(lastDot + 1) : indexName;
+      return tableName.startsWith("parquet_");
+    } catch (Exception e) {
+      return false;
+    }
   }
 
-  /**
-   * Execute a query through the unified query pipeline on the sql-worker thread pool. Called from
-   * {@code TransportPPLQueryAction} which handles PPL enabled check, metrics, request ID, and
-   * profiling cleanup.
-   *
-   * @param query the query string
-   * @param queryType SQL or PPL
-   * @param pplRequest the original PPL request
-   * @param listener the transport action listener
-   */
   /** Execute a query through the unified query pipeline on the sql-worker thread pool. */
   public void execute(
       String query,
@@ -90,7 +100,7 @@ public class RestUnifiedQueryAction {
   /**
    * Explain a query through the unified query pipeline on the sql-worker thread pool. Returns
    * ExplainResponse via ResponseListener so the caller (TransportPPLQueryAction) can format it
-   * using its own createExplainResponseListener, reusing the existing format-aware logic.
+   * using its own createExplainResponseListener.
    */
   public void explain(
       String query,
@@ -110,32 +120,14 @@ public class RestUnifiedQueryAction {
       QueryType queryType,
       PPLQueryRequest pplRequest,
       ActionListener<TransportPPLQueryResponse> listener) {
-    try {
-      long startTime = System.nanoTime();
-      AbstractSchema schema = StubSchemaProvider.buildSchema();
+    try (UnifiedQueryContext context = buildContext(queryType, pplRequest.profile())) {
+      UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+      RelNode plan = planner.plan(query);
 
-      try (UnifiedQueryContext context =
-          UnifiedQueryContext.builder()
-              .language(queryType)
-              .catalog(SCHEMA_NAME, schema)
-              .defaultNamespace(SCHEMA_NAME)
-              .build()) {
+      CalcitePlanContext planContext = context.getPlanContext();
+      plan = addQuerySizeLimit(plan, planContext);
 
-        UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-        RelNode plan = planner.plan(query);
-
-        CalcitePlanContext planContext = context.getPlanContext();
-        plan = addQuerySizeLimit(plan, planContext);
-
-        long planTime = System.nanoTime();
-        LOG.info(
-            "[unified] Planning completed in {}ms for {} query",
-            (planTime - startTime) / 1_000_000,
-            queryType);
-
-        analyticsEngine.execute(
-            plan, planContext, createQueryListener(queryType, planTime, listener));
-      }
+      analyticsEngine.execute(plan, planContext, createQueryListener(queryType, listener));
     } catch (Exception e) {
       listener.onFailure(e);
     }
@@ -146,40 +138,50 @@ public class RestUnifiedQueryAction {
       QueryType queryType,
       PPLQueryRequest pplRequest,
       ResponseListener<ExplainResponse> listener) {
-    try {
-      long startTime = System.nanoTime();
-      AbstractSchema schema = StubSchemaProvider.buildSchema();
+    try (UnifiedQueryContext context = buildContext(queryType, pplRequest.profile())) {
+      UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+      RelNode plan = planner.plan(query);
 
-      try (UnifiedQueryContext context =
-          UnifiedQueryContext.builder()
-              .language(queryType)
-              .catalog(SCHEMA_NAME, schema)
-              .defaultNamespace(SCHEMA_NAME)
-              .build()) {
+      CalcitePlanContext planContext = context.getPlanContext();
+      plan = addQuerySizeLimit(plan, planContext);
 
-        UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-        RelNode plan = planner.plan(query);
-
-        CalcitePlanContext planContext = context.getPlanContext();
-        plan = addQuerySizeLimit(plan, planContext);
-
-        long planTime = System.nanoTime();
-        LOG.info(
-            "[unified] Planning completed in {}ms for {} query",
-            (planTime - startTime) / 1_000_000,
-            queryType);
-
-        analyticsEngine.explain(plan, pplRequest.mode(), planContext, listener);
-      }
+      analyticsEngine.explain(plan, pplRequest.mode(), planContext, listener);
     } catch (Exception e) {
       listener.onFailure(e);
     }
   }
 
+  private UnifiedQueryContext buildContext(QueryType queryType, boolean profiling) {
+    AbstractSchema schema = StubSchemaProvider.buildSchema();
+    return UnifiedQueryContext.builder()
+        .language(queryType)
+        .catalog(SCHEMA_NAME, schema)
+        .defaultNamespace(SCHEMA_NAME)
+        .profiling(profiling)
+        .build();
+  }
+
   /**
-   * Add a system-level query size limit to the plan. This ensures the analytics engine enforces the
-   * limit during execution rather than returning all rows for post-processing truncation.
+   * Extract the source index name by parsing the query and visiting the AST to find the Relation
+   * node. Uses the context's parser which supports both PPL and SQL.
    */
+  private static String extractIndexName(String query, UnifiedQueryContext context) {
+    Object parseResult = context.getParser().parse(query);
+    if (parseResult instanceof UnresolvedPlan unresolvedPlan) {
+      return unresolvedPlan.accept(new IndexNameExtractor(), null);
+    }
+    // TODO: handle SQL SqlNode for table extraction when unified SQL is enabled
+    return null;
+  }
+
+  /** AST visitor that extracts the source index name from a Relation node. */
+  private static class IndexNameExtractor extends AbstractNodeVisitor<String, Void> {
+    @Override
+    public String visitRelation(Relation node, Void context) {
+      return node.getTableQualifiedName().toString();
+    }
+  }
+
   private static RelNode addQuerySizeLimit(RelNode plan, CalcitePlanContext context) {
     return LogicalSystemLimit.create(
         LogicalSystemLimit.SystemLimitType.QUERY_SIZE_LIMIT,
@@ -188,18 +190,11 @@ public class RestUnifiedQueryAction {
   }
 
   private ResponseListener<QueryResponse> createQueryListener(
-      QueryType queryType,
-      long planEndTime,
-      ActionListener<TransportPPLQueryResponse> transportListener) {
-    ResponseFormatter<QueryResult> formatter = new JdbcResponseFormatter(PRETTY);
+      QueryType queryType, ActionListener<TransportPPLQueryResponse> transportListener) {
+    ResponseFormatter<QueryResult> formatter = new SimpleJsonResponseFormatter(PRETTY);
     return new ResponseListener<QueryResponse>() {
       @Override
       public void onResponse(QueryResponse response) {
-        long execTime = System.nanoTime();
-        LOG.info(
-            "[unified] Execution completed in {}ms, {} rows returned",
-            (execTime - planEndTime) / 1_000_000,
-            response.getResults().size());
         LangSpec langSpec = queryType == QueryType.PPL ? PPL_SPEC : LangSpec.SQL_SPEC;
         String result =
             formatter.format(
@@ -215,11 +210,6 @@ public class RestUnifiedQueryAction {
     };
   }
 
-  /**
-   * Capture current thread context and restore it on the worker thread. Ensures security context
-   * (user identity, permissions) is propagated. Same pattern as {@link
-   * org.opensearch.sql.opensearch.executor.OpenSearchQueryManager#withCurrentContext}.
-   */
   private static Runnable withCurrentContext(final Runnable task) {
     final Map<String, String> currentContext = ThreadContext.getImmutableContext();
     return () -> {

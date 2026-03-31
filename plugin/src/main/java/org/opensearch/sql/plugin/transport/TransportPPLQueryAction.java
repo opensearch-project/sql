@@ -130,7 +130,7 @@ public class TransportPPLQueryAction
     ActionListener<TransportPPLQueryResponse> clearingListener = wrapWithProfilingClear(listener);
 
     // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices
-    if (RestUnifiedQueryAction.isAnalyticsIndex(transformedRequest.getRequest())) {
+    if (unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
       if (transformedRequest.isExplainRequest()) {
         unifiedQueryHandler.explain(
             transformedRequest.getRequest(),
