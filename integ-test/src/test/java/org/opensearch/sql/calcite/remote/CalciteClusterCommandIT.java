@@ -211,5 +211,4 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
         rows("login failed for user root", 1, 7),
         rows("login failed for user guest", 1, 7));
   }
-
 }
