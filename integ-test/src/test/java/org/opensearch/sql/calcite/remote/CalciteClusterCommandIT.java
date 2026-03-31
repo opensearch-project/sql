@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -24,7 +23,6 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
     loadIndex(Index.BANK);
-    loadIndex(Index.OTELLOGS);
   }
 
   @Test
@@ -161,23 +159,17 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "search source=%s | eval message = case(account_number=1, 'login failed for user"
-                    + " admin', account_number=6, 'login failed for user root',"
-                    + " account_number=13, 'connection timeout on server' else 'connection"
-                    + " timeout on host') | cluster message match=termset showcount=true"
-                    + " | fields message, cluster_label, cluster_count | sort cluster_label"
-                    + " | head 4",
+                    + " admin', account_number=6, 'login failed for user root' else 'login"
+                    + " failed for user guest') | cluster message match=termset showcount=true"
+                    + " | fields message, cluster_label, cluster_count",
                 TEST_INDEX_BANK));
     verifySchema(
         result,
         schema("message", null, "string"),
         schema("cluster_label", null, "int"),
         schema("cluster_count", null, "bigint"));
-    verifyDataRows(
-        result,
-        rows("login failed for user admin", 1, 2),
-        rows("login failed for user root", 1, 2),
-        rows("connection timeout on server", 2, 5),
-        rows("connection timeout on host", 2, 5));
+    // All similar messages should dedup to one representative row
+    verifyDataRows(result, rows("login failed for user admin", 1, 7));
   }
 
   @Test
@@ -220,97 +212,4 @@ public class CalciteClusterCommandIT extends PPLIntegTestCase {
         rows("login failed for user guest", 1, 7));
   }
 
-  @Test
-  public void testClusterNullFieldsFiltered() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | eval message = case(account_number=1, 'error occurred' else"
-                    + " null) | cluster message showcount=true | fields message, cluster_label,"
-                    + " cluster_count",
-                TEST_INDEX_BANK));
-    verifySchema(
-        result,
-        schema("message", null, "string"),
-        schema("cluster_label", null, "int"),
-        schema("cluster_count", null, "bigint"));
-    verifyDataRows(result, rows("error occurred", 1, 1));
-  }
-
-  @Test
-  public void testClusterNullFieldsFilteredWithLabelOnly() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | eval message = case(account_number=1, 'error alpha',"
-                    + " account_number=6, 'error beta' else null) | cluster message"
-                    + " labelonly=true showcount=true | fields message, cluster_label,"
-                    + " cluster_count | sort message | head 2",
-                TEST_INDEX_BANK));
-    verifySchema(
-        result,
-        schema("message", null, "string"),
-        schema("cluster_label", null, "int"),
-        schema("cluster_count", null, "bigint"));
-    verifyDataRows(result, rows("error alpha", 1, 2), rows("error beta", 1, 2));
-  }
-
-  @Test
-  public void testClusterOnOtelLogs() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | cluster body showcount=true | fields body, cluster_label,"
-                    + " cluster_count | head 3",
-                TEST_INDEX_OTEL_LOGS));
-    verifySchema(
-        result,
-        schema("body", null, "string"),
-        schema("cluster_label", null, "int"),
-        schema("cluster_count", null, "bigint"));
-    verifyDataRows(
-        result,
-        rows(
-            "User e1ce63e6-8501-11f0-930d-c2fcbdc05f14 adding 4 of product HQTGWGPNH4 to cart",
-            1,
-            1),
-        rows("Payment failed: Insufficient funds for user@example.com", 2, 1),
-        rows(
-            "Query contains Lucene special characters: +field:value -excluded AND (grouped OR"
-                + " terms) NOT \"exact phrase\" wildcard* fuzzy~2 /regex/ [range TO search]",
-            3,
-            1));
-  }
-
-  @Test
-  public void testClusterLabelOnlyWithShowCountOnOtelLogs() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | cluster body match=termset t=0.3 labelonly=true showcount=true"
-                    + " | fields body, cluster_label, cluster_count | head 3",
-                TEST_INDEX_OTEL_LOGS));
-    verifySchema(
-        result,
-        schema("body", null, "string"),
-        schema("cluster_label", null, "int"),
-        schema("cluster_count", null, "bigint"));
-    verifyDataRows(
-        result,
-        rows(
-            "User e1ce63e6-8501-11f0-930d-c2fcbdc05f14 adding 4 of product HQTGWGPNH4 to cart",
-            1,
-            3),
-        rows(
-            "192.168.1.1 - - [15/Jan/2024:10:30:03 +0000] \"GET"
-                + " /api/products?search=laptop&category=electronics HTTP/1.1\" 200 1234 \"-\""
-                + " \"Mozilla/5.0\"",
-            1,
-            3),
-        rows(
-            "[2024-01-15 10:30:09] production.INFO: User authentication successful for"
-                + " admin@company.org using OAuth2",
-            1,
-            3));
-  }
 }

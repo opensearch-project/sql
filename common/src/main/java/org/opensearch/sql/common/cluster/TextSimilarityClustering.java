@@ -6,6 +6,7 @@
 package org.opensearch.sql.common.cluster;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.text.similarity.CosineSimilarity;
 
@@ -22,7 +23,13 @@ public class TextSimilarityClustering {
   private static final CosineSimilarity COSINE = new CosineSimilarity();
 
   // Cache vectorized representations to avoid recomputation
-  private final Map<String, Map<CharSequence, Integer>> vectorCache = new HashMap<>();
+  private final Map<String, Map<CharSequence, Integer>> vectorCache =
+      new LinkedHashMap<>(MAX_CACHE_SIZE, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Map<CharSequence, Integer>> eldest) {
+          return size() > MAX_CACHE_SIZE;
+        }
+      };
   private static final int MAX_CACHE_SIZE = 10000;
 
   private final double threshold;
@@ -85,20 +92,7 @@ public class TextSimilarityClustering {
   }
 
   private Map<CharSequence, Integer> vectorizeWithCache(String value) {
-    Map<CharSequence, Integer> cached = vectorCache.get(value);
-    if (cached != null) {
-      return cached;
-    }
-    if (vectorCache.size() > MAX_CACHE_SIZE) {
-      var it = vectorCache.keySet().iterator();
-      for (int i = 0; i < MAX_CACHE_SIZE / 2 && it.hasNext(); i++) {
-        it.next();
-        it.remove();
-      }
-    }
-    Map<CharSequence, Integer> result = vectorize(value);
-    vectorCache.put(value, result);
-    return result;
+    return vectorCache.computeIfAbsent(value, this::vectorize);
   }
 
   private Map<CharSequence, Integer> vectorize(String value) {
