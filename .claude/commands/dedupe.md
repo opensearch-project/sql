@@ -11,11 +11,11 @@ Follow these steps precisely:
 
 2. Summarize the issue's core problem in 2-3 sentences. Identify the key terms, error messages, and affected components.
 
-3. Search for potential duplicates using **at least 3 different search strategies**. Run these searches in parallel:
-   - `gh search issues "<exact error message or key phrase>" --repo $GITHUB_REPOSITORY --state open --limit 15`
-   - `gh search issues "<component or feature keywords>" --repo $GITHUB_REPOSITORY --state open --limit 15`
-   - `gh search issues "<alternate description of the problem>" --repo $GITHUB_REPOSITORY --state open --limit 15`
-   - `gh search issues "<key terms>" --repo $GITHUB_REPOSITORY --state all --limit 10` (include closed issues for reference)
+3. Search for potential duplicates using **at least 3 different search strategies**. Run these searches in parallel. **Only consider issues with a lower issue number** (older issues) as potential originals — skip any result with a number >= the current issue. Also skip issues already labeled `duplicate`.
+   - `gh search issues "<exact error message or key phrase>" --repo $GITHUB_REPOSITORY --state open -- -label:duplicate --limit 15 --json number,title | jq '[.[] | select(.number < <current-issue-number>)]'`
+   - `gh search issues "<component or feature keywords>" --repo $GITHUB_REPOSITORY --state open -- -label:duplicate --limit 15 --json number,title | jq '[.[] | select(.number < <current-issue-number>)]'`
+   - `gh search issues "<alternate description of the problem>" --repo $GITHUB_REPOSITORY --state open -- -label:duplicate --limit 15 --json number,title | jq '[.[] | select(.number < <current-issue-number>)]'`
+   - `gh search issues "<key terms>" --repo $GITHUB_REPOSITORY --state all -- -label:duplicate --limit 10 --json number,title | jq '[.[] | select(.number < <current-issue-number>)]'` (include closed issues for reference)
 
 4. For each candidate issue that looks like a potential match, read it with `gh issue view <number>` to verify it is truly about the same problem. Filter out false positives — issues that merely share keywords but describe different problems.
 
