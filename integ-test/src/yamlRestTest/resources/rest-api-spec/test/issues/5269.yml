@@ -1,0 +1,63 @@
+setup:
+  - do:
+      indices.create:
+        index: issue5269_bool
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              flag:
+                type: boolean
+              startTime:
+                type: date_nanos
+
+  - do:
+      indices.create:
+        index: issue5269_text
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              flag:
+                type: text
+              startTime:
+                type: date_nanos
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5269_bool", "_id": "1"}}'
+          - '{"startTime": "2026-03-25T20:25:00.000Z", "flag": false}'
+          - '{"index": {"_index": "issue5269_text", "_id": "1"}}'
+          - '{"startTime": "2026-03-24T20:25:00.000Z", "flag": 0}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5269_bool
+        ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: issue5269_text
+        ignore_unavailable: true
+
+---
+"Issue 5269: PPL wildcard query across indices with boolean/text mapping conflict should not error":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5269_* | fields flag
+
+  - match: { total: 2 }
+  - length: { datarows: 2 }
