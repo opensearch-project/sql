@@ -49,7 +49,7 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.6.0.0
 * Fix issue connecting with prometheus by wrapping with AccessController.doPrivilegedChecked ([#5061](https://github.com/opensearch-project/sql/pull/5061))
 
 ### Infrastructure
-* Add gradle.properties file to build sql with -Pcrypto.standard=FIPS=140-3 by default ([#5231](https://github.com/opensearch-project/sql/pull/5231))
+* Add gradle.properties file to build sql with -Pcrypto.standard=FIPS-140-3 by default ([#5231](https://github.com/opensearch-project/sql/pull/5231))
 * Fix the flaky yamlRestTest caused by order of sample_logs ([#5119](https://github.com/opensearch-project/sql/pull/5119))
 * Fix the filter of integTestWithSecurity ([#5098](https://github.com/opensearch-project/sql/pull/5098))
 
