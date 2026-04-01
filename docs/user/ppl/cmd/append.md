@@ -21,53 +21,61 @@ The `append` command supports the following parameters.
 | --- | --- | --- |
 | `<subsearch>` | Required | Executes PPL commands as a secondary search. |  
 
-## Example 1: Append rows from a count aggregation to existing search results
+## Example 1: Append error and fatal counts side by side
 
-The following query appends rows from `count by gender` to `sum by gender, state`:
+The following query shows error counts per service, then appends fatal counts from a separate query. This lets you compare error and fatal rates across services:
   
 ```ppl
-source=accounts | stats sum(age) by gender, state | sort -`sum(age)` | head 5 | append [ source=accounts | stats count(age) by gender ]
+source=otellogs
+| where severityText = 'ERROR'
+| stats count() as error_count by `resource.attributes.service.name`
+| sort - error_count
+| append [ source=otellogs | where severityText = 'FATAL' | stats count() as fatal_count by `resource.attributes.service.name` ]
+| sort `resource.attributes.service.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 6/6
-+----------+--------+-------+------------+
-| sum(age) | gender | state | count(age) |
-|----------+--------+-------+------------|
-| 36       | M      | TN    | null       |
-| 33       | M      | MD    | null       |
-| 32       | M      | IL    | null       |
-| 28       | F      | VA    | null       |
-| null     | F      | null  | 1          |
-| null     | M      | null  | 3          |
-+----------+--------+-------+------------+
+fetched rows / total rows = 7/7
++-------------+----------------------------------+-------------+
+| error_count | resource.attributes.service.name | fatal_count |
+|-------------+----------------------------------+-------------|
+| 1           | api-gateway                      | null        |
+| 1           | auth-service                     | null        |
+| 1           | cart-service                     | null        |
+| null        | inventory-service                | 1           |
+| 1           | payment-service                  | null        |
+| null        | payment-service                  | 1           |
+| 1           | user-service                     | null        |
++-------------+----------------------------------+-------------+
 ```
   
 
-## Example 2: Append rows with merged column names
+## Example 2: Append summary rows to detail rows
 
-The following query appends rows from `sum by gender` to `sum by gender, state`, merging columns that have the same field name and type:
+The following query shows the top 3 severity levels by count, then appends the total count across all levels:
   
 ```ppl
-source=accounts | stats sum(age) as sum by gender, state | sort -sum | head 5 | append [ source=accounts | stats sum(age) as sum by gender ]
+source=otellogs
+| stats count() as log_count by severityText
+| sort - log_count
+| head 3
+| append [ source=otellogs | stats count() as log_count | eval severityText = 'ALL' ]
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 6/6
-+-----+--------+-------+
-| sum | gender | state |
-|-----+--------+-------|
-| 36  | M      | TN    |
-| 33  | M      | MD    |
-| 32  | M      | IL    |
-| 28  | F      | VA    |
-| 28  | F      | null  |
-| 101 | M      | null  |
-+-----+--------+-------+
+fetched rows / total rows = 4/4
++-----------+--------------+
+| log_count | severityText |
+|-----------+--------------|
+| 6         | INFO         |
+| 5         | ERROR        |
+| 4         | WARN         |
+| 20        | ALL          |
++-----------+--------------+
 ```
 
 ## Limitations

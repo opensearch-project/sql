@@ -33,143 +33,75 @@ The `regex` command supports the following parameters.
 | `<field>` | Required | The field name to match against. |
 | `<pattern>` | Required | The regular expression pattern to match. Supports [Java regular expression syntax](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html). |
 
-## Example 1: Basic pattern matching  
+## Example 1: Find logs matching a pattern  
 
-The following query uses the `regex` command to return any document in which the `lastname` field starts with an uppercase letter:
+The following query finds all logs mentioning connection timeouts, useful for diagnosing network issues:
   
 ```ppl
-source=accounts
-| regex lastname="^[A-Z][a-z]+$"
-| fields account_number, firstname, lastname
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+----------------+-----------+----------+
-| account_number | firstname | lastname |
-|----------------+-----------+----------|
-| 1              | Amber     | Duke     |
-| 6              | Hattie    | Bond     |
-| 13             | Nanette   | Bates    |
-| 18             | Dale      | Adams    |
-+----------------+-----------+----------+
-```
-  
-
-## Example 2: Negative matching
-
-The following query excludes documents in which the `lastname` field ends with `ms`:
-
-```ppl
-source=accounts
-| regex lastname!=".*ms$"
-| fields account_number, lastname
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 3/3
-+----------------+----------+
-| account_number | lastname |
-|----------------+----------|
-| 1              | Duke     |
-| 6              | Bond     |
-| 13             | Bates    |
-+----------------+----------+
-```
-  
-
-## Example 3: Email domain matching  
-
-The following query filters documents by email domain patterns:
-  
-```ppl
-source=accounts
-| regex email="@pyrami\.com$"
-| fields account_number, email
+source=otellogs
+| regex body=".*timeout.*|.*Timeout.*"
+| fields severityText, `resource.attributes.service.name`, body
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+----------------+----------------------+
-| account_number | email                |
-|----------------+----------------------|
-| 1              | amberduke@pyrami.com |
-+----------------+----------------------+
++--------------+----------------------------------+---------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                |
+|--------------+----------------------------------+---------------------------------------------------------------------|
+| ERROR        | payment-service                  | Payment failed: connection timeout to payment gateway after 30000ms |
++--------------+----------------------------------+---------------------------------------------------------------------+
 ```
   
 
-## Example 4: Complex patterns with character classes  
+## Example 2: Exclude logs matching a pattern  
 
-The following query uses complex regex patterns with character classes and quantifiers:
+The following query finds all errors except those related to timeouts, helping you focus on other failure types:
   
 ```ppl
-source=accounts | regex address="\\d{3,4}\\s+[A-Z][a-z]+\\s+(Street|Lane|Court)" | fields account_number, address
+source=otellogs
+| where severityText = 'ERROR'
+| regex body!=".*timeout.*"
+| sort `resource.attributes.service.name`
+| fields severityText, `resource.attributes.service.name`, body
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
-+----------------+----------------------+
-| account_number | address              |
-|----------------+----------------------|
-| 1              | 880 Holmes Lane      |
-| 6              | 671 Bristol Street   |
-| 13             | 789 Madison Street   |
-| 18             | 467 Hutchinson Court |
-+----------------+----------------------+
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                         |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------------|
+| ERROR        | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| ERROR        | auth-service                     | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
+| ERROR        | cart-service                     | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | user-service                     | NullPointerException in UserService.getProfile at line 142                                   |
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
 
-## Example 5: Case-sensitive matching  
+## Example 3: Filter by service name pattern  
 
-By default, regex matching is case sensitive. The following query searches for the lowercase state name `va`:
+The following query finds logs from all services with "service" in their name, excluding infrastructure components like monitors and controllers:
   
 ```ppl
-source=accounts
-| regex state="va"
-| fields account_number, state
-```
-  
-The query returns no results because the regex pattern `va` (lowercase) does not match any state values in the data.
-  
-```text
-fetched rows / total rows = 0/0
-+----------------+-------+
-| account_number | state |
-|----------------+-------|
-+----------------+-------+
-```
-
-The following query searches for the uppercase state name `VA`:
-
-```ppl
-source=accounts
-| regex state="VA"
-| fields account_number, state
+source=otellogs
+| where severityText = 'FATAL'
+| regex `resource.attributes.service.name`=".*-service$"
+| fields severityText, `resource.attributes.service.name`, body
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 1/1
-+----------------+-------+
-| account_number | state |
-|----------------+-------|
-| 13             | VA    |
-+----------------+-------+
+fetched rows / total rows = 2/2
++--------------+----------------------------------+---------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                            |
+|--------------+----------------------------------+---------------------------------------------------------------------------------|
+| FATAL        | payment-service                  | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
+| FATAL        | inventory-service                | Database primary node unreachable: connection refused to db-primary-01:5432     |
++--------------+----------------------------------+---------------------------------------------------------------------------------+
 ```
   
-
-## Limitations
-
-The `regex` command has the following limitations:
-
-* A field name must be specified in the `regex` command. Pattern-only syntax (for example, `regex "pattern"`) is not supported.
-* The `regex` command only supports string fields. Using it on numeric or Boolean fields results in an error.  

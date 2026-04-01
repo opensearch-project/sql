@@ -28,79 +28,54 @@ The `parse` command supports the following parameters.
 
 The regular expression pattern is used to match the whole text field of each document based on the [Java regular expression syntax](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html). Each named capture group in the expression becomes a new `STRING` field.  
 
-## Example 1: Create a new field  
+## Example 1: Extract error details from log messages  
 
-The following query extracts the hostname from email addresses. The regex pattern `.+@(?<host>.+)` captures all characters after the `@` symbol and creates a new `host` field. When parsing a null field, the result is an empty string:
+The following query extracts the error summary and detail from error log messages. This is useful for categorizing errors during incident triage:
   
 ```ppl
-source=accounts
-| parse email '.+@(?<host>.+)'
-| fields email, host
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+-----------------------+------------+
-| email                 | host       |
-|-----------------------+------------|
-| amberduke@pyrami.com  | pyrami.com |
-| hattiebond@netagy.com | netagy.com |
-| null                  |            |
-| daleadams@boink.com   | boink.com  |
-+-----------------------+------------+
-```
-  
-
-## Example 2: Override an existing field  
-
-The following query replaces the `address` field with only the street name, removing the street number. The regex pattern `\d+ (?<address>.+)` matches digits followed by a space, then captures the remaining text as the new `address` value:
-  
-```ppl
-source=accounts
-| parse address '\d+ (?<address>.+)'
-| fields address
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+------------------+
-| address          |
-|------------------|
-| Holmes Lane      |
-| Bristol Street   |
-| Madison Street   |
-| Hutchinson Court |
-+------------------+
-```
-  
-
-## Example 3: Parse, filter, and sort address components
-
-The following query extracts street numbers and names from addresses, then filters for street numbers greater than 500 and sorts them numerically. The regex pattern `(?<streetNumber>\d+) (?<street>.+)` captures the numeric part as `streetNumber` and the remaining text as `street`:
-  
-```ppl
-source=accounts
-| parse address '(?<streetNumber>\d+) (?<street>.+)'
-| where cast(streetNumber as int) > 500
-| sort num(streetNumber)
-| fields streetNumber, street
+source=otellogs
+| where severityText = 'ERROR'
+| parse body '(?<errmsg>[^:]+): (?<detail>.+)'
+| fields body, errmsg, detail
+| head 3
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+--------------+----------------+
-| streetNumber | street         |
-|--------------+----------------|
-| 671          | Bristol Street |
-| 789          | Madison Street |
-| 880          | Holmes Lane    |
-+--------------+----------------+
++--------------------------------------------------------------------------+----------------+-----------------------------------------------------+
+| body                                                                     | errmsg         | detail                                              |
+|--------------------------------------------------------------------------+----------------+-----------------------------------------------------|
+| Payment failed: connection timeout to payment gateway after 30000ms      | Payment failed | connection timeout to payment gateway after 30000ms |
+| NullPointerException in UserService.getProfile at line 142               |                |                                                     |
+| HTTP POST /api/checkout 503 Service Unavailable - upstream connect error |                |                                                     |
++--------------------------------------------------------------------------+----------------+-----------------------------------------------------+
+```
+  
+
+## Example 2: Extract IP addresses from authentication logs  
+
+The following query extracts IP addresses from authentication-related log messages, useful for identifying suspicious login sources:
+  
+```ppl
+source=otellogs
+| where LIKE(body, '%from%')
+| parse body '.+from (?<sourceip>[0-9.]+)'
+| fields body, sourceip
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 3/3
++---------------------------------------------------------------------------+--------------+
+| body                                                                      | sourceip     |
+|---------------------------------------------------------------------------+--------------|
+| Slow query detected: SELECT * FROM inventory WHERE stock < 10 took 3200ms |              |
+| User U300 authenticated via OAuth2 from 10.0.0.5                          | 10.0.0.5     |
+| Failed to authenticate user U400: invalid credentials from 203.0.113.50   | 203.0.113.50 |
++---------------------------------------------------------------------------+--------------+
 ```
   
 
@@ -108,34 +83,9 @@ fetched rows / total rows = 3/3
 
 The `parse` command has the following limitations:
 
-- Fields created by the `parse` command cannot be parsed again. For example, the following command does not function as intended:
-
-    ```sql
-    source=accounts | parse address '\d+ (?<street>.+)' | parse street '\w+ (?<road>\w+)'
-    ```
-
-- Fields created by the `parse` command cannot be overridden by other commands. For example, in the following query, the `where` clause does not match any documents because `street` cannot be overridden:
-
-    ```sql
-    source=accounts | parse address '\d+ (?<street>.+)' | eval street='1' | where street='1'
-    ```
-
-- The source text field used by the `parse` command cannot be overridden. For example, in the following query, the `street` field is not parsed correctly because `address` is overridden:
-
-    ```sql
-    source=accounts | parse address '\d+ (?<street>.+)' | eval address='1'
-    ```
-
-- Fields created by the `parse` command cannot be filtered or sorted after they are used in the `stats` command. For example, in the following query, the `where` clause does not function as intended:
-
-    ```sql
-    source=accounts | parse email '.+@(?<host>.+)' | stats avg(age) by host | where host=pyrami.com
-    ```
-
-- Fields created by the `parse` command do not appear in the final results unless the original source field is included in the `fields` command. For example, the following query does not return the parsed field `host` unless the source field `email` is explicitly included:
-
-    ```sql
-    source=accounts | parse email '.+@(?<host>.+)' | fields email, host
-    ```
-
+- Fields created by the `parse` command cannot be parsed again.
+- Fields created by the `parse` command cannot be overridden by other commands.
+- The source text field used by the `parse` command cannot be overridden.
+- Fields created by the `parse` command cannot be filtered or sorted after they are used in the `stats` command.
+- Fields created by the `parse` command do not appear in the final results unless the original source field is included in the `fields` command.
 

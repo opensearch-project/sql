@@ -55,373 +55,260 @@ For detailed documentation of each function, see [Aggregation Functions](../func
 
 ## Example 1: Calculate the count of events  
 
-The following query calculates the count of events in the `accounts` index:
+The following query counts the total number of log entries, a basic health check for log ingestion:
   
 ```ppl
-source=accounts
-| stats count()
+source=otellogs
+| stats count() as total_logs
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+---------+
-| count() |
-|---------|
-| 4       |
-+---------+
++------------+
+| total_logs |
+|------------|
+| 20         |
++------------+
 ```
   
 
 ## Example 2: Calculate the average of a field  
 
-The following query calculates the average age for all accounts:
+The following query calculates the average severity number across all logs. A rising average over time may indicate increasing system instability:
   
 ```ppl
-source=accounts
-| stats avg(age)
+source=otellogs
+| stats avg(severityNumber) as avg_severity
 ```
   
 The query returns the following results:
 
 ```text
 fetched rows / total rows = 1/1
-+----------+
-| avg(age) |
-|----------|
-| 32.25    |
-+----------+
++--------------+
+| avg_severity |
+|--------------|
+| 12.4         |
++--------------+
 ```
   
 
-## Example 3: Calculate the average of a field by group  
+## Example 3: Calculate the count by group  
 
-The following query calculates the average age for all accounts, grouped by gender:
+The following query counts logs by severity level, giving you a breakdown of your system's health at a glance:
   
 ```ppl
-source=accounts
-| stats avg(age) by gender
+source=otellogs
+| stats count() as log_count by severityText
+| sort - log_count
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
-+--------------------+--------+
-| avg(age)           | gender |
-|--------------------+--------|
-| 28.0               | F      |
-| 33.666666666666664 | M      |
-+--------------------+--------+
+fetched rows / total rows = 5/5
++-----------+--------------+
+| log_count | severityText |
+|-----------+--------------|
+| 6         | INFO         |
+| 5         | ERROR        |
+| 4         | WARN         |
+| 3         | DEBUG        |
+| 2         | FATAL        |
++-----------+--------------+
 ```
   
 
-## Example 4: Calculate the average, sum, and count of a field by group  
+## Example 4: Calculate multiple aggregations by group  
 
-The following query calculates the average age, sum of ages, and count of events for all accounts, grouped by gender:
+The following query calculates the total log count and severity range per service, helping you identify which services are most active and most problematic:
   
 ```ppl
-source=accounts
-| stats avg(age), sum(age), count() by gender
+source=otellogs
+| stats count() as total, min(severityNumber) as min_sev, max(severityNumber) as max_sev by `resource.attributes.service.name`
+| sort - total
+| head 5
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
-+--------------------+----------+---------+--------+
-| avg(age)           | sum(age) | count() | gender |
-|--------------------+----------+---------+--------|
-| 28.0               | 28       | 1       | F      |
-| 33.666666666666664 | 101      | 3       | M      |
-+--------------------+----------+---------+--------+
+fetched rows / total rows = 5/5
++-------+---------+---------+----------------------------------+
+| total | min_sev | max_sev | resource.attributes.service.name |
+|-------+---------+---------+----------------------------------|
+| 4     | 5       | 17      | auth-service                     |
+| 4     | 5       | 21      | inventory-service                |
+| 3     | 9       | 17      | cart-service                     |
+| 2     | 13      | 17      | api-gateway                      |
+| 2     | 9       | 9       | frontend                         |
++-------+---------+---------+----------------------------------+
 ```
   
 
-## Example 5: Calculate the maximum of a field  
+## Example 5: Calculate the count by a span  
 
-The following query calculates the maximum age for all accounts:
+The following query groups logs into severity buckets of 10, showing the distribution across low (0-9), medium (10-19), and high (20+) severity ranges:
   
 ```ppl
-source=accounts
-| stats max(age)
+source=otellogs
+| stats count() as log_count by span(severityNumber, 10)
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 1/1
-+----------+
-| max(age) |
-|----------|
-| 36       |
-+----------+
+fetched rows / total rows = 3/3
++-----------+-------------------------+
+| log_count | span(severityNumber,10) |
+|-----------+-------------------------|
+| 9         | 0                       |
+| 9         | 10                      |
+| 2         | 20                      |
++-----------+-------------------------+
 ```
   
 
-## Example 6: Calculate the maximum and minimum of a field by group  
+## Example 6: Calculate the count by a field and span  
 
-The following query calculates the maximum and minimum ages for all accounts, grouped by gender:
+The following query counts logs by severity level within severity number ranges, showing how severity text maps to numeric ranges:
   
 ```ppl
-source=accounts
-| stats max(age), min(age) by gender
+source=otellogs
+| stats count() as cnt by span(severityNumber, 10) as sev_range, severityText
+| sort sev_range
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
-+----------+----------+--------+
-| max(age) | min(age) | gender |
-|----------+----------+--------|
-| 28       | 28       | F      |
-| 36       | 32       | M      |
-+----------+----------+--------+
+fetched rows / total rows = 5/5
++-----+-----------+--------------+
+| cnt | sev_range | severityText |
+|-----+-----------+--------------|
+| 3   | 0         | DEBUG        |
+| 6   | 0         | INFO         |
+| 5   | 10        | ERROR        |
+| 4   | 10        | WARN         |
+| 2   | 20        | FATAL        |
++-----+-----------+--------------+
 ```
   
 
 ## Example 7: Calculate the distinct count of a field  
 
-To retrieve the count of distinct values of a field, you can use the `DISTINCT_COUNT` (or `DC`) function instead of `COUNT`. The following query calculates both the count and the distinct count of the `gender` field for all accounts:
+The following query counts the total and distinct number of services reporting logs, useful for verifying all expected services are reporting:
   
 ```ppl
-source=accounts
-| stats count(gender), distinct_count(gender)
+source=otellogs
+| stats count(`resource.attributes.service.name`) as total_entries, distinct_count(`resource.attributes.service.name`) as unique_services
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+---------------+------------------------+
-| count(gender) | distinct_count(gender) |
-|---------------+------------------------|
-| 4             | 2                      |
-+---------------+------------------------+
++---------------+-----------------+
+| total_entries | unique_services |
+|---------------+-----------------|
+| 20            | 9               |
++---------------+-----------------+
 ```
   
 
-## Example 8: Calculate the count by a span  
+## Example 8: Collect unique values using VALUES by group  
 
-The following query retrieves the count of `age` values grouped into 10-year intervals:
+The following query collects the unique service names for each severity level, useful for quickly seeing which services are affected at each level:
   
 ```ppl
-source=accounts
-| stats count(age) by span(age, 10) as age_span
+source=otellogs
+| stats values(`resource.attributes.service.name`) as services by severityText
+| sort severityText
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 5/5
++----------------------------------------------------------------------+--------------+
+| services                                                             | severityText |
+|----------------------------------------------------------------------+--------------|
+| [auth-service,inventory-service]                                     | DEBUG        |
+| [api-gateway,auth-service,cart-service,payment-service,user-service] | ERROR        |
+| [inventory-service,payment-service]                                  | FATAL        |
+| [auth-service,cart-service,frontend,k8s-controller]                  | INFO         |
+| [api-gateway,cert-monitor,inventory-service]                         | WARN         |
++----------------------------------------------------------------------+--------------+
+```
+  
+
+## Example 9: Calculate the percentile of a field  
+
+The following query calculates the 90th percentile of severity numbers, helping you understand the severity distribution:
+  
+```ppl
+source=otellogs
+| stats percentile(severityNumber, 90) as p90_severity
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 1/1
++--------------+
+| p90_severity |
+|--------------|
+| 21           |
++--------------+
+```
+  
+
+## Example 10: Collect unique values using VALUES  
+
+The following query collects all unique severity levels present in the logs:
+  
+```ppl
+source=otellogs
+| stats values(severityText) as severity_levels
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 1/1
++-------------------------------+
+| severity_levels               |
+|-------------------------------|
+| [DEBUG,ERROR,FATAL,INFO,WARN] |
++-------------------------------+
+```
+  
+
+## Example 11: Ignore a null bucket
+
+The following query excludes null values from grouping by setting `bucket_nullable=false`, useful when you only want to see services that have a defined namespace:
+
+```ppl
+source=otellogs
+| stats bucket_nullable=false count() as cnt by instrumentationScope.name
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
-+------------+----------+
-| count(age) | age_span |
-|------------+----------|
-| 1          | 20       |
-| 3          | 30       |
-+------------+----------+
++-----+---------------------------+
+| cnt | instrumentationScope.name |
+|-----+---------------------------|
+| 3   | opentelemetry-java        |
+| 1   | opentelemetry-python      |
++-----+---------------------------+
 ```
   
 
-## Example 9: Calculate the count by a gender and span  
-
-The following query retrieves the count of `age` grouped into 5-year intervals and broken down by `gender`:
-  
-```ppl
-source=accounts
-| stats count() as cnt by span(age, 5) as age_span, gender
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 3/3
-+-----+----------+--------+
-| cnt | age_span | gender |
-|-----+----------+--------|
-| 1   | 25       | F      |
-| 2   | 30       | M      |
-| 1   | 35       | M      |
-+-----+----------+--------+
-```
-  
-The `span` expression is always treated as the first grouping key, regardless of its position in the `by` clause:
-  
-```ppl
-source=accounts
-| stats count() as cnt by gender, span(age, 5) as age_span
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 3/3
-+-----+----------+--------+
-| cnt | age_span | gender |
-|-----+----------+--------|
-| 1   | 25       | F      |
-| 2   | 30       | M      |
-| 1   | 35       | M      |
-+-----+----------+--------+
-```
-  
-
-## Example 10: Count and retrieve an email list by gender and age span
-
-The following query calculates the count of `age` values grouped into 5-year intervals as well as by `gender` and also returns a list of up to 5 emails for each group:
-
-```ppl
-source=accounts
-| stats count() as cnt, take(email, 5) by span(age, 5) as age_span, gender
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 3/3
-+-----+--------------------------------------------+----------+--------+
-| cnt | take(email, 5)                             | age_span | gender |
-|-----+--------------------------------------------+----------+--------|
-| 1   | []                                         | 25       | F      |
-| 2   | [amberduke@pyrami.com,daleadams@boink.com] | 30       | M      |
-| 1   | [hattiebond@netagy.com]                    | 35       | M      |
-+-----+--------------------------------------------+----------+--------+
-```
-  
-
-## Example 11: Calculate the percentile of a field  
-
-The following query calculates the 90th percentile of `age` for all accounts:
-  
-```ppl
-source=accounts
-| stats percentile(age, 90)
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 1/1
-+---------------------+
-| percentile(age, 90) |
-|---------------------|
-| 36                  |
-+---------------------+
-```
-  
-
-## Example 12: Calculate the percentile of a field by group  
-
-The following query calculates the 90th percentile of `age` for all accounts, grouped by `gender`:
-  
-```ppl
-source=accounts
-| stats percentile(age, 90) by gender
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 2/2
-+---------------------+--------+
-| percentile(age, 90) | gender |
-|---------------------+--------|
-| 28                  | F      |
-| 36                  | M      |
-+---------------------+--------+
-```
-  
-
-## Example 13: Calculate the percentile by a gender and span  
-
-The following query calculates the 90th percentile of `age`, grouped into 10-year intervals as well as by `gender`:
-  
-```ppl
-source=accounts
-| stats percentile(age, 90) as p90 by span(age, 10) as age_span, gender
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 2/2
-+-----+----------+--------+
-| p90 | age_span | gender |
-|-----+----------+--------|
-| 28  | 20       | F      |
-| 36  | 30       | M      |
-+-----+----------+--------+
-```
-  
-
-## Example 14: Collect all values in a field using LIST  
-
-The following query collects all `firstname` values, preserving duplicates and order:
-  
-```ppl
-source=accounts
-| stats list(firstname)
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 1/1
-+-----------------------------+
-| list(firstname)             |
-|-----------------------------|
-| [Amber,Hattie,Nanette,Dale] |
-+-----------------------------+
-```
-  
-
-## Example 15: Ignore a null bucket
-
-The following query excludes null values from grouping by setting `bucket_nullable=false`:
-
-```ppl
-source=accounts
-| stats bucket_nullable=false count() as cnt by email
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 3/3
-+-----+-----------------------+
-| cnt | email                 |
-|-----+-----------------------|
-| 1   | amberduke@pyrami.com  |
-| 1   | daleadams@boink.com   |
-| 1   | hattiebond@netagy.com |
-+-----+-----------------------+
-```
-  
-
-## Example 16: Collect unique values in a field using VALUES  
-
-The following query collects all unique `firstname` values, sorted lexicographically with duplicates removed:
-  
-```ppl
-source=accounts
-| stats values(firstname)
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 1/1
-+-----------------------------+
-| values(firstname)           |
-|-----------------------------|
-| [Amber,Dale,Hattie,Nanette] |
-+-----------------------------+
-```
-  
-
-## Example 17: Date span grouping with null handling  
+## Example 12: Date span grouping with null handling  
 
 The following example uses this sample index data:
 
@@ -495,7 +382,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 18: Calculate the count by the implicit @timestamp field  
+## Example 13: Calculate the count by the implicit @timestamp field  
 
 If you omit the `field` parameter in the `span` function, it automatically uses the implicit `@timestamp` field:
   

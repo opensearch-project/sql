@@ -65,7 +65,14 @@
     "user/ppl/functions/system.md",
     "user/ppl/general/comments.md",
     "user/ppl/general/datatypes.md",
-    "user/ppl/general/identifiers.md"
+    "user/ppl/general/identifiers.md",
+    "user/ppl/cmd/appendcol.md",
+    "user/ppl/cmd/appendpipe.md",
+    "user/ppl/cmd/reverse.md",
+    "user/ppl/cmd/table.md",
+    "user/ppl/cmd/convert.md",
+    "user/ppl/cmd/expand.md",
+    "user/ppl/cmd/flatten.md"
   ],
   "sql_cli": [
     "user/dql/expressions.rst",

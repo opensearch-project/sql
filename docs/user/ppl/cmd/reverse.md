@@ -17,11 +17,14 @@ The `reverse` command takes no parameters.
 
 ## Example 1: Basic reverse operation  
 
-The following query reverses the order of all documents in the results:
+The following query retrieves the top 4 errors sorted by service name, then reverses the order:
   
 ```ppl
-source=accounts
-| fields account_number, age
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| sort severityNumber, `resource.attributes.service.name`
+| fields severityText, `resource.attributes.service.name`
+| head 4
 | reverse
 ```
   
@@ -29,114 +32,68 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
-+----------------+-----+
-| account_number | age |
-|----------------+-----|
-| 6              | 36  |
-| 18             | 33  |
-| 1              | 32  |
-| 13             | 28  |
-+----------------+-----+
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| ERROR        | payment-service                  |
+| ERROR        | cart-service                     |
+| ERROR        | auth-service                     |
+| ERROR        | api-gateway                      |
++--------------+----------------------------------+
 ```
   
 
 ## Example 2: Use the reverse and sort commands
 
-The following query reverses results after sorting documents by age in ascending order, effectively implementing descending order:
+The following query reverses results after sorting by severity in ascending order, effectively showing the most critical issues first:
   
 ```ppl
-source=accounts
-| sort age
-| fields account_number, age
+source=otellogs
+| dedup severityText
+| sort severityNumber
+| fields severityText, severityNumber
 | reverse
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------------+-----+
-| account_number | age |
-|----------------+-----|
-| 6              | 36  |
-| 18             | 33  |
-| 1              | 32  |
-| 13             | 28  |
-+----------------+-----+
+fetched rows / total rows = 5/5
++--------------+----------------+
+| severityText | severityNumber |
+|--------------+----------------|
+| FATAL        | 21             |
+| ERROR        | 17             |
+| WARN         | 13             |
+| INFO         | 9              |
+| DEBUG        | 5              |
++--------------+----------------+
 ```
   
 
-## Example 3: Use the reverse and head commands  
+## Example 3: Reverse aggregation results  
 
-The following query uses the `reverse` command together with the `head` command to retrieve the last two records from the original result order:
+The following query reverses the order of aggregated error counts by service, showing the least active services first:
   
 ```ppl
-source=accounts
-| reverse
-| head 2
-| fields account_number, age
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 2/2
-+----------------+-----+
-| account_number | age |
-|----------------+-----|
-| 6              | 36  |
-| 18             | 33  |
-+----------------+-----+
-```
-  
-
-## Example 4: Double reverse  
-
-The following query shows that applying `reverse` twice returns documents in the original order:
-  
-```ppl
-source=accounts
-| reverse
-| reverse
-| fields account_number, age
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+----------------+-----+
-| account_number | age |
-|----------------+-----|
-| 13             | 28  |
-| 1              | 32  |
-| 18             | 33  |
-| 6              | 36  |
-+----------------+-----+
-```
-  
-
-## Example 5: Use the reverse command with a complex pipeline  
-
-The following query uses the `reverse` command with filtering and field selection:
-  
-```ppl
-source=accounts
-| where age > 30
-| fields account_number, age
+source=otellogs
+| stats count() as log_count by severityText
+| sort - log_count
 | reverse
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 3/3
-+----------------+-----+
-| account_number | age |
-|----------------+-----|
-| 6              | 36  |
-| 18             | 33  |
-| 1              | 32  |
-+----------------+-----+
+fetched rows / total rows = 5/5
++-----------+--------------+
+| log_count | severityText |
+|-----------+--------------|
+| 2         | FATAL        |
+| 3         | DEBUG        |
+| 4         | WARN         |
+| 5         | ERROR        |
+| 6         | INFO         |
++-----------+--------------+
 ```
-
+  

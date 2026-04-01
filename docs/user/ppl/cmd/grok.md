@@ -21,78 +21,53 @@ The `grok` command supports the following parameters.
 | `<pattern>` | Required | The Grok pattern used to extract new fields from the specified text field. If a new field name already exists, it overwrites the original field. |  
   
 
-## Example 1: Create a new field
+## Example 1: Extract IP addresses from log messages
 
-The following query shows how to use the `grok` command to create a new field, `host`, for each document. The `host` field captures the hostname following `@` in the `email` field. Parsing a null field returns an empty string:
+The following query uses grok to extract IP addresses from log messages, useful for identifying client sources during security investigations:
   
 ```ppl
-source=accounts
-| grok email '.+@%{HOSTNAME:host}'
-| fields email, host
+source=otellogs
+| where LIKE(body, '%from%')
+| grok body '%{IP:clientip}'
+| fields body, clientip
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----------------------+------------+
-| email                 | host       |
-|-----------------------+------------|
-| amberduke@pyrami.com  | pyrami.com |
-| hattiebond@netagy.com | netagy.com |
-| null                  |            |
-| daleadams@boink.com   | boink.com  |
-+-----------------------+------------+
+fetched rows / total rows = 3/3
++---------------------------------------------------------------------------+--------------+
+| body                                                                      | clientip     |
+|---------------------------------------------------------------------------+--------------|
+| Slow query detected: SELECT * FROM inventory WHERE stock < 10 took 3200ms |              |
+| User U300 authenticated via OAuth2 from 10.0.0.5                          | 10.0.0.5     |
+| Failed to authenticate user U400: invalid credentials from 203.0.113.50   | 203.0.113.50 |
++---------------------------------------------------------------------------+--------------+
 ```
   
 
-## Example 2: Override an existing field
+## Example 2: Extract durations from log messages
 
-The following query shows how to use the `grok` command to override the existing `address` field, removing the street number:
+The following query uses grok to extract numeric durations from log messages, useful for identifying slow operations:
   
 ```ppl
-source=accounts
-| grok address '%{NUMBER} %{GREEDYDATA:address}'
-| fields address
+source=otellogs
+| where LIKE(body, '%ms%')
+| grok body '%{NUMBER:duration}ms'
+| fields body, duration
+| head 2
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+------------------+
-| address          |
-|------------------|
-| Holmes Lane      |
-| Bristol Street   |
-| Madison Street   |
-| Hutchinson Court |
-+------------------+
-```
-  
-
-## Example 3: Using grok to parse logs  
-
-The following query parses raw logs:
-  
-```ppl
-source=apache
-| grok message '%{COMMONAPACHELOG}'
-| fields COMMONAPACHELOG, timestamp, response, bytes
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+-----------------------------------------------------------------------------------------------------------------------------+----------------------------+----------+-------+
-| COMMONAPACHELOG                                                                                                             | timestamp                  | response | bytes |
-|-----------------------------------------------------------------------------------------------------------------------------+----------------------------+----------+-------|
-| 177.95.8.74 - upton5450 [28/Sep/2022:10:15:57 -0700] "HEAD /e-business/mindshare HTTP/1.0" 404 19927                        | 28/Sep/2022:10:15:57 -0700 | 404      | 19927 |
-| 127.45.152.6 - pouros8756 [28/Sep/2022:10:15:57 -0700] "GET /architectures/convergence/niches/mindshare HTTP/1.0" 100 28722 | 28/Sep/2022:10:15:57 -0700 | 100      | 28722 |
-| 118.223.210.105 - - [28/Sep/2022:10:15:57 -0700] "PATCH /strategize/out-of-the-box HTTP/1.0" 401 27439                      | 28/Sep/2022:10:15:57 -0700 | 401      | 27439 |
-| 210.204.15.104 - - [28/Sep/2022:10:15:57 -0700] "POST /users HTTP/1.1" 301 9481                                             | 28/Sep/2022:10:15:57 -0700 | 301      | 9481  |
-+-----------------------------------------------------------------------------------------------------------------------------+----------------------------+----------+-------+
+fetched rows / total rows = 2/2
++---------------------------------------------------------------------------+----------+
+| body                                                                      | duration |
+|---------------------------------------------------------------------------+----------|
+| HTTP GET /api/products 200 45ms                                           | 45       |
+| Slow query detected: SELECT * FROM inventory WHERE stock < 10 took 3200ms | 3200     |
++---------------------------------------------------------------------------+----------+
 ```
   
 

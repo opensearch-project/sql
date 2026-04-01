@@ -25,46 +25,50 @@ nomv <field>
 
 ---
 
-## Example 1: Basic nomv usage
+## Example 1: Convert array to multiline string
+
+The following query creates an array from the severity text and service name, then converts it to a multiline string for display:
 
 ```ppl
-source=accounts
-| where account_number=1
-| eval names = array(firstname, lastname)
-| nomv names
-| fields account_number, names
+source=otellogs
+| where severityText = 'FATAL'
+| eval summary = array(severityText, `resource.attributes.service.name`)
+| nomv summary
+| fields severityText, summary
+| head 1
 ```
 
 Expected output:
 ```text
 fetched rows / total rows = 1/1
-+----------------+-------+
-| account_number | names |
-|----------------+-------|
-| 1              | Amber |
-|                | Duke  |
-+----------------+-------+
++--------------+-----------------+
+| severityText | summary         |
+|--------------+-----------------|
+| FATAL        | FATAL           |
+|              | payment-service |
++--------------+-----------------+
 ```
 
 ## Example 2: nomv with an eval-created field
 
 ```ppl
-source=accounts
-| where account_number=1
-| eval location = array(city, state)
-| nomv location
-| fields account_number, location
+source=otellogs
+| where severityText = 'ERROR'
+| eval details = array(severityText, body)
+| nomv details
+| fields `resource.attributes.service.name`, details
+| head 1
 ```
 
 Expected output:
 ```text
 fetched rows / total rows = 1/1
-+----------------+----------+
-| account_number | location |
-|----------------+----------|
-| 1              | Brogan   |
-|                | IL       |
-+----------------+----------+
++----------------------------------+---------------------------------------------------------------------+
+| resource.attributes.service.name | details                                                             |
+|----------------------------------+---------------------------------------------------------------------|
+| payment-service                  | ERROR                                                               |
+|                                  | Payment failed: connection timeout to payment gateway after 30000ms |
++----------------------------------+---------------------------------------------------------------------+
 ```
 
 ---
@@ -78,4 +82,5 @@ fetched rows / total rows = 1/1
 
 ## Related commands
 
-- `mvjoin()` -- Function used by nomv internally to join array elements with a custom delimiter
+- [`mvcombine`](mvcombine.md) -- Combines multiple rows into a single row with multivalue fields
+- [`mvexpand`](mvexpand.md) -- Expands multivalue fields into separate rows

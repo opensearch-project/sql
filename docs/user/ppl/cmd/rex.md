@@ -42,62 +42,15 @@ The `rex` command supports the following parameters.
 > **Note**: You can set the `max_match` limit in the `plugins.ppl.rex.max_match.limit` cluster setting. For more information, see [SQL settings](../../admin/settings.rst). Setting this limit to a large value is not recommended because it can lead to excessive memory consumption, especially with patterns that match empty strings (for example, `\d*` or `\w*`).
 
 
-## Example 1: Basic text extraction  
+## Example 1: Extract service name and error type from log messages  
 
-The following query extracts the username and domain from email addresses using named capture groups. Both extracted fields are returned as strings:
+The following query extracts the error type and location from Java exception log messages, useful for categorizing errors during incident triage:
   
 ```ppl
-source=accounts
-| rex field=email "(?<username>[^@]+)@(?<domain>[^.]+)"
-| fields email, username, domain
-| head 2
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 2/2
-+-----------------------+------------+--------+
-| email                 | username   | domain |
-|-----------------------+------------+--------|
-| amberduke@pyrami.com  | amberduke  | pyrami |
-| hattiebond@netagy.com | hattiebond | netagy |
-+-----------------------+------------+--------+
-```
-  
-
-## Example 2: Handle non-matching patterns  
-
-The following query shows that the rex command returns all events, setting extracted fields to null for non-matching patterns. When matches are found, the extracted fields are returned as strings:
-  
-```ppl
-source=accounts
-| rex field=email "(?<user>[^@]+)@(?<domain>gmail\\.com)"
-| fields email, user, domain
-| head 2
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 2/2
-+-----------------------+------+--------+
-| email                 | user | domain |
-|-----------------------+------+--------|
-| amberduke@pyrami.com  | null | null   |
-| hattiebond@netagy.com | null | null   |
-+-----------------------+------+--------+
-```
-  
-
-## Example 3: Extract multiple words using max_match  
-
-The following query uses the `rex` command with the `max_match` parameter to extract multiple words from the `address` field. The extracted field is returned as an array of strings:
-  
-```ppl
-source=accounts
-| rex field=address "(?<words>[A-Za-z]+)" max_match=2
-| fields address, words
+source=otellogs
+| where severityText = 'ERROR'
+| rex field=body "(?<errtype>[A-Z][a-zA-Z]+Exception)"
+| fields body, errtype
 | head 3
 ```
   
@@ -105,194 +58,83 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+--------------------+------------------+
-| address            | words            |
-|--------------------+------------------|
-| 880 Holmes Lane    | [Holmes,Lane]    |
-| 671 Bristol Street | [Bristol,Street] |
-| 789 Madison Street | [Madison,Street] |
-+--------------------+------------------+
++--------------------------------------------------------------------------+----------------------+
+| body                                                                     | errtype              |
+|--------------------------------------------------------------------------+----------------------|
+| Payment failed: connection timeout to payment gateway after 30000ms      | null                 |
+| NullPointerException in UserService.getProfile at line 142               | NullPointerException |
+| HTTP POST /api/checkout 503 Service Unavailable - upstream connect error | null                 |
++--------------------------------------------------------------------------+----------------------+
 ```
   
 
-## Example 4: Replace text using sed mode  
+## Example 2: Extract multiple words using max_match  
 
-The following query uses the `rex` command in `sed` mode to replace email domains through text substitution. The extracted field is returned as a string:
+The following query extracts multiple words from log messages, useful for building keyword indexes:
   
 ```ppl
-source=accounts
-| rex field=email mode=sed "s/@.*/@company.com/"
-| fields email
-| head 2
+source=otellogs
+| where severityText = 'FATAL'
+| rex field=body "(?<word>[A-Za-z]+)" max_match=3
+| fields body, word
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
-+------------------------+
-| email                  |
-|------------------------|
-| amberduke@company.com  |
-| hattiebond@company.com |
-+------------------------+
++---------------------------------------------------------------------------------+-------------------------+
+| body                                                                            | word                    |
+|---------------------------------------------------------------------------------+-------------------------|
+| Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 | [Out,of,memory]         |
+| Database primary node unreachable: connection refused to db-primary-01:5432     | [Database,primary,node] |
++---------------------------------------------------------------------------------+-------------------------+
 ```
   
 
-## Example 5: Track match positions using offset_field  
+## Example 3: Replace text using sed mode  
 
-The following query tracks the character positions where matches occur. The extracted fields are returned as strings, and the `offset_field` is also returned as a string:
-  
+The following query uses `sed` mode to mask IP addresses in log messages for privacy compliance:
+
 ```ppl
-source=accounts
-| rex field=email "(?<username>[^@]+)@(?<domain>[^.]+)" offset_field=matchpos
-| fields email, username, domain, matchpos
-| head 2
+source=otellogs
+| where LIKE(body, '%authenticated%') OR LIKE(body, '%credentials%')
+| rex field=body mode=sed "s/[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/xxx.xxx.xxx.xxx/"
+| fields body
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 2/2
-+-----------------------+------------+--------+---------------------------+
-| email                 | username   | domain | matchpos                  |
-|-----------------------+------------+--------+---------------------------|
-| amberduke@pyrami.com  | amberduke  | pyrami | domain=10-15&username=0-8 |
-| hattiebond@netagy.com | hattiebond | netagy | domain=11-16&username=0-9 |
-+-----------------------+------------+--------+---------------------------+
++----------------------------------------------------------------------------+
+| body                                                                       |
+|----------------------------------------------------------------------------|
+| User U300 authenticated via OAuth2 from xxx.xxx.xxx.xxx                    |
+| Failed to authenticate user U400: invalid credentials from xxx.xxx.xxx.xxx |
++----------------------------------------------------------------------------+
 ```
-  
 
-## Example 6: Extract a complex email pattern  
+## Example 4: Track match positions using offset_field  
 
-The following query extracts complete email components, including the top-level domain. All extracted fields are returned as strings:
+The following query tracks the character positions where matches occur, useful for highlighting matches in a UI:
   
 ```ppl
-source=accounts
-| rex field=email "(?<user>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+)\\.(?<tld>[a-zA-Z]{2,})"
-| fields email, user, domain, tld
-| head 2
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 2/2
-+-----------------------+------------+--------+-----+
-| email                 | user       | domain | tld |
-|-----------------------+------------+--------+-----|
-| amberduke@pyrami.com  | amberduke  | pyrami | com |
-| hattiebond@netagy.com | hattiebond | netagy | com |
-+-----------------------+------------+--------+-----+
-```
-  
-
-## Example 7: Chain multiple rex commands  
-
-The following query extracts initial letters from both first and last names. All extracted fields are returned as strings:
-  
-```ppl
-source=accounts
-| rex field=firstname "(?<firstinitial>^.)"
-| rex field=lastname "(?<lastinitial>^.)"
-| fields firstname, lastname, firstinitial, lastinitial
-| head 3
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 3/3
-+-----------+----------+--------------+-------------+
-| firstname | lastname | firstinitial | lastinitial |
-|-----------+----------+--------------+-------------|
-| Amber     | Duke     | A            | D           |
-| Hattie    | Bond     | H            | B           |
-| Nanette   | Bates    | N            | B           |
-+-----------+----------+--------------+-------------+
-```
-  
-
-## Example 8: Capture group naming restrictions  
-
-The following query shows naming restrictions for capture groups. Group names cannot contain underscores because of [Java regex](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html) limitations.
-
-**Invalid PPL query with underscores**:
-  
-```ppl
-source=accounts
-| rex field=email "(?<user_name>[^@]+)@(?<email_domain>[^.]+)"
-| fields email, user_name, email_domain
-```
-  
-The query returns the following results:
-  
-```text
-{'reason': 'Invalid Query', 'details': "Invalid capture group name 'user_name'. Java regex group names must start with a letter and contain only letters and digits.", 'type': 'IllegalArgumentException'}
-Error: Query returned no data
-```
-
-**Correct PPL query without underscores**:
-  
-```ppl
-source=accounts
-| rex field=email "(?<username>[^@]+)@(?<emaildomain>[^.]+)"
-| fields email, username, emaildomain
-| head 2
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 2/2
-+-----------------------+------------+-------------+
-| email                 | username   | emaildomain |
-|-----------------------+------------+-------------|
-| amberduke@pyrami.com  | amberduke  | pyrami      |
-| hattiebond@netagy.com | hattiebond | netagy      |
-+-----------------------+------------+-------------+
-```
-  
-
-## Example 9: max_match limit enforcement  
-
-The following query shows the `max_match` limit protection mechanism. When `max_match` is set to `0` (unlimited), the system automatically enforces a maximum limit on the number of matches to prevent memory exhaustion.
-
-**PPL query with `max_match=0` automatically limited to the default of 10**:
-  
-```ppl
-source=accounts
-| rex field=address "(?<digit>\\d*)" max_match=0
-| eval digit_count=array_length(digit)
-| fields address, digit_count
-| head 1
+source=otellogs
+| where severityText = 'ERROR'
+| rex field=body "(?<errtype>[A-Z][a-zA-Z]+Exception)" offset_field=pos
+| where NOT ISNULL(errtype)
+| fields body, errtype, pos
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+-----------------+-------------+
-| address         | digit_count |
-|-----------------+-------------|
-| 880 Holmes Lane | 10          |
-+-----------------+-------------+
-```
-
-**A PPL query exceeding the configured limit results in an error**:
-  
-```ppl
-source=accounts
-| rex field=address "(?<digit>\\d*)" max_match=100
-| fields address, digit
-| head 1
++------------------------------------------------------------+----------------------+--------------+
+| body                                                       | errtype              | pos          |
+|------------------------------------------------------------+----------------------+--------------|
+| NullPointerException in UserService.getProfile at line 142 | NullPointerException | errtype=0-19 |
++------------------------------------------------------------+----------------------+--------------+
 ```
   
-The query returns the following results:
-  
-```text
-{'reason': 'Invalid Query', 'details': 'Rex command max_match value (100) exceeds the configured limit (10). Consider using a smaller max_match value or adjust the plugins.ppl.rex.max_match.limit setting.', 'type': 'IllegalArgumentException'}
-Error: Query returned no data
-```
-
-For detailed Java regex pattern syntax and usage, refer to the [official Java Pattern documentation](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html).

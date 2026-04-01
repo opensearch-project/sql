@@ -24,108 +24,60 @@ The `trendline` command supports the following parameters.
 | `<field>` | Required | The field for which the moving average is calculated. |
 | `<alias>` | Optional | The name of the resulting column containing the moving average. Default is the `<field>` name with `_trendline` appended. |
 
-## Example 1: Calculate the simple moving average for one field
+## Example 1: Track whether severity is escalating over time
 
-The following query calculates the simple moving average for one field:
+The following query calculates a 3-point simple moving average of severity numbers over time-ordered logs. A rising trend indicates the situation is getting worse:
   
 ```ppl
-source=accounts
-| trendline sma(2, account_number) as an
-| fields an
+source=otellogs
+| sort `@timestamp`
+| trendline sma(3, severityNumber) as sev_trend
+| fields severityText, severityNumber, sev_trend
+| head 6
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+------+
-| an   |
-|------|
-| null |
-| 3.5  |
-| 9.5  |
-| 15.5 |
-+------+
+fetched rows / total rows = 6/6
++--------------+----------------+--------------------+
+| severityText | severityNumber | sev_trend          |
+|--------------+----------------+--------------------|
+| INFO         | 9              | null               |
+| INFO         | 9              | null               |
+| WARN         | 13             | 10.333333333333334 |
+| ERROR        | 17             | 13.0               |
+| DEBUG        | 5              | 11.666666666666666 |
+| ERROR        | 17             | 13.0               |
++--------------+----------------+--------------------+
 ```
   
 
-## Example 2: Calculate the simple moving average for multiple fields
+## Example 2: Use weighted moving average for recent-biased trends
 
-The following query calculates the simple moving average for multiple fields:
+The following query calculates a WMA which gives more weight to recent values, making it more responsive to sudden severity spikes compared to SMA:
   
 ```ppl
-source=accounts
-| trendline sma(2, account_number) as an sma(2, age) as age_trend
-| fields an, age_trend
+source=otellogs
+| sort `@timestamp`
+| trendline wma(3, severityNumber) as wma_trend
+| fields severityText, severityNumber, wma_trend
+| head 6
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+------+-----------+
-| an   | age_trend |
-|------+-----------|
-| null | null      |
-| 3.5  | 34.0      |
-| 9.5  | 32.0      |
-| 15.5 | 30.5      |
-+------+-----------+
+fetched rows / total rows = 6/6
++--------------+----------------+--------------------+
+| severityText | severityNumber | wma_trend          |
+|--------------+----------------+--------------------|
+| INFO         | 9              | null               |
+| INFO         | 9              | null               |
+| WARN         | 13             | 11.0               |
+| ERROR        | 17             | 14.333333333333334 |
+| DEBUG        | 5              | 10.333333333333334 |
+| ERROR        | 17             | 13.0               |
++--------------+----------------+--------------------+
 ```
   
-
-## Example 3: Calculate the simple moving average for one field without specifying an alias
-
-The following query calculates the simple moving average for one field without specifying an alias:
-  
-```ppl
-source=accounts
-| trendline sma(2, account_number)
-| fields account_number_trendline
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+--------------------------+
-| account_number_trendline |
-|--------------------------|
-| null                     |
-| 3.5                      |
-| 9.5                      |
-| 15.5                     |
-+--------------------------+
-```
-  
-
-## Example 4: Calculate the weighted moving average for one field
-
-The following query calculates the weighted moving average for one field:
-  
-```ppl
-source=accounts
-| trendline wma(2, account_number)
-| fields account_number_trendline
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+--------------------------+
-| account_number_trendline |
-|--------------------------|
-| null                     |
-| 4.333333333333333        |
-| 10.666666666666666       |
-| 16.333333333333332       |
-+--------------------------+
-```
-  
-
-## Limitations
-
-The `trendline` command has the following limitations:
-
-* The `trendline` command requires all values in the specified `<field>` parameter to be non-null. Any rows with `null` values in this field are automatically excluded from the command's output.

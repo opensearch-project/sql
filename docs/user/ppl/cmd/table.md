@@ -22,25 +22,27 @@ The `table` command supports the following parameters.
 
 ## Example: Basic table command usage  
 
-The following query shows basic field selection using the `table` command:
+The following query builds a quick incident summary table showing severity, service, and the log message for recent errors:
   
 ```ppl
-source=accounts
-| table firstname lastname age
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| sort - severityNumber, `resource.attributes.service.name`
+| table severityText `resource.attributes.service.name` body
+| head 3
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----------+----------+-----+
-| firstname | lastname | age |
-|-----------+----------+-----|
-| Amber     | Duke     | 32  |
-| Hattie    | Bond     | 36  |
-| Nanette   | Bates    | 28  |
-| Dale      | Adams    | 33  |
-+-----------+----------+-----+
+fetched rows / total rows = 3/3
++--------------+----------------------------------+---------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                            |
+|--------------+----------------------------------+---------------------------------------------------------------------------------|
+| FATAL        | inventory-service                | Database primary node unreachable: connection refused to db-primary-01:5432     |
+| FATAL        | payment-service                  | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
+| ERROR        | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error        |
++--------------+----------------------------------+---------------------------------------------------------------------------------+
 ```
   
 

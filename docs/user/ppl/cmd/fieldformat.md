@@ -26,103 +26,58 @@ The `fieldformat` command supports the following parameters.
 | `suffix`       | Optional          | A string that follows  the expression and dot operator which will be concatenated as suffix to the evaluated expression value.                |
   
 
-## Example 1: Create a new field  
+## Example 1: Create a computed field for incident classification  
 
-The following query creates a new `doubleAge` field for each document:
+The following query creates an `is_critical` field that flags whether a log entry represents a critical issue, useful for filtering in dashboards:
   
 ```ppl
-source=accounts
-| fieldformat doubleAge = age * 2
-| fields age, doubleAge
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| fieldformat is_critical = IF(severityNumber >= 21, 'CRITICAL', 'ERROR')
+| sort severityNumber, `resource.attributes.service.name`
+| fields severityText, `resource.attributes.service.name`, is_critical
+| head 4
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
-+-----+-----------+
-| age | doubleAge |
-|-----+-----------|
-| 32  | 64        |
-| 36  | 72        |
-| 28  | 56        |
-| 33  | 66        |
-+-----+-----------+
++--------------+----------------------------------+-------------+
+| severityText | resource.attributes.service.name | is_critical |
+|--------------+----------------------------------+-------------|
+| ERROR        | api-gateway                      | ERROR       |
+| ERROR        | auth-service                     | ERROR       |
+| ERROR        | cart-service                     | ERROR       |
+| ERROR        | payment-service                  | ERROR       |
++--------------+----------------------------------+-------------+
 ```
   
 
-## Example 2: Override an existing field  
+## Example 2: Override a field with a formatted value  
 
-The following query overrides the `age` field by adding `1` to its value:
+The following query overrides the `severityNumber` field with a human-readable severity tier:
   
 ```ppl
-source=accounts
-| fieldformat age = age + 1
-| fields age
+source=otellogs
+| dedup severityText
+| sort severityNumber
+| fieldformat severityNumber = CASE(severityNumber < 9, 'low', severityNumber < 17, 'medium', severityNumber >= 17, 'high')
+| fields severityText, severityNumber
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----+
-| age |
-|-----|
-| 33  |
-| 37  |
-| 29  |
-| 34  |
-+-----+
+fetched rows / total rows = 5/5
++--------------+----------------+
+| severityText | severityNumber |
+|--------------+----------------|
+| DEBUG        | low            |
+| INFO         | medium         |
+| WARN         | medium         |
+| ERROR        | high           |
+| FATAL        | high           |
++--------------+----------------+
 ```
   
-
-  
-
-## Example 3: String concatenation with prefix 
-
-The following query uses the `.` (dot) operator for string concatenation. You can concatenate string literals and field values as follows:
-  
-```ppl
-source=accounts 
-| fieldformat greeting = 'Hello '.tostring( firstname) 
-| fields firstname, greeting
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+-----------+---------------+
-| firstname | greeting      |
-|-----------+---------------|
-| Amber     | Hello Amber   |
-| Hattie    | Hello Hattie  |
-| Nanette   | Hello Nanette |
-| Dale      | Hello Dale    |
-+-----------+---------------+
-```
-  
-
-## Example 4: String concatenation with dot operator, prefix and suffix
-
-The following query performs prefix and suffix string concatenation operations using dot operator:
-
-```ppl
-source=accounts | fieldformat age_info =  'Age: '.CAST(age AS STRING).' years.' | fields firstname, age, age_info
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 4/4
-+-----------+-----+----------------+
-| firstname | age | age_info       |
-|-----------+-----+----------------|
-| Amber     | 32  | Age: 32 years. |
-| Hattie    | 36  | Age: 36 years. |
-| Nanette   | 28  | Age: 28 years. |
-| Dale      | 33  | Age: 33 years. |
-+-----------+-----+----------------+
-```
-
-

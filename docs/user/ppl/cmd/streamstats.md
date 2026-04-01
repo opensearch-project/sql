@@ -78,27 +78,33 @@ The `streamstats` command supports the following aggregation functions:
   
 For detailed documentation of each function, see [Aggregation Functions](../functions/aggregations.md).
 
-## Example 1: Calculate the running average, sum, and count of a field by group  
+## Example 1: Calculate the running count of errors by service  
 
-The following query calculates the running average `age`, running sum of `age`, and running count of events for all accounts, grouped by `gender`:
+The following query calculates a running count of error and fatal logs, grouped by service. This is useful for tracking how errors accumulate across services during an incident:
   
 ```ppl
-source=accounts
-| streamstats avg(age) as running_avg, sum(age) as running_sum, count() as running_count by gender
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| sort `resource.attributes.service.name`
+| streamstats count() as running_count by `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, severityText, running_count
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------+
-| account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | running_avg        | running_sum | running_count |
-|----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------|
-| 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 32.0               | 32          | 1             |
-| 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 34.0               | 68          | 2             |
-| 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 28.0               | 28          | 1             |
-| 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 33.666666666666664 | 101         | 3             |
-+----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------+
+fetched rows / total rows = 7/7
++----------------------------------+--------------+---------------+
+| resource.attributes.service.name | severityText | running_count |
+|----------------------------------+--------------+---------------|
+| api-gateway                      | ERROR        | 1             |
+| auth-service                     | ERROR        | 1             |
+| cart-service                     | ERROR        | 1             |
+| inventory-service                | FATAL        | 1             |
+| payment-service                  | ERROR        | 1             |
+| payment-service                  | FATAL        | 2             |
+| user-service                     | ERROR        | 1             |
++----------------------------------+--------------+---------------+
 ```
   
 
@@ -242,44 +248,45 @@ fetched rows / total rows = 8/8
 When `bucket_nullable=false`, null values are excluded from group-by aggregations:
 
 ```ppl
-source=accounts
-| streamstats bucket_nullable=false count() as cnt by employer
-| fields account_number, firstname, employer, cnt
+source=otellogs
+| dedup `resource.attributes.host.name`
+| streamstats bucket_nullable=false count() as cnt by `resource.attributes.host.name`
+| fields severityText, `resource.attributes.host.name`, cnt
 ```
   
-Rows in which the `by` field is `null` are excluded from aggregation, so the `cnt` for `Dale` is `null`:
+Rows in which the `by` field is `null` are excluded from aggregation, so the `cnt` for the null host name is `null`:
   
 ```text
 fetched rows / total rows = 4/4
-+----------------+-----------+----------+------+
-| account_number | firstname | employer | cnt  |
-|----------------+-----------+----------+------|
-| 1              | Amber     | Pyrami   | 1    |
-| 6              | Hattie    | Netagy   | 1    |
-| 13             | Nanette   | Quility  | 1    |
-| 18             | Dale      | null     | null |
-+----------------+-----------+----------+------+
++--------------+-------------------------------+-----+
+| severityText | resource.attributes.host.name | cnt |
+|--------------+-------------------------------+-----|
+| INFO         | host-a                        | 1   |
+| INFO         | host-b                        | 1   |
+| WARN         | host-c                        | 1   |
+| ERROR        | host-d                        | 1   |
++--------------+-------------------------------+-----+
 ```
   
 When `bucket_nullable=true`, null values are treated as a valid group:
 
 ```ppl
-source=accounts
-| streamstats bucket_nullable=true count() as cnt by employer
-| fields account_number, firstname, employer, cnt
+source=otellogs
+| dedup `resource.attributes.host.name`
+| streamstats bucket_nullable=true count() as cnt by `resource.attributes.host.name`
+| fields severityText, `resource.attributes.host.name`, cnt
 ```
   
-As a result, the `cnt` for `Dale` is included and calculated normally:
+As a result, the `cnt` for the null host name is included and calculated normally:
   
 ```text
 fetched rows / total rows = 4/4
-+----------------+-----------+----------+-----+
-| account_number | firstname | employer | cnt |
-|----------------+-----------+----------+-----|
-| 1              | Amber     | Pyrami   | 1   |
-| 6              | Hattie    | Netagy   | 1   |
-| 13             | Nanette   | Quility  | 1   |
-| 18             | Dale      | null     | 1   |
-+----------------+-----------+----------+-----+
++--------------+-------------------------------+-----+
+| severityText | resource.attributes.host.name | cnt |
+|--------------+-------------------------------+-----|
+| INFO         | host-a                        | 1   |
+| INFO         | host-b                        | 1   |
+| WARN         | host-c                        | 1   |
+| ERROR        | host-d                        | 1   |
++--------------+-------------------------------+-----+
 ```
-  
