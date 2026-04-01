@@ -425,6 +425,10 @@ public enum BuiltinFunctionName {
           .put("dc", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("distinct_count", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
+          .put("row_number", BuiltinFunctionName.ROW_NUMBER)
+          .put("rank", BuiltinFunctionName.RANK)
+          .put("dense_rank", BuiltinFunctionName.DENSE_RANK)
+          .put("nth_value", BuiltinFunctionName.NTH_VALUE)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {
