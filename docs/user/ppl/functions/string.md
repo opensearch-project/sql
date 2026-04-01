@@ -1,12 +1,19 @@
-# String Functions  
+# String functions
 
-## CONCAT  
+The following string functions are supported in PPL.
 
-### Description  
+## CONCAT
 
-Usage: `CONCAT(str1, str2, ...., str_9)` adds up to 9 strings together.
-**Argument type:** `STRING, STRING, ...., STRING`
-**Return type:** `STRING`
+**Usage**: `CONCAT(str1, str2, ...., str_9)`
+
+Concatenates up to 9 strings.
+
+**Parameters**:
+
+- `str1, str2, ..., str_9` (Required): Up to 9 strings to concatenate.
+
+**Return type**: `STRING`
+
 ### Example
   
 ```ppl
@@ -15,7 +22,7 @@ source=people
 | fields `CONCAT('hello', 'world')`, `CONCAT('hello ', 'whole ', 'world', '!')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -26,13 +33,20 @@ fetched rows / total rows = 1/1
 +--------------------------+------------------------------------------+
 ```
   
-## CONCAT_WS  
+## CONCAT_WS
 
-### Description  
+**Usage**: `CONCAT_WS(sep, str1, str2)`
 
-Usage: `CONCAT_WS(sep, str1, str2)` returns str1 concatenated with str2 using sep as a separator between them.
-**Argument type:** `STRING, STRING, STRING`
-**Return type:** `STRING`
+Returns `str1` concatenated with `str2`, using `sep` as a separator between them.
+
+**Parameters**:
+
+- `sep` (Required): The separator string to place between concatenated strings.
+- `str1` (Required): The first string to concatenate.
+- `str2` (Required): The second string to concatenate.
+
+**Return type**: `STRING`
+
 ### Example
   
 ```ppl
@@ -41,7 +55,7 @@ source=people
 | fields `CONCAT_WS(',', 'hello', 'world')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -52,16 +66,18 @@ fetched rows / total rows = 1/1
 +----------------------------------+
 ```
   
-## LENGTH  
+## LENGTH
 
-### Description  
+**Usage**: `length(str)`
 
-Specifications:
-1. LENGTH(STRING) -> INTEGER  
-  
-Usage: `length(str)` returns length of string measured in bytes.
-**Argument type:** `STRING`
-**Return type:** `INTEGER`
+Returns the length of the string measured in bytes.
+
+**Parameters**:
+
+- `str` (Required): The string for which to calculate the length.
+
+**Return type**: `INTEGER`
+
 ### Example
   
 ```ppl
@@ -70,7 +86,7 @@ source=people
 | fields `LENGTH('helloworld')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -81,20 +97,28 @@ fetched rows / total rows = 1/1
 +----------------------+
 ```
   
-## LIKE  
+## LIKE
 
-### Description  
+**Usage**: `like(string, PATTERN[, case_sensitive])`
 
-Usage: `like(string, PATTERN[, case_sensitive])` return true if the string match the PATTERN. `case_sensitive` is optional. When set to `true`, PATTERN is **case-sensitive**. **Default:** Determined by `plugins.ppl.syntax.legacy.preferred`.
- * When `plugins.ppl.syntax.legacy.preferred=true`, `case_sensitive` defaults to `false`  
- * When `plugins.ppl.syntax.legacy.preferred=false`, `case_sensitive` defaults to `true`  
-  
-There are two wildcards often used in conjunction with the LIKE operator:
-* `%` - The percent sign represents zero, one, or multiple characters  
-* `_` - The underscore represents a single character  
-  
-**Argument type:** `STRING, STRING [, BOOLEAN]`
-**Return type:** `INTEGER`
+Returns `TRUE` if the string matches the pattern, `FALSE` otherwise.
+
+**Parameters**:
+
+- `string` (Required): The string to match against the pattern.
+- `PATTERN` (Required): The pattern to match, supporting wildcards.
+- `case_sensitive` (Optional): Whether the pattern matching is case-sensitive. Default determined by `plugins.ppl.syntax.legacy.preferred`.
+
+**Wildcards**:
+- `%` - Represents zero, one, or multiple characters.
+- `_` - Represents a single character.
+
+**Configuration**:
+- When `plugins.ppl.syntax.legacy.preferred=true`, `case_sensitive` defaults to `false`.
+- When `plugins.ppl.syntax.legacy.preferred=false`, `case_sensitive` defaults to `true`.
+
+**Return type**: `BOOLEAN`
+
 ### Example
   
 ```ppl
@@ -103,7 +127,7 @@ source=people
 | fields `LIKE('hello world', '_ello%')`, `LIKE('hello world', '_ELLo%', true)`, `LIKE('hello world', '_ELLo%', false)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -114,18 +138,25 @@ fetched rows / total rows = 1/1
 +-------------------------------+-------------------------------------+--------------------------------------+
 ```
   
-Limitation: The pushdown of the LIKE function to a DSL wildcard query is supported only for keyword fields.
-## ILIKE  
+Limitation: The pushdown of the `LIKE` function to a DSL wildcard query is supported only for keyword fields.
 
-### Description  
+## ILIKE
 
-Usage: `ilike(string, PATTERN)` return true if the string match the PATTERN, PATTERN is **case-insensitive**.
-There are two wildcards often used in conjunction with the ILIKE operator:
-* `%` - The percent sign represents zero, one, or multiple characters  
-* `_` - The underscore represents a single character  
-  
-**Argument type:** `STRING, STRING`
-**Return type:** `INTEGER`
+**Usage**: `ilike(string, PATTERN)`
+
+Returns `TRUE` if the string matches the pattern (case-insensitive), `FALSE` otherwise.
+
+**Parameters**:
+
+- `string` (Required): The string to match against the pattern.
+- `PATTERN` (Required): The case-insensitive pattern to match, supporting wildcards.
+
+**Wildcards**:
+- `%` - Represents zero, one, or multiple characters.
+- `_` - Represents a single character.
+
+**Return type**: `BOOLEAN`
+
 ### Example
   
 ```ppl
@@ -134,7 +165,7 @@ source=people
 | fields `ILIKE('hello world', '_ELLo%')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -145,14 +176,22 @@ fetched rows / total rows = 1/1
 +--------------------------------+
 ```
   
-Limitation: The pushdown of the ILIKE function to a DSL wildcard query is supported only for keyword fields.
-## LOCATE  
+Limitation: The pushdown of the `ILIKE` function to a DSL wildcard query is supported only for keyword fields.
 
-### Description  
+## LOCATE
 
-Usage: `locate(substr, str[, start])` returns the position of the first occurrence of substring substr in string str, starting searching from position start. If start is not specified, it defaults to 1 (the beginning of the string). Returns 0 if substr is not found. If any argument is NULL, the function returns NULL.
-**Argument type:** `STRING, STRING[, INTEGER]`
-**Return type:** `INTEGER`
+**Usage**: `locate(substr, str[, start])`
+
+Returns the position of the first occurrence of `substr` in `str`, starting at position `start`. If `start` is not specified, the search begins at position 1. Returns 0 if `substr` is not found. If any argument is `NULL`, the function returns `NULL`.
+
+**Parameters**:
+
+- `substr` (Required): The substring to search for.
+- `str` (Required): The string to search within.
+- `start` (Optional): The position to start searching from. Defaults to 1.
+
+**Return type**: `INTEGER`
+
 ### Example
   
 ```ppl
@@ -161,7 +200,7 @@ source=people
 | fields `LOCATE('world', 'helloworld')`, `LOCATE('invalid', 'helloworld')`, `LOCATE('world', 'helloworld', 6)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -172,13 +211,18 @@ fetched rows / total rows = 1/1
 +-------------------------------+---------------------------------+----------------------------------+
 ```
   
-## LOWER  
+## LOWER
 
-### Description  
+**Usage**: `lower(string)`
 
-Usage: `lower(string)` converts the string to lowercase.
-**Argument type:** `STRING`
-**Return type:** `STRING`
+Converts the string to lowercase.
+
+**Parameters**:
+
+- `string` (Required): The string to convert to lowercase.
+
+**Return type**: `STRING`
+
 ### Example
   
 ```ppl
@@ -187,7 +231,7 @@ source=people
 | fields `LOWER('helloworld')`, `LOWER('HELLOWORLD')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -198,13 +242,18 @@ fetched rows / total rows = 1/1
 +---------------------+---------------------+
 ```
   
-## LTRIM  
+## LTRIM
 
-### Description  
+**Usage**: `ltrim(str)`
 
-Usage: `ltrim(str)` trims leading space characters from the string.
-**Argument type:** `STRING`
-**Return type:** `STRING`
+Trims leading space characters from the string.
+
+**Parameters**:
+
+- `str` (Required): The string from which to remove leading spaces.
+
+**Return type**: `STRING`
+
 ### Example
   
 ```ppl
@@ -213,7 +262,7 @@ source=people
 | fields `LTRIM('   hello')`, `LTRIM('hello   ')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -224,14 +273,19 @@ fetched rows / total rows = 1/1
 +-------------------+-------------------+
 ```
   
-## POSITION  
+## POSITION
 
-### Description  
+**Usage**: `POSITION(substr IN str)`
 
-Usage: The syntax POSITION(substr IN str) returns the position of the first occurrence of substring substr in string str. Returns 0 if substr is not in str. Returns NULL if any argument is NULL.
-**Argument type:** `STRING, STRING`
-Return type INTEGER
-(STRING IN STRING) -> INTEGER
+Returns the position of the first occurrence of `substr` in `str`. Returns 0 if `substr` is not found. Returns `NULL` if any argument is `NULL`.
+
+**Parameters**:
+
+- `substr` (Required): The substring to search for.
+- `str` (Required): The string to search within.
+
+**Return type**: `INTEGER`
+
 ### Example
   
 ```ppl
@@ -240,7 +294,7 @@ source=people
 | fields `POSITION('world' IN 'helloworld')`, `POSITION('invalid' IN 'helloworld')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -251,21 +305,30 @@ fetched rows / total rows = 1/1
 +-----------------------------------+-------------------------------------+
 ```
   
-## REPLACE  
+## REPLACE
 
-### Description  
+**Usage**: `replace(str, pattern, replacement)`
 
-Usage: `replace(str, pattern, replacement)` returns a string with all occurrences of the pattern replaced by the replacement string in str. If any argument is NULL, the function returns NULL.
-**Regular Expression Support**: The pattern argument supports Java regex syntax, including:
-**Argument type:** `STRING, STRING (regex pattern), STRING (replacement)`
-**Return type:** `STRING`
-**Important - Regex Special Characters**: The pattern is interpreted as a regular expression. Characters like `.`, `*`, `+`, `[`, `]`, `(`, `)`, `{`, `}`, `^`, `$`, `|`, `?`, and `\` have special meaning in regex. To match them literally, escape with backslashes:
-* To match `example.com`: use `'example\\.com'` (escape the dots)  
-* To match `value*`: use `'value\\*'` (escape the asterisk)  
-* To match `price+tax`: use `'price\\+tax'` (escape the plus)  
-  
-For strings with many special characters, use `\\Q...\\E` to quote the entire literal string (e.g., `'\\Qhttps://example.com/path?id=123\\E'` matches that exact URL).
-Literal String Replacement Examples
+Returns a string in which all occurrences of the pattern in `str` are replaced with the replacement string. Returns `NULL` if any argument is `NULL`.
+
+**Parameters**:
+
+- `str` (Required): The input string to perform replacements on.
+- `pattern` (Required): The regex pattern to match (supports Java regex syntax).
+- `replacement` (Required): The replacement string.
+
+**Return type**: `STRING`
+
+**Regular expression support**: The pattern argument supports Java regex syntax.
+
+**Regular expression special characters**: The pattern is interpreted as a regular expression (regex). The following characters have special meaning in regex: `.`, `*`, `+`, `[`, `]`, `(`, `)`, `{`, `}`, `^`, `$`, `|`, `?`, and `\`. To match these characters literally, escape them with backslashes:
+- `example.com` becomes `'example\\.com'` (escaped dots).
+- `value*` becomes `'value\\*'` (escaped asterisk).
+- `price+tax` becomes `'price\\+tax'` (escaped plus).
+
+Strings containing multiple special characters can be quoted using `\\Q...\\E` to treat the entire string literally. For example, `'\\Qhttps://example.com/path?id=123\\E'` treats the entire URL as a literal string.
+
+### Example: Literal string replacement
   
 ```ppl
 source=people
@@ -273,7 +336,7 @@ source=people
 | fields `REPLACE('helloworld', 'world', 'universe')`, `REPLACE('helloworld', 'invalid', 'universe')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -284,7 +347,7 @@ fetched rows / total rows = 1/1
 +--------------------------------------------+----------------------------------------------+
 ```
   
-Escaping Special Characters Examples
+### Example: Escaping special characters
   
 ```ppl
 source=people
@@ -292,7 +355,7 @@ source=people
 | fields `Replace domain`, `Replace with quote`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -303,7 +366,7 @@ fetched rows / total rows = 1/1
 +-----------------+--------------------------+
 ```
   
-Regex Pattern Examples
+### Example: Regex patterns
   
 ```ppl
 source=people
@@ -311,7 +374,7 @@ source=people
 | fields `Remove digits`, `Collapse spaces`, `Remove special`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -322,7 +385,7 @@ fetched rows / total rows = 1/1
 +---------------+-----------------+----------------+
 ```
   
-Capture Group and Backreference Examples
+### Example: Capture groups and backreference
   
 ```ppl
 source=people
@@ -330,7 +393,7 @@ source=people
 | fields `Swap date`, `Reverse words`, `Extract domain`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -341,7 +404,7 @@ fetched rows / total rows = 1/1
 +-----------+---------------+----------------+
 ```
   
-Advanced Regex Examples
+### Example: Advanced regex
   
 ```ppl
 source=people
@@ -349,7 +412,7 @@ source=people
 | fields `Clean phone`, `Remove vowels`, `Add prefix`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -360,17 +423,22 @@ fetched rows / total rows = 1/1
 +-------------+---------------+------------+
 ```
   
-**Note**: When using regex patterns in PPL queries:
-* Backslashes must be escaped (use `\\` instead of `\`) - e.g., `\\d` for digit pattern, `\\w+` for word characters  
-* Backreferences support both PCRE-style (`\1`, `\2`, etc.) and Java-style (`$1`, `$2`, etc.) syntax. PCRE-style backreferences are automatically converted to Java-style internally.  
+**Notes for regex patterns in PPL queries**:
+* Backslashes must be escaped by doubling them: `\\` instead of `\`. Examples: `\\d` for digit patterns, `\\w+` for word characters.
+* Backreferences support both PCRE-style (`\1`, `\2`) and Java-style (`$1`, `$2`) syntax. PCRE-style backreferences are automatically converted to Java-style internally.
   
-## REVERSE  
+## REVERSE
 
-### Description  
+**Usage**: `REVERSE(str)`
 
-Usage: `REVERSE(str)` returns reversed string of the string supplied as an argument.
-**Argument type:** `STRING`
-**Return type:** `STRING`
+Returns the reverse of the provided string.
+
+**Parameters**:
+
+- `str` (Required): The string to reverse.
+
+**Return type**: `STRING`
+
 ### Example
   
 ```ppl
@@ -379,7 +447,7 @@ source=people
 | fields `REVERSE('abcde')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -390,13 +458,19 @@ fetched rows / total rows = 1/1
 +------------------+
 ```
   
-## RIGHT  
+## RIGHT
 
-### Description  
+**Usage**: `right(str, len)`
 
-Usage: `right(str, len)` returns the rightmost len characters from the string str, or NULL if any argument is NULL.
-**Argument type:** `STRING, INTEGER`
-**Return type:** `STRING`
+Returns the last `len` number of characters of `str`. Returns `NULL` if any argument is `NULL`.
+
+**Parameters**:
+
+- `str` (Required): The input string.
+- `len` (Required): The number of characters to return from the right side.
+
+**Return type**: `STRING`
+
 ### Example
   
 ```ppl
@@ -405,7 +479,7 @@ source=people
 | fields `RIGHT('helloworld', 5)`, `RIGHT('HELLOWORLD', 0)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -416,13 +490,18 @@ fetched rows / total rows = 1/1
 +------------------------+------------------------+
 ```
   
-## RTRIM  
+## RTRIM
 
-### Description  
+**Usage**: `rtrim(str)`
 
-Usage: `rtrim(str)` trims trailing space characters from the string.
-**Argument type:** `STRING`
-**Return type:** `STRING`
+Trims trailing space characters from the string.
+
+**Parameters**:
+
+- `str` (Required): The string from which to remove trailing spaces.
+
+**Return type**: `STRING`
+
 ### Example
   
 ```ppl
@@ -431,7 +510,7 @@ source=people
 | fields `RTRIM('   hello')`, `RTRIM('hello   ')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -442,14 +521,22 @@ fetched rows / total rows = 1/1
 +-------------------+-------------------+
 ```
   
-## SUBSTRING  
+## SUBSTRING
 
-### Description  
+**Usage**: `substring(str, start[, length])`
 
-Usage: `substring(str, start)` or substring(str, start, length) returns substring using start and length. With no length, entire string from start is returned.
-**Argument type:** `STRING, INTEGER, INTEGER`
-**Return type:** `STRING`
-Synonyms: SUBSTR
+Returns a substring of `str` starting at `start` for `length` characters. If `length` is not specified, returns the substring from `start` to the end of the string.
+
+**Parameters**:
+
+- `str` (Required): The input string.
+- `start` (Required): The starting position for the substring.
+- `length` (Optional): The length of the substring. If not specified, returns from `start` to the end.
+
+**Return type**: `STRING`
+
+**Synonyms**: `SUBSTR`
+
 ### Example
   
 ```ppl
@@ -458,7 +545,7 @@ source=people
 | fields `SUBSTRING('helloworld', 5)`, `SUBSTRING('helloworld', 5, 3)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -469,12 +556,18 @@ fetched rows / total rows = 1/1
 +----------------------------+-------------------------------+
 ```
   
-## TRIM  
+## TRIM
 
-### Description  
+**Usage**: `trim(str)`
 
-Argument Type: STRING
-**Return type:** `STRING`
+Trims leading and trailing space characters from the string.
+
+**Parameters**:
+
+- `str` (Required): The string from which to remove leading and trailing spaces.
+
+**Return type**: `STRING`
+
 ### Example
   
 ```ppl
@@ -483,7 +576,7 @@ source=people
 | fields `TRIM('   hello')`, `TRIM('hello   ')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -494,13 +587,18 @@ fetched rows / total rows = 1/1
 +------------------+------------------+
 ```
   
-## UPPER  
+## UPPER
 
-### Description  
+**Usage**: `upper(string)`
 
-Usage: `upper(string)` converts the string to uppercase.
-**Argument type:** `STRING`
-**Return type:** `STRING`
+Converts the string to uppercase.
+
+**Parameters**:
+
+- `string` (Required): The string to convert to uppercase.
+
+**Return type**: `STRING`
+
 ### Example
   
 ```ppl
@@ -509,7 +607,7 @@ source=people
 | fields `UPPER('helloworld')`, `UPPER('HELLOWORLD')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -520,14 +618,22 @@ fetched rows / total rows = 1/1
 +---------------------+---------------------+
 ```
   
-## REGEXP_REPLACE  
+## REGEXP_REPLACE
 
-### Description  
+**Usage**: `regexp_replace(str, pattern, replacement)`
 
-Usage: `regexp_replace(str, pattern, replacement)` replace all substrings of the string value that match pattern with replacement and returns modified string value.
-**Argument type:** `STRING, STRING, STRING`
-**Return type:** `STRING`
-Synonyms: [REPLACE](#replace)
+Replaces all substrings in `str` that match `pattern` with `replacement` and returns the resulting string.
+
+**Parameters**:
+
+- `str` (Required): The input string to perform replacements on.
+- `pattern` (Required): The regular expression pattern to match.
+- `replacement` (Required): The replacement string.
+
+**Return type**: `STRING`
+
+**Synonyms**: [REPLACE](#replace)
+
 ### Example
   
 ```ppl
@@ -536,7 +642,7 @@ source=people
 | fields `DOMAIN`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1

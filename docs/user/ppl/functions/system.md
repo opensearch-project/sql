@@ -1,13 +1,18 @@
-# System Functions  
+# System functions
 
-## TYPEOF  
+The following system functions are supported in PPL.
 
-### Description  
+## TYPEOF
 
-Usage: `typeof(expr)` function returns name of the data type of the value that is passed to it. This can be helpful for troubleshooting or dynamically constructing SQL queries.
+**Usage**: `TYPEOF(expr)`
 
-**Argument type:** `ANY`  
-**Return type:** `STRING`  
+Returns the data type of the given expression. This is useful for troubleshooting or dynamically constructing SQL queries.
+
+**Parameters**:
+
+- `expr` (Required): The expression to determine the data type for. Can be any data type.
+
+**Return type**: `STRING`
 
 ### Example  
   
@@ -17,7 +22,7 @@ source=people
 | fields `typeof(date)`, `typeof(int)`, `typeof(now())`, `typeof(column)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1

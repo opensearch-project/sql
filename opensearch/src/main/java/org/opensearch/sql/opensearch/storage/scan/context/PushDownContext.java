@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import javax.annotation.Nullable;
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Project;
 import org.jetbrains.annotations.NotNull;
@@ -27,8 +28,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   private ArrayDeque<PushDownOperation> operationsForRequestBuilder;
 
   private boolean isAggregatePushed = false;
-  private AggPushDownAction aggPushDownAction;
-  private ArrayDeque<PushDownOperation> operationsForAgg;
+  @Setter private AggSpec aggSpec;
 
   // Records the start pos of the query, which is updated by new added limit operations.
   private int startFrom = 0;
@@ -49,7 +49,10 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   @Override
   public PushDownContext clone() {
     PushDownContext newContext = new PushDownContext(osIndex);
-    newContext.addAll(this);
+    for (PushDownOperation operation : this) {
+      newContext.add(operation);
+    }
+    newContext.aggSpec = aggSpec;
     return newContext;
   }
 
@@ -65,6 +68,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
         newContext.add(action);
       }
     }
+    newContext.aggSpec = aggSpec == null ? null : aggSpec.withoutBucketSort();
     return newContext;
   }
 
@@ -132,20 +136,11 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     queue.add(operation);
   }
 
-  void addOperationForAgg(PushDownOperation operation) {
-    if (operationsForAgg == null) {
-      this.operationsForAgg = new ArrayDeque<>();
-    }
-    operationsForAgg.add(operation);
-    queue.add(operation);
-  }
-
   @Override
   public boolean add(PushDownOperation operation) {
     operation.action().pushOperation(this, operation);
     if (operation.type() == PushDownType.AGGREGATION) {
       isAggregatePushed = true;
-      this.aggPushDownAction = (AggPushDownAction) operation.action();
     }
     if (operation.type() == PushDownType.LIMIT) {
       startFrom += ((LimitDigest) operation.digest()).offset();
@@ -213,6 +208,9 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     if (operationsForRequestBuilder != null) {
       operationsForRequestBuilder.forEach(
           operation -> ((OSRequestBuilderAction) operation.action()).apply(newRequestBuilder));
+    }
+    if (aggSpec != null) {
+      aggSpec.buildAction().apply(newRequestBuilder);
     }
     return newRequestBuilder;
   }
