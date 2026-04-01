@@ -77,6 +77,7 @@ bundlePlugin {
     exclude 'memory-0*.jar'
     exclude 'sketches-core-*.jar'
     exclude 'commons-lang3-*.jar'
+    exclude 'commons-text-*.jar'
     exclude 'commons-math3-*.jar'
     exclude 'commons-dbcp2-*.jar'
     exclude 'commons-io-*.jar'

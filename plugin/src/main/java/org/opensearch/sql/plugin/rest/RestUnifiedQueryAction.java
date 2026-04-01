@@ -75,7 +75,7 @@ public class RestUnifiedQueryAction {
     if (query == null || query.isEmpty()) {
       return false;
     }
-    try (UnifiedQueryContext context = buildContext(queryType, false)) {
+    try (UnifiedQueryContext context = buildParsingContext(queryType)) {
       String indexName = extractIndexName(query, context);
       if (indexName == null) {
         return false;
@@ -154,6 +154,14 @@ public class RestUnifiedQueryAction {
     } catch (Exception e) {
       listener.onFailure(e);
     }
+  }
+
+  /**
+   * Build a lightweight context for parsing only (index name extraction). Does not require cluster
+   * state or catalog schema.
+   */
+  private static UnifiedQueryContext buildParsingContext(QueryType queryType) {
+    return UnifiedQueryContext.builder().language(queryType).build();
   }
 
   private UnifiedQueryContext buildContext(QueryType queryType, boolean profiling) {
