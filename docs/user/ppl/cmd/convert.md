@@ -66,6 +66,7 @@ The following query converts a field containing comma-separated numbers:
 
 ```ppl
 source=accounts
+| head 1
 | eval price='1,234'
 | convert num(price)
 | fields price
@@ -75,11 +76,11 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 1/1
-+---------+
-| price   |
-|---------|
-| 1234.0  |
-+---------+
++--------+
+| price  |
+|--------|
+| 1234.0 |
++--------+
 ```
 
 ## Example 3: Memory size conversion with memk()
@@ -87,7 +88,8 @@ fetched rows / total rows = 1/1
 The following query converts memory size strings to kilobytes:
 
 ```ppl
-source=system_metrics
+source=accounts
+| head 1
 | eval memory='100m'
 | convert memk(memory)
 | fields memory
@@ -157,7 +159,8 @@ fetched rows / total rows = 3/3
 The following query extracts numeric values from strings containing units:
 
 ```ppl
-source=metrics
+source=accounts
+| head 1
 | eval duration='2.000 sec'
 | convert rmunit(duration)
 | fields duration
@@ -191,8 +194,8 @@ fetched rows / total rows = 2/2
 +----------+--------+
 | sum(age) | gender |
 |----------+--------|
-| 15224    | M      |
-| 14947    | F      |
+| 28.0     | F      |
+| 101.0    | M      |
 +----------+--------+
 ```
 
@@ -241,7 +244,7 @@ fetched rows / total rows = 3/3
 | 1          | Amber     | Duke     |
 | 6          | Hattie    | Bond     |
 | 13         | Nanette   | Bates    |
-+------------+-----------+----------|
++------------+-----------+----------+
 ```
 
 **Note:** The `none()` function is particularly useful when wildcard support is implemented, allowing you to exclude specific fields from bulk conversions.

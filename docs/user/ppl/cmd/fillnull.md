@@ -31,166 +31,60 @@ The `fillnull` command supports the following parameters.
 | `<field>` | Required (with `using` syntax) | The name of the field to which a specific replacement value is applied. |
 | `<field-list>` | Optional | A list of fields in which null values are replaced. You can specify the list as comma-delimited (using `with` or `using` syntax) or space-delimited (using `value=` syntax). By default, all fields are processed. |
 
-## Example 1: Replace null values in a single field with a specified value
+## Example 1: Replace null values with different values per field
 
-The following query replaces null values in the `email` field with `\<not found\>`:
+The following query fills in missing instrumentation scope names, helping identify which services are not properly instrumented with OpenTelemetry:
   
 ```ppl
-source=accounts
-| fields email, employer
-| fillnull with '<not found>' in email
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| fields severityText, `resource.attributes.service.name`, instrumentationScope.name
+| fillnull using instrumentationScope.name = 'not-instrumented'
+| sort `resource.attributes.service.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----------------------+----------+
-| email                 | employer |
-|-----------------------+----------|
-| amberduke@pyrami.com  | Pyrami   |
-| hattiebond@netagy.com | Netagy   |
-| <not found>           | Quility  |
-| daleadams@boink.com   | null     |
-+-----------------------+----------+
+fetched rows / total rows = 7/7
++--------------+----------------------------------+---------------------------+
+| severityText | resource.attributes.service.name | instrumentationScope.name |
+|--------------+----------------------------------+---------------------------|
+| ERROR        | api-gateway                      | not-instrumented          |
+| ERROR        | auth-service                     | not-instrumented          |
+| ERROR        | cart-service                     | not-instrumented          |
+| FATAL        | inventory-service                | not-instrumented          |
+| ERROR        | payment-service                  | opentelemetry-java        |
+| FATAL        | payment-service                  | not-instrumented          |
+| ERROR        | user-service                     | not-instrumented          |
++--------------+----------------------------------+---------------------------+
 ```
   
 
-## Example 2: Replace null values in multiple fields with a specified value  
+## Example 2: Replace null values using value= syntax
 
-The following query replaces null values in both the `email` and `employer` fields with `\<not found\>`:
+The following query uses the `value=` syntax to fill null instrumentation scope names, helping identify uninstrumented services:
   
 ```ppl
-source=accounts
-| fields email, employer
-| fillnull with '<not found>' in email, employer
+source=otellogs
+| where severityText = 'ERROR'
+| fields severityText, `resource.attributes.service.name`, instrumentationScope.name
+| fillnull value='not-instrumented' instrumentationScope.name
+| sort `resource.attributes.service.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----------------------+-------------+
-| email                 | employer    |
-|-----------------------+-------------|
-| amberduke@pyrami.com  | Pyrami      |
-| hattiebond@netagy.com | Netagy      |
-| <not found>           | Quility     |
-| daleadams@boink.com   | <not found> |
-+-----------------------+-------------+
+fetched rows / total rows = 5/5
++--------------+----------------------------------+---------------------------+
+| severityText | resource.attributes.service.name | instrumentationScope.name |
+|--------------+----------------------------------+---------------------------|
+| ERROR        | api-gateway                      | not-instrumented          |
+| ERROR        | auth-service                     | not-instrumented          |
+| ERROR        | cart-service                     | not-instrumented          |
+| ERROR        | payment-service                  | opentelemetry-java        |
+| ERROR        | user-service                     | not-instrumented          |
++--------------+----------------------------------+---------------------------+
 ```
-  
-
-## Example 3: Replace null values in all fields with a specified value  
-
-The following query replaces null values in all fields when no `field-list` is specified:
-  
-```ppl
-source=accounts
-| fields email, employer
-| fillnull with '<not found>'
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+-----------------------+-------------+
-| email                 | employer    |
-|-----------------------+-------------|
-| amberduke@pyrami.com  | Pyrami      |
-| hattiebond@netagy.com | Netagy      |
-| <not found>           | Quility     |
-| daleadams@boink.com   | <not found> |
-+-----------------------+-------------+
-```
-  
-
-## Example 4: Replace null values in multiple fields with different specified values  
-
-The following query shows how to use the `fillnull` command with different replacement values for multiple fields using the `using` syntax:
-  
-```ppl
-source=accounts
-| fields email, employer
-| fillnull using email = '<not found>', employer = '<no employer>'
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+-----------------------+---------------+
-| email                 | employer      |
-|-----------------------+---------------|
-| amberduke@pyrami.com  | Pyrami        |
-| hattiebond@netagy.com | Netagy        |
-| <not found>           | Quility       |
-| daleadams@boink.com   | <no employer> |
-+-----------------------+---------------+
-```
-  
-
-## Example 5: Replace null values in specific fields using the value= syntax
-
-The following query shows how to use the `fillnull` command with the `value=` syntax to replace null values in specific fields:
-  
-```ppl
-source=accounts
-| fields email, employer
-| fillnull value="<not found>" email employer
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+-----------------------+-------------+
-| email                 | employer    |
-|-----------------------+-------------|
-| amberduke@pyrami.com  | Pyrami      |
-| hattiebond@netagy.com | Netagy      |
-| <not found>           | Quility     |
-| daleadams@boink.com   | <not found> |
-+-----------------------+-------------+
-```
-  
-
-## Example 6: Replace null values in all fields using the value= syntax
-
-When no `field-list` is specified, the replacement applies to all fields in the result:
-  
-```ppl
-source=accounts
-| fields email, employer
-| fillnull value='<not found>'
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+-----------------------+-------------+
-| email                 | employer    |
-|-----------------------+-------------|
-| amberduke@pyrami.com  | Pyrami      |
-| hattiebond@netagy.com | Netagy      |
-| <not found>           | Quility     |
-| daleadams@boink.com   | <not found> |
-+-----------------------+-------------+
-```
-  
-
-## Limitations
-
-The `fillnull` command has the following limitations:
-
-* When applying the same value to all fields without specifying field names, all fields must be of the same type. For mixed types, use separate `fillnull` commands or explicitly specify fields.
-* The replacement value type must match all field types in the field list. When applying the same value to multiple fields, all fields must be of the same type (all strings or all numeric). The following query shows the error that occurs when this rule is violated:
-
-    ```sql
-      # This FAILS - same value for mixed-type fields
-      source=accounts | fillnull value=0 firstname, age
-      # ERROR: fillnull failed: replacement value type INTEGER is not compatible with field 'firstname' (type: VARCHAR). The replacement value type must match the field type.
-    ```
   

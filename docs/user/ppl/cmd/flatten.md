@@ -25,68 +25,29 @@ The `flatten` command supports the following parameters.
 | `<alias-list>` | Optional | A list of names to use instead of the original key names, separated by commas. If specifying more than one alias, enclose the list in parentheses. The number of aliases must match the number of keys in the struct, and the aliases must follow the lexicographical order of the corresponding original keys. |  
   
 
-## Example: Flatten an object field using aliases  
+## Example: Flatten the instrumentation scope object  
 
-Given the following index `my-index`:
-  
-```json
- {"message":{"info":"a","author":"e","dayOfWeek":1},"myNum":1}
- {"message":{"info":"b","author":"f","dayOfWeek":2},"myNum":2}
-```
-  
-with the following mapping:
-  
-```json
- {
-   "mappings": {
-     "properties": {
-       "message": {
-         "type": "object",
-         "properties": {
-           "info": {
-             "type": "keyword",
-             "index": "true"
-           },
-           "author": {
-             "type": "keyword",
-             "fields": {
-               "keyword": {
-                 "type": "keyword",
-                 "ignore_above": 256
-               }
-             },
-             "index": "true"
-           },
-           "dayOfWeek": {
-             "type": "long"
-           }
-         }
-       },
-       "myNum": {
-         "type": "long"
-       }
-     }
-   }
- }
-```
-
-The following query flattens a `message` object field and uses aliases to rename the flattened fields to `creator, dow, info`:
+The following query flattens the `instrumentationScope` nested object into individual fields, useful for analyzing which OTel SDK versions are in use:
   
 ```ppl
-source=my-index
-| flatten message as (creator, dow, info)
+source=otellogs
+| where NOT ISNULL(instrumentationScope.name)
+| flatten instrumentationScope
+| fields severityText, name, version
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
-+-----------------------------------------+--------+---------+-----+------+
-| message                                 | myNum  | creator | dow | info |
-|-----------------------------------------|--------|---------|-----|------|
-| {"info":"a","author":"e","dayOfWeek":1} | 1      | e       | 1   | a    |
-| {"info":"b","author":"f","dayOfWeek":2} | 2      | f       | 2   | b    |
-+-----------------------------------------+--------+---------+-----+------+
+fetched rows / total rows = 4/4
++--------------+----------------------+---------+
+| severityText | name                 | version |
+|--------------+----------------------+---------|
+| INFO         | opentelemetry-java   | 1.0.0   |
+| INFO         | opentelemetry-java   | 1.0.0   |
+| WARN         | opentelemetry-python | 2.0.0   |
+| ERROR        | opentelemetry-java   | 1.0.0   |
++--------------+----------------------+---------+
 ```
   
 

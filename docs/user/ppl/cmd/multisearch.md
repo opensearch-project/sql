@@ -41,63 +41,69 @@ The `multisearch` command supports the following parameters.
 | `<subsearchN>` | Required | At least two subsearches are required. Each subsearch must be enclosed in square brackets and start with the `search` keyword (`[search source=index | <commands>]`). All PPL commands are supported within subsearches. |
 | `<result-processing>` | Optional | Commands applied to the merged results after the multisearch operation (for example, `stats`, `sort`, or `head`). |  
 
-## Example 1: Combining age groups for demographic analysis
+## Example 1: Compare errors with debug logs
 
-This example demonstrates how to merge customers from different age segments into a unified dataset. It combines `young` and `adult` customers into a single result set and adds categorization labels for further analysis:
+This example merges error logs with debug logs side by side. This is useful when investigating whether debug-level logs from the same services provide clues about the root cause of errors:
   
 ```ppl
-| multisearch [search source=accounts
-| where age < 30
-| eval age_group = "young"
-| fields firstname, age, age_group] [search source=accounts
-| where age >= 30
-| eval age_group = "adult"
-| fields firstname, age, age_group]
-| sort age
+| multisearch [search source=otellogs
+| where severityText = 'ERROR'
+| eval env = 'errors'
+| fields env, `resource.attributes.service.name`, body] [search source=otellogs
+| where severityText = 'DEBUG'
+| eval env = 'debug'
+| fields env, `resource.attributes.service.name`, body]
+| sort env, `resource.attributes.service.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----------+-----+-----------+
-| firstname | age | age_group |
-|-----------+-----+-----------|
-| Nanette   | 28  | young     |
-| Amber     | 32  | adult     |
-| Dale      | 33  | adult     |
-| Hattie    | 36  | adult     |
-+-----------+-----+-----------+
+fetched rows / total rows = 8/8
++--------+----------------------------------+----------------------------------------------------------------------------------------------+
+| env    | resource.attributes.service.name | body                                                                                         |
+|--------+----------------------------------+----------------------------------------------------------------------------------------------|
+| debug  | auth-service                     | Cache miss for key user:session:U200 in Redis cluster                                        |
+| debug  | auth-service                     | Redis SETEX user:session:U300 3600 - session refreshed                                       |
+| debug  | inventory-service                | gRPC call /InventoryService/CheckStock completed in 12ms                                     |
+| errors | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| errors | auth-service                     | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
+| errors | cart-service                     | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| errors | payment-service                  | Payment failed: connection timeout to payment gateway after 30000ms                          |
+| errors | user-service                     | NullPointerException in UserService.getProfile at line 142                                   |
++--------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
 
-## Example 2: Segmenting accounts by balance tier
+## Example 2: Segmenting logs by severity tier
 
-This example demonstrates how to create account segments based on balance thresholds for comparative analysis. It separates `high_balance` accounts from `regular` accounts and labels them for easy comparison:
+This example separates critical and non-critical logs for comparative analysis:
   
 ```ppl
-| multisearch [search source=accounts
-| where balance > 20000
-| eval query_type = "high_balance"
-| fields firstname, balance, query_type] [search source=accounts
-| where balance > 0 AND balance <= 20000
-| eval query_type = "regular"
-| fields firstname, balance, query_type]
-| sort balance desc
+| multisearch [search source=otellogs
+| where severityNumber >= 17
+| eval tier = "critical"
+| fields severityText, severityNumber, tier] [search source=otellogs
+| where severityNumber < 17 AND severityNumber >= 13
+| eval tier = "warning"
+| fields severityText, severityNumber, tier]
+| sort - severityNumber
+| head 5
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----------+---------+--------------+
-| firstname | balance | query_type   |
-|-----------+---------+--------------|
-| Amber     | 39225   | high_balance |
-| Nanette   | 32838   | high_balance |
-| Hattie    | 5686    | regular      |
-| Dale      | 4180    | regular      |
-+-----------+---------+--------------+
+fetched rows / total rows = 5/5
++--------------+----------------+----------+
+| severityText | severityNumber | tier     |
+|--------------+----------------+----------|
+| FATAL        | 21             | critical |
+| FATAL        | 21             | critical |
+| ERROR        | 17             | critical |
+| ERROR        | 17             | critical |
+| ERROR        | 17             | critical |
++--------------+----------------+----------+
 ```
   
 
@@ -134,27 +140,29 @@ fetched rows / total rows = 5/5
 This example demonstrates how `multisearch` handles schema differences when subsearches return different fields. When one subsearch includes a field that others don't have, missing values are automatically filled with null values:
   
 ```ppl
-| multisearch [search source=accounts
-| where age < 30
-| eval young_flag = "yes"
-| fields firstname, age, young_flag] [search source=accounts
-| where age >= 30
-| fields firstname, age]
-| sort age
+| multisearch [search source=otellogs
+| where severityText = 'ERROR'
+| eval needs_page = "yes"
+| fields severityText, `resource.attributes.service.name`, needs_page] [search source=otellogs
+| where severityText = 'WARN'
+| fields severityText, `resource.attributes.service.name`]
+| sort `resource.attributes.service.name`
+| head 5
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----------+-----+------------+
-| firstname | age | young_flag |
-|-----------+-----+------------|
-| Nanette   | 28  | yes        |
-| Amber     | 32  | null       |
-| Dale      | 33  | null       |
-| Hattie    | 36  | null       |
-+-----------+-----+------------+
+fetched rows / total rows = 5/5
++--------------+----------------------------------+------------+
+| severityText | resource.attributes.service.name | needs_page |
+|--------------+----------------------------------+------------|
+| ERROR        | api-gateway                      | yes        |
+| WARN         | api-gateway                      | null       |
+| ERROR        | auth-service                     | yes        |
+| ERROR        | cart-service                     | yes        |
+| WARN         | cert-monitor                     | null       |
++--------------+----------------------------------+------------+
 ```
   
 

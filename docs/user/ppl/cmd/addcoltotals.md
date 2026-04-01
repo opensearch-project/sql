@@ -24,76 +24,88 @@ The `addcoltotals` command supports the following parameters.
 | `labelfield` | Optional | The field in which the label is placed. If the field does not exist, it is created and the label is shown in the summary row (last row) of the new field. |
 | `label` | Optional | The text that appears in the summary row (last row) to identify the computed totals. When used with `labelfield`, this text is placed in the specified field in the summary row. Default is `Total`. |
 
-## Example 1: Basic example
+## Example 1: Add column totals to a severity breakdown
 
-The following query places the label in an existing field:
+The following query adds a total row to a severity breakdown, showing the grand total of all log entries:
 
 ```ppl
-source=accounts 
-| fields firstname, balance 
-| head 3 
-| addcoltotals labelfield='firstname'
+source=otellogs
+| stats count() as log_count by severityText
+| sort severityText
+| addcoltotals labelfield='severityText'
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
-+-----------+---------+
-| firstname | balance |
-|-----------+---------|
-| Amber     | 39225   |
-| Hattie    | 5686    |
-| Nanette   | 32838   |
-| Total     | 77749   |
-+-----------+---------+
+fetched rows / total rows = 6/6
++-----------+--------------+
+| log_count | severityText |
+|-----------+--------------|
+| 3         | DEBUG        |
+| 5         | ERROR        |
+| 2         | FATAL        |
+| 6         | INFO         |
+| 4         | WARN         |
+| 20        | Total        |
++-----------+--------------+
 ```
 
-## Example 2: Adding column totals with a custom summary label
+## Example 2: Add column totals with a custom label
 
-The following query adds totals after a `stats` command where the final summary event label is `Sum`. It also creates a new field specified by `labelfield` because this field does not exist in the data:
+The following query adds totals to error counts per service with a custom summary label:
 
 ```ppl
-source=accounts 
-| stats count() by gender 
-| addcoltotals `count()` label='Sum' labelfield='Total'
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| stats count() as failures by `resource.attributes.service.name`
+| sort `resource.attributes.service.name`
+| addcoltotals failures label='Grand Total' labelfield='Summary'
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 3/3
-+---------+--------+-------+
-| count() | gender | Total |
-|---------+--------+-------|
-| 1       | F      | null  |
-| 3       | M      | null  |
-| 4       | null   | Sum   |
-+---------+--------+-------+
+fetched rows / total rows = 7/7
++----------+----------------------------------+-------------+
+| failures | resource.attributes.service.name | Summary     |
+|----------+----------------------------------+-------------|
+| 1        | api-gateway                      | null        |
+| 1        | auth-service                     | null        |
+| 1        | cart-service                     | null        |
+| 1        | inventory-service                | null        |
+| 2        | payment-service                  | null        |
+| 1        | user-service                     | null        |
+| 7        | null                             | Grand Total |
++----------+----------------------------------+-------------+
 ```
 
 ## Example 3: Using all options
 
-The following query uses the `addcoltotals` command with all options set:
+The following query uses the `addcoltotals` command with all options set, totaling only the specified numeric fields and placing the summary label in a new column:
 
 ```ppl
-source=accounts 
-| where age > 30 
-| stats avg(balance) as avg_balance, count() as count by state 
-| head 3 
-| addcoltotals avg_balance, count  label='Sum' labelfield='Column Total'
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| eval error_count = IF(severityText = 'ERROR', 1, 0), fatal_count = IF(severityText = 'FATAL', 1, 0)
+| stats sum(error_count) as errors, sum(fatal_count) as fatals by `resource.attributes.service.name`
+| sort `resource.attributes.service.name`
+| addcoltotals errors, fatals label='Sum' labelfield='Column Total'
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
-+-------------+-------+-------+--------------+
-| avg_balance | count | state | Column Total |
-|-------------+-------+-------+--------------|
-| 39225.0     | 1     | IL    | null         |
-| 4180.0      | 1     | MD    | null         |
-| 5686.0      | 1     | TN    | null         |
-| 49091.0     | 3     | null  | Sum          |
-+-------------+-------+-------+--------------+
+fetched rows / total rows = 7/7
++--------+--------+----------------------------------+--------------+
+| errors | fatals | resource.attributes.service.name | Column Total |
+|--------+--------+----------------------------------+--------------|
+| 1      | 0      | api-gateway                      | null         |
+| 1      | 0      | auth-service                     | null         |
+| 1      | 0      | cart-service                     | null         |
+| 0      | 1      | inventory-service                | null         |
+| 1      | 1      | payment-service                  | null         |
+| 1      | 0      | user-service                     | null         |
+| 5      | 2      | null                             | Sum          |
++--------+--------+----------------------------------+--------------+
 ```

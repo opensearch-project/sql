@@ -49,58 +49,74 @@ Required choices between alternatives are shown in parentheses and are delimited
 
 **Example**: `(on | where)` means you must use either `on` or `where`, but not both.
 
-### Optional choices
+## Example 1: Fetch data from an index with a filter
 
-Optional choices between alternatives are shown in square brackets with pipe separators (`[option1 | option2]`). You can choose one of the options or omit them entirely.
+The following query retrieves all error logs from the `otellogs` index. The filter is specified inline with the `source` command:
 
-**Example**: `[asc | desc]` means you can specify `asc`, `desc`, or neither.
-
-### Repetition
-
-An ellipsis (`...`) indicates that the preceding element can be repeated multiple times.
-
-**Examples**:
-- `<field>...` means one or more fields without commas: `field1 field2 field3`
-- `<field>, ...` means comma-separated repetition: `field1, field2, field3`
-  
-
-## Examples
-
-**Example 1: Search through accounts index**
-
-In the following query, the `search` command refers to an `accounts` index as the source and uses the `fields` and `where` commands for the conditions:
-
-```ppl ignore
-search source=accounts
-| where age > 18
-| fields firstname, lastname
+```ppl
+source=otellogs severityText = 'ERROR'
+| fields severityText, `resource.attributes.service.name`
+| sort `resource.attributes.service.name`
 ```
 
-**Example 2: Get all documents**
+The query returns the following results:
 
-To get all documents from the `accounts` index, specify it as the `source`:
-
-```ppl ignore
-search source=accounts;
+```text
+fetched rows / total rows = 5/5
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| ERROR        | api-gateway                      |
+| ERROR        | auth-service                     |
+| ERROR        | cart-service                     |
+| ERROR        | payment-service                  |
+| ERROR        | user-service                     |
++--------------+----------------------------------+
 ```
 
+## Example 2: Fetch data with the search keyword
 
-| account_number | firstname | address | balance | gender | city | employer | state | age | email | lastname |
-:--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---
-| 1  | Amber  | 880 Holmes Lane | 39225 | M | Brogan | Pyrami | IL | 32 | amberduke@pyrami.com  | Duke
-| 6  | Hattie | 671 Bristol Street | 5686 | M | Dante | Netagy | TN | 36  | hattiebond@netagy.com | Bond
-| 13 | Nanette | 789 Madison Street | 32838 | F | Nogal | Quility | VA | 28 | null | Bates
-| 18 | Dale  | 467 Hutchinson Court | 4180 | M | Orick | null | MD | 33 | daleadams@boink.com | Adams
+The following query uses the explicit `search` keyword, which is equivalent to omitting it:
 
-**Example 3: Get documents that match a condition**
-
-To get all documents from the `accounts` index that either have `account_number` equal to 1 or have `gender` as `F`, use the following query:
-
-```ppl ignore
-search source=accounts account_number=1 or gender=\"F\";
+```ppl
+search source=otellogs
+| where severityText = 'FATAL'
+| fields severityText, body
 ```
 
-| account_number | firstname | address | balance | gender | city | employer | state | age | email | lastname |
-:--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---
-| 1 | Amber | 880 Holmes Lane | 39225 | M | Brogan | Pyrami | IL | 32 | amberduke@pyrami.com | Duke |
-| 13 | Nanette | 789 Madison Street | 32838 | F | Nogal | Quility | VA | 28 | null | Bates |
+The query returns the following results:
+
+```text
+fetched rows / total rows = 2/2
++--------------+---------------------------------------------------------------------------------+
+| severityText | body                                                                            |
+|--------------+---------------------------------------------------------------------------------|
+| FATAL        | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
+| FATAL        | Database primary node unreachable: connection refused to db-primary-01:5432     |
++--------------+---------------------------------------------------------------------------------+
+```
+
+## Example 3: Pipe multiple commands
+
+The following query demonstrates chaining multiple commands to filter, aggregate, and sort results:
+
+```ppl
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| stats count() as error_count by `resource.attributes.service.name`
+| sort - error_count
+| head 3
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 3/3
++-------------+----------------------------------+
+| error_count | resource.attributes.service.name |
+|-------------+----------------------------------|
+| 2           | payment-service                  |
+| 1           | api-gateway                      |
+| 1           | auth-service                     |
++-------------+----------------------------------+
+```

@@ -88,28 +88,29 @@ PUT _cluster/settings
 
 The following are examples of using the `simple_pattern` method.
 
-### Example 1: Create a new field
+### Example 1: Extract patterns from log messages
 
-The following query extracts patterns from the `email` field for each document. If the `email` field is `null`, the command returns an empty string:
+The following query extracts patterns from error log messages, replacing variable parts with `<*>` placeholders. This helps you identify common error templates across your services:
   
 ```ppl
-source=accounts
-| patterns email method=simple_pattern
-| fields email, patterns_field
+source=otellogs
+| where severityText = 'ERROR'
+| patterns body method=simple_pattern
+| fields body, patterns_field
+| head 3
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----------------------+----------------+
-| email                 | patterns_field |
-|-----------------------+----------------|
-| amberduke@pyrami.com  | <*>@<*>.<*>    |
-| hattiebond@netagy.com | <*>@<*>.<*>    |
-| null                  |                |
-| daleadams@boink.com   | <*>@<*>.<*>    |
-+-----------------------+----------------+
+fetched rows / total rows = 3/3
++--------------------------------------------------------------------------+--------------------------------------------+
+| body                                                                     | patterns_field                             |
+|--------------------------------------------------------------------------+--------------------------------------------|
+| Payment failed: connection timeout to payment gateway after 30000ms      | <*> <*>: <*> <*> <*> <*> <*> <*> <*>       |
+| NullPointerException in UserService.getProfile at line 142               | <*> <*> <*>.<*> <*> <*> <*>                |
+| HTTP POST /api/checkout 503 Service Unavailable - upstream connect error | <*> <*> /<*>/<*> <*> <*> <*> - <*> <*> <*> |
++--------------------------------------------------------------------------+--------------------------------------------+
 ```
   
 

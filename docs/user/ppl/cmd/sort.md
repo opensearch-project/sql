@@ -36,181 +36,197 @@ The `sort` command supports the following parameters.
 
 ## Example 1: Sort by one field
 
-The following query sorts all documents by the `age` field in ascending order. By default, the sort command returns all results, which is equivalent to specifying `sort 0 age`:
+The following query sorts logs by severity number in ascending order, showing the least severe entries first:
 
 ```ppl
-source=accounts
-| sort age
-| fields account_number, age
+source=otellogs
+| sort severityNumber
+| fields severityText, severityNumber, `resource.attributes.service.name`
+| head 4
 ```
 
 The query returns the following results:
 
 ```text
 fetched rows / total rows = 4/4
-+----------------+-----+
-| account_number | age |
-|----------------+-----|
-| 13             | 28  |
-| 1              | 32  |
-| 18             | 33  |
-| 6              | 36  |
-+----------------+-----+
++--------------+----------------+----------------------------------+
+| severityText | severityNumber | resource.attributes.service.name |
+|--------------+----------------+----------------------------------|
+| DEBUG        | 5              | auth-service                     |
+| DEBUG        | 5              | inventory-service                |
+| DEBUG        | 5              | auth-service                     |
+| INFO         | 9              | frontend                         |
++--------------+----------------+----------------------------------+
 ```
 
 
 ## Example 2: Sort by one field in descending order
 
-The following query sorts all documents by the `age` field in descending order. You can use either prefix notation (`- age`) or suffix notation (`age desc`):
+The following query sorts logs by severity in descending order to surface the most critical issues first. You can use either prefix notation (`- severityNumber`) or suffix notation (`severityNumber desc`):
 
 ```ppl
-source=accounts
-| sort - age
-| fields account_number, age
+source=otellogs
+| dedup severityText
+| sort - severityNumber
+| fields severityText, severityNumber
 ```
 
 This query is equivalent to the following query:
 
 ```ppl
-source=accounts
-| sort age desc
-| fields account_number, age
+source=otellogs
+| dedup severityText
+| sort severityNumber desc
+| fields severityText, severityNumber
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
-+----------------+-----+
-| account_number | age |
-|----------------+-----|
-| 6              | 36  |
-| 18             | 33  |
-| 1              | 32  |
-| 13             | 28  |
-+----------------+-----+
+fetched rows / total rows = 5/5
++--------------+----------------+
+| severityText | severityNumber |
+|--------------+----------------|
+| FATAL        | 21             |
+| ERROR        | 17             |
+| WARN         | 13             |
+| INFO         | 9              |
+| DEBUG        | 5              |
++--------------+----------------+
 ```
 
 
 ## Example 3: Sort by multiple fields in prefix notation
 
-The following query uses prefix notation to sort all documents by the `gender` field in ascending order and the `age` field in descending order:
+The following query uses prefix notation to sort by severity ascending and service name descending, useful for grouping by severity while controlling the order within each group:
   
 ```ppl
-source=accounts
-| sort + gender, - age
-| fields account_number, gender, age
+source=otellogs
+| dedup severityText, `resource.attributes.service.name`
+| sort + severityNumber, - `resource.attributes.service.name`
+| fields severityText, severityNumber, `resource.attributes.service.name`
+| head 5
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------------+--------+-----+
-| account_number | gender | age |
-|----------------+--------+-----|
-| 13             | F      | 28  |
-| 6              | M      | 36  |
-| 18             | M      | 33  |
-| 1              | M      | 32  |
-+----------------+--------+-----+
+fetched rows / total rows = 5/5
++--------------+----------------+----------------------------------+
+| severityText | severityNumber | resource.attributes.service.name |
+|--------------+----------------+----------------------------------|
+| DEBUG        | 5              | inventory-service                |
+| DEBUG        | 5              | auth-service                     |
+| INFO         | 9              | k8s-controller                   |
+| INFO         | 9              | frontend                         |
+| INFO         | 9              | cart-service                     |
++--------------+----------------+----------------------------------+
 ```
   
 
 ## Example 4: Sort by multiple fields in suffix notation
 
-The following query uses suffix notation to sort all documents by the `gender` field in ascending order and the `age` field in descending order:
+The following query uses suffix notation to achieve the same result as Example 3:
   
 ```ppl
-source=accounts
-| sort gender asc, age desc
-| fields account_number, gender, age
+source=otellogs
+| dedup severityText, `resource.attributes.service.name`
+| sort severityNumber asc, `resource.attributes.service.name` desc
+| fields severityText, severityNumber, `resource.attributes.service.name`
+| head 5
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------------+--------+-----+
-| account_number | gender | age |
-|----------------+--------+-----|
-| 13             | F      | 28  |
-| 6              | M      | 36  |
-| 18             | M      | 33  |
-| 1              | M      | 32  |
-+----------------+--------+-----+
+fetched rows / total rows = 5/5
++--------------+----------------+----------------------------------+
+| severityText | severityNumber | resource.attributes.service.name |
+|--------------+----------------+----------------------------------|
+| DEBUG        | 5              | inventory-service                |
+| DEBUG        | 5              | auth-service                     |
+| INFO         | 9              | k8s-controller                   |
+| INFO         | 9              | frontend                         |
+| INFO         | 9              | cart-service                     |
++--------------+----------------+----------------------------------+
 ```
   
 
 ## Example 5: Sort fields with null values
 
-The default ascending order lists null values first. The following query sorts the `employer` field in the default order:
+The default ascending order lists null values first. The following query sorts by the `instrumentationScope.name` field, showing that logs without instrumentation metadata appear before instrumented ones:
   
 ```ppl
-source=accounts
-| sort employer
-| fields employer
+source=otellogs
+| sort instrumentationScope.name
+| fields instrumentationScope.name, severityText
+| head 6
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------+
-| employer |
-|----------|
-| null     |
-| Netagy   |
-| Pyrami   |
-| Quility  |
-+----------+
+fetched rows / total rows = 6/6
++---------------------------+--------------+
+| instrumentationScope.name | severityText |
+|---------------------------+--------------|
+| null                      | DEBUG        |
+| null                      | ERROR        |
+| null                      | INFO         |
+| null                      | FATAL        |
+| null                      | WARN         |
+| null                      | INFO         |
++---------------------------+--------------+
 ```
   
 
 ## Example 6: Specify the number of sorted documents to return  
 
-The following query sorts all documents and returns two documents:
+The following query sorts all logs by severity and returns only the 3 least severe entries:
   
 ```ppl
-source=accounts
-| sort 2 age
-| fields account_number, age
+source=otellogs
+| sort 3 severityNumber
+| fields severityText, severityNumber
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
-+----------------+-----+
-| account_number | age |
-|----------------+-----|
-| 13             | 28  |
-| 1              | 32  |
-+----------------+-----+
+fetched rows / total rows = 3/3
++--------------+----------------+
+| severityText | severityNumber |
+|--------------+----------------|
+| DEBUG        | 5              |
+| DEBUG        | 5              |
+| DEBUG        | 5              |
++--------------+----------------+
 ```
   
 
 ## Example 7: Sort by specifying field type
 
-The following query uses the `sort` command with `str()` to sort numeric values lexicographically:
+The following query uses `str()` to sort severity numbers lexicographically instead of numerically. Notice that `5` and `9` appear after `21` because string sorting compares character by character:
 
 ```ppl
-source=accounts
-| sort str(account_number)
-| fields account_number
+source=otellogs
+| dedup severityText
+| sort str(severityNumber)
+| fields severityText, severityNumber
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------------+
-| account_number |
-|----------------|
-| 1              |
-| 13             |
-| 18             |
-| 6              |
-+----------------+
+fetched rows / total rows = 5/5
++--------------+----------------+
+| severityText | severityNumber |
+|--------------+----------------|
+| WARN         | 13             |
+| ERROR        | 17             |
+| FATAL        | 21             |
+| DEBUG        | 5              |
+| INFO         | 9              |
++--------------+----------------+
 ```
   

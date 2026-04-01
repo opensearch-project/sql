@@ -22,66 +22,59 @@ The `appendpipe` command supports the following parameters.
 | `<subpipeline>` | Required | A list of commands applied to the search results produced by the commands that precede the `appendpipe` command. |
   
 
-## Example 1: Append rows from a total count to existing search results  
+## Example 1: Append a total row to aggregated results  
 
-This example appends rows from `total by gender` to `sum by gender, state`, merging columns that have the same field name and type:
+The following query counts logs by severity level, then appends a total row. This is useful for building summary reports that include both breakdowns and totals:
   
 ```ppl
-source=accounts
-| stats sum(age) as part by gender, state
-| sort -part
-| head 5
-| appendpipe [ stats sum(part) as total by gender ]
+source=otellogs
+| stats count() as log_count by severityText
+| sort - log_count
+| head 3
+| appendpipe [ stats sum(log_count) as total ]
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 6/6
-+------+--------+-------+-------+
-| part | gender | state | total |
-|------+--------+-------+-------|
-| 36   | M      | TN    | null  |
-| 33   | M      | MD    | null  |
-| 32   | M      | IL    | null  |
-| 28   | F      | VA    | null  |
-| null | F      | null  | 28    |
-| null | M      | null  | 101   |
-+------+--------+-------+-------+
+fetched rows / total rows = 4/4
++-----------+--------------+-------+
+| log_count | severityText | total |
+|-----------+--------------+-------|
+| 6         | INFO         | null  |
+| 5         | ERROR        | null  |
+| 4         | WARN         | null  |
+| null      | null         | 15    |
++-----------+--------------+-------+
 ```
   
 
-## Example 2: Append rows with merged column names  
+## Example 2: Append summary statistics to detail rows  
 
-This example appends rows from `count by gender` to `sum by gender, state`:
+The following query shows error counts per service, then appends the overall average error count across all services:
   
 ```ppl
-source=accounts
-| stats sum(age) as total by gender, state
-| sort -total
-| head 5
-| appendpipe [ stats sum(total) as total by gender ]
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| stats count() as error_count by `resource.attributes.service.name`
+| sort - error_count
+| appendpipe [ stats avg(error_count) as avg_errors ]
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 6/6
-+----------+--------+-------+
-| total    | gender | state |
-|----------+--------+-------|
-| 36       | M      | TN    |
-| 33       | M      | MD    |
-| 32       | M      | IL    |
-| 28       | F      | VA    |
-| 28       | F      | null  |
-| 101      | M      | null  |
-+----------+--------+-------+
+fetched rows / total rows = 7/7
++-------------+----------------------------------+--------------------+
+| error_count | resource.attributes.service.name | avg_errors         |
+|-------------+----------------------------------+--------------------|
+| 2           | payment-service                  | null               |
+| 1           | api-gateway                      | null               |
+| 1           | auth-service                     | null               |
+| 1           | cart-service                     | null               |
+| 1           | inventory-service                | null               |
+| 1           | user-service                     | null               |
+| null        | null                             | 1.1666666666666667 |
++-------------+----------------------------------+--------------------+
 ```
   
-
-## Limitations
-
-The `appendpipe` command has the following limitations:
-
-* **Schema compatibility**: When fields with the same name exist in both the main search and the subpipeline but have incompatible types, the query fails with an error. To avoid type conflicts, ensure that fields with the same name share the same data type. Alternatively, use different field names. You can rename the conflicting fields using `eval` or select non-conflicting columns using `fields`.

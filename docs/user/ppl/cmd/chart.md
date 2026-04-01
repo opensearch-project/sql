@@ -37,161 +37,167 @@ The following considerations apply when using the `chart` command:
 
 ## Example 1: Basic aggregation without grouping  
 
-This example calculates the average balance across all accounts:
+This example counts the total number of log entries:
   
 ```ppl
-source=accounts
-| chart avg(balance)
+source=otellogs
+| chart count() as total_logs
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+--------------+
-| avg(balance) |
-|--------------|
-| 20482.25     |
-+--------------+
++------------+
+| total_logs |
+|------------|
+| 20         |
++------------+
 ```
   
 
 ## Example 2: Group by a single field  
 
-This example calculates the count of accounts grouped by gender:
+This example counts logs by severity level, useful for a severity distribution pie chart:
   
 ```ppl
-source=accounts
-| chart count() by gender
+source=otellogs
+| chart count() by severityText
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
-+--------+---------+
-| gender | count() |
-|--------+---------|
-| F      | 1       |
-| M      | 3       |
-+--------+---------+
+fetched rows / total rows = 5/5
++--------------+---------+
+| severityText | count() |
+|--------------+---------|
+| DEBUG        | 3       |
+| ERROR        | 5       |
+| FATAL        | 2       |
+| INFO         | 6       |
+| WARN         | 4       |
++--------------+---------+
 ```
   
 
 ## Example 3: Using over [] by [] to group by multiple fields  
 
-The following query calculates average balance grouped by both the `gender` and `age` fields:
+The following query creates a two-dimensional chart showing log counts by severity level and service, ideal for a heatmap visualization:
   
 ```ppl
-source=accounts
-| chart avg(balance) over gender by age
+source=otellogs
+| chart limit=2 count() over severityText by `resource.attributes.service.name`
 ```
   
-The query returns the following results. The `age` column in the result is converted to the string type:
+The query returns the following results. Services beyond the top 2 are grouped into `OTHER`:
   
 ```text
-fetched rows / total rows = 4/4
-+--------+-----+--------------+
-| gender | age | avg(balance) |
-|--------+-----+--------------|
-| F      | 28  | 32838.0      |
-| M      | 32  | 39225.0      |
-| M      | 33  | 4180.0       |
-| M      | 36  | 5686.0       |
-+--------+-----+--------------+
+fetched rows / total rows = 10/10
++--------------+------------------------------------+---------+
+| severityText | `resource.attributes.service.name` | count() |
+|--------------+------------------------------------+---------|
+| DEBUG        | auth-service                       | 2       |
+| DEBUG        | inventory-service                  | 1       |
+| ERROR        | OTHER                              | 4       |
+| ERROR        | auth-service                       | 1       |
+| FATAL        | OTHER                              | 1       |
+| FATAL        | inventory-service                  | 1       |
+| INFO         | OTHER                              | 5       |
+| INFO         | auth-service                       | 1       |
+| WARN         | OTHER                              | 2       |
+| WARN         | inventory-service                  | 2       |
++--------------+------------------------------------+---------+
 ```
   
 
-## Example 4: Using basic limit functionality  
+## Example 4: Using limit with custom other label  
 
-This example limits the results to show only the single top age group: 
+The following query limits to the top 1 service per severity level and labels the rest as `other_services`:
   
 ```ppl
-source=accounts
-| chart limit=1 count() over gender by age
-```
-  
-The query returns the following results. The `age` column in the result is converted to the string type:
-  
-```text
-fetched rows / total rows = 3/3
-+--------+-------+---------+
-| gender | age   | count() |
-|--------+-------+---------|
-| F      | OTHER | 1       |
-| M      | 33    | 1       |
-| M      | OTHER | 2       |
-+--------+-------+---------+
-```
-  
-
-## Example 5: Using limit with other parameters  
-
-The following query uses the `chart` command with the `limit`, `useother`, and custom `otherstr` parameters:
-  
-```ppl
-source=accounts
-| chart limit=top1 useother=true otherstr='minor_gender' count() over state by gender
+source=otellogs
+| chart limit=top1 useother=true otherstr='other_services' count() over severityText by `resource.attributes.service.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-------+--------------+---------+
-| state | gender       | count() |
-|-------+--------------+---------|
-| IL    | M            | 1       |
-| MD    | M            | 1       |
-| TN    | M            | 1       |
-| VA    | minor_gender | 1       |
-+-------+--------------+---------+
+fetched rows / total rows = 8/8
++--------------+------------------------------------+---------+
+| severityText | `resource.attributes.service.name` | count() |
+|--------------+------------------------------------+---------|
+| DEBUG        | auth-service                       | 2       |
+| DEBUG        | other_services                     | 1       |
+| ERROR        | auth-service                       | 1       |
+| ERROR        | other_services                     | 4       |
+| FATAL        | other_services                     | 2       |
+| INFO         | auth-service                       | 1       |
+| INFO         | other_services                     | 5       |
+| WARN         | other_services                     | 4       |
++--------------+------------------------------------+---------+
 ```
   
 
-## Example 6: Using null parameters  
+## Example 5: Using null parameters  
 
-The following query uses the `chart` command with the `limit`, `usenull`, and custom `nullstr` parameters:
+The following query shows log counts per service by namespace, labeling services without a namespace as `no namespace`:
   
 ```ppl
-source=accounts
-| chart usenull=true nullstr='employer not specified' count() over firstname by employer
+source=otellogs
+| chart usenull=true nullstr='not instrumented' count() over `resource.attributes.service.name` by instrumentationScope.name
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----------+------------------------+---------+
-| firstname | employer               | count() |
-|-----------+------------------------+---------|
-| Amber     | Pyrami                 | 1       |
-| Dale      | employer not specified | 1       |
-| Hattie    | Netagy                 | 1       |
-| Nanette   | Quility                | 1       |
-+-----------+------------------------+---------+
+fetched rows / total rows = 13/13
++------------------------------------+---------------------------+---------+
+| `resource.attributes.service.name` | instrumentationScope.name | count() |
+|------------------------------------+---------------------------+---------|
+| api-gateway                        | not instrumented          | 2       |
+| auth-service                       | not instrumented          | 4       |
+| cart-service                       | not instrumented          | 2       |
+| cart-service                       | opentelemetry-java        | 1       |
+| cert-monitor                       | not instrumented          | 1       |
+| frontend                           | not instrumented          | 1       |
+| frontend                           | opentelemetry-java        | 1       |
+| inventory-service                  | not instrumented          | 3       |
+| inventory-service                  | opentelemetry-python      | 1       |
+| k8s-controller                     | not instrumented          | 1       |
+| payment-service                    | not instrumented          | 1       |
+| payment-service                    | opentelemetry-java        | 1       |
+| user-service                       | not instrumented          | 1       |
++------------------------------------+---------------------------+---------+
 ```
   
 
-## Example 7: Using span  
+## Example 6: Using span  
 
-The following query uses the `chart` command with `span` for grouping age ranges:
+The following query charts the maximum severity per severity range and host, useful for identifying which hosts experience the most critical issues:
   
 ```ppl
-source=accounts
-| chart max(balance) by age span=10, gender
+source=otellogs
+| chart max(severityNumber) by severityNumber span=10, `resource.attributes.host.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
-+-----+--------+--------------+
-| age | gender | max(balance) |
-|-----+--------+--------------|
-| 20  | F      | 32838        |
-| 30  | M      | 39225        |
-+-----+--------+--------------+
+fetched rows / total rows = 9/9
++----------------+---------------------------------+---------------------+
+| severityNumber | `resource.attributes.host.name` | max(severityNumber) |
+|----------------+---------------------------------+---------------------|
+| 0              | host-a                          | 9                   |
+| 0              | host-b                          | 9                   |
+| 0              | host-c                          | 9                   |
+| 10             | host-a                          | 17                  |
+| 10             | host-b                          | 17                  |
+| 10             | host-c                          | 17                  |
+| 10             | host-d                          | 17                  |
+| 20             | host-c                          | 21                  |
+| 20             | host-d                          | 21                  |
++----------------+---------------------------------+---------------------+
 ```
   
 

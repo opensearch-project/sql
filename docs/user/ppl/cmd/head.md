@@ -25,36 +25,43 @@ The `head` command supports the following parameters.
 
 ## Example 1: Retrieve the first set of results using the default size 
 
-The following query returns the default number of search results (10):
+The following query retrieves the most recent errors, limited to the default 10 results. This is a common first step when investigating an incident:
   
 ```ppl
-source=accounts
-| fields firstname, age
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| sort - severityNumber, `resource.attributes.service.name`
+| fields severityText, `resource.attributes.service.name`, body
 | head
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----------+-----+
-| firstname | age |
-|-----------+-----|
-| Amber     | 32  |
-| Hattie    | 36  |
-| Nanette   | 28  |
-| Dale      | 33  |
-+-----------+-----+
+fetched rows / total rows = 7/7
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                         |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------------|
+| FATAL        | inventory-service                | Database primary node unreachable: connection refused to db-primary-01:5432                  |
+| FATAL        | payment-service                  | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9              |
+| ERROR        | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| ERROR        | auth-service                     | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
+| ERROR        | cart-service                     | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | payment-service                  | Payment failed: connection timeout to payment gateway after 30000ms                          |
+| ERROR        | user-service                     | NullPointerException in UserService.getProfile at line 142                                   |
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
 
 ## Example 2: Retrieve a specified number of results  
 
-The following query returns the first 3 search results:
+The following query grabs just the top 3 most critical log entries for a quick severity check:
   
 ```ppl
-source=accounts
-| fields firstname, age
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| sort - severityNumber, `resource.attributes.service.name`
+| fields severityText, `resource.attributes.service.name`, body
 | head 3
 ```
   
@@ -62,37 +69,39 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+-----------+-----+
-| firstname | age |
-|-----------+-----|
-| Amber     | 32  |
-| Hattie    | 36  |
-| Nanette   | 28  |
-+-----------+-----+
++--------------+----------------------------------+---------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                            |
+|--------------+----------------------------------+---------------------------------------------------------------------------------|
+| FATAL        | inventory-service                | Database primary node unreachable: connection refused to db-primary-01:5432     |
+| FATAL        | payment-service                  | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
+| ERROR        | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error        |
++--------------+----------------------------------+---------------------------------------------------------------------------------+
 ```
   
 
 ## Example 3: Retrieve the first N results after an offset M
 
-The following query demonstrates how to retrieve the first 3 results starting with the second result from the `accounts` index:
+The following query skips the 2 most critical entries and returns the next 3, useful for paging through results after reviewing the top issues:
   
 ```ppl
-source=accounts
-| fields firstname, age
-| head 3 from 1
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| sort - severityNumber, `resource.attributes.service.name`
+| fields severityText, `resource.attributes.service.name`, body
+| head 3 from 2
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+-----------+-----+
-| firstname | age |
-|-----------+-----|
-| Hattie    | 36  |
-| Nanette   | 28  |
-| Dale      | 33  |
-+-----------+-----+
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                         |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------------|
+| ERROR        | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| ERROR        | auth-service                     | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
+| ERROR        | cart-service                     | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
 

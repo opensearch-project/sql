@@ -3,20 +3,12 @@
 
 The `rename` command renames one or more fields in the search results.
 
-The `rename` command handles non-existent fields as follows:
-
-* **Renaming a non-existent field to a non-existent field**: No change occurs to the search results.
-* **Renaming a non-existent field to an existing field**: The existing target field is removed from the search results.
-* **Renaming an existing field to an existing field**: The existing target field is removed and the source field is renamed to the target.
-
-> **Note**: The `rename` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
-
 ## Syntax
 
 The `rename` command has the following syntax:
 
 ```syntax
-rename <source-field> AS <target-field>["," <source-field> AS <target-field>]...
+rename <source-field> AS <target-field> ["," <source-field> AS <target-field>]...
 ```
 
 ## Parameters
@@ -25,136 +17,84 @@ The `rename` command supports the following parameters.
 
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
-| `<source-field>` | Required | The name of the field you want to rename. Supports wildcard patterns using `*`. |
-| `<target-field>` | Required | The name you want to rename to. Must contain the same number of wildcards as the source. |
+| `<source-field>` | Required | The name of the field to rename. |
+| `<target-field>` | Required | The new name for the field. |
 
-## Example 1: Rename a field  
+## Example 1: Rename a single field
 
-The following query renames one field:
-  
+The following query renames `severityText` to `level` for cleaner output when sharing results with a team:
+
 ```ppl
-source=accounts
-| rename account_number as an
-| fields an
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| rename severityText as level
+| sort severityNumber, `resource.attributes.service.name`
+| fields level, `resource.attributes.service.name`, body
+| head 3
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 4/4
-+----+
-| an |
-|----|
-| 1  |
-| 6  |
-| 13 |
-| 18 |
-+----+
+fetched rows / total rows = 3/3
++-------+----------------------------------+----------------------------------------------------------------------------------------------+
+| level | resource.attributes.service.name | body                                                                                         |
+|-------+----------------------------------+----------------------------------------------------------------------------------------------|
+| ERROR | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| ERROR | auth-service                     | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
+| ERROR | cart-service                     | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
++-------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
-  
 
-## Example 2: Rename multiple fields  
+## Example 2: Rename multiple fields
 
-The following query renames multiple fields:
-  
+The following query renames multiple fields to shorter, dashboard-friendly names:
+
 ```ppl
-source=accounts
-| rename account_number as an, employer as emp
-| fields an, emp
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| rename severityText as level, severityNumber as code
+| sort code, `resource.attributes.service.name`
+| fields level, code, `resource.attributes.service.name`
+| head 3
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 4/4
-+----+---------+
-| an | emp     |
-|----+---------|
-| 1  | Pyrami  |
-| 6  | Netagy  |
-| 13 | Quility |
-| 18 | null    |
-+----+---------+
+fetched rows / total rows = 3/3
++-------+------+----------------------------------+
+| level | code | resource.attributes.service.name |
+|-------+------+----------------------------------|
+| ERROR | 17   | api-gateway                      |
+| ERROR | 17   | auth-service                     |
+| ERROR | 17   | cart-service                     |
++-------+------+----------------------------------+
 ```
-  
 
-## Example 3: Rename fields using wildcards  
+## Example 3: Rename and use in subsequent commands
 
-The following query renames multiple fields using wildcard patterns:
-  
+The following query renames a field and then uses the new name in a `where` filter to find critical issues:
+
 ```ppl
-source=accounts
-| rename *name as *_name
-| fields first_name, last_name
+source=otellogs
+| rename severityNumber as level_num
+| where level_num >= 17
+| sort level_num, `resource.attributes.service.name`
+| fields severityText, level_num, `resource.attributes.service.name`
+| head 3
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 4/4
-+------------+-----------+
-| first_name | last_name |
-|------------+-----------|
-| Amber      | Duke      |
-| Hattie     | Bond      |
-| Nanette    | Bates     |
-| Dale       | Adams     |
-+------------+-----------+
+fetched rows / total rows = 3/3
++--------------+-----------+----------------------------------+
+| severityText | level_num | resource.attributes.service.name |
+|--------------+-----------+----------------------------------|
+| ERROR        | 17        | api-gateway                      |
+| ERROR        | 17        | auth-service                     |
+| ERROR        | 17        | cart-service                     |
++--------------+-----------+----------------------------------+
 ```
-  
 
-## Example 4: Rename fields using multiple wildcard patterns  
-
-The following query renames multiple fields using multiple wildcard patterns:
-  
-```ppl
-source=accounts
-| rename *name as *_name, *_number as *number
-| fields first_name, last_name, accountnumber
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+------------+-----------+---------------+
-| first_name | last_name | accountnumber |
-|------------+-----------+---------------|
-| Amber      | Duke      | 1             |
-| Hattie     | Bond      | 6             |
-| Nanette    | Bates     | 13            |
-| Dale       | Adams     | 18            |
-+------------+-----------+---------------+
-```
-  
-
-## Example 5: Rename an existing field to another existing field  
-
-The following query renames an existing field to another existing field. The target field is removed and the source field is renamed to the target field:
-  
-```ppl
-source=accounts
-| rename firstname as age
-| fields age
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+---------+
-| age     |
-|---------|
-| Amber   |
-| Hattie  |
-| Nanette |
-| Dale    |
-+---------+
-```
-  
-
-## Limitations
-
-The `rename` command has the following limitations:
-
-* Literal asterisk (`*`) characters in field names cannot be replaced because the asterisk is used for wildcard matching.

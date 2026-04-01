@@ -25,123 +25,130 @@ The `dedup` command supports the following parameters.
 
 ## Example 1: Remove duplicates based on a single field  
 
-The following query deduplicates documents based on the `gender` field:
+The following query deduplicates by service name to get one sample error per service, giving you a quick view of what's failing across your system:
   
 ```ppl
-source=accounts
-| dedup gender
-| fields account_number, gender
-| sort account_number
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| dedup `resource.attributes.service.name`
+| sort `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, severityText, body
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 6/6
++----------------------------------+--------------+----------------------------------------------------------------------------------------------+
+| resource.attributes.service.name | severityText | body                                                                                         |
+|----------------------------------+--------------+----------------------------------------------------------------------------------------------|
+| api-gateway                      | ERROR        | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| auth-service                     | ERROR        | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
+| cart-service                     | ERROR        | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| inventory-service                | FATAL        | Database primary node unreachable: connection refused to db-primary-01:5432                  |
+| payment-service                  | ERROR        | Payment failed: connection timeout to payment gateway after 30000ms                          |
+| user-service                     | ERROR        | NullPointerException in UserService.getProfile at line 142                                   |
++----------------------------------+--------------+----------------------------------------------------------------------------------------------+
+```
+  
+
+## Example 2: Retain multiple duplicate documents  
+
+The following query keeps up to two logs per severity level, giving you a broader sample of each level to understand the variety of issues:
+  
+```ppl
+source=otellogs
+| dedup 2 severityText
+| sort severityNumber
+| fields severityText, severityNumber
+| head 6
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 6/6
++--------------+----------------+
+| severityText | severityNumber |
+|--------------+----------------|
+| DEBUG        | 5              |
+| DEBUG        | 5              |
+| INFO         | 9              |
+| INFO         | 9              |
+| WARN         | 13             |
+| WARN         | 13             |
++--------------+----------------+
+```
+  
+
+## Example 3: Handle documents with empty field values  
+
+The following query deduplicates by instrumentation scope name to see which OTel SDKs are reporting. By default, records with null values are dropped:
+  
+```ppl
+source=otellogs
+| dedup instrumentationScope.name
+| fields instrumentationScope.name
+| sort instrumentationScope.name
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
-+----------------+--------+
-| account_number | gender |
-|----------------+--------|
-| 1              | M      |
-| 13             | F      |
-+----------------+--------+
++---------------------------+
+| instrumentationScope.name |
+|---------------------------|
+| opentelemetry-java        |
+| opentelemetry-python      |
++---------------------------+
 ```
   
-
-## Example 2: Retain multiple duplicate documents  
-
-The following query removes duplicate documents based on the `gender` field while keeping two duplicate documents:
+The following query deduplicates while ignoring documents with empty values in the specified field:
   
 ```ppl
-source=accounts
-| dedup 2 gender
-| fields account_number, gender
-| sort account_number
+source=otellogs
+| dedup instrumentationScope.name
+| fields instrumentationScope.name
+| sort instrumentationScope.name
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 3/3
-+----------------+--------+
-| account_number | gender |
-|----------------+--------|
-| 1              | M      |
-| 6              | M      |
-| 13             | F      |
-+----------------+--------+
-```
-  
-
-## Example 3: Handle documents with empty field values  
-
-The following query removes duplicate documents while keeping documents with `null` values in the specified field:
-  
-```ppl
-source=accounts
-| dedup email keepempty=true
-| fields account_number, email
-| sort account_number
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+----------------+-----------------------+
-| account_number | email                 |
-|----------------+-----------------------|
-| 1              | amberduke@pyrami.com  |
-| 6              | hattiebond@netagy.com |
-| 13             | null                  |
-| 18             | daleadams@boink.com   |
-+----------------+-----------------------+
-```
-  
-The following query removes duplicate documents while ignoring documents with empty values in the specified field:
-  
-```ppl
-source=accounts
-| dedup email
-| fields account_number, email
-| sort account_number
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 3/3
-+----------------+-----------------------+
-| account_number | email                 |
-|----------------+-----------------------|
-| 1              | amberduke@pyrami.com  |
-| 6              | hattiebond@netagy.com |
-| 18             | daleadams@boink.com   |
-+----------------+-----------------------+
+fetched rows / total rows = 2/2
++---------------------------+
+| instrumentationScope.name |
+|---------------------------|
+| opentelemetry-java        |
+| opentelemetry-python      |
++---------------------------+
 ```
   
 
 ## Example 4: Deduplicate consecutive documents  
 
-The following query removes duplicate consecutive documents:
+The following query removes duplicate consecutive documents. When logs are sorted by severity, this shows the transitions between severity levels, helping you see the pattern of escalation:
   
 ```ppl
-source=accounts
-| dedup gender consecutive=true
-| fields account_number, gender
-| sort account_number
+source=otellogs
+| sort severityNumber, `resource.attributes.service.name`
+| dedup severityText consecutive=true
+| fields severityText, `resource.attributes.service.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 3/3
-+----------------+--------+
-| account_number | gender |
-|----------------+--------|
-| 1              | M      |
-| 13             | F      |
-| 18             | M      |
-+----------------+--------+
+fetched rows / total rows = 5/5
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| DEBUG        | auth-service                     |
+| INFO         | auth-service                     |
+| WARN         | api-gateway                      |
+| ERROR        | api-gateway                      |
+| FATAL        | inventory-service                |
++--------------+----------------------------------+
 ```
   
-

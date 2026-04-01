@@ -23,126 +23,87 @@ The `eval` command supports the following parameters.
 | `<expression>` | Required | The expression to evaluate. |  
   
 
-## Example 1: Create a new field  
+## Example 1: Classify logs by severity tier  
 
-The following query creates a new `doubleAge` field for each document:
+The following query creates an `is_critical` field that classifies each log as critical or non-critical based on severity, useful for building alert rules:
   
 ```ppl
-source=accounts
-| eval doubleAge = age * 2
-| fields age, doubleAge
+source=otellogs
+| eval is_critical = IF(severityNumber >= 17, 'yes', 'no')
+| dedup severityText
+| sort severityNumber
+| fields severityText, is_critical
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----+-----------+
-| age | doubleAge |
-|-----+-----------|
-| 32  | 64        |
-| 36  | 72        |
-| 28  | 56        |
-| 33  | 66        |
-+-----+-----------+
+fetched rows / total rows = 5/5
++--------------+-------------+
+| severityText | is_critical |
+|--------------+-------------|
+| DEBUG        | no          |
+| INFO         | no          |
+| WARN         | no          |
+| ERROR        | yes         |
+| FATAL        | yes         |
++--------------+-------------+
 ```
   
 
-## Example 2: Override an existing field  
+## Example 2: Find untraced errors  
 
-The following query overrides the `age` field by adding `1` to its value:
+The following query creates two boolean fields to identify error logs and whether they have distributed tracing context. Untraced errors are harder to debug because you can't follow the request across services:
   
 ```ppl
-source=accounts
-| eval age = age + 1
-| fields age
+source=otellogs
+| eval is_error = severityNumber >= 17, is_traced = LENGTH(traceId) > 0
+| where is_error = true
+| sort `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, is_error, is_traced
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----+
-| age |
-|-----|
-| 33  |
-| 37  |
-| 29  |
-| 34  |
-+-----+
+fetched rows / total rows = 7/7
++----------------------------------+----------+-----------+
+| resource.attributes.service.name | is_error | is_traced |
+|----------------------------------+----------+-----------|
+| api-gateway                      | True     | True      |
+| auth-service                     | True     | True      |
+| cart-service                     | True     | False     |
+| inventory-service                | True     | False     |
+| payment-service                  | True     | True      |
+| payment-service                  | True     | False     |
+| user-service                     | True     | True      |
++----------------------------------+----------+-----------+
 ```
   
 
-## Example 3: Create a new field using a field defined in eval
+## Example 3: Build a standardized log line  
 
-The following query creates a new field based on another field defined in the same `eval` expression. In this example, the new `ddAge` field is calculated by multiplying the `doubleAge` field by `2`. The `doubleAge` field itself is defined earlier in the `eval` command:
+The following query prepends the severity level to the log body, creating a standardized format for export or alerting:
   
 ```ppl
-source=accounts
-| eval doubleAge = age * 2, ddAge = doubleAge * 2
-| fields age, doubleAge, ddAge
+source=otellogs
+| where severityText IN ('ERROR', 'FATAL')
+| eval formatted = '[' + severityText + '] ' + body
+| sort severityNumber, `resource.attributes.service.name`
+| fields formatted
+| head 3
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----+-----------+-------+
-| age | doubleAge | ddAge |
-|-----+-----------+-------|
-| 32  | 64        | 128   |
-| 36  | 72        | 144   |
-| 28  | 56        | 112   |
-| 33  | 66        | 132   |
-+-----+-----------+-------+
+fetched rows / total rows = 3/3
++------------------------------------------------------------------------------------------------------+
+| formatted                                                                                            |
+|------------------------------------------------------------------------------------------------------|
+| [ERROR] HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| [ERROR] Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
+| [ERROR] Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
++------------------------------------------------------------------------------------------------------+
 ```
   
-
-## Example 4: String concatenation  
-
-The following query uses the `+` operator for string concatenation. You can concatenate string literals and field values as follows:
-  
-```ppl
-source=accounts 
-| eval greeting = 'Hello ' + firstname 
-| fields firstname, greeting
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+-----------+---------------+
-| firstname | greeting      |
-|-----------+---------------|
-| Amber     | Hello Amber   |
-| Hattie    | Hello Hattie  |
-| Nanette   | Hello Nanette |
-| Dale      | Hello Dale    |
-+-----------+---------------+
-```
-  
-
-## Example 5: Multiple string concatenation with type casting  
-
-The following query performs multiple concatenation operations, including type casting from numeric values to strings:
-  
-```ppl
-source=accounts | eval full_info = 'Name: ' + firstname + ', Age: ' + CAST(age AS STRING) | fields firstname, age, full_info
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+-----------+-----+------------------------+
-| firstname | age | full_info              |
-|-----------+-----+------------------------|
-| Amber     | 32  | Name: Amber, Age: 32   |
-| Hattie    | 36  | Name: Hattie, Age: 36  |
-| Nanette   | 28  | Name: Nanette, Age: 28 |
-| Dale      | 33  | Name: Dale, Age: 33    |
-+-----------+-----+------------------------+
-```
-  
-

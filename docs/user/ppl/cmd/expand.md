@@ -28,33 +28,30 @@ The `expand` command supports the following parameters.
 | `<alias>` | Optional | The name to use in place of the original field name. |  
   
 
-## Example: Expand an address field using an alias  
+## Example: Expand an array field  
 
-Given a `migration` dataset with the following data:
-  
-```json
-{"name":"abbas","age":24,"address":[{"city":"New york city","state":"NY","moveInDate":{"dateAndTime":"19840412T090742.000Z"}}]}
-{"name":"chen","age":32,"address":[{"city":"Miami","state":"Florida","moveInDate":{"dateAndTime":"19010811T040333.000Z"}},{"city":"los angeles","state":"CA","moveInDate":{"dateAndTime":"20230503T080742.000Z"}}]}
-```
-  
-The following query expands the `address` field and renames it to `addr`:
+The following query creates an array of severity text and service name, then expands it into separate rows:
   
 ```ppl
-source=migration
-| expand address as addr
+source=otellogs
+| where severityText = 'FATAL'
+| eval tags = array(severityText, body)
+| expand tags as tag
+| fields severityText, tag
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 3/3
-+-------+-----+-------------------------------------------------------------------------------------------+
-| name  | age | addr                                                                                      |
-|-------+-----+-------------------------------------------------------------------------------------------|
-| abbas | 24  | {"city":"New york city","state":"NY","moveInDate":{"dateAndTime":"19840412T090742.000Z"}} |
-| chen  | 32  | {"city":"Miami","state":"Florida","moveInDate":{"dateAndTime":"19010811T040333.000Z"}}    |
-| chen  | 32  | {"city":"los angeles","state":"CA","moveInDate":{"dateAndTime":"20230503T080742.000Z"}}   |
-+-------+-----+-------------------------------------------------------------------------------------------+
+fetched rows / total rows = 4/4
++--------------+---------------------------------------------------------------------------------+
+| severityText | tag                                                                             |
+|--------------+---------------------------------------------------------------------------------|
+| FATAL        | FATAL                                                                           |
+| FATAL        | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
+| FATAL        | FATAL                                                                           |
+| FATAL        | Database primary node unreachable: connection refused to db-primary-01:5432     |
++--------------+---------------------------------------------------------------------------------+
 ```
   
 

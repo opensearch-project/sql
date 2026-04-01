@@ -12,79 +12,50 @@ transpose [int] [column_name=<string>]
 * column_name: optional. The name of the first column to use when transposing rows. This column holds the field names.
 
 
-## Example 1: Transpose results
+## Example 1: Transpose severity breakdown
 
-This example shows transposing wihtout any parameters. It transforms 5 rows into columns as default is 5.
+The following query transposes a severity breakdown into a columnar format, useful for creating compact summary views:
 
 ```ppl
-source=accounts
-| head 5 
-| fields account_number, firstname,  lastname, balance 
+source=otellogs
+| stats count() as log_count by severityText
+| sort severityText
 | transpose
 ```
 
 Expected output:
 
 ```text
-fetched rows / total rows = 4/4
-+----------------+-------+--------+---------+-------+-------+
-| column         | row 1 | row 2  | row 3   | row 4 | row 5 |
-|----------------+-------+--------+---------+-------+-------|
-| account_number | 1     | 6      | 13      | 18    | null  |
-| firstname      | Amber | Hattie | Nanette | Dale  | null  |
-| balance        | 39225 | 5686   | 32838   | 4180  | null  |
-| lastname       | Duke  | Bond   | Bates   | Adams | null  |
-+----------------+-------+--------+---------+-------+-------+
+fetched rows / total rows = 2/2
++--------------+-------+-------+-------+-------+-------+
+| column       | row 1 | row 2 | row 3 | row 4 | row 5 |
+|--------------+-------+-------+-------+-------+-------|
+| log_count    | 3     | 5     | 2     | 6     | 4     |
+| severityText | DEBUG | ERROR | FATAL | INFO  | WARN  |
++--------------+-------+-------+-------+-------+-------+
 ```
 
-## Example 2: Tranpose results up to a provided number of rows.
+## Example 2: Transpose with a limited number of rows
 
-This example shows transposing wihtout any parameters. It transforms 4 rows into columns as default is 5.
+The following query transposes only the first 3 severity levels:
 
 ```ppl
-source=accounts
-| head 5 
-| fields  account_number, firstname,  lastname, balance 
-| transpose 4
+source=otellogs
+| stats count() as log_count by severityText
+| sort severityText
+| transpose 3
 ```
 
 Expected output:
 
 ```text
-fetched rows / total rows = 4/4
-+----------------+-------+--------+---------+-------+
-| column         | row 1 | row 2  | row 3   | row 4 |
-|----------------+-------+--------+---------+-------|
-| account_number | 1     | 6      | 13      | 18    |
-| firstname      | Amber | Hattie | Nanette | Dale  |
-| balance        | 39225 | 5686   | 32838   | 4180  |
-| lastname       | Duke  | Bond   | Bates   | Adams |
-+----------------+-------+--------+---------+-------+
-```
-
-## Example 2: Tranpose results up to a provided number of rows and first column with specified column name.
-
-This example shows transposing wihtout any parameters. It transforms 4 rows into columns as default is 5.
-
-```ppl
-source=accounts
-| head 5 
-| fields  account_number, firstname,  lastname, balance 
-| transpose 4 column_name='column_names'
-```
-
-Expected output:
-
-```text
-fetched rows / total rows = 4/4
-+----------------+-------+--------+---------+-------+
-| column_names   | row 1 | row 2  | row 3   | row 4 |
-|----------------+-------+--------+---------+-------|
-| account_number | 1     | 6      | 13      | 18    |
-| firstname      | Amber | Hattie | Nanette | Dale  |
-| balance        | 39225 | 5686   | 32838   | 4180  |
-| lastname       | Duke  | Bond   | Bates   | Adams |
-+----------------+-------+--------+---------+-------+
+fetched rows / total rows = 2/2
++--------------+-------+-------+-------+
+| column       | row 1 | row 2 | row 3 |
+|--------------+-------+-------+-------|
+| log_count    | 3     | 5     | 2     |
+| severityText | DEBUG | ERROR | FATAL |
++--------------+-------+-------+-------+
 ```
 
 ## Limitations
