@@ -13,4 +13,8 @@ import org.opensearch.sql.executor.ExecutionEngine;
  * so that OpenSearch's Guice injector can inject it into transport actions like {@code
  * TransportPPLQueryAction}.
  */
-public record EngineExtensionsHolder(List<ExecutionEngine> engines) {}
+public record EngineExtensionsHolder(List<ExecutionEngine> engines) {
+  public EngineExtensionsHolder(List<ExecutionEngine> engines) {
+    this.engines = engines != null ? List.copyOf(engines) : List.of();
+  }
+}

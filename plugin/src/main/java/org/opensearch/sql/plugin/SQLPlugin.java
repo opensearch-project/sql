@@ -158,8 +158,9 @@ public class SQLPlugin extends Plugin
 
   @Override
   public void loadExtensions(ExtensionLoader loader) {
-    this.executionEngineExtensions = loader.loadExtensions(ExecutionEngine.class);
-    if (executionEngineExtensions != null && !executionEngineExtensions.isEmpty()) {
+    List<ExecutionEngine> loaded = loader.loadExtensions(ExecutionEngine.class);
+    this.executionEngineExtensions = loaded != null ? List.copyOf(loaded) : List.of();
+    if (!executionEngineExtensions.isEmpty()) {
       LOGGER.info(
           "Loaded {} execution engine extension(s): {}",
           executionEngineExtensions.size(),

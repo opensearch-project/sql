@@ -58,13 +58,21 @@ public interface ExecutionEngine {
 
   /** Execute calcite RelNode plan with {@link ExecutionContext} and call back response listener. */
   default void execute(
-      RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {}
+      RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
+    listener.onFailure(
+        new UnsupportedOperationException(
+            getClass().getSimpleName() + " does not support RelNode execution"));
+  }
 
   default void explain(
       RelNode plan,
       ExplainMode mode,
       CalcitePlanContext context,
-      ResponseListener<ExplainResponse> listener) {}
+      ResponseListener<ExplainResponse> listener) {
+    listener.onFailure(
+        new UnsupportedOperationException(
+            getClass().getSimpleName() + " does not support RelNode explain"));
+  }
 
   /** Data class that encapsulates ExprValue. */
   @Data

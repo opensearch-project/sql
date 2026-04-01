@@ -6,6 +6,7 @@
 package org.opensearch.sql.executor;
 
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.calcite.rel.RelNode;
@@ -16,8 +17,9 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 /**
  * An {@link ExecutionEngine} that delegates Calcite RelNode execution to the first extension whose
- * {@link ExecutionEngine#canVectorize(RelNode)} returns {@code true}, falling back to a default
- * engine otherwise. All non-Calcite methods are forwarded directly to the default engine.
+ * {@link ExecutionEngine#canVectorize(RelNode)} returns {@code true}, falling back to the default
+ * engine otherwise. Non-Calcite ({@link PhysicalPlan}) methods and unmatched RelNode plans are
+ * forwarded to the default engine.
  */
 @RequiredArgsConstructor
 @Log4j2
@@ -28,41 +30,35 @@ public class DelegatingExecutionEngine implements ExecutionEngine {
 
   @Override
   public void execute(PhysicalPlan plan, ResponseListener<QueryResponse> listener) {
-    throw new UnsupportedOperationException("DelegatingExecutionEngine only accepts RelNode");
+    defaultEngine.execute(plan, listener);
   }
 
   @Override
   public void execute(
       PhysicalPlan plan, ExecutionContext context, ResponseListener<QueryResponse> listener) {
-    throw new UnsupportedOperationException("DelegatingExecutionEngine only accepts RelNode");
+    defaultEngine.execute(plan, context, listener);
   }
 
   @Override
   public void explain(PhysicalPlan plan, ResponseListener<ExplainResponse> listener) {
-    throw new UnsupportedOperationException("DelegatingExecutionEngine only accepts RelNode");
+    defaultEngine.explain(plan, listener);
   }
 
   @Override
   public boolean canVectorize(RelNode plan) {
-    for (ExecutionEngine ext : extensions) {
-      if (ext.canVectorize(plan)) {
-        return true;
-      }
-    }
-    return false;
+    return findExtension(plan).isPresent();
   }
 
   @Override
   public void execute(
       RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
-    for (ExecutionEngine ext : extensions) {
-      if (ext.canVectorize(plan)) {
-        log.info("Routing query to extension engine : {}", ext.getClass().getSimpleName());
-        ext.execute(plan, context, listener);
-        return;
-      }
+    Optional<ExecutionEngine> ext = findExtension(plan);
+    if (ext.isPresent()) {
+      log.info("Routing query to extension engine : {}", ext.get().getClass().getSimpleName());
+      ext.get().execute(plan, context, listener);
+    } else {
+      defaultEngine.execute(plan, context, listener);
     }
-    defaultEngine.execute(plan, context, listener);
   }
 
   @Override
@@ -71,12 +67,15 @@ public class DelegatingExecutionEngine implements ExecutionEngine {
       ExplainMode mode,
       CalcitePlanContext context,
       ResponseListener<ExplainResponse> listener) {
-    for (ExecutionEngine ext : extensions) {
-      if (ext.canVectorize(plan)) {
-        ext.explain(plan, mode, context, listener);
-        return;
-      }
+    Optional<ExecutionEngine> ext = findExtension(plan);
+    if (ext.isPresent()) {
+      ext.get().explain(plan, mode, context, listener);
+    } else {
+      defaultEngine.explain(plan, mode, context, listener);
     }
-    defaultEngine.explain(plan, mode, context, listener);
+  }
+
+  private Optional<ExecutionEngine> findExtension(RelNode plan) {
+    return extensions.stream().filter(ext -> ext.canVectorize(plan)).findFirst();
   }
 }
