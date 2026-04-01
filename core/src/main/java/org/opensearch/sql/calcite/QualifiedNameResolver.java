@@ -58,7 +58,7 @@ public class QualifiedNameResolver {
 
     return resolveFieldWithAlias(nameNode, context, 2)
         .or(() -> resolveFieldWithoutAlias(nameNode, context, 2))
-        .orElseThrow(() -> getNotFoundException(nameNode));
+        .orElseThrow(() -> getNotFoundException(nameNode, context));
   }
 
   /** Resolves qualified name in non-join condition context. */
@@ -91,7 +91,7 @@ public class QualifiedNameResolver {
 
     return resolveCorrelationField(nameNode, context)
         .or(() -> replaceWithNullLiteralInCoalesce(context))
-        .orElseThrow(() -> getNotFoundException(nameNode));
+        .orElseThrow(() -> getNotFoundException(nameNode, context));
   }
 
   private static String joinParts(List<String> parts, int start, int length) {
@@ -327,10 +327,15 @@ public class QualifiedNameResolver {
     return Optional.empty();
   }
 
-  private static ErrorReport getNotFoundException(QualifiedName node) {
+  private static ErrorReport getNotFoundException(QualifiedName node, CalcitePlanContext context) {
+    // Collect all available fields from the current context
+    List<String> availableFields = context.relBuilder.peek().getRowType().getFieldNames();
+
     return ErrorReport.wrap(
             new IllegalArgumentException(String.format("Field [%s] not found.", node.toString())))
         .code(ErrorCode.FIELD_NOT_FOUND)
+        .context("requested_field", node.toString())
+        .context("available_fields", availableFields)
         .build();
   }
 }
