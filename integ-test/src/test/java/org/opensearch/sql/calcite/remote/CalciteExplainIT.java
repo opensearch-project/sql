@@ -2905,4 +2905,16 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_highlight_osd_format.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
+
+  @Test
+  public void testExplainConsecutiveSortsAfterAggIssue5125() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_consecutive_sorts_issue_5125.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats count() as c by gender | sort gender | sort - gender",
+                TEST_INDEX_BANK)));
+  }
 }
