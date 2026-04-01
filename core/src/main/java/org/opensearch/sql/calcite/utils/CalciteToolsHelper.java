@@ -358,7 +358,143 @@ public class CalciteToolsHelper {
           }
         };
       }
-      return super.implement(root);
+      return implementEnumerable(root);
+    }
+
+    /**
+     * Implements the Enumerable path with classloader fix for Janino compilation. Calcite's {@code
+     * EnumerableInterpretable.getBindable()} hardcodes {@code
+     * EnumerableInterpretable.class.getClassLoader()} as the parent classloader for Janino. When
+     * analytics-engine is the parent classloader (via extendedPlugins), this returns the
+     * analytics-engine classloader which cannot see SQL plugin classes. This method replicates the
+     * Calcite implementation but uses this class's classloader (SQL plugin, child) which can see
+     * both parent and child classes.
+     */
+    private PreparedResult implementEnumerable(RelRoot root) {
+      Hook.PLAN_BEFORE_IMPLEMENTATION.run(root);
+      RelDataType resultType = root.rel.getRowType();
+      boolean isDml = root.kind.belongsTo(SqlKind.DML);
+      EnumerableRel enumerable = (EnumerableRel) root.rel;
+
+      if (!root.isRefTrivial()) {
+        List<RexNode> projects = new java.util.ArrayList<>();
+        final RexBuilder rexBuilder = enumerable.getCluster().getRexBuilder();
+        for (java.util.Map.Entry<Integer, String> field : root.fields) {
+          projects.add(rexBuilder.makeInputRef(enumerable, field.getKey()));
+        }
+        org.apache.calcite.rex.RexProgram program =
+            org.apache.calcite.rex.RexProgram.create(
+                enumerable.getRowType(), projects, null, root.validatedRowType, rexBuilder);
+        enumerable =
+            org.apache.calcite.adapter.enumerable.EnumerableCalc.create(enumerable, program);
+      }
+
+      // Access the internalParameters map via reflection. This map is shared with the
+      // DataContext so stashed values (e.g., table scan references) are available at execution.
+      java.util.Map<String, Object> parameters;
+      try {
+        java.lang.reflect.Field f =
+            CalcitePrepareImpl.CalcitePreparingStmt.class.getDeclaredField("internalParameters");
+        f.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> p = (java.util.Map<String, Object>) f.get(this);
+        parameters = p;
+      } catch (ReflectiveOperationException e) {
+        throw new RuntimeException("Failed to access internalParameters", e);
+      }
+
+      // Match original CalcitePreparingStmt.implement() which puts _conformance before toBindable
+      parameters.put("_conformance", context.config().conformance());
+
+      CatalogReader.THREAD_LOCAL.set(catalogReader);
+      final Bindable bindable;
+      try {
+        bindable = compileWithPluginClassLoader(enumerable, parameters);
+      } finally {
+        CatalogReader.THREAD_LOCAL.remove();
+      }
+
+      return new PreparedResultImpl(
+          resultType,
+          requireNonNull(parameterRowType, "parameterRowType"),
+          requireNonNull(fieldOrigins, "fieldOrigins"),
+          root.collation.getFieldCollations().isEmpty()
+              ? ImmutableList.of()
+              : ImmutableList.of(root.collation),
+          root.rel,
+          mapTableModOp(isDml, root.kind),
+          isDml) {
+        @Override
+        public String getCode() {
+          throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Bindable getBindable(Meta.CursorFactory cursorFactory) {
+          return bindable;
+        }
+
+        @Override
+        public Type getElementType() {
+          return resultType.getFieldList().size() == 1 ? Object.class : Object[].class;
+        }
+      };
+    }
+
+    /**
+     * Compiles an EnumerableRel to a Bindable using the SQL plugin's classloader. This is
+     * equivalent to {@code EnumerableInterpretable.toBindable()} + {@code getBindable()} but uses
+     * this class's classloader instead of {@code EnumerableInterpretable.class.getClassLoader()}.
+     */
+    private static Bindable compileWithPluginClassLoader(
+        EnumerableRel rel, java.util.Map<String, Object> parameters) {
+      try {
+        org.apache.calcite.adapter.enumerable.EnumerableRelImplementor relImplementor =
+            new org.apache.calcite.adapter.enumerable.EnumerableRelImplementor(
+                rel.getCluster().getRexBuilder(), parameters);
+        org.apache.calcite.linq4j.tree.ClassDeclaration expr =
+            relImplementor.implementRoot(rel, EnumerableRel.Prefer.ARRAY);
+        String s =
+            org.apache.calcite.linq4j.tree.Expressions.toString(
+                expr.memberDeclarations, "\n", false);
+        Hook.JAVA_PLAN.run(s);
+
+        // Use this class's classloader (SQL plugin) instead of
+        // EnumerableInterpretable.class.getClassLoader() (analytics-engine parent).
+        // commons-compiler is in the parent classloader at runtime, so we use reflection.
+        ClassLoader classLoader = CalciteToolsHelper.class.getClassLoader();
+        Class<?> factoryFactoryClass =
+            classLoader.loadClass("org.codehaus.commons.compiler.CompilerFactoryFactory");
+        Object compilerFactory =
+            factoryFactoryClass
+                .getMethod("getDefaultCompilerFactory", ClassLoader.class)
+                .invoke(null, classLoader);
+        Object compiler =
+            compilerFactory.getClass().getMethod("newSimpleCompiler").invoke(compilerFactory);
+        compiler
+            .getClass()
+            .getMethod("setParentClassLoader", ClassLoader.class)
+            .invoke(compiler, classLoader);
+
+        String fullCode =
+            "public final class "
+                + expr.name
+                + " implements "
+                + Bindable.class.getName()
+                + ", "
+                + org.apache.calcite.runtime.Typed.class.getName()
+                + " {\n"
+                + s
+                + "\n}\n";
+        compiler.getClass().getMethod("cook", String.class).invoke(compiler, fullCode);
+        ClassLoader compiledClassLoader =
+            (ClassLoader) compiler.getClass().getMethod("getClassLoader").invoke(compiler);
+        @SuppressWarnings("unchecked")
+        Class<Bindable> clazz = (Class<Bindable>) compiledClassLoader.loadClass(expr.name);
+        return clazz.getDeclaredConstructors()[0].newInstance() instanceof Bindable b ? b : null;
+      } catch (Exception e) {
+        throw org.apache.calcite.util.Util.throwAsRuntime(e);
+      }
     }
 
     @Override
