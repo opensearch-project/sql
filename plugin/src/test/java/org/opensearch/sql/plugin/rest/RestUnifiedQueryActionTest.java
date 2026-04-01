@@ -11,8 +11,9 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.sql.executor.QueryType;
-import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
+import org.opensearch.sql.plugin.rest.analytics.stub.StubQueryPlanExecutor;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
@@ -25,7 +26,9 @@ public class RestUnifiedQueryActionTest {
 
   @Before
   public void setUp() {
-    action = new RestUnifiedQueryAction(mock(NodeClient.class), mock(QueryPlanExecutor.class));
+    action =
+        new RestUnifiedQueryAction(
+            mock(NodeClient.class), mock(ClusterService.class), new StubQueryPlanExecutor());
   }
 
   @Test

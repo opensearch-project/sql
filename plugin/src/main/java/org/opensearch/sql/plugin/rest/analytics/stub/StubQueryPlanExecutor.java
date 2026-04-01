@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.List;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
-import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
+import org.opensearch.analytics.exec.QueryPlanExecutor;
 
 /**
  * Stub implementation of {@link QueryPlanExecutor} for development and testing. Returns canned data
@@ -18,7 +18,7 @@ import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
  *
  * <p>Will be replaced by the real analytics engine implementation when available.
  */
-public class StubQueryPlanExecutor implements QueryPlanExecutor {
+public class StubQueryPlanExecutor implements QueryPlanExecutor<RelNode, Iterable<Object[]>> {
 
   @Override
   public Iterable<Object[]> execute(RelNode plan, Object context) {

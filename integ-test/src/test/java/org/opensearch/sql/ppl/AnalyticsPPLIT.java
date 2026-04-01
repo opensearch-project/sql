@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
+import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -40,8 +41,48 @@ public class AnalyticsPPLIT extends PPLIntegTestCase {
 
   @Override
   protected void init() throws Exception {
-    // No index loading needed -- stub schema and data are hardcoded
-    // in RestUnifiedQueryAction and StubQueryPlanExecutor
+    // Create parquet indices with mappings so OpenSearchSchemaBuilder can build the schema.
+    // The stub executor still returns canned data regardless of the index contents.
+    createParquetLogsIndex();
+    createParquetMetricsIndex();
+  }
+
+  private void createParquetLogsIndex() throws IOException {
+    if (isIndexExist(client(), "parquet_logs")) {
+      return;
+    }
+    Request request = new Request("PUT", "/parquet_logs");
+    request.setJsonEntity(
+        "{"
+            + "\"mappings\": {"
+            + "  \"properties\": {"
+            + "    \"ts\": {\"type\": \"date\"},"
+            + "    \"status\": {\"type\": \"integer\"},"
+            + "    \"message\": {\"type\": \"keyword\"},"
+            + "    \"ip_addr\": {\"type\": \"keyword\"}"
+            + "  }"
+            + "}"
+            + "}");
+    client().performRequest(request);
+  }
+
+  private void createParquetMetricsIndex() throws IOException {
+    if (isIndexExist(client(), "parquet_metrics")) {
+      return;
+    }
+    Request request = new Request("PUT", "/parquet_metrics");
+    request.setJsonEntity(
+        "{"
+            + "\"mappings\": {"
+            + "  \"properties\": {"
+            + "    \"ts\": {\"type\": \"date\"},"
+            + "    \"cpu\": {\"type\": \"double\"},"
+            + "    \"memory\": {\"type\": \"double\"},"
+            + "    \"host\": {\"type\": \"keyword\"}"
+            + "  }"
+            + "}"
+            + "}");
+    client().performRequest(request);
   }
 
   // --- Full table scan tests with schema + data verification ---

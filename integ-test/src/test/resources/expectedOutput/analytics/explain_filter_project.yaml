@@ -1,6 +1,6 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(ts=[$0], message=[$2])
-        LogicalFilter(condition=[=($1, 200)])
+      LogicalProject(ts=[$3], message=[$1])
+        LogicalFilter(condition=[=($2, 200)])
           LogicalTableScan(table=[[opensearch, parquet_logs]])

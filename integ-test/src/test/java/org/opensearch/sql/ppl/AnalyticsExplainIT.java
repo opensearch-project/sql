@@ -5,10 +5,12 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
 
 import java.io.IOException;
 import org.junit.Test;
+import org.opensearch.client.Request;
 
 /**
  * Explain integration tests for queries routed through the analytics engine path (Project Mustang).
@@ -25,7 +27,22 @@ public class AnalyticsExplainIT extends PPLIntegTestCase {
 
   @Override
   protected void init() throws Exception {
-    // No index loading needed -- stub schema and data are hardcoded
+    // Create parquet_logs index so OpenSearchSchemaBuilder can build the schema for explain tests.
+    if (!isIndexExist(client(), "parquet_logs")) {
+      Request request = new Request("PUT", "/parquet_logs");
+      request.setJsonEntity(
+          "{"
+              + "\"mappings\": {"
+              + "  \"properties\": {"
+              + "    \"ts\": {\"type\": \"date\"},"
+              + "    \"status\": {\"type\": \"integer\"},"
+              + "    \"message\": {\"type\": \"keyword\"},"
+              + "    \"ip_addr\": {\"type\": \"keyword\"}"
+              + "  }"
+              + "}"
+              + "}");
+      client().performRequest(request);
+    }
   }
 
   private String loadAnalyticsExpectedPlan(String fileName) {
