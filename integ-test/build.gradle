@@ -270,11 +270,16 @@ def getGeoSpatialPlugin() {
     }
 }
 
+def getAnalyticsEnginePlugin() {
+    provider { (RegularFile) (() -> file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip")) }
+}
+
 testClusters {
     integTest {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
+        plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
@@ -289,6 +294,7 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
+        plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
     }
     integTestWithSecurity {
