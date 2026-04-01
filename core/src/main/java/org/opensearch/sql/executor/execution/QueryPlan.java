@@ -8,6 +8,7 @@ package org.opensearch.sql.executor.execution;
 import java.util.Optional;
 import org.apache.commons.lang3.NotImplementedException;
 import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -29,6 +30,8 @@ public class QueryPlan extends AbstractPlan {
 
   protected final Optional<Integer> pageSize;
 
+  protected final HighlightConfig highlightConfig;
+
   /** Constructor. */
   public QueryPlan(
       QueryId queryId,
@@ -36,11 +39,23 @@ public class QueryPlan extends AbstractPlan {
       UnresolvedPlan plan,
       QueryService queryService,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    this(queryId, queryType, plan, queryService, listener, null);
+  }
+
+  /** Constructor with highlight config. */
+  public QueryPlan(
+      QueryId queryId,
+      QueryType queryType,
+      UnresolvedPlan plan,
+      QueryService queryService,
+      ResponseListener<ExecutionEngine.QueryResponse> listener,
+      HighlightConfig highlightConfig) {
     super(queryId, queryType);
     this.plan = plan;
     this.queryService = queryService;
     this.listener = listener;
     this.pageSize = Optional.empty();
+    this.highlightConfig = highlightConfig;
   }
 
   /** Constructor with page size. */
@@ -56,6 +71,7 @@ public class QueryPlan extends AbstractPlan {
     this.queryService = queryService;
     this.listener = listener;
     this.pageSize = Optional.of(pageSize);
+    this.highlightConfig = null;
   }
 
   @Override
@@ -63,7 +79,7 @@ public class QueryPlan extends AbstractPlan {
     if (pageSize.isPresent()) {
       queryService.execute(new Paginate(pageSize.get(), plan), getQueryType(), listener);
     } else {
-      queryService.execute(plan, getQueryType(), listener);
+      queryService.execute(plan, getQueryType(), highlightConfig, listener);
     }
   }
 
@@ -75,7 +91,7 @@ public class QueryPlan extends AbstractPlan {
           new NotImplementedException(
               "`explain` feature for paginated requests is not implemented yet."));
     } else {
-      queryService.explain(plan, getQueryType(), listener, mode);
+      queryService.explain(plan, getQueryType(), highlightConfig, listener, mode);
     }
   }
 }

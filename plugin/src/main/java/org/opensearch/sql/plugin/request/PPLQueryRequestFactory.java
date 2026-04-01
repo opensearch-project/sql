@@ -113,6 +113,11 @@ public class PPLQueryRequestFactory {
       if (pretty) {
         pplRequest.style(JsonResponseFormatter.Style.PRETTY);
       }
+      // set queryId
+      String queryId = jsonContent.optString("queryId", null);
+      if (queryId != null) {
+        pplRequest.queryId(queryId);
+      }
       return pplRequest;
     } catch (JSONException e) {
       throw new IllegalArgumentException("Failed to parse request payload", e);

@@ -38,11 +38,11 @@ repositories {
 
 pitest {
     targetClasses = ['org.opensearch.sql.*']
-    pitestVersion = '1.19.0-rc.2'
+    pitestVersion = '1.22.1'
     threads = 4
     outputFormats = ['HTML', 'XML']
     timestampedReports = false
-    junit5PluginVersion = '1.0.0'
+    junit5PluginVersion = '1.2.1'
 }
 
 dependencies {

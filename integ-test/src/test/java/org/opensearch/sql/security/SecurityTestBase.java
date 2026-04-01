@@ -276,6 +276,23 @@ public abstract class SecurityTestBase extends PPLIntegTestCase {
     return new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
   }
 
+  /** Executes a grammar metadata request as a specific user with basic authentication. */
+  protected JSONObject executeGrammarAsUser(String username) throws IOException {
+    Request request = new Request("GET", "/_plugins/_ppl/_grammar");
+
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader(
+        "Authorization",
+        "Basic "
+            + java.util.Base64.getEncoder()
+                .encodeToString((username + ":" + STRONG_PASSWORD).getBytes()));
+    request.setOptions(restOptionsBuilder);
+
+    Response response = client().performRequest(request);
+    assertEquals(200, response.getStatusLine().getStatusCode());
+    return new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
+  }
+
   /**
    * Creates a Basic authentication header value.
    *

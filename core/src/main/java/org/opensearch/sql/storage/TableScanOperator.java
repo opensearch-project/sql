@@ -27,6 +27,15 @@ public abstract class TableScanOperator extends PhysicalPlan {
   }
 
   /**
+   * Force cleanup of server-side resources (e.g. PIT, scroll) regardless of pagination state. Used
+   * when the client explicitly closes a cursor mid-pagination. Default implementation delegates to
+   * {@link #close()}.
+   */
+  public void forceClose() {
+    close();
+  }
+
+  /**
    * Explain the execution plan.
    *
    * @return execution plan.

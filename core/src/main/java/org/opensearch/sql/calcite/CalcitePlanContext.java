@@ -21,10 +21,8 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
-import org.opensearch.sql.ast.analysis.FieldResolutionResult;
-import org.opensearch.sql.ast.analysis.FieldResolutionVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
-import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.common.setting.Settings;
@@ -48,6 +46,7 @@ public class CalcitePlanContext {
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
 
+  @Getter @Setter private HighlightConfig highlightConfig;
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
   @Getter @Setter private boolean inCoalesceFunction = false;
@@ -75,9 +74,6 @@ public class CalcitePlanContext {
   /** Whether we're currently inside a lambda context. */
   @Getter @Setter private boolean inLambdaContext = false;
 
-  /** Root node of the AST tree. Used for field resolution */
-  @Setter private UnresolvedPlan rootNode;
-
   private CalcitePlanContext(FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     this.config = config;
     this.sysLimit = sysLimit;
@@ -102,6 +98,7 @@ public class CalcitePlanContext {
     this.relBuilder = parent.relBuilder; // Share the same relBuilder
     this.rexBuilder = parent.rexBuilder; // Share the same rexBuilder
     this.functionProperties = parent.functionProperties;
+    this.highlightConfig = parent.highlightConfig;
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
@@ -211,25 +208,5 @@ public class CalcitePlanContext {
     rexLambdaRefMap.put("__captured_" + captureIndex, lambdaRef);
 
     return lambdaRef;
-  }
-
-  /**
-   * Resolves required fields for a target node in the PPL query plan by analyzing the AST from
-   * root. Used for schema-on-read features like `spath` command.
-   *
-   * @param target the plan node to resolve field requirements for
-   * @return field resolution result with regular fields and wildcard patterns
-   * @throws IllegalStateException if root node not set via {@link #setRootNode}
-   */
-  public FieldResolutionResult resolveFields(UnresolvedPlan target) {
-    if (rootNode == null) {
-      throw new IllegalStateException("Failed to resolve fields. Root node is not set.");
-    }
-    FieldResolutionVisitor visitor = new FieldResolutionVisitor();
-    Map<UnresolvedPlan, FieldResolutionResult> result = visitor.analyze(rootNode);
-    if (!result.containsKey(target)) {
-      throw new IllegalStateException("Failed to resolve fields for node: " + target.toString());
-    }
-    return result.get(target);
   }
 }

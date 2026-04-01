@@ -73,6 +73,17 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return explainQuery(query, Format.YAML, mode);
   }
 
+  protected String explainQueryYaml(String query, String highlightJson) throws IOException {
+    Request request =
+        buildRequestWithHighlight(
+            query,
+            String.format(EXPLAIN_API_ENDPOINT, Format.YAML, ExplainMode.STANDARD),
+            highlightJson);
+    Response response = client().performRequest(request);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    return getResponseBody(response, true);
+  }
+
   protected String explainQueryToString(String query, ExplainMode mode) throws IOException {
     return explainQuery(query, Format.JSON, mode).replace("\\r\\n", "\\n");
   }
@@ -143,6 +154,18 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   protected Request buildRequest(String query, String endpoint) {
     Request request = new Request("POST", endpoint);
     request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
+
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return request;
+  }
+
+  protected Request buildRequestWithHighlight(String query, String endpoint, String highlightJson) {
+    Request request = new Request("POST", endpoint);
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT, "{\n  \"query\": \"%s\",\n  \"highlight\": %s\n}", query, highlightJson));
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");

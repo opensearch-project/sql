@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
+import static java.util.stream.Collectors.toMap;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -17,7 +18,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
-import java.util.stream.Collectors;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
@@ -26,7 +26,6 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -38,7 +37,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 /**
  * UDF which extract all the fields from JSON to a MAP. Items are collected from input JSON and
  * stored with the key of their path in the JSON. This UDF is designed to be used for `spath`
- * command without path param. See {@link JsonExtractAllFunctionImplTest} for the detailed spec.
+ * command without path param. See {@ref JsonExtractAllFunctionImplTest} for the detailed spec.
  */
 public class JsonExtractAllFunctionImpl extends ImplementorUDF {
   private static final String ARRAY_SUFFIX = "{}";
@@ -53,15 +52,13 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     return ReturnTypes.explicit(
         TYPE_FACTORY.createMapType(
             TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
-            TYPE_FACTORY.createSqlType(SqlTypeName.ANY),
+            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
             true));
   }
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker)
-            OperandTypes.family(SqlTypeFamily.STRING).or(OperandTypes.family(SqlTypeFamily.ARRAY)));
+    return UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.STRING));
   }
 
   public static class JsonExtractAllImplementor implements NotNullImplementor {
@@ -76,37 +73,33 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     }
   }
 
+  /**
+   * Evaluate the JSON extract-all function. Returns a {@code Map<String, String>} where keys are
+   * dot-separated JSON paths (with {@code {}} suffix for arrays) and all values are strings. Merged
+   * array values use {@code [a, b, c]} format.
+   */
   public static Object eval(Object... args) {
     if (args.length < 1) {
       return null;
     }
 
-    String jsonStr = getString(args[0]);
-    return jsonStr != null ? convertEmptyMapToNull(parseJson(jsonStr)) : null;
-  }
-
-  private static Map<String, Object> convertEmptyMapToNull(Map<String, Object> map) {
-    return (map == null || map.isEmpty()) ? null : map;
-  }
-
-  private static String getString(Object input) {
-    if (input instanceof String) {
-      return (String) input;
-    } else if (input instanceof List) {
-      return convertArrayToString((List<?>) input);
-    }
-    return null;
-  }
-
-  private static String convertArrayToString(List<?> array) {
-    if (array == null || array.isEmpty()) {
+    String jsonStr = (String) args[0];
+    if (jsonStr == null || jsonStr.trim().isEmpty()) {
       return null;
     }
 
-    return array.stream()
-        .filter(element -> element != null)
-        .map(Object::toString)
-        .collect(Collectors.joining());
+    Map<String, Object> parsed = parseJson(jsonStr);
+    return parsed == null ? null : stringifyMap(parsed);
+  }
+
+  // TODO: JSON parsing dominates cost; consider stringify scalars in place during parsing
+  //  to avoid this extra pass.
+  private static Map<String, String> stringifyMap(Map<String, Object> map) {
+    return map.entrySet().stream()
+        .collect(
+            toMap(
+                Map.Entry::getKey,
+                e -> String.valueOf(e.getValue()))); // relies on List.toString() for [a, b, c]
   }
 
   private static Map<String, Object> parseJson(String jsonStr) {
@@ -174,7 +167,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
   @SuppressWarnings("unchecked")
   private static void appendValue(Map<String, Object> resultMap, String path, Object value) {
     Object existingValue = resultMap.get(path);
-    if (existingValue == null) {
+    if (existingValue == null && !resultMap.containsKey(path)) { // key absent, not null value
       resultMap.put(path, value);
     } else if (existingValue instanceof List) {
       ((List<Object>) existingValue).add(value);

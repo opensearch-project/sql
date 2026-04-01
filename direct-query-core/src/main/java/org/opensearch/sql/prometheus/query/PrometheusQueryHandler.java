@@ -148,7 +148,14 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
           }
         case RULES:
           {
-            JSONObject rules = client.getRules(request.getQueryParams());
+            JSONObject rules;
+            if (request.getResourceName() != null && !request.getResourceName().isEmpty()) {
+              rules =
+                  client.getRulesByNamespace(
+                      request.getResourceName(), request.getQueryParams());
+            } else {
+              rules = client.getRules(request.getQueryParams());
+            }
             return GetDirectQueryResourcesResponse.withMap(rules.toMap());
           }
         case ALERTMANAGER_ALERTS:
@@ -172,6 +179,11 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
             JSONArray silences = client.getAlertmanagerSilences();
             return GetDirectQueryResourcesResponse.withList(silences.toList());
           }
+        case ALERTMANAGER_STATUS:
+          {
+            JSONObject status = client.getAlertmanagerStatus();
+            return GetDirectQueryResourcesResponse.withMap(status.toMap());
+          }
         default:
           throw new IllegalArgumentException(
               "Invalid prometheus resource type: " + request.getResourceType());
@@ -184,9 +196,10 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
               request.getResourceType(), e.getMessage()));
     }
   }
+
   @Override
   public WriteDirectQueryResourcesResponse<?> writeResources(
-          PrometheusClient client, WriteDirectQueryResourcesRequest request) {
+      PrometheusClient client, WriteDirectQueryResourcesRequest request) {
     try {
       if (request.getResourceType() == null) {
         throw new IllegalArgumentException("Resource type cannot be null");
@@ -194,20 +207,52 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
 
       switch (request.getResourceType()) {
         case ALERTMANAGER_SILENCES:
-        {
-          String createdSilence = client.createAlertmanagerSilences(request.getRequest());
-          return WriteDirectQueryResourcesResponse.withList(List.of(createdSilence));
-        }
+          {
+            if (request.isDelete()) {
+              if (request.getResourceName() == null || request.getResourceName().isEmpty()) {
+                throw new IllegalArgumentException("Silence ID is required for deleting a silence");
+              }
+              String result = client.deleteAlertmanagerSilence(request.getResourceName());
+              return WriteDirectQueryResourcesResponse.withStringList(List.of(result));
+            }
+            String createdSilence = client.createAlertmanagerSilences(request.getRequest());
+            return WriteDirectQueryResourcesResponse.withList(List.of(createdSilence));
+          }
+        case RULES:
+          {
+            if (request.getResourceName() == null || request.getResourceName().isEmpty()) {
+              throw new IllegalArgumentException(
+                  "Namespace is required for rule group operations");
+            }
+            if (request.isDelete()) {
+              return deleteRules(client, request);
+            }
+            String result =
+                client.createOrUpdateRuleGroup(
+                    request.getResourceName(), request.getRequest());
+            return WriteDirectQueryResourcesResponse.withStringList(List.of(result));
+          }
         default:
           throw new IllegalArgumentException(
-                  "Invalid prometheus resource type: " + request.getResourceType());
+              "Invalid prometheus resource type: " + request.getResourceType());
       }
     } catch (IOException e) {
-      LOG.error("Error getting resources", e);
+      LOG.error("Error writing resources", e);
       throw new PrometheusClientException(
-              String.format(
-                      "Error while getting resources for %s: %s",
-                      request.getResourceType(), e.getMessage()));
+          String.format(
+              "Error while writing resources for %s: %s",
+              request.getResourceType(), e.getMessage()));
     }
+  }
+
+  private WriteDirectQueryResourcesResponse<?> deleteRules(
+      PrometheusClient client, WriteDirectQueryResourcesRequest request) throws IOException {
+    String result;
+    if (request.getGroupName() != null && !request.getGroupName().isEmpty()) {
+      result = client.deleteRuleGroup(request.getResourceName(), request.getGroupName());
+    } else {
+      result = client.deleteRuleNamespace(request.getResourceName());
+    }
+    return WriteDirectQueryResourcesResponse.withStringList(List.of(result));
   }
 }

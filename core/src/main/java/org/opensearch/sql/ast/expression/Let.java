@@ -20,6 +20,8 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 public class Let extends UnresolvedExpression {
   private final Field var;
   private final UnresolvedExpression expression;
+  private final Literal concatPrefix;
+  private final Literal concatSuffix;
 
   public Let(Field var, UnresolvedExpression expression) {
     String varName = var.getField().toString();
@@ -29,6 +31,21 @@ public class Let extends UnresolvedExpression {
     }
     this.var = var;
     this.expression = expression;
+    this.concatPrefix = null;
+    this.concatSuffix = null;
+  }
+
+  public Let(
+      Field var, UnresolvedExpression expression, Literal concatPrefix, Literal concatSuffix) {
+    String varName = var.getField().toString();
+    if (OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(varName)) {
+      throw new IllegalArgumentException(
+          String.format("Cannot use metadata field [%s] as the eval field.", varName));
+    }
+    this.var = var;
+    this.expression = expression;
+    this.concatPrefix = concatPrefix;
+    this.concatSuffix = concatSuffix;
   }
 
   @Override

@@ -358,6 +358,32 @@ public class PPLPermissionsIT extends SecurityTestBase {
     verifyColumn(result, columnName("full_name"));
   }
 
+  @Test
+  public void testUserWithPPLPermissionCanAccessGrammarEndpoint() throws IOException {
+    JSONObject result = executeGrammarAsUser(BANK_USER);
+    assertTrue(result.has("bundleVersion"));
+    assertTrue(result.has("antlrVersion"));
+    assertTrue(result.has("grammarHash"));
+    assertTrue(result.has("tokenDictionary"));
+  }
+
+  @Test
+  public void testUserWithoutPPLPermissionCannotAccessGrammarEndpoint() throws IOException {
+    try {
+      executeGrammarAsUser(NO_PPL_USER);
+      fail("Expected security exception for user without PPL permission");
+    } catch (ResponseException e) {
+      assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+      String responseBody =
+          org.opensearch.sql.legacy.TestUtils.getResponseBody(e.getResponse(), false);
+      assertTrue(
+          "Response should contain permission error message",
+          responseBody.contains("no permissions")
+              || responseBody.contains("Forbidden")
+              || responseBody.contains("cluster:admin/opensearch/ppl"));
+    }
+  }
+
   // Negative test cases for missing permissions
 
   @Test

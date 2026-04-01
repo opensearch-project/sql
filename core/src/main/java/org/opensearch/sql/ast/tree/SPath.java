@@ -30,7 +30,7 @@ public class SPath extends UnresolvedPlan {
 
   @Nullable private final String outField;
 
-  private final String path;
+  @Nullable private final String path;
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
@@ -48,7 +48,20 @@ public class SPath extends UnresolvedPlan {
     return nodeVisitor.visitSpath(this, context);
   }
 
+  /**
+   * Rewrites this spath node to an equivalent {@link Eval} node.
+   *
+   * <p>In path mode, rewrites to {@code eval output = json_extract(input, path)}. In auto-extract
+   * mode (path is null), rewrites to {@code eval output = json_extract_all(input)}.
+   */
   public Eval rewriteAsEval() {
+    if (path != null) {
+      return rewritePathMode();
+    }
+    return rewriteAutoExtractMode();
+  }
+
+  private Eval rewritePathMode() {
     String outField = this.outField;
     String unquotedPath = unquoteText(this.path);
     if (outField == null) {
@@ -61,5 +74,13 @@ public class SPath extends UnresolvedPlan {
             AstDSL.field(outField),
             AstDSL.function(
                 "json_extract", AstDSL.field(inField), AstDSL.stringLiteral(unquotedPath))));
+  }
+
+  private Eval rewriteAutoExtractMode() {
+    String output = (outField != null) ? outField : inField;
+    return AstDSL.eval(
+        child,
+        AstDSL.let(
+            AstDSL.field(output), AstDSL.function("json_extract_all", AstDSL.field(inField))));
   }
 }

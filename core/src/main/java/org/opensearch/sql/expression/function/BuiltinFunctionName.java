@@ -71,12 +71,11 @@ public enum BuiltinFunctionName {
   ARRAY(FunctionName.of("array")),
   ARRAY_LENGTH(FunctionName.of("array_length")),
   ARRAY_SLICE(FunctionName.of("array_slice"), true),
+  ARRAY_COMPACT(FunctionName.of("array_compact")),
   MAP_APPEND(FunctionName.of("map_append"), true),
   MAP_CONCAT(FunctionName.of("map_concat"), true),
   MAP_REMOVE(FunctionName.of("map_remove"), true),
-  MAP_FROM_ARRAYS(FunctionName.of("map_from_arrays"), true),
   MVAPPEND(FunctionName.of("mvappend")),
-  INTERNAL_APPEND(FunctionName.of("append"), true),
   MVJOIN(FunctionName.of("mvjoin")),
   MVINDEX(FunctionName.of("mvindex")),
   MVFIND(FunctionName.of("mvfind")),
@@ -300,6 +299,18 @@ public enum BuiltinFunctionName {
   BRAIN(FunctionName.of("brain")),
 
   INTERVAL(FunctionName.of("interval")),
+
+  /** PPL Convert Command Functions. */
+  AUTO(FunctionName.of("auto")),
+  NUM(FunctionName.of("num")),
+  CTIME(FunctionName.of("ctime")),
+  MKTIME(FunctionName.of("mktime")),
+  DUR2SEC(FunctionName.of("dur2sec")),
+  MEMK(FunctionName.of("memk")),
+  MSTIME(FunctionName.of("mstime")),
+  RMUNIT(FunctionName.of("rmunit")),
+  RMCOMMA(FunctionName.of("rmcomma")),
+  NONE(FunctionName.of("none")),
 
   /** Data Type Convert Function. */
   CAST_TO_STRING(FunctionName.of("cast_to_string")),
