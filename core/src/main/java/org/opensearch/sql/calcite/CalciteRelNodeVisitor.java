@@ -299,22 +299,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitAppendPipe(AppendPipe node, CalcitePlanContext context) {
     visitChildren(node, context);
-    UnresolvedPlan subqueryPlan = node.getSubQuery();
-    UnresolvedPlan childNode = subqueryPlan;
-    while (childNode.getChild() != null
-        && !childNode.getChild().isEmpty()
-        && !(childNode.getChild().getFirst() instanceof Values)) {
-      if (childNode.getChild().size() > 1) {
-        throw new RuntimeException("AppendPipe doesn't support multiply children subquery.");
-      }
-      childNode = (UnresolvedPlan) childNode.getChild().getFirst();
-    }
-    childNode.attach(node.getChild().getFirst());
-
-    subqueryPlan.accept(this, context);
+    // Use the main plan from the relBuilder stack directly instead of re-visiting
+    // the parent AST. Re-visiting causes "belongs to a different planner" assertion
+    // when multiple appendpipe commands are chained.
+    RelNode mainNode = context.relBuilder.peek();
+    context.relBuilder.push(mainNode);
+    node.getSubQuery().accept(this, context);
 
     RelNode subPipelineNode = context.relBuilder.build();
-    RelNode mainNode = context.relBuilder.build();
+    mainNode = context.relBuilder.build();
     return mergeTableAndResolveColumnConflict(mainNode, subPipelineNode, context);
   }
 
