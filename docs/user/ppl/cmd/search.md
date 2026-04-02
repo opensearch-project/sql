@@ -126,26 +126,26 @@ Consider the following performance optimizations when working with different fie
 
 Cross-cluster search lets any node in a cluster execute search requests against other clusters. Refer to [Cross-Cluster Search](../admin/cross_cluster_search.md/) for configuration.
 
-## Example 1: Fetching all data
+## Example 1: Exploring log data structure
 
-Retrieve all documents from an index by specifying only the source without any search conditions. This is useful for exploring small datasets or verifying data ingestion:
+Retrieve a sample of log documents to understand the data structure and verify log ingestion. This is useful for exploring new log sources or verifying field mappings:
 
 ```ppl
-source=accounts
+source=otellogs
+| head 3
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
-+----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
-| account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname |
-|----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------|
-| 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     |
-| 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     |
-| 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    |
-| 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    |
-+----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
+fetched rows / total rows = 3/3
++----------+------------------+---------------------+-----------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------+
+| spanId   | traceId          | @timestamp          | instrumentationScope                                                              | severityText | resource                                                                                                                             | flags | attributes | droppedAttributesCount | severityNumber | time                | body                                                                                   |
+|----------+------------------+---------------------+-----------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------|
+| span0001 | abcd1234efgh5678 | 2024-02-01 09:10:00 | {'name': 'opentelemetry-js', 'droppedAttributesCount': 0, 'version': '1.21.0'}    | INFO         | {'attributes': {'service': {'name': 'frontend'}, 'host': {'name': 'frontend-6b7b4c9f-x2kl9'}}, 'droppedAttributesCount': 0}          | 0     | {}         | 0                      | 9              | 2024-02-01 09:10:00 | HTTP GET /api/products 200 45ms                                                        |
+| span0002 | abcd1234efgh5678 | 2024-02-01 09:11:00 | {'name': 'opentelemetry-dotnet', 'droppedAttributesCount': 0, 'version': '1.7.0'} | INFO         | {'attributes': {'service': {'name': 'cart'}, 'host': {'name': 'cart-5d8f7b-mk29s'}}, 'droppedAttributesCount': 0}                    | 0     | {}         | 0                      | 9              | 2024-02-01 09:11:00 | Order #1234 placed successfully by user U100                                           |
+| span0003 | abcd1234efgh5678 | 2024-02-01 09:12:00 | {'name': 'opentelemetry-go', 'droppedAttributesCount': 0, 'version': '1.24.0'}    | WARN         | {'attributes': {'service': {'name': 'product-catalog'}, 'host': {'name': 'productcatalog-7c9d-zn4p2'}}, 'droppedAttributesCount': 0} | 0     | {}         | 0                      | 13             | 2024-02-01 09:12:00 | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
++----------+------------------+---------------------+-----------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------+
 ```
 
 
@@ -164,11 +164,11 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+--------------+--------------------------------------------------------------------------+
-| severityText | body                                                                     |
-|--------------+--------------------------------------------------------------------------|
-| ERROR        | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error |
-+--------------+--------------------------------------------------------------------------+
++--------------+----------------------------------------------------------------+
+| severityText | body                                                           |
+|--------------+----------------------------------------------------------------|
+| ERROR        | NullPointerException in CheckoutService.placeOrder at line 142 |
++--------------+----------------------------------------------------------------+
 ```
   
 Phrase search requires quotation marks for multi-word exact matching:
@@ -223,12 +223,12 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
-+---------------------------------------------------------------------------------+
-| body                                                                            |
-|---------------------------------------------------------------------------------|
-| Payment failed: connection timeout to payment gateway after 30000ms             |
-| Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
-+---------------------------------------------------------------------------------+
++-------------------------------------------------------------------------+
+| body                                                                    |
+|-------------------------------------------------------------------------|
+| Payment failed: connection timeout to payment gateway after 30000ms     |
+| Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
++-------------------------------------------------------------------------+
 ```
   
 
@@ -309,49 +309,54 @@ fetched rows / total rows = 3/3
 +--------------+----------------+
 ```
 
-## Example 4: NOT compared to != semantics  
+## Example 4: NOT compared to != semantics for service filtering
 
-Both `!=` and `NOT` operators find documents in which the field value is not equal to the specified value. However, the `!=` operator excludes documents containing null or missing fields, while the `NOT` operator includes them. The following query shows this difference.
+Both `!=` and `NOT` operators find documents in which the field value is not equal to the specified value. However, the `!=` operator excludes documents containing null or missing fields, while the `NOT` operator includes them. The following query shows this difference when filtering logs by service name.
 
 **!= operator**
 
-Find all accounts for which the `employer` field exists and is not `Quility`:
+Find all logs where the service name field exists and is not `cert-monitor`:
 
 ```ppl
-search employer!="Quility" source=accounts
+search `resource.attributes.service.name`!="cert-monitor" source=otellogs
+| fields severityText, `resource.attributes.service.name`
+| head 3
 ```
-  
+
 The query returns the following results:
-  
-```text
-fetched rows / total rows = 2/2
-+----------------+-----------+--------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
-| account_number | firstname | address            | balance | gender | city   | employer | state | age | email                 | lastname |
-|----------------+-----------+--------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------|
-| 1              | Amber     | 880 Holmes Lane    | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     |
-| 6              | Hattie    | 671 Bristol Street | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     |
-+----------------+-----------+--------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
-```
-  
-**`NOT` operator** 
 
-Find all accounts that do not specify `Quility` as the employer (including those with null employer values):
-
-```ppl
-search NOT employer="Quility" source=accounts
-```
-  
-The query returns the following results. Dale Adams appears in the search results because his `employer` field is `null`:
-  
 ```text
 fetched rows / total rows = 3/3
-+----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
-| account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname |
-|----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------|
-| 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     |
-| 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     |
-| 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    |
-+----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| INFO         | frontend                         |
+| INFO         | cart                             |
+| WARN         | product-catalog                  |
++--------------+----------------------------------+
+```
+
+**`NOT` operator**
+
+Find all logs that do not specify `cert-monitor` as the service name (including those with null service name values):
+
+```ppl
+search NOT `resource.attributes.service.name`="cert-monitor" source=otellogs
+| fields severityText, `resource.attributes.service.name`
+| head 3
+```
+
+The query returns the following results. Logs without service metadata are included:
+
+```text
+fetched rows / total rows = 3/3
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| INFO         | frontend                         |
+| INFO         | cart                             |
+| WARN         | product-catalog                  |
++--------------+----------------------------------+
 ```
 
 ## Example 5: Range queries
@@ -389,11 +394,11 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 1/1
-+--------------------------------------------------------------------------+
-| body                                                                     |
-|--------------------------------------------------------------------------|
-| HTTP POST /api/checkout 503 Service Unavailable - upstream connect error |
-+--------------------------------------------------------------------------+
++----------------------------------------------------------------+
+| body                                                           |
+|----------------------------------------------------------------|
+| NullPointerException in CheckoutService.placeOrder at line 142 |
++----------------------------------------------------------------+
 ```
 
 
@@ -436,12 +441,12 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 2/2
-+-----------------------------------------------------------------------------+
-| body                                                                        |
-|-----------------------------------------------------------------------------|
-| Connection pool 80% utilized on database replica db-replica-02              |
-| Database primary node unreachable: connection refused to db-primary-01:5432 |
-+-----------------------------------------------------------------------------+
++---------------------------------------------------------------------+
+| body                                                                |
+|---------------------------------------------------------------------|
+| Payment failed: connection timeout to payment gateway after 30000ms |
+| Connection pool 80% utilized on database replica db-replica-02      |
++---------------------------------------------------------------------+
 ```
 
 Use `?` to match exactly one character in specific positions:
@@ -466,28 +471,30 @@ fetched rows / total rows = 2/2
 ```
 
 
-## Example 7: Wildcard patterns in field searches  
+## Example 7: Wildcard patterns in service name searches
 
-When searching in text or keyword fields, wildcards enable partial matching, which is useful when you only know part of a value. Wildcards work best on keyword fields, for which they match the exact value using patterns. Using wildcards on text fields may produce unexpected results because they apply to individual tokens after analysis, not the entire field value. Wildcards in keyword fields are case sensitive unless normalized at indexing.
+When searching in text or keyword fields, wildcards enable partial matching, which is useful when you only know part of a service name. Wildcards work best on keyword fields, for which they match the exact value using patterns. Using wildcards on text fields may produce unexpected results because they apply to individual tokens after analysis, not the entire field value. Wildcards in keyword fields are case sensitive unless normalized at indexing.
 
-> **Note**: Leading wildcards (for example, `*@example.com`) can decrease query speed compared to trailing wildcards.
+> **Note**: Leading wildcards (for example, `*-service`) can decrease query speed compared to trailing wildcards.
 
-Find records for which you only know the beginning of a field value:
+Find logs for services when you only know the beginning of the service name:
 
 ```ppl
-search employer=Py* source=accounts
-| fields firstname, employer
+search `resource.attributes.service.name`=payment* source=otellogs
+| fields severityText, `resource.attributes.service.name`, body
+| head 2
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 1/1
-+-----------+----------+
-| firstname | employer |
-|-----------+----------|
-| Amber     | Pyrami   |
-+-----------+----------+
+fetched rows / total rows = 2/2
++--------------+----------------------------------+-------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                    |
+|--------------+----------------------------------+-------------------------------------------------------------------------|
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms     |
+| FATAL        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
++--------------+----------------------------------+-------------------------------------------------------------------------+
 ```
 
 Combine wildcard patterns with other conditions for more precise filtering:
@@ -548,11 +555,11 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+--------------------------------------------------------------------------+
-| body                                                                     |
-|--------------------------------------------------------------------------|
-| HTTP POST /api/checkout 503 Service Unavailable - upstream connect error |
-+--------------------------------------------------------------------------+
++----------------------------------------------------------------+
+| body                                                           |
+|----------------------------------------------------------------|
+| NullPointerException in CheckoutService.placeOrder at line 142 |
++----------------------------------------------------------------+
 ```
 
 Search for logs containing a specific user email address in the attributes:
@@ -566,11 +573,11 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+--------------------------------------------------------------------------+
-| body                                                                     |
-|--------------------------------------------------------------------------|
-| HTTP POST /api/checkout 503 Service Unavailable - upstream connect error |
-+--------------------------------------------------------------------------+
++----------------------------------------------------------------+
+| body                                                           |
+|----------------------------------------------------------------|
+| NullPointerException in CheckoutService.placeOrder at line 142 |
++----------------------------------------------------------------+
 ```
   
 
@@ -754,11 +761,11 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 1/1
-+-----------------------------------------------------------------------------+
-| body                                                                        |
-|-----------------------------------------------------------------------------|
-| Database primary node unreachable: connection refused to db-primary-01:5432 |
-+-----------------------------------------------------------------------------+
++-------------------------------------------------------------------------+
+| body                                                                    |
+|-------------------------------------------------------------------------|
+| Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
++-------------------------------------------------------------------------+
 ```
 
 > **Note**: When using the REST API with JSON, additional JSON escaping is required.
@@ -778,11 +785,11 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 1/1
-+---------------------------------------------------------------------------------+
-| body                                                                            |
-|---------------------------------------------------------------------------------|
-| Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
-+---------------------------------------------------------------------------------+
++-------------------------------------------------------------------------+
+| body                                                                    |
+|-------------------------------------------------------------------------|
+| Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
++-------------------------------------------------------------------------+
 ```
 
 ### Text containing special characters

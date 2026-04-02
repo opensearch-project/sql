@@ -13,11 +13,21 @@ The `head` command has the following syntax:
 head [<size>] [from <offset>]
 ```
 
-## Parameters
+## fetched rows / total rows = 1/1
++------------+
+| total_logs |
+|------------|
+| 20         |
++------------+arameters
 
 The `head` command supports the following parameters.
 
-| Parameter | Required/Optional | Description |
+| fetched rows / total rows = 1/1
++--------------+
+| avg_severity |
+|--------------|
+| 12.4         |
++--------------+arameter | Required/Optional | Description |
 | --- | --- | --- |
 | `<size>` | Optional | The number of results to return. Must be an integer. Default is `10`. |
 | `<offset>` | Optional | The number of results to skip (used with the `from` keyword). Must be an integer. Default is `0`. |
@@ -42,13 +52,13 @@ fetched rows / total rows = 7/7
 +--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 | severityText | resource.attributes.service.name | body                                                                                         |
 |--------------+----------------------------------+----------------------------------------------------------------------------------------------|
-| FATAL        | inventory-service                | Database primary node unreachable: connection refused to db-primary-01:5432                  |
-| FATAL        | payment-service                  | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9              |
-| ERROR        | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-| ERROR        | auth-service                     | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
-| ERROR        | cart-service                     | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| ERROR        | payment-service                  | Payment failed: connection timeout to payment gateway after 30000ms                          |
-| ERROR        | user-service                     | NullPointerException in UserService.getProfile at line 142                                   |
+| FATAL        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                      |
+| FATAL        | product-catalog                  | Database primary node unreachable: connection refused to db-primary-01:5432                  |
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| ERROR        | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                          |
+| ERROR        | recommendation                   | Failed to process recommendation request: invalid product ID from 203.0.113.50               |
 +--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
@@ -69,13 +79,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+--------------+----------------------------------+---------------------------------------------------------------------------------+
-| severityText | resource.attributes.service.name | body                                                                            |
-|--------------+----------------------------------+---------------------------------------------------------------------------------|
-| FATAL        | inventory-service                | Database primary node unreachable: connection refused to db-primary-01:5432     |
-| FATAL        | payment-service                  | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
-| ERROR        | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error        |
-+--------------+----------------------------------+---------------------------------------------------------------------------------+
++--------------+----------------------------------+-----------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                        |
+|--------------+----------------------------------+-----------------------------------------------------------------------------|
+| FATAL        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3     |
+| FATAL        | product-catalog                  | Database primary node unreachable: connection refused to db-primary-01:5432 |
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142              |
++--------------+----------------------------------+-----------------------------------------------------------------------------+
 ```
   
 
@@ -98,9 +108,9 @@ fetched rows / total rows = 3/3
 +--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 | severityText | resource.attributes.service.name | body                                                                                         |
 |--------------+----------------------------------+----------------------------------------------------------------------------------------------|
-| ERROR        | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-| ERROR        | auth-service                     | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
-| ERROR        | cart-service                     | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| ERROR        | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
 +--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   

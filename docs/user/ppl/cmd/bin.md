@@ -68,48 +68,52 @@ The `bin` command has the following special handling for certain parameter types
 * The `aligntime` parameter applies only to time spans shorter than a day (excluding daily or monthly spans).
 * The `start` and `end` parameters expand the range (they never reduce it) and affect bin width calculations.
 
-## Example 1: Basic numeric span  
+## Example 1: Response time distribution from logs
 
 ```ppl
-source=accounts
-| bin age span=10
-| fields age, account_number
-| head 3
+source=otellogs
+| rex field=body "(?<duration>\d+)ms"
+| bin duration span=100
+| stats count() as request_count by duration
+| sort duration
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 3/3
-+-------+----------------+
-| age   | account_number |
-|-------+----------------|
-| 30-40 | 1              |
-| 30-40 | 6              |
-| 20-30 | 13             |
-+-------+----------------+
+fetched rows / total rows = 4/4
++---------------+-------------+
+| request_count | duration    |
+|---------------+-------------|
+| 16            | null        |
+| 2             | 0-100       |
+| 1             | 30000-30100 |
+| 1             | 3200-3300   |
++---------------+-------------+
 ```
   
 
-## Example 2: Large numeric span  
+## Example 2: Severity level distribution
 
 ```ppl
-source=accounts
-| bin balance span=25000
-| fields balance
-| head 2
+source=otellogs
+| bin severityNumber span=5
+| stats count() as log_count by severityNumber
+| sort severityNumber
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 2/2
-+-------------+
-| balance     |
-|-------------|
-| 25000-50000 |
-| 0-25000     |
-+-------------+
+fetched rows / total rows = 4/4
++-----------+----------------+
+| log_count | severityNumber |
+|-----------+----------------|
+| 4         | 10-15          |
+| 5         | 15-20          |
+| 2         | 20-25          |
+| 9         | 5-10           |
++-----------+----------------+
 ```
   
 
@@ -181,24 +185,28 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 6: Low bin count  
+## Example 6: Log volume distribution with bins parameter
 
 ```ppl
-source=accounts
-| bin age bins=2
-| fields age
-| head 1
+source=otellogs
+| stats count() as volume by `resource.attributes.service.name`
+| bin volume bins=4
+| stats count() as service_count by volume
+| sort volume
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 1/1
-+-------+
-| age   |
-|-------|
-| 30-40 |
-+-------+
+fetched rows / total rows = 4/4
++---------------+--------+
+| service_count | volume |
+|---------------+--------|
+| 1             | 1-2    |
+| 1             | 2-3    |
+| 3             | 3-4    |
+| 2             | 4-5    |
++---------------+--------+
 ```
   
 

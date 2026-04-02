@@ -43,10 +43,10 @@ fetched rows / total rows = 4/4
 +--------------+----------------------+---------+
 | severityText | name                 | version |
 |--------------+----------------------+---------|
-| INFO         | opentelemetry-java   | 1.0.0   |
-| INFO         | opentelemetry-java   | 1.0.0   |
-| WARN         | opentelemetry-python | 2.0.0   |
-| ERROR        | opentelemetry-java   | 1.0.0   |
+| INFO         | opentelemetry-js     | 1.21.0  |
+| INFO         | opentelemetry-dotnet | 1.7.0   |
+| WARN         | opentelemetry-go     | 1.24.0  |
+| ERROR        | opentelemetry-js     | 1.21.0  |
 +--------------+----------------------+---------+
 ```
   

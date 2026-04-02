@@ -66,16 +66,15 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 7/7
+fetched rows / total rows = 6/6
 +----------+----------------------------------+-------------+
 | failures | resource.attributes.service.name | Summary     |
 |----------+----------------------------------+-------------|
-| 1        | api-gateway                      | null        |
-| 1        | auth-service                     | null        |
-| 1        | cart-service                     | null        |
-| 1        | inventory-service                | null        |
-| 2        | payment-service                  | null        |
-| 1        | user-service                     | null        |
+| 2        | checkout                         | null        |
+| 1        | frontend-proxy                   | null        |
+| 2        | payment                          | null        |
+| 1        | product-catalog                  | null        |
+| 1        | recommendation                   | null        |
 | 7        | null                             | Grand Total |
 +----------+----------------------------------+-------------+
 ```
@@ -96,16 +95,15 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 7/7
+fetched rows / total rows = 6/6
 +--------+--------+----------------------------------+--------------+
 | errors | fatals | resource.attributes.service.name | Column Total |
 |--------+--------+----------------------------------+--------------|
-| 1      | 0      | api-gateway                      | null         |
-| 1      | 0      | auth-service                     | null         |
-| 1      | 0      | cart-service                     | null         |
-| 0      | 1      | inventory-service                | null         |
-| 1      | 1      | payment-service                  | null         |
-| 1      | 0      | user-service                     | null         |
+| 2      | 0      | checkout                         | null         |
+| 1      | 0      | frontend-proxy                   | null         |
+| 1      | 1      | payment                          | null         |
+| 0      | 1      | product-catalog                  | null         |
+| 1      | 0      | recommendation                   | null         |
 | 5      | 2      | null                             | Sum          |
 +--------+--------+----------------------------------+--------------+
 ```

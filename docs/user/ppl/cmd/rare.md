@@ -61,9 +61,9 @@ fetched rows / total rows = 3/3
 +----------------------------------+-------+
 | resource.attributes.service.name | count |
 |----------------------------------+-------|
-| cert-monitor                     | 1     |
-| k8s-controller                   | 1     |
-| user-service                     | 1     |
+| recommendation                   | 1     |
+| payment                          | 2     |
+| cart                             | 3     |
 +----------------------------------+-------+
 ```
 

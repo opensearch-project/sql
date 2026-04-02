@@ -63,14 +63,14 @@ fetched rows / total rows = 8/8
 +--------+----------------------------------+----------------------------------------------------------------------------------------------+
 | env    | resource.attributes.service.name | body                                                                                         |
 |--------+----------------------------------+----------------------------------------------------------------------------------------------|
-| debug  | auth-service                     | Cache miss for key user:session:U200 in Redis cluster                                        |
-| debug  | auth-service                     | Redis SETEX user:session:U300 3600 - session refreshed                                       |
-| debug  | inventory-service                | gRPC call /InventoryService/CheckStock completed in 12ms                                     |
-| errors | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-| errors | auth-service                     | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
-| errors | cart-service                     | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| errors | payment-service                  | Payment failed: connection timeout to payment gateway after 30000ms                          |
-| errors | user-service                     | NullPointerException in UserService.getProfile at line 142                                   |
+| debug  | cart                             | Cache miss for key user:session:U200 in Valkey cluster                                       |
+| debug  | cart                             | Valkey SETEX user:session:U300 3600 - session refreshed                                      |
+| debug  | product-catalog                  | gRPC call /ProductCatalogService/GetProduct completed in 12ms                                |
+| errors | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| errors | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| errors | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| errors | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                          |
+| errors | recommendation                   | Failed to process recommendation request: invalid product ID from 203.0.113.50               |
 +--------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
@@ -157,11 +157,11 @@ fetched rows / total rows = 5/5
 +--------------+----------------------------------+------------+
 | severityText | resource.attributes.service.name | needs_page |
 |--------------+----------------------------------+------------|
-| ERROR        | api-gateway                      | yes        |
-| WARN         | api-gateway                      | null       |
-| ERROR        | auth-service                     | yes        |
-| ERROR        | cart-service                     | yes        |
-| WARN         | cert-monitor                     | null       |
+| ERROR        | checkout                         | yes        |
+| ERROR        | checkout                         | yes        |
+| ERROR        | frontend-proxy                   | yes        |
+| WARN         | frontend-proxy                   | null       |
+| WARN         | frontend-proxy                   | null       |
 +--------------+----------------------------------+------------+
 ```
   

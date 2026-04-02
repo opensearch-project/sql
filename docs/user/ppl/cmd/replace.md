@@ -42,9 +42,9 @@ fetched rows / total rows = 4/4
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
-| ERROR        | api-gateway                      |
-| ERROR        | auth-service                     |
-| ERROR        | cart-service                     |
+| ERROR        | checkout                         |
+| ERROR        | checkout                         |
+| ERROR        | frontend-proxy                   |
 | ERROR        | payment                          |
 +--------------+----------------------------------+
 ```
@@ -70,9 +70,9 @@ fetched rows / total rows = 4/4
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
-| ERROR        | api-gateway                      |
-| ERROR        | auth-service                     |
-| ERROR        | cart-service                     |
+| ERROR        | checkout                         |
+| ERROR        | checkout                         |
+| ERROR        | frontend-proxy                   |
 | ERROR        | payment                          |
 +--------------+----------------------------------+
 ```

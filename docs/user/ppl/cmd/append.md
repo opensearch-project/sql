@@ -37,17 +37,16 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 7/7
+fetched rows / total rows = 6/6
 +-------------+----------------------------------+-------------+
 | error_count | resource.attributes.service.name | fatal_count |
 |-------------+----------------------------------+-------------|
-| 1           | api-gateway                      | null        |
-| 1           | auth-service                     | null        |
-| 1           | cart-service                     | null        |
-| null        | inventory-service                | 1           |
-| 1           | payment-service                  | null        |
-| null        | payment-service                  | 1           |
-| 1           | user-service                     | null        |
+| 2           | checkout                         | null        |
+| 1           | frontend-proxy                   | null        |
+| 1           | payment                          | null        |
+| null        | payment                          | 1           |
+| null        | product-catalog                  | 1           |
+| 1           | recommendation                   | null        |
 +-------------+----------------------------------+-------------+
 ```
   

@@ -35,10 +35,10 @@ fetched rows / total rows = 4/4
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
-| ERROR        | payment-service                  |
-| ERROR        | cart-service                     |
-| ERROR        | auth-service                     |
-| ERROR        | api-gateway                      |
+| ERROR        | payment                          |
+| ERROR        | frontend-proxy                   |
+| ERROR        | checkout                         |
+| ERROR        | checkout                         |
 +--------------+----------------------------------+
 ```
   

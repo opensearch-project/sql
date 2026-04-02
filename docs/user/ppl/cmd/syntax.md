@@ -1,7 +1,24 @@
 
-# PPL syntax
+# fetched rows / total rows = 1/1
++-----------------------------------------------------------------------------------------------------------------+
+| all_levels                                                                                                      |
+|-----------------------------------------------------------------------------------------------------------------|
+| [INFO,INFO,WARN,ERROR,DEBUG,ERROR,INFO,FATAL,WARN,INFO,ERROR,DEBUG,WARN,INFO,ERROR,FATAL,INFO,WARN,DEBUG,ERROR] |
++-----------------------------------------------------------------------------------------------------------------+fetched rows / total rows = 3/3
++-----+---------------------------+
+| cnt | instrumentationScope.name |
+|-----+---------------------------|
+| 1   | opentelemetry-dotnet      |
+| 1   | opentelemetry-go          |
+| 2   | opentelemetry-js          |
++-----+---------------------------+L syntax
 
-Every PPL query starts with the `search` command. It specifies the index to search and retrieve documents from.
+Every fetched rows / total rows = 1/1
++-------------------------------+
+| severity_levels               |
+|-------------------------------|
+| [DEBUG,ERROR,FATAL,INFO,WARN] |
++-------------------------------+PL query starts with the `search` command. It specifies the index to search and retrieve documents from.
 
 `PPL` supports exactly one `search` command per PPL query, and it is always the first command. The word `search` can be omitted.
 
@@ -66,11 +83,11 @@ fetched rows / total rows = 5/5
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
-| ERROR        | api-gateway                      |
-| ERROR        | auth-service                     |
-| ERROR        | cart-service                     |
-| ERROR        | payment-service                  |
-| ERROR        | user-service                     |
+| ERROR        | checkout                         |
+| ERROR        | checkout                         |
+| ERROR        | frontend-proxy                   |
+| ERROR        | payment                          |
+| ERROR        | recommendation                   |
 +--------------+----------------------------------+
 ```
 
@@ -88,12 +105,12 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 2/2
-+--------------+---------------------------------------------------------------------------------+
-| severityText | body                                                                            |
-|--------------+---------------------------------------------------------------------------------|
-| FATAL        | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
-| FATAL        | Database primary node unreachable: connection refused to db-primary-01:5432     |
-+--------------+---------------------------------------------------------------------------------+
++--------------+-----------------------------------------------------------------------------+
+| severityText | body                                                                        |
+|--------------+-----------------------------------------------------------------------------|
+| FATAL        | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3     |
+| FATAL        | Database primary node unreachable: connection refused to db-primary-01:5432 |
++--------------+-----------------------------------------------------------------------------+
 ```
 
 ## Example 3: Pipe multiple commands
@@ -115,8 +132,8 @@ fetched rows / total rows = 3/3
 +-------------+----------------------------------+
 | error_count | resource.attributes.service.name |
 |-------------+----------------------------------|
-| 2           | payment-service                  |
-| 1           | api-gateway                      |
-| 1           | auth-service                     |
+| 2           | checkout                         |
+| 2           | payment                          |
+| 1           | frontend-proxy                   |
 +-------------+----------------------------------+
 ```
