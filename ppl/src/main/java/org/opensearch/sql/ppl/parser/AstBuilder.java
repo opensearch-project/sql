@@ -1355,9 +1355,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     for (OpenSearchPPLParser.UnionDatasetContext datasetCtx : ctx.unionDataset()) {
       if (datasetCtx.subSearch() != null) {
         datasets.add(visitSubSearch(datasetCtx.subSearch()));
-      } else if (datasetCtx.qualifiedDatasetName() != null) {
-        String datasetName = datasetCtx.qualifiedDatasetName().getText();
-        datasets.add(new Relation(Collections.singletonList(AstDSL.qualifiedName(datasetName))));
+      } else if (datasetCtx.tableSource() != null) {
+        datasets.add(
+            new Relation(
+                Collections.singletonList(internalVisitExpression(datasetCtx.tableSource()))));
       }
     }
 

@@ -609,11 +609,7 @@ subsearchOptions
 
 unionDataset
    : LT_SQR_PRTHS subSearch RT_SQR_PRTHS
-   | qualifiedDatasetName
-   ;
-
-qualifiedDatasetName
-   : ident (COLON ident (DOT ident)*)?
+   | tableSource
    ;
 
 kmeansCommand
@@ -1703,6 +1699,7 @@ searchableKeyWord
    | ANOMALY_SCORE_THRESHOLD
    | COUNTFIELD
    | SHOWCOUNT
+   | MAXOUT
    | PATH
    | INPUT
    | OUTPUT

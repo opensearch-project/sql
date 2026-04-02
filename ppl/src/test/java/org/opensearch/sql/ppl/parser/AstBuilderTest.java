@@ -1828,4 +1828,41 @@ public class AstBuilderTest {
   public void testMalformedPipeProducesSyntaxError() {
     plan("source=t | invalidCmd |");
   }
+
+  @Test
+  public void testUnionWithSubsearches() {
+    plan(
+        "| union [search source=t1 | where age > 30] "
+            + "[search source=t2 | where age < 20]");
+  }
+
+  @Test
+  public void testUnionWithDirectTableNames() {
+    plan("| union t1, t2");
+  }
+
+  @Test
+  public void testUnionWithDateSuffixIndex() {
+    plan("| union logs-2024.01.01, logs-2024.01.02");
+  }
+
+  @Test
+  public void testUnionWithDottedCatalogPath() {
+    plan("| union catalog.my_index, catalog.other_index");
+  }
+
+  @Test
+  public void testUnionMidPipeline() {
+    plan("source=t1 | union t2, t3");
+  }
+
+  @Test
+  public void testUnionWithMaxoutOption() {
+    plan("| union maxout=500 t1, t2");
+  }
+
+  @Test
+  public void testMaxoutAsFieldName() {
+    plan("source=t | eval maxout = 1");
+  }
 }
