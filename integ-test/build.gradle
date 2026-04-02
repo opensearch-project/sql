@@ -279,36 +279,36 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
-        plugin ":opensearch-sql-plugin"
         plugin(getAnalyticsEnginePlugin())
+        plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
     yamlRestTest {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
-        plugin ":opensearch-sql-plugin"
         plugin(getAnalyticsEnginePlugin())
+        plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
     remoteCluster {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
-        plugin ":opensearch-sql-plugin"
         plugin(getAnalyticsEnginePlugin())
+        plugin ":opensearch-sql-plugin"
     }
     integTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
-        plugin ":opensearch-sql-plugin"
         plugin(getAnalyticsEnginePlugin())
+        plugin ":opensearch-sql-plugin"
     }
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
-        plugin ":opensearch-sql-plugin"
         plugin(getAnalyticsEnginePlugin())
+        plugin ":opensearch-sql-plugin"
     }
 }
 
@@ -362,8 +362,8 @@ stopPrometheus.mustRunAfter startPrometheus
 
 task integJdbcTest(type: RestIntegTestTask) {
     testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().with {
-        plugin ":opensearch-sql-plugin"
         plugin(getAnalyticsEnginePlugin())
+        plugin ":opensearch-sql-plugin"
     }
 
     useJUnitPlatform()

@@ -55,9 +55,49 @@ opensearchplugin {
     name 'opensearch-sql'
     description 'OpenSearch SQL'
     classname 'org.opensearch.sql.plugin.SQLPlugin'
-    extendedPlugins = ['opensearch-job-scheduler']
+    extendedPlugins = ['opensearch-job-scheduler', 'analytics-engine']
     licenseFile rootProject.file("LICENSE.txt")
     noticeFile rootProject.file("NOTICE")
+}
+
+// Exclude jars provided by analytics-engine plugin (shared via extendedPlugins classloader).
+// Must match exactly what's in the analytics-engine ZIP to avoid both jar hell and missing classes.
+bundlePlugin {
+    exclude 'calcite-core-*.jar'
+    exclude 'calcite-linq4j-*.jar'
+    exclude 'avatica-core-*.jar'
+    exclude 'avatica-metrics-*.jar'
+    exclude 'guava-*.jar'
+    exclude 'failureaccess-*.jar'
+    exclude 'slf4j-api-*.jar'
+    exclude 'commons-codec-*.jar'
+    exclude 'commons-compiler-*.jar'
+    exclude 'janino-*.jar'
+    exclude 'joou-java-6-*.jar'
+    exclude 'memory-0*.jar'
+    exclude 'sketches-core-*.jar'
+    exclude 'commons-lang3-*.jar'
+    exclude 'commons-text-*.jar'
+    exclude 'commons-math3-*.jar'
+    exclude 'commons-dbcp2-*.jar'
+    exclude 'commons-io-*.jar'
+    exclude 'commons-pool2-*.jar'
+    exclude 'uzaygezen-core-*.jar'
+    exclude 'icu4j-*.jar'
+    exclude 'error_prone_annotations-*.jar'
+    exclude 'jts-io-common-*.jar'
+    exclude 'proj4j-*.jar'
+    exclude 'json-path-*.jar'
+    exclude 'json-smart-*.jar'
+    exclude 'accessors-smart-*.jar'
+    exclude 'asm-9*.jar'
+    exclude 'httpclient5-*.jar'
+    exclude 'httpcore5-5*.jar'
+    exclude 'httpcore5-h2-*.jar'
+    exclude 'httpcore5-reactive-*.jar'
+    exclude 'antlr4-runtime-4.13.2.jar'
+    exclude 'jackson-annotations-*.jar'
+    exclude 'jackson-databind-*.jar'
 }
 
 publishing {
@@ -161,8 +201,7 @@ dependencies {
 
     api project(":ppl")
     api project(':api')
-    // analytics-framework comes transitively from core (api dependency)
-    // analytics-engine JAR needed for compileOnly references (e.g., OpenSearchSchemaBuilder)
+    compileOnly files("${rootDir}/libs/analytics-framework-3.6.0-SNAPSHOT.jar")
     compileOnly files("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.jar")
     api project(':legacy')
     api project(':opensearch')

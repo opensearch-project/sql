@@ -46,7 +46,6 @@ import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
 import org.opensearch.jobscheduler.spi.ScheduledJobParser;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.plugins.ActionPlugin;
-import org.opensearch.plugins.ExtensiblePlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ScriptPlugin;
 import org.opensearch.plugins.SystemIndexPlugin;
@@ -127,11 +126,7 @@ import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.watcher.ResourceWatcherService;
 
 public class SQLPlugin extends Plugin
-    implements ActionPlugin,
-        ScriptPlugin,
-        SystemIndexPlugin,
-        JobSchedulerExtension,
-        ExtensiblePlugin {
+    implements ActionPlugin, ScriptPlugin, SystemIndexPlugin, JobSchedulerExtension {
 
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
