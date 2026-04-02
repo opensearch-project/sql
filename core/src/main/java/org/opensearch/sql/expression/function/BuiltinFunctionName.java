@@ -428,6 +428,7 @@ public enum BuiltinFunctionName {
           .put("row_number", BuiltinFunctionName.ROW_NUMBER)
           .put("rank", BuiltinFunctionName.RANK)
           .put("dense_rank", BuiltinFunctionName.DENSE_RANK)
+          .put("nth", BuiltinFunctionName.NTH_VALUE)
           .put("nth_value", BuiltinFunctionName.NTH_VALUE)
           .build();
 

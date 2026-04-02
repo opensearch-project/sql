@@ -580,8 +580,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                       ? Collections.emptyList()
                       : arguments.subList(1, arguments.size());
               List<RexNode> nodes =
-                  PPLFuncImpTable.INSTANCE.validateAggFunctionSignature(
-                      functionName, field, args, context.rexBuilder);
+                  requiresWindowAggValidation(functionName)
+                      ? PPLFuncImpTable.INSTANCE.validateAggFunctionSignature(
+                          functionName, field, args, context.rexBuilder)
+                      : null;
               return nodes != null
                   ? PlanUtils.makeOver(
                       context,
@@ -604,6 +606,13 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
             () ->
                 new UnsupportedOperationException(
                     "Unexpected window function: " + windowFunction.getFuncName()));
+  }
+
+  private boolean requiresWindowAggValidation(BuiltinFunctionName functionName) {
+    return switch (functionName) {
+      case ROW_NUMBER, RANK, DENSE_RANK, NTH_VALUE -> false;
+      default -> true;
+    };
   }
 
   /** extract the expression of Alias from a node */
