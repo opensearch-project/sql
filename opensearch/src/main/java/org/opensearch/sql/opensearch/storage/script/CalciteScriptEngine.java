@@ -137,7 +137,8 @@ public class CalciteScriptEngine implements ScriptEngine {
             getter,
             new RelRecordType(List.of()));
 
-    Function1<DataContext, Object[]> function = compileRexCode(code);
+    Function1<DataContext, Object[]> function =
+        new RexExecutable(code, "generated Rex code").getFunction();
 
     if (CONTEXTS.containsKey(context)) {
       return context.factoryClazz.cast(CONTEXTS.get(context).apply(function, rexNode.getType()));
@@ -147,39 +148,6 @@ public class CalciteScriptEngine implements ScriptEngine {
             "Script context is currently not supported: "
                 + "all supported contexts [%s], given context [%s] ",
             CONTEXTS, context));
-  }
-
-  /**
-   * Compile Rex code using the SQL plugin's classloader. Calcite's {@link RexExecutable} hardcodes
-   * {@code RexExecutable.class.getClassLoader()} for Janino, which returns the analytics-engine
-   * parent classloader when extendedPlugins is used. This method uses this class's classloader (SQL
-   * plugin) so Janino can resolve both parent and child classes.
-   */
-  @SuppressWarnings("unchecked")
-  private static Function1<DataContext, Object[]> compileRexCode(String code) {
-    try {
-      // Use reflection for Janino classes (available at runtime via parent classloader,
-      // not on opensearch module compile classpath).
-      ClassLoader classLoader = CalciteScriptEngine.class.getClassLoader();
-      Class<?> cbeClass = classLoader.loadClass("org.codehaus.janino.ClassBodyEvaluator");
-      Object cbe = cbeClass.getDeclaredConstructor().newInstance();
-      cbeClass.getMethod("setClassName", String.class).invoke(cbe, "Reducer");
-      cbeClass
-          .getMethod("setExtendedClass", Class.class)
-          .invoke(cbe, org.apache.calcite.runtime.Utilities.class);
-      cbeClass
-          .getMethod("setImplementedInterfaces", Class[].class)
-          .invoke(cbe, (Object) new Class[] {Function1.class, java.io.Serializable.class});
-      cbeClass.getMethod("setParentClassLoader", ClassLoader.class).invoke(cbe, classLoader);
-
-      // ClassBodyEvaluator.cook(String) compiles the source code
-      cbeClass.getMethod("cook", String.class).invoke(cbe, code);
-
-      Class<?> clazz = (Class<?>) cbeClass.getMethod("getClazz").invoke(cbe);
-      return (Function1<DataContext, Object[]>) clazz.getDeclaredConstructor().newInstance();
-    } catch (Exception e) {
-      throw Util.throwAsRuntime(e);
-    }
   }
 
   @Override
