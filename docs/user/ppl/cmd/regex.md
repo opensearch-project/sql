@@ -50,7 +50,7 @@ fetched rows / total rows = 1/1
 +--------------+----------------------------------+---------------------------------------------------------------------+
 | severityText | resource.attributes.service.name | body                                                                |
 |--------------+----------------------------------+---------------------------------------------------------------------|
-| ERROR        | payment-service                  | Payment failed: connection timeout to payment gateway after 30000ms |
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms |
 +--------------+----------------------------------+---------------------------------------------------------------------+
 ```
   
@@ -74,10 +74,10 @@ fetched rows / total rows = 4/4
 +--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 | severityText | resource.attributes.service.name | body                                                                                         |
 |--------------+----------------------------------+----------------------------------------------------------------------------------------------|
-| ERROR        | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-| ERROR        | auth-service                     | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
-| ERROR        | cart-service                     | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| ERROR        | user-service                     | NullPointerException in UserService.getProfile at line 142                                   |
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| ERROR        | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| ERROR        | recommendation                   | Failed to process recommendation request: invalid product ID from 203.0.113.50               |
 +--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
@@ -96,12 +96,10 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
-+--------------+----------------------------------+---------------------------------------------------------------------------------+
-| severityText | resource.attributes.service.name | body                                                                            |
-|--------------+----------------------------------+---------------------------------------------------------------------------------|
-| FATAL        | payment-service                  | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
-| FATAL        | inventory-service                | Database primary node unreachable: connection refused to db-primary-01:5432     |
-+--------------+----------------------------------+---------------------------------------------------------------------------------+
+fetched rows / total rows = 0/0
++--------------+----------------------------------+------+
+| severityText | resource.attributes.service.name | body |
+|--------------+----------------------------------+------|
++--------------+----------------------------------+------+
 ```
   

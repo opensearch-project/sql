@@ -52,9 +52,9 @@ fetched rows / total rows = 4/4
 +--------------+----------------+----------------------------------+
 | severityText | severityNumber | resource.attributes.service.name |
 |--------------+----------------+----------------------------------|
-| DEBUG        | 5              | auth-service                     |
-| DEBUG        | 5              | inventory-service                |
-| DEBUG        | 5              | auth-service                     |
+| DEBUG        | 5              | cart                     |
+| DEBUG        | 5              | product-catalog                |
+| DEBUG        | 5              | cart                     |
 | INFO         | 9              | frontend                         |
 +--------------+----------------+----------------------------------+
 ```
@@ -96,9 +96,9 @@ fetched rows / total rows = 5/5
 ```
 
 
-## Example 3: Sort by multiple fields in prefix notation
+## Example 3: Sort by multiple fields
 
-The following query uses prefix notation to sort by severity ascending and service name descending, useful for grouping by severity while controlling the order within each group:
+The following query sorts errors by severity descending and service name ascending, so the most critical issues appear first and services are alphabetical within each severity level. You can use either prefix notation (`+`/`-`) or suffix notation (`asc`/`desc`):
   
 ```ppl
 source=otellogs
@@ -115,19 +115,16 @@ fetched rows / total rows = 5/5
 +--------------+----------------+----------------------------------+
 | severityText | severityNumber | resource.attributes.service.name |
 |--------------+----------------+----------------------------------|
-| DEBUG        | 5              | inventory-service                |
-| DEBUG        | 5              | auth-service                     |
-| INFO         | 9              | k8s-controller                   |
+| DEBUG        | 5              | product-catalog                  |
+| DEBUG        | 5              | cart                             |
 | INFO         | 9              | frontend                         |
-| INFO         | 9              | cart-service                     |
+| INFO         | 9              | checkout                         |
+| INFO         | 9              | cart                             |
 +--------------+----------------+----------------------------------+
 ```
-  
 
-## Example 4: Sort by multiple fields in suffix notation
+The equivalent query using suffix notation is:
 
-The following query uses suffix notation to achieve the same result as Example 3:
-  
 ```ppl
 source=otellogs
 | dedup severityText, `resource.attributes.service.name`
@@ -135,24 +132,24 @@ source=otellogs
 | fields severityText, severityNumber, `resource.attributes.service.name`
 | head 5
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 5/5
 +--------------+----------------+----------------------------------+
 | severityText | severityNumber | resource.attributes.service.name |
 |--------------+----------------+----------------------------------|
-| DEBUG        | 5              | inventory-service                |
-| DEBUG        | 5              | auth-service                     |
-| INFO         | 9              | k8s-controller                   |
+| DEBUG        | 5              | product-catalog                  |
+| DEBUG        | 5              | cart                             |
 | INFO         | 9              | frontend                         |
-| INFO         | 9              | cart-service                     |
+| INFO         | 9              | checkout                         |
+| INFO         | 9              | cart                             |
 +--------------+----------------+----------------------------------+
 ```
   
 
-## Example 5: Sort fields with null values
+## Example 4: Sort fields with null values
 
 The default ascending order lists null values first. The following query sorts by the `instrumentationScope.name` field, showing that logs without instrumentation metadata appear before instrumented ones:
   

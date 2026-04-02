@@ -48,7 +48,7 @@ fetched rows / total rows = 3/3
 | body                                                                     | errmsg         | detail                                              |
 |--------------------------------------------------------------------------+----------------+-----------------------------------------------------|
 | Payment failed: connection timeout to payment gateway after 30000ms      | Payment failed | connection timeout to payment gateway after 30000ms |
-| NullPointerException in UserService.getProfile at line 142               |                |                                                     |
+| NullPointerException in CheckoutService.placeOrder at line 142           |                |                                                     |
 | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error |                |                                                     |
 +--------------------------------------------------------------------------+----------------+-----------------------------------------------------+
 ```
@@ -69,13 +69,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+---------------------------------------------------------------------------+--------------+
-| body                                                                      | sourceip     |
-|---------------------------------------------------------------------------+--------------|
-| Slow query detected: SELECT * FROM inventory WHERE stock < 10 took 3200ms |              |
-| User U300 authenticated via OAuth2 from 10.0.0.5                          | 10.0.0.5     |
-| Failed to authenticate user U400: invalid credentials from 203.0.113.50   | 203.0.113.50 |
-+---------------------------------------------------------------------------+--------------+
++----------------------------------------------------------------------------------------+--------------+
+| body                                                                                   | sourceip     |
+|----------------------------------------------------------------------------------------+--------------|
+| Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |              |
+| User U300 authenticated via OAuth2 from 10.0.0.5                                       | 10.0.0.5     |
+| Failed to process recommendation request: invalid product ID from 203.0.113.50         | 203.0.113.50 |
++----------------------------------------------------------------------------------------+--------------+
 ```
   
 

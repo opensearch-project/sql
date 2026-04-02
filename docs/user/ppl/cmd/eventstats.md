@@ -96,9 +96,9 @@ fetched rows / total rows = 3/3
 +--------------+----------------------------------+---------------+----------------------------------------------------------------------------------------------+
 | severityText | resource.attributes.service.name | service_total | body                                                                                         |
 |--------------+----------------------------------+---------------+----------------------------------------------------------------------------------------------|
-| ERROR        | api-gateway                      | 2             | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-| ERROR        | auth-service                     | 4             | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
-| ERROR        | cart-service                     | 3             | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | checkout                         | 3             | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| ERROR        | checkout                         | 3             | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | frontend-proxy                   | 3             | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
 +--------------+----------------------------------+---------------+----------------------------------------------------------------------------------------------+
 ```
   
@@ -122,11 +122,11 @@ fetched rows / total rows = 5/5
 +----------------------------------+----------------+---------+-------------+
 | resource.attributes.service.name | severityNumber | avg_sev | error_count |
 |----------------------------------+----------------+---------+-------------|
-| api-gateway                      | 17             | 17.0    | 1           |
-| auth-service                     | 17             | 17.0    | 1           |
-| cart-service                     | 17             | 17.0    | 1           |
-| payment-service                  | 17             | 17.0    | 1           |
-| user-service                     | 17             | 17.0    | 1           |
+| checkout                         | 17             | 17.0    | 2           |
+| checkout                         | 17             | 17.0    | 2           |
+| frontend-proxy                   | 17             | 17.0    | 1           |
+| payment                          | 17             | 17.0    | 1           |
+| recommendation                   | 17             | 17.0    | 1           |
 +----------------------------------+----------------+---------+-------------+
 ```
   
@@ -150,10 +150,10 @@ fetched rows / total rows = 5/5
 +----------------------------------+---------------------------+-------------+
 | resource.attributes.service.name | instrumentationScope.name | scope_count |
 |----------------------------------+---------------------------+-------------|
-| api-gateway                      | null                      | null        |
-| auth-service                     | null                      | null        |
-| cart-service                     | null                      | null        |
-| payment-service                  | opentelemetry-java        | 3           |
-| user-service                     | null                      | null        |
+| checkout                         | null                      | null        |
+| checkout                         | null                      | null        |
+| frontend-proxy                   | null                      | null        |
+| payment                          | opentelemetry-js          | 2           |
+| recommendation                   | null                      | null        |
 +----------------------------------+---------------------------+-------------+
 ```

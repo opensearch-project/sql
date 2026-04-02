@@ -43,16 +43,15 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 7/7
+fetched rows / total rows = 6/6
 +--------+--------+----------------------------------+-------+
 | errors | fatals | resource.attributes.service.name | Total |
 |--------+--------+----------------------------------+-------|
-| 1      | 0      | api-gateway                      | 1     |
-| 1      | 0      | auth-service                     | 1     |
-| 1      | 0      | cart-service                     | 1     |
-| 0      | 1      | inventory-service                | 1     |
-| 1      | 1      | payment-service                  | 2     |
-| 1      | 0      | user-service                     | 1     |
+| 2      | 0      | checkout                         | 2     |
+| 1      | 0      | frontend-proxy                   | 1     |
+| 1      | 1      | payment                          | 2     |
+| 0      | 1      | product-catalog                  | 1     |
+| 1      | 0      | recommendation                   | 1     |
 | 5      | 2      | Total                            | null  |
 +--------+--------+----------------------------------+-------+
 ```
@@ -73,16 +72,15 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 6/6
+fetched rows / total rows = 5/5
 +--------+--------+----------------------------------+--------------+
 | errors | fatals | resource.attributes.service.name | total_issues |
 |--------+--------+----------------------------------+--------------|
-| 1      | 0      | api-gateway                      | 1            |
-| 1      | 0      | auth-service                     | 1            |
-| 1      | 0      | cart-service                     | 1            |
-| 0      | 1      | inventory-service                | 1            |
-| 1      | 1      | payment-service                  | 2            |
-| 1      | 0      | user-service                     | 1            |
+| 2      | 0      | checkout                         | 2            |
+| 1      | 0      | frontend-proxy                   | 1            |
+| 1      | 1      | payment                          | 2            |
+| 0      | 1      | product-catalog                  | 1            |
+| 1      | 0      | recommendation                   | 1            |
 +--------+--------+----------------------------------+--------------+
 ```
 
@@ -102,16 +100,15 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 7/7
+fetched rows / total rows = 6/6
 +--------+--------+----------------------------------+-----------+--------------+
 | errors | fatals | resource.attributes.service.name | Row Total | Column Total |
 |--------+--------+----------------------------------+-----------+--------------|
-| 1      | 0      | api-gateway                      | 1         | null         |
-| 1      | 0      | auth-service                     | 1         | null         |
-| 1      | 0      | cart-service                     | 1         | null         |
-| 0      | 1      | inventory-service                | 1         | null         |
-| 1      | 1      | payment-service                  | 2         | null         |
-| 1      | 0      | user-service                     | 1         | null         |
+| 2      | 0      | checkout                         | 2         | null         |
+| 1      | 0      | frontend-proxy                   | 1         | null         |
+| 1      | 1      | payment                          | 2         | null         |
+| 0      | 1      | product-catalog                  | 1         | null         |
+| 1      | 0      | recommendation                   | 1         | null         |
 | 5      | 2      | null                             | null      | Sum          |
 +--------+--------+----------------------------------+-----------+--------------+
 ```

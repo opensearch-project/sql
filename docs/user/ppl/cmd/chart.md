@@ -93,20 +93,19 @@ source=otellogs
 The query returns the following results. Services beyond the top 2 are grouped into `OTHER`:
   
 ```text
-fetched rows / total rows = 10/10
+fetched rows / total rows = 9/9
 +--------------+------------------------------------+---------+
 | severityText | `resource.attributes.service.name` | count() |
 |--------------+------------------------------------+---------|
-| DEBUG        | auth-service                       | 2       |
-| DEBUG        | inventory-service                  | 1       |
-| ERROR        | OTHER                              | 4       |
-| ERROR        | auth-service                       | 1       |
+| DEBUG        | OTHER                              | 2       |
+| DEBUG        | product-catalog                    | 1       |
+| ERROR        | OTHER                              | 5       |
 | FATAL        | OTHER                              | 1       |
-| FATAL        | inventory-service                  | 1       |
-| INFO         | OTHER                              | 5       |
-| INFO         | auth-service                       | 1       |
+| FATAL        | product-catalog                    | 1       |
+| INFO         | OTHER                              | 2       |
+| INFO         | frontend                           | 4       |
 | WARN         | OTHER                              | 2       |
-| WARN         | inventory-service                  | 2       |
+| WARN         | product-catalog                    | 2       |
 +--------------+------------------------------------+---------+
 ```
   
@@ -123,17 +122,15 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 8/8
+fetched rows / total rows = 6/6
 +--------------+------------------------------------+---------+
 | severityText | `resource.attributes.service.name` | count() |
 |--------------+------------------------------------+---------|
-| DEBUG        | auth-service                       | 2       |
-| DEBUG        | other_services                     | 1       |
-| ERROR        | auth-service                       | 1       |
-| ERROR        | other_services                     | 4       |
+| DEBUG        | other_services                     | 3       |
+| ERROR        | other_services                     | 5       |
 | FATAL        | other_services                     | 2       |
-| INFO         | auth-service                       | 1       |
-| INFO         | other_services                     | 5       |
+| INFO         | frontend                           | 4       |
+| INFO         | other_services                     | 2       |
 | WARN         | other_services                     | 4       |
 +--------------+------------------------------------+---------+
 ```
@@ -151,23 +148,21 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 13/13
+fetched rows / total rows = 11/11
 +------------------------------------+---------------------------+---------+
 | `resource.attributes.service.name` | instrumentationScope.name | count() |
 |------------------------------------+---------------------------+---------|
-| api-gateway                        | not instrumented          | 2       |
-| auth-service                       | not instrumented          | 4       |
-| cart-service                       | not instrumented          | 2       |
-| cart-service                       | opentelemetry-java        | 1       |
-| cert-monitor                       | not instrumented          | 1       |
-| frontend                           | not instrumented          | 1       |
-| frontend                           | opentelemetry-java        | 1       |
-| inventory-service                  | not instrumented          | 3       |
-| inventory-service                  | opentelemetry-python      | 1       |
-| k8s-controller                     | not instrumented          | 1       |
-| payment-service                    | not instrumented          | 1       |
-| payment-service                    | opentelemetry-java        | 1       |
-| user-service                       | not instrumented          | 1       |
+| cart                               | not instrumented          | 2       |
+| cart                               | opentelemetry-dotnet      | 1       |
+| checkout                           | not instrumented          | 3       |
+| frontend                           | not instrumented          | 3       |
+| frontend                           | opentelemetry-js          | 1       |
+| frontend-proxy                     | not instrumented          | 3       |
+| payment                            | not instrumented          | 1       |
+| payment                            | opentelemetry-js          | 1       |
+| product-catalog                    | not instrumented          | 3       |
+| product-catalog                    | opentelemetry-go          | 1       |
+| recommendation                     | not instrumented          | 1       |
 +------------------------------------+---------------------------+---------+
 ```
   
@@ -184,20 +179,22 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 9/9
-+----------------+---------------------------------+---------------------+
-| severityNumber | `resource.attributes.host.name` | max(severityNumber) |
-|----------------+---------------------------------+---------------------|
-| 0              | host-a                          | 9                   |
-| 0              | host-b                          | 9                   |
-| 0              | host-c                          | 9                   |
-| 10             | host-a                          | 17                  |
-| 10             | host-b                          | 17                  |
-| 10             | host-c                          | 17                  |
-| 10             | host-d                          | 17                  |
-| 20             | host-c                          | 21                  |
-| 20             | host-d                          | 21                  |
-+----------------+---------------------------------+---------------------+
+fetched rows / total rows = 11/11
++----------------+----------------------------------+---------------------+
+| severityNumber | `resource.attributes.host.name`  | max(severityNumber) |
+|----------------+----------------------------------+---------------------|
+| 0              | cart-5d8f7b-mk29s                | 9                   |
+| 0              | checkout-8b4c2d-jp5r7            | 9                   |
+| 0              | frontend-6b7b4c9f-x2kl9          | 9                   |
+| 0              | productcatalog-7c9d-zn4p2        | 5                   |
+| 10             | checkout-8b4c2d-jp5r7            | 17                  |
+| 10             | frontendproxy-envoy-7d4b8c-xk2q9 | 17                  |
+| 10             | payment-6f8d4b-ht7q3             | 17                  |
+| 10             | productcatalog-7c9d-zn4p2        | 13                  |
+| 10             | recommendation-5f7c-bn3k8        | 17                  |
+| 20             | payment-6f8d4b-ht7q3             | 21                  |
+| 20             | productcatalog-7c9d-zn4p2        | 21                  |
++----------------+----------------------------------+---------------------+
 ```
   
 

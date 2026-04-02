@@ -59,11 +59,11 @@ fetched rows / total rows = 5/5
 +--------------+----------------------------------+-------+
 | severityText | resource.attributes.service.name | count |
 |--------------+----------------------------------+-------|
-| ERROR        | api-gateway                      | 1     |
-| INFO         | cart-service                     | 2     |
-| DEBUG        | auth-service                     | 2     |
-| FATAL        | inventory-service                | 1     |
-| WARN         | inventory-service                | 2     |
+| ERROR        | checkout                         | 2     |
+| INFO         | frontend                         | 4     |
+| DEBUG        | cart                             | 2     |
+| FATAL        | payment                          | 1     |
+| WARN         | frontend-proxy                   | 2     |
 +--------------+----------------------------------+-------+
 ```
 
@@ -83,9 +83,9 @@ fetched rows / total rows = 3/3
 +----------------------------------+-------+
 | resource.attributes.service.name | count |
 |----------------------------------+-------|
-| auth-service                     | 4     |
-| inventory-service                | 4     |
-| cart-service                     | 3     |
+| frontend                         | 4     |
+| product-catalog                  | 4     |
+| cart                             | 3     |
 +----------------------------------+-------+
 ```
 

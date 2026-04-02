@@ -37,13 +37,13 @@ fetched rows / total rows = 7/7
 +--------------+----------------+----------------------------------+
 | severityText | severityNumber | resource.attributes.service.name |
 |--------------+----------------+----------------------------------|
-| ERROR        | 17             | api-gateway                      |
-| ERROR        | 17             | auth-service                     |
-| ERROR        | 17             | cart-service                     |
-| ERROR        | 17             | payment-service                  |
-| ERROR        | 17             | user-service                     |
-| FATAL        | 21             | inventory-service                |
-| FATAL        | 21             | payment-service                  |
+| ERROR        | 17             | checkout                         |
+| ERROR        | 17             | checkout                         |
+| ERROR        | 17             | frontend-proxy                   |
+| ERROR        | 17             | payment                          |
+| ERROR        | 17             | recommendation                   |
+| FATAL        | 21             | payment                          |
+| FATAL        | 21             | product-catalog                  |
 +--------------+----------------+----------------------------------+
 ```
 
@@ -61,12 +61,10 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 2/2
+fetched rows / total rows = 0/0
 +--------------+----------------+----------------------------------+
 | severityText | severityNumber | resource.attributes.service.name |
 |--------------+----------------+----------------------------------|
-| ERROR        | 17             | payment-service                  |
-| FATAL        | 21             | payment-service                  |
 +--------------+----------------+----------------------------------+
 ```
 
@@ -90,9 +88,9 @@ fetched rows / total rows = 3/3
 +--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 | severityText | resource.attributes.service.name | body                                                                                         |
 |--------------+----------------------------------+----------------------------------------------------------------------------------------------|
-| ERROR        | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-| ERROR        | auth-service                     | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
-| ERROR        | cart-service                     | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| ERROR        | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
 +--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
@@ -126,14 +124,10 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
+fetched rows / total rows = 0/0
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
-| DEBUG        | auth-service                     |
-| DEBUG        | auth-service                     |
-| INFO         | auth-service                     |
-| ERROR        | auth-service                     |
 +--------------+----------------------------------+
 ```
 
@@ -156,10 +150,10 @@ fetched rows / total rows = 4/4
 +--------------+----------------------------------+-------------------------------------------------------------------------------------------+
 | severityText | resource.attributes.service.name | body                                                                                      |
 |--------------+----------------------------------+-------------------------------------------------------------------------------------------|
-| WARN         | api-gateway                      | Rate limit threshold reached: 450/500 requests per minute for API key ending in ...abc789 |
-| WARN         | cert-monitor                     | SSL certificate for api.example.com expires in 14 days                                    |
-| WARN         | inventory-service                | Slow query detected: SELECT * FROM inventory WHERE stock < 10 took 3200ms                 |
-| WARN         | inventory-service                | Connection pool 80% utilized on database replica db-replica-02                            |
+| WARN         | frontend-proxy                   | SSL certificate for api.example.com expires in 14 days                                    |
+| WARN         | frontend-proxy                   | Rate limit threshold reached: 450/500 requests per minute for API key ending in ...abc789 |
+| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms    |
+| WARN         | product-catalog                  | Connection pool 80% utilized on database replica db-replica-02                            |
 +--------------+----------------------------------+-------------------------------------------------------------------------------------------+
 ```
   
@@ -182,13 +176,13 @@ fetched rows / total rows = 7/7
 +--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 | severityText | resource.attributes.service.name | body                                                                                         |
 |--------------+----------------------------------+----------------------------------------------------------------------------------------------|
-| ERROR        | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-| ERROR        | auth-service                     | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
-| ERROR        | cart-service                     | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| ERROR        | payment-service                  | Payment failed: connection timeout to payment gateway after 30000ms                          |
-| ERROR        | user-service                     | NullPointerException in UserService.getProfile at line 142                                   |
-| FATAL        | inventory-service                | Database primary node unreachable: connection refused to db-primary-01:5432                  |
-| FATAL        | payment-service                  | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9              |
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| ERROR        | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                          |
+| ERROR        | recommendation                   | Failed to process recommendation request: invalid product ID from 203.0.113.50               |
+| FATAL        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                      |
+| FATAL        | product-catalog                  | Database primary node unreachable: connection refused to db-primary-01:5432                  |
 +--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
@@ -210,10 +204,10 @@ fetched rows / total rows = 4/4
 +--------------+---------------------------+
 | severityText | instrumentationScope.name |
 |--------------+---------------------------|
-| INFO         | opentelemetry-java        |
-| INFO         | opentelemetry-java        |
-| WARN         | opentelemetry-python      |
-| ERROR        | opentelemetry-java        |
+| INFO         | opentelemetry-js          |
+| INFO         | opentelemetry-dotnet      |
+| WARN         | opentelemetry-go          |
+| ERROR        | opentelemetry-js          |
 +--------------+---------------------------+
 ```
   
@@ -232,12 +226,10 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
-+--------------+----------------------------------+---------------------------------------------------------------------------------+
-| severityText | resource.attributes.service.name | body                                                                            |
-|--------------+----------------------------------+---------------------------------------------------------------------------------|
-| ERROR        | payment-service                  | Payment failed: connection timeout to payment gateway after 30000ms             |
-| FATAL        | payment-service                  | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
-+--------------+----------------------------------+---------------------------------------------------------------------------------+
+fetched rows / total rows = 0/0
++--------------+----------------------------------+------+
+| severityText | resource.attributes.service.name | body |
+|--------------+----------------------------------+------|
++--------------+----------------------------------+------+
 ```
   

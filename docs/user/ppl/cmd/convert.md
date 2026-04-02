@@ -36,75 +36,51 @@ The `convert` command supports the following parameters.
 | `rmcomma(field)` | Removes commas from field values and converts to a number. Returns `null` if the value contains letters. |
 | `rmunit(field)` | Extracts leading numeric values from strings. Stops at the first non-numeric character (including commas). Returns `null` for non-convertible values. |
 
-## Example 1: Basic auto() conversion
+## Example 1: Convert duration strings from log messages
 
-The following query converts the `balance` field to a number using the `auto()` function:
+The following query extracts and converts response time strings from log messages to numeric values for analysis:
 
 ```ppl
-source=accounts
-| convert auto(balance)
-| fields account_number, balance
-| head 3
+source=otellogs
+| rex field=body "response_time=(?<duration>\d+ms)"
+| convert auto(duration)
+| where NOT ISNULL(duration)
+| stats avg(duration) as avg_response_ms by `resource.attributes.service.name`
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 3/3
-+----------------+---------+
-| account_number | balance |
-|----------------+---------|
-| 1              | 39225.0 |
-| 6              | 5686.0  |
-| 13             | 32838.0 |
-+----------------+---------+
+fetched rows / total rows = 0/0
++-----------------+----------------------------------+
+| avg_response_ms | resource.attributes.service.name |
+|-----------------+----------------------------------|
++-----------------+----------------------------------+
 ```
 
-## Example 2: Convert with commas using num()
+## Example 2: Parse request counts with commas from log messages
 
-The following query converts a field containing comma-separated numbers:
+The following query extracts and converts request count strings that contain commas from performance logs:
 
 ```ppl
-source=accounts
-| head 1
-| eval price='1,234'
-| convert num(price)
-| fields price
+source=otellogs
+| rex field=body "processed (?<requests>[\d,]+) requests"
+| convert num(requests)
+| where NOT ISNULL(requests)
+| stats sum(requests) as total_requests by `resource.attributes.service.name`
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
-+--------+
-| price  |
-|--------|
-| 1234.0 |
-+--------+
+fetched rows / total rows = 0/0
++----------------+----------------------------------+
+| total_requests | resource.attributes.service.name |
+|----------------+----------------------------------|
++----------------+----------------------------------+
 ```
 
-## Example 3: Memory size conversion with memk()
-
-The following query converts memory size strings to kilobytes:
-
-```ppl
-source=accounts
-| head 1
-| eval memory='100m'
-| convert memk(memory)
-| fields memory
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 1/1
-+----------+
-| memory   |
-|----------|
-| 102400.0 |
-+----------+
-```
+## Example 3: Extract and convert memory sizes from error messages
 
 ## Example 4: Multiple field conversions
 

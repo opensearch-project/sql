@@ -21,32 +21,30 @@ The `appendcol` command supports the following parameters.
 | `override` | Optional | Specifies whether the results of the main search should be overwritten when column names conflict. Default is `false`. |
   
 
-## Example 1: Append a different aggregation to existing results
+## Example 1: Append a different aggregation alongside existing results
 
-This example appends per-severity counts alongside per-service totals. Because the subsearch returns fewer rows (5 severity levels) than the main search (9 services), the extra rows get `NULL` values:
+This example appends the maximum severity number per severity level alongside the count. Because both queries group by `severityText` in the same sort order, the rows align correctly:
 
 ```ppl
 source=otellogs
-| stats count() as total by `resource.attributes.service.name`
-| sort `resource.attributes.service.name`
-| appendcol [ stats count() as sev_count by severityText | sort severityText ]
-| head 6
+| stats count() as log_count by severityText
+| sort severityText
+| appendcol [ stats max(severityNumber) as max_sev by severityText | sort severityText ]
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 6/6
-+-------+----------------------------------+-----------+--------------+
-| total | resource.attributes.service.name | sev_count | severityText |
-|-------+----------------------------------+-----------+--------------|
-| 2     | api-gateway                      | 3         | DEBUG        |
-| 4     | auth-service                     | 5         | ERROR        |
-| 3     | cart-service                     | 2         | FATAL        |
-| 1     | cert-monitor                     | 6         | INFO         |
-| 2     | frontend                         | 4         | WARN         |
-| 4     | inventory-service                | null      | null         |
-+-------+----------------------------------+-----------+--------------+
+fetched rows / total rows = 5/5
++-----------+--------------+---------+
+| log_count | severityText | max_sev |
+|-----------+--------------+---------|
+| 3         | DEBUG        | 5       |
+| 5         | ERROR        | 17      |
+| 2         | FATAL        | 21      |
+| 6         | INFO         | 9       |
+| 4         | WARN         | 13      |
++-----------+--------------+---------+
 ```
 
 ## Example 2: Append multiple subsearch results
@@ -70,10 +68,10 @@ fetched rows / total rows = 4/4
 +----------------------------------+--------------+----------------------------------------------------------------------------------------------+----------------+-------------------+
 | resource.attributes.service.name | severityText | body                                                                                         | total_failures | services_affected |
 |----------------------------------+--------------+----------------------------------------------------------------------------------------------+----------------+-------------------|
-| api-gateway                      | ERROR        | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     | 7              | 6                 |
-| auth-service                     | ERROR        | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      | null           | null              |
-| cart-service                     | ERROR        | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) | null           | null              |
-| inventory-service                | FATAL        | Database primary node unreachable: connection refused to db-primary-01:5432                  | null           | null              |
+| checkout                         | ERROR        | NullPointerException in CheckoutService.placeOrder at line 142                               | 7              | 5                 |
+| checkout                         | ERROR        | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) | null           | null              |
+| frontend-proxy                   | ERROR        | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     | null           | null              |
+| payment                          | ERROR        | Payment failed: connection timeout to payment gateway after 30000ms                          | null           | null              |
 +----------------------------------+--------------+----------------------------------------------------------------------------------------------+----------------+-------------------+
 ```
 

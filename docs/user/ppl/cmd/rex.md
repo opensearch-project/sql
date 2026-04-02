@@ -62,7 +62,7 @@ fetched rows / total rows = 3/3
 | body                                                                     | errtype              |
 |--------------------------------------------------------------------------+----------------------|
 | Payment failed: connection timeout to payment gateway after 30000ms      | null                 |
-| NullPointerException in UserService.getProfile at line 142               | NullPointerException |
+| NullPointerException in CheckoutService.placeOrder at line 142           | NullPointerException |
 | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error | null                 |
 +--------------------------------------------------------------------------+----------------------+
 ```
@@ -83,12 +83,12 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
-+---------------------------------------------------------------------------------+-------------------------+
-| body                                                                            | word                    |
-|---------------------------------------------------------------------------------+-------------------------|
-| Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 | [Out,of,memory]         |
-| Database primary node unreachable: connection refused to db-primary-01:5432     | [Database,primary,node] |
-+---------------------------------------------------------------------------------+-------------------------+
++-----------------------------------------------------------------------------+-------------------------+
+| body                                                                        | word                    |
+|-----------------------------------------------------------------------------+-------------------------|
+| Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3     | [Out,of,memory]         |
+| Database primary node unreachable: connection refused to db-primary-01:5432 | [Database,primary,node] |
++-----------------------------------------------------------------------------+-------------------------+
 ```
   
 
@@ -106,13 +106,12 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 2/2
-+----------------------------------------------------------------------------+
-| body                                                                       |
-|----------------------------------------------------------------------------|
-| User U300 authenticated via OAuth2 from xxx.xxx.xxx.xxx                    |
-| Failed to authenticate user U400: invalid credentials from xxx.xxx.xxx.xxx |
-+----------------------------------------------------------------------------+
+fetched rows / total rows = 1/1
++---------------------------------------------------------+
+| body                                                    |
+|---------------------------------------------------------|
+| User U300 authenticated via OAuth2 from xxx.xxx.xxx.xxx |
++---------------------------------------------------------+
 ```
 
 ## Example 4: Track match positions using offset_field  
@@ -131,10 +130,10 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+------------------------------------------------------------+----------------------+--------------+
-| body                                                       | errtype              | pos          |
-|------------------------------------------------------------+----------------------+--------------|
-| NullPointerException in UserService.getProfile at line 142 | NullPointerException | errtype=0-19 |
-+------------------------------------------------------------+----------------------+--------------+
++----------------------------------------------------------------+----------------------+--------------+
+| body                                                           | errtype              | pos          |
+|----------------------------------------------------------------+----------------------+--------------|
+| NullPointerException in CheckoutService.placeOrder at line 142 | NullPointerException | errtype=0-19 |
++----------------------------------------------------------------+----------------------+--------------+
 ```
   

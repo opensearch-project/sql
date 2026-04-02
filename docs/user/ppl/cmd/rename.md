@@ -40,9 +40,9 @@ fetched rows / total rows = 3/3
 +-------+----------------------------------+----------------------------------------------------------------------------------------------+
 | level | resource.attributes.service.name | body                                                                                         |
 |-------+----------------------------------+----------------------------------------------------------------------------------------------|
-| ERROR | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-| ERROR | auth-service                     | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
-| ERROR | cart-service                     | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| ERROR | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
 +-------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
 
@@ -66,9 +66,9 @@ fetched rows / total rows = 3/3
 +-------+------+----------------------------------+
 | level | code | resource.attributes.service.name |
 |-------+------+----------------------------------|
-| ERROR | 17   | api-gateway                      |
-| ERROR | 17   | auth-service                     |
-| ERROR | 17   | cart-service                     |
+| ERROR | 17   | checkout                         |
+| ERROR | 17   | checkout                         |
+| ERROR | 17   | frontend-proxy                   |
 +-------+------+----------------------------------+
 ```
 
@@ -92,9 +92,9 @@ fetched rows / total rows = 3/3
 +--------------+-----------+----------------------------------+
 | severityText | level_num | resource.attributes.service.name |
 |--------------+-----------+----------------------------------|
-| ERROR        | 17        | api-gateway                      |
-| ERROR        | 17        | auth-service                     |
-| ERROR        | 17        | cart-service                     |
+| ERROR        | 17        | checkout                         |
+| ERROR        | 17        | checkout                         |
+| ERROR        | 17        | frontend-proxy                   |
 +--------------+-----------+----------------------------------+
 ```
 

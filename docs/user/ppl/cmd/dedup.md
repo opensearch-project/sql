@@ -38,17 +38,16 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 6/6
-+----------------------------------+--------------+----------------------------------------------------------------------------------------------+
-| resource.attributes.service.name | severityText | body                                                                                         |
-|----------------------------------+--------------+----------------------------------------------------------------------------------------------|
-| api-gateway                      | ERROR        | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-| auth-service                     | ERROR        | Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
-| cart-service                     | ERROR        | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| inventory-service                | FATAL        | Database primary node unreachable: connection refused to db-primary-01:5432                  |
-| payment-service                  | ERROR        | Payment failed: connection timeout to payment gateway after 30000ms                          |
-| user-service                     | ERROR        | NullPointerException in UserService.getProfile at line 142                                   |
-+----------------------------------+--------------+----------------------------------------------------------------------------------------------+
+fetched rows / total rows = 5/5
++----------------------------------+--------------+--------------------------------------------------------------------------------+
+| resource.attributes.service.name | severityText | body                                                                           |
+|----------------------------------+--------------+--------------------------------------------------------------------------------|
+| checkout                         | ERROR        | NullPointerException in CheckoutService.placeOrder at line 142                 |
+| frontend-proxy                   | ERROR        | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error       |
+| payment                          | ERROR        | Payment failed: connection timeout to payment gateway after 30000ms            |
+| product-catalog                  | FATAL        | Database primary node unreachable: connection refused to db-primary-01:5432    |
+| recommendation                   | ERROR        | Failed to process recommendation request: invalid product ID from 203.0.113.50 |
++----------------------------------+--------------+--------------------------------------------------------------------------------+
 ```
   
 
@@ -95,12 +94,13 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
+fetched rows / total rows = 3/3
 +---------------------------+
 | instrumentationScope.name |
 |---------------------------|
-| opentelemetry-java        |
-| opentelemetry-python      |
+| opentelemetry-dotnet      |
+| opentelemetry-go          |
+| opentelemetry-js          |
 +---------------------------+
 ```
   
@@ -116,12 +116,13 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
+fetched rows / total rows = 3/3
 +---------------------------+
 | instrumentationScope.name |
 |---------------------------|
-| opentelemetry-java        |
-| opentelemetry-python      |
+| opentelemetry-dotnet      |
+| opentelemetry-go          |
+| opentelemetry-js          |
 +---------------------------+
 ```
   
@@ -144,11 +145,11 @@ fetched rows / total rows = 5/5
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
-| DEBUG        | auth-service                     |
-| INFO         | auth-service                     |
-| WARN         | api-gateway                      |
-| ERROR        | api-gateway                      |
-| FATAL        | inventory-service                |
+| DEBUG        | cart                             |
+| INFO         | cart                             |
+| WARN         | frontend-proxy                   |
+| ERROR        | checkout                         |
+| FATAL        | payment                          |
 +--------------+----------------------------------+
 ```
   

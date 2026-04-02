@@ -36,13 +36,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+--------------+----------------------------------+---------------------------------------------------------------------------------+
-| severityText | resource.attributes.service.name | body                                                                            |
-|--------------+----------------------------------+---------------------------------------------------------------------------------|
-| FATAL        | inventory-service                | Database primary node unreachable: connection refused to db-primary-01:5432     |
-| FATAL        | payment-service                  | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
-| ERROR        | api-gateway                      | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error        |
-+--------------+----------------------------------+---------------------------------------------------------------------------------+
++--------------+----------------------------------+-----------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                        |
+|--------------+----------------------------------+-----------------------------------------------------------------------------|
+| FATAL        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3     |
+| FATAL        | product-catalog                  | Database primary node unreachable: connection refused to db-primary-01:5432 |
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142              |
++--------------+----------------------------------+-----------------------------------------------------------------------------+
 ```
   
 

@@ -50,13 +50,13 @@ fetched rows / total rows = 7/7
 +--------------+----------------------------------+---------------------------+
 | severityText | resource.attributes.service.name | instrumentationScope.name |
 |--------------+----------------------------------+---------------------------|
-| ERROR        | api-gateway                      | not-instrumented          |
-| ERROR        | auth-service                     | not-instrumented          |
-| ERROR        | cart-service                     | not-instrumented          |
-| FATAL        | inventory-service                | not-instrumented          |
-| ERROR        | payment-service                  | opentelemetry-java        |
-| FATAL        | payment-service                  | not-instrumented          |
-| ERROR        | user-service                     | not-instrumented          |
+| ERROR        | checkout                         | not-instrumented          |
+| ERROR        | checkout                         | not-instrumented          |
+| ERROR        | frontend-proxy                   | not-instrumented          |
+| ERROR        | payment                          | opentelemetry-js          |
+| FATAL        | payment                          | not-instrumented          |
+| FATAL        | product-catalog                  | not-instrumented          |
+| ERROR        | recommendation                   | not-instrumented          |
 +--------------+----------------------------------+---------------------------+
 ```
   
@@ -80,11 +80,11 @@ fetched rows / total rows = 5/5
 +--------------+----------------------------------+---------------------------+
 | severityText | resource.attributes.service.name | instrumentationScope.name |
 |--------------+----------------------------------+---------------------------|
-| ERROR        | api-gateway                      | not-instrumented          |
-| ERROR        | auth-service                     | not-instrumented          |
-| ERROR        | cart-service                     | not-instrumented          |
-| ERROR        | payment-service                  | opentelemetry-java        |
-| ERROR        | user-service                     | not-instrumented          |
+| ERROR        | checkout                         | not-instrumented          |
+| ERROR        | checkout                         | not-instrumented          |
+| ERROR        | frontend-proxy                   | not-instrumented          |
+| ERROR        | payment                          | opentelemetry-js          |
+| ERROR        | recommendation                   | not-instrumented          |
 +--------------+----------------------------------+---------------------------+
 ```
   

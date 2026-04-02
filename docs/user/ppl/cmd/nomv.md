@@ -25,50 +25,30 @@ nomv <field>
 
 ---
 
-## Example 1: Convert array to multiline string
+## Example 1: Convert a collected list to a multiline display
 
-The following query creates an array from the severity text and service name, then converts it to a multiline string for display:
-
-```ppl
-source=otellogs
-| where severityText = 'FATAL'
-| eval summary = array(severityText, `resource.attributes.service.name`)
-| nomv summary
-| fields severityText, summary
-| head 1
-```
-
-Expected output:
-```text
-fetched rows / total rows = 1/1
-+--------------+-----------------+
-| severityText | summary         |
-|--------------+-----------------|
-| FATAL        | FATAL           |
-|              | payment-service |
-+--------------+-----------------+
-```
-
-## Example 2: nomv with an eval-created field
+The following query collects all service names that reported errors into an array, then converts it to a multiline string for display in a report:
 
 ```ppl
 source=otellogs
 | where severityText = 'ERROR'
-| eval details = array(severityText, body)
-| nomv details
-| fields `resource.attributes.service.name`, details
-| head 1
+| stats list(`resource.attributes.service.name`) as affected_services by severityText
+| nomv affected_services
+| fields severityText, affected_services
 ```
 
 Expected output:
 ```text
 fetched rows / total rows = 1/1
-+----------------------------------+---------------------------------------------------------------------+
-| resource.attributes.service.name | details                                                             |
-|----------------------------------+---------------------------------------------------------------------|
-| payment-service                  | ERROR                                                               |
-|                                  | Payment failed: connection timeout to payment gateway after 30000ms |
-+----------------------------------+---------------------------------------------------------------------+
++--------------+-------------------+
+| severityText | affected_services |
+|--------------+-------------------|
+| ERROR        | payment           |
+|              | checkout          |
+|              | frontend-proxy    |
+|              | recommendation    |
+|              | checkout          |
++--------------+-------------------+
 ```
 
 ---

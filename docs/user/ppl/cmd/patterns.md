@@ -108,7 +108,7 @@ fetched rows / total rows = 3/3
 | body                                                                     | patterns_field                             |
 |--------------------------------------------------------------------------+--------------------------------------------|
 | Payment failed: connection timeout to payment gateway after 30000ms      | <*> <*>: <*> <*> <*> <*> <*> <*> <*>       |
-| NullPointerException in UserService.getProfile at line 142               | <*> <*> <*>.<*> <*> <*> <*>                |
+| NullPointerException in CheckoutService.placeOrder at line 142           | <*> <*> <*>.<*> <*> <*> <*>                |
 | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error | <*> <*> /<*>/<*> <*> <*> <*> - <*> <*> <*> |
 +--------------------------------------------------------------------------+--------------------------------------------+
 ```

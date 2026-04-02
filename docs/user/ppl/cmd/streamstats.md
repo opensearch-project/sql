@@ -97,42 +97,43 @@ fetched rows / total rows = 7/7
 +----------------------------------+--------------+---------------+
 | resource.attributes.service.name | severityText | running_count |
 |----------------------------------+--------------+---------------|
-| api-gateway                      | ERROR        | 1             |
-| auth-service                     | ERROR        | 1             |
-| cart-service                     | ERROR        | 1             |
-| inventory-service                | FATAL        | 1             |
-| payment-service                  | ERROR        | 1             |
-| payment-service                  | FATAL        | 2             |
-| user-service                     | ERROR        | 1             |
+| checkout                         | ERROR        | 1             |
+| checkout                         | ERROR        | 2             |
+| frontend-proxy                   | ERROR        | 1             |
+| payment                          | ERROR        | 1             |
+| payment                          | FATAL        | 2             |
+| product-catalog                  | FATAL        | 1             |
+| recommendation                   | ERROR        | 1             |
 +----------------------------------+--------------+---------------+
 ```
   
 
-## Example 2: Calculate the running maximum over a 2-row window
+## Example 2: Calculate running maximum severity over a sliding window
 
-The following query calculates the running maximum `age` over a 2-row window, excluding the current event:
-  
+The following query calculates the running maximum severity level over the previous 2 log entries, excluding the current event. This is useful for alerting when severity escalates beyond recent patterns:
+
 ```ppl
-source=state_country
-| streamstats current=false window=2 max(age) as prev_max_age
+source=otellogs
+| sort @timestamp
+| streamstats current=false window=2 max(severityNumber) as prev_max_severity
+| fields @timestamp, severityText, severityNumber, prev_max_severity
+| head 6
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 8/8
-+-------+---------+------------+-------+------+-----+--------------+
-| name  | country | state      | month | year | age | prev_max_age |
-|-------+---------+------------+-------+------+-----+--------------|
-| Jake  | USA     | California | 4     | 2023 | 70  | null         |
-| Hello | USA     | New York   | 4     | 2023 | 30  | 70           |
-| John  | Canada  | Ontario    | 4     | 2023 | 25  | 70           |
-| Jane  | Canada  | Quebec     | 4     | 2023 | 20  | 30           |
-| Jim   | Canada  | B.C        | 4     | 2023 | 27  | 25           |
-| Peter | Canada  | B.C        | 4     | 2023 | 57  | 27           |
-| Rick  | Canada  | B.C        | 4     | 2023 | 70  | 57           |
-| David | USA     | Washington | 4     | 2023 | 40  | 70           |
-+-------+---------+------------+-------+------+-----+--------------+
+fetched rows / total rows = 6/6
++---------------------+--------------+----------------+-------------------+
+| @timestamp          | severityText | severityNumber | prev_max_severity |
+|---------------------+--------------+----------------+-------------------|
+| 2024-02-01 09:10:00 | INFO         | 9              | null              |
+| 2024-02-01 09:11:00 | INFO         | 9              | 9                 |
+| 2024-02-01 09:12:00 | WARN         | 13             | 9                 |
+| 2024-02-01 09:13:00 | ERROR        | 17             | 13                |
+| 2024-02-01 09:14:00 | DEBUG        | 5              | 17                |
+| 2024-02-01 09:15:00 | ERROR        | 17             | 17                |
++---------------------+--------------+----------------+-------------------+
 ```
   
 
@@ -243,50 +244,49 @@ fetched rows / total rows = 8/8
 ```
   
 
+
 ## Example 5: Null bucket behavior
 
 When `bucket_nullable=false`, null values are excluded from group-by aggregations:
 
 ```ppl
-source=otellogs
-| dedup `resource.attributes.host.name`
-| streamstats bucket_nullable=false count() as cnt by `resource.attributes.host.name`
-| fields severityText, `resource.attributes.host.name`, cnt
+source=accounts
+| streamstats bucket_nullable=false count() as cnt by employer
+| fields account_number, firstname, employer, cnt
 ```
   
-Rows in which the `by` field is `null` are excluded from aggregation, so the `cnt` for the null host name is `null`:
+Rows in which the `by` field is `null` are excluded from aggregation, so the `cnt` for `Dale` is `null`:
   
 ```text
 fetched rows / total rows = 4/4
-+--------------+-------------------------------+-----+
-| severityText | resource.attributes.host.name | cnt |
-|--------------+-------------------------------+-----|
-| INFO         | host-a                        | 1   |
-| INFO         | host-b                        | 1   |
-| WARN         | host-c                        | 1   |
-| ERROR        | host-d                        | 1   |
-+--------------+-------------------------------+-----+
++----------------+-----------+----------+------+
+| account_number | firstname | employer | cnt  |
+|----------------+-----------+----------+------|
+| 1              | Amber     | Pyrami   | 1    |
+| 6              | Hattie    | Netagy   | 1    |
+| 13             | Nanette   | Quility  | 1    |
+| 18             | Dale      | null     | null |
++----------------+-----------+----------+------+
 ```
   
 When `bucket_nullable=true`, null values are treated as a valid group:
 
 ```ppl
-source=otellogs
-| dedup `resource.attributes.host.name`
-| streamstats bucket_nullable=true count() as cnt by `resource.attributes.host.name`
-| fields severityText, `resource.attributes.host.name`, cnt
+source=accounts
+| streamstats bucket_nullable=true count() as cnt by employer
+| fields account_number, firstname, employer, cnt
 ```
   
-As a result, the `cnt` for the null host name is included and calculated normally:
+As a result, the `cnt` for `Dale` is included and calculated normally:
   
 ```text
 fetched rows / total rows = 4/4
-+--------------+-------------------------------+-----+
-| severityText | resource.attributes.host.name | cnt |
-|--------------+-------------------------------+-----|
-| INFO         | host-a                        | 1   |
-| INFO         | host-b                        | 1   |
-| WARN         | host-c                        | 1   |
-| ERROR        | host-d                        | 1   |
-+--------------+-------------------------------+-----+
++----------------+-----------+----------+-----+
+| account_number | firstname | employer | cnt |
+|----------------+-----------+----------+-----|
+| 1              | Amber     | Pyrami   | 1   |
+| 6              | Hattie    | Netagy   | 1   |
+| 13             | Nanette   | Quility  | 1   |
+| 18             | Dale      | null     | 1   |
++----------------+-----------+----------+-----+
 ```

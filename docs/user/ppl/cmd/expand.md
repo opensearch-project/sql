@@ -28,30 +28,28 @@ The `expand` command supports the following parameters.
 | `<alias>` | Optional | The name to use in place of the original field name. |  
   
 
-## Example: Expand an array field  
+## Example: Expand a collected list of services into individual rows  
 
-The following query creates an array of severity text and service name, then expands it into separate rows:
+The following query first collects all service names per severity level into an array using `stats list()`, then expands each array element into its own row. This is useful when you need to go from an aggregated view back to individual rows:
   
 ```ppl
 source=otellogs
 | where severityText = 'FATAL'
-| eval tags = array(severityText, body)
-| expand tags as tag
-| fields severityText, tag
+| stats list(`resource.attributes.service.name`) as services by severityText
+| expand services as service
+| fields severityText, service
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+--------------+---------------------------------------------------------------------------------+
-| severityText | tag                                                                             |
-|--------------+---------------------------------------------------------------------------------|
-| FATAL        | FATAL                                                                           |
-| FATAL        | Out of memory: Java heap space - shutting down pod payment-service-7d4b8c-xk2q9 |
-| FATAL        | FATAL                                                                           |
-| FATAL        | Database primary node unreachable: connection refused to db-primary-01:5432     |
-+--------------+---------------------------------------------------------------------------------+
+fetched rows / total rows = 2/2
++--------------+-----------------+
+| severityText | service         |
+|--------------+-----------------|
+| FATAL        | payment         |
+| FATAL        | product-catalog |
++--------------+-----------------+
 ```
   
 

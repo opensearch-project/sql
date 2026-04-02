@@ -70,13 +70,13 @@ fetched rows / total rows = 7/7
 +----------------------------------+----------+-----------+
 | resource.attributes.service.name | is_error | is_traced |
 |----------------------------------+----------+-----------|
-| api-gateway                      | True     | True      |
-| auth-service                     | True     | True      |
-| cart-service                     | True     | False     |
-| inventory-service                | True     | False     |
-| payment-service                  | True     | True      |
-| payment-service                  | True     | False     |
-| user-service                     | True     | True      |
+| checkout                         | True     | True      |
+| checkout                         | True     | False     |
+| frontend-proxy                   | True     | True      |
+| payment                          | True     | True      |
+| payment                          | True     | False     |
+| product-catalog                  | True     | False     |
+| recommendation                   | True     | True      |
 +----------------------------------+----------+-----------+
 ```
   
@@ -101,9 +101,9 @@ fetched rows / total rows = 3/3
 +------------------------------------------------------------------------------------------------------+
 | formatted                                                                                            |
 |------------------------------------------------------------------------------------------------------|
-| [ERROR] HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-| [ERROR] Failed to authenticate user U400: invalid credentials from 203.0.113.50                      |
+| [ERROR] NullPointerException in CheckoutService.placeOrder at line 142                               |
 | [ERROR] Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| [ERROR] HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
 +------------------------------------------------------------------------------------------------------+
 ```
   
