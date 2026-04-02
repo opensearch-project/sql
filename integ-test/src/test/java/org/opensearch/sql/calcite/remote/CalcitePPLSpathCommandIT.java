@@ -68,6 +68,19 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     Request nullDoc2 = new Request("PUT", "/test_spath_null/_doc/2?refresh=true");
     nullDoc2.setJsonEntity("{\"doc\": null}");
     client().performRequest(nullDoc2);
+
+    // Index for testing spath + appendcol (#5186)
+    Request appendcolDoc1 = new Request("PUT", "/test_spath_appendcol/_doc/1?refresh=true");
+    appendcolDoc1.setJsonEntity(
+        "{\"doc\":"
+            + " \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\",\\\"age\\\":30,\\\"city\\\":\\\"NYC\\\"}}\"}");
+    client().performRequest(appendcolDoc1);
+
+    Request appendcolDoc2 = new Request("PUT", "/test_spath_appendcol/_doc/2?refresh=true");
+    appendcolDoc2.setJsonEntity(
+        "{\"doc\":"
+            + " \"{\\\"user\\\":{\\\"name\\\":\\\"Alice\\\",\\\"age\\\":25,\\\"city\\\":\\\"LA\\\"}}\"}");
+    client().performRequest(appendcolDoc2);
   }
 
   @Test
@@ -215,5 +228,18 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
                 + " | sort doc.user.name | fields doc.user.name");
     verifySchema(result, schema("doc.user.name", "string"));
     verifyDataRowsInOrder(result, rows("Alice"), rows("John"));
+  }
+
+  @Test
+  public void testSpathAutoExtractWithAppendcol() throws IOException {
+    // Regression test for #5186: appendcol subquery should resolve MAP sub-paths after spath.
+    // Use sort to ensure stable row ordering for appendcol row-number based join.
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_appendcol | spath input=doc | sort doc.user.name"
+                + " | appendcol [ sort doc.user.city | stats count() as cnt by doc.user.city ]"
+                + " | fields doc.user.name, cnt");
+    verifySchema(result, schema("doc.user.name", "string"), schema("cnt", "bigint"));
+    verifyDataRows(result, rows("Alice", 1), rows("John", 1));
   }
 }

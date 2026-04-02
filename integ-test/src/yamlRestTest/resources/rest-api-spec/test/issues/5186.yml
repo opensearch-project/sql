@@ -1,0 +1,52 @@
+setup:
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: test_issue_5186
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              doc:
+                type: text
+                fields:
+                  keyword:
+                    type: keyword
+  - do:
+      bulk:
+        index: test_issue_5186
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"doc": "{\"user\":{\"name\":\"John\",\"age\":30,\"city\":\"NYC\"}}"}'
+          - '{"index": {}}'
+          - '{"doc": "{\"user\":{\"name\":\"Alice\",\"age\":25,\"city\":\"LA\"}}"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"appendcol subquery resolves MAP sub-paths after spath (#5186)":
+  - do:
+      headers:
+        Content-Type: application/json
+      ppl:
+        body:
+          query: "source=test_issue_5186 | spath input=doc | appendcol [ stats count() as cnt by doc.user.city ] | fields doc.user.name, doc.user.city, cnt"
+  - match: { total: 2 }
+  - length: { datarows: 2 }

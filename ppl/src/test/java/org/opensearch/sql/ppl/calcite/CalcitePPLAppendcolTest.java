@@ -15,6 +15,33 @@ public class CalcitePPLAppendcolTest extends CalcitePPLAbstractTest {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
   }
 
+  /** Regression test for #5186: appendcol subsearch should inherit spath transformations. */
+  @Test
+  public void testAppendcolWithSpath() {
+    String ppl =
+        "source=EMP | spath input=ENAME output=result"
+            + " | appendcol [ stats count() as cnt by result.user.city ]"
+            + " | fields result.user.name, result.user.city, cnt";
+    RelNode root = getRelNode(ppl);
+    // The subsearch should include spath (JSON_EXTRACT_ALL) on ENAME so that
+    // result.user.city resolves as ITEM(JSON_EXTRACT_ALL(ENAME), 'user.city')
+    String expectedLogical =
+        "LogicalProject(result.user.name=[ITEM($8, 'user.name')],"
+            + " result.user.city=[$11], cnt=[$10])\n"
+            + "  LogicalJoin(condition=[=($9, $12)], joinType=[full])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], result=[JSON_EXTRACT_ALL($1)],"
+            + " _row_number_main_=[ROW_NUMBER() OVER ()])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalProject(cnt=[$1], result.user.city=[$0],"
+            + " _row_number_subsearch_=[ROW_NUMBER() OVER ()])\n"
+            + "      LogicalAggregate(group=[{0}], cnt=[COUNT()])\n"
+            + "        LogicalProject(result.user.city=[ITEM(JSON_EXTRACT_ALL($1),"
+            + " 'user.city')])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
   @Test
   public void testAppendcol() {
     String ppl = "source=EMP | appendcol [ where DEPTNO = 20 ]";

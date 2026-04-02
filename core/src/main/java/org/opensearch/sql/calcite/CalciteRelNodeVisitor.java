@@ -22,7 +22,6 @@ import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_S
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_SUBSEARCH;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRexCall;
-import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
 import com.google.common.base.Strings;
@@ -2434,9 +2433,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.projectPlus(
         context.relBuilder.alias(mainRowNumber, ROW_NUMBER_COLUMN_FOR_MAIN));
 
-    // 3. build subsearch tree (attach relation to subsearch)
-    UnresolvedPlan relation = getRelation(node);
-    transformPlanToAttachChild(node.getSubSearch(), relation);
+    // 3. build subsearch tree: attach source plan that includes spath transformations
+    //    so the subsearch can resolve MAP sub-paths like doc.user.city (fixes #5186)
+    UnresolvedPlan subsearchSource = buildAppendColSubsearchSource(node);
+    // Walk down the subsearch to find the deepest node that should receive the source.
+    // The anonymizer may have already attached a raw Relation. We find the node whose
+    // child is a Relation (or is empty) and (re-)attach our subsearchSource there.
+    UnresolvedPlan parent = node.getSubSearch();
+    while (parent.getChild() != null && !parent.getChild().isEmpty()) {
+      UnresolvedPlan child = (UnresolvedPlan) parent.getChild().getFirst();
+      if (child instanceof Relation) {
+        // Parent's child is the Relation -- replace it with our source chain
+        break;
+      }
+      parent = child;
+    }
+    parent.attach(subsearchSource);
     // 4. resolve subsearch plan
     node.getSubSearch().accept(this, context);
     // 5. add row_number() column to subsearch
@@ -2526,6 +2538,41 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.project(finalProjections, finalFieldNames);
       return context.relBuilder.peek();
     }
+  }
+
+  /**
+   * Builds the source plan for the appendcol subsearch. Collects the leaf Relation and any SPath
+   * nodes from the main plan's child chain, so that schema-transforming commands (spath converts
+   * STRING fields to MAP) are inherited by the subsearch. Other commands (eval, stats, filter,
+   * etc.) are NOT propagated because they would alter the available fields unexpectedly.
+   */
+  private UnresolvedPlan buildAppendColSubsearchSource(AppendCol node) {
+    UnresolvedPlan relation = getRelation(node);
+    // Walk the child chain from AppendCol down to the Relation, collecting SPath nodes
+    List<SPath> spathNodes = new ArrayList<>();
+    UnresolvedPlan current = (UnresolvedPlan) node.getChild().getFirst();
+    while (current != null) {
+      if (current instanceof SPath spath) {
+        spathNodes.add(spath);
+      }
+      if (current.getChild() != null && !current.getChild().isEmpty()) {
+        current = (UnresolvedPlan) current.getChild().getFirst();
+      } else {
+        break;
+      }
+    }
+    if (spathNodes.isEmpty()) {
+      return relation;
+    }
+    // Build a new chain: SPath(n) -> ... -> SPath(1) -> Relation
+    // Create fresh SPath copies to avoid sharing mutable AST nodes
+    UnresolvedPlan source = relation;
+    for (SPath spath : spathNodes) {
+      SPath copy = new SPath(spath.getInField(), spath.getOutField(), spath.getPath());
+      copy.attach(source);
+      source = copy;
+    }
+    return source;
   }
 
   @Override
