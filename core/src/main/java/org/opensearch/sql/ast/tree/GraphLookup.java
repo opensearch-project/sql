@@ -23,8 +23,8 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 /**
  * AST node for graphLookup command. Performs BFS graph traversal on a lookup table.
  *
- * <p>Example: source=employees | graphLookup employees fromField=manager toField=name maxDepth=3
- * depthField=level direction=uni as hierarchy
+ * <p>Example: source=employees | graphLookup employees start=reportsTo edge=manager-->name
+ * maxDepth=3 depthField=level as hierarchy
  */
 @Getter
 @Setter
@@ -45,8 +45,11 @@ public class GraphLookup extends UnresolvedPlan {
   /** Target table for graph traversal lookup. */
   private final UnresolvedPlan fromTable;
 
-  /** Field in sourceTable to start with. */
-  private final Field startField;
+  /** Field in sourceTable to start with (piped mode). Null when using literal start values. */
+  private @Nullable final Field startField;
+
+  /** Literal start values for top-level graphlookup (mutually exclusive with startField). */
+  private @Nullable final List<Literal> startValues;
 
   /** Field in fromTable that represents the outgoing edge. */
   private final Field fromField;

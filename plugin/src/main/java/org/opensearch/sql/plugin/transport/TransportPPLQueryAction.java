@@ -31,6 +31,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
+import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.ppl.PPLService;
@@ -100,13 +101,24 @@ public class TransportPPLQueryAction
                   + " false"));
       return;
     }
+
+    TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
+    if (transportRequest.isGrammarRequest()) {
+      // Authorization is enforced by this transport action before returning grammar metadata in
+      // REST.
+      listener.onResponse(new TransportPPLQueryResponse("{}"));
+      return;
+    }
+
+    if (task instanceof PPLQueryTask pplQueryTask) {
+      OpenSearchQueryManager.setCancellableTask(pplQueryTask);
+    }
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
 
     QueryContext.addRequestId();
 
     PPLService pplService = injector.getInstance(PPLService.class);
-    TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
     QueryContext.setProfile(transformedRequest.profile());

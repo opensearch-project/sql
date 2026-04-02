@@ -40,7 +40,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 public abstract class GraphLookup extends BiRel {
 
   // TODO: use RexInputRef instead of String for there fields
-  protected final String startField; // Field in source table (start entities)
+  @Nullable protected final String startField; // Field in source table (start entities)
+  @Nullable protected final List<Object> startValues; // Literal start values (top-level mode)
   protected final String fromField; // Field in lookup table (edge source)
   protected final String toField; // Field in lookup table (edge target)
   protected final String outputField; // Name of output array field
@@ -63,7 +64,8 @@ public abstract class GraphLookup extends BiRel {
    * @param traitSet Trait set
    * @param source Source table RelNode
    * @param lookup Lookup table RelNode
-   * @param startField Field name for start entities
+   * @param startField Field name for start entities (null in literal start mode)
+   * @param startValues Literal start values for top-level graphLookup (null in piped mode)
    * @param fromField Field name for outgoing edges
    * @param toField Field name for incoming edges
    * @param outputField Name of the output array field
@@ -81,7 +83,8 @@ public abstract class GraphLookup extends BiRel {
       RelTraitSet traitSet,
       RelNode source,
       RelNode lookup,
-      String startField,
+      @Nullable String startField,
+      @Nullable List<Object> startValues,
       String fromField,
       String toField,
       String outputField,
@@ -94,6 +97,7 @@ public abstract class GraphLookup extends BiRel {
       @Nullable RexNode filter) {
     super(cluster, traitSet, source, lookup);
     this.startField = startField;
+    this.startValues = startValues;
     this.fromField = fromField;
     this.toField = toField;
     this.outputField = outputField;
@@ -124,7 +128,19 @@ public abstract class GraphLookup extends BiRel {
     if (outputRowType == null) {
       RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
 
-      if (batchMode) {
+      if (startValues != null) {
+        // Literal start mode: Output = just [outputField: ARRAY<lookup_row>]
+        RelDataType lookupRowType = getLookup().getRowType();
+        if (this.depthField != null) {
+          final RelDataTypeFactory.Builder lookupBuilder = getCluster().getTypeFactory().builder();
+          lookupBuilder.addAll(lookupRowType.getFieldList());
+          RelDataType depthType = getCluster().getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+          lookupBuilder.add(this.depthField, depthType);
+          lookupRowType = lookupBuilder.build();
+        }
+        RelDataType arrayType = getCluster().getTypeFactory().createArrayType(lookupRowType, -1);
+        builder.add(outputField, arrayType);
+      } else if (batchMode) {
         // Batch mode: Output = [Array<source>, Array<lookup>]
         // First field: aggregated source rows as array
         RelDataType sourceRowType = getSource().getRowType();
@@ -172,7 +188,7 @@ public abstract class GraphLookup extends BiRel {
   @Override
   public double estimateRowCount(RelMetadataQuery mq) {
     // Batch mode aggregates all source rows into a single output row
-    return batchMode ? 1 : getSource().estimateRowCount(mq);
+    return (startValues != null || batchMode) ? 1 : getSource().estimateRowCount(mq);
   }
 
   @Override
@@ -184,6 +200,7 @@ public abstract class GraphLookup extends BiRel {
         .item("depthField", depthField)
         .item("maxDepth", maxDepth)
         .item("bidirectional", bidirectional)
+        .itemIf("startValues", startValues, startValues != null)
         .itemIf("supportArray", supportArray, supportArray)
         .itemIf("batchMode", batchMode, batchMode)
         .itemIf("usePIT", usePIT, usePIT)

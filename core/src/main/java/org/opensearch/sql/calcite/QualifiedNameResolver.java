@@ -288,7 +288,9 @@ public class QualifiedNameResolver {
     if (length == parts.size() - start) {
       return field;
     } else {
-      String itemName = joinParts(parts, length + start, parts.size() - length);
+      int remainingStart = length + start;
+      int remainingLength = parts.size() - remainingStart;
+      String itemName = joinParts(parts, remainingStart, remainingLength);
       return createItemAccess(field, itemName, context);
     }
   }

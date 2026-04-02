@@ -68,6 +68,7 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
           .put(BuiltinFunctionName.LTE.getName(), new RangeQuery(Comparison.LTE))
           .put(BuiltinFunctionName.GTE.getName(), new RangeQuery(Comparison.GTE))
           .put(BuiltinFunctionName.LIKE.getName(), new LikeQuery())
+          .put(BuiltinFunctionName.ILIKE.getName(), new LikeQuery())
           .put(BuiltinFunctionName.MATCH.getName(), new MatchQuery())
           .put(BuiltinFunctionName.MATCH_PHRASE.getName(), new MatchPhraseQuery())
           .put(BuiltinFunctionName.MATCHPHRASE.getName(), new MatchPhraseQuery())

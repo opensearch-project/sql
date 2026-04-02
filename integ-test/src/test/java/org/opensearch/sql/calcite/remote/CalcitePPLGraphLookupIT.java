@@ -14,9 +14,10 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -43,10 +44,23 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
+    // Skip test if pushdown is disabled
+    // TODO: support no-pushdown config for graph lookup
+    enabledOnlyWhenPushdownIsEnabled();
 
     loadIndex(Index.GRAPH_EMPLOYEES);
     loadIndex(Index.GRAPH_TRAVELERS);
     loadIndex(Index.GRAPH_AIRPORTS);
+  }
+
+  /** Null-safe map helper since {@code Map.of()} rejects null values. */
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> mapOf(Object... keysAndValues) {
+    LinkedHashMap<String, Object> map = new LinkedHashMap<>();
+    for (int i = 0; i < keysAndValues.length; i += 2) {
+      map.put((String) keysAndValues[i], keysAndValues[i + 1]);
+    }
+    return map;
   }
 
   // ==================== Employee Hierarchy Tests ====================
@@ -59,9 +73,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo-->name"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
 
@@ -73,12 +86,12 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reportingHierarchy", "array"));
     verifyDataRows(
         result,
-        rows("Dev", "Eliot", 1, List.of(List.of("Eliot", "Ron", 2))),
-        rows("Eliot", "Ron", 2, List.of(List.of("Ron", "Andrew", 3))),
-        rows("Ron", "Andrew", 3, List.of(Arrays.asList("Andrew", null, 4))),
+        rows("Dev", "Eliot", 1, List.of(Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2))),
+        rows("Eliot", "Ron", 2, List.of(Map.of("name", "Ron", "reportsTo", "Andrew", "id", 3))),
+        rows("Ron", "Andrew", 3, List.of(mapOf("name", "Andrew", "reportsTo", null, "id", 4))),
         rows("Andrew", null, 4, Collections.emptyList()),
-        rows("Asya", "Ron", 5, List.of(List.of("Ron", "Andrew", 3))),
-        rows("Dan", "Andrew", 6, List.of(Arrays.asList("Andrew", null, 4))));
+        rows("Asya", "Ron", 5, List.of(Map.of("name", "Ron", "reportsTo", "Andrew", "id", 3))),
+        rows("Dan", "Andrew", 6, List.of(mapOf("name", "Andrew", "reportsTo", null, "id", 4))));
   }
 
   /** Test 2: Employee hierarchy traversal with depth field. */
@@ -89,9 +102,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo-->name"
                     + " depthField=level"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -104,12 +116,32 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reportingHierarchy", "array"));
     verifyDataRows(
         result,
-        rows("Dev", "Eliot", 1, List.of(List.of("Eliot", "Ron", 2, 0))),
-        rows("Eliot", "Ron", 2, List.of(List.of("Ron", "Andrew", 3, 0))),
-        rows("Ron", "Andrew", 3, List.of(Arrays.asList("Andrew", null, 4, 0))),
+        rows(
+            "Dev",
+            "Eliot",
+            1,
+            List.of(mapOf("name", "Eliot", "reportsTo", "Ron", "id", 2, "level", 0))),
+        rows(
+            "Eliot",
+            "Ron",
+            2,
+            List.of(mapOf("name", "Ron", "reportsTo", "Andrew", "id", 3, "level", 0))),
+        rows(
+            "Ron",
+            "Andrew",
+            3,
+            List.of(mapOf("name", "Andrew", "reportsTo", null, "id", 4, "level", 0))),
         rows("Andrew", null, 4, Collections.emptyList()),
-        rows("Asya", "Ron", 5, List.of(List.of("Ron", "Andrew", 3, 0))),
-        rows("Dan", "Andrew", 6, List.of(Arrays.asList("Andrew", null, 4, 0))));
+        rows(
+            "Asya",
+            "Ron",
+            5,
+            List.of(mapOf("name", "Ron", "reportsTo", "Andrew", "id", 3, "level", 0))),
+        rows(
+            "Dan",
+            "Andrew",
+            6,
+            List.of(mapOf("name", "Andrew", "reportsTo", null, "id", 4, "level", 0))));
   }
 
   /** Test 3: Employee hierarchy with maxDepth=1 (allows 2 levels of traversal). */
@@ -120,9 +152,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo-->name"
                     + " maxDepth=1"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -135,20 +166,30 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reportingHierarchy", "array"));
     verifyDataRows(
         result,
-        rows("Dev", "Eliot", 1, List.of(List.of("Eliot", "Ron", 2), List.of("Ron", "Andrew", 3))),
+        rows(
+            "Dev",
+            "Eliot",
+            1,
+            List.of(
+                Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2),
+                Map.of("name", "Ron", "reportsTo", "Andrew", "id", 3))),
         rows(
             "Eliot",
             "Ron",
             2,
-            List.of(List.of("Ron", "Andrew", 3), Arrays.asList("Andrew", null, 4))),
-        rows("Ron", "Andrew", 3, List.of(Arrays.asList("Andrew", null, 4))),
+            List.of(
+                Map.of("name", "Ron", "reportsTo", "Andrew", "id", 3),
+                mapOf("name", "Andrew", "reportsTo", null, "id", 4))),
+        rows("Ron", "Andrew", 3, List.of(mapOf("name", "Andrew", "reportsTo", null, "id", 4))),
         rows("Andrew", null, 4, Collections.emptyList()),
         rows(
             "Asya",
             "Ron",
             5,
-            List.of(List.of("Ron", "Andrew", 3), Arrays.asList("Andrew", null, 4))),
-        rows("Dan", "Andrew", 6, List.of(Arrays.asList("Andrew", null, 4))));
+            List.of(
+                Map.of("name", "Ron", "reportsTo", "Andrew", "id", 3),
+                mapOf("name", "Andrew", "reportsTo", null, "id", 4))),
+        rows("Dan", "Andrew", 6, List.of(mapOf("name", "Andrew", "reportsTo", null, "id", 4))));
   }
 
   /** Test 4: Query Dev's complete reporting chain: Dev->Eliot->Ron->Andrew */
@@ -160,9 +201,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Dev'"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo-->name"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
 
@@ -172,7 +212,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reportsTo", "string"),
         schema("id", "int"),
         schema("reportingHierarchy", "array"));
-    verifyDataRows(result, rows("Dev", "Eliot", 1, List.of(List.of("Eliot", "Ron", 2))));
+    verifyDataRows(
+        result,
+        rows("Dev", "Eliot", 1, List.of(Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2))));
   }
 
   // ==================== Airport Connections Tests ====================
@@ -185,9 +227,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=airport"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " start=airport"
+                    + " edge=connects-->airport"
                     + " supportArray=true"
                     + " as reachableAirports",
                 TEST_INDEX_GRAPH_AIRPORTS, TEST_INDEX_GRAPH_AIRPORTS));
@@ -199,11 +240,20 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reachableAirports", "array"));
     verifyDataRows(
         result,
-        rows("JFK", List.of("BOS", "ORD"), List.of(List.of("JFK", List.of("BOS", "ORD")))),
-        rows("BOS", List.of("JFK", "PWM"), List.of(List.of("BOS", List.of("JFK", "PWM")))),
-        rows("ORD", List.of("JFK"), List.of(List.of("ORD", List.of("JFK")))),
-        rows("PWM", List.of("BOS", "LHR"), List.of(List.of("PWM", List.of("BOS", "LHR")))),
-        rows("LHR", List.of("PWM"), List.of(List.of("LHR", List.of("PWM")))));
+        rows(
+            "JFK",
+            List.of("BOS", "ORD"),
+            List.of(Map.of("airport", "JFK", "connects", List.of("BOS", "ORD")))),
+        rows(
+            "BOS",
+            List.of("JFK", "PWM"),
+            List.of(Map.of("airport", "BOS", "connects", List.of("JFK", "PWM")))),
+        rows("ORD", List.of("JFK"), List.of(Map.of("airport", "ORD", "connects", List.of("JFK")))),
+        rows(
+            "PWM",
+            List.of("BOS", "LHR"),
+            List.of(Map.of("airport", "PWM", "connects", List.of("BOS", "LHR")))),
+        rows("LHR", List.of("PWM"), List.of(Map.of("airport", "LHR", "connects", List.of("PWM")))));
   }
 
   /** Test 6: Find airports reachable from JFK within maxDepth=1. */
@@ -215,9 +265,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where airport = 'JFK'"
                     + " | graphLookup %s"
-                    + " startField=airport"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " start=airport"
+                    + " edge=connects-->airport"
                     + " maxDepth=1"
                     + " supportArray=true"
                     + " as reachableAirports",
@@ -233,7 +282,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         rows(
             "JFK",
             List.of("BOS", "ORD"),
-            List.of(List.of("JFK", List.of("BOS", "ORD")), List.of("BOS", List.of("JFK", "PWM")))));
+            List.of(
+                Map.of("airport", "JFK", "connects", List.of("BOS", "ORD")),
+                Map.of("airport", "BOS", "connects", List.of("JFK", "PWM")))));
   }
 
   /** Test 7: Find airports with default depth(=0) and start value of list */
@@ -245,9 +296,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where airport = 'JFK'"
                     + " | graphLookup %s"
-                    + " startField=connects"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " start=connects"
+                    + " edge=connects-->airport"
                     + " depthField=numConnections"
                     + " as reachableAirports",
                 TEST_INDEX_GRAPH_AIRPORTS, TEST_INDEX_GRAPH_AIRPORTS));
@@ -258,7 +308,11 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reachableAirports", "array"));
     verifyDataRows(
         result,
-        rows("JFK", List.of("BOS", "ORD"), List.of(List.of("BOS", List.of("JFK", "PWM"), 0))));
+        rows(
+            "JFK",
+            List.of("BOS", "ORD"),
+            List.of(
+                mapOf("airport", "BOS", "connects", List.of("JFK", "PWM"), "numConnections", 0))));
   }
 
   /**
@@ -272,9 +326,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=nearestAirport"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " start=nearestAirport"
+                    + " edge=connects-->airport"
                     + " as reachableAirports",
                 TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_AIRPORTS));
 
@@ -285,9 +338,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reachableAirports", "array"));
     verifyDataRows(
         result,
-        rows("Dev", "JFK", List.of(List.of("JFK", List.of("BOS", "ORD")))),
-        rows("Eliot", "JFK", List.of(List.of("JFK", List.of("BOS", "ORD")))),
-        rows("Jeff", "BOS", List.of(List.of("BOS", List.of("JFK", "PWM")))));
+        rows("Dev", "JFK", List.of(Map.of("airport", "JFK", "connects", List.of("BOS", "ORD")))),
+        rows("Eliot", "JFK", List.of(Map.of("airport", "JFK", "connects", List.of("BOS", "ORD")))),
+        rows("Jeff", "BOS", List.of(Map.of("airport", "BOS", "connects", List.of("JFK", "PWM")))));
   }
 
   /**
@@ -302,9 +355,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Dev'"
                     + " | graphLookup %s"
-                    + " startField=nearestAirport"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " start=nearestAirport"
+                    + " edge=connects-->airport"
                     + " depthField=hops"
                     + " as reachableAirports",
                 TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_AIRPORTS));
@@ -314,7 +366,12 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("name", "string"),
         schema("nearestAirport", "string"),
         schema("reachableAirports", "array"));
-    verifyDataRows(result, rows("Dev", "JFK", List.of(List.of("JFK", List.of("BOS", "ORD"), 0))));
+    verifyDataRows(
+        result,
+        rows(
+            "Dev",
+            "JFK",
+            List.of(mapOf("airport", "JFK", "connects", List.of("BOS", "ORD"), "hops", 0))));
   }
 
   /**
@@ -329,9 +386,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Jeff'"
                     + " | graphLookup %s"
-                    + " startField=nearestAirport"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " start=nearestAirport"
+                    + " edge=connects-->airport"
                     + " maxDepth=1"
                     + " supportArray=true"
                     + " as reachableAirports",
@@ -348,9 +404,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             "Jeff",
             "BOS",
             List.of(
-                List.of("BOS", List.of("JFK", "PWM")),
-                List.of("JFK", List.of("BOS", "ORD")),
-                List.of("PWM", List.of("BOS", "LHR")))));
+                Map.of("airport", "BOS", "connects", List.of("JFK", "PWM")),
+                Map.of("airport", "JFK", "connects", List.of("BOS", "ORD")),
+                Map.of("airport", "PWM", "connects", List.of("BOS", "LHR")))));
   }
 
   // ==================== Bidirectional Traversal Tests ====================
@@ -364,10 +420,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Ron'"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
-                    + " direction=bi"
+                    + " start=reportsTo"
+                    + " edge=reportsTo<->name"
                     + " as connections",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
 
@@ -384,9 +438,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             "Andrew",
             3,
             List.of(
-                List.of("Ron", "Andrew", 3),
-                Arrays.asList("Andrew", null, 4),
-                List.of("Dan", "Andrew", 6))));
+                Map.of("name", "Ron", "reportsTo", "Andrew", "id", 3),
+                mapOf("name", "Andrew", "reportsTo", null, "id", 4),
+                Map.of("name", "Dan", "reportsTo", "Andrew", "id", 6))));
   }
 
   /**
@@ -401,10 +455,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where airport = 'ORD'"
                     + " | graphLookup %s"
-                    + " startField=connects"
-                    + " fromField=connects"
-                    + " toField=airport"
-                    + " direction=bi"
+                    + " start=connects"
+                    + " edge=connects<->airport"
                     + " as allConnections",
                 TEST_INDEX_GRAPH_AIRPORTS, TEST_INDEX_GRAPH_AIRPORTS));
 
@@ -418,7 +470,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         rows(
             "ORD",
             List.of("JFK"),
-            List.of(List.of("JFK", List.of("BOS", "ORD")), List.of("BOS", List.of("JFK", "PWM")))));
+            List.of(
+                Map.of("airport", "JFK", "connects", List.of("BOS", "ORD")),
+                Map.of("airport", "BOS", "connects", List.of("JFK", "PWM")))));
   }
 
   // ==================== Filter Tests ====================
@@ -435,9 +489,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo-->name"
                     + " filter=(id > 3)"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -459,10 +512,10 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         result,
         rows("Dev", "Eliot", 1, Collections.emptyList()),
         rows("Eliot", "Ron", 2, Collections.emptyList()),
-        rows("Ron", "Andrew", 3, List.of(Arrays.asList("Andrew", null, 4))),
+        rows("Ron", "Andrew", 3, List.of(mapOf("name", "Andrew", "reportsTo", null, "id", 4))),
         rows("Andrew", null, 4, Collections.emptyList()),
         rows("Asya", "Ron", 5, Collections.emptyList()),
-        rows("Dan", "Andrew", 6, List.of(Arrays.asList("Andrew", null, 4))));
+        rows("Dan", "Andrew", 6, List.of(mapOf("name", "Andrew", "reportsTo", null, "id", 4))));
   }
 
   /**
@@ -477,9 +530,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Ron'"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo-->name"
                     + " filter=(name != 'Andrew')"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -506,9 +558,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Dev'"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo-->name"
                     + " maxDepth=3"
                     + " filter=(id <= 3)"
                     + " as reportingHierarchy",
@@ -524,7 +575,13 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     // -> then Ron.reportsTo=Andrew -> Andrew(id=4) is filtered out -> stops
     verifyDataRows(
         result,
-        rows("Dev", "Eliot", 1, List.of(List.of("Eliot", "Ron", 2), List.of("Ron", "Andrew", 3))));
+        rows(
+            "Dev",
+            "Eliot",
+            1,
+            List.of(
+                Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2),
+                Map.of("name", "Ron", "reportsTo", "Andrew", "id", 3))));
   }
 
   // ==================== Edge Cases ====================
@@ -538,9 +595,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'NonExistent'"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo-->name"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
 
@@ -562,9 +618,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name = 'Andrew'"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo-->name"
                     + " as reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
 
@@ -585,9 +640,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo-->name"
                     + " as reportingHierarchy"
                     + " | stats count() by name",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -611,9 +665,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo-->name"
                     + " as reportingHierarchy"
                     + " | fields name, reportingHierarchy",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -621,12 +674,12 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     verifySchema(result, schema("name", "string"), schema("reportingHierarchy", "array"));
     verifyDataRows(
         result,
-        rows("Dev", List.of(List.of("Eliot", "Ron", 2))),
-        rows("Eliot", List.of(List.of("Ron", "Andrew", 3))),
-        rows("Ron", List.of(Arrays.asList("Andrew", null, 4))),
+        rows("Dev", List.of(Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2))),
+        rows("Eliot", List.of(Map.of("name", "Ron", "reportsTo", "Andrew", "id", 3))),
+        rows("Ron", List.of(mapOf("name", "Andrew", "reportsTo", null, "id", 4))),
         rows("Andrew", Collections.emptyList()),
-        rows("Asya", List.of(List.of("Ron", "Andrew", 3))),
-        rows("Dan", List.of(Arrays.asList("Andrew", null, 4))));
+        rows("Asya", List.of(Map.of("name", "Ron", "reportsTo", "Andrew", "id", 3))),
+        rows("Dan", List.of(mapOf("name", "Andrew", "reportsTo", null, "id", 4))));
   }
 
   // ==================== Batch Mode Tests ====================
@@ -646,9 +699,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name in ('Dev', 'Asya')"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo-->name"
                     + " depthField=depth"
                     + " maxDepth=3"
                     + " batchMode=true"
@@ -659,8 +711,12 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(
-            List.of(List.of("Dev", "Eliot", 1), List.of("Asya", "Ron", 5)),
-            List.of(List.of("Ron", "Andrew", 3, 0), Arrays.asList("Andrew", null, 4, 1))));
+            List.of(
+                Map.of("name", "Dev", "reportsTo", "Eliot", "id", 1),
+                Map.of("name", "Asya", "reportsTo", "Ron", "id", 5)),
+            List.of(
+                mapOf("name", "Ron", "reportsTo", "Andrew", "id", 3, "depth", 0),
+                mapOf("name", "Andrew", "reportsTo", null, "id", 4, "depth", 1))));
   }
 
   /**
@@ -675,9 +731,8 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s"
                     + " | graphLookup %s"
-                    + " startField=nearestAirport"
-                    + " fromField=connects"
-                    + " toField=airport"
+                    + " start=nearestAirport"
+                    + " edge=connects-->airport"
                     + " batchMode=true"
                     + " depthField=depth"
                     + " maxDepth=3"
@@ -692,11 +747,14 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(
-            List.of(List.of("Dev", "JFK"), List.of("Eliot", "JFK"), List.of("Jeff", "BOS")),
             List.of(
-                List.of("JFK", List.of("BOS", "ORD"), 0),
-                List.of("BOS", List.of("JFK", "PWM"), 0),
-                List.of("PWM", List.of("BOS", "LHR"), 1))));
+                Map.of("name", "Dev", "nearestAirport", "JFK"),
+                Map.of("name", "Eliot", "nearestAirport", "JFK"),
+                Map.of("name", "Jeff", "nearestAirport", "BOS")),
+            List.of(
+                mapOf("airport", "JFK", "connects", List.of("BOS", "ORD"), "depth", 0),
+                mapOf("airport", "BOS", "connects", List.of("JFK", "PWM"), "depth", 0),
+                mapOf("airport", "PWM", "connects", List.of("BOS", "LHR"), "depth", 1))));
   }
 
   /**
@@ -711,12 +769,10 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 "source=%s"
                     + " | where name in ('Dev', 'Dan')"
                     + " | graphLookup %s"
-                    + " startField=reportsTo"
-                    + " fromField=reportsTo"
-                    + " toField=name"
+                    + " start=reportsTo"
+                    + " edge=reportsTo<->name"
                     + " depthField=depth"
                     + " maxDepth=3"
-                    + " direction=bi"
                     + " batchMode=true"
                     + " as connections",
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
@@ -727,12 +783,137 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(
-            List.of(List.of("Dev", "Eliot", 1), List.of("Dan", "Andrew", 6)),
             List.of(
-                List.of("Dev", "Eliot", 1, 0),
-                List.of("Eliot", "Ron", 2, 0),
-                Arrays.asList("Andrew", null, 4, 0),
-                List.of("Dan", "Andrew", 6, 0),
-                List.of("Asya", "Ron", 5, 1))));
+                Map.of("name", "Dev", "reportsTo", "Eliot", "id", 1),
+                Map.of("name", "Dan", "reportsTo", "Andrew", "id", 6)),
+            List.of(
+                mapOf("name", "Dev", "reportsTo", "Eliot", "id", 1, "depth", 0),
+                mapOf("name", "Eliot", "reportsTo", "Ron", "id", 2, "depth", 0),
+                mapOf("name", "Andrew", "reportsTo", null, "id", 4, "depth", 0),
+                mapOf("name", "Dan", "reportsTo", "Andrew", "id", 6, "depth", 0),
+                mapOf("name", "Asya", "reportsTo", "Ron", "id", 5, "depth", 1))));
+  }
+
+  // ==================== Top-Level Literal Start Tests ====================
+
+  /**
+   * Test 20: Top-level graphLookup with single literal start value. BFS from "Eliot" finds the
+   * reporting chain: Eliot->Ron->Andrew.
+   */
+  @Test
+  public void testTopLevelGraphLookupSingleLiteral() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='Eliot'"
+                    + " edge=reportsTo-->name"
+                    + " maxDepth=5"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES));
+
+    // Output is single row with just the reportingHierarchy array
+    verifySchema(result, schema("reportingHierarchy", "array"));
+    // BFS from "Eliot": toField=name matches Eliot -> Eliot row has reportsTo=Ron
+    // -> then name matches Ron -> Ron row has reportsTo=Andrew
+    // -> then name matches Andrew -> Andrew row has reportsTo=null (no further traversal)
+    verifyDataRows(
+        result,
+        rows(
+            (Object)
+                List.of(
+                    Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2),
+                    Map.of("name", "Ron", "reportsTo", "Andrew", "id", 3),
+                    mapOf("name", "Andrew", "reportsTo", null, "id", 4))));
+  }
+
+  /**
+   * Test 21: Top-level graphLookup with literal list start values. Combined BFS from "Eliot" and
+   * "Andrew".
+   */
+  @Test
+  public void testTopLevelGraphLookupLiteralList() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='Eliot', 'Andrew'"
+                    + " edge=reportsTo-->name"
+                    + " maxDepth=5"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(result, schema("reportingHierarchy", "array"));
+    // Combined BFS from {Eliot, Andrew}:
+    // Depth 0: name IN (Eliot, Andrew) → finds Eliot (reportsTo=Ron) and Andrew (reportsTo=null)
+    // Depth 1: name IN (Ron) AND reportsTo NOT IN (Eliot, Andrew, Ron) → Ron excluded
+    //   because Ron.reportsTo=Andrew is in visited set
+    verifyDataRows(
+        result,
+        rows(
+            (Object)
+                List.of(
+                    Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2),
+                    mapOf("name", "Andrew", "reportsTo", null, "id", 4))));
+  }
+
+  /** Test 22: Top-level graphLookup with maxDepth. */
+  @Test
+  public void testTopLevelGraphLookupWithMaxDepth() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='Eliot'"
+                    + " edge=reportsTo-->name"
+                    + " maxDepth=0"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(result, schema("reportingHierarchy", "array"));
+    // maxDepth=0: Only immediate match for "Eliot" (Eliot row), no further traversal
+    verifyDataRows(
+        result, rows((Object) List.of(Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2))));
+  }
+
+  /** Test 23: Top-level graphLookup with depthField and maxDepth. */
+  @Test
+  public void testTopLevelGraphLookupWithDepthField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='Eliot'"
+                    + " edge=reportsTo-->name"
+                    + " depthField=level"
+                    + " maxDepth=5"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(result, schema("reportingHierarchy", "array"));
+    verifyDataRows(
+        result,
+        rows(
+            (Object)
+                List.of(
+                    mapOf("name", "Eliot", "reportsTo", "Ron", "id", 2, "level", 0),
+                    mapOf("name", "Ron", "reportsTo", "Andrew", "id", 3, "level", 1),
+                    mapOf("name", "Andrew", "reportsTo", null, "id", 4, "level", 2))));
+  }
+
+  /** Test 24: Top-level graphLookup with non-existent start value yields empty results. */
+  @Test
+  public void testTopLevelGraphLookupNonExistentStart() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='NonExistent'"
+                    + " edge=reportsTo-->name"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(result, schema("reportingHierarchy", "array"));
+    verifyDataRows(result, rows((Object) Collections.emptyList()));
   }
 }

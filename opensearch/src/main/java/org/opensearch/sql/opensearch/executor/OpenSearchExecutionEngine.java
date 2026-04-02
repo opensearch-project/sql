@@ -145,6 +145,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             listener.onResponse(openSearchExplain.apply(plan));
           } catch (Exception e) {
             listener.onFailure(e);
+          } finally {
+            plan.close();
           }
         });
   }
@@ -227,33 +229,48 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   }
 
   /**
-   * Process values recursively, handling geo points and nested maps. Geo points are converted to
-   * OpenSearchExprGeoPointValue. Maps are recursively processed to handle nested structures.
+   * Process values recursively, handling geo points, nested maps, structs and arrays. When a {@link
+   * RelDataType} is provided, struct values (StructImpl) are converted to Maps keyed by field
+   * names, preserving field-name information in the JSON output.
+   *
+   * @param value The raw value from the JDBC result set
+   * @param type The Calcite type metadata for this value, or null if unavailable
    */
-  private static Object processValue(Object value) throws SQLException {
+  @SuppressWarnings("unchecked")
+  private static Object processValue(Object value, RelDataType type) throws SQLException {
     if (value == null) {
       return null;
     }
-    if (value instanceof Point) {
-      Point point = (Point) value;
+    if (value instanceof Point point) {
       return new OpenSearchExprGeoPointValue(point.getY(), point.getX());
     }
     if (value instanceof Map) {
       Map<String, Object> map = (Map<String, Object>) value;
       Map<String, Object> convertedMap = new HashMap<>();
       for (Map.Entry<String, Object> entry : map.entrySet()) {
-        convertedMap.put(entry.getKey(), processValue(entry.getValue()));
+        convertedMap.put(entry.getKey(), processValue(entry.getValue(), null));
       }
       return convertedMap;
     }
-    if (value instanceof StructImpl) {
-      return Arrays.asList(((StructImpl) value).getAttributes());
+    if (value instanceof StructImpl structImpl) {
+      Object[] attrs = structImpl.getAttributes();
+      if (type != null && type.getSqlTypeName() == SqlTypeName.ROW) {
+        List<RelDataTypeField> fields = type.getFieldList();
+        Map<String, Object> map = new LinkedHashMap<>();
+        for (int i = 0; i < fields.size() && i < attrs.length; i++) {
+          map.put(fields.get(i).getName(), processValue(attrs[i], fields.get(i).getType()));
+        }
+        return map;
+      }
+      return Arrays.asList(attrs);
     }
     if (value instanceof List) {
       List<Object> list = (List<Object>) value;
+      RelDataType componentType =
+          (type != null && type.getComponentType() != null) ? type.getComponentType() : null;
       List<Object> convertedList = new ArrayList<>();
       for (Object item : list) {
-        convertedList.add(processValue(item));
+        convertedList.add(processValue(item, componentType));
       }
       return convertedList;
     }
@@ -276,7 +293,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       for (int i = 1; i <= columnCount; i++) {
         String columnName = metaData.getColumnName(i);
         Object value = resultSet.getObject(columnName);
-        Object converted = processValue(value);
+        Object converted = processValue(value, fieldTypes.get(i - 1));
         ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
         row.put(columnName, exprValue);
       }
