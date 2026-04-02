@@ -1831,9 +1831,7 @@ public class AstBuilderTest {
 
   @Test
   public void testUnionWithSubsearches() {
-    plan(
-        "| union [search source=t1 | where age > 30] "
-            + "[search source=t2 | where age < 20]");
+    plan("| union [search source=t1 | where age > 30] " + "[search source=t2 | where age < 20]");
   }
 
   @Test
