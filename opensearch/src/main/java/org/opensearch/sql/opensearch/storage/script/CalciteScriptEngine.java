@@ -137,8 +137,17 @@ public class CalciteScriptEngine implements ScriptEngine {
             getter,
             new RelRecordType(List.of()));
 
-    Function1<DataContext, Object[]> function =
-        new RexExecutable(code, "generated Rex code").getFunction();
+    // Set thread context classloader so patched Calcite (CALCITE-3745) uses the SQL
+    // plugin's classloader for Janino compilation instead of the parent classloader.
+    Thread currentThread = Thread.currentThread();
+    ClassLoader originalCl = currentThread.getContextClassLoader();
+    currentThread.setContextClassLoader(CalciteScriptEngine.class.getClassLoader());
+    Function1<DataContext, Object[]> function;
+    try {
+      function = new RexExecutable(code, "generated Rex code").getFunction();
+    } finally {
+      currentThread.setContextClassLoader(originalCl);
+    }
 
     if (CONTEXTS.containsKey(context)) {
       return context.factoryClazz.cast(CONTEXTS.get(context).apply(function, rexNode.getType()));
