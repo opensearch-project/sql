@@ -20,22 +20,45 @@ import lombok.Getter;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
 @Getter
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(
+    callSuper = false,
+    exclude = {"line", "column"})
 public class QualifiedName extends UnresolvedExpression {
   public static final String DELIMITER = ".";
   private final List<String> parts;
 
+  /**
+   * Optional source position for error reporting. Only populated when parsing from source text. Not
+   * included in equals/hashCode as it's metadata for diagnostics.
+   */
+  private final Integer line;
+
+  private final Integer column;
+
   public QualifiedName(String name) {
-    this.parts = Collections.singletonList(name);
+    this(Collections.singletonList(name), null, null);
   }
 
   /** QualifiedName Constructor. */
   public QualifiedName(Iterable<String> parts) {
+    this(parts, null, null);
+  }
+
+  /**
+   * Constructor with source position.
+   *
+   * @param parts The parts of the qualified name
+   * @param line Line number (1-based), null if not available
+   * @param column Column position (0-based), null if not available
+   */
+  public QualifiedName(Iterable<String> parts, Integer line, Integer column) {
     List<String> partsList = StreamSupport.stream(parts.spliterator(), false).collect(toList());
     if (partsList.isEmpty()) {
       throw new IllegalArgumentException("parts is empty");
     }
     this.parts = partsList;
+    this.line = line;
+    this.column = column;
   }
 
   /** Construct {@link QualifiedName} from list of string. */

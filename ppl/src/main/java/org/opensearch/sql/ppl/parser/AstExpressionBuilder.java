@@ -903,11 +903,21 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   public QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
-    return new QualifiedName(
+    List<String> parts =
         ctx.stream()
             .map(RuleContext::getText)
             .map(StringUtils::unquoteIdentifier)
-            .collect(Collectors.toList()));
+            .collect(Collectors.toList());
+
+    // Capture source position from the first identifier for error reporting
+    if (!ctx.isEmpty()) {
+      ParserRuleContext first = ctx.get(0);
+      int line = first.getStart().getLine();
+      int column = first.getStart().getCharPositionInLine();
+      return new QualifiedName(parts, line, column);
+    }
+
+    return new QualifiedName(parts);
   }
 
   private List<UnresolvedExpression> singleFieldRelevanceArguments(

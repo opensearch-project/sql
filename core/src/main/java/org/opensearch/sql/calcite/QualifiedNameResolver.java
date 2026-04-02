@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -331,11 +332,19 @@ public class QualifiedNameResolver {
     // Collect all available fields from the current context
     List<String> availableFields = context.relBuilder.peek().getRowType().getFieldNames();
 
-    return ErrorReport.wrap(
-            new IllegalArgumentException(String.format("Field [%s] not found.", node.toString())))
-        .code(ErrorCode.FIELD_NOT_FOUND)
-        .context("requested_field", node.toString())
-        .context("available_fields", availableFields)
-        .build();
+    ErrorReport.Builder builder =
+        ErrorReport.wrap(
+                new IllegalArgumentException(
+                    String.format("Field [%s] not found.", node.toString())))
+            .code(ErrorCode.FIELD_NOT_FOUND)
+            .context("requested_field", node.toString())
+            .context("available_fields", availableFields);
+
+    // Add source position if available (populated by PPL parser)
+    if (node.getLine() != null && node.getColumn() != null) {
+      builder.context("query_pos", Map.of("line", node.getLine(), "column", node.getColumn()));
+    }
+
+    return builder.build();
   }
 }
