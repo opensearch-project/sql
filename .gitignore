@@ -53,6 +53,9 @@ http-client.env.json
 .factorypath
 
 # Coding agent files (could be symlinks)
-.claude
+.claude/*
+!.claude/settings.json
+!.claude/commands/
+.claude/settings.local.json
 .clinerules
 memory-bank
