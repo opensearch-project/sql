@@ -422,11 +422,8 @@ public class CalciteToolsHelper {
             }
           };
       rel = rel.accept(shuttle);
-      // Set thread context classloader so patched Calcite (CALCITE-3745) uses the SQL
-      // plugin's classloader for Janino compilation instead of the parent classloader.
-      Thread currentThread = Thread.currentThread();
-      ClassLoader originalCl = currentThread.getContextClassLoader();
-      currentThread.setContextClassLoader(CalciteToolsHelper.class.getClassLoader());
+      // Context classloader is set by callers (QueryService.executeWithCalcite/explainWithCalcite)
+      // to support patched Calcite (CALCITE-3745) Janino compilation.
       try (Connection connection = context.connection) {
         final RelRunner runner = connection.unwrap(RelRunner.class);
         PreparedStatement preparedStatement = runner.prepareStatement(rel);
@@ -445,8 +442,6 @@ public class CalciteToolsHelper {
                   + " count() by @timestamp').");
         }
         throw Util.throwAsRuntime(e);
-      } finally {
-        currentThread.setContextClassLoader(originalCl);
       }
     }
   }

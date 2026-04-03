@@ -69,6 +69,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.fielddata.ScriptDocValues;
+import org.opensearch.sql.calcite.utils.CalciteClassLoaderHelper;
 import org.opensearch.script.AggregationScript;
 import org.opensearch.script.FieldScript;
 import org.opensearch.script.FilterScript;
@@ -137,17 +138,10 @@ public class CalciteScriptEngine implements ScriptEngine {
             getter,
             new RelRecordType(List.of()));
 
-    // Set thread context classloader so patched Calcite (CALCITE-3745) uses the SQL
-    // plugin's classloader for Janino compilation instead of the parent classloader.
-    Thread currentThread = Thread.currentThread();
-    ClassLoader originalCl = currentThread.getContextClassLoader();
-    currentThread.setContextClassLoader(CalciteScriptEngine.class.getClassLoader());
-    Function1<DataContext, Object[]> function;
-    try {
-      function = new RexExecutable(code, "generated Rex code").getFunction();
-    } finally {
-      currentThread.setContextClassLoader(originalCl);
-    }
+    Function1<DataContext, Object[]> function =
+        CalciteClassLoaderHelper.withCalciteClassLoader(
+            () -> new RexExecutable(code, "generated Rex code").getFunction(),
+            CalciteScriptEngine.class);
 
     if (CONTEXTS.containsKey(context)) {
       return context.factoryClazz.cast(CONTEXTS.get(context).apply(function, rexNode.getType()));
