@@ -250,8 +250,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitIsNullPredicate(
-      OpenSearchPPLParser.IsNullPredicateContext ctx) {
+  public UnresolvedExpression visitIsNullPredicate(OpenSearchPPLParser.IsNullPredicateContext ctx) {
     return new Function(
         ctx.nullNotnull().NOT() == null
             ? IS_NULL.getName().getFunctionName()

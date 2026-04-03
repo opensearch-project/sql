@@ -142,8 +142,19 @@ source=accounts
 | where not isnotnull(employer)
 | fields account_number, employer
 ```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 1/1
++----------------+----------+
+| account_number | employer |
+|----------------+----------|
+| 18             | null     |
++----------------+----------+
+```
 
-The `IS NOT NULL` predicate syntax can be used as an equivalent alternative:
+The `IS NOT NULL` predicate syntax is equivalent to `isnotnull()`:
 
 ```ppl
 source=accounts
@@ -154,11 +165,13 @@ source=accounts
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 1/1
+fetched rows / total rows = 3/3
 +----------------+----------+
 | account_number | employer |
 |----------------+----------|
-| 18             | null     |
+| 1              | Pyrami   |
+| 6              | Netagy   |
+| 13             | Quility  |
 +----------------+----------+
 ```
   
