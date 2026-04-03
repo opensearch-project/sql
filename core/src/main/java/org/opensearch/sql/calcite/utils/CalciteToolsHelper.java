@@ -422,8 +422,7 @@ public class CalciteToolsHelper {
             }
           };
       rel = rel.accept(shuttle);
-      // Context classloader is set by callers (QueryService.executeWithCalcite/explainWithCalcite)
-      // to support patched Calcite (CALCITE-3745) Janino compilation.
+      // the line we changed here
       try (Connection connection = context.connection) {
         final RelRunner runner = connection.unwrap(RelRunner.class);
         PreparedStatement preparedStatement = runner.prepareStatement(rel);
