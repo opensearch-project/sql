@@ -10,16 +10,27 @@ The follow-up agent runs in a fresh worktree. First checkout the PR branch, then
 # Checkout the PR branch in this worktree
 gh pr checkout <pr_number>
 
-# Load PR state and Decision Log
-gh pr view <pr_number> --json title,body,state,reviews,comments,statusCheckRollup,mergeable
+# Load PR state — reviews, CI, mergeability
+gh pr view <pr_number> --json title,body,state,reviews,statusCheckRollup,mergeable
 gh pr checks <pr_number>
-# Read the Decision Log comment FIRST — contains rejected alternatives and pitfalls
-gh api repos/<owner>/<repo>/pulls/<pr_number>/comments
+
+# Load ALL comments — includes bot comments (Code-Diff-Analyzer, PR Reviewer Guide, Code Suggestions) and human comments
+gh pr view <pr_number> --json comments --jq '.comments[] | {author: .author.login, body: .body}'
 ```
+
+Categorize ALL signals — not just CI and human reviews:
+
+| Signal | Type |
+|--------|------|
+| `statusCheckRollup` has failures | CI failure |
+| `reviews` has CHANGES_REQUESTED | Review feedback |
+| `mergeable` is CONFLICTING | Merge conflict |
+| Bot comments with actionable suggestions | Review feedback (treat like human review) |
+| All pass + approved | Ready — run `gh pr ready` |
 
 ## Handle Review Feedback
 
-For each comment, **cross-check against the Decision Log first**:
+For each comment (human OR bot), **cross-check against the Decision Log first**:
 
 | Type | Action |
 |------|--------|
