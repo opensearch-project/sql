@@ -234,7 +234,8 @@ git commit -s -m "[BugFix] Fix <description> (#<issue_number>)"
 
 # Sync with main (merge, not rebase — PRs use squash-merge)
 git fetch origin && git merge origin/main
-# Re-run tests if merge brought changes
+# Always re-run tests after merge — even a trivial merge can introduce regressions
+./gradlew test && ./gradlew :integ-test:integTest -Dtests.class="*<YourIT>"
 
 # Push to personal fork (NOT origin if it points to upstream)
 git remote -v  # confirm your fork remote
@@ -244,7 +245,7 @@ git push -u <your_fork_remote> <branch_name>
 ### 3.3 Create Draft PR
 
 ```bash
-gh pr create --draft --title "[BugFix] Fix <description> (#<issue_number>)" --body "$(cat <<'EOF'
+gh pr create --draft --repo opensearch-project/sql --title "[BugFix] Fix <description> (#<issue_number>)" --body "$(cat <<'EOF'
 ### Description
 <Brief description of fix and root cause>
 

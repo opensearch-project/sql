@@ -19,6 +19,7 @@
       "Bash(git fetch:*)",
       "Bash(git checkout:*)",
       "Bash(git push:*)",
+      "Bash(git merge:*)",
       "Bash(git cherry-pick:*)",
       "Bash(git reset:*)"
     ]

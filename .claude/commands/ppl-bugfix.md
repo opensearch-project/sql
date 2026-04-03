@@ -43,11 +43,13 @@ Use the resolved mode as the `mode` parameter when dispatching the subagent in S
 For each issue/PR reference in the input, resolve its state. Run these lookups in parallel when there are multiple references.
 
 ```bash
-# Issue → PR
+# Issue → PR (check multiple closing keyword variants)
 gh pr list --search "Resolves #<issue_number>" --json number,url,state --limit 5
+gh pr list --search "Fixes #<issue_number>" --json number,url,state --limit 5
+gh pr list --search "Closes #<issue_number>" --json number,url,state --limit 5
 
 # PR → Issue
-gh pr view <pr_number> --json body | jq -r '.body' | grep -oP 'Resolves #\K[0-9]+'
+gh pr view <pr_number> --json body | jq -r '.body' | grep -oiE '(resolves|fixes|closes) #[0-9]+' | grep -oE '[0-9]+'
 ```
 
 | State | Action |

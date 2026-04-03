@@ -52,7 +52,7 @@ When you need to amend a commit (e.g. remove Co-Authored-By, reword message) and
 git checkout -B clean-branch origin/main
 git cherry-pick <fix_commit_sha>
 git commit --amend -s -m "<updated message>"
-git push <your_fork_remote> clean-branch:<pr_branch> --force
+git push <your_fork_remote> clean-branch:<pr_branch> --force-with-lease
 ```
 
 ## Handle CI Failures
