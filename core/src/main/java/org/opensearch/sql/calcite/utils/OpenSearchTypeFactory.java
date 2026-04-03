@@ -397,4 +397,61 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     }
     return type;
   }
+
+  /**
+   * Whether a given RelDataType is a user-defined type (UDT)
+   */
+  public static boolean isUserDefinedType(RelDataType type) {
+    return type instanceof AbstractExprRelDataType<?>;
+  }
+
+  /**
+   * Checks if the RelDataType represents a numeric type. Supports standard SQL numeric types
+   * (INTEGER, BIGINT, SMALLINT, TINYINT, FLOAT, DOUBLE, DECIMAL, REAL), OpenSearch UDT numeric
+   * types, and string types (VARCHAR, CHAR).
+   */
+  public static boolean isNumericType(RelDataType fieldType) {
+    SqlTypeName sqlType = fieldType.getSqlTypeName();
+    if (sqlType == SqlTypeName.INTEGER
+        || sqlType == SqlTypeName.BIGINT
+        || sqlType == SqlTypeName.SMALLINT
+        || sqlType == SqlTypeName.TINYINT
+        || sqlType == SqlTypeName.FLOAT
+        || sqlType == SqlTypeName.DOUBLE
+        || sqlType == SqlTypeName.DECIMAL
+        || sqlType == SqlTypeName.REAL) {
+      return true;
+    }
+    if (sqlType == SqlTypeName.VARCHAR || sqlType == SqlTypeName.CHAR) {
+      return true;
+    }
+    if (isUserDefinedType(fieldType)) {
+      AbstractExprRelDataType<?> exprType = (AbstractExprRelDataType<?>) fieldType;
+      ExprType udtType = exprType.getExprType();
+      return ExprCoreType.numberTypes().contains(udtType);
+    }
+    return false;
+  }
+
+  /**
+   * Checks if the RelDataType represents a time-based field.
+   */
+  public static boolean isTimeBasedType(RelDataType fieldType) {
+    SqlTypeName sqlType = fieldType.getSqlTypeName();
+    if (sqlType == SqlTypeName.TIMESTAMP
+        || sqlType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+        || sqlType == SqlTypeName.DATE
+        || sqlType == SqlTypeName.TIME
+        || sqlType == SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE) {
+      return true;
+    }
+    if (isUserDefinedType(fieldType)) {
+      AbstractExprRelDataType<?> exprType = (AbstractExprRelDataType<?>) fieldType;
+      ExprType udtType = exprType.getExprType();
+      return udtType == ExprCoreType.TIMESTAMP
+          || udtType == ExprCoreType.DATE
+          || udtType == ExprCoreType.TIME;
+    }
+    return fieldType.toString().contains("EXPR_TIMESTAMP");
+  }
 }

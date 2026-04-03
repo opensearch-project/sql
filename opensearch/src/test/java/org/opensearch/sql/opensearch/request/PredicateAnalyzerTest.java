@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.spy;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.Range;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -23,10 +25,12 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Sarg;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -1202,6 +1206,62 @@ public class PredicateAnalyzerTest {
                     "value" : 12,
                     "boost" : 1.0
                   }
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void search_complementedPointsWithNullAsFalse_generatesExistsAndNotInQuery()
+      throws ExpressionNotAnalyzableException {
+    // Simulates: a != 12 AND a != 13 AND isnotnull(a)
+    // Calcite merges this into SEARCH($0, Sarg[...; NULL AS FALSE]) with complemented points
+    Sarg<BigDecimal> sarg =
+        Sarg.of(
+            RexUnknownAs.FALSE,
+            ImmutableRangeSet.<BigDecimal>builder()
+                .add(Range.lessThan(BigDecimal.valueOf(12)))
+                .add(Range.open(BigDecimal.valueOf(12), BigDecimal.valueOf(13)))
+                .add(Range.greaterThan(BigDecimal.valueOf(13)))
+                .build());
+    RexNode sargLiteral =
+        builder.makeSearchArgumentLiteral(sarg, typeFactory.createSqlType(SqlTypeName.DECIMAL));
+    RexNode call = builder.makeCall(SqlStdOperatorTable.SEARCH, field1, sargLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must" : [
+              {
+                "bool" : {
+                  "must_not" : [
+                    {
+                      "terms" : {
+                        "a" : [
+                          12.0,
+                          13.0
+                        ],
+                        "boost" : 1.0
+                      }
+                    }
+                  ],
+                  "adjust_pure_negative" : true,
+                  "boost" : 1.0
+                }
+              },
+              {
+                "exists" : {
+                  "field" : "a",
+                  "boost" : 1.0
                 }
               }
             ],

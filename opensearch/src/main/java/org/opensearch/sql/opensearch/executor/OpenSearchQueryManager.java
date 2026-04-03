@@ -16,6 +16,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.execution.AbstractPlan;
+import org.opensearch.tasks.CancellableTask;
 import org.opensearch.threadpool.Scheduler;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
@@ -33,15 +34,32 @@ public class OpenSearchQueryManager implements QueryManager {
   public static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
   public static final String SQL_BACKGROUND_THREAD_POOL_NAME = "sql_background_io";
 
+  private static final ThreadLocal<CancellableTask> cancellableTask = new ThreadLocal<>();
+
+  public static void setCancellableTask(CancellableTask task) {
+    cancellableTask.set(task);
+  }
+
+  public static CancellableTask getCancellableTask() {
+    return cancellableTask.get();
+  }
+
+  public static void clearCancellableTask() {
+    cancellableTask.remove();
+  }
+
   @Override
   public QueryId submit(AbstractPlan queryPlan) {
     TimeValue timeout = settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT);
-    schedule(nodeClient, queryPlan::execute, timeout);
+    CancellableTask cancelTask = cancellableTask.get();
+    cancellableTask.remove();
+    schedule(nodeClient, queryPlan::execute, timeout, cancelTask);
 
     return queryPlan.getQueryId();
   }
 
-  private void schedule(NodeClient client, Runnable task, TimeValue timeout) {
+  private void schedule(
+      NodeClient client, Runnable task, TimeValue timeout, CancellableTask cancelTask) {
     ThreadPool threadPool = client.threadPool();
 
     Runnable wrappedTask =
@@ -60,6 +78,8 @@ public class OpenSearchQueryManager implements QueryManager {
                       timeout,
                       ThreadPool.Names.GENERIC);
 
+              setCancellableTask(cancelTask);
+
               try {
                 task.run();
                 timeoutTask.cancel();
@@ -76,6 +96,8 @@ public class OpenSearchQueryManager implements QueryManager {
                 }
 
                 throw e;
+              } finally {
+                clearCancellableTask();
               }
             });
 

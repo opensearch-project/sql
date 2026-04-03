@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_EMPLOYEES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_MVEXPAND_EDGE_CASES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 
@@ -28,6 +29,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     loadIndex(Index.DOG);
     loadIndex(Index.STRINGS);
     loadIndex(Index.MVEXPAND_EDGE_CASES);
+    loadIndex(Index.GRAPH_EMPLOYEES);
   }
 
   @Test
@@ -227,6 +229,50 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
       verifyQuery(result);
     }
+  }
+
+  @Test
+  public void testConvertCommand() throws IOException {
+    JSONObject result;
+    try {
+      executeQuery(String.format("search source=%s | convert auto(balance)", TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      verifyQuery(result);
+    }
+  }
+
+  @Test
+  public void testGraphLookup() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "source=%s | graphLookup %s start=reportsTo edge=reportsTo-->name"
+                      + " as reportingHierarchy",
+                  TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
+
+  @Test
+  public void testGraphLookupTopLevel() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "graphLookup %s start='Eliot' edge=reportsTo-->name as reportingHierarchy",
+                  TEST_INDEX_GRAPH_EMPLOYEES));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
   }
 
   private void verifyQuery(JSONObject result) throws IOException {

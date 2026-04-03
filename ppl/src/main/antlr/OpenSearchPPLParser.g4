@@ -48,6 +48,7 @@ pplCommands
    | showDataSourcesCommand
    | searchCommand
    | multisearchCommand
+   | graphLookupCommand
    ;
 
 commands
@@ -74,6 +75,7 @@ commands
    | adCommand
    | mlCommand
    | fillnullCommand
+   | convertCommand
    | trendlineCommand
    | appendcolCommand
    | addtotalsCommand
@@ -124,6 +126,7 @@ commandName
    | AD
    | ML
    | FILLNULL
+   | CONVERT
    | EXPAND
     | MVEXPAND
    | FLATTEN
@@ -227,7 +230,7 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA? renameClasue)*
+   : RENAME renameClause (COMMA? renameClause)*
    ;
 
 replaceCommand
@@ -540,6 +543,14 @@ replacementPair
    : fieldExpression EQUAL replacement = valueExpression
    ;
 
+convertCommand
+   : CONVERT convertFunction (COMMA? convertFunction)*
+   ;
+
+convertFunction
+   : functionName = ident LT_PRTHS fieldExpression RT_PRTHS (AS alias = fieldExpression)?
+   ;
+
 trendlineCommand
    : TRENDLINE (SORT sortField)? trendlineClause (trendlineClause)*
    ;
@@ -646,16 +657,22 @@ addcoltotalsOption
    ;
 
 graphLookupCommand
-   : GRAPHLOOKUP lookupTable = tableSourceClause graphLookupOption* AS outputField = fieldExpression
+   : GRAPHLOOKUP lookupTable = tableSourceClause startClause edgeClause graphLookupArgs* AS outputField = fieldExpression
    ;
 
-graphLookupOption
-   : (START_FIELD EQUAL fieldExpression)
-   | (FROM_FIELD EQUAL fieldExpression)
-   | (TO_FIELD EQUAL fieldExpression)
-   | (MAX_DEPTH EQUAL integerLiteral)
+startClause
+   : START EQUAL valueList
+   | START EQUAL startField = fieldExpression
+   | START EQUAL startValue = literalValue
+   ;
+
+edgeClause
+   : edgeClauseToken = EDGE_CLAUSE
+   ;
+
+graphLookupArgs
+   : (MAX_DEPTH EQUAL integerLiteral)
    | (DEPTH_FIELD EQUAL fieldExpression)
-   | (DIRECTION EQUAL (UNI | BI))
    | (SUPPORT_ARRAY EQUAL booleanLiteral)
    | (BATCH_MODE EQUAL booleanLiteral)
    | (USE_PIT EQUAL booleanLiteral)
@@ -691,7 +708,7 @@ sourceReference
 
 sourceFilterArg
    : ident EQUAL literalValue
-   | ident IN valueList
+   | ident IN LT_PRTHS valueList RT_PRTHS
    ;
 
 // join
@@ -744,7 +761,7 @@ joinOption
    | MAX EQUAL integerLiteral                           # maxOption
    ;
 
-renameClasue
+renameClause
    : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
@@ -892,7 +909,7 @@ expression
    : valueExpression                                            # valueExpr
    | relevanceExpression                                        # relevanceExpr
    | left = expression comparisonOperator right = expression    # compareExpr
-   | expression NOT? IN valueList                               # inExpr
+   | expression NOT? IN LT_PRTHS valueList RT_PRTHS             # inExpr
    | expression NOT? BETWEEN expression AND expression          # between
    ;
 
@@ -1434,6 +1451,7 @@ positionFunctionName
    | REGEXP
    | LIKE
    | ILIKE
+   | CONTAINS
    ;
 
 singleFieldRelevanceFunctionName
@@ -1535,7 +1553,7 @@ intervalUnit
    ;
 
 valueList
-   : LT_PRTHS literalValue (COMMA literalValue)* RT_PRTHS
+   : literalValue (COMMA literalValue)*
    ;
 
 qualifiedName
@@ -1599,6 +1617,7 @@ searchableKeyWord
    | ELSE
    | ARROW
    | BETWEEN
+   | CONTAINS
    | EXISTS
    | SOURCE
    | INDEX
@@ -1725,11 +1744,7 @@ searchableKeyWord
    | ROW
    | COL
    | COLUMN_NAME
-   | FROM_FIELD
-   | TO_FIELD
    | MAX_DEPTH
    | DEPTH_FIELD
-   | DIRECTION
-   | UNI
-   | BI
+   | EDGE
    ;

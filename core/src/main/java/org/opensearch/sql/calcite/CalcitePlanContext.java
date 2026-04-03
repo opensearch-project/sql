@@ -24,6 +24,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
@@ -52,6 +53,7 @@ public class CalcitePlanContext {
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
 
+  @Getter @Setter private HighlightConfig highlightConfig;
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
   @Getter @Setter private boolean inCoalesceFunction = false;
@@ -111,6 +113,7 @@ public class CalcitePlanContext {
     this.relBuilder = parent.relBuilder; // Share the same relBuilder
     this.rexBuilder = parent.rexBuilder; // Share the same rexBuilder
     this.functionProperties = parent.functionProperties;
+    this.highlightConfig = parent.highlightConfig;
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
