@@ -7,7 +7,7 @@ on:
 
 jobs:
   auto-close-duplicates:
-    uses: opensearch-project/opensearch-build/.github/workflows/issue-dedupe.yml@main
+    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe.yml@add-issue-dedupe-workflow
     permissions:
       issues: write
     with:
