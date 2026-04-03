@@ -7,9 +7,8 @@ on:
 
 jobs:
   auto-close-duplicates:
-    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe.yml@add-issue-dedupe-workflow
+    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-autoclose.yml@add-issue-dedupe-workflow
     permissions:
       issues: write
     with:
-      mode: 'auto-close'
       grace_days: ${{ vars.DUPLICATE_GRACE_DAYS || '7' }}

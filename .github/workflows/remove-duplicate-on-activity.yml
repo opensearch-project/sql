@@ -6,11 +6,10 @@ on:
 
 jobs:
   remove-duplicate:
-    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe.yml@add-issue-dedupe-workflow
+    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-remove-label.yml@add-issue-dedupe-workflow
     permissions:
       issues: write
     with:
-      mode: 'remove-label'
       issue_number: ${{ github.event.issue.number }}
       issue_state: ${{ github.event.issue.state }}
       has_duplicate_label: ${{ contains(github.event.issue.labels.*.name, 'duplicate') }}

@@ -12,7 +12,7 @@ on:
 
 jobs:
   dedupe:
-    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe.yml@add-issue-dedupe-workflow
+    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-detect.yml@add-issue-dedupe-workflow
     permissions:
       contents: read
       issues: write
@@ -20,6 +20,5 @@ jobs:
     secrets:
       BEDROCK_ACCESS_ROLE: ${{ secrets.BEDROCK_ACCESS_ROLE }}
     with:
-      mode: 'detect'
       issue_number: ${{ github.event.issue.number || inputs.issue_number }}
-      dedupe_prompt: '/dedupe ${{ github.repository }}/issues/${{ github.event.issue.number || inputs.issue_number }}'
+      grace_days: ${{ vars.DUPLICATE_GRACE_DAYS || '7' }}
