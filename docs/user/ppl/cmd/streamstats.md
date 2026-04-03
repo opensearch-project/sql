@@ -80,11 +80,11 @@ For detailed documentation of each function, see [Aggregation Functions](../func
 
 ## Example 1: Calculate the running count of errors by service  
 
-The following query calculates a running count of error and fatal logs, grouped by service. This is useful for tracking how errors accumulate across services during an incident:
+The following query calculates a running count of error logs, grouped by service. This is useful for tracking how errors accumulate across services during an incident:
   
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
+| where severityText IN ('ERROR', 'WARN')
 | sort `resource.attributes.service.name`
 | streamstats count() as running_count by `resource.attributes.service.name`
 | fields `resource.attributes.service.name`, severityText, running_count
@@ -93,16 +93,20 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 7/7
+fetched rows / total rows = 11/11
 +----------------------------------+--------------+---------------+
 | resource.attributes.service.name | severityText | running_count |
 |----------------------------------+--------------+---------------|
 | checkout                         | ERROR        | 1             |
 | checkout                         | ERROR        | 2             |
 | frontend-proxy                   | ERROR        | 1             |
+| frontend-proxy                   | WARN         | 2             |
+| frontend-proxy                   | WARN         | 3             |
 | payment                          | ERROR        | 1             |
-| payment                          | FATAL        | 2             |
-| product-catalog                  | FATAL        | 1             |
+| payment                          | ERROR        | 2             |
+| product-catalog                  | WARN         | 1             |
+| product-catalog                  | WARN         | 2             |
+| product-catalog                  | ERROR        | 3             |
 | recommendation                   | ERROR        | 1             |
 +----------------------------------+--------------+---------------+
 ```

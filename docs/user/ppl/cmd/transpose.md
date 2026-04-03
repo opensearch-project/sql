@@ -30,8 +30,8 @@ fetched rows / total rows = 2/2
 +--------------+-------+-------+-------+-------+-------+
 | column       | row 1 | row 2 | row 3 | row 4 | row 5 |
 |--------------+-------+-------+-------+-------+-------|
-| log_count    | 3     | 5     | 2     | 6     | 4     |
-| severityText | DEBUG | ERROR | FATAL | INFO  | WARN  |
+| log_count    | 3     | 7     | 6     | 4     | null  |
+| severityText | DEBUG | ERROR | INFO  | WARN  | null  |
 +--------------+-------+-------+-------+-------+-------+
 ```
 
@@ -53,8 +53,8 @@ fetched rows / total rows = 2/2
 +--------------+-------+-------+-------+
 | column       | row 1 | row 2 | row 3 |
 |--------------+-------+-------+-------|
-| log_count    | 3     | 5     | 2     |
-| severityText | DEBUG | ERROR | FATAL |
+| log_count    | 3     | 7     | 6     |
+| severityText | DEBUG | ERROR | INFO  |
 +--------------+-------+-------+-------+
 ```
 

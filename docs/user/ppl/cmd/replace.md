@@ -27,7 +27,7 @@ The following query shortens long service names for a compact dashboard view:
 
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
+| where severityText IN ('ERROR', 'WARN')
 | replace 'payment-service' with 'payment' in `resource.attributes.service.name`
 | replace 'inventory-service' with 'inventory' in `resource.attributes.service.name`
 | sort severityNumber, `resource.attributes.service.name`
@@ -42,10 +42,10 @@ fetched rows / total rows = 4/4
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
-| ERROR        | checkout                         |
-| ERROR        | checkout                         |
-| ERROR        | frontend-proxy                   |
-| ERROR        | payment                          |
+| WARN         | frontend-proxy                   |
+| WARN         | frontend-proxy                   |
+| WARN         | product-catalog                  |
+| WARN         | product-catalog                  |
 +--------------+----------------------------------+
 ```
 
@@ -55,7 +55,7 @@ The following query shortens service names for a compact dashboard view:
 
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
+| where severityText IN ('ERROR', 'WARN')
 | replace 'payment-service' with 'payment' in `resource.attributes.service.name`
 | replace 'inventory-service' with 'inventory' in `resource.attributes.service.name`
 | sort severityNumber, `resource.attributes.service.name`
@@ -70,9 +70,9 @@ fetched rows / total rows = 4/4
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
-| ERROR        | checkout                         |
-| ERROR        | checkout                         |
-| ERROR        | frontend-proxy                   |
-| ERROR        | payment                          |
+| WARN         | frontend-proxy                   |
+| WARN         | frontend-proxy                   |
+| WARN         | product-catalog                  |
+| WARN         | product-catalog                  |
 +--------------+----------------------------------+
 ```

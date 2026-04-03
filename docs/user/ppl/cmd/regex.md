@@ -35,11 +35,12 @@ The `regex` command supports the following parameters.
 
 ## Example 1: Find logs matching a pattern  
 
-The following query finds all logs mentioning connection timeouts, useful for diagnosing network issues:
+The following query finds error logs mentioning connection timeouts:
   
 ```ppl
 source=otellogs
-| regex body=".*timeout.*|.*Timeout.*"
+| where severityText = 'ERROR'
+| regex body=".*timeout.*"
 | fields severityText, `resource.attributes.service.name`, body
 ```
   
@@ -57,49 +58,50 @@ fetched rows / total rows = 1/1
 
 ## Example 2: Exclude logs matching a pattern  
 
-The following query finds all errors except those related to timeouts, helping you focus on other failure types:
+The following query finds all errors except those related to timeouts:
   
 ```ppl
 source=otellogs
 | where severityText = 'ERROR'
 | regex body!=".*timeout.*"
-| sort `resource.attributes.service.name`
 | fields severityText, `resource.attributes.service.name`, body
+| head 3
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+--------------+----------------------------------+----------------------------------------------------------------------------------------------+
-| severityText | resource.attributes.service.name | body                                                                                         |
-|--------------+----------------------------------+----------------------------------------------------------------------------------------------|
-| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
-| ERROR        | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-| ERROR        | recommendation                   | Failed to process recommendation request: invalid product ID from 203.0.113.50               |
-+--------------+----------------------------------+----------------------------------------------------------------------------------------------+
+fetched rows / total rows = 3/3
++--------------+----------------------------------+--------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                     |
+|--------------+----------------------------------+--------------------------------------------------------------------------|
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142           |
+| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3  |
+| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error |
++--------------+----------------------------------+--------------------------------------------------------------------------+
 ```
   
 
 ## Example 3: Filter by service name pattern  
 
-The following query finds logs from all services with "service" in their name, excluding infrastructure components like monitors and controllers:
+The following query finds warning logs from services whose names end with "catalog":
   
 ```ppl
 source=otellogs
-| where severityText = 'FATAL'
-| regex `resource.attributes.service.name`=".*-service$"
+| where severityText = 'WARN'
+| regex `resource.attributes.service.name`=".*catalog$"
 | fields severityText, `resource.attributes.service.name`, body
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 0/0
-+--------------+----------------------------------+------+
-| severityText | resource.attributes.service.name | body |
-|--------------+----------------------------------+------|
-+--------------+----------------------------------+------+
+fetched rows / total rows = 2/2
++--------------+----------------------------------+----------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                   |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------|
+| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
+| WARN         | product-catalog                  | Connection pool 80% utilized on database replica db-replica-02                         |
++--------------+----------------------------------+----------------------------------------------------------------------------------------+
 ```
   

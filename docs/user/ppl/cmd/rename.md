@@ -26,7 +26,7 @@ The following query renames `severityText` to `level` for cleaner output when sh
 
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
+| where severityText IN ('ERROR', 'WARN')
 | rename severityText as level
 | sort severityNumber, `resource.attributes.service.name`
 | fields level, `resource.attributes.service.name`, body
@@ -37,13 +37,13 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 3/3
-+-------+----------------------------------+----------------------------------------------------------------------------------------------+
-| level | resource.attributes.service.name | body                                                                                         |
-|-------+----------------------------------+----------------------------------------------------------------------------------------------|
-| ERROR | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
-| ERROR | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| ERROR | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-+-------+----------------------------------+----------------------------------------------------------------------------------------------+
++-------+----------------------------------+-------------------------------------------------------------------------------------------+
+| level | resource.attributes.service.name | body                                                                                      |
+|-------+----------------------------------+-------------------------------------------------------------------------------------------|
+| WARN  | frontend-proxy                   | SSL certificate for api.example.com expires in 14 days                                    |
+| WARN  | frontend-proxy                   | Rate limit threshold reached: 450/500 requests per minute for API key ending in ...abc789 |
+| WARN  | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms    |
++-------+----------------------------------+-------------------------------------------------------------------------------------------+
 ```
 
 ## Example 2: Rename multiple fields
@@ -52,7 +52,7 @@ The following query renames multiple fields to shorter, dashboard-friendly names
 
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
+| where severityText IN ('ERROR', 'WARN')
 | rename severityText as level, severityNumber as code
 | sort code, `resource.attributes.service.name`
 | fields level, code, `resource.attributes.service.name`
@@ -66,9 +66,9 @@ fetched rows / total rows = 3/3
 +-------+------+----------------------------------+
 | level | code | resource.attributes.service.name |
 |-------+------+----------------------------------|
-| ERROR | 17   | checkout                         |
-| ERROR | 17   | checkout                         |
-| ERROR | 17   | frontend-proxy                   |
+| WARN  | 13   | frontend-proxy                   |
+| WARN  | 13   | frontend-proxy                   |
+| WARN  | 13   | product-catalog                  |
 +-------+------+----------------------------------+
 ```
 

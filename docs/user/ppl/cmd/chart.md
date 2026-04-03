@@ -68,13 +68,12 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 4/4
 +--------------+---------+
 | severityText | count() |
 |--------------+---------|
 | DEBUG        | 3       |
-| ERROR        | 5       |
-| FATAL        | 2       |
+| ERROR        | 7       |
 | INFO         | 6       |
 | WARN         | 4       |
 +--------------+---------+
@@ -93,15 +92,14 @@ source=otellogs
 The query returns the following results. Services beyond the top 2 are grouped into `OTHER`:
   
 ```text
-fetched rows / total rows = 9/9
+fetched rows / total rows = 8/8
 +--------------+------------------------------------+---------+
 | severityText | `resource.attributes.service.name` | count() |
 |--------------+------------------------------------+---------|
 | DEBUG        | OTHER                              | 2       |
 | DEBUG        | product-catalog                    | 1       |
-| ERROR        | OTHER                              | 5       |
-| FATAL        | OTHER                              | 1       |
-| FATAL        | product-catalog                    | 1       |
+| ERROR        | OTHER                              | 6       |
+| ERROR        | product-catalog                    | 1       |
 | INFO         | OTHER                              | 2       |
 | INFO         | frontend                           | 4       |
 | WARN         | OTHER                              | 2       |
@@ -122,13 +120,12 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 6/6
+fetched rows / total rows = 5/5
 +--------------+------------------------------------+---------+
 | severityText | `resource.attributes.service.name` | count() |
 |--------------+------------------------------------+---------|
 | DEBUG        | other_services                     | 3       |
-| ERROR        | other_services                     | 5       |
-| FATAL        | other_services                     | 2       |
+| ERROR        | other_services                     | 7       |
 | INFO         | frontend                           | 4       |
 | INFO         | other_services                     | 2       |
 | WARN         | other_services                     | 4       |
@@ -149,21 +146,21 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 11/11
-+------------------------------------+---------------------------+---------+
-| `resource.attributes.service.name` | instrumentationScope.name | count() |
-|------------------------------------+---------------------------+---------|
-| cart                               | not instrumented          | 2       |
-| cart                               | opentelemetry-dotnet      | 1       |
-| checkout                           | not instrumented          | 3       |
-| frontend                           | not instrumented          | 3       |
-| frontend                           | opentelemetry-js          | 1       |
-| frontend-proxy                     | not instrumented          | 3       |
-| payment                            | not instrumented          | 1       |
-| payment                            | opentelemetry-js          | 1       |
-| product-catalog                    | not instrumented          | 3       |
-| product-catalog                    | opentelemetry-go          | 1       |
-| recommendation                     | not instrumented          | 1       |
-+------------------------------------+---------------------------+---------+
++------------------------------------+-----------------------------------------------------------------------------+---------+
+| `resource.attributes.service.name` | instrumentationScope.name                                                   | count() |
+|------------------------------------+-----------------------------------------------------------------------------+---------|
+| cart                               | Microsoft.Extensions.Hosting                                                | 1       |
+| cart                               | not instrumented                                                            | 2       |
+| checkout                           | not instrumented                                                            | 3       |
+| frontend                           | @opentelemetry/instrumentation-http                                         | 1       |
+| frontend                           | not instrumented                                                            | 3       |
+| frontend-proxy                     | not instrumented                                                            | 3       |
+| payment                            | @opentelemetry/instrumentation-http                                         | 1       |
+| payment                            | not instrumented                                                            | 1       |
+| product-catalog                    | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | 1       |
+| product-catalog                    | not instrumented                                                            | 3       |
+| recommendation                     | not instrumented                                                            | 1       |
++------------------------------------+-----------------------------------------------------------------------------+---------+
 ```
   
 
@@ -179,7 +176,7 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 11/11
+fetched rows / total rows = 9/9
 +----------------+----------------------------------+---------------------+
 | severityNumber | `resource.attributes.host.name`  | max(severityNumber) |
 |----------------+----------------------------------+---------------------|
@@ -190,10 +187,8 @@ fetched rows / total rows = 11/11
 | 10             | checkout-8b4c2d-jp5r7            | 17                  |
 | 10             | frontendproxy-envoy-7d4b8c-xk2q9 | 17                  |
 | 10             | payment-6f8d4b-ht7q3             | 17                  |
-| 10             | productcatalog-7c9d-zn4p2        | 13                  |
+| 10             | productcatalog-7c9d-zn4p2        | 17                  |
 | 10             | recommendation-5f7c-bn3k8        | 17                  |
-| 20             | payment-6f8d4b-ht7q3             | 21                  |
-| 20             | productcatalog-7c9d-zn4p2        | 21                  |
 +----------------+----------------------------------+---------------------+
 ```
   

@@ -45,8 +45,10 @@ fetched rows / total rows = 1/1
 |--------------+-------------------|
 | ERROR        | payment           |
 |              | checkout          |
+|              | payment           |
 |              | frontend-proxy    |
 |              | recommendation    |
+|              | product-catalog   |
 |              | checkout          |
 +--------------+-------------------+
 ```

@@ -21,7 +21,7 @@ The following query retrieves the top 4 errors sorted by service name, then reve
   
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
+| where severityText IN ('ERROR', 'WARN')
 | sort severityNumber, `resource.attributes.service.name`
 | fields severityText, `resource.attributes.service.name`
 | head 4
@@ -35,10 +35,10 @@ fetched rows / total rows = 4/4
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
-| ERROR        | payment                          |
-| ERROR        | frontend-proxy                   |
-| ERROR        | checkout                         |
-| ERROR        | checkout                         |
+| WARN         | product-catalog                  |
+| WARN         | product-catalog                  |
+| WARN         | frontend-proxy                   |
+| WARN         | frontend-proxy                   |
 +--------------+----------------------------------+
 ```
   
@@ -58,11 +58,10 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 4/4
 +--------------+----------------+
 | severityText | severityNumber |
 |--------------+----------------|
-| FATAL        | 21             |
 | ERROR        | 17             |
 | WARN         | 13             |
 | INFO         | 9              |
@@ -85,15 +84,14 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 4/4
 +-----------+--------------+
 | log_count | severityText |
 |-----------+--------------|
-| 2         | FATAL        |
 | 3         | DEBUG        |
 | 4         | WARN         |
-| 5         | ERROR        |
 | 6         | INFO         |
+| 7         | ERROR        |
 +-----------+--------------+
 ```
   

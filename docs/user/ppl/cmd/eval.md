@@ -38,7 +38,7 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 4/4
 +--------------+-------------+
 | severityText | is_critical |
 |--------------+-------------|
@@ -46,7 +46,6 @@ fetched rows / total rows = 5/5
 | INFO         | no          |
 | WARN         | no          |
 | ERROR        | yes         |
-| FATAL        | yes         |
 +--------------+-------------+
 ```
   
@@ -87,7 +86,7 @@ The following query prepends the severity level to the log body, creating a stan
   
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
+| where severityText IN ('ERROR', 'WARN')
 | eval formatted = '[' + severityText + '] ' + body
 | sort severityNumber, `resource.attributes.service.name`
 | fields formatted
@@ -98,12 +97,12 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+------------------------------------------------------------------------------------------------------+
-| formatted                                                                                            |
-|------------------------------------------------------------------------------------------------------|
-| [ERROR] NullPointerException in CheckoutService.placeOrder at line 142                               |
-| [ERROR] Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| [ERROR] HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
-+------------------------------------------------------------------------------------------------------+
++--------------------------------------------------------------------------------------------------+
+| formatted                                                                                        |
+|--------------------------------------------------------------------------------------------------|
+| [WARN] SSL certificate for api.example.com expires in 14 days                                    |
+| [WARN] Rate limit threshold reached: 450/500 requests per minute for API key ending in ...abc789 |
+| [WARN] Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms    |
++--------------------------------------------------------------------------------------------------+
 ```
   

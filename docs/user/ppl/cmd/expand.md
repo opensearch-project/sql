@@ -34,7 +34,7 @@ The following query first collects all service names per severity level into an 
   
 ```ppl
 source=otellogs
-| where severityText = 'FATAL'
+| where severityText = 'WARN'
 | stats list(`resource.attributes.service.name`) as services by severityText
 | expand services as service
 | fields severityText, service
@@ -43,12 +43,14 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
+fetched rows / total rows = 4/4
 +--------------+-----------------+
 | severityText | service         |
 |--------------+-----------------|
-| FATAL        | payment         |
-| FATAL        | product-catalog |
+| WARN         | product-catalog |
+| WARN         | product-catalog |
+| WARN         | frontend-proxy  |
+| WARN         | frontend-proxy  |
 +--------------+-----------------+
 ```
   

@@ -33,15 +33,14 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 4/4
 +--------------+-------+
 | severityText | count |
 |--------------+-------|
-| FATAL        | 2     |
 | DEBUG        | 3     |
 | WARN         | 4     |
-| ERROR        | 5     |
 | INFO         | 6     |
+| ERROR        | 7     |
 +--------------+-------+
 ```
 

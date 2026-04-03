@@ -118,14 +118,16 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 7/7
 +----------------------------------+----------------+---------+-------------+
 | resource.attributes.service.name | severityNumber | avg_sev | error_count |
 |----------------------------------+----------------+---------+-------------|
 | checkout                         | 17             | 17.0    | 2           |
 | checkout                         | 17             | 17.0    | 2           |
 | frontend-proxy                   | 17             | 17.0    | 1           |
-| payment                          | 17             | 17.0    | 1           |
+| payment                          | 17             | 17.0    | 2           |
+| payment                          | 17             | 17.0    | 2           |
+| product-catalog                  | 17             | 17.0    | 1           |
 | recommendation                   | 17             | 17.0    | 1           |
 +----------------------------------+----------------+---------+-------------+
 ```
@@ -146,14 +148,16 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
-+----------------------------------+---------------------------+-------------+
-| resource.attributes.service.name | instrumentationScope.name | scope_count |
-|----------------------------------+---------------------------+-------------|
-| checkout                         | null                      | null        |
-| checkout                         | null                      | null        |
-| frontend-proxy                   | null                      | null        |
-| payment                          | opentelemetry-js          | 2           |
-| recommendation                   | null                      | null        |
-+----------------------------------+---------------------------+-------------+
+fetched rows / total rows = 7/7
++----------------------------------+-------------------------------------+-------------+
+| resource.attributes.service.name | instrumentationScope.name           | scope_count |
+|----------------------------------+-------------------------------------+-------------|
+| checkout                         | null                                | null        |
+| checkout                         | null                                | null        |
+| frontend-proxy                   | null                                | null        |
+| payment                          | null                                | null        |
+| payment                          | @opentelemetry/instrumentation-http | 2           |
+| product-catalog                  | null                                | null        |
+| recommendation                   | null                                | null        |
++----------------------------------+-------------------------------------+-------------+
 ```

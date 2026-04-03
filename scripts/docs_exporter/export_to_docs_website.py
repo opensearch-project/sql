@@ -241,8 +241,34 @@ def process_content(content: str, current_file_path=None) -> str:
     """Process markdown content with PPL->SQL conversion, copy buttons, and link fixes."""
     # Convert SQL CLI tables in code blocks to markdown tables
     content = convert_tables_in_code_blocks(content)
-    
-    # Convert PPL code fences to SQL
+
+    # Commands not supported on the playground
+    PLAYGROUND_UNSUPPORTED_CMDS = {'multisearch'}
+
+    def _is_playground_eligible(block_text, file_path):
+        """Check if a PPL block should get a Try in Playground button."""
+        if 'source=otellogs' not in block_text:
+            return False
+        if file_path:
+            stem = file_path.stem if hasattr(file_path, 'stem') else str(file_path).rsplit('/', 1)[-1].replace('.md', '')
+            if stem in PLAYGROUND_UNSUPPORTED_CMDS:
+                return False
+        return True
+
+    # Convert PPL otellogs blocks: sql fence + copy button + optionally try-in-playground button
+    content = re.sub(
+        r'^```ppl\b[^\n]*\n(.*?)^```$',
+        lambda m: (
+            '```sql\n' + m.group(1) + '```\n{% include copy.html %}\n{% include try-in-playground.html %}'
+            if _is_playground_eligible(m.group(1), current_file_path)
+            else (
+                '```ppl\n' + m.group(1) + '```'
+            )
+        ),
+        content, flags=re.MULTILINE | re.DOTALL,
+    )
+
+    # Convert remaining PPL code fences to SQL
     content = re.sub(r'^```ppl\b.*$', '```sql', content, flags=re.MULTILINE)
 
     # Convert bash ignore blocks to JSON with copy-curl buttons
@@ -250,8 +276,8 @@ def process_content(content: str, current_file_path=None) -> str:
                      r'```json\n\1```\n{% include copy-curl.html %}',
                      content, flags=re.MULTILINE | re.DOTALL)
 
-    # Add copy buttons after code fences
-    content = re.sub(r'^```(bash|sh|sql)\b.*?\n(.*?)^```$',
+    # Add copy buttons after sql/bash/sh fences that don't already have one
+    content = re.sub(r'^```(bash|sh|sql)\b[^\n]*\n(.*?)^```$(?!\n\{% include copy)',
                      r'```\1\n\2```\n{% include copy.html %}',
                      content, flags=re.MULTILINE | re.DOTALL)
 

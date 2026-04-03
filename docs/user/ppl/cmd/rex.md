@@ -58,13 +58,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+--------------------------------------------------------------------------+----------------------+
-| body                                                                     | errtype              |
-|--------------------------------------------------------------------------+----------------------|
-| Payment failed: connection timeout to payment gateway after 30000ms      | null                 |
-| NullPointerException in CheckoutService.placeOrder at line 142           | NullPointerException |
-| HTTP POST /api/checkout 503 Service Unavailable - upstream connect error | null                 |
-+--------------------------------------------------------------------------+----------------------+
++-------------------------------------------------------------------------+----------------------+
+| body                                                                    | errtype              |
+|-------------------------------------------------------------------------+----------------------|
+| Payment failed: connection timeout to payment gateway after 30000ms     | null                 |
+| NullPointerException in CheckoutService.placeOrder at line 142          | NullPointerException |
+| Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 | null                 |
++-------------------------------------------------------------------------+----------------------+
 ```
   
 
@@ -74,7 +74,7 @@ The following query extracts multiple words from log messages, useful for buildi
   
 ```ppl
 source=otellogs
-| where severityText = 'FATAL'
+| where severityText = 'WARN'
 | rex field=body "(?<word>[A-Za-z]+)" max_match=3
 | fields body, word
 ```
@@ -82,13 +82,15 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 2/2
-+-----------------------------------------------------------------------------+-------------------------+
-| body                                                                        | word                    |
-|-----------------------------------------------------------------------------+-------------------------|
-| Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3     | [Out,of,memory]         |
-| Database primary node unreachable: connection refused to db-primary-01:5432 | [Database,primary,node] |
-+-----------------------------------------------------------------------------+-------------------------+
+fetched rows / total rows = 4/4
++-------------------------------------------------------------------------------------------+----------------------------+
+| body                                                                                      | word                       |
+|-------------------------------------------------------------------------------------------+----------------------------|
+| Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms    | [Slow,query,detected]      |
+| Connection pool 80% utilized on database replica db-replica-02                            | [Connection,pool,utilized] |
+| SSL certificate for api.example.com expires in 14 days                                    | [SSL,certificate,for]      |
+| Rate limit threshold reached: 450/500 requests per minute for API key ending in ...abc789 | [Rate,limit,threshold]     |
++-------------------------------------------------------------------------------------------+----------------------------+
 ```
   
 

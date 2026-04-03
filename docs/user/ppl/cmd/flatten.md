@@ -40,14 +40,14 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
-+--------------+----------------------+---------+
-| severityText | name                 | version |
-|--------------+----------------------+---------|
-| INFO         | opentelemetry-js     | 1.21.0  |
-| INFO         | opentelemetry-dotnet | 1.7.0   |
-| WARN         | opentelemetry-go     | 1.24.0  |
-| ERROR        | opentelemetry-js     | 1.21.0  |
-+--------------+----------------------+---------+
++--------------+-----------------------------------------------------------------------------+---------+
+| severityText | name                                                                        | version |
+|--------------+-----------------------------------------------------------------------------+---------|
+| INFO         | @opentelemetry/instrumentation-http                                         | 0.57.0  |
+| INFO         | Microsoft.Extensions.Hosting                                                | 9.0.0   |
+| WARN         | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | 0.49.0  |
+| ERROR        | @opentelemetry/instrumentation-http                                         | 0.57.0  |
++--------------+-----------------------------------------------------------------------------+---------+
 ```
   
 

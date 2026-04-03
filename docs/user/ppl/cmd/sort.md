@@ -83,11 +83,10 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 4/4
 +--------------+----------------+
 | severityText | severityNumber |
 |--------------+----------------|
-| FATAL        | 21             |
 | ERROR        | 17             |
 | WARN         | 13             |
 | INFO         | 9              |
@@ -170,7 +169,7 @@ fetched rows / total rows = 6/6
 | null                      | DEBUG        |
 | null                      | ERROR        |
 | null                      | INFO         |
-| null                      | FATAL        |
+| null                      | ERROR        |
 | null                      | WARN         |
 | null                      | INFO         |
 +---------------------------+--------------+
@@ -215,13 +214,12 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 4/4
 +--------------+----------------+
 | severityText | severityNumber |
 |--------------+----------------|
 | WARN         | 13             |
 | ERROR        | 17             |
-| FATAL        | 21             |
 | DEBUG        | 5              |
 | INFO         | 9              |
 +--------------+----------------+

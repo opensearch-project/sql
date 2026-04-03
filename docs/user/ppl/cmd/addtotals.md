@@ -29,14 +29,15 @@ The `addtotals` command supports the following parameters.
 
 ## Example 1: Add column totals
 
-The following query counts errors and fatals per service, then adds a column total row showing the grand totals:
+The following query counts errors and warnings per service, then adds a column total row showing the grand totals:
 
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
-| eval error_count = IF(severityText = 'ERROR', 1, 0), fatal_count = IF(severityText = 'FATAL', 1, 0)
-| stats sum(error_count) as errors, sum(fatal_count) as fatals by `resource.attributes.service.name`
+| where severityText IN ('ERROR', 'WARN')
+| eval error_count = IF(severityText = 'ERROR', 1, 0), warn_count = IF(severityText = 'WARN', 1, 0)
+| stats sum(error_count) as errors, sum(warn_count) as warnings by `resource.attributes.service.name`
 | sort `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, errors, warnings
 | addtotals col=true labelfield='resource.attributes.service.name' label='Total'
 ```
 
@@ -44,28 +45,29 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 6/6
-+--------+--------+----------------------------------+-------+
-| errors | fatals | resource.attributes.service.name | Total |
-|--------+--------+----------------------------------+-------|
-| 2      | 0      | checkout                         | 2     |
-| 1      | 0      | frontend-proxy                   | 1     |
-| 1      | 1      | payment                          | 2     |
-| 0      | 1      | product-catalog                  | 1     |
-| 1      | 0      | recommendation                   | 1     |
-| 5      | 2      | Total                            | null  |
-+--------+--------+----------------------------------+-------+
++----------------------------------+--------+----------+-------+
+| resource.attributes.service.name | errors | warnings | Total |
+|----------------------------------+--------+----------+-------|
+| checkout                         | 2      | 0        | 2     |
+| frontend-proxy                   | 1      | 2        | 3     |
+| payment                          | 2      | 0        | 2     |
+| product-catalog                  | 1      | 2        | 3     |
+| recommendation                   | 1      | 0        | 1     |
+| Total                            | 7      | 4        | null  |
++----------------------------------+--------+----------+-------+
 ```
 
 ## Example 2: Add row totals
 
-The following query counts errors and fatals separately per service, then adds a row total showing the combined count of actionable issues per service:
+The following query counts errors and warnings separately per service, then adds a row total showing the combined count of actionable issues per service:
 
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
-| eval error_count = IF(severityText = 'ERROR', 1, 0), fatal_count = IF(severityText = 'FATAL', 1, 0)
-| stats sum(error_count) as errors, sum(fatal_count) as fatals by `resource.attributes.service.name`
+| where severityText IN ('ERROR', 'WARN')
+| eval error_count = IF(severityText = 'ERROR', 1, 0), warn_count = IF(severityText = 'WARN', 1, 0)
+| stats sum(error_count) as errors, sum(warn_count) as warnings by `resource.attributes.service.name`
 | sort `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, errors, warnings
 | addtotals row=true fieldname='total_issues'
 ```
 
@@ -73,15 +75,15 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 5/5
-+--------+--------+----------------------------------+--------------+
-| errors | fatals | resource.attributes.service.name | total_issues |
-|--------+--------+----------------------------------+--------------|
-| 2      | 0      | checkout                         | 2            |
-| 1      | 0      | frontend-proxy                   | 1            |
-| 1      | 1      | payment                          | 2            |
-| 0      | 1      | product-catalog                  | 1            |
-| 1      | 0      | recommendation                   | 1            |
-+--------+--------+----------------------------------+--------------+
++----------------------------------+--------+----------+--------------+
+| resource.attributes.service.name | errors | warnings | total_issues |
+|----------------------------------+--------+----------+--------------|
+| checkout                         | 2      | 0        | 2            |
+| frontend-proxy                   | 1      | 2        | 3            |
+| payment                          | 2      | 0        | 2            |
+| product-catalog                  | 1      | 2        | 3            |
+| recommendation                   | 1      | 0        | 1            |
++----------------------------------+--------+----------+--------------+
 ```
 
 ## Example 3: Using all options
@@ -90,25 +92,26 @@ The following query uses the `addtotals` command with all options set, combining
 
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
-| eval error_count = IF(severityText = 'ERROR', 1, 0), fatal_count = IF(severityText = 'FATAL', 1, 0)
-| stats sum(error_count) as errors, sum(fatal_count) as fatals by `resource.attributes.service.name`
+| where severityText IN ('ERROR', 'WARN')
+| eval error_count = IF(severityText = 'ERROR', 1, 0), warn_count = IF(severityText = 'WARN', 1, 0)
+| stats sum(error_count) as errors, sum(warn_count) as warnings by `resource.attributes.service.name`
 | sort `resource.attributes.service.name`
-| addtotals errors, fatals row=true col=true fieldname='Row Total' label='Sum' labelfield='Column Total'
+| fields `resource.attributes.service.name`, errors, warnings
+| addtotals errors, warnings row=true col=true fieldname='Row Total' label='Sum' labelfield='Column Total'
 ```
 
 The query returns the following results:
 
 ```text
 fetched rows / total rows = 6/6
-+--------+--------+----------------------------------+-----------+--------------+
-| errors | fatals | resource.attributes.service.name | Row Total | Column Total |
-|--------+--------+----------------------------------+-----------+--------------|
-| 2      | 0      | checkout                         | 2         | null         |
-| 1      | 0      | frontend-proxy                   | 1         | null         |
-| 1      | 1      | payment                          | 2         | null         |
-| 0      | 1      | product-catalog                  | 1         | null         |
-| 1      | 0      | recommendation                   | 1         | null         |
-| 5      | 2      | null                             | null      | Sum          |
-+--------+--------+----------------------------------+-----------+--------------+
++----------------------------------+--------+----------+-----------+--------------+
+| resource.attributes.service.name | errors | warnings | Row Total | Column Total |
+|----------------------------------+--------+----------+-----------+--------------|
+| checkout                         | 2      | 0        | 2         | null         |
+| frontend-proxy                   | 1      | 2        | 3         | null         |
+| payment                          | 2      | 0        | 2         | null         |
+| product-catalog                  | 1      | 2        | 3         | null         |
+| recommendation                   | 1      | 0        | 1         | null         |
+| null                             | 7      | 4        | null      | Sum          |
++----------------------------------+--------+----------+-----------+--------------+
 ```
