@@ -28,6 +28,10 @@ public class PPLOperandTypes {
   private PPLOperandTypes() {}
 
   public static final UDFOperandMetadata NONE = UDFOperandMetadata.wrap(OperandTypes.family());
+  public static final UDFOperandMetadata OPTIONAL_ANY =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.family(SqlTypeFamily.ANY).or(OperandTypes.family()));
 
   public static final UDFOperandMetadata OPTIONAL_INTEGER =
       UDFOperandMetadata.wrap(OperandTypes.INTEGER.or(OperandTypes.family()));

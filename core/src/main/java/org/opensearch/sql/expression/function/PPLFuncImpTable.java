@@ -401,16 +401,11 @@ public class PPLFuncImpTable {
    * @param operator a SqlOperator representing an externally implemented function
    */
   public void registerExternalOperator(BuiltinFunctionName functionName, SqlOperator operator) {
-    PPLTypeChecker typeChecker =
-        wrapSqlOperandTypeChecker(
-            operator.getOperandTypeChecker(),
-            functionName.name(),
-            operator instanceof SqlUserDefinedFunction);
-    CalciteFuncSignature signature = new CalciteFuncSignature(functionName.getName(), typeChecker);
-    externalFunctionRegistry.put(
-        functionName,
-        List.of(
-            Pair.of(signature, (FunctionImp) (builder, args) -> builder.makeCall(operator, args))));
+    if (externalFunctionRegistry.containsKey(functionName)) {
+      logger.warn(
+          String.format(Locale.ROOT, "Function %s is registered multiple times", functionName));
+    }
+    externalFunctionRegistry.put(functionName, (builder, args) -> builder.makeCall(operator, args));
   }
 
   /**
@@ -760,7 +755,6 @@ public class PPLFuncImpTable {
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
       registerOperator(TONUMBER, PPLBuiltinOperators.TONUMBER);
-      registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
 
       // Register PPL Convert command functions
       registerOperator(AUTO, PPLBuiltinOperators.AUTO);
