@@ -79,3 +79,16 @@ git push -u <your_fork_remote> <branch_name>
 ```bash
 gh pr ready <pr_number>
 ```
+
+## Retrospective
+
+After handling follow-up, reflect on the feedback received and check if it reveals gaps in the harness or command:
+
+For each comment addressed (bot or human):
+- **Does the feedback point to a pattern the harness should have prevented?** → Add guidance to the relevant Phase in `ppl-bugfix-harness.md`
+- **Was this a repeated mistake across PRs?** → Add to Quick Reference or Case Index
+- **Did the harness template produce the problematic code?** → Fix the template directly
+- **Was a permission or tool missing?** → Add to `.claude/settings.json`
+- **Did the follow-up workflow itself miss this signal?** → Update this file
+
+If any improvement is needed, make the edit and include it in the same commit.
