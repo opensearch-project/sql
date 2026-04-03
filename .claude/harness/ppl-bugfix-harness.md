@@ -293,6 +293,8 @@ After each bugfix, check if the harness itself needs updating:
 - **Verification gap** caused rework? → Add step to 3.1 or 2.2 checklist
 - **Representative fix**? → Add row to Case Index below
 
+Include harness improvements in the same PR as the bugfix — they share the same review context.
+
 ---
 
 ## Quick Reference: Symptom → Fix Path
