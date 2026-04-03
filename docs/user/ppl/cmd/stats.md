@@ -30,7 +30,7 @@ The `stats` command supports the following parameters.
 |--------------------------------+--------------|
 | 5                              | DEBUG        |
 | 17                             | ERROR        |
-| 21                             | FATAL        |
+| 21                             | ERROR        |
 | 9                              | INFO         |
 | 13                             | WARN         |
 +--------------------------------+--------------+arameter | Required/Optional | Description |
@@ -57,35 +57,34 @@ The `stats` command supports the following aggregation functions:
 | 9   | 0         | INFO         |
 | 17  | 10        | ERROR        |
 | 13  | 10        | WARN         |
-| 21  | 20        | FATAL        |
+| 21  | 20        | ERROR        |
 +-----+-----------+--------------+` -- Sample variance
 * `VAR_fetched rows / total rows = 1/1
 +-----------------------------------------------------------------------------------------------------------------+
 | all_levels                                                                                                      |
 |-----------------------------------------------------------------------------------------------------------------|
-| [INFO,INFO,WARN,ERROR,DEBUG,ERROR,INFO,FATAL,WARN,INFO,ERROR,DEBUG,WARN,INFO,ERROR,FATAL,INFO,WARN,DEBUG,ERROR] |
+| [INFO,INFO,WARN,ERROR,DEBUG,ERROR,INFO,ERROR,WARN,INFO,ERROR,DEBUG,WARN,INFO,ERROR,ERROR,INFO,WARN,DEBUG,ERROR] |
 +-----------------------------------------------------------------------------------------------------------------+Ofetched rows / total rows = 3/3
-+-----+---------------------------+
-| cnt | instrumentationScope.name |
-|-----+---------------------------|
-| 1   | opentelemetry-dotnet      |
-| 1   | opentelemetry-go          |
-| 2   | opentelemetry-js          |
-+-----+---------------------------+` -- fetched rows / total rows = 1/1
-+-------------------------------+
-| severity_levels               |
-|-------------------------------|
-| [DEBUG,ERROR,FATAL,INFO,WARN] |
-+-------------------------------+opulation variance
-* `STDDEV_SAMfetched rows / total rows = 5/5
++-----+-----------------------------------------------------------------------------+
+| cnt | instrumentationScope.name                                                   |
+|-----+-----------------------------------------------------------------------------|
+| 2   | @opentelemetry/instrumentation-http                                         |
+| 1   | Microsoft.Extensions.Hosting                                                |
+| 1   | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc |
++-----+-----------------------------------------------------------------------------+` -- fetched rows / total rows = 1/1
++-------------------------+
+| severity_levels         |
+|-------------------------|
+| [DEBUG,ERROR,INFO,WARN] |
++-------------------------+opulation variance
+* `STDDEV_SAMfetched rows / total rows = 4/4
 +-----+-----------+--------------+
 | cnt | sev_range | severityText |
 |-----+-----------+--------------|
 | 3   | 0         | DEBUG        |
 | 6   | 0         | INFO         |
-| 5   | 10        | ERROR        |
+| 7   | 10        | ERROR        |
 | 4   | 10        | WARN         |
-| 2   | 20        | FATAL        |
 +-----+-----------+--------------+` -- Sample standard deviation
 * `STDDEV_fetched rows / total rows = 5/5
 +--------------------------------------------------+--------------+
@@ -93,7 +92,7 @@ The `stats` command supports the following aggregation functions:
 |--------------------------------------------------+--------------|
 | [cart,product-catalog,cart]                      | DEBUG        |
 | [payment,checkout,frontend-proxy]                | ERROR        |
-| [payment,product-catalog]                        | FATAL        |
+| [payment,product-catalog]                        | ERROR        |
 | [frontend,cart,frontend]                         | INFO         |
 | [product-catalog,product-catalog,frontend-proxy] | WARN         |
 +--------------------------------------------------+--------------+Ofetched rows / total rows = 1/1
@@ -107,7 +106,7 @@ The `stats` command supports the following aggregation functions:
 |--------------------------------+--------------|
 | 5                              | DEBUG        |
 | 17                             | ERROR        |
-| 21                             | FATAL        |
+| 21                             | ERROR        |
 | 9                              | INFO         |
 | 13                             | WARN         |
 +--------------------------------+--------------+opulation standard deviation
@@ -119,42 +118,41 @@ The `stats` command supports the following aggregation functions:
 | 9   | 0         | INFO         |
 | 17  | 10        | ERROR        |
 | 13  | 10        | WARN         |
-| 21  | 20        | FATAL        |
+| 21  | 20        | ERROR        |
 +-----+-----------+--------------+fetched rows / total rows = 1/1
 +-----------------------------------------------------------------------------------------------------------------+
 | all_levels                                                                                                      |
 |-----------------------------------------------------------------------------------------------------------------|
-| [INFO,INFO,WARN,ERROR,DEBUG,ERROR,INFO,FATAL,WARN,INFO,ERROR,DEBUG,WARN,INFO,ERROR,FATAL,INFO,WARN,DEBUG,ERROR] |
+| [INFO,INFO,WARN,ERROR,DEBUG,ERROR,INFO,ERROR,WARN,INFO,ERROR,DEBUG,WARN,INFO,ERROR,ERROR,INFO,WARN,DEBUG,ERROR] |
 +-----------------------------------------------------------------------------------------------------------------+ROX` -- Approximate distinct count
 * `TAKE` -- List of original values
 * `fetched rows / total rows = 3/3
-+-----+---------------------------+
-| cnt | instrumentationScope.name |
-|-----+---------------------------|
-| 1   | opentelemetry-dotnet      |
-| 1   | opentelemetry-go          |
-| 2   | opentelemetry-js          |
-+-----+---------------------------+ERCENTILE`/`fetched rows / total rows = 1/1
-+-------------------------------+
-| severity_levels               |
-|-------------------------------|
-| [DEBUG,ERROR,FATAL,INFO,WARN] |
-+-------------------------------+ERCENTILE_Afetched rows / total rows = 5/5
++-----+-----------------------------------------------------------------------------+
+| cnt | instrumentationScope.name                                                   |
+|-----+-----------------------------------------------------------------------------|
+| 2   | @opentelemetry/instrumentation-http                                         |
+| 1   | Microsoft.Extensions.Hosting                                                |
+| 1   | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc |
++-----+-----------------------------------------------------------------------------+ERCENTILE`/`fetched rows / total rows = 1/1
++-------------------------+
+| severity_levels         |
+|-------------------------|
+| [DEBUG,ERROR,INFO,WARN] |
++-------------------------+ERCENTILE_Afetched rows / total rows = 4/4
 +-----+-----------+--------------+
 | cnt | sev_range | severityText |
 |-----+-----------+--------------|
 | 3   | 0         | DEBUG        |
 | 6   | 0         | INFO         |
-| 5   | 10        | ERROR        |
+| 7   | 10        | ERROR        |
 | 4   | 10        | WARN         |
-| 2   | 20        | FATAL        |
 +-----+-----------+--------------+fetched rows / total rows = 5/5
 +--------------------------------------------------+--------------+
 | services                                         | severityText |
 |--------------------------------------------------+--------------|
 | [cart,product-catalog,cart]                      | DEBUG        |
 | [payment,checkout,frontend-proxy]                | ERROR        |
-| [payment,product-catalog]                        | FATAL        |
+| [payment,product-catalog]                        | ERROR        |
 | [frontend,cart,frontend]                         | INFO         |
 | [product-catalog,product-catalog,frontend-proxy] | WARN         |
 +--------------------------------------------------+--------------+ROX` -- fetched rows / total rows = 1/1
@@ -169,7 +167,7 @@ The `stats` command supports the following aggregation functions:
 |--------------------------------+--------------|
 | 5                              | DEBUG        |
 | 17                             | ERROR        |
-| 21                             | FATAL        |
+| 21                             | ERROR        |
 | 9                              | INFO         |
 | 13                             | WARN         |
 +--------------------------------+--------------+ERC<percent>`/`fetched rows / total rows = 5/5
@@ -180,12 +178,12 @@ The `stats` command supports the following aggregation functions:
 | 9   | 0         | INFO         |
 | 17  | 10        | ERROR        |
 | 13  | 10        | WARN         |
-| 21  | 20        | FATAL        |
+| 21  | 20        | ERROR        |
 +-----+-----------+--------------+<percent>` -- fetched rows / total rows = 1/1
 +-----------------------------------------------------------------------------------------------------------------+
 | all_levels                                                                                                      |
 |-----------------------------------------------------------------------------------------------------------------|
-| [INFO,INFO,WARN,ERROR,DEBUG,ERROR,INFO,FATAL,WARN,INFO,ERROR,DEBUG,WARN,INFO,ERROR,FATAL,INFO,WARN,DEBUG,ERROR] |
+| [INFO,INFO,WARN,ERROR,DEBUG,ERROR,INFO,ERROR,WARN,INFO,ERROR,DEBUG,WARN,INFO,ERROR,ERROR,INFO,WARN,DEBUG,ERROR] |
 +-----------------------------------------------------------------------------------------------------------------+ercentile shortcut functions
 * `MEDIAN` -- 50th percentile
 * `EARLIEST` -- Earliest value by timestamp
@@ -234,7 +232,7 @@ fetched rows / total rows = 1/1
 +--------------+
 | avg_severity |
 |--------------|
-| 12.4         |
+| 12.0         |
 +--------------+
 ```
   
@@ -252,15 +250,14 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 4/4
 +-----------+--------------+
 | log_count | severityText |
 |-----------+--------------|
+| 7         | ERROR        |
 | 6         | INFO         |
-| 5         | ERROR        |
 | 4         | WARN         |
 | 3         | DEBUG        |
-| 2         | FATAL        |
 +-----------+--------------+
 ```
   
@@ -284,7 +281,7 @@ fetched rows / total rows = 5/5
 | total | min_sev | max_sev | resource.attributes.service.name |
 |-------+---------+---------+----------------------------------|
 | 4     | 9       | 9       | frontend                         |
-| 4     | 5       | 21      | product-catalog                  |
+| 4     | 5       | 17      | product-catalog                  |
 | 3     | 5       | 9       | cart                             |
 | 3     | 9       | 17      | checkout                         |
 | 3     | 13      | 17      | frontend-proxy                   |
@@ -304,13 +301,12 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 3/3
+fetched rows / total rows = 2/2
 +-----------+-------------------------+
 | log_count | span(severityNumber,10) |
 |-----------+-------------------------|
 | 9         | 0                       |
-| 9         | 10                      |
-| 2         | 20                      |
+| 11        | 10                      |
 +-----------+-------------------------+
 ```
   
@@ -328,15 +324,14 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 4/4
 +-----+-----------+--------------+
 | cnt | sev_range | severityText |
 |-----+-----------+--------------|
 | 3   | 0         | DEBUG        |
 | 6   | 0         | INFO         |
-| 5   | 10        | ERROR        |
+| 7   | 10        | ERROR        |
 | 4   | 10        | WARN         |
-| 2   | 20        | FATAL        |
 +-----+-----------+--------------+
 ```
   
@@ -375,16 +370,15 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
-+--------------------------------------------------+--------------+
-| services                                         | severityText |
-|--------------------------------------------------+--------------|
-| [cart,product-catalog]                           | DEBUG        |
-| [checkout,frontend-proxy,payment,recommendation] | ERROR        |
-| [payment,product-catalog]                        | FATAL        |
-| [cart,checkout,frontend]                         | INFO         |
-| [frontend-proxy,product-catalog]                 | WARN         |
-+--------------------------------------------------+--------------+
+fetched rows / total rows = 4/4
++------------------------------------------------------------------+--------------+
+| services                                                         | severityText |
+|------------------------------------------------------------------+--------------|
+| [cart,product-catalog]                                           | DEBUG        |
+| [checkout,frontend-proxy,payment,product-catalog,recommendation] | ERROR        |
+| [cart,checkout,frontend]                                         | INFO         |
+| [frontend-proxy,product-catalog]                                 | WARN         |
++------------------------------------------------------------------+--------------+
 ```
   
 
@@ -404,7 +398,7 @@ fetched rows / total rows = 1/1
 +--------------+
 | p90_severity |
 |--------------|
-| 21           |
+| 17           |
 +--------------+
 ```
   
@@ -422,11 +416,11 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+-------------------------------+
-| severity_levels               |
-|-------------------------------|
-| [DEBUG,ERROR,FATAL,INFO,WARN] |
-+-------------------------------+
++-------------------------+
+| severity_levels         |
+|-------------------------|
+| [DEBUG,ERROR,INFO,WARN] |
++-------------------------+
 ```
   
 
@@ -443,13 +437,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+-----+---------------------------+
-| cnt | instrumentationScope.name |
-|-----+---------------------------|
-| 1   | opentelemetry-dotnet      |
-| 1   | opentelemetry-go          |
-| 2   | opentelemetry-js          |
-+-----+---------------------------+
++-----+-----------------------------------------------------------------------------+
+| cnt | instrumentationScope.name                                                   |
+|-----+-----------------------------------------------------------------------------|
+| 2   | @opentelemetry/instrumentation-http                                         |
+| 1   | Microsoft.Extensions.Hosting                                                |
+| 1   | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc |
++-----+-----------------------------------------------------------------------------+
 ```
   
 
@@ -498,7 +492,7 @@ Group by both yearly spans and department number (by default, null `DEfetched ro
 +-------------------------------+
 | severity_levels               |
 |-------------------------------|
-| [DEBUG,ERROR,FATAL,INFO,WARN] |
+| [DEBUG,ERROR,ERROR,INFO,WARN] |
 +-------------------------------+TNO` values are included in the results):
 
 ```ppl ignore
@@ -511,7 +505,7 @@ source=example
 | 6   | 0         | INFO         |
 | 5   | 10        | ERROR        |
 | 4   | 10        | WARN         |
-| 2   | 20        | FATAL        |
+| 2   | 20        | ERROR        |
 +-----+-----------+--------------+TNO
 ```
   
@@ -526,7 +520,7 @@ fetched rows / total rows = 3/3
 |--------------------------------------------------+--------------|
 | [cart,product-catalog,cart]                      | DEBUG        |
 | [payment,checkout,frontend-proxy]                | ERROR        |
-| [payment,product-catalog]                        | FATAL        |
+| [payment,product-catalog]                        | ERROR        |
 | [frontend,cart,frontend]                         | INFO         |
 | [product-catalog,product-catalog,frontend-proxy] | WARN         |
 +--------------------------------------------------+--------------+TNO |
@@ -552,7 +546,7 @@ source=example
 |--------------------------------+--------------|
 | 5                              | DEBUG        |
 | 17                             | ERROR        |
-| 21                             | FATAL        |
+| 21                             | ERROR        |
 | 9                              | INFO         |
 | 13                             | WARN         |
 +--------------------------------+--------------+TNO
@@ -571,7 +565,7 @@ fetched rows / total rows = 3/3
 | 9   | 0         | INFO         |
 | 17  | 10        | ERROR        |
 | 13  | 10        | WARN         |
-| 21  | 20        | FATAL        |
+| 21  | 20        | ERROR        |
 +-----+-----------+--------------+TNO |
 |-----+------------+--------|
 | 1   | 2024-01-01 | 1      |

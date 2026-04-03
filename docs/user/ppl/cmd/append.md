@@ -21,60 +21,63 @@ The `append` command supports the following parameters.
 | --- | --- | --- |
 | `<subsearch>` | Required | Executes PPL commands as a secondary search. |  
 
-## Example 1: Append error and fatal counts side by side
+## Example 1: Append error and warning counts side by side
 
-The following query shows error counts per service, then appends fatal counts from a separate query. This lets you compare error and fatal rates across services:
+The following query shows error counts per service, then appends warning counts from a separate query. This lets you compare error and warning rates across services:
   
 ```ppl
 source=otellogs
 | where severityText = 'ERROR'
 | stats count() as error_count by `resource.attributes.service.name`
 | sort - error_count
-| append [ source=otellogs | where severityText = 'FATAL' | stats count() as fatal_count by `resource.attributes.service.name` ]
+| append [ source=otellogs | where severityText = 'WARN' | stats count() as warn_count by `resource.attributes.service.name` ]
 | sort `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, error_count, warn_count
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 6/6
-+-------------+----------------------------------+-------------+
-| error_count | resource.attributes.service.name | fatal_count |
-|-------------+----------------------------------+-------------|
-| 2           | checkout                         | null        |
-| 1           | frontend-proxy                   | null        |
-| 1           | payment                          | null        |
-| null        | payment                          | 1           |
-| null        | product-catalog                  | 1           |
-| 1           | recommendation                   | null        |
-+-------------+----------------------------------+-------------+
+fetched rows / total rows = 7/7
++----------------------------------+-------------+------------+
+| resource.attributes.service.name | error_count | warn_count |
+|----------------------------------+-------------+------------|
+| checkout                         | 2           | null       |
+| frontend-proxy                   | 1           | null       |
+| frontend-proxy                   | null        | 2          |
+| payment                          | 2           | null       |
+| product-catalog                  | 1           | null       |
+| product-catalog                  | null        | 2          |
+| recommendation                   | 1           | null       |
++----------------------------------+-------------+------------+
 ```
   
 
 ## Example 2: Append summary rows to detail rows
 
-The following query shows the top 3 severity levels by count, then appends the total count across all levels:
+The following query shows severity levels by count, then appends the total count across all levels:
   
 ```ppl
 source=otellogs
 | stats count() as log_count by severityText
 | sort - log_count
-| head 3
 | append [ source=otellogs | stats count() as log_count | eval severityText = 'ALL' ]
+| fields severityText, log_count
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----------+--------------+
-| log_count | severityText |
-|-----------+--------------|
-| 6         | INFO         |
-| 5         | ERROR        |
-| 4         | WARN         |
-| 20        | ALL          |
-+-----------+--------------+
+fetched rows / total rows = 5/5
++--------------+-----------+
+| severityText | log_count |
+|--------------+-----------|
+| DEBUG        | 3         |
+| ERROR        | 7         |
+| INFO         | 6         |
+| WARN         | 4         |
+| ALL          | 20        |
++--------------+-----------+
 ```
 
 ## Limitations

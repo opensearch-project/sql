@@ -26,7 +26,7 @@ The following query builds a quick incident summary table showing severity, serv
   
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
+| where severityText IN ('ERROR', 'WARN')
 | sort - severityNumber, `resource.attributes.service.name`
 | table severityText `resource.attributes.service.name` body
 | head 3
@@ -36,13 +36,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+--------------+----------------------------------+-----------------------------------------------------------------------------+
-| severityText | resource.attributes.service.name | body                                                                        |
-|--------------+----------------------------------+-----------------------------------------------------------------------------|
-| FATAL        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3     |
-| FATAL        | product-catalog                  | Database primary node unreachable: connection refused to db-primary-01:5432 |
-| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142              |
-+--------------+----------------------------------+-----------------------------------------------------------------------------+
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                         |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------------|
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| ERROR        | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
 

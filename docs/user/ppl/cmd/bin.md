@@ -105,13 +105,12 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
+fetched rows / total rows = 3/3
 +-----------+----------------+
 | log_count | severityNumber |
 |-----------+----------------|
 | 4         | 10-15          |
-| 5         | 15-20          |
-| 2         | 20-25          |
+| 7         | 15-20          |
 | 9         | 5-10           |
 +-----------+----------------+
 ```

@@ -37,7 +37,7 @@ The following query fills in missing instrumentation scope names, helping identi
   
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
+| where severityText IN ('ERROR', 'WARN')
 | fields severityText, `resource.attributes.service.name`, instrumentationScope.name
 | fillnull using instrumentationScope.name = 'not-instrumented'
 | sort `resource.attributes.service.name`
@@ -46,18 +46,22 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 7/7
-+--------------+----------------------------------+---------------------------+
-| severityText | resource.attributes.service.name | instrumentationScope.name |
-|--------------+----------------------------------+---------------------------|
-| ERROR        | checkout                         | not-instrumented          |
-| ERROR        | checkout                         | not-instrumented          |
-| ERROR        | frontend-proxy                   | not-instrumented          |
-| ERROR        | payment                          | opentelemetry-js          |
-| FATAL        | payment                          | not-instrumented          |
-| FATAL        | product-catalog                  | not-instrumented          |
-| ERROR        | recommendation                   | not-instrumented          |
-+--------------+----------------------------------+---------------------------+
+fetched rows / total rows = 11/11
++--------------+----------------------------------+-----------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | instrumentationScope.name                                                   |
+|--------------+----------------------------------+-----------------------------------------------------------------------------|
+| ERROR        | checkout                         | not-instrumented                                                            |
+| ERROR        | checkout                         | not-instrumented                                                            |
+| ERROR        | frontend-proxy                   | not-instrumented                                                            |
+| WARN         | frontend-proxy                   | not-instrumented                                                            |
+| WARN         | frontend-proxy                   | not-instrumented                                                            |
+| ERROR        | payment                          | @opentelemetry/instrumentation-http                                         |
+| ERROR        | payment                          | not-instrumented                                                            |
+| WARN         | product-catalog                  | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc |
+| WARN         | product-catalog                  | not-instrumented                                                            |
+| ERROR        | product-catalog                  | not-instrumented                                                            |
+| ERROR        | recommendation                   | not-instrumented                                                            |
++--------------+----------------------------------+-----------------------------------------------------------------------------+
 ```
   
 
@@ -76,15 +80,17 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
-+--------------+----------------------------------+---------------------------+
-| severityText | resource.attributes.service.name | instrumentationScope.name |
-|--------------+----------------------------------+---------------------------|
-| ERROR        | checkout                         | not-instrumented          |
-| ERROR        | checkout                         | not-instrumented          |
-| ERROR        | frontend-proxy                   | not-instrumented          |
-| ERROR        | payment                          | opentelemetry-js          |
-| ERROR        | recommendation                   | not-instrumented          |
-+--------------+----------------------------------+---------------------------+
+fetched rows / total rows = 7/7
++--------------+----------------------------------+-------------------------------------+
+| severityText | resource.attributes.service.name | instrumentationScope.name           |
+|--------------+----------------------------------+-------------------------------------|
+| ERROR        | checkout                         | not-instrumented                    |
+| ERROR        | checkout                         | not-instrumented                    |
+| ERROR        | frontend-proxy                   | not-instrumented                    |
+| ERROR        | payment                          | @opentelemetry/instrumentation-http |
+| ERROR        | payment                          | not-instrumented                    |
+| ERROR        | product-catalog                  | not-instrumented                    |
+| ERROR        | recommendation                   | not-instrumented                    |
++--------------+----------------------------------+-------------------------------------+
 ```
   

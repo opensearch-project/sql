@@ -30,22 +30,23 @@ The following query counts logs by severity level, then appends a total row. Thi
 source=otellogs
 | stats count() as log_count by severityText
 | sort - log_count
-| head 3
 | appendpipe [ stats sum(log_count) as total ]
+| fields severityText, log_count, total
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+-----------+--------------+-------+
-| log_count | severityText | total |
-|-----------+--------------+-------|
-| 6         | INFO         | null  |
-| 5         | ERROR        | null  |
-| 4         | WARN         | null  |
-| null      | null         | 15    |
-+-----------+--------------+-------+
+fetched rows / total rows = 5/5
++--------------+-----------+-------+
+| severityText | log_count | total |
+|--------------+-----------+-------|
+| ERROR        | 7         | null  |
+| INFO         | 6         | null  |
+| WARN         | 4         | null  |
+| DEBUG        | 3         | null  |
+| null         | null      | 20    |
++--------------+-----------+-------+
 ```
   
 
@@ -55,25 +56,26 @@ The following query shows error counts per service, then appends the overall ave
   
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
+| where severityText = 'ERROR'
 | stats count() as error_count by `resource.attributes.service.name`
 | sort - error_count
 | appendpipe [ stats avg(error_count) as avg_errors ]
+| fields `resource.attributes.service.name`, error_count, avg_errors
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 6/6
-+-------------+----------------------------------+------------+
-| error_count | resource.attributes.service.name | avg_errors |
-|-------------+----------------------------------+------------|
-| 2           | checkout                         | null       |
-| 2           | payment                          | null       |
-| 1           | frontend-proxy                   | null       |
-| 1           | product-catalog                  | null       |
-| 1           | recommendation                   | null       |
-| null        | null                             | 1.4        |
-+-------------+----------------------------------+------------+
++----------------------------------+-------------+------------+
+| resource.attributes.service.name | error_count | avg_errors |
+|----------------------------------+-------------+------------|
+| checkout                         | 2           | null       |
+| payment                          | 2           | null       |
+| frontend-proxy                   | 1           | null       |
+| product-catalog                  | 1           | null       |
+| recommendation                   | 1           | null       |
+| null                             | null        | 1.4        |
++----------------------------------+-------------+------------+
 ```
   

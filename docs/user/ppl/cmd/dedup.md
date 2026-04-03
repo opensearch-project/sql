@@ -29,7 +29,7 @@ The following query deduplicates by service name to get one sample error per ser
   
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
+| where severityText IN ('ERROR', 'WARN')
 | dedup `resource.attributes.service.name`
 | sort `resource.attributes.service.name`
 | fields `resource.attributes.service.name`, severityText, body
@@ -39,15 +39,15 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 5/5
-+----------------------------------+--------------+--------------------------------------------------------------------------------+
-| resource.attributes.service.name | severityText | body                                                                           |
-|----------------------------------+--------------+--------------------------------------------------------------------------------|
-| checkout                         | ERROR        | NullPointerException in CheckoutService.placeOrder at line 142                 |
-| frontend-proxy                   | ERROR        | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error       |
-| payment                          | ERROR        | Payment failed: connection timeout to payment gateway after 30000ms            |
-| product-catalog                  | FATAL        | Database primary node unreachable: connection refused to db-primary-01:5432    |
-| recommendation                   | ERROR        | Failed to process recommendation request: invalid product ID from 203.0.113.50 |
-+----------------------------------+--------------+--------------------------------------------------------------------------------+
++----------------------------------+--------------+----------------------------------------------------------------------------------------+
+| resource.attributes.service.name | severityText | body                                                                                   |
+|----------------------------------+--------------+----------------------------------------------------------------------------------------|
+| checkout                         | ERROR        | NullPointerException in CheckoutService.placeOrder at line 142                         |
+| frontend-proxy                   | ERROR        | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error               |
+| payment                          | ERROR        | Payment failed: connection timeout to payment gateway after 30000ms                    |
+| product-catalog                  | WARN         | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
+| recommendation                   | ERROR        | Failed to process recommendation request: invalid product ID from 203.0.113.50         |
++----------------------------------+--------------+----------------------------------------------------------------------------------------+
 ```
   
 
@@ -95,13 +95,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+---------------------------+
-| instrumentationScope.name |
-|---------------------------|
-| opentelemetry-dotnet      |
-| opentelemetry-go          |
-| opentelemetry-js          |
-+---------------------------+
++-----------------------------------------------------------------------------+
+| instrumentationScope.name                                                   |
+|-----------------------------------------------------------------------------|
+| @opentelemetry/instrumentation-http                                         |
+| Microsoft.Extensions.Hosting                                                |
+| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc |
++-----------------------------------------------------------------------------+
 ```
   
 The following query deduplicates while ignoring documents with empty values in the specified field:
@@ -117,13 +117,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+---------------------------+
-| instrumentationScope.name |
-|---------------------------|
-| opentelemetry-dotnet      |
-| opentelemetry-go          |
-| opentelemetry-js          |
-+---------------------------+
++-----------------------------------------------------------------------------+
+| instrumentationScope.name                                                   |
+|-----------------------------------------------------------------------------|
+| @opentelemetry/instrumentation-http                                         |
+| Microsoft.Extensions.Hosting                                                |
+| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc |
++-----------------------------------------------------------------------------+
 ```
   
 
@@ -141,7 +141,7 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 4/4
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
@@ -149,7 +149,6 @@ fetched rows / total rows = 5/5
 | INFO         | cart                             |
 | WARN         | frontend-proxy                   |
 | ERROR        | checkout                         |
-| FATAL        | payment                          |
 +--------------+----------------------------------+
 ```
   

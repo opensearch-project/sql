@@ -37,8 +37,8 @@ fetched rows / total rows = 3/3
 +--------------+-------+
 | severityText | count |
 |--------------+-------|
+| ERROR        | 7     |
 | INFO         | 6     |
-| ERROR        | 5     |
 | WARN         | 4     |
 +--------------+-------+
 ```
@@ -55,14 +55,13 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 4/4
 +--------------+----------------------------------+-------+
 | severityText | resource.attributes.service.name | count |
 |--------------+----------------------------------+-------|
 | ERROR        | checkout                         | 2     |
 | INFO         | frontend                         | 4     |
 | DEBUG        | cart                             | 2     |
-| FATAL        | payment                          | 1     |
 | WARN         | frontend-proxy                   | 2     |
 +--------------+----------------------------------+-------+
 ```

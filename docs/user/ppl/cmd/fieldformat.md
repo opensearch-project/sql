@@ -32,7 +32,7 @@ The following query creates an `is_critical` field that flags whether a log entr
   
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'FATAL')
+| where severityText IN ('ERROR', 'WARN')
 | fieldformat is_critical = IF(severityNumber >= 21, 'CRITICAL', 'ERROR')
 | sort severityNumber, `resource.attributes.service.name`
 | fields severityText, `resource.attributes.service.name`, is_critical
@@ -46,10 +46,10 @@ fetched rows / total rows = 4/4
 +--------------+----------------------------------+-------------+
 | severityText | resource.attributes.service.name | is_critical |
 |--------------+----------------------------------+-------------|
-| ERROR        | checkout                         | ERROR       |
-| ERROR        | checkout                         | ERROR       |
-| ERROR        | frontend-proxy                   | ERROR       |
-| ERROR        | payment                          | ERROR       |
+| WARN         | frontend-proxy                   | ERROR       |
+| WARN         | frontend-proxy                   | ERROR       |
+| WARN         | product-catalog                  | ERROR       |
+| WARN         | product-catalog                  | ERROR       |
 +--------------+----------------------------------+-------------+
 ```
   
@@ -69,7 +69,7 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 4/4
 +--------------+----------------+
 | severityText | severityNumber |
 |--------------+----------------|
@@ -77,7 +77,6 @@ fetched rows / total rows = 5/5
 | INFO         | medium         |
 | WARN         | medium         |
 | ERROR        | high           |
-| FATAL        | high           |
 +--------------+----------------+
 ```
   

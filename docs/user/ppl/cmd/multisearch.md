@@ -59,7 +59,7 @@ This example merges error logs with debug logs side by side. This is useful when
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 8/8
+fetched rows / total rows = 10/10
 +--------+----------------------------------+----------------------------------------------------------------------------------------------+
 | env    | resource.attributes.service.name | body                                                                                         |
 |--------+----------------------------------+----------------------------------------------------------------------------------------------|
@@ -70,6 +70,8 @@ fetched rows / total rows = 8/8
 | errors | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
 | errors | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
 | errors | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                          |
+| errors | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                      |
+| errors | product-catalog                  | Database primary node unreachable: connection refused to db-primary-01:5432                  |
 | errors | recommendation                   | Failed to process recommendation request: invalid product ID from 203.0.113.50               |
 +--------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
@@ -98,8 +100,8 @@ fetched rows / total rows = 5/5
 +--------------+----------------+----------+
 | severityText | severityNumber | tier     |
 |--------------+----------------+----------|
-| FATAL        | 21             | critical |
-| FATAL        | 21             | critical |
+| ERROR        | 17             | critical |
+| ERROR        | 17             | critical |
 | ERROR        | 17             | critical |
 | ERROR        | 17             | critical |
 | ERROR        | 17             | critical |

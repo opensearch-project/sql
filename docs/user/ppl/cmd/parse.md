@@ -36,7 +36,7 @@ The following query extracts the error summary and detail from error log message
 source=otellogs
 | where severityText = 'ERROR'
 | parse body '(?<errmsg>[^:]+): (?<detail>.+)'
-| fields body, errmsg, detail
+| fields errmsg, detail
 | head 3
 ```
   
@@ -44,38 +44,39 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+--------------------------------------------------------------------------+----------------+-----------------------------------------------------+
-| body                                                                     | errmsg         | detail                                              |
-|--------------------------------------------------------------------------+----------------+-----------------------------------------------------|
-| Payment failed: connection timeout to payment gateway after 30000ms      | Payment failed | connection timeout to payment gateway after 30000ms |
-| NullPointerException in CheckoutService.placeOrder at line 142           |                |                                                     |
-| HTTP POST /api/checkout 503 Service Unavailable - upstream connect error |                |                                                     |
-+--------------------------------------------------------------------------+----------------+-----------------------------------------------------+
++----------------+----------------------------------------------------------+
+| errmsg         | detail                                                   |
+|----------------+----------------------------------------------------------|
+| Payment failed | connection timeout to payment gateway after 30000ms      |
+|                |                                                          |
+| Out of memory  | Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
++----------------+----------------------------------------------------------+
 ```
   
 
-## Example 2: Extract IP addresses from authentication logs  
+## Example 2: Extract IP addresses from log messages  
 
-The following query extracts IP addresses from authentication-related log messages, useful for identifying suspicious login sources:
+The following query extracts IP addresses from log messages for a specific service:
   
 ```ppl
 source=otellogs
-| where LIKE(body, '%from%')
+| where `resource.attributes.service.name` = 'frontend'
 | parse body '.+from (?<sourceip>[0-9.]+)'
 | fields body, sourceip
+| head 3
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+----------------------------------------------------------------------------------------+--------------+
-| body                                                                                   | sourceip     |
-|----------------------------------------------------------------------------------------+--------------|
-| Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |              |
-| User U300 authenticated via OAuth2 from 10.0.0.5                                       | 10.0.0.5     |
-| Failed to process recommendation request: invalid product ID from 203.0.113.50         | 203.0.113.50 |
-+----------------------------------------------------------------------------------------+--------------+
++--------------------------------------------------------------------+----------+
+| body                                                               | sourceip |
+|--------------------------------------------------------------------+----------|
+| HTTP GET /api/products 200 45ms                                    |          |
+| User U300 authenticated via OAuth2 from 10.0.0.5                   | 10.0.0.5 |
+| Deployment frontend-v2.2.0 rolled out successfully to 3/3 replicas |          |
++--------------------------------------------------------------------+----------+
 ```
   
 
@@ -88,4 +89,3 @@ The `parse` command has the following limitations:
 - The source text field used by the `parse` command cannot be overridden.
 - Fields created by the `parse` command cannot be filtered or sorted after they are used in the `stats` command.
 - Fields created by the `parse` command do not appear in the final results unless the original source field is included in the `fields` command.
-

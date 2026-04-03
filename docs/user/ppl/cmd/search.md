@@ -139,13 +139,13 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 3/3
-+----------+------------------+---------------------+-----------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------+
-| spanId   | traceId          | @timestamp          | instrumentationScope                                                              | severityText | resource                                                                                                                             | flags | attributes | droppedAttributesCount | severityNumber | time                | body                                                                                   |
-|----------+------------------+---------------------+-----------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------|
-| span0001 | abcd1234efgh5678 | 2024-02-01 09:10:00 | {'name': 'opentelemetry-js', 'droppedAttributesCount': 0, 'version': '1.21.0'}    | INFO         | {'attributes': {'service': {'name': 'frontend'}, 'host': {'name': 'frontend-6b7b4c9f-x2kl9'}}, 'droppedAttributesCount': 0}          | 0     | {}         | 0                      | 9              | 2024-02-01 09:10:00 | HTTP GET /api/products 200 45ms                                                        |
-| span0002 | abcd1234efgh5678 | 2024-02-01 09:11:00 | {'name': 'opentelemetry-dotnet', 'droppedAttributesCount': 0, 'version': '1.7.0'} | INFO         | {'attributes': {'service': {'name': 'cart'}, 'host': {'name': 'cart-5d8f7b-mk29s'}}, 'droppedAttributesCount': 0}                    | 0     | {}         | 0                      | 9              | 2024-02-01 09:11:00 | Order #1234 placed successfully by user U100                                           |
-| span0003 | abcd1234efgh5678 | 2024-02-01 09:12:00 | {'name': 'opentelemetry-go', 'droppedAttributesCount': 0, 'version': '1.24.0'}    | WARN         | {'attributes': {'service': {'name': 'product-catalog'}, 'host': {'name': 'productcatalog-7c9d-zn4p2'}}, 'droppedAttributesCount': 0} | 0     | {}         | 0                      | 13             | 2024-02-01 09:12:00 | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
-+----------+------------------+---------------------+-----------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------+
++----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------+
+| spanId   | traceId          | @timestamp          | instrumentationScope                                                                                                                      | severityText | resource                                                                                                                             | flags | attributes | droppedAttributesCount | severityNumber | time                | body                                                                                   |
+|----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------|
+| span0001 | abcd1234efgh5678 | 2024-02-01 09:10:00 | {'name': '@opentelemetry/instrumentation-http', 'droppedAttributesCount': 0, 'version': '0.57.0'}                                         | INFO         | {'attributes': {'service': {'name': 'frontend'}, 'host': {'name': 'frontend-6b7b4c9f-x2kl9'}}, 'droppedAttributesCount': 0}          | 0     | {}         | 0                      | 9              | 2024-02-01 09:10:00 | HTTP GET /api/products 200 45ms                                                        |
+| span0002 | abcd1234efgh5678 | 2024-02-01 09:11:00 | {'name': 'Microsoft.Extensions.Hosting', 'droppedAttributesCount': 0, 'version': '9.0.0'}                                                 | INFO         | {'attributes': {'service': {'name': 'cart'}, 'host': {'name': 'cart-5d8f7b-mk29s'}}, 'droppedAttributesCount': 0}                    | 0     | {}         | 0                      | 9              | 2024-02-01 09:11:00 | Order #1234 placed successfully by user U100                                           |
+| span0003 | abcd1234efgh5678 | 2024-02-01 09:12:00 | {'name': 'go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc', 'droppedAttributesCount': 0, 'version': '0.49.0'} | WARN         | {'attributes': {'service': {'name': 'product-catalog'}, 'host': {'name': 'productcatalog-7c9d-zn4p2'}}, 'droppedAttributesCount': 0} | 0     | {}         | 0                      | 13             | 2024-02-01 09:12:00 | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
++----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------+
 ```
 
 
@@ -241,7 +241,7 @@ The following queries demonstrate Boolean operators and precedence.
 Use `OR` to match documents containing any of the specified conditions:
 
 ```ppl
-search severityText="ERROR" OR severityText="FATAL" source=otellogs
+search severityText="ERROR" OR severityText="WARN" source=otellogs
 | sort severityNumber, `resource.attributes.service.name`
 | fields severityText
 | head 3
@@ -254,9 +254,9 @@ fetched rows / total rows = 3/3
 +--------------+
 | severityText |
 |--------------|
-| ERROR        |
-| ERROR        |
-| ERROR        |
+| WARN         |
+| WARN         |
+| WARN         |
 +--------------+
 ```
 
@@ -452,7 +452,7 @@ fetched rows / total rows = 2/2
 Use `?` to match exactly one character in specific positions:
 
 ```ppl
-search severityText="FATAL" source=otellogs
+search severityText="WARN" source=otellogs
 | sort severityNumber, `resource.attributes.service.name`
 | fields severityText
 | head 3
@@ -461,12 +461,13 @@ search severityText="FATAL" source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 2/2
+fetched rows / total rows = 3/3
 +--------------+
 | severityText |
 |--------------|
-| FATAL        |
-| FATAL        |
+| WARN         |
+| WARN         |
+| WARN         |
 +--------------+
 ```
 
@@ -493,7 +494,7 @@ fetched rows / total rows = 2/2
 | severityText | resource.attributes.service.name | body                                                                    |
 |--------------+----------------------------------+-------------------------------------------------------------------------|
 | ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms     |
-| FATAL        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
+| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
 +--------------+----------------------------------+-------------------------------------------------------------------------+
 ```
 
@@ -522,7 +523,7 @@ The `IN` operator efficiently checks whether a field matches any value in a list
 Check whether a field matches any value from a predefined list:
 
 ```ppl
-search severityText IN ("ERROR", "WARN", "FATAL") source=otellogs
+search severityText IN ("ERROR", "WARN", "DEBUG") source=otellogs
 | sort severityNumber, `resource.attributes.service.name`
 | fields severityText
 | head 3
@@ -535,9 +536,9 @@ fetched rows / total rows = 3/3
 +--------------+
 | severityText |
 |--------------|
-| WARN         |
-| WARN         |
-| WARN         |
+| DEBUG        |
+| DEBUG        |
+| DEBUG        |
 +--------------+
 ```
 
@@ -608,7 +609,7 @@ fetched rows / total rows = 3/3
 Combine multiple conditions with `OR` and `AND` operators to search for logs matching either a specific user or high-severity fund errors:
 
 ```ppl
-search severityNumber=17 OR (severityText="FATAL" AND severityNumber>=17) source=otellogs
+search severityNumber=17 OR (severityText="WARN" AND severityNumber>=17) source=otellogs
 | fields body
 ```
   
@@ -753,7 +754,7 @@ The following table compares wildcard and literal character matching.
 Each backslash in the search value must be escaped with another backslash. For example, the following query searches for Windows file paths by properly escaping backslashes:
 
 ```ppl
-search severityText="FATAL" source=otellogs
+search severityText="WARN" source=otellogs
 | sort `resource.attributes.service.name` | fields body | head 1
 ```
 
@@ -761,11 +762,11 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 1/1
-+-------------------------------------------------------------------------+
-| body                                                                    |
-|-------------------------------------------------------------------------|
-| Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
-+-------------------------------------------------------------------------+
++--------------------------------------------------------+
+| body                                                   |
+|--------------------------------------------------------|
+| SSL certificate for api.example.com expires in 14 days |
++--------------------------------------------------------+
 ```
 
 > **Note**: When using the REST API with JSON, additional JSON escaping is required.
