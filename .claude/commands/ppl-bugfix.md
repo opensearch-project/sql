@@ -3,17 +3,44 @@ allowed-tools: Agent, Read, Bash(gh:*), Bash(git:*)
 description: Run the PPL bugfix harness for a GitHub issue or follow up on an existing PR
 ---
 
-Fix a PPL bug or follow up on an existing PR using the harness in `ppl-bugfix-harness.md`.
+Fix a PPL bug or follow up on an existing PR using the harness in `.claude/harness/ppl-bugfix-harness.md`.
 
 ## Input
 
-- `/ppl-bugfix #1234` or `/ppl-bugfix 1234` — issue number
-- `/ppl-bugfix PR#5678` or `/ppl-bugfix pr 5678` — PR number
+Accepts one or more issue/PR references. Multiple references are processed in parallel (each gets its own subagent + worktree).
+
+- `/ppl-bugfix #1234` — single issue
+- `/ppl-bugfix PR#5678` — single PR
+- `/ppl-bugfix #1234 #5678 PR#9012` — multiple in parallel
 - `/ppl-bugfix https://github.com/opensearch-project/sql/issues/1234` — URL
+
+Optional mode flag (append to any of the above):
+- `--safe` — `acceptEdits` mode. Auto-approve file edits only, Bash commands require manual approval. (Most conservative)
+- `--yolo` — `bypassPermissions` mode. Fully trusted, no prompts. Subagent runs in an isolated worktree so this is safe. (Default)
+
+Examples:
+- `/ppl-bugfix #1234` — single issue, defaults to yolo
+- `/ppl-bugfix #1234 #5678 --yolo` — two issues in parallel
+- `/ppl-bugfix PR#5293 PR#5300` — two PRs in parallel
+- `/ppl-bugfix #1234 PR#5678 --safe` — mix of issue and PR
 
 If no argument given, ask for an issue or PR number.
 
-## Step 1: Resolve Issue ↔ PR
+## Step 0: Resolve Permission Mode
+
+Parse the mode flag from the input arguments:
+
+| Flag | Mode |
+|------|------|
+| `--safe` | `acceptEdits` |
+| `--yolo` | `bypassPermissions` |
+| _(no flag)_ | `bypassPermissions` (default) |
+
+Use the resolved mode as the `mode` parameter when dispatching the subagent in Step 2A/2B.
+
+## Step 1: Resolve Each Reference
+
+For each issue/PR reference in the input, resolve its state. Run these lookups in parallel when there are multiple references.
 
 ```bash
 # Issue → PR
@@ -29,64 +56,44 @@ gh pr view <pr_number> --json body | jq -r '.body' | grep -oP 'Resolves #\K[0-9]
 | Issue exists, open PR found | **Follow-up** (Step 2B) |
 | PR provided directly | **Follow-up** (Step 2B) |
 
-## Step 2A: Initial Fix
+## Step 2: Dispatch Subagents
 
-1. `gh issue view <issue_number>`
-2. `Read ppl-bugfix-harness.md`
-3. Dispatch subagent:
+Dispatch one subagent per reference. When there are multiple references, dispatch all subagents in a single message (parallel execution).
+
+### 2A: Initial Fix
 
 ```
 Agent(
-  mode: "acceptEdits",
+  mode: "<resolved_mode>",
   isolation: "worktree",
   name: "bugfix-<issue_number>",
   description: "PPL bugfix #<issue_number>",
-  prompt: "<FULL harness content> + <issue details>
+  prompt: "Read .claude/harness/ppl-bugfix-harness.md and follow it to fix GitHub issue #<issue_number>.
            Follow Phase 0 through Phase 3 in order.
            Phase 0.3 defines TDD execution flow. Do NOT skip any phase.
            Post the Decision Log (Phase 3.4) before completing."
 )
 ```
 
-The `isolation: "worktree"` creates a temporary git worktree branched from the current HEAD. The agent works in a clean, isolated copy of the repo — no interference with the user's working directory. If the agent makes changes, the worktree path and branch are returned in the result.
-
-4. Report back: classification, fix summary, PR URL, **worktree branch name**, items needing human attention.
-
-## Step 2B: Follow-up
-
-1. Load PR state:
-```bash
-gh pr view <pr_number> --json title,body,state,reviews,comments,statusCheckRollup,mergeable
-gh pr checks <pr_number>
-```
-
-2. Categorize:
-
-| Signal | Type |
-|--------|------|
-| `statusCheckRollup` has failures | CI failure |
-| `reviews` has CHANGES_REQUESTED | Review feedback |
-| `mergeable` is CONFLICTING | Merge conflict |
-| All pass + approved | Ready — run `gh pr ready` |
-
-3. `Read ppl-bugfix-harness.md`
-4. Dispatch follow-up subagent:
+### 2B: Follow-up
 
 ```
 Agent(
-  mode: "acceptEdits",
+  mode: "<resolved_mode>",
   isolation: "worktree",
-  name: "bugfix-<issue_number>-followup",
+  name: "bugfix-<issue_number>",
   description: "PPL bugfix #<issue_number> followup",
-  prompt: "<Phase 3.5 content from harness>
+  prompt: "Read .claude/harness/ppl-bugfix-followup.md and follow it.
            PR: <pr_number> (<pr_url>), Issue: #<issue_number>
-           Follow-up type: <CI failure / review feedback / merge conflict>
-           Read the Decision Log PR comment FIRST before making any changes.
-           Checkout the PR branch before starting: git checkout <pr_branch>"
+           Follow-up type: <CI failure / review feedback / merge conflict>"
 )
 ```
 
-5. Report back: what was addressed, current PR state, whether another round is needed.
+## Step 3: Report Back
+
+After all subagents complete, report a summary for each:
+- Classification, fix summary, PR URL, worktree path and branch, items needing human attention (2A)
+- What was addressed, current PR state, whether another round is needed (2B)
 
 ## Subagent Lifecycle
 
@@ -106,6 +113,8 @@ Context is preserved across agents via:
 
 ## Rules
 
-- Always inline harness content in the subagent prompt — subagents cannot read skill files
+- Subagent reads `.claude/harness/ppl-bugfix-harness.md` and fetches issue/PR details itself — do NOT inline content into the prompt
 - If bug is not reproducible (Phase 0.1), stop and report — do not proceed
 - Issue ↔ PR auto-resolution means the user never needs to track PR numbers manually
+- **Do NOT use `mode: "auto"` for subagents** — `auto` mode does not work for subagents; Bash commands still require manual approval. Only `bypassPermissions` reliably skips permission checks.
+- **Always dispatch subagent** — even for trivial follow-ups (remove co-author, force push). Do NOT run commands directly in the main session; subagents with `bypassPermissions` skip permission prompts, the main session does not.

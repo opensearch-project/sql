@@ -1,10 +1,16 @@
 # PPL Bugfix Harness
 
-> Systematic bugfix workflow distilled from 15+ historical commits. Invoke via `/ppl-bugfix #<issue_number>`.
-
 ---
 
 ## Phase 0: Triage & Classification
+
+### 0.0 Load Issue Context
+
+```bash
+gh issue view <issue_number> --repo opensearch-project/sql
+```
+
+Read the issue title, description, and any reproduction steps before proceeding.
 
 ### 0.1 Reproduce the Bug
 
@@ -221,10 +227,8 @@ teardown:
 
 ### 3.2 Commit & Push
 
-The subagent runs in an isolated **git worktree** branched from HEAD. All changes are on a dedicated branch that does not affect the user's working directory.
-
 ```bash
-# Commit with DCO sign-off
+# Commit with DCO sign-off — do NOT add Co-Authored-By lines
 git add <changed_files>
 git commit -s -m "[BugFix] Fix <description> (#<issue_number>)"
 
@@ -277,68 +281,6 @@ EOF
 
 ---
 
-## Phase 3.5: Post-PR Follow-up
-
-Runs as a **separate subagent** invocation — the original agent has completed. Invoke via `/ppl-bugfix #<issue>` or `/ppl-bugfix PR#<pr>` (auto-detects follow-up mode when a PR exists).
-
-### 3.5.1 Reconstruct Context
-
-The follow-up agent runs in a fresh worktree. First checkout the PR branch, then load state:
-
-```bash
-# Checkout the PR branch in this worktree
-gh pr checkout <pr_number>
-
-# Load PR state and Decision Log
-gh pr view <pr_number> --json title,body,state,reviews,comments,statusCheckRollup,mergeable
-gh pr checks <pr_number>
-# Read the Decision Log comment FIRST — contains rejected alternatives and pitfalls
-gh api repos/<owner>/<repo>/pulls/<pr_number>/comments
-```
-
-### 3.5.2 Handle Review Feedback
-
-For each comment, **cross-check against the Decision Log first**:
-
-| Type | Action |
-|------|--------|
-| Code change | If already rejected in Decision Log, reply with reasoning. Otherwise make the change, new commit, push |
-| Question | Reply with explanation — Decision Log often has the answer |
-| Nit | Fix if trivial |
-| Disagreement | Reply with Decision Log reasoning; if reviewer insists, escalate to user |
-
-```bash
-git add <files> && git commit -s -m "Address review feedback: <description>"
-git push <your_fork_remote> <branch_name>
-```
-
-### 3.5.3 Handle CI Failures
-
-```bash
-gh pr checks <pr_number>                  # Identify failures
-gh run view <run_id> --log-failed         # Read logs
-# Test failure → fix locally, push new commit
-# Spotless → ./gradlew spotlessApply, push
-# Flaky → gh run rerun <run_id> --failed
-```
-
-### 3.5.4 Handle Merge Conflicts
-
-```bash
-git fetch origin && git merge origin/main  # Resolve conflicts
-./gradlew spotlessApply && ./gradlew test && ./gradlew :integ-test:integTest  # Re-verify
-git commit -s -m "Resolve merge conflicts with main"
-git push <your_fork_remote> <branch_name>
-```
-
-### 3.5.5 Mark Ready
-
-```bash
-gh pr ready <pr_number>
-```
-
----
-
 ## Phase 4: Retrospective
 
 After each bugfix, check if the harness itself needs updating:
@@ -381,3 +323,4 @@ Regex/function extraction offset                  → Path B: ordinal vs named r
 | `734394d` | Grammar rule typo | Grammar | — |
 | `246ed0d` | Float precision flaky test | Test Infra | — |
 | `d56b8fa` | Wildcard index type conflict | Value Parsing | 3 UT + 1 IT + 1 YAML |
+| `5a78b78` | Boolean coercion from numeric in wildcard queries | Value Parsing | 3 UT + 1 IT + 1 YAML |

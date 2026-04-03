@@ -125,7 +125,7 @@ plugin (OpenSearch plugin entry point, Guice DI wiring)
 
 ## Fixing PPL Bugs
 
-Use the `/ppl-bugfix #<issue_number>` slash command to fix PPL bugs. It dispatches a subagent with scoped permissions that follows all phases in `ppl-bugfix-harness.md` — from Phase 0 (Triage & Classification) through Phase 4 (Retrospective & Improvement). The full harness content is inlined into the subagent prompt to guarantee compliance. If a user asks to fix a PPL bug without using the slash command, remind them to use `/ppl-bugfix` or invoke it on their behalf.
+Use the `/ppl-bugfix #<issue_number>` slash command to fix PPL bugs. It dispatches a subagent in an isolated worktree that reads `.claude/harness/ppl-bugfix-harness.md` and follows all phases — from Phase 0 (Triage & Classification) through Phase 4 (Retrospective & Improvement). If a user asks to fix a PPL bug without using the slash command, remind them to use `/ppl-bugfix` or invoke it on their behalf.
 
 ## Adding New PPL Commands
 
