@@ -73,7 +73,9 @@ Agent(
   prompt: "Read .claude/harness/ppl-bugfix-harness.md and follow it to fix GitHub issue #<issue_number>.
            Follow Phase 0 through Phase 3 in order.
            Phase 0.3 defines TDD execution flow. Do NOT skip any phase.
-           Post the Decision Log (Phase 3.4) before completing."
+           CRITICAL: If Phase 0.1 determines the bug is already fixed on main, HARD STOP.
+           Do NOT write tests, do NOT create a PR — just comment/close the issue and report back.
+           If the bug IS reproducible, post the Decision Log (Phase 3.4) before completing."
 )
 ```
 

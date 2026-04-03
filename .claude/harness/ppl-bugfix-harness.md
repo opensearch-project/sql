@@ -19,16 +19,16 @@ Read the issue title, description, and any reproduction steps before proceeding.
 ./gradlew :integ-test:integTest -Dtests.class="*<TestClass>" -Dtests.method="<testMethod>"
 ```
 
-**If not reproducible on latest `main`**:
+**If the bug does not reproduce on latest `main`** — meaning the test scenario runs but produces correct results instead of the reported error — the bug is already fixed. This is distinct from "can't set up the scenario" (which is an infra issue).
 
 | Finding | Action |
 |---------|--------|
-| Already fixed by another commit | Comment with fixing commit hash, close as duplicate |
-| Only on older version | Comment with version where it's fixed, close as resolved |
+| Already fixed by another commit | `gh issue comment` with fixing commit/PR, then `gh issue close` |
+| Only on older version | `gh issue comment` with version where it's fixed, then `gh issue close` |
 | Intermittent / environment-specific | Label `flaky` or `needs-info`, do NOT close |
 | Insufficient info to reproduce | Comment asking for repro steps, label `needs-info` |
 
-In all cases, **stop and report back** — do not proceed to Phase 1.
+**HARD STOP**: Do NOT proceed to Phase 1, 2, or 3. Do NOT write tests. Do NOT create a PR. Report back with the finding and the action taken (comment/close). Your job is done.
 
 ### 0.2 Classify and Route
 
