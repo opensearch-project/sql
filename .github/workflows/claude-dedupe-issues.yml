@@ -12,7 +12,7 @@ on:
 
 jobs:
   dedupe:
-    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-detect.yml@test-dedupe-debug
+    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-detect.yml@add-issue-dedupe-workflow
     permissions:
       contents: read
       issues: write
