@@ -2735,14 +2735,13 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testFilterBooleanFieldWithStringLiteral() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    // Test boolean field with string literal 'TRUE' - Calcite keeps SAFE_CAST in logical plan
-    // but still generates the same term query in physical plan
+    // Test boolean field with string literal 'TRUE' - Calcite converts to boolean true
+    // and generates same term query as boolean literal
     String query =
         StringUtils.format(
             "source=%s firstname=Amber | where male = 'TRUE' | fields firstname", TEST_INDEX_BANK);
     var result = explainQueryYaml(query);
-    String expected =
-        loadExpectedPlan("explain_filter_query_string_with_boolean_string_literal.yaml");
+    String expected = loadExpectedPlan("explain_filter_query_string_with_boolean.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 

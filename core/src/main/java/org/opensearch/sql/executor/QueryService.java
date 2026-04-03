@@ -139,14 +139,23 @@ public class QueryService {
                 QueryProfiling.activate(QueryContext.isProfileEnabled());
             ProfileMetric analyzeMetric = profileContext.getOrCreateMetric(MetricName.ANALYZE);
             long analyzeStart = System.nanoTime();
-            CalcitePlanContext context =
-                CalcitePlanContext.create(
-                    buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-            context.setHighlightConfig(highlightConfig);
-            RelNode relNode = analyze(plan, context);
-            RelNode calcitePlan = convertToCalcitePlan(relNode, context);
-            analyzeMetric.set(System.nanoTime() - analyzeStart);
-            executionEngine.execute(calcitePlan, context, listener);
+            // Set thread context classloader so patched Calcite (CALCITE-3745) uses the
+            // SQL plugin's classloader for Janino compilation during planning/execution.
+            Thread currentThread = Thread.currentThread();
+            ClassLoader originalCl = currentThread.getContextClassLoader();
+            currentThread.setContextClassLoader(QueryService.class.getClassLoader());
+            try {
+              CalcitePlanContext context =
+                  CalcitePlanContext.create(
+                      buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+              context.setHighlightConfig(highlightConfig);
+              RelNode relNode = analyze(plan, context);
+              RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+              analyzeMetric.set(System.nanoTime() - analyzeStart);
+              executionEngine.execute(calcitePlan, context, listener);
+            } finally {
+              currentThread.setContextClassLoader(originalCl);
+            }
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
@@ -169,17 +178,26 @@ public class QueryService {
         () -> {
           try {
             QueryProfiling.noop();
-            CalcitePlanContext context =
-                CalcitePlanContext.create(
-                    buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-            context.setHighlightConfig(highlightConfig);
-            context.run(
-                () -> {
-                  RelNode relNode = analyze(plan, context);
-                  RelNode calcitePlan = convertToCalcitePlan(relNode, context);
-                  executionEngine.explain(calcitePlan, mode, context, listener);
-                },
-                settings);
+            // Set thread context classloader so patched Calcite (CALCITE-3745) uses the
+            // SQL plugin's classloader for Janino compilation during planning/execution.
+            Thread currentThread = Thread.currentThread();
+            ClassLoader originalCl = currentThread.getContextClassLoader();
+            currentThread.setContextClassLoader(QueryService.class.getClassLoader());
+            try {
+              CalcitePlanContext context =
+                  CalcitePlanContext.create(
+                      buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+              context.setHighlightConfig(highlightConfig);
+              context.run(
+                  () -> {
+                    RelNode relNode = analyze(plan, context);
+                    RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+                    executionEngine.explain(calcitePlan, mode, context, listener);
+                  },
+                  settings);
+            } finally {
+              currentThread.setContextClassLoader(originalCl);
+            }
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t)) {
               log.warn("Fallback to V2 query engine since got exception", t);
