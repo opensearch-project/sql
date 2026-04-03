@@ -9,8 +9,3 @@ jobs:
     uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-remove-label.yml@add-issue-dedupe-workflow
     permissions:
       issues: write
-    with:
-      issue_number: ${{ github.event.issue.number }}
-      issue_state: ${{ github.event.issue.state }}
-      has_duplicate_label: ${{ contains(github.event.issue.labels.*.name, 'duplicate') }}
-      commenter_is_bot: ${{ github.event.comment.user.type == 'Bot' }}

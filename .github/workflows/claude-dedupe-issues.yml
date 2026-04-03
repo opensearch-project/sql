@@ -20,5 +20,4 @@ jobs:
     secrets:
       BEDROCK_ACCESS_ROLE: ${{ secrets.BEDROCK_ACCESS_ROLE }}
     with:
-      issue_number: ${{ github.event.issue.number || inputs.issue_number }}
       grace_days: ${{ vars.DUPLICATE_GRACE_DAYS || '7' }}
