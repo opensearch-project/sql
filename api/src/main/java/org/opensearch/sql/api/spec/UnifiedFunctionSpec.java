@@ -5,129 +5,167 @@
 
 package org.opensearch.sql.api.spec;
 
+import static org.apache.calcite.sql.type.ReturnTypes.BOOLEAN;
+
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.IntStream;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.FunctionParameter;
-import org.apache.calcite.schema.ScalarFunction;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.util.SqlOperatorTables;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 
 /**
- * Central registry of language-specified function signatures (Unified Language Specification
- * layer). Each entry maps a function name to a canonical {@link ScalarFunction} with named required
- * parameters of type {@link SqlTypeName#ANY}.
- *
- * <p>This class defines <em>what functions exist</em> and their signatures. Function
- * <em>implementations</em> live in the Unified Execution Runtime (UER) layer — see {@link
- * org.opensearch.sql.api.function.UnifiedFunction} and {@link
- * org.opensearch.sql.api.function.UnifiedFunctionRepository}. For data-source-specific functions
- * (e.g., relevance search), execution is handled by adapter pushdown rules rather than UER.
- *
- * <p>Named parameters enable SQL named-argument syntax ({@code match(field => col, query =>
- * 'text')}) via Calcite's {@code ARGUMENT_ASSIGNMENT} operator. With fixed required parameters (no
- * optional params), <a href="https://issues.apache.org/jira/browse/CALCITE-5366">CALCITE-5366</a>
- * is avoided entirely.
- *
- * <p>Functions are registered globally on the root schema via {@link #registerAll(SchemaPlus)},
- * following the same pattern as Flink's {@code FlinkSqlOperatorTable} — engine-level primitives
- * available regardless of catalog. Pushdown rules enforce data-source capability at optimization
- * time.
- *
- * @see org.opensearch.sql.api.function.UnifiedFunction
- * @see org.opensearch.sql.api.function.UnifiedFunctionRepository
+ * Declarative registry of language-level functions for the unified query engine. Functions defined
+ * here are part of the language spec — always resolvable regardless of the underlying data source.
+ * They are grouped into {@link Category categories} that callers chain into Calcite's operator
+ * table. Data-source capability is enforced at optimization time by pushdown rules.
  */
-// TODO: UnifiedFunctionRepository should resolve implementations for functions defined here,
-//  rather than independently discovering from PPLBuiltinOperators. The spec is the source of
-//  truth for what functions exist; UER provides how they execute. Decide whether to late-bind
-//  UER implementations (ImplementableFunction) to spec-defined signatures for engine-independent
-//  functions (e.g., upper, lower). Currently only data-source-specific functions (pushdown-only)
-//  are registered here.
+@Getter
+@ToString(of = "funcName")
+@EqualsAndHashCode(of = "funcName")
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class UnifiedFunctionSpec {
 
-  private UnifiedFunctionSpec() {}
+  /** Function name as registered in the operator table (e.g., "match", "multi_match"). */
+  private final String funcName;
 
-  /** Single-field relevance function params: (field, query). */
-  private static final List<String> SINGLE_FIELD_PARAMS = List.of("field", "query");
+  /** Calcite operator for chaining into the framework config's operator table. */
+  private final SqlOperator operator;
 
-  /** Multi-field relevance function params: (fields, query). */
-  private static final List<String> MULTI_FIELD_PARAMS = List.of("fields", "query");
+  /** Full-text search functions. */
+  public static final Category RELEVANCE =
+      new Category(
+          List.of(
+              function("match").vararg("field", "query").returnType(BOOLEAN).build(),
+              function("match_phrase").vararg("field", "query").returnType(BOOLEAN).build(),
+              function("match_bool_prefix").vararg("field", "query").returnType(BOOLEAN).build(),
+              function("match_phrase_prefix").vararg("field", "query").returnType(BOOLEAN).build(),
+              function("multi_match").vararg("fields", "query").returnType(BOOLEAN).build(),
+              function("simple_query_string").vararg("fields", "query").returnType(BOOLEAN).build(),
+              function("query_string").vararg("fields", "query").returnType(BOOLEAN).build()));
 
-  private static final Map<String, ScalarFunction> REGISTRY =
-      Map.of(
-          "match", scalarFunction(SINGLE_FIELD_PARAMS),
-          "match_phrase", scalarFunction(SINGLE_FIELD_PARAMS),
-          "match_bool_prefix", scalarFunction(SINGLE_FIELD_PARAMS),
-          "match_phrase_prefix", scalarFunction(SINGLE_FIELD_PARAMS),
-          "multi_match", scalarFunction(MULTI_FIELD_PARAMS),
-          "simple_query_string", scalarFunction(MULTI_FIELD_PARAMS),
-          "query_string", scalarFunction(MULTI_FIELD_PARAMS));
+  /** All registered function specs, keyed by function name. */
+  private static final Map<String, UnifiedFunctionSpec> ALL_SPECS =
+      Stream.of(RELEVANCE)
+          .flatMap(c -> c.specs().stream())
+          .collect(Collectors.toMap(UnifiedFunctionSpec::getFuncName, s -> s));
 
-  /** Registers all language-specified functions on the given schema (typically root). */
-  public static void registerAll(SchemaPlus schema) {
-    REGISTRY.forEach(schema::add);
+  /**
+   * Looks up a function spec by name across all categories.
+   *
+   * @param name function name (case-insensitive)
+   * @return the spec, or empty if not found
+   */
+  public static Optional<UnifiedFunctionSpec> of(String name) {
+    return Optional.ofNullable(ALL_SPECS.get(name.toLowerCase()));
   }
 
-  /** Returns the canonical ScalarFunction for a language-specified function, or null. */
-  public static @Nullable ScalarFunction get(String name) {
-    return REGISTRY.get(name);
+  /**
+   * @return required param names from {@link SqlOperandMetadata}, or empty if not available.
+   */
+  public List<String> getParamNames() {
+    return operator.getOperandTypeChecker() instanceof SqlOperandMetadata metadata
+        ? metadata.paramNames()
+        : List.of();
   }
 
-  /** Returns true if the name is a language-specified function. */
-  public static boolean isLanguageFunction(String name) {
-    return REGISTRY.containsKey(name);
-  }
-
-  /** All registered language function names. */
-  public static Set<String> names() {
-    return REGISTRY.keySet();
-  }
-
-  private static ScalarFunction scalarFunction(List<String> paramNames) {
-    List<FunctionParameter> params =
-        IntStream.range(0, paramNames.size())
-            .mapToObj(i -> (FunctionParameter) new AnyParam(i, paramNames.get(i)))
-            .toList();
-    return new BooleanScalarFunction(params);
-  }
-
-  /** A ScalarFunction that returns BOOLEAN with the given parameters. */
-  private record BooleanScalarFunction(List<FunctionParameter> params) implements ScalarFunction {
-    @Override
-    public List<FunctionParameter> getParameters() {
-      return params;
+  /** A group of function specs that can be chained into Calcite's operator table. */
+  public record Category(List<UnifiedFunctionSpec> specs) {
+    public SqlOperatorTable operatorTable() {
+      return SqlOperatorTables.of(specs.stream().map(UnifiedFunctionSpec::getOperator).toList());
     }
 
-    @Override
-    public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
-      return typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    /** Returns true if this category contains the given spec. */
+    public boolean contains(UnifiedFunctionSpec spec) {
+      return specs.contains(spec);
     }
   }
 
-  /** A required function parameter of type ANY. */
-  private record AnyParam(int ordinal, String name) implements FunctionParameter {
+  public static Builder function(String name) {
+    return new Builder(name);
+  }
+
+  /** Fluent builder for function specs. */
+  @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+  public static class Builder {
+    private final String funcName;
+    private List<String> paramNames = List.of();
+    private SqlReturnTypeInference returnType;
+
+    public Builder vararg(String... names) {
+      this.paramNames = List.of(names);
+      return this;
+    }
+
+    public Builder returnType(SqlReturnTypeInference type) {
+      this.returnType = type;
+      return this;
+    }
+
+    public UnifiedFunctionSpec build() {
+      Objects.requireNonNull(returnType, "returnType is required");
+      return new UnifiedFunctionSpec(
+          funcName,
+          new SqlUserDefinedFunction(
+              new SqlIdentifier(funcName, SqlParserPos.ZERO),
+              SqlKind.OTHER_FUNCTION,
+              returnType,
+              InferTypes.ANY_NULLABLE,
+              new VariadicOperandMetadata(paramNames),
+              List::of)); // Pushdown-only: no local implementation
+    }
+  }
+
+  /**
+   * Custom operand metadata that bypasses Calcite's built-in type checking. Calcite's {@code
+   * FamilyOperandTypeChecker} rejects variadic calls (CALCITE-5366), so this implementation accepts
+   * any operand types and delegates validation to pushdown.
+   */
+  private record VariadicOperandMetadata(List<String> paramNames) implements SqlOperandMetadata {
+
     @Override
-    public int getOrdinal() {
-      return ordinal;
+    public List<String> paramNames() {
+      return paramNames;
     }
 
     @Override
-    public String getName() {
-      return name;
+    public List<RelDataType> paramTypes(RelDataTypeFactory tf) {
+      return List.of();
     }
 
     @Override
-    public boolean isOptional() {
-      return false;
+    public boolean checkOperandTypes(SqlCallBinding binding, boolean throwOnFailure) {
+      return true; // Bypass: CALCITE-5366 breaks optional argument type checking
     }
 
     @Override
-    public RelDataType getType(RelDataTypeFactory typeFactory) {
-      return typeFactory.createSqlType(SqlTypeName.ANY);
+    public SqlOperandCountRange getOperandCountRange() {
+      return SqlOperandCountRanges.from(paramNames.size());
+    }
+
+    @Override
+    public String getAllowedSignatures(SqlOperator op, String opName) {
+      return opName + "(" + String.join(", ", paramNames) + "[, option=value ...])";
     }
   }
 }

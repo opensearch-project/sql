@@ -25,6 +25,7 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
@@ -241,12 +242,13 @@ public class UnifiedQueryContext implements AutoCloseable {
     private FrameworkConfig buildFrameworkConfig() {
       SchemaPlus rootSchema = CalciteSchema.createRootSchema(true, cacheMetadata).plus();
       catalogs.forEach(rootSchema::add);
-      UnifiedFunctionSpec.registerAll(rootSchema);
 
       SchemaPlus defaultSchema = findSchemaByPath(rootSchema, defaultNamespace);
       return Frameworks.newConfigBuilder()
           .parserConfig(buildParserConfig())
-          .operatorTable(SqlStdOperatorTable.instance())
+          .operatorTable(
+              SqlOperatorTables.chain(
+                  SqlStdOperatorTable.instance(), UnifiedFunctionSpec.RELEVANCE.operatorTable()))
           .defaultSchema(defaultSchema)
           .traitDefs((List<RelTraitDef>) null)
           .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))

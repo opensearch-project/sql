@@ -149,6 +149,37 @@ public abstract class UnifiedQueryTestBase {
     return new QueryAssert(planner.plan(query));
   }
 
+  /** Fluent helper for asserting query planning errors. */
+  protected QueryErrorAssert givenInvalidQuery(String query) {
+    try {
+      planner.plan(query);
+      throw new AssertionError("Expected query to fail: " + query);
+    } catch (Exception e) {
+      return new QueryErrorAssert(e);
+    }
+  }
+
+  /** Fluent assertion on a query planning error. */
+  protected static class QueryErrorAssert {
+    private final Exception error;
+
+    QueryErrorAssert(Exception error) {
+      this.error = error;
+    }
+
+    /** Assert the root cause error message contains the expected substring. */
+    public QueryErrorAssert assertErrorMessage(String expected) {
+      Throwable cause = error;
+      while (cause.getCause() != null) {
+        cause = cause.getCause();
+      }
+      assertTrue(
+          "Expected error to contain: " + expected + "\nActual: " + cause.getMessage(),
+          cause.getMessage().contains(expected));
+      return this;
+    }
+  }
+
   /** Fluent assertion on a query's logical plan. */
   protected static class QueryAssert {
     private final RelNode plan;

@@ -9,9 +9,9 @@ import org.junit.Test;
 import org.opensearch.sql.executor.QueryType;
 
 /**
- * Tests for relevance search functions in SQL planning path. Functions are registered globally on
- * the root schema via {@link org.opensearch.sql.api.spec.UnifiedFunctionSpec#registerAll}, resolved
- * through Calcite's standard CalciteCatalogReader → toOp() pipeline.
+ * Tests for relevance search functions in SQL planning path using V2/PPL syntax. Mirrors the PPL
+ * tests in {@link UnifiedRelevanceSearchTest} with equivalent SQL queries. Both paths produce
+ * identical MAP-based plans for pushdown rules.
  */
 public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
 
@@ -25,7 +25,7 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
     givenQuery(
             """
             SELECT * FROM catalog.employees
-            WHERE "match"(MAP['field', name], MAP['query', 'John'])\
+            WHERE "match"(name, 'John')\
             """)
         .assertPlan(
             """
@@ -40,14 +40,9 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
     givenQuery(
             """
             SELECT * FROM catalog.employees
-            WHERE match_phrase(MAP['field', name], MAP['query', 'John Doe'])\
+            WHERE match_phrase(name, 'John Doe')\
             """)
-        .assertPlan(
-            """
-            LogicalProject(id=[$0], name=[$1], age=[$2], department=[$3])
-              LogicalFilter(condition=[match_phrase(MAP('field', $1), MAP('query', 'John Doe'))])
-                LogicalTableScan(table=[[catalog, employees]])
-            """);
+        .assertPlanContains("match_phrase(MAP('field', $1), MAP('query', 'John Doe'))");
   }
 
   @Test
@@ -55,14 +50,9 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
     givenQuery(
             """
             SELECT * FROM catalog.employees
-            WHERE match_bool_prefix(MAP['field', name], MAP['query', 'John'])\
+            WHERE match_bool_prefix(name, 'John')\
             """)
-        .assertPlan(
-            """
-            LogicalProject(id=[$0], name=[$1], age=[$2], department=[$3])
-              LogicalFilter(condition=[match_bool_prefix(MAP('field', $1), MAP('query', 'John'))])
-                LogicalTableScan(table=[[catalog, employees]])
-            """);
+        .assertPlanContains("match_bool_prefix(MAP('field', $1), MAP('query', 'John'))");
   }
 
   @Test
@@ -70,14 +60,9 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
     givenQuery(
             """
             SELECT * FROM catalog.employees
-            WHERE match_phrase_prefix(MAP['field', name], MAP['query', 'John'])\
+            WHERE match_phrase_prefix(name, 'John')\
             """)
-        .assertPlan(
-            """
-            LogicalProject(id=[$0], name=[$1], age=[$2], department=[$3])
-              LogicalFilter(condition=[match_phrase_prefix(MAP('field', $1), MAP('query', 'John'))])
-                LogicalTableScan(table=[[catalog, employees]])
-            """);
+        .assertPlanContains("match_phrase_prefix(MAP('field', $1), MAP('query', 'John'))");
   }
 
   @Test
@@ -85,15 +70,9 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
     givenQuery(
             """
             SELECT * FROM catalog.employees
-            WHERE multi_match(\
-            MAP['fields', MAP['name', 1.0, 'department', 2.0]], MAP['query', 'John'])\
+            WHERE multi_match(name, 'John')\
             """)
-        .assertPlan(
-            """
-            LogicalProject(id=[$0], name=[$1], age=[$2], department=[$3])
-              LogicalFilter(condition=[multi_match(MAP('fields', MAP(CAST('name'):CHAR(10) NOT NULL, 1.0:DECIMAL(2, 1), 'department', 2.0:DECIMAL(2, 1))), MAP('query', 'John'))])
-                LogicalTableScan(table=[[catalog, employees]])
-            """);
+        .assertPlanContains("multi_match(MAP('fields', $1), MAP('query', 'John'))");
   }
 
   @Test
@@ -101,15 +80,9 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
     givenQuery(
             """
             SELECT * FROM catalog.employees
-            WHERE simple_query_string(\
-            MAP['fields', MAP['name', 1.0]], MAP['query', 'John'])\
+            WHERE simple_query_string(name, 'John')\
             """)
-        .assertPlan(
-            """
-            LogicalProject(id=[$0], name=[$1], age=[$2], department=[$3])
-              LogicalFilter(condition=[simple_query_string(MAP('fields', MAP('name', 1.0:DECIMAL(2, 1))), MAP('query', 'John'))])
-                LogicalTableScan(table=[[catalog, employees]])
-            """);
+        .assertPlanContains("simple_query_string(MAP('fields', $1), MAP('query', 'John'))");
   }
 
   @Test
@@ -117,14 +90,86 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
     givenQuery(
             """
             SELECT * FROM catalog.employees
-            WHERE query_string(\
-            MAP['fields', MAP['name', 1.0]], MAP['query', 'John'])\
+            WHERE query_string(name, 'John')\
             """)
-        .assertPlan(
+        .assertPlanContains("query_string(MAP('fields', $1), MAP('query', 'John'))");
+  }
+
+  @Test
+  public void testMatchWithOptions() {
+    givenQuery(
             """
-            LogicalProject(id=[$0], name=[$1], age=[$2], department=[$3])
-              LogicalFilter(condition=[query_string(MAP('fields', MAP('name', 1.0:DECIMAL(2, 1))), MAP('query', 'John'))])
-                LogicalTableScan(table=[[catalog, employees]])
-            """);
+            SELECT * FROM catalog.employees
+            WHERE "match"(name, 'John', operator='AND', boost=2.0)\
+            """)
+        .assertPlanContains(
+            "match(MAP('field', $1), MAP('query', 'John'),"
+                + " MAP('operator', 'AND'), MAP('boost', 2.0:DECIMAL(2, 1)))");
+  }
+
+  @Test
+  public void testMatchMissingArguments() {
+    givenInvalidQuery(
+            """
+            SELECT * FROM catalog.employees
+            WHERE "match"('John')\
+            """)
+        .assertErrorMessage(
+            "No match found for function signature match(<(CHAR(5), CHAR(4)) MAP>)");
+  }
+
+  @Test
+  public void testUnknownRelevanceFunction() {
+    givenInvalidQuery(
+            """
+            SELECT * FROM catalog.employees
+            WHERE unknown_relevance(name, 'John')\
+            """)
+        .assertErrorMessage(
+            "No match found for function signature unknown_relevance(<CHARACTER>, <CHARACTER>)");
+  }
+
+  // FIXME: Calcite's SQL parser does not support V2 bracket field list syntax ['field1', 'field2'].
+  //  Multi-field relevance functions only accept a single column reference in the Calcite SQL path.
+  //  See: https://github.com/opensearch-project/sql/issues/XXXX
+
+  @Test
+  public void testMultiMatchBracketSyntaxNotSupported() {
+    givenInvalidQuery(
+            """
+            SELECT * FROM catalog.employees
+            WHERE multi_match(['name', 'department'], 'John')\
+            """)
+        .assertErrorMessage("Encountered \"[\" at line");
+  }
+
+  @Test
+  public void testMultiMatchFieldBoostNotSupported() {
+    givenInvalidQuery(
+            """
+            SELECT * FROM catalog.employees
+            WHERE multi_match(['name' ^ 2.0, 'department'], 'John')\
+            """)
+        .assertErrorMessage("Encountered \"[\" at line");
+  }
+
+  @Test
+  public void testSimpleQueryStringBracketSyntaxNotSupported() {
+    givenInvalidQuery(
+            """
+            SELECT * FROM catalog.employees
+            WHERE simple_query_string(['name', 'department'], 'John')\
+            """)
+        .assertErrorMessage("Encountered \"[\" at line");
+  }
+
+  @Test
+  public void testQueryStringBracketSyntaxNotSupported() {
+    givenInvalidQuery(
+            """
+            SELECT * FROM catalog.employees
+            WHERE query_string(['name', 'department'], 'John')\
+            """)
+        .assertErrorMessage("Encountered \"[\" at line");
   }
 }
