@@ -15,11 +15,7 @@ Read the issue title, description, and any reproduction steps before proceeding.
 ### 0.1 Reproduce the Bug
 
 ```bash
-# Minimal PPL query
-POST /_plugins/_ppl/_query
-{ "query": "<your PPL query here>" }
-
-# Or via integration test
+# Write a failing integration test, or run an existing one
 ./gradlew :integ-test:integTest -Dtests.class="*<TestClass>" -Dtests.method="<testMethod>"
 ```
 
@@ -237,9 +233,15 @@ git fetch origin && git merge origin/main
 # Always re-run tests after merge — even a trivial merge can introduce regressions
 ./gradlew test && ./gradlew :integ-test:integTest -Dtests.class="*<YourIT>"
 
-# Push to personal fork (NOT origin if it points to upstream)
-git remote -v  # confirm your fork remote
-git push -u <your_fork_remote> <branch_name>
+# Resolve fork remote — find or add it
+# 1. Check if a fork remote already exists (not opensearch-project/sql)
+git remote -v
+# 2. If only origin (upstream) exists, add the fork:
+git remote add fork https://github.com/<fork_owner>/sql.git
+# Use the git user name to infer the fork owner, or fall back to "qianheng-aws"
+
+# Push
+git push -u fork <branch_name>
 ```
 
 ### 3.3 Create Draft PR

@@ -86,8 +86,7 @@ Agent(
   name: "bugfix-<issue_number>",
   description: "PPL bugfix #<issue_number> followup",
   prompt: "Read .claude/harness/ppl-bugfix-followup.md and follow it.
-           PR: <pr_number> (<pr_url>), Issue: #<issue_number>
-           Follow-up type: <CI failure / review feedback / merge conflict>"
+           PR: <pr_number> (<pr_url>), Issue: #<issue_number>"
 )
 ```
 

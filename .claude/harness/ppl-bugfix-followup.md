@@ -1,5 +1,9 @@
 # PPL Bugfix Follow-up
 
+## Rules
+
+- Do NOT add `Co-Authored-By` lines in commits — only DCO `Signed-off-by`
+
 ---
 
 ## Reconstruct Context
@@ -9,6 +13,11 @@ The follow-up agent runs in a fresh worktree. First checkout the PR branch, then
 ```bash
 # Checkout the PR branch in this worktree
 gh pr checkout <pr_number>
+
+# Resolve fork remote — the worktree may only have origin (upstream)
+git remote -v
+# If no fork remote exists, add it:
+git remote add fork https://github.com/<fork_owner>/sql.git
 
 # Load PR state — reviews, CI, mergeability
 gh pr view <pr_number> --json title,body,state,reviews,statusCheckRollup,mergeable
@@ -41,7 +50,7 @@ For each comment (human OR bot), **cross-check against the Decision Log first**:
 
 ```bash
 git add <files> && git commit -s -m "Address review feedback: <description>"
-git push -u <your_fork_remote> <branch_name>
+git push -u fork <branch_name>
 ```
 
 ## Clean Up Commit History
@@ -52,7 +61,7 @@ When you need to amend a commit (e.g. remove Co-Authored-By, reword message) and
 git checkout -B clean-branch origin/main
 git cherry-pick <fix_commit_sha>
 git commit --amend -s -m "<updated message>"
-git push <your_fork_remote> clean-branch:<pr_branch> --force-with-lease
+git push fork clean-branch:<pr_branch> --force-with-lease
 ```
 
 ## Handle CI Failures
@@ -71,7 +80,7 @@ gh run view <run_id> --log-failed         # Read logs
 git fetch origin && git merge origin/main  # Resolve conflicts
 ./gradlew spotlessApply && ./gradlew test && ./gradlew :integ-test:integTest  # Re-verify
 git commit -s -m "Resolve merge conflicts with main"
-git push -u <your_fork_remote> <branch_name>
+git push -u fork <branch_name>
 ```
 
 ## Mark Ready
