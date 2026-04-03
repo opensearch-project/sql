@@ -1,0 +1,95 @@
+# Issue: https://github.com/opensearch-project/sql/issues/4904
+# PPL query failed if field mapping has enabled:false
+# Regression tests to ensure disabled object fields work with Calcite engine.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: test_issue_4904
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              log:
+                type: object
+                enabled: false
+  - do:
+      bulk:
+        index: test_issue_4904
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"log": {"a": 3, "b": "hello"}}'
+          - '{"index": {}}'
+          - '{"log": {"a": 1, "b": "world"}}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+  - do:
+      indices.delete:
+        index: test_issue_4904
+
+---
+"PPL source query on index with disabled object field":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=test_issue_4904"
+  - match: { total: 2 }
+  - length: { datarows: 2 }
+
+---
+"PPL where clause filtering on disabled object sub-field":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=test_issue_4904 | where log.a = 3"
+  - match: { total: 1 }
+  - length: { datarows: 1 }
+
+---
+"PPL fields and sort on disabled object sub-field returns correct values":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=test_issue_4904 | fields log.a | sort log.a"
+  - match: { total: 2 }
+  - length: { datarows: 2 }
+  - match: { datarows.0.0: 1 }
+  - match: { datarows.1.0: 3 }
