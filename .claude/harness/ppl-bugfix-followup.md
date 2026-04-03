@@ -41,7 +41,7 @@ For each comment (human OR bot), **cross-check against the Decision Log first**:
 
 ```bash
 git add <files> && git commit -s -m "Address review feedback: <description>"
-git push <your_fork_remote> <branch_name>
+git push -u <your_fork_remote> <branch_name>
 ```
 
 ## Clean Up Commit History
@@ -71,7 +71,7 @@ gh run view <run_id> --log-failed         # Read logs
 git fetch origin && git merge origin/main  # Resolve conflicts
 ./gradlew spotlessApply && ./gradlew test && ./gradlew :integ-test:integTest  # Re-verify
 git commit -s -m "Resolve merge conflicts with main"
-git push <your_fork_remote> <branch_name>
+git push -u <your_fork_remote> <branch_name>
 ```
 
 ## Mark Ready
