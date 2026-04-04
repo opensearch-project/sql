@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function.udf.condition;
 
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -93,11 +94,29 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
     return opBinding -> {
       var operandTypes = opBinding.collectOperandTypes();
 
-      // Let Calcite determine the least restrictive common type
-      var commonType = opBinding.getTypeFactory().leastRestrictive(operandTypes);
-      return commonType != null
-          ? commonType
-          : opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+      // Filter out NULL-typed operands so they don't influence type inference.
+      // NULL is Calcite's bottom type and should be compatible with any type;
+      // without filtering, leastRestrictive may fall back to VARCHAR.
+      var nonNullTypes =
+          operandTypes.stream()
+              .filter(t -> t.getSqlTypeName() != SqlTypeName.NULL)
+              .collect(Collectors.toList());
+
+      if (nonNullTypes.isEmpty()) {
+        // All operands are NULL — return nullable NULL type
+        return opBinding
+            .getTypeFactory()
+            .createTypeWithNullability(
+                opBinding.getTypeFactory().createSqlType(SqlTypeName.NULL), true);
+      }
+
+      // Let Calcite determine the least restrictive common type among non-null operands
+      var commonType = opBinding.getTypeFactory().leastRestrictive(nonNullTypes);
+      if (commonType != null) {
+        // Ensure the result is nullable since COALESCE can return NULL
+        return opBinding.getTypeFactory().createTypeWithNullability(commonType, true);
+      }
+      return opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
     };
   }
 

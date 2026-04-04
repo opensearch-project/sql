@@ -126,4 +126,48 @@ public class OpenSearchTypeFactoryTest {
     assertNotNull(result);
     assertEquals(SqlTypeName.INTEGER, result.getSqlTypeName());
   }
+
+  @Test
+  public void testLeastRestrictiveNullAndIntegerReturnsInteger() {
+    RelDataType nullType = TYPE_FACTORY.createSqlType(SqlTypeName.NULL);
+    RelDataType intType = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
+
+    RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(nullType, intType));
+
+    assertNotNull("leastRestrictive(NULL, INTEGER) should not be null", result);
+    assertEquals(SqlTypeName.INTEGER, result.getSqlTypeName());
+  }
+
+  @Test
+  public void testLeastRestrictiveNullAndDecimalReturnsDecimal() {
+    RelDataType nullType = TYPE_FACTORY.createSqlType(SqlTypeName.NULL);
+    RelDataType decType = TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, 10, 0);
+
+    RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(nullType, decType));
+
+    assertNotNull("leastRestrictive(NULL, DECIMAL) should not be null", result);
+    assertEquals(SqlTypeName.DECIMAL, result.getSqlTypeName());
+  }
+
+  @Test
+  public void testLeastRestrictiveNullAndBooleanReturnsBoolean() {
+    RelDataType nullType = TYPE_FACTORY.createSqlType(SqlTypeName.NULL);
+    RelDataType boolType = TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN);
+
+    RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(nullType, boolType));
+
+    assertNotNull("leastRestrictive(NULL, BOOLEAN) should not be null", result);
+    assertEquals(SqlTypeName.BOOLEAN, result.getSqlTypeName());
+  }
+
+  @Test
+  public void testLeastRestrictiveMultipleNullsAndIntegerReturnsInteger() {
+    RelDataType nullType = TYPE_FACTORY.createSqlType(SqlTypeName.NULL);
+    RelDataType intType = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
+
+    RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(nullType, nullType, intType));
+
+    assertNotNull("leastRestrictive(NULL, NULL, INTEGER) should not be null", result);
+    assertEquals(SqlTypeName.INTEGER, result.getSqlTypeName());
+  }
 }

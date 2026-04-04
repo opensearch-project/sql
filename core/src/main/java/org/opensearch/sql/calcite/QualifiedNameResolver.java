@@ -317,7 +317,7 @@ public class QualifiedNameResolver {
     if (context.isInCoalesceFunction()) {
       return Optional.of(
           context.rexBuilder.makeNullLiteral(
-              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR)));
+              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.NULL)));
     }
     return Optional.empty();
   }

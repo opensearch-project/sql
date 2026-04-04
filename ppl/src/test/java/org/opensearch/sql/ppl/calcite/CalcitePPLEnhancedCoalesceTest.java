@@ -5,7 +5,14 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
 
@@ -138,7 +145,7 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[2])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, $1)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, $1)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -155,7 +162,7 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR, $1,"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, null:NULL, $1,"
             + " 'fallback':VARCHAR)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -175,8 +182,8 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR,"
-            + " null:VARCHAR)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, null:NULL,"
+            + " null:NULL)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -234,5 +241,90 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /** Verifies that COALESCE(null, 42) infers a numeric type, not VARCHAR (issue #5175). */
+  @Test
+  public void testCoalesceNullLiteralWithIntegerPreservesIntegerType() {
+    String ppl = "source=EMP | eval x = coalesce(null, 42) | fields x | head 1";
+    RelNode root = getRelNode(ppl);
+    RelDataType rowType = root.getRowType();
+    RelDataType xType = rowType.getField("x", true, false).getType();
+    assertNotEquals(
+        "COALESCE(null, 42) must not return VARCHAR",
+        SqlTypeName.VARCHAR,
+        xType.getSqlTypeName());
+    assertTrue(
+        "COALESCE(null, 42) should return a numeric type, got " + xType.getSqlTypeName(),
+        SqlTypeUtil.isNumeric(xType));
+  }
+
+  /** Verifies that COALESCE(42, null) infers a numeric type, not VARCHAR. */
+  @Test
+  public void testCoalesceIntegerWithNullLiteralPreservesIntegerType() {
+    String ppl = "source=EMP | eval x = coalesce(42, null) | fields x | head 1";
+    RelNode root = getRelNode(ppl);
+    RelDataType rowType = root.getRowType();
+    RelDataType xType = rowType.getField("x", true, false).getType();
+    assertNotEquals(
+        "COALESCE(42, null) must not return VARCHAR",
+        SqlTypeName.VARCHAR,
+        xType.getSqlTypeName());
+    assertTrue(
+        "COALESCE(42, null) should return a numeric type, got " + xType.getSqlTypeName(),
+        SqlTypeUtil.isNumeric(xType));
+  }
+
+  /** Verifies that COALESCE(null, 42) returns numeric 42, not string "42". */
+  @Test
+  public void testCoalesceNullAndIntegerLiteralReturnsCorrectValue() {
+    String ppl = "source=EMP | eval x = coalesce(null, 42) | fields x | head 1";
+    RelNode root = getRelNode(ppl);
+    verifyResult(root, "x=42\n");
+  }
+
+  /** Verifies that COALESCE(null, 3.14) infers a numeric type. */
+  @Test
+  public void testCoalesceNullLiteralWithDoublePreservesNumericType() {
+    String ppl = "source=EMP | eval x = coalesce(null, 3.14) | fields x | head 1";
+    RelNode root = getRelNode(ppl);
+    RelDataType rowType = root.getRowType();
+    RelDataType xType = rowType.getField("x", true, false).getType();
+    assertNotEquals(
+        "COALESCE(null, 3.14) must not return VARCHAR",
+        SqlTypeName.VARCHAR,
+        xType.getSqlTypeName());
+    assertTrue(
+        "COALESCE(null, 3.14) should return a numeric type, got " + xType.getSqlTypeName(),
+        SqlTypeUtil.isNumeric(xType));
+  }
+
+  /** Verifies that COALESCE(null, null, 42) still returns a numeric type. */
+  @Test
+  public void testCoalesceMultipleNullsWithIntegerPreservesIntegerType() {
+    String ppl = "source=EMP | eval x = coalesce(null, null, 42) | fields x | head 1";
+    RelNode root = getRelNode(ppl);
+    RelDataType rowType = root.getRowType();
+    RelDataType xType = rowType.getField("x", true, false).getType();
+    assertNotEquals(
+        "COALESCE(null, null, 42) must not return VARCHAR",
+        SqlTypeName.VARCHAR,
+        xType.getSqlTypeName());
+    assertTrue(
+        "COALESCE(null, null, 42) should return a numeric type, got " + xType.getSqlTypeName(),
+        SqlTypeUtil.isNumeric(xType));
+  }
+
+  /** Verifies that COALESCE(null, true) returns BOOLEAN type. */
+  @Test
+  public void testCoalesceNullLiteralWithBooleanPreservesBooleanType() {
+    String ppl = "source=EMP | eval x = coalesce(null, true) | fields x | head 1";
+    RelNode root = getRelNode(ppl);
+    RelDataType rowType = root.getRowType();
+    RelDataType xType = rowType.getField("x", true, false).getType();
+    assertEquals(
+        "COALESCE(null, true) should return BOOLEAN type",
+        SqlTypeName.BOOLEAN,
+        xType.getSqlTypeName());
   }
 }

@@ -259,4 +259,43 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
         schema("result", "int"));
     verifyDataRows(actual, rows(70, 2023, 4, 70), rows(30, 2023, 4, 30));
   }
+
+  /** Issue #5175: COALESCE(null, 42) should return int type, not string. */
+  @Test
+  public void testCoalesceNullLiteralWithIntegerReturnsIntegerType() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval x = coalesce(null, 42) | fields x | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("x", "int"));
+    verifyDataRows(actual, rows(42));
+  }
+
+  /** Issue #5175: COALESCE(42, null) should return int type, not string. */
+  @Test
+  public void testCoalesceIntegerWithNullLiteralReturnsIntegerType() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval x = coalesce(42, null) | fields x | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("x", "int"));
+    verifyDataRows(actual, rows(42));
+  }
+
+  /** Issue #5175: COALESCE(nonexistent_field, 42) should return int type, not string. */
+  @Test
+  public void testCoalesceNonExistentFieldWithIntegerReturnsIntegerType() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval x = coalesce(nonexistent_field, 42) | fields x | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("x", "int"));
+    verifyDataRows(actual, rows(42));
+  }
 }
