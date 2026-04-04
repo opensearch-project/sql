@@ -1,0 +1,103 @@
+# Issue: https://github.com/opensearch-project/sql/issues/5175
+# COALESCE(null, 42) returns wrong type string instead of int due to
+# leastRestrictive type inference when null is typed as VARCHAR.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: test_issue_5175
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              dummy:
+                type: keyword
+  - do:
+      bulk:
+        index: test_issue_5175
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"dummy": "row"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+  - do:
+      indices.delete:
+        index: test_issue_5175
+
+---
+"COALESCE(null, 42) should return integer type":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_issue_5175 | eval x = coalesce(null, 42) | fields x | head 1
+  - match: { total: 1 }
+  - length: { datarows: 1 }
+  - match: { "schema": [{"name": "x", "type": "int"}] }
+  - match: { "datarows": [[42]] }
+
+---
+"COALESCE(42, null) should return integer type":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_issue_5175 | eval x = coalesce(42, null) | fields x | head 1
+  - match: { total: 1 }
+  - length: { datarows: 1 }
+  - match: { "schema": [{"name": "x", "type": "int"}] }
+  - match: { "datarows": [[42]] }
+
+---
+"COALESCE(nonexistent_field, 42) should return integer type":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_issue_5175 | eval x = coalesce(nonexistent_field, 42) | fields x | head 1
+  - match: { total: 1 }
+  - length: { datarows: 1 }
+  - match: { "schema": [{"name": "x", "type": "int"}] }
+  - match: { "datarows": [[42]] }
+
+---
+"COALESCE(null, 3.14) should return double type":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_issue_5175 | eval x = coalesce(null, 3.14) | fields x | head 1
+  - match: { total: 1 }
+  - length: { datarows: 1 }
+  - match: { "schema": [{"name": "x", "type": "double"}] }
+  - match: { "datarows": [[3.14]] }

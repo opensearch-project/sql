@@ -243,6 +243,61 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testCoalesceWithNullAndIntegerLiteral() throws IOException {
+    // Regression test for https://github.com/opensearch-project/sql/issues/5175
+    // COALESCE(null, 42) should return integer type, not string
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval x = coalesce(null, 42) | fields x | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("x", "int"));
+    verifyDataRows(actual, rows(42));
+  }
+
+  @Test
+  public void testCoalesceWithIntegerAndNullLiteral() throws IOException {
+    // Regression test for https://github.com/opensearch-project/sql/issues/5175
+    // COALESCE(42, null) should return integer type, not string
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval x = coalesce(42, null) | fields x | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("x", "int"));
+    verifyDataRows(actual, rows(42));
+  }
+
+  @Test
+  public void testCoalesceWithNonExistentFieldAndIntegerLiteral() throws IOException {
+    // Regression test for https://github.com/opensearch-project/sql/issues/5175
+    // COALESCE(nonexistent_field, 42) should return integer type
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval x = coalesce(nonexistent_field, 42) | fields x | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("x", "int"));
+    verifyDataRows(actual, rows(42));
+  }
+
+  @Test
+  public void testCoalesceWithNullAndDoubleLiteral() throws IOException {
+    // Regression test for https://github.com/opensearch-project/sql/issues/5175
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval x = coalesce(null, 3.14) | fields x | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("x", "double"));
+    verifyDataRows(actual, rows(3.14));
+  }
+
+  @Test
   public void testCoalesceWithCompatibleNumericAndTemporalTypes() throws IOException {
     JSONObject actual =
         executeQuery(

@@ -499,8 +499,13 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> arguments = new ArrayList<>();
 
     boolean isCoalesce = "coalesce".equalsIgnoreCase(node.getFuncName());
+    boolean wasInCoalesce = context.isInCoalesceFunction();
     if (isCoalesce) {
       context.setInCoalesceFunction(true);
+    } else {
+      // Disable the flag for nested non-COALESCE functions so that unresolved field
+      // names inside e.g. array_compact(...) are not silently replaced with null.
+      context.setInCoalesceFunction(false);
     }
 
     List<RexNode> capturedVars = null;
@@ -529,9 +534,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         }
       }
     } finally {
-      if (isCoalesce) {
-        context.setInCoalesceFunction(false);
-      }
+      // Restore the previous COALESCE context state
+      context.setInCoalesceFunction(wasInCoalesce);
     }
 
     // For transform/mvmap functions with captured variables, add them as additional arguments

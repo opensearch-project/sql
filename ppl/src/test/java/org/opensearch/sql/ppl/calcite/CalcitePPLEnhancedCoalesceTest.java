@@ -138,7 +138,7 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[2])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, $1)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, $1)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -155,7 +155,7 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR, $1,"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, null:NULL, $1,"
             + " 'fallback':VARCHAR)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -175,8 +175,8 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR,"
-            + " null:VARCHAR)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, null:NULL,"
+            + " null:NULL)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -215,6 +215,32 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `EMPNO`, COALESCE(' ', `ENAME`) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testCoalesceWithNullAndIntegerLiteral() {
+    // Regression test for https://github.com/opensearch-project/sql/issues/5175
+    // COALESCE(null, 42) should return INTEGER, not VARCHAR
+    String ppl = "source=EMP | eval x = coalesce(null, 42) | fields EMPNO, x | head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(EMPNO=[$0], x=[COALESCE(null:NULL, 42)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testCoalesceWithIntegerAndNullLiteral() {
+    // Regression test for https://github.com/opensearch-project/sql/issues/5175
+    // COALESCE(42, null) should return INTEGER, not VARCHAR
+    String ppl = "source=EMP | eval x = coalesce(42, null) | fields EMPNO, x | head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(EMPNO=[$0], x=[COALESCE(42, null:NULL)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
