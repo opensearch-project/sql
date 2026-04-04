@@ -138,7 +138,7 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[2])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, $1)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, $1)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -155,7 +155,7 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR, $1,"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, null:NULL, $1,"
             + " 'fallback':VARCHAR)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -175,8 +175,8 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR,"
-            + " null:VARCHAR)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, null:NULL,"
+            + " null:NULL)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -185,6 +185,54 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testCoalesceNullWithInteger() {
+    // Regression test for #5175: COALESCE(null, 42) should return INTEGER, not VARCHAR
+    String ppl = "source=EMP | eval x = coalesce(null, 42) | fields EMPNO, x | head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(EMPNO=[$0], x=[COALESCE(null:NULL, 42)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    // Verify the COALESCE return type is INTEGER, not VARCHAR
+    org.apache.calcite.rel.logical.LogicalSort sort =
+        (org.apache.calcite.rel.logical.LogicalSort) root;
+    org.apache.calcite.rel.logical.LogicalProject proj =
+        (org.apache.calcite.rel.logical.LogicalProject) sort.getInput();
+    org.apache.calcite.rex.RexNode coalesceExpr = proj.getProjects().get(1);
+    org.junit.Assert.assertEquals(
+        org.apache.calcite.sql.type.SqlTypeName.INTEGER, coalesceExpr.getType().getSqlTypeName());
+  }
+
+  @Test
+  public void testCoalesceIntegerWithNull() {
+    // Regression test for #5175: COALESCE(42, null) should return INTEGER, not VARCHAR
+    String ppl = "source=EMP | eval x = coalesce(42, null) | fields EMPNO, x | head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(EMPNO=[$0], x=[COALESCE(42, null:NULL)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    // Verify the COALESCE return type is INTEGER, not VARCHAR
+    org.apache.calcite.rel.logical.LogicalSort sort =
+        (org.apache.calcite.rel.logical.LogicalSort) root;
+    org.apache.calcite.rel.logical.LogicalProject proj =
+        (org.apache.calcite.rel.logical.LogicalProject) sort.getInput();
+    org.apache.calcite.rex.RexNode coalesceExpr = proj.getProjects().get(1);
+    org.junit.Assert.assertEquals(
+        org.apache.calcite.sql.type.SqlTypeName.INTEGER, coalesceExpr.getType().getSqlTypeName());
+  }
+
+  @Test
+  public void testCoalesceNullWithIntegerResult() {
+    // Regression test for #5175: COALESCE(null, 42) should return numeric 42, not string "42"
+    String ppl = "source=EMP | eval x = coalesce(null, 42) | fields x | head 1";
+    RelNode root = getRelNode(ppl);
+    verifyResult(root, "x=42\n");
   }
 
   @Test

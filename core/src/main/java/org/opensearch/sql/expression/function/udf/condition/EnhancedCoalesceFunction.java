@@ -93,11 +93,26 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
     return opBinding -> {
       var operandTypes = opBinding.collectOperandTypes();
 
-      // Let Calcite determine the least restrictive common type
-      var commonType = opBinding.getTypeFactory().leastRestrictive(operandTypes);
-      return commonType != null
-          ? commonType
-          : opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+      // Filter out NULL-typed operands so that leastRestrictive can find a common type
+      // among the concrete types.  Without this, COALESCE(null, 42) would fall back to
+      // VARCHAR because leastRestrictive([NULL, INTEGER]) returns null.
+      var nonNullTypes =
+          operandTypes.stream().filter(t -> t.getSqlTypeName() != SqlTypeName.NULL).toList();
+
+      if (nonNullTypes.isEmpty()) {
+        // All operands are NULL literals -- return nullable NULL type
+        return opBinding
+            .getTypeFactory()
+            .createTypeWithNullability(
+                opBinding.getTypeFactory().createSqlType(SqlTypeName.NULL), true);
+      }
+
+      var commonType = opBinding.getTypeFactory().leastRestrictive(nonNullTypes);
+      if (commonType != null) {
+        // Ensure the result is nullable since at least one operand could be NULL
+        return opBinding.getTypeFactory().createTypeWithNullability(commonType, true);
+      }
+      return opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
     };
   }
 

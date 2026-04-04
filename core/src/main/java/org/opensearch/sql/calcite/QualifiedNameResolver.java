@@ -315,9 +315,11 @@ public class QualifiedNameResolver {
   private static Optional<RexNode> replaceWithNullLiteralInCoalesce(CalcitePlanContext context) {
     log.debug("replaceWithNullLiteralInCoalesce() called");
     if (context.isInCoalesceFunction()) {
+      // Use NULL type instead of VARCHAR so that COALESCE return type inference
+      // can derive the correct type from the non-null operands (fixes #5175).
       return Optional.of(
           context.rexBuilder.makeNullLiteral(
-              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR)));
+              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.NULL)));
     }
     return Optional.empty();
   }
