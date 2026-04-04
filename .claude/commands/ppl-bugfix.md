@@ -18,6 +18,8 @@ Optional mode flag (append to any of the above):
 - `--safe` — `acceptEdits` mode. Auto-approve file edits only, Bash commands require manual approval. (Most conservative)
 - `--yolo` — `bypassPermissions` mode. Fully trusted, no prompts. Subagent runs in an isolated worktree so this is safe. (Default)
 
+> **Note**: `bypassPermissions` skips the interactive prompt but still respects the allow-list in `~/.claude/settings.json`. Ensure git/gh write commands are in the global allow-list.
+
 Examples:
 - `/ppl-bugfix #1234` — single issue, defaults to yolo
 - `/ppl-bugfix #1234 #5678 --yolo` — two issues in parallel

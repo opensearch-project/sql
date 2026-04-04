@@ -9,46 +9,16 @@ OpenSearch SQL plugin — enables SQL and PPL (Piped Processing Language) querie
 ## Build Commands
 
 ```bash
-# Full build (compiles, tests, checks)
-./gradlew build
-
-# Fast build (skip integration tests)
-./gradlew build -x integTest
-
-# Build specific module
-./gradlew :core:build
-./gradlew :sql:build
-./gradlew :ppl:build
-
-# Run unit tests only
-./gradlew test
-
-# Run a single unit test class
-./gradlew :core:test --tests "org.opensearch.sql.analysis.AnalyzerTest"
-
-# Run integration tests
-./gradlew :integ-test:integTest
-
-# Run a single integration test
-./gradlew :integ-test:integTest -Dtests.class="*QueryIT"
-
-# Skip Prometheus if unavailable
-./gradlew :integ-test:integTest -DignorePrometheus
-
-# Code formatting
-./gradlew spotlessCheck    # Check
-./gradlew spotlessApply    # Auto-fix
-
-# Regenerate ANTLR parsers from grammar files
-./gradlew generateGrammarSource
-
-# Run plugin locally with OpenSearch
-./gradlew :opensearch-sql-plugin:run
-./gradlew :opensearch-sql-plugin:run -DdebugJVM   # With remote debug on port 5005
-
-# Run doctests
-./gradlew :doctest:doctest
-./gradlew :doctest:doctest -Pdocs=search    # Single file
+./gradlew build                          # Full build (compiles, tests, checks)
+./gradlew build -x integTest            # Fast build (skip integration tests)
+./gradlew :core:build                    # Build specific module
+./gradlew test                           # Unit tests only
+./gradlew :core:test --tests "*.AnalyzerTest"  # Single test class
+./gradlew :integ-test:integTest          # Integration tests
+./gradlew :integ-test:integTest -Dtests.class="*QueryIT"  # Single IT
+./gradlew spotlessCheck                  # Check formatting
+./gradlew spotlessApply                  # Auto-fix formatting
+./gradlew generateGrammarSource          # Regenerate ANTLR parsers
 ```
 
 ## Code Style
@@ -125,7 +95,7 @@ plugin (OpenSearch plugin entry point, Guice DI wiring)
 
 ## Fixing PPL Bugs
 
-Use the `/ppl-bugfix #<issue_number>` slash command to fix PPL bugs. It dispatches a subagent in an isolated worktree that reads `.claude/harness/ppl-bugfix-harness.md` and follows all phases — from Phase 0 (Triage & Classification) through Phase 4 (Retrospective & Improvement). If a user asks to fix a PPL bug without using the slash command, remind them to use `/ppl-bugfix` or invoke it on their behalf.
+Use `/ppl-bugfix #<issue_number>` to fix PPL bugs. It dispatches a subagent in an isolated worktree with a structured harness covering triage, fix, tests, and PR creation.
 
 ## Adding New PPL Commands
 
@@ -146,11 +116,11 @@ Follow `docs/dev/ppl-functions.md`. Three approaches:
 
 ## Calcite Engine
 
-The project has two execution engines: the legacy **v2 engine** and the newer **Calcite engine** (Apache Calcite-based). Calcite is toggled via `plugins.calcite.enabled` setting (default: off in production, toggled per-test in integration tests).
+The execution engine is Apache Calcite-based, toggled via `plugins.calcite.enabled` (default: off in production, toggled per-test in integration tests).
 
 - In integration tests, call `enableCalcite()` in `init()` to activate the Calcite path
-- Some features (e.g., graphLookup) require pushdown optimization — use `enabledOnlyWhenPushdownIsEnabled()` to skip tests in the `CalciteNoPushdownIT` suite
-- `CalciteNoPushdownIT` is a JUnit `@Suite` that re-runs Calcite test classes with pushdown disabled; add new test classes to its `@Suite.SuiteClasses` list
+- Some features require pushdown optimization — use `enabledOnlyWhenPushdownIsEnabled()` to skip tests in `CalciteNoPushdownIT`
+- `CalciteNoPushdownIT` re-runs Calcite test classes with pushdown disabled; add new test classes to its `@Suite.SuiteClasses` list
 
 ## Integration Tests
 
