@@ -126,4 +126,48 @@ public class OpenSearchTypeFactoryTest {
     assertNotNull(result);
     assertEquals(SqlTypeName.INTEGER, result.getSqlTypeName());
   }
+
+  @Test
+  public void testLeastRestrictiveNullAndIntegerReturnsInteger() {
+    RelDataType nullType = TYPE_FACTORY.createSqlType(SqlTypeName.NULL);
+    RelDataType intType = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
+
+    RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(nullType, intType));
+
+    assertNotNull(result);
+    assertEquals(SqlTypeName.INTEGER, result.getSqlTypeName());
+  }
+
+  @Test
+  public void testLeastRestrictiveIntegerAndNullReturnsInteger() {
+    RelDataType intType = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
+    RelDataType nullType = TYPE_FACTORY.createSqlType(SqlTypeName.NULL);
+
+    RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(intType, nullType));
+
+    assertNotNull(result);
+    assertEquals(SqlTypeName.INTEGER, result.getSqlTypeName());
+  }
+
+  @Test
+  public void testLeastRestrictiveNullAndDoubleReturnsDouble() {
+    RelDataType nullType = TYPE_FACTORY.createSqlType(SqlTypeName.NULL);
+    RelDataType doubleType = TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE);
+
+    RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(nullType, doubleType));
+
+    assertNotNull(result);
+    assertEquals(SqlTypeName.DOUBLE, result.getSqlTypeName());
+  }
+
+  @Test
+  public void testLeastRestrictiveNullAndVarcharReturnsVarchar() {
+    RelDataType nullType = TYPE_FACTORY.createSqlType(SqlTypeName.NULL);
+    RelDataType varcharType = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);
+
+    RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(nullType, varcharType));
+
+    assertNotNull(result);
+    assertEquals(SqlTypeName.VARCHAR, result.getSqlTypeName());
+  }
 }

@@ -95,9 +95,11 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
 
       // Let Calcite determine the least restrictive common type
       var commonType = opBinding.getTypeFactory().leastRestrictive(operandTypes);
-      return commonType != null
-          ? commonType
-          : opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+      if (commonType == null || commonType.getSqlTypeName() == SqlTypeName.NULL) {
+        // Fall back to VARCHAR when all operands are NULL or no common type exists
+        return opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+      }
+      return commonType;
     };
   }
 

@@ -243,6 +243,45 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testCoalesceNullLiteralWithIntegerReturnsIntType() throws IOException {
+    // Regression test for https://github.com/opensearch-project/sql/issues/5175
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval x = coalesce(null, 42) | fields x | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("x", "int"));
+    verifyDataRows(actual, rows(42));
+  }
+
+  @Test
+  public void testCoalesceIntegerWithNullLiteralReturnsIntType() throws IOException {
+    // Regression test for https://github.com/opensearch-project/sql/issues/5175
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval x = coalesce(42, null) | fields x | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("x", "int"));
+    verifyDataRows(actual, rows(42));
+  }
+
+  @Test
+  public void testCoalesceNonExistentFieldWithIntegerReturnsIntType() throws IOException {
+    // Regression test for https://github.com/opensearch-project/sql/issues/5175
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval x = coalesce(nonexistent_field, 42) | fields x | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("x", "int"));
+    verifyDataRows(actual, rows(42));
+  }
+
+  @Test
   public void testCoalesceWithCompatibleNumericAndTemporalTypes() throws IOException {
     JSONObject actual =
         executeQuery(

@@ -5,7 +5,11 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
 
@@ -138,7 +142,7 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[2])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, $1)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, $1)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -155,7 +159,7 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR, $1,"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, null:NULL, $1,"
             + " 'fallback':VARCHAR)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -175,8 +179,8 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR,"
-            + " null:VARCHAR)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, null:NULL,"
+            + " null:NULL)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -234,5 +238,31 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testCoalesceNullLiteralWithInteger() {
+    // Reproducer for https://github.com/opensearch-project/sql/issues/5175
+    // COALESCE(null, 42) should return INTEGER type, not VARCHAR
+    String ppl = "source=EMP | eval x = coalesce(null, 42) | fields x | head 1";
+    RelNode root = getRelNode(ppl);
+    // The COALESCE return type should be INTEGER, not VARCHAR
+    RelDataType resultType = root.getRowType().getFieldList().get(0).getType();
+    assertEquals(
+        "COALESCE(null, 42) should infer INTEGER type",
+        SqlTypeName.INTEGER,
+        resultType.getSqlTypeName());
+  }
+
+  @Test
+  public void testCoalesceIntegerWithNullLiteral() {
+    // COALESCE(42, null) should also return INTEGER type
+    String ppl = "source=EMP | eval x = coalesce(42, null) | fields x | head 1";
+    RelNode root = getRelNode(ppl);
+    RelDataType resultType = root.getRowType().getFieldList().get(0).getType();
+    assertEquals(
+        "COALESCE(42, null) should infer INTEGER type",
+        SqlTypeName.INTEGER,
+        resultType.getSqlTypeName());
   }
 }
