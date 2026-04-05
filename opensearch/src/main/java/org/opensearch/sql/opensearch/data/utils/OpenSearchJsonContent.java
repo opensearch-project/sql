@@ -212,6 +212,8 @@ public class OpenSearchJsonContent implements Content {
       return node.booleanValue();
     } else if (node.isTextual()) {
       return Boolean.parseBoolean(node.textValue());
+    } else if (node.isNumber()) {
+      return node.intValue() != 0;
     } else {
       if (LOG.isDebugEnabled()) {
         LOG.debug("node '{}' must be a boolean", node);
