@@ -396,7 +396,9 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT\n/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\nSPAN(`@timestamp`, 1, 'm') `@timestamp`, COUNT(*) `count()`\n"
+        "SELECT\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
+            + "SPAN(`@timestamp`, 1, 'm') `@timestamp`, COUNT(*) `count()`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL\n"
             + "GROUP BY SPAN(`@timestamp`, 1, 'm')\n"
@@ -422,7 +424,9 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT\n/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\nSPAN(`created_at`, 1, 'M') `created_at`, COUNT(*) `count()`\n"
+        "SELECT\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
+            + "SPAN(`created_at`, 1, 'M') `created_at`, COUNT(*) `count()`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `created_at` IS NOT NULL\n"
             + "GROUP BY SPAN(`created_at`, 1, 'M')\n"

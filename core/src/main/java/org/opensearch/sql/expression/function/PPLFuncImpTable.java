@@ -763,7 +763,6 @@ public class PPLFuncImpTable {
       registerOperator(RMUNIT, PPLBuiltinOperators.RMUNIT);
       registerOperator(MEMK, PPLBuiltinOperators.MEMK);
 
-
       register(
           TOSTRING,
           (builder, args) -> {

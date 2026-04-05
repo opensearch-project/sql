@@ -244,8 +244,8 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " MAX(`SAL`) OVER (PARTITION BY `DEPTNO` ORDER BY `EMPNO` NULLS LAST ROWS BETWEEN UNBOUNDED"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MAX(`SAL`)"
+            + " OVER (PARTITION BY `DEPTNO` ORDER BY `EMPNO` NULLS LAST ROWS BETWEEN UNBOUNDED"
             + " PRECEDING AND CURRENT ROW) `max(SAL)`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " ROW_NUMBER() OVER () `__stream_seq__`\n"

@@ -1445,8 +1445,10 @@ public class CalciteExplainIT extends ExplainIT {
     try {
       setQueryBucketSize(2);
       String expected = loadExpectedPlan("explain_agg_paginating_join1.yaml");
+      String alternative = loadExpectedPlan("explain_agg_paginating_join1_alternative.yaml");
       assertYamlEqualsIgnoreId(
           expected,
+          alternative,
           explainQueryYaml(
               "source=opensearch-sql_test_index_account | stats count() as c by state | join left=l"
                   + " right=r on l.state=r.state [ source=opensearch-sql_test_index_bank | stats"

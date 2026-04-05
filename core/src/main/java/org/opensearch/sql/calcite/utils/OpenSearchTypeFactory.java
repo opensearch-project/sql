@@ -398,9 +398,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     return type;
   }
 
-  /**
-   * Whether a given RelDataType is a user-defined type (UDT)
-   */
+  /** Whether a given RelDataType is a user-defined type (UDT) */
   public static boolean isUserDefinedType(RelDataType type) {
     return type instanceof AbstractExprRelDataType<?>;
   }
@@ -433,9 +431,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     return false;
   }
 
-  /**
-   * Checks if the RelDataType represents a time-based field.
-   */
+  /** Checks if the RelDataType represents a time-based field. */
   public static boolean isTimeBasedType(RelDataType fieldType) {
     SqlTypeName sqlType = fieldType.getSqlTypeName();
     if (sqlType == SqlTypeName.TIMESTAMP
