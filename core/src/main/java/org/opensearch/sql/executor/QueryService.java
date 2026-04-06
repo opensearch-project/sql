@@ -35,6 +35,7 @@ import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.calcite.utils.CalciteClassLoaderHelper;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
@@ -139,14 +140,18 @@ public class QueryService {
                 QueryProfiling.activate(QueryContext.isProfileEnabled());
             ProfileMetric analyzeMetric = profileContext.getOrCreateMetric(MetricName.ANALYZE);
             long analyzeStart = System.nanoTime();
-            CalcitePlanContext context =
-                CalcitePlanContext.create(
-                    buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-            context.setHighlightConfig(highlightConfig);
-            RelNode relNode = analyze(plan, context);
-            RelNode calcitePlan = convertToCalcitePlan(relNode, context);
-            analyzeMetric.set(System.nanoTime() - analyzeStart);
-            executionEngine.execute(calcitePlan, context, listener);
+            CalciteClassLoaderHelper.withCalciteClassLoader(
+                () -> {
+                  CalcitePlanContext context =
+                      CalcitePlanContext.create(
+                          buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+                  context.setHighlightConfig(highlightConfig);
+                  RelNode relNode = analyze(plan, context);
+                  RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+                  analyzeMetric.set(System.nanoTime() - analyzeStart);
+                  executionEngine.execute(calcitePlan, context, listener);
+                },
+                QueryService.class);
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
@@ -169,17 +174,21 @@ public class QueryService {
         () -> {
           try {
             QueryProfiling.noop();
-            CalcitePlanContext context =
-                CalcitePlanContext.create(
-                    buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-            context.setHighlightConfig(highlightConfig);
-            context.run(
+            CalciteClassLoaderHelper.withCalciteClassLoader(
                 () -> {
-                  RelNode relNode = analyze(plan, context);
-                  RelNode calcitePlan = convertToCalcitePlan(relNode, context);
-                  executionEngine.explain(calcitePlan, mode, context, listener);
+                  CalcitePlanContext context =
+                      CalcitePlanContext.create(
+                          buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+                  context.setHighlightConfig(highlightConfig);
+                  context.run(
+                      () -> {
+                        RelNode relNode = analyze(plan, context);
+                        RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+                        executionEngine.explain(calcitePlan, mode, context, listener);
+                      },
+                      settings);
                 },
-                settings);
+                QueryService.class);
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t)) {
               log.warn("Fallback to V2 query engine since got exception", t);

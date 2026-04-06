@@ -83,7 +83,8 @@ public class TransportPPLQueryAction
           b.bind(DataSourceService.class).toInstance(dataSourceService);
         });
     this.injector = Guice.createInjector(modules);
-    this.unifiedQueryHandler = new RestUnifiedQueryAction(client, new StubQueryPlanExecutor());
+    this.unifiedQueryHandler =
+        new RestUnifiedQueryAction(client, clusterService, new StubQueryPlanExecutor());
     this.pplEnabled =
         () ->
             MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)

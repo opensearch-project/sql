@@ -3,5 +3,5 @@ calcite:
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(count()=[$1], status=[$0])
         LogicalAggregate(group=[{0}], count()=[COUNT()])
-          LogicalProject(status=[$1])
+          LogicalProject(status=[$2])
             LogicalTableScan(table=[[opensearch, parquet_logs]])

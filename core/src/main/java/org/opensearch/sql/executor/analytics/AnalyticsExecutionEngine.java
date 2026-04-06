@@ -13,6 +13,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -38,9 +39,9 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
  */
 public class AnalyticsExecutionEngine implements ExecutionEngine {
 
-  private final QueryPlanExecutor planExecutor;
+  private final QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor;
 
-  public AnalyticsExecutionEngine(QueryPlanExecutor planExecutor) {
+  public AnalyticsExecutionEngine(QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor) {
     this.planExecutor = planExecutor;
   }
 

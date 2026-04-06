@@ -24,6 +24,7 @@ import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -35,12 +36,15 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 class AnalyticsExecutionEngineTest {
 
   private AnalyticsExecutionEngine engine;
-  private QueryPlanExecutor mockExecutor;
+
+  @SuppressWarnings("unchecked")
+  private QueryPlanExecutor<RelNode, Iterable<Object[]>> mockExecutor;
+
   private CalcitePlanContext mockContext;
 
   @BeforeEach
   void setUp() throws Exception {
-    mockExecutor = mock(QueryPlanExecutor.class);
+    mockExecutor = (QueryPlanExecutor<RelNode, Iterable<Object[]>>) mock(QueryPlanExecutor.class);
     engine = new AnalyticsExecutionEngine(mockExecutor);
     mockContext = mock(CalcitePlanContext.class);
     setSysLimit(mockContext, SysLimit.DEFAULT);

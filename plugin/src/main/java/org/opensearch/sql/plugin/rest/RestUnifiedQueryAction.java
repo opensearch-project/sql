@@ -12,10 +12,12 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 
 import java.util.Map;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
+import org.opensearch.analytics.exec.QueryPlanExecutor;
+import org.opensearch.analytics.schema.OpenSearchSchemaBuilder;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.api.UnifiedQueryContext;
@@ -29,9 +31,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
-import org.opensearch.sql.executor.analytics.QueryPlanExecutor;
 import org.opensearch.sql.lang.LangSpec;
-import org.opensearch.sql.plugin.rest.analytics.stub.StubSchemaProvider;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -51,9 +51,14 @@ public class RestUnifiedQueryAction {
 
   private final AnalyticsExecutionEngine analyticsEngine;
   private final NodeClient client;
+  private final ClusterService clusterService;
 
-  public RestUnifiedQueryAction(NodeClient client, QueryPlanExecutor planExecutor) {
+  public RestUnifiedQueryAction(
+      NodeClient client,
+      ClusterService clusterService,
+      QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor) {
     this.client = client;
+    this.clusterService = clusterService;
     this.analyticsEngine = new AnalyticsExecutionEngine(planExecutor);
   }
 
@@ -70,7 +75,7 @@ public class RestUnifiedQueryAction {
     if (query == null || query.isEmpty()) {
       return false;
     }
-    try (UnifiedQueryContext context = buildContext(queryType, false)) {
+    try (UnifiedQueryContext context = buildParsingContext(queryType)) {
       String indexName = extractIndexName(query, context);
       if (indexName == null) {
         return false;
@@ -151,11 +156,18 @@ public class RestUnifiedQueryAction {
     }
   }
 
+  /**
+   * Build a lightweight context for parsing only (index name extraction). Does not require cluster
+   * state or catalog schema.
+   */
+  private static UnifiedQueryContext buildParsingContext(QueryType queryType) {
+    return UnifiedQueryContext.builder().language(queryType).build();
+  }
+
   private UnifiedQueryContext buildContext(QueryType queryType, boolean profiling) {
-    AbstractSchema schema = StubSchemaProvider.buildSchema();
     return UnifiedQueryContext.builder()
         .language(queryType)
-        .catalog(SCHEMA_NAME, schema)
+        .catalog(SCHEMA_NAME, OpenSearchSchemaBuilder.buildSchema(clusterService.state()))
         .defaultNamespace(SCHEMA_NAME)
         .profiling(profiling)
         .build();
