@@ -70,13 +70,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+--------------------------------------------------------------------+----------+
-| body                                                               | sourceip |
-|--------------------------------------------------------------------+----------|
-| HTTP GET /api/products 200 45ms                                    |          |
-| User U300 authenticated via OAuth2 from 10.0.0.5                   | 10.0.0.5 |
-| Deployment frontend-v2.2.0 rolled out successfully to 3/3 replicas |          |
-+--------------------------------------------------------------------+----------+
++-----------------------------------------------------------------------------------------------+----------+
+| body                                                                                          | sourceip |
+|-----------------------------------------------------------------------------------------------+----------|
+| [2024-02-01T09:10:00.123Z] "GET /api/products HTTP/1.1" 200 - 1024 45 frontend-6b7b4c9f-x2kl9 |          |
+| User U300 authenticated via OAuth2 from 10.0.0.5                                              | 10.0.0.5 |
+| Deployment frontend-v2.2.0 rolled out successfully to 3/3 replicas                            |          |
++-----------------------------------------------------------------------------------------------+----------+
 ```
   
 
@@ -84,8 +84,26 @@ fetched rows / total rows = 3/3
 
 The `parse` command has the following limitations:
 
-- Fields created by the `parse` command cannot be parsed again.
-- Fields created by the `parse` command cannot be overridden by other commands.
-- The source text field used by the `parse` command cannot be overridden.
-- Fields created by the `parse` command cannot be filtered or sorted after they are used in the `stats` command.
-- Fields created by the `parse` command do not appear in the final results unless the original source field is included in the `fields` command.
+- Fields created by the `parse` command cannot be parsed again. For example, the following command does not function as intended:
+
+    ```sql
+    source=otellogs | parse body '(?<errmsg>[^:]+): (?<detail>.+)' | parse detail '\\w+ (?<word>\\w+)'
+    ```
+
+- Fields created by the `parse` command cannot be overridden by other commands. For example, in the following query, the `where` clause does not match any documents because `errmsg` cannot be overridden:
+
+    ```sql
+    source=otellogs | parse body '(?<errmsg>[^:]+): (?<detail>.+)' | eval errmsg='1' | where errmsg='1'
+    ```
+
+- The source text field used by the `parse` command cannot be overridden. For example, in the following query, the `errmsg` field is not parsed correctly because `body` is overridden:
+
+    ```sql
+    source=otellogs | parse body '(?<errmsg>[^:]+): (?<detail>.+)' | eval body='1'
+    ```
+
+- Fields created by the `parse` command cannot be filtered or sorted after they are used in the `stats` command. For example, in the following query, the `where` clause does not function as intended:
+
+    ```sql
+    source=otellogs | parse body '(?<errmsg>[^:]+): (?<detail>.+)' | stats count() by errmsg | where errmsg='Payment failed'
+    ```

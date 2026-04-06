@@ -26,7 +26,7 @@ The `trendline` command supports the following parameters.
 
 ## Example 1: Track whether severity is escalating over time
 
-The following query calculates a 3-point simple moving average of severity numbers over time-ordered logs. A rising trend indicates the situation is getting worse:
+The following query calculates a 3-point simple moving average of `severityNumber`:
   
 ```ppl
 source=otellogs
@@ -55,7 +55,7 @@ fetched rows / total rows = 6/6
 
 ## Example 2: Use weighted moving average for recent-biased trends
 
-The following query calculates a WMA which gives more weight to recent values, making it more responsive to sudden severity spikes compared to SMA:
+The following query calculates a weighted moving average, which gives more weight to recent values:
   
 ```ppl
 source=otellogs

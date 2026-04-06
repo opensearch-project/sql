@@ -3,6 +3,7 @@
 
 The `dedup` command removes duplicate documents defined by specified fields from the search result.
 
+
 ## Syntax
 
 The `dedup` command has the following syntax:
@@ -39,15 +40,15 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 5/5
-+----------------------------------+--------------+----------------------------------------------------------------------------------------+
-| resource.attributes.service.name | severityText | body                                                                                   |
-|----------------------------------+--------------+----------------------------------------------------------------------------------------|
-| checkout                         | ERROR        | NullPointerException in CheckoutService.placeOrder at line 142                         |
-| frontend-proxy                   | ERROR        | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error               |
-| payment                          | ERROR        | Payment failed: connection timeout to payment gateway after 30000ms                    |
-| product-catalog                  | WARN         | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
-| recommendation                   | ERROR        | Failed to process recommendation request: invalid product ID from 203.0.113.50         |
-+----------------------------------+--------------+----------------------------------------------------------------------------------------+
++----------------------------------+--------------+----------------------------------------------------------------------------------------------+
+| resource.attributes.service.name | severityText | body                                                                                         |
+|----------------------------------+--------------+----------------------------------------------------------------------------------------------|
+| checkout                         | ERROR        | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| frontend-proxy                   | ERROR        | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 |
+| payment                          | ERROR        | Payment failed: connection timeout to payment gateway after 30000ms                          |
+| product-catalog                  | WARN         | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms       |
+| recommendation                   | ERROR        | Failed to process recommendation request: invalid product ID from 203.0.113.50               |
++----------------------------------+--------------+----------------------------------------------------------------------------------------------+
 ```
   
 

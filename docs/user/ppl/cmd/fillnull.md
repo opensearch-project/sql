@@ -33,13 +33,13 @@ The `fillnull` command supports the following parameters.
 
 ## Example 1: Replace null values with different values per field
 
-The following query fills in missing instrumentation scope names, helping identify which services are not properly instrumented with OpenTelemetry:
+The following query fills in missing instrumentation scope names with a default value:
   
 ```ppl
 source=otellogs
 | where severityText IN ('ERROR', 'WARN')
 | fields severityText, `resource.attributes.service.name`, instrumentationScope.name
-| fillnull using instrumentationScope.name = 'not-instrumented'
+| fillnull using instrumentationScope.name = 'unknown'
 | sort `resource.attributes.service.name`
 ```
   
@@ -50,17 +50,17 @@ fetched rows / total rows = 11/11
 +--------------+----------------------------------+-----------------------------------------------------------------------------+
 | severityText | resource.attributes.service.name | instrumentationScope.name                                                   |
 |--------------+----------------------------------+-----------------------------------------------------------------------------|
-| ERROR        | checkout                         | not-instrumented                                                            |
-| ERROR        | checkout                         | not-instrumented                                                            |
-| ERROR        | frontend-proxy                   | not-instrumented                                                            |
-| WARN         | frontend-proxy                   | not-instrumented                                                            |
-| WARN         | frontend-proxy                   | not-instrumented                                                            |
+| ERROR        | checkout                         | unknown                                                            |
+| ERROR        | checkout                         | unknown                                                            |
+| ERROR        | frontend-proxy                   | unknown                                                            |
+| WARN         | frontend-proxy                   | unknown                                                            |
+| WARN         | frontend-proxy                   | unknown                                                            |
 | ERROR        | payment                          | @opentelemetry/instrumentation-http                                         |
-| ERROR        | payment                          | not-instrumented                                                            |
+| ERROR        | payment                          | unknown                                                            |
 | WARN         | product-catalog                  | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc |
-| WARN         | product-catalog                  | not-instrumented                                                            |
-| ERROR        | product-catalog                  | not-instrumented                                                            |
-| ERROR        | recommendation                   | not-instrumented                                                            |
+| WARN         | product-catalog                  | unknown                                                            |
+| ERROR        | product-catalog                  | unknown                                                            |
+| ERROR        | recommendation                   | unknown                                                            |
 +--------------+----------------------------------+-----------------------------------------------------------------------------+
 ```
   
@@ -73,7 +73,7 @@ The following query uses the `value=` syntax to fill null instrumentation scope 
 source=otellogs
 | where severityText = 'ERROR'
 | fields severityText, `resource.attributes.service.name`, instrumentationScope.name
-| fillnull value='not-instrumented' instrumentationScope.name
+| fillnull value='unknown' instrumentationScope.name
 | sort `resource.attributes.service.name`
 ```
   
@@ -84,13 +84,13 @@ fetched rows / total rows = 7/7
 +--------------+----------------------------------+-------------------------------------+
 | severityText | resource.attributes.service.name | instrumentationScope.name           |
 |--------------+----------------------------------+-------------------------------------|
-| ERROR        | checkout                         | not-instrumented                    |
-| ERROR        | checkout                         | not-instrumented                    |
-| ERROR        | frontend-proxy                   | not-instrumented                    |
+| ERROR        | checkout                         | unknown                    |
+| ERROR        | checkout                         | unknown                    |
+| ERROR        | frontend-proxy                   | unknown                    |
 | ERROR        | payment                          | @opentelemetry/instrumentation-http |
-| ERROR        | payment                          | not-instrumented                    |
-| ERROR        | product-catalog                  | not-instrumented                    |
-| ERROR        | recommendation                   | not-instrumented                    |
+| ERROR        | payment                          | unknown                    |
+| ERROR        | product-catalog                  | unknown                    |
+| ERROR        | recommendation                   | unknown                    |
 +--------------+----------------------------------+-------------------------------------+
 ```
   

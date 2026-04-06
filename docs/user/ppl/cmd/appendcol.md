@@ -73,7 +73,7 @@ fetched rows / total rows = 4/4
 |----------------------------------+--------------+----------------------------------------------------------------------------------------------+--------------+-------------------|
 | checkout                         | ERROR        | NullPointerException in CheckoutService.placeOrder at line 142                               | 7            | 5                 |
 | checkout                         | ERROR        | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) | null         | null              |
-| frontend-proxy                   | ERROR        | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     | null         | null              |
+| frontend-proxy                   | ERROR        | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 | null         | null              |
 | payment                          | ERROR        | Payment failed: connection timeout to payment gateway after 30000ms                          | null         | null              |
 +----------------------------------+--------------+----------------------------------------------------------------------------------------------+--------------+-------------------+
 ```

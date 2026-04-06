@@ -23,7 +23,7 @@ The `fields` command supports the following parameters.
 
 ## Example 1: Select the fields you need for triage
 
-The following query selects the key fields an SRE needs when investigating an incident -- severity, service name, and the log message:
+The following query selects specific fields from the search results:
   
 ```ppl
 source=otellogs
@@ -47,16 +47,16 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 2: Remove specified fields from the search results 
+## Example 2: Remove noisy fields from results 
 
-The following query removes the `body` field from the results, keeping the output compact:
+The following query removes the raw `body` field after extracting what you need, keeping the output clean:
   
 ```ppl
 source=otellogs
 | where severityText IN ('ERROR', 'WARN')
 | sort severityNumber, `resource.attributes.service.name`
-| fields severityText, `resource.attributes.service.name`, body
-| fields - body
+| fields severityText, `resource.attributes.service.name`, severityNumber, body
+| fields - body, severityNumber
 | head 3
 ```
   
@@ -74,40 +74,14 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 3: Space-delimited field selection  
+## Example 3: Select all severity-related fields with a prefix wildcard
 
-Fields can be specified using spaces instead of commas, providing a more concise syntax:
+When you're not sure of the exact field names, use wildcards to grab all fields starting with a common prefix. This selects both `severityText` and `severityNumber`:
   
 ```ppl
 source=otellogs
 | where severityText IN ('ERROR', 'WARN')
 | sort severityNumber, `resource.attributes.service.name`
-| fields severityText severityNumber body
-| head 3
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 3/3
-+--------------+----------------+-------------------------------------------------------------------------------------------+
-| severityText | severityNumber | body                                                                                      |
-|--------------+----------------+-------------------------------------------------------------------------------------------|
-| WARN         | 13             | SSL certificate for api.example.com expires in 14 days                                    |
-| WARN         | 13             | Rate limit threshold reached: 450/500 requests per minute for API key ending in ...abc789 |
-| WARN         | 13             | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms    |
-+--------------+----------------+-------------------------------------------------------------------------------------------+
-```
-  
-
-## Example 4: Prefix wildcard pattern  
-
-The following query selects all fields starting with `severity`, capturing both the text label and numeric level:
-  
-```ppl
-source=otellogs
-| where severityText = 'ERROR'
-| sort `resource.attributes.service.name`
 | fields severity*
 | head 3
 ```
@@ -119,16 +93,16 @@ fetched rows / total rows = 3/3
 +--------------+----------------+
 | severityText | severityNumber |
 |--------------+----------------|
-| ERROR        | 17             |
-| ERROR        | 17             |
-| ERROR        | 17             |
+| WARN         | 13             |
+| WARN         | 13             |
+| WARN         | 13             |
 +--------------+----------------+
 ```
   
 
-## Example 5: Suffix wildcard pattern  
+## Example 4: Select trace correlation fields with a suffix wildcard
 
-The following query selects fields ending with `Id`, useful for retrieving trace correlation identifiers:
+The following query grabs all fields ending with `Id`, useful for pulling trace correlation identifiers when debugging distributed requests:
   
 ```ppl
 source=otellogs
@@ -151,37 +125,14 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 6: Wildcard pattern matching  
+## Example 5: Combine explicit fields with wildcards
 
-The following query selects fields containing `severity` using a `contains` wildcard:
-  
-```ppl
-source=otellogs
-| where severityText = 'WARN'
-| fields *severity*
-| head 1
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 1/1
-+--------------+----------------+
-| severityText | severityNumber |
-|--------------+----------------|
-| WARN         | 13             |
-+--------------+----------------+
-```
-  
-
-## Example 7: Mixed delimiter syntax with automatic field deduplication  
-
-The following query combines spaces and commas for flexible field specification. It also demonstrates automatic deduplication: `severityText` is explicitly listed and also matches the `severity*` wildcard, but it appears only once in the output:
+The following query selects specific fields alongside wildcard-matched fields. This grabs the severity text plus all trace identifiers in one query:
   
 ```ppl
 source=otellogs
 | where LENGTH(traceId) > 0
-| fields severityText, severity* *Id
+| fields severityText, *Id
 | head 3
 ```
   
@@ -189,18 +140,65 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+--------------+----------------+----------+------------------+
-| severityText | severityNumber | spanId   | traceId          |
-|--------------+----------------+----------+------------------|
-| INFO         | 9              | span0001 | abcd1234efgh5678 |
-| INFO         | 9              | span0002 | abcd1234efgh5678 |
-| WARN         | 13             | span0003 | abcd1234efgh5678 |
-+--------------+----------------+----------+------------------+
++--------------+----------+------------------+
+| severityText | spanId   | traceId          |
+|--------------+----------+------------------|
+| INFO         | span0001 | abcd1234efgh5678 |
+| INFO         | span0002 | abcd1234efgh5678 |
+| WARN         | span0003 | abcd1234efgh5678 |
++--------------+----------+------------------+
+```
+  
+
+## Example 6: Remove trace fields with wildcard exclusion
+
+The following query strips all identifier fields from the output, useful when you want the log content without the tracing metadata:
+  
+```ppl
+source=otellogs
+| where severityText = 'ERROR'
+| sort `resource.attributes.service.name`
+| fields - *Id
+| head 1
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 1/1
++---------------------+----------------------+--------------+---------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------+
+| @timestamp          | instrumentationScope | severityText | resource                                                                                                                  | flags | attributes | droppedAttributesCount | severityNumber | time                | body                                                           |
+|---------------------+----------------------+--------------+---------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------|
+| 2024-02-01 09:15:00 | {}                   | ERROR        | {'attributes': {'service': {'name': 'checkout'}, 'host': {'name': 'checkout-8b4c2d-jp5r7'}}, 'droppedAttributesCount': 0} | 0     | {}         | 0                      | 17             | 2024-02-01 09:15:00 | NullPointerException in CheckoutService.placeOrder at line 142 |
++---------------------+----------------------+--------------+---------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------+
 ```
 
-## Example 8: Full wildcard selection  
+## Example 7: Field deduplication
 
-The following query selects all available fields using `` `*` ``. This expression selects all fields defined in the index schema, including fields that may contain null values:
+The following query automatically prevents duplicate columns when wildcards expand to already specified fields:
+
+```ppl
+source=otellogs
+| fields severityText, severity*
+| head 3
+```
+
+The query returns the following results. Even though `severityText` is explicitly specified and also matches `severity*`, it appears only once because of automatic deduplication:
+
+```text
+fetched rows / total rows = 3/3
++--------------+----------------+
+| severityText | severityNumber |
+|--------------+----------------|
+| INFO         | 9              |
+| INFO         | 9              |
+| WARN         | 13             |
++--------------+----------------+
+```
+
+## Example 8: Select all fields  
+
+The following query selects all fields defined in the index schema using `` `*` ``. Fields with null values are included in the result set:
   
 ```ppl
 source=otellogs
@@ -218,29 +216,6 @@ fetched rows / total rows = 1/1
 |----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------|
 | span0003 | abcd1234efgh5678 | 2024-02-01 09:12:00 | {'name': 'go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc', 'droppedAttributesCount': 0, 'version': '0.49.0'} | WARN         | {'attributes': {'service': {'name': 'product-catalog'}, 'host': {'name': 'productcatalog-7c9d-zn4p2'}}, 'droppedAttributesCount': 0} | 0     | {}         | 0                      | 13             | 2024-02-01 09:12:00 | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
 +----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------+
-```
-
-## Example 9: Wildcard exclusion  
-
-The following query removes trace identifier fields using wildcard patterns containing the minus (`-`) operator:
-  
-```ppl
-source=otellogs
-| where severityText = 'ERROR'
-| sort `resource.attributes.service.name`
-| fields - *Id
-| head 1
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 1/1
-+---------------------+----------------------+--------------+...+-------+...+----------------+---------------------+----------------------------------------------------------------+
-| @timestamp          | instrumentationScope | severityText |...| flags |...| severityNumber | time                | body                                                           |
-|---------------------+----------------------+--------------+...+-------+...+----------------+---------------------+----------------------------------------------------------------|
-| 2024-02-01 09:15:00 | {}                   | ERROR        |...| 0     |...| 17             | 2024-02-01 09:15:00 | NullPointerException in CheckoutService.placeOrder at line 142 |
-+---------------------+----------------------+--------------+...+-------+...+----------------+---------------------+----------------------------------------------------------------+
 ```
   
 

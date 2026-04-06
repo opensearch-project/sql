@@ -98,14 +98,14 @@ fetched rows / total rows = 3/3
 |--------------+----------------------------------+---------------+----------------------------------------------------------------------------------------------|
 | ERROR        | checkout                         | 3             | NullPointerException in CheckoutService.placeOrder at line 142                               |
 | ERROR        | checkout                         | 3             | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| ERROR        | frontend-proxy                   | 3             | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| ERROR        | frontend-proxy                   | 3             | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 |
 +--------------+----------------------------------+---------------+----------------------------------------------------------------------------------------------+
 ```
   
 
 ## Example 2: Calculate severity statistics by group  
 
-The following query adds the average and max severity per service to each log entry. This lets you compare individual log severity against the service's overall severity profile:
+The following query adds the average severity and error count per service to each log entry:
   
 ```ppl
 source=otellogs
@@ -135,7 +135,7 @@ fetched rows / total rows = 7/7
 
 ## Example 3: Null bucket handling
 
-The following query uses `bucket_nullable=false` to exclude logs with null namespace from the group-by aggregation. Logs from services without a namespace get `null` for the count:
+The following query uses `bucket_nullable=false` to exclude null values from the group-by aggregation:
 
 ```ppl
 source=otellogs
