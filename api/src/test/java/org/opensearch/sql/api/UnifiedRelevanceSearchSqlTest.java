@@ -144,7 +144,6 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
 
   // FIXME: Calcite's SQL parser does not support V2 bracket field list syntax ['field1', 'field2'].
   //  Multi-field relevance functions only accept a single column reference in the Calcite SQL path.
-  //  See: https://github.com/opensearch-project/sql/issues/XXXX
 
   @Test
   public void testMultiMatchBracketSyntaxNotSupported() {

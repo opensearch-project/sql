@@ -62,15 +62,22 @@ public class NamedArgRewriterTest {
   }
 
   @Test
+  public void testReservedWordAsNamedArgKey() throws Exception {
+    // 'escape' is a SQL reserved word and a valid query_string parameter.
+    // getSimple() must be used instead of toString() to avoid backtick-decorated keys.
+    SqlNode result = rewrite("SELECT * FROM t WHERE query_string(name, 'test*', \"escape\"=true)");
+    assertContains(result, "MAP['escape', TRUE]");
+  }
+
+  @Test
   public void testEqualsBeforePositionalThrows() throws Exception {
     // Not valid V2 syntax — positional must come first.
     // = at index 0 goes to EQUALS branch, but remaining positional args exceed paramNames.
     try {
       rewrite("SELECT * FROM t WHERE \"match\"(operator='AND', name, 'John')");
-      fail("Expected IndexOutOfBoundsException for mixed order");
-    } catch (IndexOutOfBoundsException e) {
-      // Expected: = consumes index 0, positional 'name' maps to paramNames[1],
-      // positional 'John' tries paramNames[2] which doesn't exist
+      fail("Expected IllegalArgumentException for mixed order");
+    } catch (IllegalArgumentException e) {
+      assertTrue(e.getMessage().contains("Invalid arguments for function"));
     }
   }
 
@@ -79,9 +86,9 @@ public class NamedArgRewriterTest {
     // match has 2 param names (field, query); 3 positional args causes IndexOutOfBounds
     try {
       rewrite("SELECT * FROM t WHERE \"match\"(a, b, c)");
-      fail("Expected IndexOutOfBoundsException for extra positional args");
-    } catch (IndexOutOfBoundsException e) {
-      // Expected: paramNames has 2 entries but 3 positional args
+      fail("Expected IllegalArgumentException for extra positional args");
+    } catch (IllegalArgumentException e) {
+      assertTrue(e.getMessage().contains("Invalid arguments for function"));
     }
   }
 

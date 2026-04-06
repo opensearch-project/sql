@@ -9,6 +9,7 @@ import java.util.List;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -50,8 +51,17 @@ public final class NamedArgRewriter extends SqlShuttle {
     for (int i = 0; i < operands.size(); i++) {
       SqlNode op = operands.get(i);
       if (op instanceof SqlCall eq && op.getKind() == SqlKind.EQUALS) {
-        maps[i] = toMap(eq.operand(0).toString(), eq.operand(1));
+        SqlNode key = eq.operand(0);
+        String name =
+            key instanceof SqlIdentifier ident
+                ? ident.getSimple()
+                : key.toString(); // avoid backtick-decorated keys for reserved words
+        maps[i] = toMap(name, eq.operand(1));
       } else {
+        if (i >= paramNames.size()) {
+          throw new IllegalArgumentException(
+              String.format("Invalid arguments for function '%s'", call.getOperator().getName()));
+        }
         maps[i] = toMap(paramNames.get(i), op);
       }
     }

@@ -173,9 +173,9 @@ public abstract class UnifiedQueryTestBase {
       while (cause.getCause() != null) {
         cause = cause.getCause();
       }
+      String msg = cause.getMessage() != null ? cause.getMessage() : cause.getClass().getName();
       assertTrue(
-          "Expected error to contain: " + expected + "\nActual: " + cause.getMessage(),
-          cause.getMessage().contains(expected));
+          "Expected error to contain: " + expected + "\nActual: " + msg, msg.contains(expected));
       return this;
     }
   }
