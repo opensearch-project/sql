@@ -201,8 +201,7 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
         .forEach(
             arg -> {
               String argName =
-                  StringUtils.unquoteIdentifier(arg.ident().getText())
-                      .toLowerCase(Locale.ROOT);
+                  StringUtils.unquoteIdentifier(arg.ident().getText()).toLowerCase(Locale.ROOT);
               UnresolvedExpression argValue = visitAstExpression(arg.functionArg());
               args.add(new UnresolvedArgument(argName, argValue));
             });

@@ -168,14 +168,10 @@ class AstBuilderTest extends AstBuilderTestBase {
                                 ImmutableList.of(
                                     new UnresolvedArgument("table", stringLiteral("products")),
                                     new UnresolvedArgument("field", stringLiteral("embedding")),
-                                    new UnresolvedArgument(
-                                        "vector", stringLiteral("[0.1,0.2]")),
-                                    new UnresolvedArgument(
-                                        "option", stringLiteral("k=10"))))),
+                                    new UnresolvedArgument("vector", stringLiteral("[0.1,0.2]")),
+                                    new UnresolvedArgument("option", stringLiteral("k=10"))))),
                         function("=", qualifiedName("s", "category"), stringLiteral("shoes"))),
-                    field(
-                        qualifiedName("s", "_score"),
-                        argument("asc", booleanLiteral(false)))),
+                    field(qualifiedName("s", "_score"), argument("asc", booleanLiteral(false)))),
                 5,
                 0),
             alias("s.title", qualifiedName("s", "title")),
@@ -241,8 +237,7 @@ class AstBuilderTest extends AstBuilderTestBase {
                         new UnresolvedArgument("table", stringLiteral("products")),
                         new UnresolvedArgument("vector", stringLiteral("[0.1]"))))),
             AllFields.of()),
-        buildAST(
-            "SELECT * FROM vectorSearch(table='products', vector='[0.1]') v"));
+        buildAST("SELECT * FROM vectorSearch(table='products', vector='[0.1]') v"));
   }
 
   @Test
