@@ -129,6 +129,19 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
             "No match found for function signature unknown_relevance(<CHARACTER>, <CHARACTER>)");
   }
 
+  @Test
+  public void testNonRelevanceFunctionUnaffectedByRewriter() {
+    givenQuery(
+            """
+            SELECT upper(name) FROM catalog.employees\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(EXPR$0=[UPPER($1)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
   // FIXME: Calcite's SQL parser does not support V2 bracket field list syntax ['field1', 'field2'].
   //  Multi-field relevance functions only accept a single column reference in the Calcite SQL path.
   //  See: https://github.com/opensearch-project/sql/issues/XXXX
