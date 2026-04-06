@@ -21,6 +21,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -199,7 +200,9 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
         .tableFunctionArg()
         .forEach(
             arg -> {
-              String argName = arg.ident().getText();
+              String argName =
+                  StringUtils.unquoteIdentifier(arg.ident().getText())
+                      .toLowerCase(Locale.ROOT);
               UnresolvedExpression argValue = visitAstExpression(arg.functionArg());
               args.add(new UnresolvedArgument(argName, argValue));
             });
