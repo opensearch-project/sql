@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
@@ -83,10 +84,25 @@ public class RestSqlAction extends BaseRestHandler {
   /** New SQL query request handler. */
   private final RestSQLQueryAction newSqlQueryHandler;
 
+  /**
+   * Optional analytics router. If set, it's called before the normal SQL engine. Accepts the
+   * request and channel, returns {@code true} if it handled the request, {@code false} to fall
+   * through to normal SQL engine.
+   */
+  private final BiFunction<SQLQueryRequest, RestChannel, Boolean> analyticsRouter;
+
   public RestSqlAction(Settings settings, Injector injector) {
+    this(settings, injector, null);
+  }
+
+  public RestSqlAction(
+      Settings settings,
+      Injector injector,
+      BiFunction<SQLQueryRequest, RestChannel, Boolean> analyticsRouter) {
     super();
     this.allowExplicitIndex = MULTI_ALLOW_EXPLICIT_INDEX.get(settings);
     this.newSqlQueryHandler = new RestSQLQueryAction(injector);
+    this.analyticsRouter = analyticsRouter;
   }
 
   @Override
@@ -134,7 +150,6 @@ public class RestSqlAction extends BaseRestHandler {
 
       Format format = SqlRequestParam.getFormat(request.params());
 
-      // Route request to new query engine if it's supported already
       SQLQueryRequest newSqlRequest =
           new SQLQueryRequest(
               sqlRequest.getJsonContent(),
@@ -142,6 +157,37 @@ public class RestSqlAction extends BaseRestHandler {
               request.path(),
               request.params(),
               sqlRequest.cursor());
+
+      // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
+      // The router returns true and sends the response directly if it handled the request.
+      if (analyticsRouter != null) {
+        final SQLQueryRequest finalRequest = newSqlRequest;
+        return channel -> {
+          if (!analyticsRouter.apply(finalRequest, channel)) {
+            // Not an analytics query — delegate to normal SQL engine
+            try {
+              newSqlQueryHandler
+                  .prepareRequest(
+                      finalRequest,
+                      (ch, ex) -> {
+                        try {
+                          Format fmt = SqlRequestParam.getFormat(request.params());
+                          QueryAction qa = explainRequest(client, sqlRequest, fmt);
+                          executeSqlRequest(request, qa, client, ch);
+                        } catch (Exception e) {
+                          handleException(ch, e);
+                        }
+                      },
+                      this::handleException)
+                  .accept(channel);
+            } catch (Exception e) {
+              handleException(channel, e);
+            }
+          }
+        };
+      }
+
+      // Route request to new query engine if it's supported already
       return newSqlQueryHandler.prepareRequest(
           newSqlRequest,
           (restChannel, exception) -> {

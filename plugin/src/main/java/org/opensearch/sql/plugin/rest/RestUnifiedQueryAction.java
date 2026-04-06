@@ -12,6 +12,10 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 
 import java.util.Map;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -23,6 +27,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryPlanner;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -182,7 +187,75 @@ public class RestUnifiedQueryAction {
     if (parseResult instanceof UnresolvedPlan unresolvedPlan) {
       return unresolvedPlan.accept(new IndexNameExtractor(), null);
     }
-    // TODO: handle SQL SqlNode for table extraction when unified SQL is enabled
+    if (parseResult instanceof SqlNode sqlNode) {
+      return extractTableNameFromSqlNode(sqlNode);
+    }
+    return null;
+  }
+
+  /**
+   * Execute a SQL query through the unified query pipeline. Uses {@link
+   * org.opensearch.sql.plugin.transport.TransportPPLQueryResponse} as the transport response type
+   * since both PPL and SQL share the same JSON response format.
+   */
+  public void executeSql(
+      String query, QueryType queryType, ActionListener<TransportPPLQueryResponse> listener) {
+    client
+        .threadPool()
+        .schedule(
+            withCurrentContext(
+                () -> {
+                  try (UnifiedQueryContext context = buildContext(queryType, false)) {
+                    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+                    RelNode plan = planner.plan(query);
+                    CalcitePlanContext planContext = context.getPlanContext();
+                    plan = addQuerySizeLimit(plan, planContext);
+                    analyticsEngine.execute(
+                        plan, planContext, createQueryListener(queryType, listener));
+                  } catch (Exception e) {
+                    listener.onFailure(e);
+                  }
+                }),
+            new TimeValue(0),
+            SQL_WORKER_THREAD_POOL_NAME);
+  }
+
+  /** Explain a SQL query through the unified query pipeline. */
+  public void explainSql(
+      String query, QueryType queryType, ResponseListener<ExplainResponse> listener) {
+    client
+        .threadPool()
+        .schedule(
+            withCurrentContext(
+                () -> {
+                  try (UnifiedQueryContext context = buildContext(queryType, false)) {
+                    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+                    RelNode plan = planner.plan(query);
+                    CalcitePlanContext planContext = context.getPlanContext();
+                    plan = addQuerySizeLimit(plan, planContext);
+                    analyticsEngine.explain(plan, ExplainMode.STANDARD, planContext, listener);
+                  } catch (Exception e) {
+                    listener.onFailure(e);
+                  }
+                }),
+            new TimeValue(0),
+            SQL_WORKER_THREAD_POOL_NAME);
+  }
+
+  /** Extracts the table name from a Calcite SqlNode parse tree. */
+  private static String extractTableNameFromSqlNode(SqlNode sqlNode) {
+    if (sqlNode instanceof SqlSelect select) {
+      SqlNode from = select.getFrom();
+      if (from instanceof SqlIdentifier id) {
+        return id.toString();
+      }
+      if (from instanceof SqlJoin join) {
+        // For joins, extract from the left table
+        if (join.getLeft() instanceof SqlIdentifier leftId) {
+          return leftId.toString();
+        }
+      }
+    }
     return null;
   }
 
