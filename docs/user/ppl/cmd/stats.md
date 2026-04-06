@@ -15,25 +15,11 @@ The `stats` command has the following syntax:
 stats [bucket_nullable=bool] <aggregation>... [by-clause]
 ```
 
-## fetched rows / total rows = 1/1
-+-----+
-| p90 |
-|-----|
-| 21  |
-+-----+arameters
+## Parameters
 
 The `stats` command supports the following parameters.
 
-| fetched rows / total rows = 5/5
-+--------------------------------+--------------+
-| percentile(severityNumber, 90) | severityText |
-|--------------------------------+--------------|
-| 5                              | DEBUG        |
-| 17                             | ERROR        |
-| 21                             | ERROR        |
-| 9                              | INFO         |
-| 13                             | WARN         |
-+--------------------------------+--------------+arameter | Required/Optional | Description |
+| Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `<aggregation>` | Required | An aggregation function. |
 | `<by-clause>` | Optional | Groups results by specified fields or expressions. Syntax: `by [span-expression,] [field,]...` If no `by-clause` is specified, the stats command returns only one row, which is the aggregation over the entire search results. |
@@ -49,142 +35,14 @@ The `stats` command supports the following aggregation functions:
 * `AVG` -- Average of numeric values
 * `MAX` -- Maximum value
 * `MIN` -- Minimum value
-* `VAR_SAMfetched rows / total rows = 5/5
-+-----+-----------+--------------+
-| p90 | sev_range | severityText |
-|-----+-----------+--------------|
-| 5   | 0         | DEBUG        |
-| 9   | 0         | INFO         |
-| 17  | 10        | ERROR        |
-| 13  | 10        | WARN         |
-| 21  | 20        | ERROR        |
-+-----+-----------+--------------+` -- Sample variance
-* `VAR_fetched rows / total rows = 1/1
-+-----------------------------------------------------------------------------------------------------------------+
-| all_levels                                                                                                      |
-|-----------------------------------------------------------------------------------------------------------------|
-| [INFO,INFO,WARN,ERROR,DEBUG,ERROR,INFO,ERROR,WARN,INFO,ERROR,DEBUG,WARN,INFO,ERROR,ERROR,INFO,WARN,DEBUG,ERROR] |
-+-----------------------------------------------------------------------------------------------------------------+Ofetched rows / total rows = 3/3
-+-----+-----------------------------------------------------------------------------+
-| cnt | instrumentationScope.name                                                   |
-|-----+-----------------------------------------------------------------------------|
-| 2   | @opentelemetry/instrumentation-http                                         |
-| 1   | Microsoft.Extensions.Hosting                                                |
-| 1   | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc |
-+-----+-----------------------------------------------------------------------------+` -- fetched rows / total rows = 1/1
-+-------------------------+
-| severity_levels         |
-|-------------------------|
-| [DEBUG,ERROR,INFO,WARN] |
-+-------------------------+opulation variance
-* `STDDEV_SAMfetched rows / total rows = 4/4
-+-----+-----------+--------------+
-| cnt | sev_range | severityText |
-|-----+-----------+--------------|
-| 3   | 0         | DEBUG        |
-| 6   | 0         | INFO         |
-| 7   | 10        | ERROR        |
-| 4   | 10        | WARN         |
-+-----+-----------+--------------+` -- Sample standard deviation
-* `STDDEV_fetched rows / total rows = 5/5
-+--------------------------------------------------+--------------+
-| services                                         | severityText |
-|--------------------------------------------------+--------------|
-| [cart,product-catalog,cart]                      | DEBUG        |
-| [payment,checkout,frontend-proxy]                | ERROR        |
-| [payment,product-catalog]                        | ERROR        |
-| [frontend,cart,frontend]                         | INFO         |
-| [product-catalog,product-catalog,frontend-proxy] | WARN         |
-+--------------------------------------------------+--------------+Ofetched rows / total rows = 1/1
-+-----+
-| p90 |
-|-----|
-| 21  |
-+-----+` -- fetched rows / total rows = 5/5
-+--------------------------------+--------------+
-| percentile(severityNumber, 90) | severityText |
-|--------------------------------+--------------|
-| 5                              | DEBUG        |
-| 17                             | ERROR        |
-| 21                             | ERROR        |
-| 9                              | INFO         |
-| 13                             | WARN         |
-+--------------------------------+--------------+opulation standard deviation
-* `DISTINCT_COUNT_Afetched rows / total rows = 5/5
-+-----+-----------+--------------+
-| p90 | sev_range | severityText |
-|-----+-----------+--------------|
-| 5   | 0         | DEBUG        |
-| 9   | 0         | INFO         |
-| 17  | 10        | ERROR        |
-| 13  | 10        | WARN         |
-| 21  | 20        | ERROR        |
-+-----+-----------+--------------+fetched rows / total rows = 1/1
-+-----------------------------------------------------------------------------------------------------------------+
-| all_levels                                                                                                      |
-|-----------------------------------------------------------------------------------------------------------------|
-| [INFO,INFO,WARN,ERROR,DEBUG,ERROR,INFO,ERROR,WARN,INFO,ERROR,DEBUG,WARN,INFO,ERROR,ERROR,INFO,WARN,DEBUG,ERROR] |
-+-----------------------------------------------------------------------------------------------------------------+ROX` -- Approximate distinct count
+* `VAR_SAMP` -- Sample variance
+* `VAR_POP` -- Population variance
+* `STDDEV_SAMP` -- Sample standard deviation
+* `STDDEV_POP` -- Population standard deviation
+* `DISTINCT_COUNT_APPROX` -- Approximate distinct count
 * `TAKE` -- List of original values
-* `fetched rows / total rows = 3/3
-+-----+-----------------------------------------------------------------------------+
-| cnt | instrumentationScope.name                                                   |
-|-----+-----------------------------------------------------------------------------|
-| 2   | @opentelemetry/instrumentation-http                                         |
-| 1   | Microsoft.Extensions.Hosting                                                |
-| 1   | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc |
-+-----+-----------------------------------------------------------------------------+ERCENTILE`/`fetched rows / total rows = 1/1
-+-------------------------+
-| severity_levels         |
-|-------------------------|
-| [DEBUG,ERROR,INFO,WARN] |
-+-------------------------+ERCENTILE_Afetched rows / total rows = 4/4
-+-----+-----------+--------------+
-| cnt | sev_range | severityText |
-|-----+-----------+--------------|
-| 3   | 0         | DEBUG        |
-| 6   | 0         | INFO         |
-| 7   | 10        | ERROR        |
-| 4   | 10        | WARN         |
-+-----+-----------+--------------+fetched rows / total rows = 5/5
-+--------------------------------------------------+--------------+
-| services                                         | severityText |
-|--------------------------------------------------+--------------|
-| [cart,product-catalog,cart]                      | DEBUG        |
-| [payment,checkout,frontend-proxy]                | ERROR        |
-| [payment,product-catalog]                        | ERROR        |
-| [frontend,cart,frontend]                         | INFO         |
-| [product-catalog,product-catalog,frontend-proxy] | WARN         |
-+--------------------------------------------------+--------------+ROX` -- fetched rows / total rows = 1/1
-+-----+
-| p90 |
-|-----|
-| 21  |
-+-----+ercentile calculations
-* `fetched rows / total rows = 5/5
-+--------------------------------+--------------+
-| percentile(severityNumber, 90) | severityText |
-|--------------------------------+--------------|
-| 5                              | DEBUG        |
-| 17                             | ERROR        |
-| 21                             | ERROR        |
-| 9                              | INFO         |
-| 13                             | WARN         |
-+--------------------------------+--------------+ERC<percent>`/`fetched rows / total rows = 5/5
-+-----+-----------+--------------+
-| p90 | sev_range | severityText |
-|-----+-----------+--------------|
-| 5   | 0         | DEBUG        |
-| 9   | 0         | INFO         |
-| 17  | 10        | ERROR        |
-| 13  | 10        | WARN         |
-| 21  | 20        | ERROR        |
-+-----+-----------+--------------+<percent>` -- fetched rows / total rows = 1/1
-+-----------------------------------------------------------------------------------------------------------------+
-| all_levels                                                                                                      |
-|-----------------------------------------------------------------------------------------------------------------|
-| [INFO,INFO,WARN,ERROR,DEBUG,ERROR,INFO,ERROR,WARN,INFO,ERROR,DEBUG,WARN,INFO,ERROR,ERROR,INFO,WARN,DEBUG,ERROR] |
-+-----------------------------------------------------------------------------------------------------------------+ercentile shortcut functions
+* `PERCENTILE`/`PERCENTILE_APPROX` -- Percentile calculations
+* `PERC<percent>`/`P<percent>` -- Percentile shortcut functions
 * `MEDIAN` -- 50th percentile
 * `EARLIEST` -- Earliest value by timestamp
 * `LATEST` -- Latest value by timestamp
@@ -453,14 +311,7 @@ The following example uses this sample index data:
 
 ```text
 +-------+--------+------------+
-| Name  | DEfetched rows / total rows = 3/3
-+-----+---------------------------+
-| cnt | instrumentationScope.name |
-|-----+---------------------------|
-| 1   | opentelemetry-dotnet      |
-| 1   | opentelemetry-go          |
-| 2   | opentelemetry-js          |
-+-----+---------------------------+TNO | birthday   |
+| Name  | DEPTNO | birthday   |
 |-------+--------+------------|
 | Alice | 1      | 2024-04-21 |
 | Bob   | 2      | 2025-08-21 |
@@ -488,25 +339,11 @@ fetched rows / total rows = 3/3
 +-----+------------+
 ```
 
-Group by both yearly spans and department number (by default, null `DEfetched rows / total rows = 1/1
-+-------------------------------+
-| severity_levels               |
-|-------------------------------|
-| [DEBUG,ERROR,ERROR,INFO,WARN] |
-+-------------------------------+TNO` values are included in the results):
+Group by both yearly spans and department number (by default, null `DEPTNO` values are included in the results):
 
 ```ppl ignore
 source=example
-| stats count() as cnt by span(birthday, 1y) as year, DEfetched rows / total rows = 5/5
-+-----+-----------+--------------+
-| cnt | sev_range | severityText |
-|-----+-----------+--------------|
-| 3   | 0         | DEBUG        |
-| 6   | 0         | INFO         |
-| 5   | 10        | ERROR        |
-| 4   | 10        | WARN         |
-| 2   | 20        | ERROR        |
-+-----+-----------+--------------+TNO
+| stats count() as cnt by span(birthday, 1y) as year, DEPTNO
 ```
   
 The query returns the following results:
@@ -514,16 +351,7 @@ The query returns the following results:
 ```text
 fetched rows / total rows = 3/3
 +-----+------------+--------+
-| cnt | year       | DEfetched rows / total rows = 5/5
-+--------------------------------------------------+--------------+
-| services                                         | severityText |
-|--------------------------------------------------+--------------|
-| [cart,product-catalog,cart]                      | DEBUG        |
-| [payment,checkout,frontend-proxy]                | ERROR        |
-| [payment,product-catalog]                        | ERROR        |
-| [frontend,cart,frontend]                         | INFO         |
-| [product-catalog,product-catalog,frontend-proxy] | WARN         |
-+--------------------------------------------------+--------------+TNO |
+| cnt | year       | DEPTNO |
 |-----+------------+--------|
 | 1   | 2024-01-01 | 1      |
 | 1   | 2025-01-01 | 2      |
@@ -531,25 +359,11 @@ fetched rows / total rows = 3/3
 +-----+------------+--------+
 ```
 
-Use `bucket_nullable=false` to exclude null `DEfetched rows / total rows = 1/1
-+-----+
-| p90 |
-|-----|
-| 21  |
-+-----+TNO` values from the grouping:
+Use `bucket_nullable=false` to exclude null `DEPTNO` values from the grouping:
 
 ```ppl ignore
 source=example
-| stats bucket_nullable=false count() as cnt by span(birthday, 1y) as year, DEfetched rows / total rows = 5/5
-+--------------------------------+--------------+
-| percentile(severityNumber, 90) | severityText |
-|--------------------------------+--------------|
-| 5                              | DEBUG        |
-| 17                             | ERROR        |
-| 21                             | ERROR        |
-| 9                              | INFO         |
-| 13                             | WARN         |
-+--------------------------------+--------------+TNO
+| stats bucket_nullable=false count() as cnt by span(birthday, 1y) as year, DEPTNO
 ```
   
 The query returns the following results:
@@ -557,16 +371,7 @@ The query returns the following results:
 ```text
 fetched rows / total rows = 3/3
 +-----+------------+--------+
-| cnt | year       | DEfetched rows / total rows = 5/5
-+-----+-----------+--------------+
-| p90 | sev_range | severityText |
-|-----+-----------+--------------|
-| 5   | 0         | DEBUG        |
-| 9   | 0         | INFO         |
-| 17  | 10        | ERROR        |
-| 13  | 10        | WARN         |
-| 21  | 20        | ERROR        |
-+-----+-----------+--------------+TNO |
+| cnt | year       | DEPTNO |
 |-----+------------+--------|
 | 1   | 2024-01-01 | 1      |
 | 1   | 2025-01-01 | 2      |

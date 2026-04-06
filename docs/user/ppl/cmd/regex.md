@@ -72,13 +72,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+--------------+----------------------------------+--------------------------------------------------------------------------+
-| severityText | resource.attributes.service.name | body                                                                     |
-|--------------+----------------------------------+--------------------------------------------------------------------------|
-| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142           |
-| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3  |
-| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error |
-+--------------+----------------------------------+--------------------------------------------------------------------------+
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                         |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------------|
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                      |
+| ERROR        | frontend-proxy                   | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 |
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
 
@@ -105,3 +105,53 @@ fetched rows / total rows = 2/2
 +--------------+----------------------------------+----------------------------------------------------------------------------------------+
 ```
   
+
+## Example 4: Complex patterns with character classes
+
+The following query uses complex regex patterns with character classes and quantifiers to match log messages containing service method calls:
+
+```ppl
+source=otellogs
+| where severityText = 'ERROR'
+| regex body="[A-Z][a-zA-Z]+\\.[a-zA-Z]+"
+| fields severityText, body
+| head 3
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++--------------+----------------------------------------------------------------+
+| severityText | body                                                           |
+|--------------+----------------------------------------------------------------|
+| ERROR        | NullPointerException in CheckoutService.placeOrder at line 142 |
++--------------+----------------------------------------------------------------+
+```
+
+## Example 5: Case-sensitive matching
+
+By default, regex matching is case sensitive. The following query searches for lowercase `error`:
+
+```ppl
+source=otellogs
+| regex severityText="error"
+| fields severityText
+```
+
+The query returns no results because the regex pattern `error` (lowercase) does not match `ERROR` (uppercase):
+
+```text
+fetched rows / total rows = 0/0
++--------------+
+| severityText |
+|--------------|
++--------------+
+```
+
+## Limitations
+
+The `regex` command has the following limitations:
+
+* A field name must be specified in the `regex` command. Pattern-only syntax (for example, `regex "pattern"`) is not supported.
+* The `regex` command only supports string fields. Using it on numeric or Boolean fields results in an error.  

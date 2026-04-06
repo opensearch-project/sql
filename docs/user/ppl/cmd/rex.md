@@ -44,7 +44,7 @@ The `rex` command supports the following parameters.
 
 ## Example 1: Extract service name and error type from log messages  
 
-The following query extracts the error type and location from Java exception log messages, useful for categorizing errors during incident triage:
+The following query extracts the error type from Java exception log messages. Non-matching rows return `null` for the extracted field:
   
 ```ppl
 source=otellogs
@@ -70,7 +70,7 @@ fetched rows / total rows = 3/3
 
 ## Example 2: Extract multiple words using max_match  
 
-The following query extracts multiple words from log messages, useful for building keyword indexes:
+The following query uses the `rex` command with the `max_match` parameter to extract multiple words from the `body` field. The extracted field is returned as an array of strings:
   
 ```ppl
 source=otellogs
@@ -139,3 +139,7 @@ fetched rows / total rows = 1/1
 +----------------------------------------------------------------+----------------------+--------------+
 ```
   
+
+For detailed Java regex pattern syntax and usage, refer to the official [Java Pattern documentation](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html).
+
+> **Note**: Capture group names cannot contain underscores because of [Java regex](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html) limitations. For example, `(?<error_type>\w+)` is invalid; use `(?<errortype>\w+)` instead.

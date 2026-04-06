@@ -41,7 +41,7 @@ fetched rows / total rows = 3/3
 |--------------+----------------------------------+----------------------------------------------------------------------------------------------|
 | ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
 | ERROR        | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| ERROR        | frontend-proxy                   | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 |
 +--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   

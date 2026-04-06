@@ -3,6 +3,7 @@
 
 The `sort` command sorts the search results by the specified fields.
 
+
 ## Syntax
 
 The `sort` command supports two syntax notations. You must use one notation consistently within a single `sort` command.

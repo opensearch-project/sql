@@ -1,29 +1,29 @@
+
 # mvexpand
 
-## Description
 The `mvexpand` command expands each value in a multivalue (array) field into a separate row. For each document, every element in the specified array field is returned as a new row.
 
-
 ## Syntax
-```
+
+The `mvexpand` command has the following syntax:
+
+```syntax
 mvexpand <field> [limit=<int>]
 ```
 
-- `<field>`: The multivalue (array) field to expand. (Required)
-- `limit`: Maximum number of values per document to expand. If not specified, all array elements are expanded. (Optional)
+## Parameters
 
+The `mvexpand` command supports the following parameters.
 
-### Output field naming
-After `mvexpand`, the expanded value remains under the same field name (for example, `tags` or `ids`).
-If the array contains objects, you can reference subfields (for example, `skills.name`).
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field>` | Required | The multivalue (array) field to expand. |
+| `limit` | Optional | Maximum number of values per document to expand. If not specified, all array elements are expanded. |
 
+## Example 1: Basic expansion
 
-## Examples
+The following query creates an array and expands it into separate rows:
 
-### Example 1: Basic Expansion (single document)
-Input document (case "basic") contains three tag values.
-
-PPL query:
 ```ppl
 source=people
 | eval tags = array('error', 'warning', 'info')
@@ -33,7 +33,8 @@ source=people
 | fields tags
 ```
 
-Expected output:
+The query returns the following results:
+
 ```text
 fetched rows / total rows = 3/3
 +---------+
@@ -45,10 +46,10 @@ fetched rows / total rows = 3/3
 +---------+
 ```
 
-### Example 2: Expansion with Limit
-Input document (case "ids") contains an array of integers; expand and apply limit.
+## Example 2: Expansion with limit
 
-PPL query:
+The following query expands an array but limits the number of expanded rows:
+
 ```ppl
 source=people
 | eval ids = array(1, 2, 3, 4, 5)
@@ -58,7 +59,8 @@ source=people
 | fields ids
 ```
 
-Expected output:
+The query returns the following results:
+
 ```text
 fetched rows / total rows = 3/3
 +-----+
@@ -70,10 +72,10 @@ fetched rows / total rows = 3/3
 +-----+
 ```
 
-### Example 3: Expand projects
-This example demonstrates expanding a multivalue `projects` field into one row per project.
+## Example 3: Expand nested fields
 
-PPL query:
+The following query expands a multivalue `projects` field into one row per project:
+
 ```ppl
 source=people
 | head 1
@@ -82,7 +84,8 @@ source=people
 | fields projects.name
 ```
 
-Expected output:
+The query returns the following results:
+
 ```text
 fetched rows / total rows = 3/3
 +--------------------------------+
@@ -94,10 +97,10 @@ fetched rows / total rows = 3/3
 +--------------------------------+
 ```
 
-### Example 4: Single-value array (case "single")
-Single-element array should expand to one row.
+## Example 4: Single-value array
 
-PPL query:
+A single-element array expands to one row:
+
 ```ppl
 source=people
 | eval tags = array('error')
@@ -107,7 +110,8 @@ source=people
 | fields tags
 ```
 
-Expected output:
+The query returns the following results:
+
 ```text
 fetched rows / total rows = 1/1
 +-------+
@@ -117,11 +121,11 @@ fetched rows / total rows = 1/1
 +-------+
 ```
 
-### Example 5: Missing Field
-If the field does not exist in the input schema (for example, it is not mapped or was projected out earlier), mvexpand throws a semantic check exception.
+## Example 5: Missing field
 
-PPL query:
-```ppl
+If the field does not exist in the input schema, `mvexpand` throws a semantic check exception:
+
+```ppl ignore
 source=people
 | eval some_field = 'x'
 | fields some_field
@@ -130,8 +134,11 @@ source=people
 | fields tags
 ```
 
-Expected output:
 ```text
 {'reason': 'Invalid Query', 'details': "Field 'tags' not found in the schema", 'type': 'SemanticCheckException'}
-Error: Query returned no data
 ```
+
+## Related commands
+
+- [`nomv`](nomv.md) -- Converts a multivalue field into a single-value string
+- [`mvcombine`](mvcombine.md) -- Combines multiple rows into a single row with multivalue fields

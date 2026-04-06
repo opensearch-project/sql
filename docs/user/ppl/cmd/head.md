@@ -13,21 +13,11 @@ The `head` command has the following syntax:
 head [<size>] [from <offset>]
 ```
 
-## fetched rows / total rows = 1/1
-+------------+
-| total_logs |
-|------------|
-| 20         |
-+------------+arameters
+## Parameters
 
 The `head` command supports the following parameters.
 
-| fetched rows / total rows = 1/1
-+--------------+
-| avg_severity |
-|--------------|
-| 12.0         |
-+--------------+arameter | Required/Optional | Description |
+| Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `<size>` | Optional | The number of results to return. Must be an integer. Default is `10`. |
 | `<offset>` | Optional | The number of results to skip (used with the `from` keyword). Must be an integer. Default is `0`. |
@@ -54,7 +44,7 @@ fetched rows / total rows = 10/10
 |--------------+----------------------------------+----------------------------------------------------------------------------------------------|
 | ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
 | ERROR        | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| ERROR        | frontend-proxy                   | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 |
 | ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                          |
 | ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                      |
 | ERROR        | product-catalog                  | Database primary node unreachable: connection refused to db-primary-01:5432                  |
@@ -87,7 +77,7 @@ fetched rows / total rows = 3/3
 |--------------+----------------------------------+----------------------------------------------------------------------------------------------|
 | ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
 | ERROR        | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| ERROR        | frontend-proxy                   | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 |
 +--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
@@ -108,13 +98,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+--------------+----------------------------------+--------------------------------------------------------------------------+
-| severityText | resource.attributes.service.name | body                                                                     |
-|--------------+----------------------------------+--------------------------------------------------------------------------|
-| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error |
-| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms      |
-| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3  |
-+--------------+----------------------------------+--------------------------------------------------------------------------+
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                         |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------------|
+| ERROR        | frontend-proxy                   | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 |
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                          |
+| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                      |
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
 

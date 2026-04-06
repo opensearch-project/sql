@@ -90,7 +90,7 @@ The following are examples of using the `simple_pattern` method.
 
 ### Example 1: Extract patterns from log messages
 
-The following query extracts patterns from error log messages, replacing variable parts with `<*>` placeholders. This helps you identify common error templates across your services:
+The following query extracts patterns from error log messages, replacing variable parts with `<*>` placeholders:
   
 ```ppl
 source=otellogs

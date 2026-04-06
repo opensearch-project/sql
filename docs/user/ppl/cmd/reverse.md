@@ -13,85 +13,133 @@ The `reverse` command has the following syntax:
 reverse
 ```
 
-The `reverse` command takes no parameters.
+## Example 1: Basic reverse operation
 
-## Example 1: Basic reverse operation  
+The following query reverses the order of all documents in the results:
 
-The following query retrieves the top 4 errors sorted by service name, then reverses the order:
-  
 ```ppl
 source=otellogs
-| where severityText IN ('ERROR', 'WARN')
-| sort severityNumber, `resource.attributes.service.name`
 | fields severityText, `resource.attributes.service.name`
-| head 4
+| head 5
 | reverse
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 4/4
+fetched rows / total rows = 5/5
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
+| DEBUG        | cart                             |
+| ERROR        | payment                          |
 | WARN         | product-catalog                  |
-| WARN         | product-catalog                  |
-| WARN         | frontend-proxy                   |
-| WARN         | frontend-proxy                   |
+| INFO         | cart                             |
+| INFO         | frontend                         |
 +--------------+----------------------------------+
 ```
-  
 
 ## Example 2: Use the reverse and sort commands
 
-The following query reverses results after sorting by severity in ascending order, effectively showing the most critical issues first:
-  
+The following query reverses results after sorting by `severityNumber` in ascending order, effectively implementing descending order:
+
 ```ppl
 source=otellogs
-| dedup severityText
 | sort severityNumber
 | fields severityText, severityNumber
+| head 5
 | reverse
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 4/4
+fetched rows / total rows = 5/5
 +--------------+----------------+
 | severityText | severityNumber |
 |--------------+----------------|
-| ERROR        | 17             |
-| WARN         | 13             |
 | INFO         | 9              |
+| INFO         | 9              |
+| DEBUG        | 5              |
+| DEBUG        | 5              |
 | DEBUG        | 5              |
 +--------------+----------------+
 ```
-  
 
-## Example 3: Reverse aggregation results  
+## Example 3: Use the reverse and head commands
 
-The following query reverses the order of aggregated error counts by service, showing the least active services first:
-  
+The following query uses the `reverse` command together with the `head` command to retrieve the last two records from the original result order:
+
 ```ppl
 source=otellogs
-| stats count() as log_count by severityText
-| sort - log_count
+| reverse
+| head 2
+| fields severityText, `resource.attributes.service.name`
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 2/2
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| ERROR        | checkout                         |
+| DEBUG        | cart                             |
++--------------+----------------------------------+
+```
+
+## Example 4: Double reverse
+
+The following query shows that applying `reverse` twice returns documents in the original order:
+
+```ppl
+source=otellogs
+| reverse
+| reverse
+| fields severityText, `resource.attributes.service.name`
+| head 5
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 5/5
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| INFO         | frontend                         |
+| INFO         | cart                             |
+| WARN         | product-catalog                  |
+| ERROR        | payment                          |
+| DEBUG        | cart                             |
++--------------+----------------------------------+
+```
+
+## Example 5: Use the reverse command with filtering
+
+The following query uses the `reverse` command with filtering and field selection:
+
+```ppl
+source=otellogs
+| where severityText = 'ERROR'
+| fields severityText, `resource.attributes.service.name`
 | reverse
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 4/4
-+-----------+--------------+
-| log_count | severityText |
-|-----------+--------------|
-| 3         | DEBUG        |
-| 4         | WARN         |
-| 6         | INFO         |
-| 7         | ERROR        |
-+-----------+--------------+
+fetched rows / total rows = 7/7
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| ERROR        | checkout                         |
+| ERROR        | product-catalog                  |
+| ERROR        | recommendation                   |
+| ERROR        | frontend-proxy                   |
+| ERROR        | payment                          |
+| ERROR        | checkout                         |
+| ERROR        | payment                          |
++--------------+----------------------------------+
 ```
-  

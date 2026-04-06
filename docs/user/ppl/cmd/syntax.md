@@ -107,15 +107,15 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 5/5
-+--------------+----------------------------------+----------------------------------------------------------------------------------------+
-| severityText | resource.attributes.service.name | body                                                                                   |
-|--------------+----------------------------------+----------------------------------------------------------------------------------------|
-| INFO         | frontend                         | HTTP GET /api/products 200 45ms                                                        |
-| INFO         | cart                             | Order #1234 placed successfully by user U100                                           |
-| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
-| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                    |
-| DEBUG        | cart                             | Cache miss for key user:session:U200 in Valkey cluster                                 |
-+--------------+----------------------------------+----------------------------------------------------------------------------------------+
++--------------+----------------------------------+-----------------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                          |
+|--------------+----------------------------------+-----------------------------------------------------------------------------------------------|
+| INFO         | frontend                         | [2024-02-01T09:10:00.123Z] "GET /api/products HTTP/1.1" 200 - 1024 45 frontend-6b7b4c9f-x2kl9 |
+| INFO         | cart                             | Order #1234 placed successfully by user U100                                                  |
+| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms        |
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                           |
+| DEBUG        | cart                             | Cache miss for key user:session:U200 in Valkey cluster                                        |
++--------------+----------------------------------+-----------------------------------------------------------------------------------------------+
 ```
 
 **Example 3: Get documents that match a condition**

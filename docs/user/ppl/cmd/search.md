@@ -126,9 +126,9 @@ Consider the following performance optimizations when working with different fie
 
 Cross-cluster search lets any node in a cluster execute search requests against other clusters. Refer to [Cross-Cluster Search](../admin/cross_cluster_search.md/) for configuration.
 
-## Example 1: Exploring log data structure
+## Example 1: Fetch all data
 
-Retrieve a sample of log documents to understand the data structure and verify log ingestion. This is useful for exploring new log sources or verifying field mappings:
+Retrieve all documents from an index:
 
 ```ppl
 source=otellogs
@@ -139,13 +139,13 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 3/3
-+----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------+
-| spanId   | traceId          | @timestamp          | instrumentationScope                                                                                                                      | severityText | resource                                                                                                                             | flags | attributes | droppedAttributesCount | severityNumber | time                | body                                                                                   |
-|----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------|
-| span0001 | abcd1234efgh5678 | 2024-02-01 09:10:00 | {'name': '@opentelemetry/instrumentation-http', 'droppedAttributesCount': 0, 'version': '0.57.0'}                                         | INFO         | {'attributes': {'service': {'name': 'frontend'}, 'host': {'name': 'frontend-6b7b4c9f-x2kl9'}}, 'droppedAttributesCount': 0}          | 0     | {}         | 0                      | 9              | 2024-02-01 09:10:00 | HTTP GET /api/products 200 45ms                                                        |
-| span0002 | abcd1234efgh5678 | 2024-02-01 09:11:00 | {'name': 'Microsoft.Extensions.Hosting', 'droppedAttributesCount': 0, 'version': '9.0.0'}                                                 | INFO         | {'attributes': {'service': {'name': 'cart'}, 'host': {'name': 'cart-5d8f7b-mk29s'}}, 'droppedAttributesCount': 0}                    | 0     | {}         | 0                      | 9              | 2024-02-01 09:11:00 | Order #1234 placed successfully by user U100                                           |
-| span0003 | abcd1234efgh5678 | 2024-02-01 09:12:00 | {'name': 'go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc', 'droppedAttributesCount': 0, 'version': '0.49.0'} | WARN         | {'attributes': {'service': {'name': 'product-catalog'}, 'host': {'name': 'productcatalog-7c9d-zn4p2'}}, 'droppedAttributesCount': 0} | 0     | {}         | 0                      | 13             | 2024-02-01 09:12:00 | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
-+----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+----------------------------------------------------------------------------------------+
++----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+-----------------------------------------------------------------------------------------------+
+| spanId   | traceId          | @timestamp          | instrumentationScope                                                                                                                      | severityText | resource                                                                                                                             | flags | attributes | droppedAttributesCount | severityNumber | time                | body                                                                                          |
+|----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+-----------------------------------------------------------------------------------------------|
+| span0001 | abcd1234efgh5678 | 2024-02-01 09:10:00 | {'name': '@opentelemetry/instrumentation-http', 'droppedAttributesCount': 0, 'version': '0.57.0'}                                         | INFO         | {'attributes': {'service': {'name': 'frontend'}, 'host': {'name': 'frontend-6b7b4c9f-x2kl9'}}, 'droppedAttributesCount': 0}          | 0     | {}         | 0                      | 9              | 2024-02-01 09:10:00 | [2024-02-01T09:10:00.123Z] "GET /api/products HTTP/1.1" 200 - 1024 45 frontend-6b7b4c9f-x2kl9 |
+| span0002 | abcd1234efgh5678 | 2024-02-01 09:11:00 | {'name': 'Microsoft.Extensions.Hosting', 'droppedAttributesCount': 0, 'version': '9.0.0'}                                                 | INFO         | {'attributes': {'service': {'name': 'cart'}, 'host': {'name': 'cart-5d8f7b-mk29s'}}, 'droppedAttributesCount': 0}                    | 0     | {}         | 0                      | 9              | 2024-02-01 09:11:00 | Order #1234 placed successfully by user U100                                                  |
+| span0003 | abcd1234efgh5678 | 2024-02-01 09:12:00 | {'name': 'go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc', 'droppedAttributesCount': 0, 'version': '0.49.0'} | WARN         | {'attributes': {'service': {'name': 'product-catalog'}, 'host': {'name': 'productcatalog-7c9d-zn4p2'}}, 'droppedAttributesCount': 0} | 0     | {}         | 0                      | 13             | 2024-02-01 09:12:00 | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms        |
++----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+-----------------------------------------------------------------------------------------------+
 ```
 
 
@@ -243,21 +243,28 @@ Use `OR` to match documents containing any of the specified conditions:
 ```ppl
 search severityText="ERROR" OR severityText="WARN" source=otellogs
 | sort severityNumber, `resource.attributes.service.name`
-| fields severityText
-| head 3
+| fields severityText, `resource.attributes.service.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 3/3
-+--------------+
-| severityText |
-|--------------|
-| WARN         |
-| WARN         |
-| WARN         |
-+--------------+
+fetched rows / total rows = 11/11
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| WARN         | frontend-proxy                   |
+| WARN         | frontend-proxy                   |
+| WARN         | product-catalog                  |
+| WARN         | product-catalog                  |
+| ERROR        | checkout                         |
+| ERROR        | checkout                         |
+| ERROR        | frontend-proxy                   |
+| ERROR        | payment                          |
+| ERROR        | payment                          |
+| ERROR        | product-catalog                  |
+| ERROR        | recommendation                   |
++--------------+----------------------------------+
 ```
 
 Combine conditions with `AND` to require all criteria to match:
@@ -287,76 +294,73 @@ The operators are evaluated using the following precedence:
 Parentheses > NOT > OR > AND
 ```
 
-The following query demonstrates operator precedence:
+The following query demonstrates operator precedence. Because `AND` binds tighter than `OR`, this is evaluated as `severityText="ERROR" OR (resource.attributes.service.name="frontend" AND severityText="INFO")`:
 
 ```ppl
-search severityText="ERROR" OR severityText="WARN" AND severityNumber>15 source=otellogs
-| sort severityNumber, `resource.attributes.service.name`
-| fields severityText, severityNumber
-| head 3
+search severityText="ERROR" OR `resource.attributes.service.name`="frontend" AND severityText="INFO" source=otellogs
+| fields severityText, `resource.attributes.service.name`
+| head 5
 ```
-  
-The preceding expression is evaluated as `(severityText="ERROR" OR severityText="WARN") AND severityNumber>15`. The query returns the following results:
   
 ```text
-fetched rows / total rows = 3/3
-+--------------+----------------+
-| severityText | severityNumber |
-|--------------+----------------|
-| ERROR        | 17             |
-| ERROR        | 17             |
-| ERROR        | 17             |
-+--------------+----------------+
+fetched rows / total rows = 4/4
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| INFO         | frontend                         |
+| INFO         | frontend                         |
+| INFO         | frontend                         |
+| INFO         | frontend                         |
++--------------+----------------------------------+
 ```
 
-## Example 4: NOT compared to != semantics for service filtering
+## Example 4: NOT compared to != semantics
 
-Both `!=` and `NOT` operators find documents in which the field value is not equal to the specified value. However, the `!=` operator excludes documents containing null or missing fields, while the `NOT` operator includes them. The following query shows this difference when filtering logs by service name.
+Both `!=` and `NOT` operators find documents in which the field value is not equal to the specified value. However, the `!=` operator excludes documents containing null or missing fields, while the `NOT` operator includes them. The following queries show this difference using `instrumentationScope.name`, which is null for most records.
 
 **!= operator**
 
-Find all logs where the service name field exists and is not `cert-monitor`:
+Excludes null values — only returns rows where the field exists and is not the specified value:
 
 ```ppl
-search `resource.attributes.service.name`!="cert-monitor" source=otellogs
-| fields severityText, `resource.attributes.service.name`
-| head 3
+search instrumentationScope.name!="@opentelemetry/instrumentation-http" source=otellogs
+| fields instrumentationScope.name
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 3/3
-+--------------+----------------------------------+
-| severityText | resource.attributes.service.name |
-|--------------+----------------------------------|
-| INFO         | frontend                         |
-| INFO         | cart                             |
-| WARN         | product-catalog                  |
-+--------------+----------------------------------+
+fetched rows / total rows = 1/1
++------------------------------+
+| instrumentationScope.name    |
+|------------------------------|
+| Microsoft.Extensions.Hosting |
++------------------------------+
 ```
 
 **`NOT` operator**
 
-Find all logs that do not specify `cert-monitor` as the service name (including those with null service name values):
+Includes null values — returns rows where the field is null or not the specified value:
 
 ```ppl
-search NOT `resource.attributes.service.name`="cert-monitor" source=otellogs
-| fields severityText, `resource.attributes.service.name`
-| head 3
+search NOT instrumentationScope.name="@opentelemetry/instrumentation-http" source=otellogs
+| fields instrumentationScope.name
+| head 5
 ```
 
-The query returns the following results. Logs without service metadata are included:
+The query returns the following results:
 
 ```text
-fetched rows / total rows = 3/3
-+--------------+----------------------------------+
-| severityText | resource.attributes.service.name |
-|--------------+----------------------------------|
-| INFO         | frontend                         |
-| INFO         | cart                             |
-| WARN         | product-catalog                  |
-+--------------+----------------------------------+
+fetched rows / total rows = 5/5
++------------------------------+
+| instrumentationScope.name    |
+|------------------------------|
+| Microsoft.Extensions.Hosting |
+| null                         |
+| null                         |
+| null                         |
+| null                         |
++------------------------------+
 ```
 
 ## Example 5: Range queries
@@ -383,23 +387,6 @@ fetched rows / total rows = 3/3
 +----------------+
 ```
 
-The following query filters by decimal values within a specific range:
-
-```ppl
-search severityNumber=17 source=otellogs
-| sort `resource.attributes.service.name` | fields body | head 1
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 1/1
-+----------------------------------------------------------------+
-| body                                                           |
-|----------------------------------------------------------------|
-| NullPointerException in CheckoutService.placeOrder at line 142 |
-+----------------------------------------------------------------+
-```
 
 
 ## Example 6: Wildcards
@@ -452,23 +439,19 @@ fetched rows / total rows = 2/2
 Use `?` to match exactly one character in specific positions:
 
 ```ppl
-search severityText="WARN" source=otellogs
-| sort severityNumber, `resource.attributes.service.name`
-| fields severityText
+search severityText=ERR?R source=otellogs
+| fields severityText, `resource.attributes.service.name`
 | head 3
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 3/3
-+--------------+
-| severityText |
-|--------------|
-| WARN         |
-| WARN         |
-| WARN         |
-+--------------+
+fetched rows / total rows = 0/0
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
++--------------+----------------------------------+
 ```
 
 
@@ -523,23 +506,29 @@ The `IN` operator efficiently checks whether a field matches any value in a list
 Check whether a field matches any value from a predefined list:
 
 ```ppl
-search severityText IN ("ERROR", "WARN", "DEBUG") source=otellogs
-| sort severityNumber, `resource.attributes.service.name`
-| fields severityText
-| head 3
+search severityText IN ("ERROR", "WARN") source=otellogs
+| fields severityText, `resource.attributes.service.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 3/3
-+--------------+
-| severityText |
-|--------------|
-| DEBUG        |
-| DEBUG        |
-| DEBUG        |
-+--------------+
+fetched rows / total rows = 11/11
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| WARN         | product-catalog                  |
+| WARN         | product-catalog                  |
+| WARN         | frontend-proxy                   |
+| WARN         | frontend-proxy                   |
+| ERROR        | payment                          |
+| ERROR        | checkout                         |
+| ERROR        | payment                          |
+| ERROR        | frontend-proxy                   |
+| ERROR        | recommendation                   |
+| ERROR        | product-catalog                  |
+| ERROR        | checkout                         |
++--------------+----------------------------------+
 ```
 
 
@@ -547,40 +536,25 @@ Filter logs by `severityNumber` to find errors with a specific numeric severity 
 
 ```ppl
 search severityNumber=17 source=otellogs
-| sort `resource.attributes.service.name`
-| fields body
-| head 1
+| fields body, `resource.attributes.service.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 1/1
-+----------------------------------------------------------------+
-| body                                                           |
-|----------------------------------------------------------------|
-| NullPointerException in CheckoutService.placeOrder at line 142 |
-+----------------------------------------------------------------+
+fetched rows / total rows = 7/7
++----------------------------------------------------------------------------------------------+----------------------------------+
+| body                                                                                         | resource.attributes.service.name |
+|----------------------------------------------------------------------------------------------+----------------------------------|
+| Payment failed: connection timeout to payment gateway after 30000ms                          | payment                          |
+| NullPointerException in CheckoutService.placeOrder at line 142                               | checkout                         |
+| Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                      | payment                          |
+| [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 | frontend-proxy                   |
+| Failed to process recommendation request: invalid product ID from 203.0.113.50               | recommendation                   |
+| Database primary node unreachable: connection refused to db-primary-01:5432                  | product-catalog                  |
+| Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) | checkout                         |
++----------------------------------------------------------------------------------------------+----------------------------------+
 ```
-
-Search for logs containing a specific user email address in the attributes:
-
-```ppl
-search severityText="ERROR" source=otellogs
-| sort `resource.attributes.service.name` | fields body | head 1
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 1/1
-+----------------------------------------------------------------+
-| body                                                           |
-|----------------------------------------------------------------|
-| NullPointerException in CheckoutService.placeOrder at line 142 |
-+----------------------------------------------------------------+
-```
-  
 
 ## Example 9: Complex expressions  
 
@@ -606,25 +580,6 @@ fetched rows / total rows = 3/3
 +--------------+
 ```
 
-Combine multiple conditions with `OR` and `AND` operators to search for logs matching either a specific user or high-severity fund errors:
-
-```ppl
-search severityNumber=17 OR (severityText="WARN" AND severityNumber>=17) source=otellogs
-| fields body
-```
-  
-The query returns the following results:
-  
-```
-fetched rows / total rows = 1/1
-+---------------------------------------------------------+
-| body                                                    |
-|---------------------------------------------------------|
-| Payment failed: Insufficient funds for user@example.com |
-+---------------------------------------------------------+
-```
-  
-
 ## Example 10: Time modifiers  
 
 Time modifiers filter search results by time range using the implicit `@timestamp` field. They support various time formats for precise temporal filtering.
@@ -636,21 +591,21 @@ Filter logs within a specific time window using absolute timestamps:
 ```ppl
 search earliest='2024-02-01 09:13:00' latest='2024-02-01 09:16:00' source=otellogs
 | sort severityNumber
-| fields severityText
+| fields `@timestamp`, severityText
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
-+--------------+
-| severityText |
-|--------------|
-| DEBUG        |
-| INFO         |
-| ERROR        |
-| ERROR        |
-+--------------+
++---------------------+--------------+
+| @timestamp          | severityText |
+|---------------------+--------------|
+| 2024-02-01 09:14:00 | DEBUG        |
+| 2024-02-01 09:16:00 | INFO         |
+| 2024-02-01 09:13:00 | ERROR        |
+| 2024-02-01 09:15:00 | ERROR        |
++---------------------+--------------+
 ```
   
 ### Relative time filtering
@@ -660,7 +615,7 @@ Filter logs using relative time expressions, such as those that occurred before 
 ```ppl
 search latest=-30s source=otellogs
 | sort severityNumber
-| fields severityText
+| fields `@timestamp`, severityText
 | head 3
 ```
   
@@ -668,13 +623,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+--------------+
-| severityText |
-|--------------|
-| DEBUG        |
-| DEBUG        |
-| DEBUG        |
-+--------------+
++---------------------+--------------+
+| @timestamp          | severityText |
+|---------------------+--------------|
+| 2024-02-01 09:14:00 | DEBUG        |
+| 2024-02-01 09:21:00 | DEBUG        |
+| 2024-02-01 09:28:00 | DEBUG        |
++---------------------+--------------+
 ```
   
 ### Time rounding
@@ -684,7 +639,7 @@ Use time rounding expressions to filter events relative to time boundaries, such
 ```ppl
 search latest='@m' source=otellogs
 | sort severityNumber
-| fields severityText
+| fields `@timestamp`, severityText
 | head 2
 ```
   
@@ -692,12 +647,12 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
-+--------------+
-| severityText |
-|--------------|
-| DEBUG        |
-| DEBUG        |
-+--------------+
++---------------------+--------------+
+| @timestamp          | severityText |
+|---------------------+--------------|
+| 2024-02-01 09:14:00 | DEBUG        |
+| 2024-02-01 09:21:00 | DEBUG        |
++---------------------+--------------+
 ```
   
 ### Unix timestamp filtering
@@ -707,28 +662,28 @@ Filter logs using Unix epoch timestamps for precise time ranges:
 ```ppl
 search earliest=1706778600 latest=1706778960 source=otellogs
 | sort severityNumber
-| fields severityText
+| fields `@timestamp`, severityText
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 7/7
-+--------------+
-| severityText |
-|--------------|
-| DEBUG        |
-| INFO         |
-| INFO         |
-| INFO         |
-| WARN         |
-| ERROR        |
-| ERROR        |
-+--------------+
++---------------------+--------------+
+| @timestamp          | severityText |
+|---------------------+--------------|
+| 2024-02-01 09:14:00 | DEBUG        |
+| 2024-02-01 09:10:00 | INFO         |
+| 2024-02-01 09:11:00 | INFO         |
+| 2024-02-01 09:16:00 | INFO         |
+| 2024-02-01 09:12:00 | WARN         |
+| 2024-02-01 09:13:00 | ERROR        |
+| 2024-02-01 09:15:00 | ERROR        |
++---------------------+--------------+
 ```
   
 
-## Example 11: Escaping special characters
+## Escaping special characters
 
 Special characters fall into two categories, depending on whether they must always be escaped or only when you want to search for their literal value:
 
@@ -748,68 +703,3 @@ The following table compares wildcard and literal character matching.
 | Literal `user*` | `field="user\\*"` | Matches only `user*` |
 | Wildcard search | `field=log?` | Matches `log1`, `logA`, `logs` |
 | Literal `log?` | `field="log\\?"`  | Matches only `log?`|
-
-### Escaping backslash characters
-
-Each backslash in the search value must be escaped with another backslash. For example, the following query searches for Windows file paths by properly escaping backslashes:
-
-```ppl
-search severityText="WARN" source=otellogs
-| sort `resource.attributes.service.name` | fields body | head 1
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 1/1
-+--------------------------------------------------------+
-| body                                                   |
-|--------------------------------------------------------|
-| SSL certificate for api.example.com expires in 14 days |
-+--------------------------------------------------------+
-```
-
-> **Note**: When using the REST API with JSON, additional JSON escaping is required.
-
-### Quotation marks within strings
-
-Search for text containing quotation marks by escaping them with backslashes:
-
-```ppl
-search body="heap space" source=otellogs
-| sort `resource.attributes.service.name`
-| fields body
-| head 1
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 1/1
-+-------------------------------------------------------------------------+
-| body                                                                    |
-|-------------------------------------------------------------------------|
-| Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
-+-------------------------------------------------------------------------+
-```
-
-### Text containing special characters
-
-Search for literal text containing wildcard characters by escaping them:
-
-```ppl
-search "connection refused" source=otellogs
-| fields body
-| head 1
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 1/1
-+-----------------------------------------------------------------------------+
-| body                                                                        |
-|-----------------------------------------------------------------------------|
-| Database primary node unreachable: connection refused to db-primary-01:5432 |
-+-----------------------------------------------------------------------------+
-```

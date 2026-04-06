@@ -21,11 +21,11 @@ The `where` command supports the following parameters.
 
 ## Example 1: Filter by severity level
 
-The following query finds all log entries with a severity level above `WARN` (severityNumber > 13), helping you quickly identify errors and critical issues across your services:
+The following query finds all log entries with a severity level above `INFO` (severityNumber > 9), filtering out routine logs to focus on warnings and errors:
 
 ```ppl
 source=otellogs
-| where severityNumber > 13
+| where severityNumber > 9
 | sort severityNumber, `resource.attributes.service.name`
 | fields severityText, severityNumber, `resource.attributes.service.name`
 ```
@@ -33,10 +33,14 @@ source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 7/7
+fetched rows / total rows = 11/11
 +--------------+----------------+----------------------------------+
 | severityText | severityNumber | resource.attributes.service.name |
 |--------------+----------------+----------------------------------|
+| WARN         | 13             | frontend-proxy                   |
+| WARN         | 13             | frontend-proxy                   |
+| WARN         | 13             | product-catalog                  |
+| WARN         | 13             | product-catalog                  |
 | ERROR        | 17             | checkout                         |
 | ERROR        | 17             | checkout                         |
 | ERROR        | 17             | frontend-proxy                   |
@@ -53,45 +57,47 @@ The following query narrows down errors to a specific service during an incident
 
 ```ppl
 source=otellogs
-| where severityNumber >= 17 AND `resource.attributes.service.name` = 'payment-service'
-| sort severityNumber
+| where severityNumber >= 17 AND `resource.attributes.service.name` = 'payment'
 | fields severityText, severityNumber, `resource.attributes.service.name`
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 0/0
+fetched rows / total rows = 2/2
 +--------------+----------------+----------------------------------+
 | severityText | severityNumber | resource.attributes.service.name |
 |--------------+----------------+----------------------------------|
+| ERROR        | 17             | payment                          |
+| ERROR        | 17             | payment                          |
 +--------------+----------------+----------------------------------+
 ```
 
 
 ## Example 3: Filter with multiple possible values
 
-The following query retrieves all error logs to get a full picture of failures during an outage, using `OR` to match either condition:
+The following query retrieves all warnings and errors using `OR` to match either condition:
 
 ```ppl
 source=otellogs
 | where severityText = 'WARN' or severityText = 'ERROR'
-| sort severityNumber, `resource.attributes.service.name`
 | fields severityText, `resource.attributes.service.name`, body
-| head 3
+| head 5
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 3/3
-+--------------+----------------------------------+-------------------------------------------------------------------------------------------+
-| severityText | resource.attributes.service.name | body                                                                                      |
-|--------------+----------------------------------+-------------------------------------------------------------------------------------------|
-| WARN         | frontend-proxy                   | SSL certificate for api.example.com expires in 14 days                                    |
-| WARN         | frontend-proxy                   | Rate limit threshold reached: 450/500 requests per minute for API key ending in ...abc789 |
-| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms    |
-+--------------+----------------------------------+-------------------------------------------------------------------------------------------+
+fetched rows / total rows = 5/5
++--------------+----------------------------------+----------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                   |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------|
+| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                    |
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                         |
+| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                |
+| WARN         | product-catalog                  | Connection pool 80% utilized on database replica db-replica-02                         |
++--------------+----------------------------------+----------------------------------------------------------------------------------------+
 ```
   
 
@@ -101,34 +107,37 @@ The `LIKE` operator enables pattern matching on string fields using wildcards.
 
 ### Matching with a prefix pattern
 
-The following query uses a percent sign (`%`) to find all services in the `cart` domain, useful when investigating issues across a team's microservices:
+The following query uses a percent sign (`%`) to find all services starting with `frontend`:
 
 ```ppl
 source=otellogs
-| where LIKE(`resource.attributes.service.name`, 'cart-%')
-| sort severityNumber
+| where LIKE(`resource.attributes.service.name`, 'frontend%')
 | fields severityText, `resource.attributes.service.name`, body
+| head 3
 ```
 
-### Matching a service name pattern
+### Matching with a wildcard pattern
 
-The following query finds all logs from the auth team's services to investigate authentication issues:
+The following query finds all logs from services containing `product` in their name:
 
 ```ppl
 source=otellogs
-| where LIKE(`resource.attributes.service.name`, 'auth-%')
-| sort severityNumber
-| fields severityText, `resource.attributes.service.name`
+| where LIKE(`resource.attributes.service.name`, '%product%')
+| fields severityText, `resource.attributes.service.name`, body
+| head 3
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 0/0
-+--------------+----------------------------------+
-| severityText | resource.attributes.service.name |
-|--------------+----------------------------------|
-+--------------+----------------------------------+
+fetched rows / total rows = 3/3
++--------------+----------------------------------+----------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                   |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------|
+| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
+| WARN         | product-catalog                  | Connection pool 80% utilized on database replica db-replica-02                         |
+| DEBUG        | product-catalog                  | gRPC call /ProductCatalogService/GetProduct completed in 12ms                          |
++--------------+----------------------------------+----------------------------------------------------------------------------------------+
 ```
 
 ## Example 5: Filter by excluding specific values  
@@ -182,7 +191,7 @@ fetched rows / total rows = 11/11
 | WARN         | product-catalog                  | Connection pool 80% utilized on database replica db-replica-02                               |
 | ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
 | ERROR        | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| ERROR        | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| ERROR        | frontend-proxy                   | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 |
 | ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                          |
 | ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                      |
 | ERROR        | product-catalog                  | Database primary node unreachable: connection refused to db-primary-01:5432                  |
@@ -193,7 +202,7 @@ fetched rows / total rows = 11/11
 
 ## Example 7: Filter records with missing data  
 
-The following query finds logs that have instrumentation scope metadata, which helps identify which services are properly instrumented with OpenTelemetry:
+The following query finds logs that have instrumentation scope metadata:
   
 ```ppl
 source=otellogs
@@ -222,7 +231,7 @@ The following query investigates a specific service's errors by combining severi
   
 ```ppl
 source=otellogs
-| where (severityText = 'ERROR' OR severityText = 'WARN') AND `resource.attributes.service.name` = 'payment-service'
+| where (severityText = 'ERROR' OR severityText = 'WARN') AND `resource.attributes.service.name` = 'payment'
 | sort severityNumber
 | fields severityText, `resource.attributes.service.name`, body
 ```
@@ -230,10 +239,12 @@ source=otellogs
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 0/0
-+--------------+----------------------------------+------+
-| severityText | resource.attributes.service.name | body |
-|--------------+----------------------------------+------|
-+--------------+----------------------------------+------+
+fetched rows / total rows = 2/2
++--------------+----------------------------------+-------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                    |
+|--------------+----------------------------------+-------------------------------------------------------------------------|
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms     |
+| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
++--------------+----------------------------------+-------------------------------------------------------------------------+
 ```
   

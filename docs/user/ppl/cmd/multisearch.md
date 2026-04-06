@@ -68,7 +68,7 @@ fetched rows / total rows = 10/10
 | debug  | product-catalog                  | gRPC call /ProductCatalogService/GetProduct completed in 12ms                                |
 | errors | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
 | errors | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
-| errors | frontend-proxy                   | HTTP POST /api/checkout 503 Service Unavailable - upstream connect error                     |
+| errors | frontend-proxy                   | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 |
 | errors | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                          |
 | errors | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                      |
 | errors | product-catalog                  | Database primary node unreachable: connection refused to db-primary-01:5432                  |
@@ -90,13 +90,12 @@ This example separates critical and non-critical logs for comparative analysis:
 | eval tier = "warning"
 | fields severityText, severityNumber, tier]
 | sort - severityNumber
-| head 5
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
+fetched rows / total rows = 11/11
 +--------------+----------------+----------+
 | severityText | severityNumber | tier     |
 |--------------+----------------+----------|
@@ -105,6 +104,12 @@ fetched rows / total rows = 5/5
 | ERROR        | 17             | critical |
 | ERROR        | 17             | critical |
 | ERROR        | 17             | critical |
+| ERROR        | 17             | critical |
+| ERROR        | 17             | critical |
+| WARN         | 13             | warning  |
+| WARN         | 13             | warning  |
+| WARN         | 13             | warning  |
+| WARN         | 13             | warning  |
 +--------------+----------------+----------+
 ```
   
