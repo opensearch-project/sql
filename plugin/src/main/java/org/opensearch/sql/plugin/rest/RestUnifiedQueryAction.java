@@ -11,6 +11,7 @@ import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.util.Map;
+import java.util.Optional;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
@@ -81,13 +82,14 @@ public class RestUnifiedQueryAction {
       return false;
     }
     try (UnifiedQueryContext context = buildParsingContext(queryType)) {
-      String indexName = extractIndexName(query, queryType, context);
-      if (indexName == null) {
-        return false;
-      }
-      int lastDot = indexName.lastIndexOf('.');
-      String tableName = lastDot >= 0 ? indexName.substring(lastDot + 1) : indexName;
-      return tableName.startsWith("parquet_");
+      return extractIndexName(query, queryType, context)
+          .map(
+              indexName -> {
+                int lastDot = indexName.lastIndexOf('.');
+                return lastDot >= 0 ? indexName.substring(lastDot + 1) : indexName;
+              })
+          .map(tableName -> tableName.startsWith("parquet_"))
+          .orElse(false);
     } catch (Exception e) {
       return false;
     }
@@ -182,14 +184,14 @@ public class RestUnifiedQueryAction {
    * Extract the source index name by parsing the query and visiting the AST to find the Relation
    * node. Uses the context's parser which supports both PPL and SQL.
    */
-  private static String extractIndexName(
+  private static Optional<String> extractIndexName(
       String query, QueryType queryType, UnifiedQueryContext context) {
     if (queryType == QueryType.PPL) {
       UnresolvedPlan unresolvedPlan = (UnresolvedPlan) context.getParser().parse(query);
-      return unresolvedPlan.accept(new IndexNameExtractor(), null);
+      return Optional.ofNullable(unresolvedPlan.accept(new IndexNameExtractor(), null));
     }
     SqlNode sqlNode = (SqlNode) context.getParser().parse(query);
-    return extractTableNameFromSqlNode(sqlNode);
+    return Optional.ofNullable(extractTableNameFromSqlNode(sqlNode));
   }
 
   /**
