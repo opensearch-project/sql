@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.sql;
 
-import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
@@ -16,8 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import org.junit.Test;
 import org.opensearch.client.Request;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 /**
@@ -50,14 +47,6 @@ public class AnalyticsSQLExplainIT extends SQLIntegTestCase {
     }
   }
 
-  private String explainSqlQuery(String sql) throws IOException {
-    Request request = new Request("POST", "/_plugins/_sql/_explain");
-    request.setJsonEntity("{\"query\": \"" + sql + "\"}");
-    request.setOptions(RequestOptions.DEFAULT);
-    Response response = client().performRequest(request);
-    return getResponseBody(response);
-  }
-
   private static String loadExpectedJson(String fileName) {
     return loadFromFile("expectedOutput/analytics_sql/" + fileName);
   }
@@ -74,21 +63,20 @@ public class AnalyticsSQLExplainIT extends SQLIntegTestCase {
   @Test
   public void testExplainSelectStar() throws IOException {
     assertJsonEqualsIgnoreId(
-        loadExpectedJson("explain_select_star.json"),
-        explainSqlQuery("SELECT * FROM parquet_logs"));
+        loadExpectedJson("explain_select_star.json"), explainQuery("SELECT * FROM parquet_logs"));
   }
 
   @Test
   public void testExplainSelectColumns() throws IOException {
     assertJsonEqualsIgnoreId(
         loadExpectedJson("explain_select_columns.json"),
-        explainSqlQuery("SELECT ts, status FROM parquet_logs"));
+        explainQuery("SELECT ts, status FROM parquet_logs"));
   }
 
   @Test
   public void testExplainSelectWithWhere() throws IOException {
     assertJsonEqualsIgnoreId(
         loadExpectedJson("explain_select_where.json"),
-        explainSqlQuery("SELECT ts, message FROM parquet_logs WHERE status = 200"));
+        explainQuery("SELECT ts, message FROM parquet_logs WHERE status = 200"));
   }
 }
