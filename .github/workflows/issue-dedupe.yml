@@ -32,6 +32,7 @@ jobs:
       BEDROCK_ACCESS_ROLE_ISSUE: ${{ secrets.BEDROCK_ACCESS_ROLE_ISSUE }}
     with:
       issue_number: ${{ inputs.issue_number || '' }}
+      grace_days: ${{ vars.DUPLICATE_GRACE_DAYS || '7' }}
 
   auto-close:
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.job == 'auto-close')
