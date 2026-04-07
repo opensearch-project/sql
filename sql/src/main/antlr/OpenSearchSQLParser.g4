@@ -111,6 +111,15 @@ fromClause
 relation
    : tableName (AS? alias)?                                         # tableAsRelation
    | LR_BRACKET subquery = querySpecification RR_BRACKET AS? alias  # subqueryAsRelation
+   | qualifiedName LR_BRACKET tableFunctionArgs RR_BRACKET AS? alias # tableFunctionRelation
+   ;
+
+tableFunctionArgs
+   : tableFunctionArg (COMMA tableFunctionArg)*
+   ;
+
+tableFunctionArg
+   : ident EQUAL_SYMBOL functionArg
    ;
 
 whereClause

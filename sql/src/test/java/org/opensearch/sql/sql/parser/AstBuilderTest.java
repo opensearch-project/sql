@@ -40,6 +40,9 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.NestedAllTupleFields;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 class AstBuilderTest extends AstBuilderTestBase {
@@ -129,6 +132,123 @@ class AstBuilderTest extends AstBuilderTestBase {
             filter(relation("test", "t"), function("=", qualifiedName("t", "age"), intLiteral(30))),
             alias("`t`.name", qualifiedName("t", "name"))),
         buildAST("SELECT `t`.name FROM test `t` WHERE `t`.age = 30"));
+  }
+
+  @Test
+  public void can_build_from_table_function() {
+    assertEquals(
+        project(
+            new SubqueryAlias(
+                "v",
+                new TableFunction(
+                    qualifiedName("vectorSearch"),
+                    ImmutableList.of(
+                        new UnresolvedArgument("table", stringLiteral("products")),
+                        new UnresolvedArgument("field", stringLiteral("embedding")),
+                        new UnresolvedArgument("vector", stringLiteral("[0.1,0.2]")),
+                        new UnresolvedArgument("option", stringLiteral("k=10"))))),
+            AllFields.of()),
+        buildAST(
+            "SELECT * FROM vectorSearch("
+                + "table='products', field='embedding', "
+                + "vector='[0.1,0.2]', option='k=10') AS v"));
+  }
+
+  @Test
+  public void can_build_from_table_function_with_where_order_limit() {
+    assertEquals(
+        project(
+            limit(
+                sort(
+                    filter(
+                        new SubqueryAlias(
+                            "s",
+                            new TableFunction(
+                                qualifiedName("vectorSearch"),
+                                ImmutableList.of(
+                                    new UnresolvedArgument("table", stringLiteral("products")),
+                                    new UnresolvedArgument("field", stringLiteral("embedding")),
+                                    new UnresolvedArgument("vector", stringLiteral("[0.1,0.2]")),
+                                    new UnresolvedArgument("option", stringLiteral("k=10"))))),
+                        function("=", qualifiedName("s", "category"), stringLiteral("shoes"))),
+                    field(qualifiedName("s", "_score"), argument("asc", booleanLiteral(false)))),
+                5,
+                0),
+            alias("s.title", qualifiedName("s", "title")),
+            alias("s._score", qualifiedName("s", "_score"))),
+        buildAST(
+            "SELECT s.title, s._score FROM vectorSearch("
+                + "table='products', field='embedding', "
+                + "vector='[0.1,0.2]', option='k=10') AS s "
+                + "WHERE s.category = 'shoes' "
+                + "ORDER BY s._score DESC "
+                + "LIMIT 5"));
+  }
+
+  @Test
+  public void table_function_args_are_resolved_by_name_not_position() {
+    assertEquals(
+        project(
+            new SubqueryAlias(
+                "v",
+                new TableFunction(
+                    qualifiedName("vectorSearch"),
+                    ImmutableList.of(
+                        new UnresolvedArgument("option", stringLiteral("k=10")),
+                        new UnresolvedArgument("field", stringLiteral("embedding")),
+                        new UnresolvedArgument("table", stringLiteral("products")),
+                        new UnresolvedArgument("vector", stringLiteral("[0.1,0.2]"))))),
+            AllFields.of()),
+        buildAST(
+            "SELECT * FROM vectorSearch("
+                + "option='k=10', field='embedding', "
+                + "table='products', vector='[0.1,0.2]') AS v"));
+  }
+
+  @Test
+  public void table_function_arg_names_are_canonicalized() {
+    assertEquals(
+        project(
+            new SubqueryAlias(
+                "v",
+                new TableFunction(
+                    qualifiedName("vectorSearch"),
+                    ImmutableList.of(
+                        new UnresolvedArgument("table", stringLiteral("products")),
+                        new UnresolvedArgument("field", stringLiteral("embedding")),
+                        new UnresolvedArgument("vector", stringLiteral("[0.1,0.2]")),
+                        new UnresolvedArgument("option", stringLiteral("k=10"))))),
+            AllFields.of()),
+        buildAST(
+            "SELECT * FROM vectorSearch("
+                + "TABLE='products', FIELD='embedding', "
+                + "VECTOR='[0.1,0.2]', OPTION='k=10') AS v"));
+  }
+
+  @Test
+  public void table_function_allows_alias_without_as_keyword() {
+    assertEquals(
+        project(
+            new SubqueryAlias(
+                "v",
+                new TableFunction(
+                    qualifiedName("vectorSearch"),
+                    ImmutableList.of(
+                        new UnresolvedArgument("table", stringLiteral("products")),
+                        new UnresolvedArgument("vector", stringLiteral("[0.1]"))))),
+            AllFields.of()),
+        buildAST("SELECT * FROM vectorSearch(table='products', vector='[0.1]') v"));
+  }
+
+  @Test
+  public void table_function_relation_requires_alias() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () ->
+            buildAST(
+                "SELECT * FROM vectorSearch("
+                    + "table='products', field='embedding', "
+                    + "vector='[0.1,0.2]', option='k=10')"));
   }
 
   @Test
