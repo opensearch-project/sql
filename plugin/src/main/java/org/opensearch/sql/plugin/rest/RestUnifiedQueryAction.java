@@ -81,7 +81,7 @@ public class RestUnifiedQueryAction {
       return false;
     }
     try (UnifiedQueryContext context = buildParsingContext(queryType)) {
-      String indexName = extractIndexName(query, context);
+      String indexName = extractIndexName(query, queryType, context);
       if (indexName == null) {
         return false;
       }
@@ -182,15 +182,14 @@ public class RestUnifiedQueryAction {
    * Extract the source index name by parsing the query and visiting the AST to find the Relation
    * node. Uses the context's parser which supports both PPL and SQL.
    */
-  private static String extractIndexName(String query, UnifiedQueryContext context) {
-    Object parseResult = context.getParser().parse(query);
-    if (parseResult instanceof UnresolvedPlan unresolvedPlan) {
+  private static String extractIndexName(
+      String query, QueryType queryType, UnifiedQueryContext context) {
+    if (queryType == QueryType.PPL) {
+      UnresolvedPlan unresolvedPlan = (UnresolvedPlan) context.getParser().parse(query);
       return unresolvedPlan.accept(new IndexNameExtractor(), null);
     }
-    if (parseResult instanceof SqlNode sqlNode) {
-      return extractTableNameFromSqlNode(sqlNode);
-    }
-    return null;
+    SqlNode sqlNode = (SqlNode) context.getParser().parse(query);
+    return extractTableNameFromSqlNode(sqlNode);
   }
 
   /**
