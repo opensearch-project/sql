@@ -136,11 +136,14 @@ public class TransportPPLQueryAction
         unifiedQueryHandler.explain(
             transformedRequest.getRequest(),
             QueryType.PPL,
-            transformedRequest,
+            transformedRequest.mode(),
             createExplainResponseListener(transformedRequest, clearingListener));
       } else {
         unifiedQueryHandler.execute(
-            transformedRequest.getRequest(), QueryType.PPL, transformedRequest, clearingListener);
+            transformedRequest.getRequest(),
+            QueryType.PPL,
+            transformedRequest.profile(),
+            clearingListener);
       }
       return;
     }

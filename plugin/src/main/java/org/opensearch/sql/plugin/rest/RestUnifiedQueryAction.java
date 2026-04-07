@@ -39,7 +39,6 @@ import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
-import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
@@ -99,68 +98,54 @@ public class RestUnifiedQueryAction {
   public void execute(
       String query,
       QueryType queryType,
-      PPLQueryRequest pplRequest,
+      boolean profiling,
       ActionListener<TransportPPLQueryResponse> listener) {
     client
         .threadPool()
         .schedule(
-            withCurrentContext(() -> doExecute(query, queryType, pplRequest, listener)),
+            withCurrentContext(
+                () -> {
+                  try (UnifiedQueryContext context = buildContext(queryType, profiling)) {
+                    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+                    RelNode plan = planner.plan(query);
+                    CalcitePlanContext planContext = context.getPlanContext();
+                    plan = addQuerySizeLimit(plan, planContext);
+                    analyticsEngine.execute(
+                        plan, planContext, createQueryListener(queryType, listener));
+                  } catch (Exception e) {
+                    listener.onFailure(e);
+                  }
+                }),
             new TimeValue(0),
             SQL_WORKER_THREAD_POOL_NAME);
   }
 
   /**
    * Explain a query through the unified query pipeline on the sql-worker thread pool. Returns
-   * ExplainResponse via ResponseListener so the caller (TransportPPLQueryAction) can format it
-   * using its own createExplainResponseListener.
+   * ExplainResponse via ResponseListener so the caller can format it.
    */
   public void explain(
       String query,
       QueryType queryType,
-      PPLQueryRequest pplRequest,
+      ExplainMode mode,
       ResponseListener<ExplainResponse> listener) {
     client
         .threadPool()
         .schedule(
-            withCurrentContext(() -> doExplain(query, queryType, pplRequest, listener)),
+            withCurrentContext(
+                () -> {
+                  try (UnifiedQueryContext context = buildContext(queryType, false)) {
+                    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+                    RelNode plan = planner.plan(query);
+                    CalcitePlanContext planContext = context.getPlanContext();
+                    plan = addQuerySizeLimit(plan, planContext);
+                    analyticsEngine.explain(plan, mode, planContext, listener);
+                  } catch (Exception e) {
+                    listener.onFailure(e);
+                  }
+                }),
             new TimeValue(0),
             SQL_WORKER_THREAD_POOL_NAME);
-  }
-
-  private void doExecute(
-      String query,
-      QueryType queryType,
-      PPLQueryRequest pplRequest,
-      ActionListener<TransportPPLQueryResponse> listener) {
-    try (UnifiedQueryContext context = buildContext(queryType, pplRequest.profile())) {
-      UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-      RelNode plan = planner.plan(query);
-
-      CalcitePlanContext planContext = context.getPlanContext();
-      plan = addQuerySizeLimit(plan, planContext);
-
-      analyticsEngine.execute(plan, planContext, createQueryListener(queryType, listener));
-    } catch (Exception e) {
-      listener.onFailure(e);
-    }
-  }
-
-  private void doExplain(
-      String query,
-      QueryType queryType,
-      PPLQueryRequest pplRequest,
-      ResponseListener<ExplainResponse> listener) {
-    try (UnifiedQueryContext context = buildContext(queryType, pplRequest.profile())) {
-      UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-      RelNode plan = planner.plan(query);
-
-      CalcitePlanContext planContext = context.getPlanContext();
-      plan = addQuerySizeLimit(plan, planContext);
-
-      analyticsEngine.explain(plan, pplRequest.mode(), planContext, listener);
-    } catch (Exception e) {
-      listener.onFailure(e);
-    }
   }
 
   /**
@@ -192,55 +177,6 @@ public class RestUnifiedQueryAction {
     }
     SqlNode sqlNode = (SqlNode) context.getParser().parse(query);
     return Optional.ofNullable(extractTableNameFromSqlNode(sqlNode));
-  }
-
-  /**
-   * Execute a SQL query through the unified query pipeline. Uses {@link
-   * org.opensearch.sql.plugin.transport.TransportPPLQueryResponse} as the transport response type
-   * since both PPL and SQL share the same JSON response format.
-   */
-  public void executeSql(
-      String query, QueryType queryType, ActionListener<TransportPPLQueryResponse> listener) {
-    client
-        .threadPool()
-        .schedule(
-            withCurrentContext(
-                () -> {
-                  try (UnifiedQueryContext context = buildContext(queryType, false)) {
-                    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-                    RelNode plan = planner.plan(query);
-                    CalcitePlanContext planContext = context.getPlanContext();
-                    plan = addQuerySizeLimit(plan, planContext);
-                    analyticsEngine.execute(
-                        plan, planContext, createQueryListener(queryType, listener));
-                  } catch (Exception e) {
-                    listener.onFailure(e);
-                  }
-                }),
-            new TimeValue(0),
-            SQL_WORKER_THREAD_POOL_NAME);
-  }
-
-  /** Explain a SQL query through the unified query pipeline. */
-  public void explainSql(
-      String query, QueryType queryType, ResponseListener<ExplainResponse> listener) {
-    client
-        .threadPool()
-        .schedule(
-            withCurrentContext(
-                () -> {
-                  try (UnifiedQueryContext context = buildContext(queryType, false)) {
-                    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-                    RelNode plan = planner.plan(query);
-                    CalcitePlanContext planContext = context.getPlanContext();
-                    plan = addQuerySizeLimit(plan, planContext);
-                    analyticsEngine.explain(plan, ExplainMode.STANDARD, planContext, listener);
-                  } catch (Exception e) {
-                    listener.onFailure(e);
-                  }
-                }),
-            new TimeValue(0),
-            SQL_WORKER_THREAD_POOL_NAME);
   }
 
   /** Extracts the table name from a Calcite SqlNode parse tree. */

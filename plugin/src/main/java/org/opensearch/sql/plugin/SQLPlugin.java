@@ -60,6 +60,7 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.ScriptService;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
@@ -200,9 +201,10 @@ public class SQLPlugin extends Plugin
         return false;
       }
       if (sqlRequest.isExplainRequest()) {
-        unifiedQueryHandler.explainSql(
+        unifiedQueryHandler.explain(
             sqlRequest.getQuery(),
             QueryType.SQL,
+            ExplainMode.STANDARD,
             new ResponseListener<>() {
               @Override
               public void onResponse(ExplainResponse response) {
@@ -227,9 +229,10 @@ public class SQLPlugin extends Plugin
               }
             });
       } else {
-        unifiedQueryHandler.executeSql(
+        unifiedQueryHandler.execute(
             sqlRequest.getQuery(),
             QueryType.SQL,
+            false,
             new ActionListener<>() {
               @Override
               public void onResponse(TransportPPLQueryResponse response) {
