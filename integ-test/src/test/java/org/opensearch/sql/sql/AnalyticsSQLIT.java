@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.sql;
 
-import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -16,8 +15,6 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
@@ -57,17 +54,9 @@ public class AnalyticsSQLIT extends SQLIntegTestCase {
     client().performRequest(request);
   }
 
-  private JSONObject executeSqlQuery(String sql) throws IOException {
-    Request request = new Request("POST", "/_plugins/_sql");
-    request.setJsonEntity("{\"query\": \"" + sql + "\"}");
-    request.setOptions(RequestOptions.DEFAULT);
-    Response response = client().performRequest(request);
-    return new JSONObject(getResponseBody(response));
-  }
-
   @Test
   public void testSelectStarSchemaAndData() throws IOException {
-    JSONObject result = executeSqlQuery("SELECT * FROM parquet_logs");
+    JSONObject result = executeQuery("SELECT * FROM parquet_logs");
     verifySchema(
         result,
         schema("ip_addr", "string"),
@@ -85,7 +74,7 @@ public class AnalyticsSQLIT extends SQLIntegTestCase {
 
   @Test
   public void testSelectSpecificColumns() throws IOException {
-    JSONObject result = executeSqlQuery("SELECT status, message FROM parquet_logs");
+    JSONObject result = executeQuery("SELECT status, message FROM parquet_logs");
     verifySchema(result, schema("status", "integer"), schema("message", "string"));
     verifyDataRows(
         result,
@@ -96,6 +85,6 @@ public class AnalyticsSQLIT extends SQLIntegTestCase {
 
   @Test(expected = ResponseException.class)
   public void testSyntaxError() throws IOException {
-    executeSqlQuery("SELEC * FROM parquet_logs");
+    executeQuery("SELEC * FROM parquet_logs");
   }
 }
