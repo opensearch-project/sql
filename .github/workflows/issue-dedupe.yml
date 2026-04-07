@@ -23,7 +23,7 @@ on:
 jobs:
   detect:
     if: github.event_name == 'issues' || (github.event_name == 'workflow_dispatch' && inputs.job == 'detect')
-    uses: opensearch-project/opensearch-build/.github/workflows/issue-dedupe-detect.yml@main
+    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-detect.yml@add-issue-dedupe-workflow
     permissions:
       contents: read
       issues: write
@@ -35,6 +35,6 @@ jobs:
 
   auto-close:
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.job == 'auto-close')
-    uses: opensearch-project/opensearch-build/.github/workflows/issue-dedupe-autoclose.yml@main
+    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-autoclose.yml@add-issue-dedupe-workflow
     permissions:
       issues: write
