@@ -1,5 +1,5 @@
 ---
-name: Claude Issue Dedupe
+name: Issue Dedupe
 on:
   issues:
     types: [opened]
