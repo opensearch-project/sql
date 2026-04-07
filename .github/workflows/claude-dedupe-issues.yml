@@ -1,23 +1,24 @@
+---
 name: Claude Issue Dedupe
-
 on:
   issues:
     types: [opened]
-  workflow_dispatch:
-    inputs:
-      issue_number:
-        description: 'Issue number to check for duplicates'
-        required: true
-        type: string
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
-  dedupe:
-    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-detect.yml@add-issue-dedupe-workflow
+  detect:
+    if: github.event_name == 'issues'
+    uses: opensearch-project/opensearch-build/.github/workflows/issue-dedupe-detect.yml@main
     permissions:
       contents: read
       issues: write
       id-token: write
     secrets:
-      BEDROCK_ACCESS_ROLE: ${{ secrets.BEDROCK_ACCESS_ROLE }}
-    with:
-      grace_days: ${{ vars.DUPLICATE_GRACE_DAYS || '7' }}
+      BEDROCK_ACCESS_ROLE_ISSUE: ${{ secrets.BEDROCK_ACCESS_ROLE_ISSUE }}
+
+  auto-close:
+    if: github.event_name == 'schedule'
+    uses: opensearch-project/opensearch-build/.github/workflows/issue-dedupe-autoclose.yml@main
+    permissions:
+      issues: write
