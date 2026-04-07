@@ -18,6 +18,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -189,8 +190,7 @@ public class RestUnifiedQueryAction {
   }
 
   /** SqlNode visitor that extracts the source table name from a SQL parse tree. */
-  private static class SqlTableNameExtractor
-      extends org.apache.calcite.sql.util.SqlBasicVisitor<String> {
+  private static class SqlTableNameExtractor extends SqlBasicVisitor<String> {
     @Override
     public String visit(SqlCall call) {
       if (call instanceof SqlSelect select) {
