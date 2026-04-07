@@ -13,6 +13,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectClau
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectElementContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SubqueryAsRelationContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TableAsRelationContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TableFunctionRelationContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.WhereClauseContext;
 import static org.opensearch.sql.sql.parser.ParserUtils.getTextInQuery;
 import static org.opensearch.sql.utils.SystemIndexUtils.TABLE_INFO;
@@ -20,12 +21,14 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Filter;
@@ -34,6 +37,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -187,6 +191,24 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitSubqueryAsRelation(SubqueryAsRelationContext ctx) {
     String subqueryAlias = StringUtils.unquoteIdentifier(ctx.alias().getText());
     return new RelationSubquery(visit(ctx.subquery), subqueryAlias);
+  }
+
+  @Override
+  public UnresolvedPlan visitTableFunctionRelation(TableFunctionRelationContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> args = ImmutableList.builder();
+    ctx.tableFunctionArgs()
+        .tableFunctionArg()
+        .forEach(
+            arg -> {
+              String argName =
+                  StringUtils.unquoteIdentifier(arg.ident().getText()).toLowerCase(Locale.ROOT);
+              UnresolvedExpression argValue = visitAstExpression(arg.functionArg());
+              args.add(new UnresolvedArgument(argName, argValue));
+            });
+    TableFunction tableFunction =
+        new TableFunction(visitAstExpression(ctx.qualifiedName()), args.build());
+    String alias = StringUtils.unquoteIdentifier(ctx.alias().getText());
+    return new SubqueryAlias(alias, tableFunction);
   }
 
   @Override
