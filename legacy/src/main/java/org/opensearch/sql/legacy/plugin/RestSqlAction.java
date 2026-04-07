@@ -61,6 +61,7 @@ import org.opensearch.sql.legacy.request.SqlRequestFactory;
 import org.opensearch.sql.legacy.request.SqlRequestParam;
 import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
 import org.opensearch.sql.legacy.utils.JsonPrettyFormatter;
+import org.opensearch.sql.legacy.utils.QueryDataAnonymizer;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
@@ -158,29 +159,49 @@ public class RestSqlAction extends BaseRestHandler {
       final SQLQueryRequest finalRequest = newSqlRequest;
       return channel -> {
         if (!analyticsRouter.apply(finalRequest, channel)) {
-          // Not an analytics query — delegate to normal SQL engine
-          try {
-            newSqlQueryHandler
-                .prepareRequest(
-                    finalRequest,
-                    (ch, ex) -> {
-                      try {
-                        Format fmt = SqlRequestParam.getFormat(request.params());
-                        QueryAction qa = explainRequest(client, sqlRequest, fmt);
-                        executeSqlRequest(request, qa, client, ch);
-                      } catch (Exception e) {
-                        handleException(ch, e);
-                      }
-                    },
-                    this::handleException)
-                .accept(channel);
-          } catch (Exception e) {
-            handleException(channel, e);
-          }
+          delegateToV2Engine(request, client, sqlRequest, finalRequest, format, channel);
         }
       };
     } catch (Exception e) {
       return channel -> handleException(channel, e);
+    }
+  }
+
+  /** Delegate a SQL query to the V2 engine with legacy fallback. */
+  private void delegateToV2Engine(
+      RestRequest request,
+      NodeClient client,
+      SqlRequest sqlRequest,
+      SQLQueryRequest sqlQueryRequest,
+      Format format,
+      RestChannel channel) {
+    try {
+      newSqlQueryHandler
+          .prepareRequest(
+              sqlQueryRequest,
+              (restChannel, exception) -> {
+                try {
+                  if (sqlQueryRequest.isExplainRequest()) {
+                    LOG.info(
+                        "Request is falling back to old SQL engine due to: "
+                            + exception.getMessage());
+                  }
+                  LOG.info(
+                      "[{}] Request {} is not supported and falling back to old SQL engine",
+                      QueryContext.getRequestId(),
+                      sqlQueryRequest);
+                  LOG.info(
+                      "Request Query: {}", QueryDataAnonymizer.anonymizeData(sqlRequest.getSql()));
+                  QueryAction queryAction = explainRequest(client, sqlRequest, format);
+                  executeSqlRequest(request, queryAction, client, restChannel);
+                } catch (Exception e) {
+                  handleException(restChannel, e);
+                }
+              },
+              this::handleException)
+          .accept(channel);
+    } catch (Exception e) {
+      handleException(channel, e);
     }
   }
 
