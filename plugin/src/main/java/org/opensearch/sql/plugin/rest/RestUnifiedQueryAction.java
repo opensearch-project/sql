@@ -13,6 +13,7 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 import java.util.Map;
 import java.util.Optional;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
@@ -179,29 +180,36 @@ public class RestUnifiedQueryAction {
     return Optional.ofNullable(extractTableNameFromSqlNode(sqlNode));
   }
 
-  /** Extracts the table name from a Calcite SqlNode parse tree. */
-  private static String extractTableNameFromSqlNode(SqlNode sqlNode) {
-    if (sqlNode instanceof SqlSelect select) {
-      SqlNode from = select.getFrom();
-      if (from instanceof SqlIdentifier id) {
-        return id.toString();
-      }
-      if (from instanceof SqlJoin join) {
-        // For joins, extract from the left table
-        if (join.getLeft() instanceof SqlIdentifier leftId) {
-          return leftId.toString();
-        }
-      }
-    }
-    return null;
-  }
-
-  /** AST visitor that extracts the source index name from a Relation node. */
+  /** AST visitor that extracts the source index name from a Relation node (PPL path). */
   private static class IndexNameExtractor extends AbstractNodeVisitor<String, Void> {
     @Override
     public String visitRelation(Relation node, Void context) {
       return node.getTableQualifiedName().toString();
     }
+  }
+
+  /** SqlNode visitor that extracts the source table name from a SQL parse tree. */
+  private static class SqlTableNameExtractor
+      extends org.apache.calcite.sql.util.SqlBasicVisitor<String> {
+    @Override
+    public String visit(SqlCall call) {
+      if (call instanceof SqlSelect select) {
+        return select.getFrom().accept(this);
+      }
+      if (call instanceof SqlJoin join) {
+        return join.getLeft().accept(this);
+      }
+      return null;
+    }
+
+    @Override
+    public String visit(SqlIdentifier id) {
+      return id.toString();
+    }
+  }
+
+  private static String extractTableNameFromSqlNode(SqlNode sqlNode) {
+    return sqlNode.accept(new SqlTableNameExtractor());
   }
 
   private static RelNode addQuerySizeLimit(RelNode plan, CalcitePlanContext context) {
