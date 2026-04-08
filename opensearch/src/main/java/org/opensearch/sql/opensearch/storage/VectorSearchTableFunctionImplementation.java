@@ -13,6 +13,8 @@ import static org.opensearch.sql.opensearch.storage.VectorSearchTableFunctionRes
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
@@ -30,6 +32,15 @@ import org.opensearch.sql.storage.Table;
 
 public class VectorSearchTableFunctionImplementation extends FunctionExpression
     implements TableFunctionImplementation {
+
+  /** P0 allowed option keys. Rejects unknown/future keys to prevent unvalidated DSL injection. */
+  static final Set<String> ALLOWED_OPTION_KEYS = Set.of("k", "max_distance", "min_score");
+
+  /**
+   * Field names must be safe for JSON interpolation: alphanumeric, dots (nested), underscores,
+   * hyphens. Rejects characters that could corrupt the WrapperQueryBuilder JSON.
+   */
+  private static final Pattern SAFE_FIELD_NAME = Pattern.compile("^[a-zA-Z0-9._\\-]+$");
 
   private final FunctionName functionName;
   private final List<Expression> arguments;
@@ -75,8 +86,10 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
 
   @Override
   public Table applyArguments() {
+    validateNamedArgs();
     String tableName = getArgumentValue(TABLE);
     String fieldName = getArgumentValue(FIELD);
+    validateFieldName(fieldName);
     String vectorLiteral = getArgumentValue(VECTOR);
     String optionStr = getArgumentValue(OPTION);
 
@@ -108,7 +121,40 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     return options;
   }
 
+  /** Reject non-named arguments early. vectorSearch() requires named args (key=value). */
+  private void validateNamedArgs() {
+    for (Expression arg : arguments) {
+      if (!(arg instanceof NamedArgumentExpression)) {
+        throw new ExpressionEvaluationException(
+            "vectorSearch() requires named arguments (e.g., table='index'), "
+                + "but received: "
+                + arg.getClass().getSimpleName());
+      }
+    }
+  }
+
+  /**
+   * Reject field names with characters that could corrupt the WrapperQueryBuilder JSON. Allows
+   * alphanumeric, dots (nested fields), underscores, and hyphens.
+   */
+  private void validateFieldName(String fieldName) {
+    if (!SAFE_FIELD_NAME.matcher(fieldName).matches()) {
+      throw new ExpressionEvaluationException(
+          String.format(
+              "Invalid field name '%s': must contain only alphanumeric characters,"
+                  + " dots, underscores, or hyphens",
+              fieldName));
+    }
+  }
+
   private void validateOptions(Map<String, String> options) {
+    // Reject unknown option keys — only P0 keys are allowed
+    for (String key : options.keySet()) {
+      if (!ALLOWED_OPTION_KEYS.contains(key)) {
+        throw new ExpressionEvaluationException(
+            String.format("Unknown option key '%s'. Supported keys: %s", key, ALLOWED_OPTION_KEYS));
+      }
+    }
     boolean hasK = options.containsKey("k");
     boolean hasMaxDistance = options.containsKey("max_distance");
     boolean hasMinScore = options.containsKey("min_score");
