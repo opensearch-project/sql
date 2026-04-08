@@ -12,6 +12,7 @@ import static org.mockito.Mockito.mock;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -118,6 +119,39 @@ class VectorSearchQueryBuilderTest {
 
     boolean pushed = builder.pushDownLimit(limit);
     assertTrue(pushed, "Radial mode should not restrict LIMIT");
+  }
+
+  @Test
+  void pushDownLimitMinScoreModeNoRestriction() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder =
+        new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("min_score", "0.5"));
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var limit = new LogicalLimit(dummyChild, 100, 0);
+
+    boolean pushed = builder.pushDownLimit(limit);
+    assertTrue(pushed, "min_score mode should not restrict LIMIT");
+  }
+
+  @Test
+  void pushDownSortDelegatesToParent() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var sort =
+        new org.opensearch.sql.planner.logical.LogicalSort(
+            dummyChild,
+            List.of(
+                org.apache.commons.lang3.tuple.ImmutablePair.of(
+                    org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC,
+                    new ReferenceExpression("name", STRING))));
+
+    boolean pushed = builder.pushDownSort(sort);
+    assertTrue(pushed, "pushDownSort should delegate to parent and succeed");
   }
 
   private OpenSearchRequestBuilder createRequestBuilder() {
