@@ -48,7 +48,7 @@ public class VectorSearchIndex extends OpenSearchIndex {
 
     // Use VectorSearchQueryBuilder to keep knn in must (scoring) context.
     // WHERE filters will be placed in filter (non-scoring) context.
-    var queryBuilder = new VectorSearchQueryBuilder(requestBuilder, buildKnnQuery());
+    var queryBuilder = new VectorSearchQueryBuilder(requestBuilder, buildKnnQuery(), options);
     requestBuilder.pushDownTrackedScore(true);
 
     // Top-k mode: default size to k so queries without LIMIT return k results
