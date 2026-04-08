@@ -104,10 +104,23 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
 
   private float[] parseVector(String vectorLiteral) {
     String cleaned = vectorLiteral.replaceAll("[\\[\\]]", "").trim();
+    if (cleaned.isEmpty()) {
+      throw new ExpressionEvaluationException("Vector literal must not be empty");
+    }
     String[] parts = cleaned.split(",");
     float[] vector = new float[parts.length];
     for (int i = 0; i < parts.length; i++) {
-      vector[i] = Float.parseFloat(parts[i].trim());
+      try {
+        vector[i] = Float.parseFloat(parts[i].trim());
+      } catch (NumberFormatException e) {
+        throw new ExpressionEvaluationException(
+            String.format("Invalid vector component '%s': must be a number", parts[i].trim()));
+      }
+      if (!Float.isFinite(vector[i])) {
+        throw new ExpressionEvaluationException(
+            String.format(
+                "Invalid vector component '%s': must be a finite number", parts[i].trim()));
+      }
     }
     return vector;
   }
@@ -115,10 +128,20 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
   static Map<String, String> parseOptions(String optionStr) {
     Map<String, String> options = new LinkedHashMap<>();
     for (String pair : optionStr.split(",")) {
-      String[] kv = pair.trim().split("=", 2);
-      if (kv.length == 2) {
-        options.put(kv[0].trim(), kv[1].trim());
+      String trimmed = pair.trim();
+      if (trimmed.isEmpty()) {
+        continue;
       }
+      String[] kv = trimmed.split("=", 2);
+      if (kv.length != 2 || kv[0].trim().isEmpty() || kv[1].trim().isEmpty()) {
+        throw new ExpressionEvaluationException(
+            String.format("Malformed option segment '%s': expected key=value", trimmed));
+      }
+      String key = kv[0].trim();
+      if (options.containsKey(key)) {
+        throw new ExpressionEvaluationException(String.format("Duplicate option key '%s'", key));
+      }
+      options.put(key, kv[1].trim());
     }
     return options;
   }
