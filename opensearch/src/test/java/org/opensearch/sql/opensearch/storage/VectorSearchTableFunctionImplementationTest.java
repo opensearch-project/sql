@@ -153,6 +153,33 @@ class VectorSearchTableFunctionImplementationTest {
   }
 
   @Test
+  void testNonNumericKThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=abc");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("must be an integer"));
+  }
+
+  @Test
+  void testNonNumericMaxDistanceThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "max_distance=notanumber");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("must be a number"));
+  }
+
+  @Test
+  void testInfiniteMinScoreThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "min_score=Infinity");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("must be a finite number"));
+  }
+
+  @Test
   void testNonNamedArgThrows() {
     FunctionName functionName = FunctionName.of("vectorsearch");
     List<Expression> args = List.of(DSL.literal("my-index"));
