@@ -234,6 +234,65 @@ class VectorSearchTableFunctionImplementationTest {
   }
 
   @Test
+  void testMutualExclusivityKAndMaxDistanceThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=5,max_distance=10.0");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Only one of"));
+  }
+
+  @Test
+  void testMutualExclusivityKAndMinScoreThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=5,min_score=0.5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Only one of"));
+  }
+
+  @Test
+  void testMutualExclusivityAllThreeThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs(
+            "my-index", "embedding", "[1.0, 2.0]", "k=5,max_distance=10.0,min_score=0.5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Only one of"));
+  }
+
+  @Test
+  void testKTooSmallThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=0");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("k must be between 1 and 10000"));
+  }
+
+  @Test
+  void testKTooLargeThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=10001");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("k must be between 1 and 10000"));
+  }
+
+  @Test
+  void testKBoundaryValuesAllowed() {
+    // k=1 should work
+    VectorSearchTableFunctionImplementation impl1 =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=1");
+    assertTrue(impl1.applyArguments() instanceof VectorSearchIndex);
+
+    // k=10000 should work
+    VectorSearchTableFunctionImplementation impl2 =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=10000");
+    assertTrue(impl2.applyArguments() instanceof VectorSearchIndex);
+  }
+
+  @Test
   void testNonNamedArgThrows() {
     FunctionName functionName = FunctionName.of("vectorsearch");
     List<Expression> args = List.of(DSL.literal("my-index"));
