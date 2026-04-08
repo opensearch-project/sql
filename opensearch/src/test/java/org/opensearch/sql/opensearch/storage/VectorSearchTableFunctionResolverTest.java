@@ -83,4 +83,48 @@ class VectorSearchTableFunctionResolverTest {
             IllegalArgumentException.class, () -> builder.apply(functionProperties, expressions));
     assertTrue(ex.getMessage().contains("requires 4 arguments"));
   }
+
+  @Test
+  void testTooManyArguments() {
+    VectorSearchTableFunctionResolver resolver =
+        new VectorSearchTableFunctionResolver(client, settings);
+    FunctionName functionName = FunctionName.of("vectorsearch");
+    List<Expression> expressions =
+        List.of(
+            DSL.namedArgument("table", DSL.literal("my-index")),
+            DSL.namedArgument("field", DSL.literal("embedding")),
+            DSL.namedArgument("vector", DSL.literal("[1.0]")),
+            DSL.namedArgument("option", DSL.literal("k=5")),
+            DSL.namedArgument("extra", DSL.literal("unexpected")));
+    FunctionSignature functionSignature =
+        new FunctionSignature(
+            functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
+
+    Pair<FunctionSignature, FunctionBuilder> resolution = resolver.resolve(functionSignature);
+    FunctionBuilder builder = resolution.getValue();
+
+    IllegalArgumentException ex =
+        assertThrows(
+            IllegalArgumentException.class, () -> builder.apply(functionProperties, expressions));
+    assertTrue(ex.getMessage().contains("requires 4 arguments"));
+  }
+
+  @Test
+  void testZeroArguments() {
+    VectorSearchTableFunctionResolver resolver =
+        new VectorSearchTableFunctionResolver(client, settings);
+    FunctionName functionName = FunctionName.of("vectorsearch");
+    List<Expression> expressions = List.of();
+    FunctionSignature functionSignature =
+        new FunctionSignature(
+            functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
+
+    Pair<FunctionSignature, FunctionBuilder> resolution = resolver.resolve(functionSignature);
+    FunctionBuilder builder = resolution.getValue();
+
+    IllegalArgumentException ex =
+        assertThrows(
+            IllegalArgumentException.class, () -> builder.apply(functionProperties, expressions));
+    assertTrue(ex.getMessage().contains("requires 4 arguments"));
+  }
 }
