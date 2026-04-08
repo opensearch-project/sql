@@ -235,6 +235,22 @@ class VectorSearchTableFunctionImplementationTest {
     assertTrue(ex.getMessage().contains("requires named arguments"));
   }
 
+  @Test
+  void testNullArgNameThrows() {
+    FunctionName functionName = FunctionName.of("vectorsearch");
+    List<Expression> args =
+        List.of(
+            DSL.namedArgument(null, DSL.literal("my-index")),
+            DSL.namedArgument("field", DSL.literal("embedding")),
+            DSL.namedArgument("vector", DSL.literal("[1.0, 2.0]")),
+            DSL.namedArgument("option", DSL.literal("k=5")));
+    VectorSearchTableFunctionImplementation impl =
+        new VectorSearchTableFunctionImplementation(functionName, args, client, settings);
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("requires named arguments"));
+  }
+
   private VectorSearchTableFunctionImplementation createImpl() {
     return createImplWithArgs("my-index", "embedding", "[1.0, 2.0, 3.0]", "k=5");
   }
