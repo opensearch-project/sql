@@ -319,6 +319,60 @@ class VectorSearchTableFunctionImplementationTest {
     assertTrue(ex.getMessage().contains("requires named arguments"));
   }
 
+  @Test
+  void testNaNVectorComponentThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, NaN, 3.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("must be a finite number"));
+  }
+
+  @Test
+  void testEmptyOptionKeyThrows() {
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> VectorSearchTableFunctionImplementation.parseOptions("=value"));
+    assertTrue(ex.getMessage().contains("Malformed option segment"));
+  }
+
+  @Test
+  void testEmptyOptionValueThrows() {
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> VectorSearchTableFunctionImplementation.parseOptions("key="));
+    assertTrue(ex.getMessage().contains("Malformed option segment"));
+  }
+
+  @Test
+  void testNegativeKThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=-1");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("k must be between 1 and 10000"));
+  }
+
+  @Test
+  void testNaNMaxDistanceThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "max_distance=NaN");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("must be a finite number"));
+  }
+
+  @Test
+  void testNaNMinScoreThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "min_score=NaN");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("must be a finite number"));
+  }
+
   private VectorSearchTableFunctionImplementation createImpl() {
     return createImplWithArgs("my-index", "embedding", "[1.0, 2.0, 3.0]", "k=5");
   }

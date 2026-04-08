@@ -68,6 +68,11 @@ public class VectorSearchIndex extends OpenSearchIndex {
   }
 
   private QueryBuilder buildKnnQuery() {
+    return new WrapperQueryBuilder(buildKnnQueryJson());
+  }
+
+  // Package-private for testing
+  String buildKnnQueryJson() {
     StringBuilder vectorJson = new StringBuilder("[");
     for (int i = 0; i < vector.length; i++) {
       if (i > 0) vectorJson.append(",");
@@ -88,11 +93,9 @@ public class VectorSearchIndex extends OpenSearchIndex {
       }
     }
 
-    String knnQueryJson =
-        String.format(
-            "{\"knn\":{\"%s\":{\"vector\":%s%s}}}",
-            field, vectorJson.toString(), optionsJson.toString());
-    return new WrapperQueryBuilder(knnQueryJson);
+    return String.format(
+        "{\"knn\":{\"%s\":{\"vector\":%s%s}}}",
+        field, vectorJson.toString(), optionsJson.toString());
   }
 
   private static boolean isNumeric(String str) {
