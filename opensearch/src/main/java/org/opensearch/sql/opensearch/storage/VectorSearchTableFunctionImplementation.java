@@ -75,11 +75,13 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     List<String> args =
         arguments.stream()
             .map(
-                arg ->
-                    String.format(
-                        "%s=%s",
-                        ((NamedArgumentExpression) arg).getArgName(),
-                        ((NamedArgumentExpression) arg).getValue().toString()))
+                arg -> {
+                  if (arg instanceof NamedArgumentExpression) {
+                    NamedArgumentExpression named = (NamedArgumentExpression) arg;
+                    return String.format("%s=%s", named.getArgName(), named.getValue().toString());
+                  }
+                  return arg.toString();
+                })
             .collect(Collectors.toList());
     return String.format("%s(%s)", functionName, String.join(", ", args));
   }
@@ -147,6 +149,10 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     }
   }
 
+  /**
+   * Validates and canonicalizes option values. All P0 option values must be numeric. Parsing them
+   * here prevents non-numeric strings from reaching the raw JSON construction in buildKnnQuery().
+   */
   private void validateOptions(Map<String, String> options) {
     // Reject unknown option keys — only P0 keys are allowed
     for (String key : options.keySet()) {
@@ -161,6 +167,40 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     if (!hasK && !hasMaxDistance && !hasMinScore) {
       throw new ExpressionEvaluationException(
           "Missing required option: one of k, max_distance, or min_score");
+    }
+    // Parse and canonicalize numeric values — closes JSON injection via option values
+    if (hasK) {
+      parseIntOption(options, "k");
+    }
+    if (hasMaxDistance) {
+      parseDoubleOption(options, "max_distance");
+    }
+    if (hasMinScore) {
+      parseDoubleOption(options, "min_score");
+    }
+  }
+
+  private void parseIntOption(Map<String, String> options, String key) {
+    try {
+      int value = Integer.parseInt(options.get(key));
+      options.put(key, Integer.toString(value));
+    } catch (NumberFormatException e) {
+      throw new ExpressionEvaluationException(
+          String.format("Option '%s' must be an integer, got '%s'", key, options.get(key)));
+    }
+  }
+
+  private void parseDoubleOption(Map<String, String> options, String key) {
+    try {
+      double value = Double.parseDouble(options.get(key));
+      if (!Double.isFinite(value)) {
+        throw new ExpressionEvaluationException(
+            String.format("Option '%s' must be a finite number, got '%s'", key, options.get(key)));
+      }
+      options.put(key, Double.toString(value));
+    } catch (NumberFormatException e) {
+      throw new ExpressionEvaluationException(
+          String.format("Option '%s' must be a number, got '%s'", key, options.get(key)));
     }
   }
 
