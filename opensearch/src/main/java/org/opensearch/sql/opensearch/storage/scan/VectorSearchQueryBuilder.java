@@ -6,11 +6,15 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.Map;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serde.DefaultExpressionSerializer;
@@ -66,9 +70,23 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
   @Override
   public boolean pushDownSort(LogicalSort sort) {
     // Vector search returns results sorted by _score DESC by default.
-    // Reject non-trivial sort pushdowns — only _score DESC is meaningful.
-    // For now, let the parent handle it; unsupported sort rejection is
-    // deferred until we can inspect the sort expression for _score references.
-    return super.pushDownSort(sort);
+    // Only _score DESC is meaningful; reject all other sort expressions.
+    for (Pair<SortOption, Expression> sortItem : sort.getSortList()) {
+      Expression expr = sortItem.getRight();
+      if (!(expr instanceof ReferenceExpression)
+          || !"_score".equals(((ReferenceExpression) expr).getAttr())) {
+        throw new ExpressionEvaluationException(
+            String.format(
+                "vectorSearch only supports ORDER BY _score DESC; "
+                    + "unsupported sort expression: %s",
+                expr));
+      }
+      if (sortItem.getLeft().getSortOrder() != Sort.SortOrder.DESC) {
+        throw new ExpressionEvaluationException(
+            "vectorSearch only supports ORDER BY _score DESC; _score ASC is not supported");
+      }
+    }
+    // _score DESC is the natural knn order — accept without pushing sort to OpenSearch
+    return true;
   }
 }
