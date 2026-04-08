@@ -139,6 +139,15 @@ class VectorSearchTableFunctionImplementationTest {
   }
 
   @Test
+  void testNoRequiredOptionThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Missing required option"));
+  }
+
+  @Test
   void testEmptyVectorThrows() {
     VectorSearchTableFunctionImplementation impl =
         createImplWithArgs("my-index", "embedding", "[]", "k=5");
