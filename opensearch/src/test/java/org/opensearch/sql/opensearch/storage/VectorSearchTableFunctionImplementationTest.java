@@ -104,7 +104,7 @@ class VectorSearchTableFunctionImplementationTest {
   }
 
   @Test
-  void testMissingSearchModeOptionThrows() {
+  void testUnknownOptionKeyOnlyThrows() {
     VectorSearchTableFunctionImplementation impl =
         createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "not_a_key=100");
     ExpressionEvaluationException ex =

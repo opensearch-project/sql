@@ -23,8 +23,6 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
  */
 public class VectorSearchIndex extends OpenSearchIndex {
 
-  private static final String VECTOR_OPTION = "vector";
-
   private final String field;
   private final float[] vector;
   private final Map<String, String> options;
@@ -81,7 +79,8 @@ public class VectorSearchIndex extends OpenSearchIndex {
     for (Map.Entry<String, String> entry : options.entrySet()) {
       optionsJson.append(",");
       String value = entry.getValue();
-      // Numeric values go unquoted, everything else quoted
+      // All P0 option values are canonicalized to numeric strings by validateOptions().
+      // The quoted fallback is retained for forward compatibility with future non-numeric options.
       if (isNumeric(value)) {
         optionsJson.append(String.format("\"%s\":%s", entry.getKey(), value));
       } else {
