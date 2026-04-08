@@ -125,6 +125,21 @@ class VectorSearchIndexTest {
   }
 
   @Test
+  void buildKnnQueryJsonNonNumericOptionRenderedQuoted() {
+    LinkedHashMap<String, String> options = new LinkedHashMap<>();
+    options.put("k", "5");
+    options.put("method", "hnsw");
+
+    VectorSearchIndex index =
+        new VectorSearchIndex(
+            client, settings, "test-index", "embedding", new float[] {1.0f}, options);
+
+    String json = index.buildKnnQueryJson();
+    assertTrue(json.contains("\"method\":\"hnsw\""), "Non-numeric option should be quoted");
+    assertTrue(json.contains("\"k\":5"), "Numeric option should be unquoted");
+  }
+
+  @Test
   void isInstanceOfOpenSearchIndex() {
     VectorSearchIndex index =
         new VectorSearchIndex(
