@@ -51,11 +51,14 @@ public class VectorSearchIndex extends OpenSearchIndex {
     var queryBuilder = new VectorSearchQueryBuilder(requestBuilder, buildKnnQuery(), options);
     requestBuilder.pushDownTrackedScore(true);
 
-    // Top-k mode: default size to k so queries without LIMIT return k results
-    // instead of falling into the generic large-scan path.
-    // LIMIT pushdown will further reduce this if present.
+    // Default size policy: LIMIT pushdown will further reduce if present.
     if (options.containsKey("k")) {
+      // Top-k mode: default size to k so queries without LIMIT return k results.
       requestBuilder.pushDownLimitToRequestTotal(Integer.parseInt(options.get("k")), 0);
+    } else {
+      // Radial mode (max_distance/min_score): cap at maxResultWindow.
+      // Without an explicit cap, radial queries could return unbounded results.
+      requestBuilder.pushDownLimitToRequestTotal(getMaxResultWindow(), 0);
     }
 
     Function<OpenSearchRequestBuilder, OpenSearchIndexScan> createScanOperator =
