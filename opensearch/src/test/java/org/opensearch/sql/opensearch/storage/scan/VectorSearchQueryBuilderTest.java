@@ -176,6 +176,29 @@ class VectorSearchQueryBuilderTest {
   }
 
   @Test
+  void pushDownSortMultipleExpressionsRejectsNonScore() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var sort =
+        new org.opensearch.sql.planner.logical.LogicalSort(
+            dummyChild,
+            List.of(
+                org.apache.commons.lang3.tuple.ImmutablePair.of(
+                    org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC,
+                    new ReferenceExpression("_score", ExprCoreType.FLOAT)),
+                org.apache.commons.lang3.tuple.ImmutablePair.of(
+                    org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC,
+                    new ReferenceExpression("name", STRING))));
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownSort(sort));
+    assertTrue(ex.getMessage().contains("unsupported sort expression"));
+  }
+
+  @Test
   void pushDownSortScoreAscRejected() {
     var requestBuilder = createRequestBuilder();
     var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");

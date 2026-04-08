@@ -202,4 +202,73 @@ public class VectorSearchIT extends SQLIntegTestCase {
 
     assertThat(ex.getMessage(), containsString("Missing required option"));
   }
+
+  // ── Sort restriction validation ─────────────────────────────────────────
+
+  @Test
+  public void testOrderByScoreDescExplainSucceeds() throws IOException {
+    String explain =
+        explainQuery(
+            "SELECT v._id, v._score "
+                + "FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', "
+                + "vector='[1.0, 2.0]', option='k=5') AS v "
+                + "ORDER BY v._score DESC "
+                + "LIMIT 5");
+
+    assertTrue(
+        "Explain should succeed with ORDER BY _score DESC:\n" + explain,
+        explain.contains("wrapper"));
+  }
+
+  @Test
+  public void testOrderByNonScoreFieldRejects() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', "
+                        + "vector='[1.0, 2.0]', option='k=5') AS v "
+                        + "ORDER BY v.firstname ASC "
+                        + "LIMIT 5"));
+
+    assertThat(ex.getMessage(), containsString("unsupported sort expression"));
+  }
+
+  @Test
+  public void testOrderByScoreAscRejects() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', "
+                        + "vector='[1.0, 2.0]', option='k=5') AS v "
+                        + "ORDER BY v._score ASC "
+                        + "LIMIT 5"));
+
+    assertThat(ex.getMessage(), containsString("_score ASC is not supported"));
+  }
+
+  // ── LIMIT validation ───────────────────────────────────────────────────
+
+  @Test
+  public void testExplainLimitWithinKSucceeds() throws IOException {
+    String explain =
+        explainQuery(
+            "SELECT v._id, v._score "
+                + "FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', "
+                + "vector='[1.0, 2.0]', option='k=10') AS v "
+                + "LIMIT 5");
+
+    assertTrue("Explain should succeed with LIMIT <= k:\n" + explain, explain.contains("wrapper"));
+  }
 }

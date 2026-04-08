@@ -373,6 +373,21 @@ class VectorSearchTableFunctionImplementationTest {
     assertTrue(ex.getMessage().contains("must be a finite number"));
   }
 
+  @Test
+  void testCaseInsensitiveArgLookup() {
+    FunctionName functionName = FunctionName.of("vectorsearch");
+    List<Expression> args =
+        List.of(
+            DSL.namedArgument("TABLE", DSL.literal("my-index")),
+            DSL.namedArgument("FIELD", DSL.literal("embedding")),
+            DSL.namedArgument("VECTOR", DSL.literal("[1.0, 2.0]")),
+            DSL.namedArgument("OPTION", DSL.literal("k=5")));
+    VectorSearchTableFunctionImplementation impl =
+        new VectorSearchTableFunctionImplementation(functionName, args, client, settings);
+    Table table = impl.applyArguments();
+    assertTrue(table instanceof VectorSearchIndex);
+  }
+
   private VectorSearchTableFunctionImplementation createImpl() {
     return createImplWithArgs("my-index", "embedding", "[1.0, 2.0, 3.0]", "k=5");
   }
