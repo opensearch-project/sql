@@ -197,9 +197,20 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
       throw new ExpressionEvaluationException(
           "Missing required option: one of k, max_distance, or min_score");
     }
+    // Mutual exclusivity: exactly one search mode allowed
+    int modeCount = (hasK ? 1 : 0) + (hasMaxDistance ? 1 : 0) + (hasMinScore ? 1 : 0);
+    if (modeCount > 1) {
+      throw new ExpressionEvaluationException(
+          "Only one of k, max_distance, or min_score may be specified");
+    }
     // Parse and canonicalize numeric values — closes JSON injection via option values
     if (hasK) {
       parseIntOption(options, "k");
+      int k = Integer.parseInt(options.get("k"));
+      if (k < 1 || k > 10000) {
+        throw new ExpressionEvaluationException(
+            String.format("k must be between 1 and 10000, got %d", k));
+      }
     }
     if (hasMaxDistance) {
       parseDoubleOption(options, "max_distance");
