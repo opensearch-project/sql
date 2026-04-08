@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.storage;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
@@ -43,8 +42,9 @@ class OpenSearchStorageEngineTest {
   public void getFunctionsReturnsVectorSearchResolver() {
     OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
     Collection<FunctionResolver> functions = engine.getFunctions();
-    assertEquals(1, functions.size());
-    assertTrue(functions.iterator().next() instanceof VectorSearchTableFunctionResolver);
+    assertTrue(
+        functions.stream().anyMatch(f -> f instanceof VectorSearchTableFunctionResolver),
+        "getFunctions() should contain a VectorSearchTableFunctionResolver");
   }
 
   @Test

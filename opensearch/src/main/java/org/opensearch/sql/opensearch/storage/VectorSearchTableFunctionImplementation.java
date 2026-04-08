@@ -146,7 +146,7 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     return options;
   }
 
-  /** Reject non-named arguments early. vectorSearch() requires named args (key=value). */
+  /** Reject non-named arguments and null arg names early. */
   private void validateNamedArgs() {
     for (Expression arg : arguments) {
       if (!(arg instanceof NamedArgumentExpression)) {
@@ -154,6 +154,12 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
             "vectorSearch() requires named arguments (e.g., table='index'), "
                 + "but received: "
                 + arg.getClass().getSimpleName());
+      }
+      String name = ((NamedArgumentExpression) arg).getArgName();
+      if (name == null || name.isEmpty()) {
+        throw new ExpressionEvaluationException(
+            "vectorSearch() requires named arguments (e.g., table='index'), "
+                + "but received an argument with no name");
       }
     }
   }
