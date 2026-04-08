@@ -78,11 +78,13 @@ class VectorSearchTableFunctionImplementationTest {
   }
 
   @Test
-  void testApplyArgumentsWithComplexOptions() {
+  void testUnknownOptionKeyThrows() {
     VectorSearchTableFunctionImplementation impl =
         createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=10,method.ef_search=100");
-    Table table = impl.applyArguments();
-    assertTrue(table instanceof VectorSearchIndex);
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Unknown option key"));
+    assertTrue(ex.getMessage().contains("method.ef_search"));
   }
 
   @Test
@@ -104,18 +106,18 @@ class VectorSearchTableFunctionImplementationTest {
   @Test
   void testMissingSearchModeOptionThrows() {
     VectorSearchTableFunctionImplementation impl =
-        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "method.ef_search=100");
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "not_a_key=100");
     ExpressionEvaluationException ex =
         assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
-    assertTrue(ex.getMessage().contains("one of k, max_distance, or min_score"));
+    assertTrue(ex.getMessage().contains("Unknown option key"));
   }
 
   @Test
   void testParseOptionsMultiple() {
     Map<String, String> opts =
-        VectorSearchTableFunctionImplementation.parseOptions("k=5,method.ef_search=100");
+        VectorSearchTableFunctionImplementation.parseOptions("k=5,max_distance=10.0");
     assertEquals("5", opts.get("k"));
-    assertEquals("100", opts.get("method.ef_search"));
+    assertEquals("10.0", opts.get("max_distance"));
   }
 
   @Test
@@ -131,6 +133,34 @@ class VectorSearchTableFunctionImplementationTest {
     ExpressionEvaluationException ex =
         assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
     assertEquals("Missing required argument: option", ex.getMessage());
+  }
+
+  @Test
+  void testInvalidFieldNameThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "field\"injection", "[1.0, 2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Invalid field name"));
+  }
+
+  @Test
+  void testNestedFieldNameAllowed() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "doc.embedding", "[1.0, 2.0]", "k=5");
+    Table table = impl.applyArguments();
+    assertTrue(table instanceof VectorSearchIndex);
+  }
+
+  @Test
+  void testNonNamedArgThrows() {
+    FunctionName functionName = FunctionName.of("vectorsearch");
+    List<Expression> args = List.of(DSL.literal("my-index"));
+    VectorSearchTableFunctionImplementation impl =
+        new VectorSearchTableFunctionImplementation(functionName, args, client, settings);
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("requires named arguments"));
   }
 
   private VectorSearchTableFunctionImplementation createImpl() {
