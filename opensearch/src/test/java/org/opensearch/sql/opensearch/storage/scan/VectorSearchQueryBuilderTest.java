@@ -19,6 +19,7 @@ import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.WrapperQueryBuilder;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -136,7 +137,26 @@ class VectorSearchQueryBuilderTest {
   }
 
   @Test
-  void pushDownSortDelegatesToParent() {
+  void pushDownSortScoreDescAccepted() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var sort =
+        new org.opensearch.sql.planner.logical.LogicalSort(
+            dummyChild,
+            List.of(
+                org.apache.commons.lang3.tuple.ImmutablePair.of(
+                    org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC,
+                    new ReferenceExpression("_score", ExprCoreType.FLOAT))));
+
+    boolean pushed = builder.pushDownSort(sort);
+    assertTrue(pushed, "ORDER BY _score DESC should be accepted");
+  }
+
+  @Test
+  void pushDownSortNonScoreFieldRejected() {
     var requestBuilder = createRequestBuilder();
     var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
     var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
@@ -150,8 +170,29 @@ class VectorSearchQueryBuilderTest {
                     org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC,
                     new ReferenceExpression("name", STRING))));
 
-    boolean pushed = builder.pushDownSort(sort);
-    assertTrue(pushed, "pushDownSort should delegate to parent and succeed");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownSort(sort));
+    assertTrue(ex.getMessage().contains("unsupported sort expression"));
+  }
+
+  @Test
+  void pushDownSortScoreAscRejected() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var sort =
+        new org.opensearch.sql.planner.logical.LogicalSort(
+            dummyChild,
+            List.of(
+                org.apache.commons.lang3.tuple.ImmutablePair.of(
+                    org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC,
+                    new ReferenceExpression("_score", ExprCoreType.FLOAT))));
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownSort(sort));
+    assertTrue(ex.getMessage().contains("_score ASC is not supported"));
   }
 
   private OpenSearchRequestBuilder createRequestBuilder() {
