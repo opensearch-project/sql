@@ -53,6 +53,13 @@ public class VectorSearchIndex extends OpenSearchIndex {
     var queryBuilder = new VectorSearchQueryBuilder(requestBuilder, buildKnnQuery());
     requestBuilder.pushDownTrackedScore(true);
 
+    // Top-k mode: default size to k so queries without LIMIT return k results
+    // instead of falling into the generic large-scan path.
+    // LIMIT pushdown will further reduce this if present.
+    if (options.containsKey("k")) {
+      requestBuilder.pushDownLimitToRequestTotal(Integer.parseInt(options.get("k")), 0);
+    }
+
     Function<OpenSearchRequestBuilder, OpenSearchIndexScan> createScanOperator =
         rb ->
             new OpenSearchIndexScan(

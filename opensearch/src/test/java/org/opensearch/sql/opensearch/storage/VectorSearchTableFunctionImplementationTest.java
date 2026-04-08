@@ -121,6 +121,51 @@ class VectorSearchTableFunctionImplementationTest {
   }
 
   @Test
+  void testMalformedOptionSegmentThrows() {
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> VectorSearchTableFunctionImplementation.parseOptions("k=5,badoption"));
+    assertTrue(ex.getMessage().contains("Malformed option segment"));
+  }
+
+  @Test
+  void testDuplicateOptionKeyThrows() {
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> VectorSearchTableFunctionImplementation.parseOptions("k=5,k=10"));
+    assertTrue(ex.getMessage().contains("Duplicate option key"));
+  }
+
+  @Test
+  void testEmptyVectorThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("must not be empty"));
+  }
+
+  @Test
+  void testMalformedVectorComponentThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, abc, 3.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Invalid vector component"));
+  }
+
+  @Test
+  void testNonFiniteVectorComponentThrows() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, Infinity, 3.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("must be a finite number"));
+  }
+
+  @Test
   void testMissingArgumentThrows() {
     FunctionName functionName = FunctionName.of("vectorsearch");
     List<Expression> args =
