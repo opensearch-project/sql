@@ -99,7 +99,9 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
       ResponseListener<ExplainResponse> listener) {
     try {
       String logical = RelOptUtil.toString(plan, mode.toExplainLevel());
-      listener.onResponse(new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
+      ExplainResponse response =
+          new ExplainResponse(new ExplainResponseNodeV2(logical, null, null));
+      listener.onResponse(ExplainResponse.normalizeLf(response));
     } catch (Exception e) {
       listener.onFailure(e);
     }

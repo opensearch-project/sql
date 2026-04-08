@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -36,8 +37,10 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.settings.SettingsFilter;
 import org.opensearch.common.util.concurrent.OpenSearchExecutors;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
@@ -50,11 +53,15 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ScriptPlugin;
 import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.ScriptService;
+import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
@@ -85,6 +92,8 @@ import org.opensearch.sql.directquery.transport.config.DirectQueryModule;
 import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionResponse;
 import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionResponse;
 import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionResponse;
+import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
@@ -98,10 +107,14 @@ import org.opensearch.sql.plugin.rest.RestPPLGrammarAction;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
+import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
+import org.opensearch.sql.plugin.rest.analytics.stub.StubQueryPlanExecutor;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.cluster.ClusterManagerEventListener;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
@@ -117,6 +130,7 @@ import org.opensearch.sql.spark.transport.config.AsyncExecutorServiceModule;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
+import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
@@ -165,7 +179,7 @@ public class SQLPlugin extends Plugin
     return Arrays.asList(
         new RestPPLQueryAction(),
         new RestPPLGrammarAction(),
-        new RestSqlAction(settings, injector),
+        new RestSqlAction(settings, injector, createSqlAnalyticsRouter()),
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
         new RestQuerySettingsAction(settings, restController),
@@ -173,6 +187,69 @@ public class SQLPlugin extends Plugin
         new RestAsyncQueryManagementAction((OpenSearchSettings) pluginSettings),
         new RestDirectQueryManagementAction((OpenSearchSettings) pluginSettings),
         new RestDirectQueryResourcesManagementAction((OpenSearchSettings) pluginSettings));
+  }
+
+  /**
+   * Creates a routing function for SQL queries targeting analytics engine indices. Returns {@code
+   * true} if the query was handled (analytics index), {@code false} to fall through to normal SQL.
+   */
+  private BiFunction<SQLQueryRequest, RestChannel, Boolean> createSqlAnalyticsRouter() {
+    RestUnifiedQueryAction unifiedQueryHandler =
+        new RestUnifiedQueryAction(client, clusterService, new StubQueryPlanExecutor());
+    return (sqlRequest, channel) -> {
+      if (!unifiedQueryHandler.isAnalyticsIndex(sqlRequest.getQuery(), QueryType.SQL)) {
+        return false;
+      }
+      if (sqlRequest.isExplainRequest()) {
+        unifiedQueryHandler.explain(
+            sqlRequest.getQuery(),
+            QueryType.SQL,
+            ExplainMode.STANDARD,
+            new ResponseListener<>() {
+              @Override
+              public void onResponse(ExplainResponse response) {
+                JsonResponseFormatter<ExplainResponse> formatter =
+                    new JsonResponseFormatter<>(Style.PRETTY) {
+                      @Override
+                      protected Object buildJsonObject(ExplainResponse resp) {
+                        return resp;
+                      }
+                    };
+                channel.sendResponse(
+                    new BytesRestResponse(
+                        RestStatus.OK,
+                        "application/json; charset=UTF-8",
+                        formatter.format(response)));
+              }
+
+              @Override
+              public void onFailure(Exception e) {
+                channel.sendResponse(
+                    new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+              }
+            });
+      } else {
+        unifiedQueryHandler.execute(
+            sqlRequest.getQuery(),
+            QueryType.SQL,
+            false,
+            new ActionListener<>() {
+              @Override
+              public void onResponse(TransportPPLQueryResponse response) {
+                channel.sendResponse(
+                    new BytesRestResponse(
+                        RestStatus.OK, "application/json; charset=UTF-8", response.getResult()));
+              }
+
+              @Override
+              public void onFailure(Exception e) {
+                channel.sendResponse(
+                    new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+              }
+            });
+      }
+      return true;
+    };
   }
 
   /** Register action and handler so that transportClient can find proxy for action. */

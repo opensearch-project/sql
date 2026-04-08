@@ -11,7 +11,14 @@ import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.util.Map;
+import java.util.Optional;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -23,6 +30,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryPlanner;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -33,7 +41,6 @@ import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
-import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
@@ -76,13 +83,14 @@ public class RestUnifiedQueryAction {
       return false;
     }
     try (UnifiedQueryContext context = buildParsingContext(queryType)) {
-      String indexName = extractIndexName(query, context);
-      if (indexName == null) {
-        return false;
-      }
-      int lastDot = indexName.lastIndexOf('.');
-      String tableName = lastDot >= 0 ? indexName.substring(lastDot + 1) : indexName;
-      return tableName.startsWith("parquet_");
+      return extractIndexName(query, queryType, context)
+          .map(
+              indexName -> {
+                int lastDot = indexName.lastIndexOf('.');
+                return lastDot >= 0 ? indexName.substring(lastDot + 1) : indexName;
+              })
+          .map(tableName -> tableName.startsWith("parquet_"))
+          .orElse(false);
     } catch (Exception e) {
       return false;
     }
@@ -92,68 +100,54 @@ public class RestUnifiedQueryAction {
   public void execute(
       String query,
       QueryType queryType,
-      PPLQueryRequest pplRequest,
+      boolean profiling,
       ActionListener<TransportPPLQueryResponse> listener) {
     client
         .threadPool()
         .schedule(
-            withCurrentContext(() -> doExecute(query, queryType, pplRequest, listener)),
+            withCurrentContext(
+                () -> {
+                  try (UnifiedQueryContext context = buildContext(queryType, profiling)) {
+                    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+                    RelNode plan = planner.plan(query);
+                    CalcitePlanContext planContext = context.getPlanContext();
+                    plan = addQuerySizeLimit(plan, planContext);
+                    analyticsEngine.execute(
+                        plan, planContext, createQueryListener(queryType, listener));
+                  } catch (Exception e) {
+                    listener.onFailure(e);
+                  }
+                }),
             new TimeValue(0),
             SQL_WORKER_THREAD_POOL_NAME);
   }
 
   /**
    * Explain a query through the unified query pipeline on the sql-worker thread pool. Returns
-   * ExplainResponse via ResponseListener so the caller (TransportPPLQueryAction) can format it
-   * using its own createExplainResponseListener.
+   * ExplainResponse via ResponseListener so the caller can format it.
    */
   public void explain(
       String query,
       QueryType queryType,
-      PPLQueryRequest pplRequest,
+      ExplainMode mode,
       ResponseListener<ExplainResponse> listener) {
     client
         .threadPool()
         .schedule(
-            withCurrentContext(() -> doExplain(query, queryType, pplRequest, listener)),
+            withCurrentContext(
+                () -> {
+                  try (UnifiedQueryContext context = buildContext(queryType, false)) {
+                    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+                    RelNode plan = planner.plan(query);
+                    CalcitePlanContext planContext = context.getPlanContext();
+                    plan = addQuerySizeLimit(plan, planContext);
+                    analyticsEngine.explain(plan, mode, planContext, listener);
+                  } catch (Exception e) {
+                    listener.onFailure(e);
+                  }
+                }),
             new TimeValue(0),
             SQL_WORKER_THREAD_POOL_NAME);
-  }
-
-  private void doExecute(
-      String query,
-      QueryType queryType,
-      PPLQueryRequest pplRequest,
-      ActionListener<TransportPPLQueryResponse> listener) {
-    try (UnifiedQueryContext context = buildContext(queryType, pplRequest.profile())) {
-      UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-      RelNode plan = planner.plan(query);
-
-      CalcitePlanContext planContext = context.getPlanContext();
-      plan = addQuerySizeLimit(plan, planContext);
-
-      analyticsEngine.execute(plan, planContext, createQueryListener(queryType, listener));
-    } catch (Exception e) {
-      listener.onFailure(e);
-    }
-  }
-
-  private void doExplain(
-      String query,
-      QueryType queryType,
-      PPLQueryRequest pplRequest,
-      ResponseListener<ExplainResponse> listener) {
-    try (UnifiedQueryContext context = buildContext(queryType, pplRequest.profile())) {
-      UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-      RelNode plan = planner.plan(query);
-
-      CalcitePlanContext planContext = context.getPlanContext();
-      plan = addQuerySizeLimit(plan, planContext);
-
-      analyticsEngine.explain(plan, pplRequest.mode(), planContext, listener);
-    } catch (Exception e) {
-      listener.onFailure(e);
-    }
   }
 
   /**
@@ -177,21 +171,45 @@ public class RestUnifiedQueryAction {
    * Extract the source index name by parsing the query and visiting the AST to find the Relation
    * node. Uses the context's parser which supports both PPL and SQL.
    */
-  private static String extractIndexName(String query, UnifiedQueryContext context) {
-    Object parseResult = context.getParser().parse(query);
-    if (parseResult instanceof UnresolvedPlan unresolvedPlan) {
-      return unresolvedPlan.accept(new IndexNameExtractor(), null);
+  private static Optional<String> extractIndexName(
+      String query, QueryType queryType, UnifiedQueryContext context) {
+    if (queryType == QueryType.PPL) {
+      UnresolvedPlan unresolvedPlan = (UnresolvedPlan) context.getParser().parse(query);
+      return Optional.ofNullable(unresolvedPlan.accept(new IndexNameExtractor(), null));
     }
-    // TODO: handle SQL SqlNode for table extraction when unified SQL is enabled
-    return null;
+    SqlNode sqlNode = (SqlNode) context.getParser().parse(query);
+    return Optional.ofNullable(extractTableNameFromSqlNode(sqlNode));
   }
 
-  /** AST visitor that extracts the source index name from a Relation node. */
+  /** AST visitor that extracts the source index name from a Relation node (PPL path). */
   private static class IndexNameExtractor extends AbstractNodeVisitor<String, Void> {
     @Override
     public String visitRelation(Relation node, Void context) {
       return node.getTableQualifiedName().toString();
     }
+  }
+
+  /** SqlNode visitor that extracts the source table name from a SQL parse tree. */
+  private static class SqlTableNameExtractor extends SqlBasicVisitor<String> {
+    @Override
+    public String visit(SqlCall call) {
+      if (call instanceof SqlSelect select) {
+        return select.getFrom().accept(this);
+      }
+      if (call instanceof SqlJoin join) {
+        return join.getLeft().accept(this);
+      }
+      return null;
+    }
+
+    @Override
+    public String visit(SqlIdentifier id) {
+      return id.toString();
+    }
+  }
+
+  private static String extractTableNameFromSqlNode(SqlNode sqlNode) {
+    return sqlNode.accept(new SqlTableNameExtractor());
   }
 
   private static RelNode addQuerySizeLimit(RelNode plan, CalcitePlanContext context) {

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
@@ -83,10 +84,21 @@ public class RestSqlAction extends BaseRestHandler {
   /** New SQL query request handler. */
   private final RestSQLQueryAction newSqlQueryHandler;
 
-  public RestSqlAction(Settings settings, Injector injector) {
+  /**
+   * Analytics router. Called before the normal SQL engine. Accepts the request and channel, returns
+   * {@code true} if it handled the request (analytics index), {@code false} to fall through to
+   * normal SQL engine.
+   */
+  private final BiFunction<SQLQueryRequest, RestChannel, Boolean> analyticsRouter;
+
+  public RestSqlAction(
+      Settings settings,
+      Injector injector,
+      BiFunction<SQLQueryRequest, RestChannel, Boolean> analyticsRouter) {
     super();
     this.allowExplicitIndex = MULTI_ALLOW_EXPLICIT_INDEX.get(settings);
     this.newSqlQueryHandler = new RestSQLQueryAction(injector);
+    this.analyticsRouter = analyticsRouter;
   }
 
   @Override
@@ -134,7 +146,6 @@ public class RestSqlAction extends BaseRestHandler {
 
       Format format = SqlRequestParam.getFormat(request.params());
 
-      // Route request to new query engine if it's supported already
       SQLQueryRequest newSqlRequest =
           new SQLQueryRequest(
               sqlRequest.getJsonContent(),
@@ -142,28 +153,55 @@ public class RestSqlAction extends BaseRestHandler {
               request.path(),
               request.params(),
               sqlRequest.cursor());
-      return newSqlQueryHandler.prepareRequest(
-          newSqlRequest,
-          (restChannel, exception) -> {
-            try {
-              if (newSqlRequest.isExplainRequest()) {
-                LOG.info(
-                    "Request is falling back to old SQL engine due to: " + exception.getMessage());
-              }
-              LOG.info(
-                  "[{}] Request {} is not supported and falling back to old SQL engine",
-                  QueryContext.getRequestId(),
-                  newSqlRequest);
-              LOG.info("Request Query: {}", QueryDataAnonymizer.anonymizeData(sqlRequest.getSql()));
-              QueryAction queryAction = explainRequest(client, sqlRequest, format);
-              executeSqlRequest(request, queryAction, client, restChannel);
-            } catch (Exception e) {
-              handleException(restChannel, e);
-            }
-          },
-          this::handleException);
+
+      // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
+      // The router returns true and sends the response directly if it handled the request.
+      final SQLQueryRequest finalRequest = newSqlRequest;
+      return channel -> {
+        if (!analyticsRouter.apply(finalRequest, channel)) {
+          delegateToV2Engine(request, client, sqlRequest, finalRequest, format, channel);
+        }
+      };
     } catch (Exception e) {
       return channel -> handleException(channel, e);
+    }
+  }
+
+  /** Delegate a SQL query to the V2 engine with legacy fallback. */
+  private void delegateToV2Engine(
+      RestRequest request,
+      NodeClient client,
+      SqlRequest sqlRequest,
+      SQLQueryRequest sqlQueryRequest,
+      Format format,
+      RestChannel channel) {
+    try {
+      newSqlQueryHandler
+          .prepareRequest(
+              sqlQueryRequest,
+              (restChannel, exception) -> {
+                try {
+                  if (sqlQueryRequest.isExplainRequest()) {
+                    LOG.info(
+                        "Request is falling back to old SQL engine due to: "
+                            + exception.getMessage());
+                  }
+                  LOG.info(
+                      "[{}] Request {} is not supported and falling back to old SQL engine",
+                      QueryContext.getRequestId(),
+                      sqlQueryRequest);
+                  LOG.info(
+                      "Request Query: {}", QueryDataAnonymizer.anonymizeData(sqlRequest.getSql()));
+                  QueryAction queryAction = explainRequest(client, sqlRequest, format);
+                  executeSqlRequest(request, queryAction, client, restChannel);
+                } catch (Exception e) {
+                  handleException(restChannel, e);
+                }
+              },
+              this::handleException)
+          .accept(channel);
+    } catch (Exception e) {
+      handleException(channel, e);
     }
   }
 
