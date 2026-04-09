@@ -23,16 +23,17 @@ on:
 jobs:
   detect:
     if: (github.event_name == 'issues' && github.event.issue.user.type != 'Bot') || (github.event_name == 'workflow_dispatch' && inputs.job == 'detect')
-    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-detect.yml@improve-dedupe-workflow
+    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-detect.yml@fix-dedupe-cat-order
     permissions:
       contents: read
       issues: write
       id-token: write
     secrets:
-      BEDROCK_ACCESS_ROLE_ISSUE_DEDUPE: ${{ secrets.BEDROCK_ACCESS_ROLE_ISSUE_DEDUPE }}
+      BEDROCK_ACCESS_ROLE_ISSUE_DEDUPE: ${{ secrets.BEDROCK_ACCESS_ROLE_ISSUE_DEDUPE_TMP }}
     with:
       issue_number: ${{ inputs.issue_number || '' }}
       grace_days: ${{ vars.DUPLICATE_GRACE_DAYS || '7' }}
+      show_full_output: 'true'
 
   auto-close:
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.job == 'auto-close')
