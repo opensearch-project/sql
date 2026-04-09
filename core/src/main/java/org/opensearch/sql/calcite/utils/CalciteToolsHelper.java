@@ -63,6 +63,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptTable.ViewExpander;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
@@ -366,6 +367,36 @@ public class CalciteToolsHelper {
         SqlValidator validator, CatalogReader catalogReader, SqlToRelConverter.Config config) {
       return new OpenSearchSqlToRelConverter(
           this, validator, catalogReader, this.cluster, convertletTable, config);
+    }
+
+    @Override
+    protected RelRoot trimUnusedFields(RelRoot root) {
+      final SqlToRelConverter.Config config =
+          SqlToRelConverter.config()
+              .withTrimUnusedFields(shouldTrim(root.rel))
+              .withExpand(THREAD_EXPAND.get())
+              .withInSubQueryThreshold(requireNonNull(THREAD_INSUBQUERY_THRESHOLD.get()));
+      // PPL analyzes into a pre-built RelNode before prepareStatement(rel). Reuse the incoming
+      // RelNode's cluster here so prepare-time trimming does not create replacement nodes under a
+      // different planner than the rest of the tree.
+      final SqlToRelConverter converter =
+          new OpenSearchSqlToRelConverter(
+              this,
+              getSqlValidator(),
+              catalogReader,
+              root.rel.getCluster(),
+              convertletTable,
+              config);
+      final boolean ordered = !root.collation.getFieldCollations().isEmpty();
+      final boolean dml = SqlKind.DML.contains(root.kind);
+      return root.withRel(converter.trimUnusedFields(dml || ordered, root.rel));
+    }
+
+    private static boolean shouldTrim(RelNode rootRel) {
+      // For now, don't trim if there are more than 3 joins. The projects
+      // near the leaves created by trim migrate past joins and seem to
+      // prevent join-reordering.
+      return THREAD_TRIM.get() || RelOptUtil.countJoins(rootRel) < 2;
     }
   }
 
