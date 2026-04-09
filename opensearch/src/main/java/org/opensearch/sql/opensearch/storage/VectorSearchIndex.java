@@ -26,6 +26,7 @@ public class VectorSearchIndex extends OpenSearchIndex {
   private final String field;
   private final float[] vector;
   private final Map<String, String> options;
+  private final FilterType filterType; // null means default (POST)
 
   public VectorSearchIndex(
       OpenSearchClient client,
@@ -33,11 +34,24 @@ public class VectorSearchIndex extends OpenSearchIndex {
       String indexName,
       String field,
       float[] vector,
-      Map<String, String> options) {
+      Map<String, String> options,
+      FilterType filterType) {
     super(client, settings, indexName);
     this.field = field;
     this.vector = vector;
     this.options = options;
+    this.filterType = filterType;
+  }
+
+  /** Backward-compatible constructor — defaults to no explicit filter type. */
+  public VectorSearchIndex(
+      OpenSearchClient client,
+      Settings settings,
+      String indexName,
+      String field,
+      float[] vector,
+      Map<String, String> options) {
+    this(client, settings, indexName, field, vector, options, null);
   }
 
   @Override
