@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.Map;
+import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -16,6 +17,7 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.storage.FilterType;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serde.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.logical.LogicalFilter;
@@ -27,20 +29,45 @@ import org.opensearch.sql.planner.logical.LogicalSort;
  * WHERE filters in a non-scoring (filter) context. This prevents the knn relevance scores from
  * being destroyed when a WHERE clause is pushed down.
  *
- * <p>Without this, the default pushDownFilter wraps both queries into bool.filter, which is a
- * non-scoring context.
+ * <p>Supports two filter placement strategies via {@link FilterType}:
+ *
+ * <ul>
+ *   <li>{@code POST} — WHERE in {@code bool.filter} outside knn (post-filtering, default)
+ *   <li>{@code EFFICIENT} — WHERE inside {@code knn.filter} for pre-filtering during ANN search
+ * </ul>
  */
 public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
 
   private final QueryBuilder knnQuery;
   private final Map<String, String> options;
+  private final FilterType filterType;
+  private final boolean filterTypeExplicit;
+  private final Function<QueryBuilder, QueryBuilder> rebuildKnnWithFilter;
+  private boolean filterPushed = false;
 
+  /** Full constructor with filter type support. */
   public VectorSearchQueryBuilder(
-      OpenSearchRequestBuilder requestBuilder, QueryBuilder knnQuery, Map<String, String> options) {
+      OpenSearchRequestBuilder requestBuilder,
+      QueryBuilder knnQuery,
+      Map<String, String> options,
+      FilterType filterType,
+      boolean filterTypeExplicit,
+      Function<QueryBuilder, QueryBuilder> rebuildKnnWithFilter) {
     super(requestBuilder);
     requestBuilder.getSourceBuilder().query(knnQuery);
     this.knnQuery = knnQuery;
     this.options = options;
+    this.filterType = filterType != null ? filterType : FilterType.POST;
+    this.filterTypeExplicit = filterTypeExplicit;
+    this.rebuildKnnWithFilter = rebuildKnnWithFilter;
+  }
+
+  /** Backward-compatible constructor — defaults to POST, not explicit. */
+  public VectorSearchQueryBuilder(
+      OpenSearchRequestBuilder requestBuilder,
+      QueryBuilder knnQuery,
+      Map<String, String> options) {
+    this(requestBuilder, knnQuery, options, FilterType.POST, false, null);
   }
 
   @Override
@@ -48,10 +75,16 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     FilterQueryBuilder queryBuilder = new FilterQueryBuilder(new DefaultExpressionSerializer());
     Expression queryCondition = filter.getCondition();
     QueryBuilder whereQuery = queryBuilder.build(queryCondition);
+    filterPushed = true;
 
-    // Combine: knn in must (scores), WHERE in filter (no scoring impact)
-    BoolQueryBuilder combined = QueryBuilders.boolQuery().must(knnQuery).filter(whereQuery);
-    requestBuilder.getSourceBuilder().query(combined);
+    if (filterType == FilterType.EFFICIENT) {
+      QueryBuilder rebuiltKnn = rebuildKnnWithFilter.apply(whereQuery);
+      requestBuilder.getSourceBuilder().query(rebuiltKnn);
+    } else {
+      // POST mode: knn in must (scores), WHERE in filter (no scoring impact)
+      BoolQueryBuilder combined = QueryBuilders.boolQuery().must(knnQuery).filter(whereQuery);
+      requestBuilder.getSourceBuilder().query(combined);
+    }
     return true;
   }
 
@@ -99,5 +132,13 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
             String.format("LIMIT %d exceeds k=%d in top-k vector search", limit, k));
       }
     }
+  }
+
+  @Override
+  public OpenSearchRequestBuilder build() {
+    if (filterTypeExplicit && !filterPushed) {
+      throw new ExpressionEvaluationException("filter_type requires a pushdownable WHERE clause");
+    }
+    return super.build();
   }
 }
