@@ -243,6 +243,30 @@ class VectorSearchQueryBuilderTest {
     assertTrue(ex.getMessage().contains("_score ASC is not supported"));
   }
 
+  @Test
+  void pushDownFilterCompoundPredicateSurvives() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    // Simulate WHERE name = 'John' AND age > 30
+    var condition =
+        DSL.and(
+            DSL.equal(new ReferenceExpression("name", STRING), DSL.literal("John")),
+            DSL.greater(new ReferenceExpression("age", ExprCoreType.INTEGER), DSL.literal(30)));
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var filter = new LogicalFilter(dummyChild, condition);
+
+    boolean pushed = builder.pushDownFilter(filter);
+
+    assertTrue(pushed, "pushDownFilter with compound predicate should succeed");
+    QueryBuilder resultQuery = requestBuilder.getSourceBuilder().query();
+    assertTrue(resultQuery instanceof BoolQueryBuilder, "Result should be a BoolQuery");
+    BoolQueryBuilder boolQuery = (BoolQueryBuilder) resultQuery;
+    assertEquals(1, boolQuery.must().size(), "knn query should be in must (scoring context)");
+    assertEquals(1, boolQuery.filter().size(), "compound WHERE should be in filter (non-scoring)");
+  }
+
   private OpenSearchRequestBuilder createRequestBuilder() {
     return new OpenSearchRequestBuilder(
         mock(OpenSearchExprValueFactory.class), 10000, mock(Settings.class));

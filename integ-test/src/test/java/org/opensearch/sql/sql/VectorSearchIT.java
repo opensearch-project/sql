@@ -256,6 +256,50 @@ public class VectorSearchIT extends SQLIntegTestCase {
     assertThat(ex.getMessage(), containsString("_score ASC is not supported"));
   }
 
+  // ── Compound predicate and radial + WHERE ───────────────────────────────
+
+  @Test
+  public void testExplainCompoundPredicateProducesBoolQuery() throws IOException {
+    String explain =
+        explainQuery(
+            "SELECT v._id, v._score "
+                + "FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', "
+                + "vector='[1.0, 2.0, 3.0]', option='k=10') AS v "
+                + "WHERE v.state = 'TX' AND v.age > 30 "
+                + "LIMIT 10");
+
+    assertTrue("Explain should contain bool query:\n" + explain, explain.contains("bool"));
+    assertTrue(
+        "Explain should contain must clause (knn in scoring context):\n" + explain,
+        explain.contains("must"));
+    assertTrue(
+        "Explain should contain filter clause (compound WHERE in non-scoring context):\n" + explain,
+        explain.contains("filter"));
+  }
+
+  @Test
+  public void testExplainRadialWithWhereProducesBoolQuery() throws IOException {
+    String explain =
+        explainQuery(
+            "SELECT v._id, v._score "
+                + "FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', "
+                + "vector='[1.0, 2.0]', option='max_distance=10.5') AS v "
+                + "WHERE v.state = 'TX' "
+                + "LIMIT 100");
+
+    assertTrue("Explain should contain bool query:\n" + explain, explain.contains("bool"));
+    assertTrue(
+        "Explain should contain must clause (knn in scoring context):\n" + explain,
+        explain.contains("must"));
+    assertTrue(
+        "Explain should contain filter clause (WHERE in non-scoring context):\n" + explain,
+        explain.contains("filter"));
+  }
+
   // ── LIMIT validation ───────────────────────────────────────────────────
 
   @Test
