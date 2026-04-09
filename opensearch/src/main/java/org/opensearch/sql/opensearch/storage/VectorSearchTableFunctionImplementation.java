@@ -34,7 +34,8 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     implements TableFunctionImplementation {
 
   /** P0 allowed option keys. Rejects unknown/future keys to prevent unvalidated DSL injection. */
-  static final Set<String> ALLOWED_OPTION_KEYS = Set.of("k", "max_distance", "min_score");
+  static final Set<String> ALLOWED_OPTION_KEYS =
+      Set.of("k", "max_distance", "min_score", "filter_type");
 
   /**
    * Field names must be safe for JSON interpolation: alphanumeric, dots (nested), underscores,
@@ -189,6 +190,10 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
         throw new ExpressionEvaluationException(
             String.format("Unknown option key '%s'. Supported keys: %s", key, ALLOWED_OPTION_KEYS));
       }
+    }
+    if (options.containsKey("filter_type")) {
+      // Validate early — fromString throws if invalid
+      FilterType.fromString(options.get("filter_type"));
     }
     boolean hasK = options.containsKey("k");
     boolean hasMaxDistance = options.containsKey("max_distance");

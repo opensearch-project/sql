@@ -388,6 +388,45 @@ class VectorSearchTableFunctionImplementationTest {
     assertTrue(table instanceof VectorSearchIndex);
   }
 
+  @Test
+  void testInvalidFilterTypeRejects() {
+    FunctionName functionName = FunctionName.of("vectorsearch");
+    List<Expression> args =
+        List.of(
+            DSL.namedArgument("table", DSL.literal("my-index")),
+            DSL.namedArgument("field", DSL.literal("embedding")),
+            DSL.namedArgument("vector", DSL.literal("[1.0, 2.0]")),
+            DSL.namedArgument("option", DSL.literal("k=5,filter_type=invalid")));
+    VectorSearchTableFunctionImplementation impl =
+        new VectorSearchTableFunctionImplementation(functionName, args, client, settings);
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, impl::applyArguments);
+    assertTrue(ex.getMessage().contains("filter_type must be one of"));
+  }
+
+  @Test
+  void testFilterTypePostAccepted() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=5,filter_type=post");
+    Table table = impl.applyArguments();
+    assertTrue(table instanceof VectorSearchIndex);
+  }
+
+  @Test
+  void testFilterTypeEfficientAccepted() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=5,filter_type=efficient");
+    Table table = impl.applyArguments();
+    assertTrue(table instanceof VectorSearchIndex);
+  }
+
+  @Test
+  void testParseOptionsPreservesFilterTypeValue() {
+    Map<String, String> options =
+        VectorSearchTableFunctionImplementation.parseOptions("k=5,filter_type=post");
+    assertEquals("post", options.get("filter_type"));
+  }
+
   private VectorSearchTableFunctionImplementation createImpl() {
     return createImplWithArgs("my-index", "embedding", "[1.0, 2.0, 3.0]", "k=5");
   }
