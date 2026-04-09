@@ -1,5 +1,5 @@
 ---
-name: Issue Dedupe
+name: Issue Dedupe Main
 on:
   issues:
     types: [opened]
