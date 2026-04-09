@@ -86,7 +86,12 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
             "vectorSearch only supports ORDER BY _score DESC; _score ASC is not supported");
       }
     }
-    // _score DESC is the natural knn order — accept without pushing sort to OpenSearch
+    // _score DESC is the natural knn order — no need to push the sort itself to OpenSearch.
+    // Preserve the parent's sort.getCount() → limit pushdown contract: SQL always sets count=0,
+    // but PPL or future callers may set a non-zero count to combine sort+limit in one node.
+    if (sort.getCount() != 0) {
+      requestBuilder.pushDownLimit(sort.getCount(), 0);
+    }
     return true;
   }
 }
