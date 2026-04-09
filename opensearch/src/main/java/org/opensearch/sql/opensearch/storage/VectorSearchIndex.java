@@ -90,6 +90,15 @@ public class VectorSearchIndex extends OpenSearchIndex {
 
   // Package-private for testing
   String buildKnnQueryJson() {
+    return buildKnnQueryJson(null);
+  }
+
+  /**
+   * Builds knn query JSON, optionally embedding a filter clause for efficient filtering.
+   *
+   * @param filterJson serialized filter JSON to embed in knn.field.filter, or null for no filter
+   */
+  String buildKnnQueryJson(String filterJson) {
     StringBuilder vectorJson = new StringBuilder("[");
     for (int i = 0; i < vector.length; i++) {
       if (i > 0) vectorJson.append(",");
@@ -110,9 +119,14 @@ public class VectorSearchIndex extends OpenSearchIndex {
       }
     }
 
+    String filterClause = "";
+    if (filterJson != null) {
+      filterClause = String.format(",\"filter\":%s", filterJson);
+    }
+
     return String.format(
-        "{\"knn\":{\"%s\":{\"vector\":%s%s}}}",
-        field, vectorJson.toString(), optionsJson.toString());
+        "{\"knn\":{\"%s\":{\"vector\":%s%s%s}}}",
+        field, vectorJson.toString(), optionsJson.toString(), filterClause);
   }
 
   private static boolean isNumeric(String str) {

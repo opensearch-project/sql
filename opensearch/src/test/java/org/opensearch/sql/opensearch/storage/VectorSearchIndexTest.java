@@ -141,6 +141,50 @@ class VectorSearchIndexTest {
   }
 
   @Test
+  void buildKnnQueryJsonWithFilterEmbeds() {
+    VectorSearchIndex index =
+        new VectorSearchIndex(
+            client, settings, "test-index", "embedding",
+            new float[] {1.0f, 2.0f}, Map.of("k", "5"), FilterType.EFFICIENT);
+
+    String filterJson = "{\"term\":{\"city\":{\"value\":\"Miami\"}}}";
+    String json = index.buildKnnQueryJson(filterJson);
+
+    assertTrue(json.contains("\"filter\""), "Should contain filter field");
+    assertTrue(json.contains("\"term\""), "Should contain the filter content");
+    assertTrue(json.contains("\"k\":5"), "Should still contain k");
+    assertTrue(json.contains("\"vector\":[1.0,2.0]"), "Should contain vector");
+  }
+
+  @Test
+  void buildKnnQueryJsonWithFilterRadial() {
+    VectorSearchIndex index =
+        new VectorSearchIndex(
+            client, settings, "test-index", "embedding",
+            new float[] {1.0f}, Map.of("max_distance", "10.5"), FilterType.EFFICIENT);
+
+    String filterJson = "{\"range\":{\"rating\":{\"gte\":4.0}}}";
+    String json = index.buildKnnQueryJson(filterJson);
+
+    assertTrue(json.contains("\"max_distance\":10.5"), "Should contain max_distance");
+    assertTrue(json.contains("\"filter\""), "Should contain filter");
+  }
+
+  @Test
+  void buildKnnQueryJsonNullFilterProducesBaseJson() {
+    VectorSearchIndex index =
+        new VectorSearchIndex(
+            client, settings, "test-index", "embedding",
+            new float[] {1.0f}, Map.of("k", "5"), null);
+
+    String json = index.buildKnnQueryJson(null);
+    String baseJson = index.buildKnnQueryJson();
+
+    assertEquals(baseJson, json, "null filter should produce same JSON as no-arg version");
+    assertFalse(json.contains("\"filter\""), "Should not contain filter field");
+  }
+
+  @Test
   void buildKnnQueryJsonExcludesFilterType() {
     LinkedHashMap<String, String> options = new LinkedHashMap<>();
     options.put("k", "5");
