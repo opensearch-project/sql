@@ -70,8 +70,12 @@ public class VectorSearchIndex extends OpenSearchIndex {
 
     var queryBuilder =
         new VectorSearchQueryBuilder(
-            requestBuilder, buildKnnQuery(), options,
-            effectiveFilterType, filterTypeExplicit, rebuildWithFilter);
+            requestBuilder,
+            buildKnnQuery(),
+            options,
+            effectiveFilterType,
+            filterTypeExplicit,
+            rebuildWithFilter);
     requestBuilder.pushDownTrackedScore(true);
 
     // Default size policy: LIMIT pushdown will further reduce if present.
