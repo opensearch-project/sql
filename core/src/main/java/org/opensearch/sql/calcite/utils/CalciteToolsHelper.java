@@ -75,6 +75,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -410,21 +411,50 @@ public class CalciteToolsHelper {
         RelOptCluster cluster,
         SqlRexConvertletTable convertletTable,
         Config config) {
-      super(viewExpander, validator, catalogReader, cluster, convertletTable, config);
+      this(
+          viewExpander,
+          validator,
+          catalogReader,
+          cluster,
+          convertletTable,
+          preserveHintStrategies(cluster, config),
+          true);
+    }
+
+    private OpenSearchSqlToRelConverter(
+        ViewExpander viewExpander,
+        @Nullable SqlValidator validator,
+        CatalogReader catalogReader,
+        RelOptCluster cluster,
+        SqlRexConvertletTable convertletTable,
+        Config effectiveConfig,
+        boolean ignored) {
+      super(viewExpander, validator, catalogReader, cluster, convertletTable, effectiveConfig);
       this.relBuilder =
-          config
+          effectiveConfig
               .getRelBuilderFactory()
               .create(
                   cluster,
                   validator != null
                       ? validator.getCatalogReader().unwrap(RelOptSchema.class)
                       : null)
-              .transform(config.getRelBuilderConfigTransform());
+              .transform(effectiveConfig.getRelBuilderConfigTransform());
     }
 
     @Override
     protected RelFieldTrimmer newFieldTrimmer() {
       return new OpenSearchRelFieldTrimmer(validator, this.relBuilder);
+    }
+
+    // SqlToRelConverter always installs the hint strategy table from its config onto the cluster.
+    // When prepare-time trimming reuses an incoming RelNode cluster, preserve any PPL-specific
+    // aggregate hint strategies that were already registered during analysis.
+    private static Config preserveHintStrategies(RelOptCluster cluster, Config config) {
+      if (config.getHintStrategyTable() == HintStrategyTable.EMPTY
+          && cluster.getHintStrategies() != HintStrategyTable.EMPTY) {
+        return config.withHintStrategyTable(cluster.getHintStrategies());
+      }
+      return config;
     }
   }
 
