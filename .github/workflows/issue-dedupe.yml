@@ -23,20 +23,20 @@ on:
 jobs:
   detect:
     if: github.event_name == 'issues' || (github.event_name == 'workflow_dispatch' && inputs.job == 'detect')
-    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-detect.yml@add-issue-dedupe-workflow
+    uses: opensearch-project/opensearch-build/.github/workflows/issue-dedupe-detect.yml@main
     permissions:
       contents: read
       issues: write
       id-token: write
     secrets:
-      BEDROCK_ACCESS_ROLE_ISSUE: ${{ secrets.BEDROCK_ACCESS_ROLE_ISSUE }}
+      BEDROCK_ACCESS_ROLE_ISSUE_DEDUPE: ${{ secrets.BEDROCK_ACCESS_ROLE_ISSUE_DEDUPE }}
     with:
       issue_number: ${{ inputs.issue_number || '' }}
       grace_days: ${{ vars.DUPLICATE_GRACE_DAYS || '7' }}
 
   auto-close:
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.job == 'auto-close')
-    uses: qianheng-aws/opensearch-build/.github/workflows/issue-dedupe-autoclose.yml@add-issue-dedupe-workflow
+    uses: opensearch-project/opensearch-build/.github/workflows/issue-dedupe-autoclose.yml@main
     permissions:
       issues: write
     with:
