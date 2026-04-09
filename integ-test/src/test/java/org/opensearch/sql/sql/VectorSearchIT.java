@@ -168,4 +168,51 @@ public class VectorSearchIT extends SQLIntegTestCase {
 
     assertThat(ex.getMessage(), containsString("_score ASC is not supported"));
   }
+
+  // ── filter_type validation ────────────────────────────────────────────
+
+  @Test
+  public void testFilterTypeEfficientWithoutWhereRejects() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', "
+                        + "vector='[1.0, 2.0]', option='k=5,filter_type=efficient') AS v "
+                        + "LIMIT 5"));
+
+    assertThat(ex.getMessage(), containsString("filter_type requires a pushdownable WHERE clause"));
+  }
+
+  @Test
+  public void testFilterTypePostWithoutWhereRejects() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', "
+                        + "vector='[1.0, 2.0]', option='k=5,filter_type=post') AS v "
+                        + "LIMIT 5"));
+
+    assertThat(ex.getMessage(), containsString("filter_type requires a pushdownable WHERE clause"));
+  }
+
+  @Test
+  public void testInvalidFilterTypeRejects() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='t', field='f', "
+                        + "vector='[1.0]', option='k=5,filter_type=bogus') AS v"));
+
+    assertThat(ex.getMessage(), containsString("filter_type must be one of"));
+  }
 }
