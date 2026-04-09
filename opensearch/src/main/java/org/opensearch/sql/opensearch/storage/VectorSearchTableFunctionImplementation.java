@@ -100,7 +100,14 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     Map<String, String> options = parseOptions(optionStr);
     validateOptions(options);
 
-    return new VectorSearchIndex(client, settings, tableName, fieldName, vector, options);
+    // Strip filter_type — it's a SQL-layer directive, not a knn parameter
+    FilterType filterType = null;
+    if (options.containsKey("filter_type")) {
+      filterType = FilterType.fromString(options.remove("filter_type"));
+    }
+
+    return new VectorSearchIndex(
+        client, settings, tableName, fieldName, vector, options, filterType);
   }
 
   private float[] parseVector(String vectorLiteral) {

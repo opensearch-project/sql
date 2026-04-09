@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -137,6 +138,21 @@ class VectorSearchIndexTest {
     String json = index.buildKnnQueryJson();
     assertTrue(json.contains("\"method\":\"hnsw\""), "Non-numeric option should be quoted");
     assertTrue(json.contains("\"k\":5"), "Numeric option should be unquoted");
+  }
+
+  @Test
+  void buildKnnQueryJsonExcludesFilterType() {
+    LinkedHashMap<String, String> options = new LinkedHashMap<>();
+    options.put("k", "5");
+
+    VectorSearchIndex index =
+        new VectorSearchIndex(
+            client, settings, "test-index", "embedding",
+            new float[] {1.0f}, options, FilterType.EFFICIENT);
+
+    String json = index.buildKnnQueryJson();
+    assertFalse(json.contains("filter_type"), "filter_type should not appear in knn JSON");
+    assertTrue(json.contains("\"k\":5"), "k should still be present");
   }
 
   @Test
