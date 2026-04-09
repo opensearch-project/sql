@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -337,6 +338,135 @@ class VectorSearchQueryBuilderTest {
     BoolQueryBuilder boolQuery = (BoolQueryBuilder) resultQuery;
     assertEquals(1, boolQuery.must().size());
     assertEquals(1, boolQuery.filter().size());
+  }
+
+  // ── Build-time validation ────────────────────────────────────────────
+
+  @Test
+  void buildRejectsExplicitFilterTypePostWithoutWhere() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder =
+        new VectorSearchQueryBuilder(
+            requestBuilder, knnQuery, Map.of("k", "5"),
+            FilterType.POST, true, null);
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, builder::build);
+    assertTrue(ex.getMessage().contains("filter_type requires a pushdownable WHERE clause"));
+  }
+
+  @Test
+  void buildRejectsExplicitFilterTypeEfficientWithoutWhere() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    Function<QueryBuilder, QueryBuilder> rebuildWithFilter =
+        whereQuery -> new WrapperQueryBuilder("{\"knn\":{\"filter\":\"embedded\"}}");
+    var builder =
+        new VectorSearchQueryBuilder(
+            requestBuilder, knnQuery, Map.of("k", "5"),
+            FilterType.EFFICIENT, true, rebuildWithFilter);
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, builder::build);
+    assertTrue(ex.getMessage().contains("filter_type requires a pushdownable WHERE clause"));
+  }
+
+  @Test
+  void buildSucceedsWithNoFilterTypeAndNoWhere() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    OpenSearchRequestBuilder result = builder.build();
+    assertNotNull(result);
+  }
+
+  @Test
+  void buildSucceedsWithFilterTypeAndPushedWhere() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder =
+        new VectorSearchQueryBuilder(
+            requestBuilder, knnQuery, Map.of("k", "5"),
+            FilterType.POST, true, null);
+
+    var condition = DSL.equal(new ReferenceExpression("name", STRING), DSL.literal("John"));
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    builder.pushDownFilter(new LogicalFilter(dummyChild, condition));
+
+    OpenSearchRequestBuilder result = builder.build();
+    assertNotNull(result);
+  }
+
+  // ── Regression: LIMIT and sort invariants under efficient mode ──────
+
+  @Test
+  void pushDownLimitExceedingKThrowsUnderEfficientMode() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    Function<QueryBuilder, QueryBuilder> rebuildWithFilter =
+        whereQuery -> new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder =
+        new VectorSearchQueryBuilder(
+            requestBuilder, knnQuery, Map.of("k", "5"),
+            FilterType.EFFICIENT, true, rebuildWithFilter);
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var limit = new LogicalLimit(dummyChild, 10, 0);
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownLimit(limit));
+    assertTrue(ex.getMessage().contains("LIMIT 10 exceeds k=5"));
+  }
+
+  @Test
+  void pushDownSortScoreDescAcceptedUnderEfficientMode() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    Function<QueryBuilder, QueryBuilder> rebuildWithFilter =
+        whereQuery -> new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder =
+        new VectorSearchQueryBuilder(
+            requestBuilder, knnQuery, Map.of("k", "5"),
+            FilterType.EFFICIENT, true, rebuildWithFilter);
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var sort =
+        new org.opensearch.sql.planner.logical.LogicalSort(
+            dummyChild,
+            List.of(
+                org.apache.commons.lang3.tuple.ImmutablePair.of(
+                    org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC,
+                    new ReferenceExpression("_score", ExprCoreType.FLOAT))));
+
+    boolean pushed = builder.pushDownSort(sort);
+    assertTrue(pushed, "ORDER BY _score DESC should be accepted under efficient mode");
+  }
+
+  @Test
+  void pushDownSortNonScoreRejectedUnderEfficientMode() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    Function<QueryBuilder, QueryBuilder> rebuildWithFilter =
+        whereQuery -> new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder =
+        new VectorSearchQueryBuilder(
+            requestBuilder, knnQuery, Map.of("k", "5"),
+            FilterType.EFFICIENT, true, rebuildWithFilter);
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var sort =
+        new org.opensearch.sql.planner.logical.LogicalSort(
+            dummyChild,
+            List.of(
+                org.apache.commons.lang3.tuple.ImmutablePair.of(
+                    org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC,
+                    new ReferenceExpression("name", STRING))));
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownSort(sort));
+    assertTrue(ex.getMessage().contains("unsupported sort expression"));
   }
 
   private OpenSearchRequestBuilder createRequestBuilder() {
