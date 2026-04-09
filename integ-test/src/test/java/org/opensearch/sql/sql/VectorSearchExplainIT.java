@@ -170,4 +170,57 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
 
     assertTrue("Explain should succeed with LIMIT <= k:\n" + explain, explain.contains("wrapper"));
   }
+
+  // ── filter_type explain ─────────────────────────────────────────────
+
+  @Test
+  public void testExplainFilterTypePostProducesBoolQuery() throws IOException {
+    String explain =
+        explainQuery(
+            "SELECT v._id, v._score "
+                + "FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', "
+                + "vector='[1.0, 2.0, 3.0]', option='k=10,filter_type=post') AS v "
+                + "WHERE v.state = 'TX' "
+                + "LIMIT 10");
+
+    assertTrue("Explain should contain bool query:\n" + explain, explain.contains("bool"));
+    assertTrue("Explain should contain must:\n" + explain, explain.contains("must"));
+    assertTrue("Explain should contain filter:\n" + explain, explain.contains("filter"));
+  }
+
+  @Test
+  public void testExplainFilterTypeEfficientProducesKnnWithFilter() throws IOException {
+    String explain =
+        explainQuery(
+            "SELECT v._id, v._score "
+                + "FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', "
+                + "vector='[1.0, 2.0]', option='k=5,filter_type=efficient') AS v "
+                + "WHERE v.state = 'TX' "
+                + "LIMIT 5");
+
+    // Efficient mode: knn rebuilt with filter inside, wrapped in WrapperQueryBuilder
+    assertTrue("Explain should contain wrapper query:\n" + explain, explain.contains("wrapper"));
+  }
+
+  @Test
+  public void testEfficientFilterWithOrderByScoreDescSucceeds() throws IOException {
+    String explain =
+        explainQuery(
+            "SELECT v._id, v._score "
+                + "FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', "
+                + "vector='[1.0, 2.0]', option='k=5,filter_type=efficient') AS v "
+                + "WHERE v.state = 'TX' "
+                + "ORDER BY v._score DESC "
+                + "LIMIT 5");
+
+    assertTrue(
+        "Explain should succeed with efficient + ORDER BY _score DESC:\n" + explain,
+        explain.contains("wrapper"));
+  }
 }

@@ -301,8 +301,12 @@ class VectorSearchQueryBuilderTest {
         whereQuery -> new WrapperQueryBuilder("{\"knn\":{\"filter\":\"embedded\"}}");
     var builder =
         new VectorSearchQueryBuilder(
-            requestBuilder, knnQuery, Map.of("k", "5"),
-            FilterType.EFFICIENT, true, rebuildWithFilter);
+            requestBuilder,
+            knnQuery,
+            Map.of("k", "5"),
+            FilterType.EFFICIENT,
+            true,
+            rebuildWithFilter);
 
     var condition = DSL.equal(new ReferenceExpression("city", STRING), DSL.literal("Miami"));
     var dummyChild = new LogicalValues(Collections.emptyList());
@@ -323,8 +327,7 @@ class VectorSearchQueryBuilderTest {
     var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
     var builder =
         new VectorSearchQueryBuilder(
-            requestBuilder, knnQuery, Map.of("k", "5"),
-            FilterType.POST, true, null);
+            requestBuilder, knnQuery, Map.of("k", "5"), FilterType.POST, true, null);
 
     var condition = DSL.equal(new ReferenceExpression("name", STRING), DSL.literal("John"));
     var dummyChild = new LogicalValues(Collections.emptyList());
@@ -348,8 +351,7 @@ class VectorSearchQueryBuilderTest {
     var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
     var builder =
         new VectorSearchQueryBuilder(
-            requestBuilder, knnQuery, Map.of("k", "5"),
-            FilterType.POST, true, null);
+            requestBuilder, knnQuery, Map.of("k", "5"), FilterType.POST, true, null);
 
     ExpressionEvaluationException ex =
         assertThrows(ExpressionEvaluationException.class, builder::build);
@@ -364,8 +366,12 @@ class VectorSearchQueryBuilderTest {
         whereQuery -> new WrapperQueryBuilder("{\"knn\":{\"filter\":\"embedded\"}}");
     var builder =
         new VectorSearchQueryBuilder(
-            requestBuilder, knnQuery, Map.of("k", "5"),
-            FilterType.EFFICIENT, true, rebuildWithFilter);
+            requestBuilder,
+            knnQuery,
+            Map.of("k", "5"),
+            FilterType.EFFICIENT,
+            true,
+            rebuildWithFilter);
 
     ExpressionEvaluationException ex =
         assertThrows(ExpressionEvaluationException.class, builder::build);
@@ -388,8 +394,7 @@ class VectorSearchQueryBuilderTest {
     var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
     var builder =
         new VectorSearchQueryBuilder(
-            requestBuilder, knnQuery, Map.of("k", "5"),
-            FilterType.POST, true, null);
+            requestBuilder, knnQuery, Map.of("k", "5"), FilterType.POST, true, null);
 
     var condition = DSL.equal(new ReferenceExpression("name", STRING), DSL.literal("John"));
     var dummyChild = new LogicalValues(Collections.emptyList());
@@ -409,8 +414,12 @@ class VectorSearchQueryBuilderTest {
         whereQuery -> new WrapperQueryBuilder("{\"knn\":{}}");
     var builder =
         new VectorSearchQueryBuilder(
-            requestBuilder, knnQuery, Map.of("k", "5"),
-            FilterType.EFFICIENT, true, rebuildWithFilter);
+            requestBuilder,
+            knnQuery,
+            Map.of("k", "5"),
+            FilterType.EFFICIENT,
+            true,
+            rebuildWithFilter);
 
     var dummyChild = new LogicalValues(Collections.emptyList());
     var limit = new LogicalLimit(dummyChild, 10, 0);
@@ -428,8 +437,12 @@ class VectorSearchQueryBuilderTest {
         whereQuery -> new WrapperQueryBuilder("{\"knn\":{}}");
     var builder =
         new VectorSearchQueryBuilder(
-            requestBuilder, knnQuery, Map.of("k", "5"),
-            FilterType.EFFICIENT, true, rebuildWithFilter);
+            requestBuilder,
+            knnQuery,
+            Map.of("k", "5"),
+            FilterType.EFFICIENT,
+            true,
+            rebuildWithFilter);
 
     var dummyChild = new LogicalValues(Collections.emptyList());
     var sort =
@@ -452,8 +465,12 @@ class VectorSearchQueryBuilderTest {
         whereQuery -> new WrapperQueryBuilder("{\"knn\":{}}");
     var builder =
         new VectorSearchQueryBuilder(
-            requestBuilder, knnQuery, Map.of("k", "5"),
-            FilterType.EFFICIENT, true, rebuildWithFilter);
+            requestBuilder,
+            knnQuery,
+            Map.of("k", "5"),
+            FilterType.EFFICIENT,
+            true,
+            rebuildWithFilter);
 
     var dummyChild = new LogicalValues(Collections.emptyList());
     var sort =

@@ -144,8 +144,13 @@ class VectorSearchIndexTest {
   void buildKnnQueryJsonWithFilterEmbeds() {
     VectorSearchIndex index =
         new VectorSearchIndex(
-            client, settings, "test-index", "embedding",
-            new float[] {1.0f, 2.0f}, Map.of("k", "5"), FilterType.EFFICIENT);
+            client,
+            settings,
+            "test-index",
+            "embedding",
+            new float[] {1.0f, 2.0f},
+            Map.of("k", "5"),
+            FilterType.EFFICIENT);
 
     String filterJson = "{\"term\":{\"city\":{\"value\":\"Miami\"}}}";
     String json = index.buildKnnQueryJson(filterJson);
@@ -160,8 +165,13 @@ class VectorSearchIndexTest {
   void buildKnnQueryJsonWithFilterRadial() {
     VectorSearchIndex index =
         new VectorSearchIndex(
-            client, settings, "test-index", "embedding",
-            new float[] {1.0f}, Map.of("max_distance", "10.5"), FilterType.EFFICIENT);
+            client,
+            settings,
+            "test-index",
+            "embedding",
+            new float[] {1.0f},
+            Map.of("max_distance", "10.5"),
+            FilterType.EFFICIENT);
 
     String filterJson = "{\"range\":{\"rating\":{\"gte\":4.0}}}";
     String json = index.buildKnnQueryJson(filterJson);
@@ -174,8 +184,13 @@ class VectorSearchIndexTest {
   void buildKnnQueryJsonNullFilterProducesBaseJson() {
     VectorSearchIndex index =
         new VectorSearchIndex(
-            client, settings, "test-index", "embedding",
-            new float[] {1.0f}, Map.of("k", "5"), null);
+            client,
+            settings,
+            "test-index",
+            "embedding",
+            new float[] {1.0f},
+            Map.of("k", "5"),
+            null);
 
     String json = index.buildKnnQueryJson(null);
     String baseJson = index.buildKnnQueryJson();
@@ -191,8 +206,13 @@ class VectorSearchIndexTest {
 
     VectorSearchIndex index =
         new VectorSearchIndex(
-            client, settings, "test-index", "embedding",
-            new float[] {1.0f}, options, FilterType.EFFICIENT);
+            client,
+            settings,
+            "test-index",
+            "embedding",
+            new float[] {1.0f},
+            options,
+            FilterType.EFFICIENT);
 
     String json = index.buildKnnQueryJson();
     assertFalse(json.contains("filter_type"), "filter_type should not appear in knn JSON");
