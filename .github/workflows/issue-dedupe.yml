@@ -22,7 +22,7 @@ on:
 
 jobs:
   detect:
-    if: github.event_name == 'issues' || (github.event_name == 'workflow_dispatch' && inputs.job == 'detect')
+    if: (github.event_name == 'issues' && github.event.issue.user.type != 'Bot') || (github.event_name == 'workflow_dispatch' && inputs.job == 'detect')
     uses: opensearch-project/opensearch-build/.github/workflows/issue-dedupe-detect.yml@main
     permissions:
       contents: read
