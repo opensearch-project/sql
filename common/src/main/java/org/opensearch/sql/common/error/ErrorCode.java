@@ -40,6 +40,9 @@ public enum ErrorCode {
   /** Index or datasource not found */
   INDEX_NOT_FOUND,
 
+  /** Permission denied or insufficient privileges */
+  PERMISSION_DENIED,
+
   /** Query planning failed */
   PLANNING_ERROR,
 

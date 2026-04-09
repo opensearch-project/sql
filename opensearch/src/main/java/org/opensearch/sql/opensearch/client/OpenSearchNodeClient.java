@@ -99,10 +99,17 @@ public class OpenSearchNodeClient implements OpenSearchClient {
           .collect(
               Collectors.toUnmodifiableMap(
                   Map.Entry::getKey, cursor -> new IndexMapping(cursor.getValue())));
-    } catch (IndexNotFoundException | OpenSearchSecurityException e) {
+    } catch (IndexNotFoundException e) {
       // Re-throw directly to be treated as client error finally
       throw ErrorReport.wrap(e)
           .code(ErrorCode.INDEX_NOT_FOUND)
+          .location("while fetching index mappings")
+          .context("index_name", indexExpression[0])
+          .build();
+    } catch (OpenSearchSecurityException e) {
+      // Re-throw with permission denied code
+      throw ErrorReport.wrap(e)
+          .code(ErrorCode.PERMISSION_DENIED)
           .location("while fetching index mappings")
           .context("index_name", indexExpression[0])
           .build();
