@@ -60,9 +60,18 @@ public class VectorSearchIndex extends OpenSearchIndex {
         getSettings().getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
     var requestBuilder = createRequestBuilder();
 
-    // Use VectorSearchQueryBuilder to keep knn in must (scoring) context.
-    // WHERE filters will be placed in filter (non-scoring) context.
-    var queryBuilder = new VectorSearchQueryBuilder(requestBuilder, buildKnnQuery(), options);
+    // Callback for efficient filtering: serialize WHERE QueryBuilder to JSON,
+    // rebuild knn query with filter embedded. JSON handling stays in this class.
+    Function<QueryBuilder, QueryBuilder> rebuildWithFilter =
+        whereQuery -> new WrapperQueryBuilder(buildKnnQueryJson(whereQuery.toString()));
+
+    boolean filterTypeExplicit = filterType != null;
+    FilterType effectiveFilterType = filterType != null ? filterType : FilterType.POST;
+
+    var queryBuilder =
+        new VectorSearchQueryBuilder(
+            requestBuilder, buildKnnQuery(), options,
+            effectiveFilterType, filterTypeExplicit, rebuildWithFilter);
     requestBuilder.pushDownTrackedScore(true);
 
     // Default size policy: LIMIT pushdown will further reduce if present.
