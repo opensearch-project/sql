@@ -156,6 +156,31 @@ class VectorSearchQueryBuilderTest {
   }
 
   @Test
+  void pushDownSortPreservesSortCountAsLimit() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "10"));
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    // LogicalSort with count=7 simulates a sort+limit combined node (PPL path)
+    var sort =
+        new org.opensearch.sql.planner.logical.LogicalSort(
+            dummyChild,
+            7,
+            List.of(
+                org.apache.commons.lang3.tuple.ImmutablePair.of(
+                    org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC,
+                    new ReferenceExpression("_score", ExprCoreType.FLOAT))));
+
+    boolean pushed = builder.pushDownSort(sort);
+    assertTrue(pushed, "ORDER BY _score DESC with count should be accepted");
+    assertEquals(
+        7,
+        requestBuilder.getMaxResponseSize(),
+        "sort.getCount() should be pushed down as request size");
+  }
+
+  @Test
   void pushDownSortNonScoreFieldRejected() {
     var requestBuilder = createRequestBuilder();
     var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
