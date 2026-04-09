@@ -14,6 +14,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -25,6 +26,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.storage.FilterType;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalValues;
@@ -287,6 +289,54 @@ class VectorSearchQueryBuilderTest {
     BoolQueryBuilder boolQuery = (BoolQueryBuilder) resultQuery;
     assertEquals(1, boolQuery.must().size(), "knn query should be in must (scoring context)");
     assertEquals(1, boolQuery.filter().size(), "compound WHERE should be in filter (non-scoring)");
+  }
+
+  @Test
+  void pushDownFilterEfficientPlacesInsideKnn() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    // Callback simulates VectorSearchIndex rebuilding knn with filter
+    Function<QueryBuilder, QueryBuilder> rebuildWithFilter =
+        whereQuery -> new WrapperQueryBuilder("{\"knn\":{\"filter\":\"embedded\"}}");
+    var builder =
+        new VectorSearchQueryBuilder(
+            requestBuilder, knnQuery, Map.of("k", "5"),
+            FilterType.EFFICIENT, true, rebuildWithFilter);
+
+    var condition = DSL.equal(new ReferenceExpression("city", STRING), DSL.literal("Miami"));
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var filter = new LogicalFilter(dummyChild, condition);
+
+    boolean pushed = builder.pushDownFilter(filter);
+
+    assertTrue(pushed, "pushDownFilter should succeed");
+    QueryBuilder resultQuery = requestBuilder.getSourceBuilder().query();
+    assertTrue(
+        resultQuery instanceof WrapperQueryBuilder,
+        "Efficient filter should produce a WrapperQueryBuilder (rebuilt knn), not BoolQuery");
+  }
+
+  @Test
+  void pushDownFilterExplicitPostProducesBool() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder =
+        new VectorSearchQueryBuilder(
+            requestBuilder, knnQuery, Map.of("k", "5"),
+            FilterType.POST, true, null);
+
+    var condition = DSL.equal(new ReferenceExpression("name", STRING), DSL.literal("John"));
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var filter = new LogicalFilter(dummyChild, condition);
+
+    boolean pushed = builder.pushDownFilter(filter);
+
+    assertTrue(pushed);
+    QueryBuilder resultQuery = requestBuilder.getSourceBuilder().query();
+    assertTrue(resultQuery instanceof BoolQueryBuilder);
+    BoolQueryBuilder boolQuery = (BoolQueryBuilder) resultQuery;
+    assertEquals(1, boolQuery.must().size());
+    assertEquals(1, boolQuery.filter().size());
   }
 
   private OpenSearchRequestBuilder createRequestBuilder() {
