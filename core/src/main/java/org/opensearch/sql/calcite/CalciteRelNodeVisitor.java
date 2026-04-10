@@ -3205,7 +3205,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         || node.getColumnSplit() == null
         || Objects.equals(config.limit, 0)) {
       // The output of chart is expected to be ordered by row split names
-      relBuilder.sort(relBuilder.field(0));
+      relBuilder.sort(relBuilder.nullsLast(relBuilder.field(0)));
       return relBuilder.peek();
     }
 
@@ -3275,7 +3275,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 relBuilder.field(2))
             .as(aggFieldName));
     // The output of chart is expected to be ordered by row and column split names
-    relBuilder.sort(relBuilder.field(0), relBuilder.field(1));
+    relBuilder.sort(
+        relBuilder.nullsLast(relBuilder.field(0)), relBuilder.nullsLast(relBuilder.field(1)));
     return relBuilder.peek();
   }
 

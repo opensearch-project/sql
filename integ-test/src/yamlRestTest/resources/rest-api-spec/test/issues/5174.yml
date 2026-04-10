@@ -1,0 +1,81 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  - do:
+      indices.create:
+        index: issue5174
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              count:
+                type: integer
+              category:
+                type: keyword
+              subcategory:
+                type: keyword
+              value:
+                type: double
+              ts:
+                type: date
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5174", "_id": "1"}}'
+          - '{"count": 1, "category": "A", "subcategory": "X", "value": 10.5, "ts": "2024-01-01"}'
+          - '{"index": {"_index": "issue5174", "_id": "2"}}'
+          - '{"count": 2, "category": "A", "subcategory": "Y", "value": 20.3, "ts": "2024-01-02"}'
+          - '{"index": {"_index": "issue5174", "_id": "3"}}'
+          - '{"count": 10, "category": "B", "subcategory": "X", "value": 100.0, "ts": "2024-01-03"}'
+          - '{"index": {"_index": "issue5174", "_id": "4"}}'
+          - '{"count": null, "category": "B", "subcategory": "Y", "value": null, "ts": "2024-01-04"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5174
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5174: bin then chart with null values should not cause NPE":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5174 | bin value span=50 as val_bin | chart count() over val_bin by category
+
+  - match: { total: 3 }
+  - match: { schema: [ { name: val_bin, type: string }, { name: category, type: string }, { name: "count()", type: bigint } ] }
+
+---
+"Issue 5174: bin then chart with single group and null values":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5174 | bin value span=50 as val_bin | chart count() over val_bin
+
+  - match: { total: 2 }
+  - match: { schema: [ { name: val_bin, type: string }, { name: "count()", type: bigint } ] }
