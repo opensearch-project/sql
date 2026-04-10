@@ -44,6 +44,7 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
   private final boolean filterTypeExplicit;
   private final Function<QueryBuilder, QueryBuilder> rebuildKnnWithFilter;
   private boolean filterPushed = false;
+  private boolean limitPushed = false;
 
   /** Full constructor with filter type support. */
   public VectorSearchQueryBuilder(
@@ -89,6 +90,7 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
   @Override
   public boolean pushDownLimit(LogicalLimit limit) {
     validateLimitWithinK(limit.getLimit());
+    limitPushed = true;
     return super.pushDownLimit(limit);
   }
 
@@ -136,6 +138,12 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
   public OpenSearchRequestBuilder build() {
     if (filterTypeExplicit && !filterPushed) {
       throw new ExpressionEvaluationException("filter_type requires a pushdownable WHERE clause");
+    }
+    boolean isRadial = !options.containsKey("k");
+    if (isRadial && !limitPushed) {
+      throw new ExpressionEvaluationException(
+          "LIMIT is required for radial vector search (max_distance or min_score)."
+              + " Without LIMIT, the result set size is unbounded.");
     }
     return super.build();
   }

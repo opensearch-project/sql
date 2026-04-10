@@ -404,6 +404,56 @@ class VectorSearchQueryBuilderTest {
     assertNotNull(result);
   }
 
+  // ── Radial without LIMIT rejection ─────────────────────────────────
+
+  @Test
+  void buildRejectsRadialMaxDistanceWithoutLimit() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder =
+        new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("max_distance", "10.0"));
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, builder::build);
+    assertTrue(ex.getMessage().contains("LIMIT is required for radial vector search"));
+  }
+
+  @Test
+  void buildRejectsRadialMinScoreWithoutLimit() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder =
+        new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("min_score", "0.5"));
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, builder::build);
+    assertTrue(ex.getMessage().contains("LIMIT is required for radial vector search"));
+  }
+
+  @Test
+  void buildSucceedsRadialWithLimit() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder =
+        new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("max_distance", "10.0"));
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    builder.pushDownLimit(new LogicalLimit(dummyChild, 50, 0));
+
+    OpenSearchRequestBuilder result = builder.build();
+    assertNotNull(result);
+  }
+
+  @Test
+  void buildSucceedsTopKWithoutLimit() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    OpenSearchRequestBuilder result = builder.build();
+    assertNotNull(result);
+  }
+
   // ── Regression: LIMIT and sort invariants under efficient mode ──────
 
   @Test
