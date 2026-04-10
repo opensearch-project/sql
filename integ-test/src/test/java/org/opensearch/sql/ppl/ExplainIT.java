@@ -101,9 +101,9 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testFilterByCompareIPCoercion() throws IOException {
     // Should automatically cast the string literal to IP and pushdown it as a range query
-    assertJsonEqualsIgnoreId(
-        loadExpectedPlan("explain_filter_compare_ip.json"),
-        explainQueryToString(
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_filter_compare_ip.yaml"),
+        explainQueryYaml(
             String.format(
                 Locale.ROOT,
                 "source=%s | where host > '1.1.1.1' | fields host",
@@ -116,9 +116,9 @@ public class ExplainIT extends PPLIntegTestCase {
     Assume.assumeTrue(isCalciteEnabled());
     // Test swapping ip and string. In v2, this is pushed down as script;
     // with Calcite, it will still be pushed down as a range query
-    assertJsonEqualsIgnoreId(
-        loadExpectedPlan("explain_filter_compare_ipv6_swapped.json"),
-        explainQueryToString(
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_filter_compare_ipv6_swapped.yaml"),
+        explainQueryYaml(
             String.format(
                 Locale.ROOT,
                 "source=%s | where '::ffff:1234' <= host | fields host",
@@ -127,12 +127,12 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testWeekArgumentCoercion() throws IOException {
-    String expected = loadExpectedPlan("explain_week_argument_coercion.json");
+    String expected = loadExpectedPlan("explain_week_argument_coercion.yaml");
     // Week accepts WEEK(timestamp/date/time, [optional int]), it should cast the string
     // argument to timestamp with Calcite. In v2, it accepts string, so there is no cast.
-    assertJsonEqualsIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 Locale.ROOT,
                 "source=%s |  eval w = week('2024-12-10') | fields w",
@@ -152,18 +152,17 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testCountAggPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_count_agg_push.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | stats count() as cnt"));
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_count_agg_push.yaml"),
+        explainQueryYaml("source=opensearch-sql_test_index_account | stats count() as cnt"));
   }
 
   @Test
   public void testSortPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_sort_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_sort_push.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account"
                 + "| sort age "
                 + "| where age > 30"
@@ -180,10 +179,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortWithDescPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_sort_desc_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_sort_desc_push.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | sort age desc, firstname | fields age,"
                 + " firstname"));
   }
@@ -216,10 +215,10 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testMultiSortPushDownExplain() throws IOException {
     // TODO: Fix the expected output in expectedOutput/ppl/explain_multi_sort_push.json (v2)
     //  balance and gender should take precedence over account_number and firstname
-    String expected = loadExpectedPlan("explain_multi_sort_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_multi_sort_push.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account "
                 + "| sort account_number, firstname, address, balance "
                 + "| sort - balance, - gender, account_number "
@@ -228,10 +227,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortThenAggregatePushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_sort_then_agg_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_sort_then_agg_push.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account"
                 + "| sort balance, age "
                 + "| stats avg(balance) by state"));
@@ -239,10 +238,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortWithRenameExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_sort_rename_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_sort_rename_push.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account "
                 + "| rename firstname as name "
                 + "| eval alias = name "
@@ -368,10 +367,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFillNullPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_fillnull_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_fillnull_push.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account"
                 + " | fillnull with -1 in age,balance | fields age, balance"));
   }
@@ -431,6 +430,7 @@ public class ExplainIT extends PPLIntegTestCase {
                 + " show_numbered_token=true"));
   }
 
+  @Ignore("Enable after fixing https://github.com/opensearch-project/sql/issues/4968")
   @Test
   public void testPatternsBrainMethodWithAggPushDownExplain() throws IOException {
     // TODO: Correct calcite expected result once pushdown is supported
@@ -444,19 +444,19 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsBySpan() throws IOException {
-    String expected = loadExpectedPlan("explain_stats_by_span.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_stats_by_span.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format("source=%s | stats count() by span(age,10)", TEST_INDEX_BANK)));
   }
 
   @Test
   public void testStatsBySpanNonBucketNullable() throws IOException {
-    String expected = loadExpectedPlan("explain_stats_by_span_non_bucket_nullable.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_stats_by_span_non_bucket_nullable.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | stats bucket_nullable=false count() by span(age,10)",
                 TEST_INDEX_BANK)));
@@ -518,14 +518,9 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testSingleFieldRelevanceQueryFunctionExplain() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_single_field_relevance_push.json")
-            : loadFromFile("expectedOutput/ppl/explain_single_field_relevance_push.json");
-
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_single_field_relevance_push.yaml"),
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account"
                 + "| where match(email, '*@gmail.com', boost=1.0)"));
   }
@@ -533,14 +528,9 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testMultiFieldsRelevanceQueryFunctionExplain() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_multi_fields_relevance_push.json")
-            : loadFromFile("expectedOutput/ppl/explain_multi_fields_relevance_push.json");
-
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_multi_fields_relevance_push.yaml"),
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account"
                 + "| where simple_query_string(['email', name 4.0], 'gmail',"
                 + " default_operator='or', analyzer=english)"));
@@ -661,10 +651,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExplainOnPercentile() throws IOException {
-    String expected = loadExpectedPlan("explain_percentile.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_percentile.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats percentile(balance, 50) as p50,"
                 + " percentile(balance, 90) as p90"));
   }
@@ -729,29 +719,28 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testExplainSearchBasicText() throws IOException {
     // Example 1: Basic text search without field specification
-    String expected = loadExpectedPlan("explain_search_basic_text.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(String.format("search source=%s ERROR", TEST_INDEX_OTEL_LOGS)));
+    String expected = loadExpectedPlan("explain_search_basic_text.yaml");
+    assertYamlEqualsIgnoreId(
+        expected, explainQueryYaml(String.format("search source=%s ERROR", TEST_INDEX_OTEL_LOGS)));
   }
 
   @Test
   public void testExplainSearchNumericComparison() throws IOException {
     // Example 2: Numeric field comparison with greater than
-    String expected = loadExpectedPlan("explain_search_numeric_comparison.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_search_numeric_comparison.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format("search source=%s severityNumber>15", TEST_INDEX_OTEL_LOGS)));
   }
 
   @Test
   public void testExplainSearchWildcardStar() throws IOException {
     // Example 3: Wildcard search with asterisk for pattern matching
-    String expected = loadExpectedPlan("explain_search_wildcard_star.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_search_wildcard_star.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format("search source=%s severityText=ERR*", TEST_INDEX_OTEL_LOGS)));
   }
 

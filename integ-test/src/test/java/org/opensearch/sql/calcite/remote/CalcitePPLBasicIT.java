@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -17,7 +18,6 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLBasicIT extends PPLIntegTestCase {
@@ -455,16 +455,27 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testBetweenWithIncompatibleTypes() {
-    Throwable e =
-        assertThrowsWithReplace(
-            SemanticCheckException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | where age between '35' and 38.5 | fields firstname, age",
-                        TEST_INDEX_BANK)));
-    verifyErrorMessageContains(e, "BETWEEN expression types are incompatible");
+  public void testBetweenWithMixedTypes() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age between '35' and 38 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
+  }
+
+  @Test
+  public void testBetweenWithIncompatibleTypes() throws IOException {
+    // Plan: SAFE_CAST(NUMBER_TO_STRING(38.5:DECIMAL(3, 1))). The least restrictive type between
+    // int, decimal, and varchar is resolved to varchar. between '35' and '38.5' is then optimized
+    // to empty rows
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age between '35' and 38.5 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
+    verifyNumOfRows(actual, 0);
   }
 
   @Test

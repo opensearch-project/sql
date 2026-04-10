@@ -30,9 +30,14 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ListSqlOperatorTable;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.logging.log4j.LogManager;
@@ -55,7 +60,9 @@ import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
 import org.opensearch.sql.executor.Explain;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.monitor.profile.ProfileMetric;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
@@ -76,6 +83,10 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
   private final ExecutionProtector executionProtector;
   private final PlanSerializer planSerializer;
+
+  static {
+    CalcitePlanContext.setOperatorTableProvider(OperatorTable::getChainedOperatorTable);
+  }
 
   public OpenSearchExecutionEngine(
       OpenSearchClient client,
@@ -344,7 +355,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             DistinctCountApproxAggFunction.class,
             BuiltinFunctionName.DISTINCT_COUNT_APPROX.name(),
             ReturnTypes.BIGINT_FORCE_NULLABLE,
-            null);
+            UDFOperandMetadata.wrap(OperandTypes.ANY));
     PPLFuncImpTable.INSTANCE.registerExternalAggOperator(
         BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
     OperatorTable.addOperator(
@@ -376,6 +387,21 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
     public static synchronized void addOperator(String name, SqlOperator operator) {
       operators.put(name, operator);
+    }
+
+    /**
+     * Chain PPL's operator table with selected Calcite's built-in library operator tables.
+     *
+     * <p>This method should be called AFTER operators are initialized
+     */
+    public static SqlOperatorTable getChainedOperatorTable() {
+      return SqlOperatorTables.chain(
+          PPLBuiltinOperators.instance(),
+          SqlStdOperatorTable.instance(),
+          OperatorTable.instance(),
+          // Add a list of necessary SqlLibrary if needed
+          SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+              SqlLibrary.MYSQL, SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL, SqlLibrary.HIVE));
     }
   }
 }

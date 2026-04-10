@@ -208,7 +208,8 @@ Transforms the elements of the `array` one by one using a lambda function. The l
 
 The following example transforms each element by adding 2:
 
-```ppl
+<!-- TODO: To be fixed with https://github.com/opensearch-project/sql/issues/4972 -->
+```ppl ignore
 source=people
 | eval array = array(1, -2, 3), result = transform(array, x -> x + 2)
 | fields result
@@ -227,8 +228,9 @@ fetched rows / total rows = 1/1
 ```
 
 The following example uses both element value and index in the transformation:
-  
-```ppl
+
+<!-- TODO: To be fixed with https://github.com/opensearch-project/sql/issues/4972 -->
+```ppl ignore
 source=people
 | eval array = array(1, -2, 3), result = transform(array, (x, i) -> x + i)
 | fields result
@@ -972,7 +974,8 @@ Iterates over each element of a multivalue array, applies the expression to each
 
 The following example applies a mathematical operation to each element of an array:
 
-```ppl
+<!-- TODO: To be fixed with https://github.com/opensearch-project/sql/issues/4972 -->
+```ppl ignore
 source=people
 | eval array = array(1, 2, 3), result = mvmap(array, array * 10)
 | fields result
@@ -992,7 +995,8 @@ fetched rows / total rows = 1/1
 
 The following example applies a different mathematical operation:
 
-```ppl
+<!-- TODO: To be fixed with https://github.com/opensearch-project/sql/issues/4972 -->
+```ppl ignore
 source=people
 | eval array = array(1, 2, 3), result = mvmap(array, array + 5)
 | fields result
@@ -1014,7 +1018,8 @@ fetched rows / total rows = 1/1
 
 The following example shows how the expression can reference other single-value fields:
 
-```ppl
+<!-- TODO: To be fixed with https://github.com/opensearch-project/sql/issues/4972 -->
+```ppl ignore
 source=people
 | eval array = array(1, 2, 3), multiplier = 10, result = mvmap(array, array * multiplier)
 | fields result

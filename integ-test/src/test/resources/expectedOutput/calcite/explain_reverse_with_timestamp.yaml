@@ -1,8 +1,8 @@
 calcite:
   logical: |
     LogicalSystemLimit(sort0=[$0], dir0=[DESC], fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(@timestamp=[$0], category=[$1], value=[$2], timestamp=[$3])
-        LogicalSort(sort0=[$0], dir0=[DESC], fetch=[5])
+      LogicalSort(sort0=[$0], dir0=[DESC], fetch=[5])
+        LogicalProject(@timestamp=[$0], category=[$1], value=[$2], timestamp=[$3])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])
   physical: |
     CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]], PushDownContext=[[PROJECT->[@timestamp, category, value, timestamp], SORT->[{

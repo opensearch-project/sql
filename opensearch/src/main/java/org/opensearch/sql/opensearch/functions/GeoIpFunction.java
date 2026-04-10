@@ -16,15 +16,21 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.geospatial.action.IpEnrichmentActionClient;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.transport.client.node.NodeClient;
@@ -57,11 +63,33 @@ public class GeoIpFunction extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrapUDT(
-        List.of(
-            List.of(ExprCoreType.STRING, ExprCoreType.IP),
-            List.of(ExprCoreType.STRING, ExprCoreType.IP, ExprCoreType.STRING)));
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(
+        new SqlOperandTypeChecker() {
+          @Override
+          public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+            if (!getOperandCountRange().isValidCount(callBinding.getOperandCount())) {
+              return false;
+            }
+            boolean valid =
+                OpenSearchTypeUtil.isCharacter(callBinding.getOperandType(0))
+                    && OpenSearchTypeUtil.isIp(callBinding.getOperandType(1), true);
+            if (callBinding.getOperandCount() == 3) {
+              valid = valid && OpenSearchTypeUtil.isCharacter(callBinding.getOperandType(2));
+            }
+            return valid;
+          }
+
+          @Override
+          public SqlOperandCountRange getOperandCountRange() {
+            return SqlOperandCountRanges.between(2, 3);
+          }
+
+          @Override
+          public String getAllowedSignatures(SqlOperator op, String opName) {
+            return "GEOIP(<STRING>, <IP>), GEOIP(<STRING>, <IP>, <STRING>)";
+          }
+        });
   }
 
   public static class GeoIPImplementor implements NotNullImplementor {
@@ -101,10 +129,15 @@ public class GeoIpFunction extends ImplementorUDF {
         ExprIpValue ipAddress,
         String commaSeparatedOptions,
         NodeClient nodeClient) {
+      return fetchIpEnrichment(dataSource, ipAddress.toString(), commaSeparatedOptions, nodeClient);
+    }
+
+    public static Map<String, ?> fetchIpEnrichment(
+        String dataSource, String ipAddress, String commaSeparatedOptions, NodeClient nodeClient) {
       String unquotedOptions = StringUtils.unquoteText(commaSeparatedOptions);
       final Set<String> options =
           Arrays.stream(unquotedOptions.split(",")).map(String::trim).collect(Collectors.toSet());
-      return fetchIpEnrichment(dataSource, ipAddress.toString(), options, nodeClient);
+      return fetchIpEnrichment(dataSource, ipAddress, options, nodeClient);
     }
 
     private static Map<String, ?> fetchIpEnrichment(
