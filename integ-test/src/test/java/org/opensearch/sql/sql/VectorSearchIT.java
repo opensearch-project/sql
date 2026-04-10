@@ -133,6 +133,21 @@ public class VectorSearchIT extends SQLIntegTestCase {
     assertThat(ex.getMessage(), containsString("Missing required option"));
   }
 
+  @Test
+  public void testRadialWithoutLimitRejects() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', "
+                        + "vector='[1.0, 2.0]', option='max_distance=10.5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("LIMIT is required for radial vector search"));
+  }
+
   // ── Sort restriction validation ─────────────────────────────────────────
 
   @Test
