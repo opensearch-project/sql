@@ -2,6 +2,15 @@
 
 ## Phase 0: Triage
 
+### 0.0 Report Working Directory
+
+```bash
+echo "Worktree: $(pwd)"
+echo "Branch: $(git branch --show-current)"
+```
+
+Include this in your output so the caller knows where changes are happening.
+
 ### 0.1 Load & Reproduce
 
 ```bash
@@ -126,6 +135,8 @@ EOF
 
 ## Completion Gate
 
+Run `git status --porcelain` — if any uncommitted changes remain, commit and push them before proceeding.
+
 Do NOT report "done" until every item below is checked. List each in your final report:
 
 - [ ] **Unit tests**: New test class or methods
@@ -149,3 +160,10 @@ If any item is blocked, report which and why.
 - [ ] New pattern? Add to Case Index.
 
 Include harness improvements in the same PR.
+
+Report in your final output:
+```
+Worktree: <absolute path>
+Branch: <branch name>
+PR: <pr_number>
+```
