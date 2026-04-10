@@ -62,8 +62,9 @@ teardown:
         body:
           query: source=issue5174 | bin value span=50 as val_bin | chart count() over val_bin by category
 
-  - match: { total: 3 }
+  - match: { total: 2 }
   - match: { schema: [ { name: val_bin, type: string }, { name: category, type: string }, { name: "count()", type: bigint } ] }
+  - match: { datarows: [ [ "0-50", "A", 2 ], [ "100-150", "B", 1 ] ] }
 
 ---
 "Issue 5174: bin then chart with single group and null values":
@@ -79,3 +80,4 @@ teardown:
 
   - match: { total: 2 }
   - match: { schema: [ { name: val_bin, type: string }, { name: "count()", type: bigint } ] }
+  - match: { datarows: [ [ "0-50", 2 ], [ "100-150", 1 ] ] }

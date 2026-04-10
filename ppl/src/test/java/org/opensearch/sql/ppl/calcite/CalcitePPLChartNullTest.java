@@ -145,7 +145,7 @@ public class CalcitePPLChartNullTest extends CalcitePPLAbstractTest {
 
     @Override
     public Statistic getStatistic() {
-      return Statistics.of(0d, ImmutableList.of(), RelCollations.createSingleton(0));
+      return Statistics.of(4d, ImmutableList.of(), RelCollations.createSingleton(0));
     }
 
     @Override
