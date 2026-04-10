@@ -8,6 +8,7 @@ package org.opensearch.sql.api;
 import static org.apache.calcite.sql.type.SqlTypeName.INTEGER;
 import static org.apache.calcite.sql.type.SqlTypeName.VARCHAR;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Map;
@@ -148,6 +149,37 @@ public abstract class UnifiedQueryTestBase {
     return new QueryAssert(planner.plan(query));
   }
 
+  /** Fluent helper for asserting query planning errors. */
+  protected QueryErrorAssert givenInvalidQuery(String query) {
+    try {
+      planner.plan(query);
+      throw new AssertionError("Expected query to fail: " + query);
+    } catch (Exception e) {
+      return new QueryErrorAssert(e);
+    }
+  }
+
+  /** Fluent assertion on a query planning error. */
+  protected static class QueryErrorAssert {
+    private final Exception error;
+
+    QueryErrorAssert(Exception error) {
+      this.error = error;
+    }
+
+    /** Assert the root cause error message contains the expected substring. */
+    public QueryErrorAssert assertErrorMessage(String expected) {
+      Throwable cause = error;
+      while (cause.getCause() != null) {
+        cause = cause.getCause();
+      }
+      String msg = cause.getMessage() != null ? cause.getMessage() : cause.getClass().getName();
+      assertTrue(
+          "Expected error to contain: " + expected + "\nActual: " + msg, msg.contains(expected));
+      return this;
+    }
+  }
+
   /** Fluent assertion on a query's logical plan. */
   protected static class QueryAssert {
     private final RelNode plan;
@@ -161,6 +193,15 @@ public abstract class UnifiedQueryTestBase {
       assertEquals(
           expected.stripTrailing(),
           RelOptUtil.toString(plan).replaceAll("\\r\\n", "\n").stripTrailing());
+      return this;
+    }
+
+    /** Assert the logical plan contains the expected substring. */
+    public QueryAssert assertPlanContains(String expected) {
+      String planStr = RelOptUtil.toString(plan).replaceAll("\\r\\n", "\n");
+      assertTrue(
+          "Expected plan to contain: " + expected + "\nActual plan:\n" + planStr,
+          planStr.contains(expected));
       return this;
     }
 

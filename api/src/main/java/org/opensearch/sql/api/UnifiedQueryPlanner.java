@@ -17,6 +17,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
+import org.opensearch.sql.api.parser.NamedArgRewriter;
 import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
@@ -81,7 +82,8 @@ public class UnifiedQueryPlanner {
     public RelNode plan(String query) throws Exception {
       try (Planner planner = Frameworks.getPlanner(context.getPlanContext().config)) {
         SqlNode parsed = planner.parse(query);
-        SqlNode validated = planner.validate(parsed);
+        SqlNode rewritten = parsed.accept(NamedArgRewriter.INSTANCE);
+        SqlNode validated = planner.validate(rewritten);
         RelRoot relRoot = planner.rel(validated);
         return relRoot.project();
       }
