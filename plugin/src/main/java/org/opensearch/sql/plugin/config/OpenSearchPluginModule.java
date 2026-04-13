@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.plugin.config;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Provides;
@@ -13,6 +14,7 @@ import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.executor.DelegatingExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
@@ -41,6 +43,13 @@ import org.opensearch.transport.client.node.NodeClient;
 @RequiredArgsConstructor
 public class OpenSearchPluginModule extends AbstractModule {
 
+  private final List<ExecutionEngine> executionEngineExtensions;
+
+  /** Default constructor for when no engines are available. */
+  public OpenSearchPluginModule() {
+    this(List.of());
+  }
+
   private final BuiltinFunctionRepository functionRepository =
       BuiltinFunctionRepository.getInstance();
 
@@ -61,7 +70,12 @@ public class OpenSearchPluginModule extends AbstractModule {
   @Singleton
   public ExecutionEngine executionEngine(
       OpenSearchClient client, ExecutionProtector protector, PlanSerializer planSerializer) {
-    return new OpenSearchExecutionEngine(client, protector, planSerializer);
+    ExecutionEngine defaultEngine =
+        new OpenSearchExecutionEngine(client, protector, planSerializer);
+    if (executionEngineExtensions.isEmpty()) {
+      return defaultEngine;
+    }
+    return new DelegatingExecutionEngine(defaultEngine, executionEngineExtensions);
   }
 
   @Provides

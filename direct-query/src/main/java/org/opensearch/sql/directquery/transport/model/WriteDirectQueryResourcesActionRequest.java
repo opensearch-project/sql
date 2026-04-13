@@ -38,6 +38,9 @@ public class WriteDirectQueryResourcesActionRequest extends ActionRequest {
     request.setResourceName(in.readOptionalString());
     request.setRequest(in.readOptionalString());
     request.setRequestOptions(in.readMap(StreamInput::readString, StreamInput::readString));
+    request.setGroupName(in.readOptionalString());
+    Boolean deleteValue = in.readOptionalBoolean();
+    request.setDelete(deleteValue != null ? deleteValue : false);
     this.directQueryRequest = request;
   }
 
@@ -57,6 +60,8 @@ public class WriteDirectQueryResourcesActionRequest extends ActionRequest {
       out.writeMap(
           Collections.emptyMap(), StreamOutput::writeString, StreamOutput::writeString);
     }
+    out.writeOptionalString(directQueryRequest.getGroupName());
+    out.writeOptionalBoolean(directQueryRequest.isDelete());
   }
 
   @Override

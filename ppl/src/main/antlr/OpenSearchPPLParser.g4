@@ -48,6 +48,7 @@ pplCommands
    | showDataSourcesCommand
    | searchCommand
    | multisearchCommand
+   | graphLookupCommand
    ;
 
 commands
@@ -231,7 +232,7 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA? renameClasue)*
+   : RENAME renameClause (COMMA? renameClause)*
    ;
 
 replaceCommand
@@ -545,7 +546,7 @@ replacementPair
    ;
 
 convertCommand
-   : CONVERT convertFunction (COMMA? convertFunction)*
+   : CONVERT (TIMEFORMAT EQUAL timeFormat=stringLiteral)? convertFunction (COMMA? convertFunction)*
    ;
 
 convertFunction
@@ -662,7 +663,9 @@ graphLookupCommand
    ;
 
 startClause
-   : START EQUAL startField = fieldExpression
+   : START EQUAL valueList
+   | START EQUAL startField = fieldExpression
+   | START EQUAL startValue = literalValue
    ;
 
 edgeClause
@@ -720,7 +723,7 @@ sourceReference
 
 sourceFilterArg
    : ident EQUAL literalValue
-   | ident IN valueList
+   | ident IN LT_PRTHS valueList RT_PRTHS
    ;
 
 // join
@@ -773,7 +776,7 @@ joinOption
    | MAX EQUAL integerLiteral                           # maxOption
    ;
 
-renameClasue
+renameClause
    : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
@@ -921,7 +924,7 @@ expression
    : valueExpression                                            # valueExpr
    | relevanceExpression                                        # relevanceExpr
    | left = expression comparisonOperator right = expression    # compareExpr
-   | expression NOT? IN valueList                               # inExpr
+   | expression NOT? IN LT_PRTHS valueList RT_PRTHS             # inExpr
    | expression NOT? BETWEEN expression AND expression          # between
    ;
 
@@ -1463,6 +1466,7 @@ positionFunctionName
    | REGEXP
    | LIKE
    | ILIKE
+   | CONTAINS
    ;
 
 singleFieldRelevanceFunctionName
@@ -1564,7 +1568,7 @@ intervalUnit
    ;
 
 valueList
-   : LT_PRTHS literalValue (COMMA literalValue)* RT_PRTHS
+   : literalValue (COMMA literalValue)*
    ;
 
 qualifiedName
@@ -1628,6 +1632,7 @@ searchableKeyWord
    | ELSE
    | ARROW
    | BETWEEN
+   | CONTAINS
    | EXISTS
    | SOURCE
    | INDEX

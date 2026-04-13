@@ -5,22 +5,25 @@
 
 package org.opensearch.sql.api;
 
-import org.antlr.v4.runtime.tree.ParseTree;
+import static org.opensearch.sql.monitor.profile.MetricName.ANALYZE;
+
+import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
-import org.opensearch.sql.ast.statement.Query;
-import org.opensearch.sql.ast.statement.Statement;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
+import org.opensearch.sql.api.parser.NamedArgRewriter;
+import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
-import org.opensearch.sql.common.antlr.Parser;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.executor.QueryType;
-import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
-import org.opensearch.sql.ppl.parser.AstBuilder;
-import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 
 /**
  * {@code UnifiedQueryPlanner} provides a high-level API for parsing and analyzing queries using the
@@ -28,15 +31,12 @@ import org.opensearch.sql.ppl.parser.AstStatementBuilder;
  * such as Spark or command-line tools, abstracting away Calcite internals.
  */
 public class UnifiedQueryPlanner {
-  /** The parser instance responsible for converting query text into a parse tree. */
-  private final Parser parser;
 
-  /** Unified query context containing CalcitePlanContext with all configuration. */
+  /** Planning strategy selected at construction time based on query type. */
+  private final PlanningStrategy strategy;
+
+  /** Unified query context for profiling support. */
   private final UnifiedQueryContext context;
-
-  /** AST-to-RelNode visitor that builds logical plans from the parsed AST. */
-  private final CalciteRelNodeVisitor relNodeVisitor =
-      new CalciteRelNodeVisitor(new EmptyDataSourceService());
 
   /**
    * Constructs a UnifiedQueryPlanner with a unified query context.
@@ -44,60 +44,83 @@ public class UnifiedQueryPlanner {
    * @param context the unified query context containing CalcitePlanContext
    */
   public UnifiedQueryPlanner(UnifiedQueryContext context) {
-    this.parser = buildQueryParser(context.getPlanContext().queryType);
     this.context = context;
+    this.strategy =
+        context.getPlanContext().queryType == QueryType.SQL
+            ? new CalciteNativeStrategy(context)
+            : new CustomVisitorStrategy(context);
   }
 
   /**
    * Parses and analyzes a query string into a Calcite logical plan (RelNode). TODO: Generate
    * optimal physical plan to fully unify query execution and leverage Calcite's optimizer.
    *
-   * @param query the raw query string in PPL or other supported syntax
+   * @param query the raw query string in PPL or SQL syntax
    * @return a logical plan representing the query
    */
   public RelNode plan(String query) {
     try {
-      return preserveCollation(analyze(parse(query)));
-    } catch (SyntaxCheckException e) {
-      // Re-throw syntax error without wrapping
+      return context.measure(ANALYZE, () -> strategy.plan(query));
+    } catch (SyntaxCheckException | UnsupportedOperationException e) {
       throw e;
     } catch (Exception e) {
       throw new IllegalStateException("Failed to plan query", e);
     }
   }
 
-  private Parser buildQueryParser(QueryType queryType) {
-    if (queryType == QueryType.PPL) {
-      return new PPLSyntaxParser();
-    }
-    throw new IllegalArgumentException("Unsupported query type: " + queryType);
+  /** Strategy interface for language-specific planning logic. */
+  private interface PlanningStrategy {
+    RelNode plan(String query) throws Exception;
   }
 
-  private UnresolvedPlan parse(String query) {
-    ParseTree cst = parser.parse(query);
-    AstStatementBuilder astStmtBuilder =
-        new AstStatementBuilder(
-            new AstBuilder(query, context.getSettings()),
-            AstStatementBuilder.StatementBuilderContext.builder().build());
-    Statement statement = cst.accept(astStmtBuilder);
+  /** ANSI SQL planning using Calcite's native SqlParser → SqlValidator → SqlToRelConverter. */
+  @RequiredArgsConstructor
+  private static class CalciteNativeStrategy implements PlanningStrategy {
+    private final UnifiedQueryContext context;
 
-    if (statement instanceof Query) {
-      return ((Query) statement).getPlan();
+    @Override
+    public RelNode plan(String query) throws Exception {
+      try (Planner planner = Frameworks.getPlanner(context.getPlanContext().config)) {
+        SqlNode parsed = planner.parse(query);
+        if (!parsed.isA(SqlKind.QUERY)) {
+          throw new UnsupportedOperationException(
+              "Only query statements are supported. Got: " + parsed.getKind());
+        }
+
+        SqlNode rewritten = parsed.accept(NamedArgRewriter.INSTANCE);
+        SqlNode validated = planner.validate(rewritten);
+        RelRoot relRoot = planner.rel(validated);
+        return relRoot.project();
+      }
     }
-    throw new UnsupportedOperationException(
-        "Only query statements are supported but got " + statement.getClass().getSimpleName());
   }
 
-  private RelNode analyze(UnresolvedPlan ast) {
-    return relNodeVisitor.analyze(ast, context.getPlanContext());
-  }
+  /** AST-based planning via context-owned parser → UnresolvedPlan → CalciteRelNodeVisitor. */
+  private static class CustomVisitorStrategy implements PlanningStrategy {
+    private final UnifiedQueryContext context;
+    private final UnifiedQueryParser<UnresolvedPlan> parser;
+    private final CalciteRelNodeVisitor relNodeVisitor =
+        new CalciteRelNodeVisitor(new EmptyDataSourceService());
 
-  private RelNode preserveCollation(RelNode logical) {
-    RelNode calcitePlan = logical;
-    RelCollation collation = logical.getTraitSet().getCollation();
-    if (!(logical instanceof Sort) && collation != RelCollations.EMPTY) {
-      calcitePlan = LogicalSort.create(logical, collation, null, null);
+    @SuppressWarnings("unchecked")
+    CustomVisitorStrategy(UnifiedQueryContext context) {
+      this.context = context;
+      this.parser = (UnifiedQueryParser<UnresolvedPlan>) context.getParser();
     }
-    return calcitePlan;
+
+    @Override
+    public RelNode plan(String query) {
+      UnresolvedPlan ast = parser.parse(query);
+      RelNode logical = relNodeVisitor.analyze(ast, context.getPlanContext());
+      return preserveCollation(logical);
+    }
+
+    private RelNode preserveCollation(RelNode logical) {
+      RelCollation collation = logical.getTraitSet().getCollation();
+      if (!(logical instanceof Sort) && collation != RelCollations.EMPTY) {
+        return LogicalSort.create(logical, collation, null, null);
+      }
+      return logical;
+    }
   }
 }

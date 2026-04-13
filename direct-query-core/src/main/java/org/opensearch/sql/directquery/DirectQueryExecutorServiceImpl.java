@@ -118,4 +118,5 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
                         "Unsupported data source type: " + request.getDataSource())
             );
     }
+
 }

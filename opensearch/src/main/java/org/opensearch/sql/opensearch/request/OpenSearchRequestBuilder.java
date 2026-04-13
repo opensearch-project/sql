@@ -78,6 +78,10 @@ public class OpenSearchRequestBuilder {
     public PushDownUnSupportedException(String message) {
       super(message);
     }
+
+    public PushDownUnSupportedException(String message, Throwable cause) {
+      super(message, cause);
+    }
   }
 
   /** Constructor. */

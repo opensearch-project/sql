@@ -430,7 +430,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitRenameCommand(RenameCommandContext ctx) {
     return new Rename(
-        ctx.renameClasue().stream()
+        ctx.renameClause().stream()
             .map(
                 ct ->
                     new Map(
@@ -1213,12 +1213,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             .map(this::buildConversion)
             .filter(conversion -> conversion != null)
             .collect(Collectors.toList());
-    return new Convert(conversions);
+
+    String timeFormat = null;
+    if (ctx.timeFormat != null) {
+      timeFormat = StringUtils.unquoteText(ctx.timeFormat.getText());
+    }
+
+    return new Convert(conversions, timeFormat);
   }
 
   /** Supported PPL convert function names (case-insensitive). */
   private static final Set<String> SUPPORTED_CONVERSION_FUNCTIONS =
-      Set.of("auto", "num", "rmcomma", "rmunit", "memk", "none");
+      Set.of(
+          "auto", "num", "rmcomma", "rmunit", "memk", "none", "ctime", "mktime", "dur2sec",
+          "mstime");
 
   private Let buildConversion(OpenSearchPPLParser.ConvertFunctionContext funcCtx) {
     if (funcCtx.fieldExpression().isEmpty()) {
@@ -1571,7 +1579,22 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     // Parse required base: start and edge
     OpenSearchPPLParser.StartClauseContext startCtx = ctx.startClause();
-    Field startField = (Field) internalVisitExpression(startCtx.startField);
+    Field startField = null;
+    List<Literal> startValues = null;
+    if (startCtx.startField != null) {
+      // Piped mode: start=fieldExpression
+      startField = (Field) internalVisitExpression(startCtx.startField);
+    } else if (startCtx.startValue != null) {
+      // Top-level mode: single literal e.g. start="Jack"
+      startValues = List.of((Literal) internalVisitExpression(startCtx.startValue));
+    } else if (startCtx.valueList() != null) {
+      // Top-level mode: literal list e.g. start="Jack", "Eliot"
+      OpenSearchPPLParser.ValueListContext listCtx = startCtx.valueList();
+      startValues = new ArrayList<>();
+      for (OpenSearchPPLParser.LiteralValueContext lit : listCtx.literalValue()) {
+        startValues.add((Literal) internalVisitExpression(lit));
+      }
+    }
     // Parse edge clause from EDGE_CLAUSE token (e.g., "edge=manager-->name")
     OpenSearchPPLParser.EdgeClauseContext edgeCtx = ctx.edgeClause();
     String edgeClauseText = edgeCtx.edgeClauseToken.getText();
@@ -1631,6 +1654,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .as(as)
         .maxDepth(maxDepth)
         .startField(startField)
+        .startValues(startValues)
         .depthField(depthField)
         .direction(direction)
         .supportArray(supportArray)

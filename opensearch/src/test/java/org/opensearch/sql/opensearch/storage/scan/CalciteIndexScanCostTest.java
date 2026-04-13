@@ -39,7 +39,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,10 +46,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
-import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
-import org.opensearch.sql.opensearch.storage.scan.context.AggPushDownAction;
-import org.opensearch.sql.opensearch.storage.scan.context.AggregationBuilderAction;
+import org.opensearch.sql.opensearch.storage.scan.context.AggSpec;
 import org.opensearch.sql.opensearch.storage.scan.context.FilterDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
@@ -60,6 +57,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 @ExtendWith(MockitoExtension.class)
 public class CalciteIndexScanCostTest {
   static final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+  private static final OSRequestBuilderAction NO_OP_ACTION = req -> {};
   final RexBuilder builder = new RexBuilder(typeFactory);
 
   @Mock private static RelOptCluster cluster;
@@ -210,17 +208,12 @@ public class CalciteIndexScanCostTest {
             null,
             List.of());
     when(mq.getRowCount(aggregate)).thenReturn(1000d);
-    AggPushDownAction action =
-        new AggPushDownAction(Pair.of(List.of(), null), null, List.of()) {
-          @Override
-          public void apply(OpenSearchRequestBuilder requestBuilder) {}
-        };
     lenient().when(relDataType.getFieldList()).thenReturn(new MockFieldList(1));
     lenient().when(relDataType.getFieldCount()).thenReturn(1);
     lenient().when(table.getRowType()).thenReturn(relDataType);
 
     scan.getPushDownContext()
-        .add(new PushDownOperation(PushDownType.AGGREGATION, aggregate, action));
+        .add(new PushDownOperation(PushDownType.AGGREGATION, aggregate, NO_OP_ACTION));
     assertEquals(1800, Objects.requireNonNull(scan.computeSelfCost(planner, mq)).getRows());
   }
 
@@ -233,11 +226,6 @@ public class CalciteIndexScanCostTest {
     lenient().when(table.getRowType()).thenReturn(relDataType);
 
     CalciteLogicalIndexScan scan = new CalciteLogicalIndexScan(cluster, table, osIndex);
-    AggPushDownAction action =
-        new AggPushDownAction(Pair.of(List.of(), null), null, List.of()) {
-          @Override
-          public void apply(OpenSearchRequestBuilder requestBuilder) {}
-        };
     AggregateCall countCall =
         AggregateCall.create(
             SqlStdOperatorTable.COUNT,
@@ -266,7 +254,7 @@ public class CalciteIndexScanCostTest {
     lenient().when(table.getRowType()).thenReturn(relDataType);
 
     scan.getPushDownContext()
-        .add(new PushDownOperation(PushDownType.AGGREGATION, aggregate, action));
+        .add(new PushDownOperation(PushDownType.AGGREGATION, aggregate, NO_OP_ACTION));
     assertEquals(2812.5, Objects.requireNonNull(scan.computeSelfCost(planner, mq)).getRows());
   }
 
@@ -279,11 +267,6 @@ public class CalciteIndexScanCostTest {
     lenient().when(table.getRowType()).thenReturn(relDataType);
 
     CalciteLogicalIndexScan scan = new CalciteLogicalIndexScan(cluster, table, osIndex);
-    AggPushDownAction action =
-        new AggPushDownAction(Pair.of(List.of(), null), null, List.of()) {
-          @Override
-          public void apply(OpenSearchRequestBuilder requestBuilder) {}
-        };
     AggregateCall countCall =
         AggregateCall.create(
             SqlStdOperatorTable.COUNT,
@@ -325,7 +308,7 @@ public class CalciteIndexScanCostTest {
     lenient().when(table.getRowType()).thenReturn(relDataType);
 
     scan.getPushDownContext()
-        .add(new PushDownOperation(PushDownType.AGGREGATION, aggregate, action));
+        .add(new PushDownOperation(PushDownType.AGGREGATION, aggregate, NO_OP_ACTION));
     assertEquals(
         3836.2500429153442, Objects.requireNonNull(scan.computeSelfCost(planner, mq)).getRows());
   }
@@ -339,16 +322,8 @@ public class CalciteIndexScanCostTest {
     lenient().when(table.getRowType()).thenReturn(relDataType);
 
     CalciteLogicalIndexScan scan = new CalciteLogicalIndexScan(cluster, table, osIndex);
-    AggPushDownAction action =
-        new AggPushDownAction(Pair.of(List.of(), null), null, List.of()) {
-          @Override
-          public void apply(OpenSearchRequestBuilder requestBuilder) {}
-
-          @Override
-          public long getScriptCount() {
-            return 1;
-          }
-        };
+    AggSpec aggSpec = mock(AggSpec.class);
+    when(aggSpec.getScriptCount()).thenReturn(1L);
     AggregateCall countCall =
         AggregateCall.create(
             SqlStdOperatorTable.COUNT,
@@ -375,11 +350,28 @@ public class CalciteIndexScanCostTest {
     lenient().when(relDataType.getFieldList()).thenReturn(new MockFieldList(2));
     lenient().when(relDataType.getFieldCount()).thenReturn(2);
     lenient().when(table.getRowType()).thenReturn(relDataType);
+    scan.getPushDownContext().setAggSpec(aggSpec);
 
     scan.getPushDownContext()
-        .add(new PushDownOperation(PushDownType.AGGREGATION, aggregate, action));
+        .add(new PushDownOperation(PushDownType.AGGREGATION, aggregate, NO_OP_ACTION));
     assertEquals(
         2913.7500643730164, Objects.requireNonNull(scan.computeSelfCost(planner, mq)).getRows());
+  }
+
+  @Test
+  void test_cost_on_highlight_pushdown() {
+    RelDataType relDataType = mock(RelDataType.class);
+    lenient().when(relDataType.getFieldList()).thenReturn(new MockFieldList(10));
+    lenient().when(table.getRowType()).thenReturn(relDataType);
+    CalciteLogicalIndexScan scan = new CalciteLogicalIndexScan(cluster, table, osIndex);
+
+    List<String> highlightArgs = List.of("*");
+    scan.getPushDownContext()
+        .add(
+            new PushDownOperation(
+                PushDownType.HIGHLIGHT, highlightArgs, (OSRequestBuilderAction) req -> {}));
+    // Highlight should not change cost compared to non-pushdown (same as PROJECT behavior)
+    assertEquals(90000, Objects.requireNonNull(scan.computeSelfCost(planner, mq)).getRows());
   }
 
   @Test
@@ -458,16 +450,8 @@ public class CalciteIndexScanCostTest {
     lenient().when(table.getRowType()).thenReturn(relDataType);
 
     CalciteLogicalIndexScan scan = new CalciteLogicalIndexScan(cluster, table, osIndex);
-    AggPushDownAction action =
-        new AggPushDownAction(Pair.of(List.of(), null), null, List.of()) {
-          @Override
-          public void apply(OpenSearchRequestBuilder requestBuilder) {}
-
-          @Override
-          public long getScriptCount() {
-            return 1;
-          }
-        };
+    AggSpec aggSpec = mock(AggSpec.class);
+    when(aggSpec.getScriptCount()).thenReturn(1L);
     AggregateCall countCall =
         AggregateCall.create(
             SqlStdOperatorTable.COUNT,
@@ -494,6 +478,7 @@ public class CalciteIndexScanCostTest {
     lenient().when(relDataType.getFieldList()).thenReturn(new MockFieldList(2));
     lenient().when(relDataType.getFieldCount()).thenReturn(2);
     lenient().when(table.getRowType()).thenReturn(relDataType);
+    scan.getPushDownContext().setAggSpec(aggSpec);
 
     List<String> projectDigest1 = List.of("A", "B");
     scan.getPushDownContext()
@@ -501,19 +486,15 @@ public class CalciteIndexScanCostTest {
             new PushDownOperation(
                 PushDownType.PROJECT, projectDigest1, (OSRequestBuilderAction) req -> {}));
     scan.getPushDownContext()
-        .add(new PushDownOperation(PushDownType.AGGREGATION, aggregate, action));
+        .add(new PushDownOperation(PushDownType.AGGREGATION, aggregate, NO_OP_ACTION));
     List<String> projectDigest2 = List.of("COUNT");
     scan.getPushDownContext()
-        .add(
-            new PushDownOperation(
-                PushDownType.PROJECT, projectDigest2, (AggregationBuilderAction) req -> {}));
+        .add(new PushDownOperation(PushDownType.PROJECT, projectDigest2, NO_OP_ACTION));
     scan.getPushDownContext()
         .add(new PushDownOperation(PushDownType.SORT, null, (OSRequestBuilderAction) req -> {}));
     LimitDigest limitDigest = new LimitDigest(100, 0);
     scan.getPushDownContext()
-        .add(
-            new PushDownOperation(
-                PushDownType.LIMIT, limitDigest, (AggregationBuilderAction) req -> {}));
+        .add(new PushDownOperation(PushDownType.LIMIT, limitDigest, NO_OP_ACTION));
     lenient().when(relDataType.getFieldList()).thenReturn(new MockFieldList(projectDigest2.size()));
     assertEquals(
         2102.8500643730163, Objects.requireNonNull(scan.computeSelfCost(planner, mq)).getRows());
