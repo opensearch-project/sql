@@ -145,6 +145,23 @@ public class AggregateAnalyzer {
     final boolean bucketNullable;
     final int queryBucketSize;
 
+    /** Group-by field indices that are constrained by IS_NOT_NULL in a pushed filter. */
+    final Set<Integer> nonNullableGroupIndices;
+
+    public AggregateBuilderHelper(
+        RelDataType rowType,
+        Map<String, ExprType> fieldTypes,
+        RelOptCluster cluster,
+        boolean bucketNullable,
+        int queryBucketSize) {
+      this(rowType, fieldTypes, cluster, bucketNullable, queryBucketSize, Collections.emptySet());
+    }
+
+    /** Returns true if the group field at the given index should allow null buckets. */
+    boolean isBucketNullable(int groupIndex) {
+      return bucketNullable && !nonNullableGroupIndices.contains(groupIndex);
+    }
+
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
     }
@@ -765,17 +782,17 @@ public class AggregateAnalyzer {
           valueLiteral.getValueAs(Double.class),
           SpanUnit.of(unitLiteral.getValueAs(String.class)),
           MissingOrder.FIRST,
-          helper.bucketNullable);
+          helper.isBucketNullable(groupIndex));
     } else {
-      return createTermsSourceBuilder(bucketName, rex, helper);
+      return createTermsSourceBuilder(bucketName, groupIndex, rex, helper);
     }
   }
 
   private static CompositeValuesSourceBuilder<?> createTermsSourceBuilder(
-      String bucketName, RexNode group, AggregateBuilderHelper helper) {
+      String bucketName, int groupIndex, RexNode group, AggregateBuilderHelper helper) {
     TermsValuesSourceBuilder termsBuilder =
         new TermsValuesSourceBuilder(bucketName).order(SortOrder.ASC);
-    if (helper.bucketNullable) {
+    if (helper.isBucketNullable(groupIndex)) {
       termsBuilder.missingBucket(true).missingOrder(MissingOrder.FIRST);
     }
     CompositeValuesSourceBuilder<?> sourceBuilder = helper.build(group, termsBuilder);

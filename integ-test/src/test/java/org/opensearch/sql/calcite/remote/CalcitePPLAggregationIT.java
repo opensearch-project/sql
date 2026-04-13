@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
@@ -1648,6 +1649,81 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             List.of(392250, 56860),
             480860,
             392250));
+  }
+
+  /**
+   * Regression test for https://github.com/opensearch-project/sql/issues/4463 When a text field
+   * with keyword subfield has ignore_above, documents with values longer than the limit have null
+   * keyword values. The isnotnull() filter operates on the root text field (via exists query), but
+   * aggregation groups by the keyword subfield. Without the fix, null keyword buckets appear in
+   * results despite the isnotnull filter.
+   */
+  @Test
+  public void testIsNotNullFilterExcludesNullBucketsInAggregation() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String index = "issue4463_integ";
+    // Create index with text field having keyword subfield with low ignore_above
+    Request createIndex = new Request("PUT", "/" + index);
+    createIndex.setJsonEntity(
+        "{"
+            + "\"settings\":{\"number_of_shards\":1,\"number_of_replicas\":0},"
+            + "\"mappings\":{\"properties\":{"
+            + "\"description\":{\"type\":\"text\",\"fields\":"
+            + "{\"keyword\":{\"type\":\"keyword\",\"ignore_above\":50}}},"
+            + "\"value\":{\"type\":\"long\"}"
+            + "}}}");
+    client().performRequest(createIndex);
+
+    // Index documents: 3 short descriptions (keyword indexed), 3 long (keyword null), 1 empty
+    Request bulk = new Request("POST", "/_bulk?refresh=true");
+    bulk.setJsonEntity(
+        "{\"index\":{\"_index\":\""
+            + index
+            + "\"}}\n"
+            + "{\"description\":\"Short desc 1\",\"value\":1}\n"
+            + "{\"index\":{\"_index\":\""
+            + index
+            + "\"}}\n"
+            + "{\"description\":\"Short desc 2\",\"value\":2}\n"
+            + "{\"index\":{\"_index\":\""
+            + index
+            + "\"}}\n"
+            + "{\"description\":\"Short desc 3\",\"value\":3}\n"
+            + "{\"index\":{\"_index\":\""
+            + index
+            + "\"}}\n"
+            + "{\"description\":\"This is a very long description that exceeds the 50 char"
+            + " ignore_above limit\",\"value\":100}\n"
+            + "{\"index\":{\"_index\":\""
+            + index
+            + "\"}}\n"
+            + "{\"description\":\"Another long description that will also exceed the keyword"
+            + " ignore_above limit set\",\"value\":101}\n"
+            + "{\"index\":{\"_index\":\""
+            + index
+            + "\"}}\n"
+            + "{\"description\":\"Yet another long string exceeding the limit for the keyword"
+            + " subfield\",\"value\":102}\n"
+            + "{\"index\":{\"_index\":\""
+            + index
+            + "\"}}\n"
+            + "{\"description\":\"\",\"value\":200}\n");
+    client().performRequest(bulk);
+
+    try {
+      // isnotnull + non-empty filter with stats group-by should exclude null keyword buckets
+      JSONObject actual =
+          executeQuery(
+              "source="
+                  + index
+                  + " | where isnotnull(description) and description != ''"
+                  + " | stats count() by description");
+      // Should return exactly 3 rows (one per short description), no null bucket
+      assertEquals(3, actual.getInt("total"));
+    } finally {
+      // Cleanup
+      client().performRequest(new Request("DELETE", "/" + index));
+    }
   }
 
   @Test

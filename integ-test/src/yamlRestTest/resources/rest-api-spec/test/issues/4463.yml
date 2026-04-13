@@ -1,0 +1,71 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  - do:
+      indices.create:
+        index: issue4463
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              description:
+                type: text
+                fields:
+                  keyword:
+                    type: keyword
+                    ignore_above: 50
+              value:
+                type: long
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "Short description 1", "value": 1}'
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "Short description 2", "value": 2}'
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "Short description 3", "value": 3}'
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "This is a very long description that definitely exceeds the 50 character limit set in ignore_above", "value": 100}'
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "Another extremely long description that will be ignored by the keyword subfield due to exceeding limit", "value": 101}'
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "Yet another long string to ensure multiple documents have null keyword subfield values for testing", "value": 102}'
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "", "value": 200}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue4463
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 4463: isnotnull filter should exclude null values in aggregation results":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue4463 | where isnotnull(description) and description != '' | stats count() by description"
+
+  # Bug: returns 4 rows with [3, null] for long descriptions whose keyword subfield is null
+  # Expected: no null bucket in results since isnotnull(description) was applied
+  - match: { total: 3 }
