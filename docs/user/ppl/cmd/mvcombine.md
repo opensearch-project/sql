@@ -124,6 +124,6 @@ source=mvcombine_data
 
 Expected output:
 ```text
-{'context': {'stage': 'analyzing', 'stage_description': 'Parsing and validating the query'}, 'details': 'Field [does_not_exist] not found.', 'location': ['while preparing and validating the query plan'], 'code': 'FIELD_NOT_FOUND', 'type': 'IllegalArgumentException'}
+{'context': {'stage': 'analyzing', 'stage_description': 'Parsing and validating the query'}, 'reason': 'Field [does_not_exist] not found.', 'details': 'Field [does_not_exist] not found.', 'location': ['while preparing and validating the query plan'], 'code': 'FIELD_NOT_FOUND', 'type': 'IllegalArgumentException'}
 Error: Query returned no data
 ```

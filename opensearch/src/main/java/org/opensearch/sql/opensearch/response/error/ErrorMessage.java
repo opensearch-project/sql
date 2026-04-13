@@ -63,8 +63,20 @@ public class ErrorMessage {
   }
 
   private JSONObject getErrorAsJson() {
-    if (exception instanceof ErrorReport) {
-      return new JSONObject(((ErrorReport) exception).toJsonMap());
+    if (exception instanceof ErrorReport errorReport) {
+      JSONObject errorJson = new JSONObject(errorReport.toJsonMap());
+      // Add 'reason' field for backward compatibility with existing clients
+      // Use the underlying exception message as 'reason' (broad error description)
+      // while 'details' contains the more precise handwritten message
+      if (!errorJson.has("reason")) {
+        Exception cause = errorReport.getCause();
+        String reasonMessage =
+            cause.getLocalizedMessage() != null ? cause.getLocalizedMessage() : cause.getMessage();
+        if (reasonMessage != null) {
+          errorJson.put("reason", reasonMessage);
+        }
+      }
+      return errorJson;
     }
 
     JSONObject errorJson = new JSONObject();

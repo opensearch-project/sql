@@ -125,6 +125,7 @@ Expected output:
       "index_name": "unknown",
       "stage_description": "Parsing and validating the query"
     },
+    "reason": "no such index [unknown]",
     "details": "no such index [unknown]",
     "location": [
       "while preparing and validating the query plan",

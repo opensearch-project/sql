@@ -30,7 +30,6 @@ package org.opensearch.sql.calcite.utils;
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.monitor.profile.MetricName.OPTIMIZE;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Type;
 import java.sql.Connection;
@@ -480,8 +479,6 @@ public class CalciteToolsHelper {
         optimizeTime.set(System.nanoTime() - startTime);
         return preparedStatement;
       } catch (SQLException e) {
-        Throwables.throwIfUnchecked(e);
-
         // Detect if error is due to window functions in unsupported context (bins on time fields)
         ErrorReport.Builder report =
             ErrorReport.wrap(e)
