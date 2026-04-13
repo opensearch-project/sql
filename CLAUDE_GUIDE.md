@@ -30,25 +30,3 @@ Fix a PPL bug end-to-end or follow up on an existing PR.
 
 **Related files:** [`.claude/harness/ppl-bugfix-harness.md`](.claude/harness/ppl-bugfix-harness.md)
 
----
-
-## `/dedupe`
-
-Find duplicate GitHub issues for a given issue.
-
-**Usage:**
-
-```
-/dedupe 1234
-```
-
-**What it does:**
-
-1. Reads the target issue
-2. Runs 3+ parallel search strategies to find potential duplicates (only older issues)
-3. Verifies candidates by reading each one
-4. Posts a structured comment on the issue listing 1-3 confirmed duplicates (if any)
-
-**Skips:** closed issues, broad feedback issues, issues already checked
-
-**Related files:** [`scripts/comment-on-duplicates.sh`](scripts/comment-on-duplicates.sh)

@@ -6,9 +6,18 @@
 
 ---
 
+## Report Working Directory
+
+```bash
+echo "Worktree: $(pwd)"
+echo "Branch: $(git branch --show-current)"
+```
+
+Include this in your output so the caller knows where changes are happening.
+
 ## Reconstruct Context
 
-The follow-up agent runs in a fresh worktree. First checkout the PR branch, then load state:
+First checkout the PR branch, then load state:
 
 ```bash
 # Checkout the PR branch in this worktree
@@ -101,3 +110,16 @@ For each comment addressed (bot or human):
 - **Did the follow-up workflow itself miss this signal?** → Update this file
 
 If any improvement is needed, make the edit and include it in the same commit.
+
+## Completion Gate
+
+Before reporting "done":
+
+1. Run `git status --porcelain` — if any uncommitted changes remain, commit and push them. This includes harness edits from Retrospective.
+2. Report in your final output:
+
+```
+Worktree: <absolute path>
+Branch: <branch name>
+PR: <pr_number>
+```

@@ -109,8 +109,12 @@ teardown:
       headers: { Content-Type: 'application/json' }
       ppl: { body: { query: "source=test_issue_<ISSUE> | <your PPL>" } }
   - match: { total: <expected> }
-  - length: { datarows: <expected> }
+  - match: { datarows: [ [ <row1_val1>, <row1_val2> ], [ <row2_val1>, <row2_val2> ] ] }
 ```
+
+> **Always include `datarows` assertions** — verifying only `total` and `schema` will miss
+> wrong values. Count the expected output groups carefully (e.g., for `chart ... by <col>`,
+> count distinct (row_split, col_split) groups after null filtering, not the number of input rows).
 
 ---
 
