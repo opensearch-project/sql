@@ -29,6 +29,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -157,6 +158,7 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timewrap;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -172,6 +174,7 @@ import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.calcite.utils.TimewrapUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.patterns.PatternUtils;
@@ -181,6 +184,7 @@ import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.utils.ParseUtils;
@@ -3278,6 +3282,139 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     relBuilder.sort(
         relBuilder.nullsLast(relBuilder.field(0)), relBuilder.nullsLast(relBuilder.field(1)));
     return relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitTimewrap(Timewrap node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    // Signal the execution engine to strip all-null columns and rename with absolute offsets
+    CalcitePlanContext.stripNullColumns.set(true);
+    CalcitePlanContext.timewrapUnitName.set(
+        TimewrapUtils.unitBaseName(node.getUnit(), node.getValue()) + "|_before");
+    CalcitePlanContext.timewrapSeries.set(node.getSeries());
+    CalcitePlanContext.timewrapTimeFormat.set(node.getTimeFormat());
+
+    RelBuilder b = context.relBuilder;
+    RexBuilder rx = context.rexBuilder;
+
+    List<String> fieldNames =
+        b.peek().getRowType().getFieldNames().stream().filter(f -> !isMetadataField(f)).toList();
+    String tsFieldName = fieldNames.get(0);
+    List<String> valueFieldNames = fieldNames.subList(1, fieldNames.size());
+
+    boolean variableLength = TimewrapUtils.isVariableLengthUnit(node.getUnit());
+    RelDataType bigintType = rx.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+
+    RexNode periodNum;
+    RexNode displayTimestamp;
+    RexNode baseOffset;
+
+    if (variableLength) {
+      // --- Variable-length units (month, quarter, year): EXTRACT-based calendar arithmetic ---
+      RexNode tsField = b.field(tsFieldName);
+      RexNode tsUnitNum =
+          TimewrapUtils.calendarUnitNumber(rx, tsField, node.getUnit(), node.getValue());
+
+      b.projectPlus(b.aggregateCall(SqlStdOperatorTable.MAX, tsField).over().as("__max_ts__"));
+      RexNode maxTs = b.field("__max_ts__");
+      RexNode maxUnitNum =
+          TimewrapUtils.calendarUnitNumber(rx, maxTs, node.getUnit(), node.getValue());
+
+      periodNum =
+          rx.makeCall(
+              SqlStdOperatorTable.PLUS,
+              rx.makeCall(SqlStdOperatorTable.MINUS, maxUnitNum, tsUnitNum),
+              rx.makeExactLiteral(BigDecimal.ONE, bigintType));
+
+      RexNode tsEpoch =
+          rx.makeCast(bigintType, rx.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, tsField), true);
+      RexNode unitStartEpoch = TimewrapUtils.calendarUnitStartEpoch(rx, tsField, node.getUnit());
+      RexNode offsetSec = rx.makeCall(SqlStdOperatorTable.MINUS, tsEpoch, unitStartEpoch);
+      RexNode maxUnitStartEpoch = TimewrapUtils.calendarUnitStartEpoch(rx, maxTs, node.getUnit());
+      RexNode displayEpoch = rx.makeCall(SqlStdOperatorTable.PLUS, maxUnitStartEpoch, offsetSec);
+      displayTimestamp = rx.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, displayEpoch);
+
+      long nowEpochSec = context.functionProperties.getQueryStartClock().millis() / 1000;
+      Long referenceEpoch = null;
+      if ("end".equals(node.getAlign())) {
+        referenceEpoch = TimewrapUtils.extractTimestampUpperBound(node);
+      }
+      if (referenceEpoch == null) {
+        referenceEpoch = nowEpochSec;
+      }
+      long refUnitNum =
+          TimewrapUtils.calendarUnitNumberFromEpoch(
+              referenceEpoch, node.getUnit(), node.getValue());
+      RexNode refUnitNumLit = rx.makeBigintLiteral(BigDecimal.valueOf(refUnitNum));
+      baseOffset = rx.makeCall(SqlStdOperatorTable.MINUS, refUnitNumLit, maxUnitNum);
+
+    } else {
+      // --- Fixed-length units (sec, min, hr, day, week): epoch-based arithmetic ---
+      long spanSec = TimewrapUtils.spanToSeconds(node.getUnit(), node.getValue());
+
+      RexNode tsEpochExpr =
+          rx.makeCast(
+              bigintType,
+              rx.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, b.field(tsFieldName)),
+              true);
+      b.projectPlus(
+          b.alias(tsEpochExpr, "__ts_epoch__"),
+          b.aggregateCall(SqlStdOperatorTable.MAX, tsEpochExpr).over().as("__max_epoch__"));
+
+      RexNode tsEpoch = b.field("__ts_epoch__");
+      RexNode maxEpoch = b.field("__max_epoch__");
+      RexNode spanLit = rx.makeBigintLiteral(BigDecimal.valueOf(spanSec));
+
+      RexNode diff = rx.makeCall(SqlStdOperatorTable.MINUS, maxEpoch, tsEpoch);
+      periodNum =
+          rx.makeCall(
+              SqlStdOperatorTable.PLUS,
+              rx.makeCall(SqlStdOperatorTable.DIVIDE, diff, spanLit),
+              rx.makeExactLiteral(BigDecimal.ONE, bigintType));
+
+      RexNode offsetSec = rx.makeCall(SqlStdOperatorTable.MOD, tsEpoch, spanLit);
+      RexNode latestPeriodStart =
+          rx.makeCall(
+              SqlStdOperatorTable.MINUS,
+              maxEpoch,
+              rx.makeCall(SqlStdOperatorTable.MOD, maxEpoch, spanLit));
+      RexNode displayEpoch = rx.makeCall(SqlStdOperatorTable.PLUS, latestPeriodStart, offsetSec);
+      displayTimestamp = rx.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, displayEpoch);
+
+      long nowEpochSec = context.functionProperties.getQueryStartClock().millis() / 1000;
+      Long referenceEpoch = null;
+      if ("end".equals(node.getAlign())) {
+        referenceEpoch = TimewrapUtils.extractTimestampUpperBound(node);
+      }
+      if (referenceEpoch == null) {
+        referenceEpoch = nowEpochSec;
+      }
+      RexNode refLit = rx.makeBigintLiteral(BigDecimal.valueOf(referenceEpoch));
+      baseOffset =
+          rx.makeCall(
+              SqlStdOperatorTable.DIVIDE,
+              rx.makeCall(SqlStdOperatorTable.MINUS, refLit, maxEpoch),
+              spanLit);
+    }
+
+    // Step 3: Project [display_timestamp, value_columns..., base_offset, period]
+    // base_offset is included in the group key so it survives the PIVOT
+    List<RexNode> projections = new ArrayList<>();
+    projections.add(b.alias(displayTimestamp, tsFieldName));
+    for (String vf : valueFieldNames) {
+      projections.add(b.field(vf));
+    }
+    projections.add(b.alias(baseOffset, "__base_offset__"));
+    projections.add(b.alias(periodNum, "__period__"));
+    b.project(projections);
+
+    // Step 4: Sort by offset, then period (execution engine will pivot)
+    // No Calcite PIVOT -- the execution engine pivots dynamically after reading all rows.
+    // Output schema: [display_timestamp, value_columns..., __base_offset__, __period__]
+    b.sort(b.field(tsFieldName), b.field("__period__"));
+
+    return b.peek();
   }
 
   /**

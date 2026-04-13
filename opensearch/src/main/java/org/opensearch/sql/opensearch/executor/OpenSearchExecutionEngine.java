@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -42,8 +43,10 @@ import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.TimewrapUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -320,9 +323,227 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       }
       columns.add(new Column(columnName, null, exprType));
     }
+    // Timewrap post-processing: pivot unpivoted rows into period columns
+    // Input: [display_ts, value_col(s)..., __base_offset__, __period__]
+    // Output: [display_ts, <value_prefix>_<period_name>, ...]
+    if (CalcitePlanContext.stripNullColumns.get()) {
+      try {
+        String unitInfo = CalcitePlanContext.timewrapUnitName.get();
+        if (unitInfo != null && !values.isEmpty()) {
+          // Find column indices
+          int tsIdx = 0;
+          int periodIdx = -1;
+          int baseOffsetIdx = -1;
+          List<Integer> valueIdxs = new ArrayList<>();
+          for (int i = 0; i < columns.size(); i++) {
+            String name = columns.get(i).getName();
+            if ("__period__".equals(name)) periodIdx = i;
+            else if ("__base_offset__".equals(name)) baseOffsetIdx = i;
+            else if (i > 0 && periodIdx < 0 && baseOffsetIdx < 0) valueIdxs.add(i);
+          }
+          // Workaround: if indices weren't found before value columns, scan again
+          if (periodIdx < 0 || baseOffsetIdx < 0) {
+            valueIdxs.clear();
+            for (int i = 0; i < columns.size(); i++) {
+              String name = columns.get(i).getName();
+              if ("__period__".equals(name)) periodIdx = i;
+              else if ("__base_offset__".equals(name)) baseOffsetIdx = i;
+              else if (i > 0) valueIdxs.add(i);
+            }
+          }
+
+          // Read __base_offset__ (constant across all rows)
+          long baseOffset = 0;
+          ExprValue boVal = values.getFirst().tupleValue().get("__base_offset__");
+          if (boVal != null && !boVal.isNull()) {
+            baseOffset = boVal.longValue();
+          }
+
+          // Collect distinct periods (sorted descending = oldest first in output)
+          List<String> colNames = columns.stream().map(Column::getName).toList();
+          Set<Long> periodSet = new java.util.TreeSet<>(java.util.Collections.reverseOrder());
+          for (ExprValue row : values) {
+            ExprValue pv = row.tupleValue().get("__period__");
+            if (pv != null && !pv.isNull()) {
+              periodSet.add(pv.longValue());
+            }
+          }
+          List<Long> periods = new ArrayList<>(periodSet);
+
+          // Build value column names
+          List<String> valueColNames = new ArrayList<>();
+          for (int vi : valueIdxs) {
+            valueColNames.add(columns.get(vi).getName());
+          }
+
+          // Build output column names: [ts, val1_period1, val1_period2, ..., val2_period1, ...]
+          // Splunk order: for each period, all value columns (oldest period first)
+          List<String> outColNames = new ArrayList<>();
+          outColNames.add(columns.get(tsIdx).getName());
+          List<ExprType> outColTypes = new ArrayList<>();
+          outColTypes.add(columns.get(tsIdx).getExprType());
+
+          for (long period : periods) {
+            for (int vi = 0; vi < valueColNames.size(); vi++) {
+              String prefix = valueColNames.get(vi);
+              String periodName = renameTimewrapPeriod(period, baseOffset, unitInfo);
+              outColNames.add(prefix + "_" + periodName);
+              outColTypes.add(columns.get(valueIdxs.get(vi)).getExprType());
+            }
+          }
+
+          // Group rows by display_ts, pivot periods into columns
+          // Use LinkedHashMap to preserve insertion order (sorted by ts from Calcite)
+          Map<String, Map<String, ExprValue>> pivoted = new LinkedHashMap<>();
+          String tsColName = columns.get(tsIdx).getName();
+          for (ExprValue row : values) {
+            java.util.Map<String, ExprValue> tuple = row.tupleValue();
+            String tsKey = tuple.get(tsColName).toString();
+            long period = tuple.get("__period__").longValue();
+
+            Map<String, ExprValue> outRow =
+                pivoted.computeIfAbsent(
+                    tsKey,
+                    k -> {
+                      Map<String, ExprValue> r = new LinkedHashMap<>();
+                      r.put(outColNames.get(0), tuple.get(tsColName));
+                      // Initialize all period columns to null
+                      for (int i = 1; i < outColNames.size(); i++) {
+                        r.put(outColNames.get(i), ExprNullValue.of());
+                      }
+                      return r;
+                    });
+
+            // Fill in the value for this period
+            for (int vi = 0; vi < valueColNames.size(); vi++) {
+              String prefix = valueColNames.get(vi);
+              String periodName = renameTimewrapPeriod(period, baseOffset, unitInfo);
+              String colName = prefix + "_" + periodName;
+              ExprValue val = tuple.get(valueColNames.get(vi));
+              if (val != null) {
+                outRow.put(colName, val);
+              }
+            }
+          }
+
+          // Build output
+          columns = new ArrayList<>();
+          for (int i = 0; i < outColNames.size(); i++) {
+            columns.add(new Column(outColNames.get(i), null, outColTypes.get(i)));
+          }
+          values = new ArrayList<>();
+          for (Map<String, ExprValue> outRow : pivoted.values()) {
+            values.add(ExprTupleValue.fromExprValueMap(outRow));
+          }
+        }
+      } finally {
+        CalcitePlanContext.stripNullColumns.set(false);
+        CalcitePlanContext.timewrapUnitName.set(null);
+        CalcitePlanContext.timewrapSeries.set(null);
+        CalcitePlanContext.timewrapTimeFormat.set(null);
+      }
+    }
+
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
     return response;
+  }
+
+  /**
+   * Rename a timewrap period column from relative to absolute offset. Supports three series modes:
+   * relative (default), short, and exact. unitInfo format: "spanValue|singular|plural|_before".
+   */
+  private String renameTimewrapColumn(String name, long baseOffset, String unitInfo) {
+    String[] parts = unitInfo.split("\\|", -1);
+    if (parts.length < 4) return name;
+    int spanValue = Integer.parseInt(parts[0]);
+    String singular = parts[1];
+    String plural = parts[2];
+    String nameSuffix = parts[3];
+
+    if (!name.endsWith(nameSuffix)) return name;
+    String beforeSuffix = name.substring(0, name.length() - nameSuffix.length());
+    int lastUnderscore = beforeSuffix.lastIndexOf('_');
+    if (lastUnderscore < 0) return name;
+
+    String prefix = beforeSuffix.substring(0, lastUnderscore);
+    String periodStr = beforeSuffix.substring(lastUnderscore + 1);
+    try {
+      int relativePeriod = Integer.parseInt(periodStr);
+      long absolutePeriod = (baseOffset + relativePeriod - 1) * spanValue;
+
+      String seriesMode = CalcitePlanContext.timewrapSeries.get();
+      if (seriesMode == null) seriesMode = "relative";
+
+      return switch (seriesMode) {
+        case "short" ->
+            // series=short: prefix_s<absolutePeriod>
+            prefix + "_s" + absolutePeriod;
+        case "exact" -> {
+          // series=exact: prefix_<formatted_date>
+          String timeFormat = CalcitePlanContext.timewrapTimeFormat.get();
+          if (timeFormat == null) timeFormat = "%Y-%m-%d";
+          // Compute period start timestamp: reference - absolutePeriod * spanSeconds
+          // absolutePeriod is in span units, need to convert to seconds
+          long spanSec =
+              TimewrapUtils.spanToSeconds(
+                      org.opensearch.sql.ast.expression.SpanUnit.of(singular.toUpperCase()), 1)
+                  * spanValue;
+          // Not enough info to compute exact date here — fall back to short naming
+          // TODO: pass reference epoch + span for exact date computation
+          yield prefix + "_s" + absolutePeriod;
+        }
+        default -> {
+          // series=relative (default): prefix_<N><unit>_before/latest/after
+          if (absolutePeriod == 0) {
+            yield prefix + "_latest_" + singular;
+          } else if (absolutePeriod > 0) {
+            String unit = absolutePeriod == 1 ? singular : plural;
+            yield prefix + "_" + absolutePeriod + unit + "_before";
+          } else {
+            long absPeriod = Math.abs(absolutePeriod);
+            String unit = absPeriod == 1 ? singular : plural;
+            yield prefix + "_" + absPeriod + unit + "_after";
+          }
+        }
+      };
+    } catch (NumberFormatException e) {
+      return name;
+    }
+  }
+
+  /**
+   * Generate a period name from a relative period number and base offset. Returns the suffix only
+   * (no value prefix). E.g., "2days_before", "latest_day", "s2".
+   */
+  private String renameTimewrapPeriod(long relativePeriod, long baseOffset, String unitInfo) {
+    String[] parts = unitInfo.split("\\|", -1);
+    if (parts.length < 4) return String.valueOf(relativePeriod);
+    int spanValue = Integer.parseInt(parts[0]);
+    String singular = parts[1];
+    String plural = parts[2];
+
+    long absolutePeriod = (baseOffset + relativePeriod - 1) * spanValue;
+
+    String seriesMode = CalcitePlanContext.timewrapSeries.get();
+    if (seriesMode == null) seriesMode = "relative";
+
+    return switch (seriesMode) {
+      case "short" -> "s" + absolutePeriod;
+      case "exact" -> "s" + absolutePeriod; // TODO: format with time_format
+      default -> {
+        if (absolutePeriod == 0) {
+          yield "latest_" + singular;
+        } else if (absolutePeriod > 0) {
+          String unit = absolutePeriod == 1 ? singular : plural;
+          yield absolutePeriod + unit + "_before";
+        } else {
+          long absPeriod = Math.abs(absolutePeriod);
+          String unit = absPeriod == 1 ? singular : plural;
+          yield absPeriod + unit + "_after";
+        }
+      }
+    };
   }
 
   /** Registers opensearch-dependent functions */
