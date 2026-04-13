@@ -25,6 +25,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteAddColTotalsCommandIT.class,
   CalciteConvertCommandIT.class,
   CalciteArrayFunctionIT.class,
+  CalciteBinChartNullIT.class,
   CalciteBinCommandIT.class,
   CalciteConvertTZFunctionIT.class,
   CalciteCsvFormatIT.class,
