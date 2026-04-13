@@ -92,6 +92,7 @@ import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Transpose;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
@@ -493,6 +494,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitGraphLookup(GraphLookup node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitXyseries(Xyseries node, C context) {
     return visitChildren(node, context);
   }
 }

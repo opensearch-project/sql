@@ -2795,4 +2795,66 @@ public class CalciteExplainIT extends ExplainIT {
         "Expected explain to contain both CONCAT and ARRAY_JOIN",
         result.toLowerCase().contains("concat") && result.toLowerCase().contains("array_join"));
   }
+
+  @Test
+  public void testXyseriesExplain() throws IOException {
+    String query =
+            StringEscapeUtils.escapeJson(StringUtils.format(
+            "source=%s | stats avg(balance) as avg_balance by gender, state"
+                + " | xyseries state gender in (\"F\", \"M\") avg_balance",
+            TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String lower = result.toLowerCase();
+    Assert.assertTrue(
+        "Expected explain to contain LogicalAggregate for pivot grouping",
+        lower.contains("logicalaggregate") || lower.contains("aggregate"));
+    Assert.assertTrue(
+        "Expected explain to contain CASE expression for pivot",
+        lower.contains("case"));
+    Assert.assertTrue(
+        "Expected explain to contain pivot value 'F'",
+        result.contains("F"));
+    Assert.assertTrue(
+        "Expected explain to contain pivot value 'M'",
+        result.contains("M"));
+  }
+
+  @Test
+  public void testXyseriesMultipleDataFieldsExplain() throws IOException {
+    String query =
+            StringEscapeUtils.escapeJson(StringUtils.format(
+            "source=%s | stats avg(balance) as avg_balance, count() as cnt by gender, state"
+                + " | xyseries state gender in (\"F\", \"M\") avg_balance, cnt",
+            TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String lower = result.toLowerCase();
+    Assert.assertTrue(
+        "Expected explain to contain aggregate",
+        lower.contains("aggregate"));
+    Assert.assertTrue(
+        "Expected explain to contain CASE expression for pivot",
+        lower.contains("case"));
+    Assert.assertTrue(
+        "Expected explain to contain avg_balance in plan",
+        result.contains("avg_balance"));
+    Assert.assertTrue(
+        "Expected explain to contain cnt in plan",
+        result.contains("cnt"));
+  }
+
+  @Test
+  public void testXyseriesWithFormatExplain() throws IOException {
+    String query =
+            StringEscapeUtils.escapeJson(StringUtils.format(
+            "source=%s | stats avg(balance) as avg_balance by gender, state"
+                + " | xyseries format=\"$VAL$_$AGG$\" state gender in (\"F\", \"M\") avg_balance",
+            TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    Assert.assertTrue(
+        "Expected explain to contain formatted column name F_avg_balance",
+        result.contains("F_avg_balance"));
+    Assert.assertTrue(
+        "Expected explain to contain formatted column name M_avg_balance",
+        result.contains("M_avg_balance"));
+  }
 }

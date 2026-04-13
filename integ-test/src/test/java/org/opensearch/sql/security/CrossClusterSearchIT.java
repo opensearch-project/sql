@@ -237,4 +237,32 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
 
     disableCalcite();
   }
+
+  @Test
+  public void testCrossClusterXyseries() throws IOException {
+    enableCalcite();
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | stats avg(balance) as avg_balance by gender, state"
+                    + " | xyseries state gender in ('F', 'M') avg_balance",
+                TEST_INDEX_BANK_REMOTE));
+    verifyColumn(
+        result,
+        columnName("state"),
+        columnName("avg_balance: F"),
+        columnName("avg_balance: M"));
+    verifyDataRows(
+        result,
+        rows("IL", null, 39225.0),
+        rows("IN", 48086.0, null),
+        rows("MD", null, 4180.0),
+        rows("PA", 40540.0, null),
+        rows("TN", null, 5686.0),
+        rows("VA", 32838.0, null),
+        rows("WA", null, 16418.0));
+
+    disableCalcite();
+  }
 }

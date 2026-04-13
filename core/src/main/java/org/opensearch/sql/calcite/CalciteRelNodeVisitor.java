@@ -155,6 +155,7 @@ import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.plan.rel.LogicalGraphLookup;
@@ -3178,6 +3179,96 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String nullStr = (String) argMap.getOrDefault("nullstr", Chart.DEFAULT_NULL_STR).getValue();
       return new ChartConfig(limit, top, useOther, useNull, otherStr, nullStr);
     }
+  }
+
+  @Override
+  public RelNode visitXyseries(Xyseries node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RelBuilder b = context.relBuilder;
+    RexBuilder rx = context.rexBuilder;
+
+    // Resolve x-field and y-name-field names
+    String xFieldName = resolveFieldName(node.getXField());
+    String yNameFieldName = resolveFieldName(node.getYNameField());
+
+    // Resolve y-data field names
+    List<String> yDataFieldNames =
+        node.getYDataFields().stream().map(this::resolveFieldName).collect(Collectors.toList());
+
+    List<String> pivotValues = node.getPivotValues();
+    String separator = node.getSeparator();
+    String format = node.getFormat();
+
+    // Cast the y-name field to VARCHAR for comparison with string pivot values
+    RexNode yNameRef = b.field(yNameFieldName);
+    RelDataType varchar =
+        rx.getTypeFactory()
+            .createTypeWithNullability(
+                rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
+    RexNode yNameAsString;
+    if (!SqlTypeUtil.isCharacter(yNameRef.getType())) {
+      yNameAsString = rx.makeCast(varchar, yNameRef, true);
+    } else {
+      yNameAsString = yNameRef;
+    }
+
+    // Build projections: x-field + CASE expressions for each (yDataField, pivotValue) combo
+    List<RexNode> projections = new ArrayList<>();
+    List<String> projectionNames = new ArrayList<>();
+
+    // First projection is the x-field
+    projections.add(b.field(xFieldName));
+    projectionNames.add(xFieldName);
+
+    // For each y-data field and each pivot value, create a CASE WHEN expression
+    for (String yDataFieldName : yDataFieldNames) {
+      for (String pivotVal : pivotValues) {
+        // CASE WHEN CAST(y_name_field AS VARCHAR) = 'pivotVal' THEN y_data_field ELSE NULL END
+        RexNode condition =
+            b.call(SqlStdOperatorTable.EQUALS, yNameAsString, b.literal(pivotVal));
+        RexNode dataRef = b.field(yDataFieldName);
+        RexNode caseExpr =
+            b.call(SqlStdOperatorTable.CASE, condition, dataRef, b.literal(null));
+
+        // Generate the output column name
+        String colName = generateColumnName(yDataFieldName, pivotVal, separator, format);
+        projections.add(b.alias(caseExpr, colName));
+        projectionNames.add(colName);
+      }
+    }
+
+    b.project(projections);
+
+    // Aggregate: group by x-field, MAX for each pivoted column
+    List<AggCall> aggCalls = new ArrayList<>();
+    for (int i = 1; i < projectionNames.size(); i++) {
+      aggCalls.add(b.max(b.field(projectionNames.get(i))).as(projectionNames.get(i)));
+    }
+    b.aggregate(b.groupKey(b.field(xFieldName)), aggCalls);
+
+    // Order by x-field
+    b.sort(b.field(0));
+
+    return b.peek();
+  }
+
+  private String resolveFieldName(UnresolvedExpression expr) {
+    if (expr instanceof Field) {
+      return ((Field) expr).getField().toString();
+    }
+    if (expr instanceof Alias) {
+      return ((Alias) expr).getName();
+    }
+    return expr.toString();
+  }
+
+  private String generateColumnName(
+      String yDataFieldName, String pivotValue, String separator, String format) {
+    if (format != null) {
+      return format.replace("$AGG$", yDataFieldName).replace("$VAL$", pivotValue);
+    }
+    return yDataFieldName + separator + pivotValue;
   }
 
   @Override
