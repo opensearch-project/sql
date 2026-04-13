@@ -1264,19 +1264,25 @@ public class PredicateAnalyzerTest {
           "bool" : {
             "must" : [
               {
+                "bool" : {
+                  "must_not" : [
+                    {
+                      "wildcard" : {
+                        "b.keyword" : {
+                          "wildcard" : "*Hi*",
+                          "boost" : 1.0
+                        }
+                      }
+                    }
+                  ],
+                  "adjust_pure_negative" : true,
+                  "boost" : 1.0
+                }
+              },
+              {
                 "exists" : {
                   "field" : "b",
                   "boost" : 1.0
-                }
-              }
-            ],
-            "must_not" : [
-              {
-                "wildcard" : {
-                  "b.keyword" : {
-                    "wildcard" : "*Hi*",
-                    "boost" : 1.0
-                  }
                 }
               }
             ],
@@ -1302,20 +1308,114 @@ public class PredicateAnalyzerTest {
           "bool" : {
             "must" : [
               {
+                "bool" : {
+                  "must_not" : [
+                    {
+                      "range" : {
+                        "a" : {
+                          "from" : 12,
+                          "to" : null,
+                          "include_lower" : false,
+                          "include_upper" : true,
+                          "boost" : 1.0
+                        }
+                      }
+                    }
+                  ],
+                  "adjust_pure_negative" : true,
+                  "boost" : 1.0
+                }
+              },
+              {
                 "exists" : {
                   "field" : "a",
                   "boost" : 1.0
                 }
               }
             ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void notIsNotNull_generatesOnlyMustNotExists() throws ExpressionNotAnalyzableException {
+    // NOT(IS_NOT_NULL(a)) = IS_NULL(a) should generate must_not(exists) WITHOUT an exists in must
+    RexNode isNotNullCall = builder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, field1);
+    RexNode notCall = builder.makeCall(SqlStdOperatorTable.NOT, isNotNullCall);
+    QueryBuilder result = PredicateAnalyzer.analyze(notCall, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
             "must_not" : [
               {
-                "range" : {
-                  "a" : {
-                    "from" : 12,
-                    "to" : null,
-                    "include_lower" : false,
-                    "include_upper" : true,
+                "exists" : {
+                  "field" : "a",
+                  "boost" : 1.0
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void notIsTrue_generatesOnlyMustNotTerm() throws ExpressionNotAnalyzableException {
+    // NOT(IS_TRUE(e)) should generate must_not(term(e, true)) WITHOUT an exists filter
+    RexNode isTrueCall = builder.makeCall(SqlStdOperatorTable.IS_TRUE, field5);
+    RexNode notCall = builder.makeCall(SqlStdOperatorTable.NOT, isTrueCall);
+    QueryBuilder result = PredicateAnalyzer.analyze(notCall, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must_not" : [
+              {
+                "term" : {
+                  "e" : {
+                    "value" : true,
+                    "boost" : 1.0
+                  }
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void notIsFalse_generatesOnlyMustNotTerm() throws ExpressionNotAnalyzableException {
+    // NOT(IS_FALSE(e)) should generate must_not(term(e, false)) WITHOUT an exists filter
+    RexNode isFalseCall = builder.makeCall(SqlStdOperatorTable.IS_FALSE, field5);
+    RexNode notCall = builder.makeCall(SqlStdOperatorTable.NOT, isFalseCall);
+    QueryBuilder result = PredicateAnalyzer.analyze(notCall, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must_not" : [
+              {
+                "term" : {
+                  "e" : {
+                    "value" : false,
                     "boost" : 1.0
                   }
                 }

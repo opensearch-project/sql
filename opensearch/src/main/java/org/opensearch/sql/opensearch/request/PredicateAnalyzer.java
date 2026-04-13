@@ -577,7 +577,8 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
 
-      Expression operandExpr = call.getOperands().get(0).accept(this);
+      RexNode innerOperand = call.getOperands().get(0);
+      Expression operandExpr = innerOperand.accept(this);
       // Handle NOT(boolean_field) - Calcite simplifies "field = false" to NOT($field).
       // In PPL semantics, "field = false" should only match documents where the field is
       // explicitly false (not null or missing). This is achieved via term query {value: false}.
@@ -586,7 +587,38 @@ public class PredicateAnalyzer {
         return QueryExpression.create(namedField).isFalse();
       }
       QueryExpression expr = (QueryExpression) operandExpr;
-      return expr.not();
+      QueryExpression negated = expr.not();
+      // For null-intolerant predicates (LIKE, comparisons, equality, etc.),
+      // negation must also exclude documents where the field is NULL/missing.
+      // Truth-test operators (IS_TRUE, IS_NULL, etc.) already encode null
+      // semantics and must NOT get an additional exists filter.
+      if (isNullIntolerantPredicate(innerOperand)
+          && negated instanceof SimpleQueryExpression sqe
+          && sqe.getFieldExpression() != null) {
+        return CompoundQueryExpression.and(
+            false, negated, QueryExpression.create(sqe.getFieldExpression()).exists());
+      }
+      return negated;
+    }
+
+    /** Returns true if the given RexNode is a null-intolerant predicate (value comparison). */
+    private static boolean isNullIntolerantPredicate(RexNode node) {
+      if (!(node instanceof RexCall innerCall)) {
+        return false;
+      }
+      return switch (innerCall.getKind()) {
+        case LIKE,
+            EQUALS,
+            NOT_EQUALS,
+            GREATER_THAN,
+            GREATER_THAN_OR_EQUAL,
+            LESS_THAN,
+            LESS_THAN_OR_EQUAL,
+            BETWEEN,
+            SEARCH ->
+            true;
+        default -> false;
+      };
     }
 
     private QueryExpression postfix(RexCall call) {
@@ -1298,12 +1330,13 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression not() {
-      builder =
-          boolQuery()
-              // Negation should exclude documents where the field is NULL/missing
-              .must(existsQuery(getFieldReference()))
-              .mustNot(builder());
+      builder = boolQuery().mustNot(builder());
       return this;
+    }
+
+    /** Returns the field expression, or null if not available. */
+    NamedFieldExpression getFieldExpression() {
+      return rel;
     }
 
     @Override
