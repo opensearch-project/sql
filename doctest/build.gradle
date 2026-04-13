@@ -195,7 +195,10 @@ testClusters {
         }))
         */
         plugin(getJobSchedulerPlugin(jsPlugin, bwcOpenSearchJSDownload))
-        plugin provider { (RegularFile) (() -> file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip")) }
+        def analyticsZip = file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip")
+        if (analyticsZip.exists()) {
+            plugin provider { (RegularFile) (() -> analyticsZip) }
+        }
         plugin ':opensearch-sql-plugin'
         testDistribution = 'archive'
     }

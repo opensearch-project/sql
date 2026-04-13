@@ -63,7 +63,13 @@ dependencies {
     }
     api 'org.apache.calcite:calcite-linq4j:1.41.0'
     api project(':common')
-    compileOnly files("${rootDir}/libs/analytics-framework-3.6.0-SNAPSHOT.jar")
+    // When analytics-engine is present, framework classes come from parent classloader (compileOnly).
+    // When absent, bundle the framework JAR so its classes are available at runtime.
+    if (file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip").exists()) {
+        compileOnly files("${rootDir}/libs/analytics-framework-3.6.0-SNAPSHOT.jar")
+    } else {
+        api files("${rootDir}/libs/analytics-framework-3.6.0-SNAPSHOT.jar")
+    }
     testImplementation files("${rootDir}/libs/analytics-framework-3.6.0-SNAPSHOT.jar")
     implementation "com.github.seancfoley:ipaddress:5.4.2"
     implementation "com.jayway.jsonpath:json-path:2.9.0"
