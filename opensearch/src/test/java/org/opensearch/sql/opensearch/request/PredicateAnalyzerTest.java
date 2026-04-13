@@ -1245,4 +1245,87 @@ public class PredicateAnalyzerTest {
         """,
         result.toString());
   }
+
+  @Test
+  void notLike_keywordField_generatesBoolWithExistsAndMustNot()
+      throws ExpressionNotAnalyzableException {
+    // NOT(LIKE(field, pattern)) should generate bool query with must(exists) + mustNot(wildcard)
+    List<RexNode> arguments =
+        Arrays.asList(field2, builder.makeLiteral("%Hi%"), builder.makeLiteral(true));
+    RexNode likeCall =
+        PPLFuncImpTable.INSTANCE.resolve(builder, "like", arguments.toArray(new RexNode[0]));
+    RexNode notCall = builder.makeCall(SqlStdOperatorTable.NOT, likeCall);
+    QueryBuilder result = PredicateAnalyzer.analyze(notCall, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must" : [
+              {
+                "exists" : {
+                  "field" : "b",
+                  "boost" : 1.0
+                }
+              }
+            ],
+            "must_not" : [
+              {
+                "wildcard" : {
+                  "b.keyword" : {
+                    "wildcard" : "*Hi*",
+                    "boost" : 1.0
+                  }
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void notGreaterThan_generatesExistsAndMustNotRange() throws ExpressionNotAnalyzableException {
+    // NOT(a > 12) should generate bool query with must(exists) + mustNot(range)
+    RexNode gtCall = builder.makeCall(SqlStdOperatorTable.GREATER_THAN, field1, numericLiteral);
+    RexNode notCall = builder.makeCall(SqlStdOperatorTable.NOT, gtCall);
+    QueryBuilder result = PredicateAnalyzer.analyze(notCall, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must" : [
+              {
+                "exists" : {
+                  "field" : "a",
+                  "boost" : 1.0
+                }
+              }
+            ],
+            "must_not" : [
+              {
+                "range" : {
+                  "a" : {
+                    "from" : 12,
+                    "to" : null,
+                    "include_lower" : false,
+                    "include_upper" : true,
+                    "boost" : 1.0
+                  }
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
 }

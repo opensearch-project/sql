@@ -1298,7 +1298,11 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression not() {
-      builder = boolQuery().mustNot(builder());
+      builder =
+          boolQuery()
+              // Negation should exclude documents where the field is NULL/missing
+              .must(existsQuery(getFieldReference()))
+              .mustNot(builder());
       return this;
     }
 

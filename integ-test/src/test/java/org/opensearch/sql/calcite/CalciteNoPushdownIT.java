@@ -53,6 +53,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteMultisearchCommandIT.class,
   CalciteMultiValueStatsIT.class,
   CalciteNewAddedCommandsIT.class,
+  CalciteNotLikeNullIT.class,
   CalciteNowLikeFunctionIT.class,
   CalciteObjectFieldOperateIT.class,
   CalciteOperatorIT.class,

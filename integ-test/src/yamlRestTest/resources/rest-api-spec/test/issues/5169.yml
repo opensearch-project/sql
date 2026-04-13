@@ -1,0 +1,49 @@
+setup:
+  - do:
+      indices.create:
+        index: issue5169_keyword
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              keyword_field:
+                type: keyword
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5169_keyword", "_id": "1"}}'
+          - '{"keyword_field": "hello"}'
+          - '{"index": {"_index": "issue5169_keyword", "_id": "2"}}'
+          - '{"keyword_field": "world"}'
+          - '{"index": {"_index": "issue5169_keyword", "_id": "3"}}'
+          - '{"keyword_field": ""}'
+          - '{"index": {"_index": "issue5169_keyword", "_id": "4"}}'
+          - '{"keyword_field": "special chars..."}'
+          - '{"index": {"_index": "issue5169_keyword", "_id": "5"}}'
+          - '{"keyword_field": null}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5169_keyword
+        ignore_unavailable: true
+
+---
+"Issue 5169: NOT LIKE should exclude null/missing field rows":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5169_keyword | where NOT keyword_field LIKE '%ello%' | fields keyword_field
+
+  - match: { total: 3 }
+  - length: { datarows: 3 }
