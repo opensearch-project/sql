@@ -55,7 +55,7 @@ teardown:
             plugins.calcite.enabled: false
 
 ---
-"Issue 4463: isnotnull filter should exclude null values in aggregation results":
+"Issue 4463: isnotnull with additional predicate excludes null keyword buckets":
   - skip:
       features:
         - headers
@@ -65,7 +65,42 @@ teardown:
       ppl:
         body:
           query: "source=issue4463 | where isnotnull(description) and description != '' | stats count() by description"
+  # RexSimplify folds IS_NOT_NULL(x) AND x<>'' into just x<>''.
+  # Strong.isNotTrue still infers field 0 is non-nullable from x<>''.
+  # 3 short descriptions pass; long and empty filtered out.
+  - match: { total: 3 }
 
-  # Bug: returns 4 rows with [3, null] for long descriptions whose keyword subfield is null
-  # Expected: no null bucket in results since isnotnull(description) was applied
+---
+"Issue 4463: isnotnull alone excludes null keyword buckets":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue4463 | where isnotnull(description) | stats count() by description"
+  # isnotnull keeps all 7 docs (all have text values).
+  # Aggregation by keyword: 3 short + 1 empty + null bucket for 3 long.
+  # With fix: null bucket excluded → 4 rows.
+  - match: { total: 4 }
+
+---
+"Issue 4463: isnotnull with script predicate excludes null keyword buckets":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue4463 | where isnotnull(description) and length(description) > 5 | stats count() by description"
+  # length(description) > 5 triggers a script predicate (not native DSL).
+  # The filter is tagged as PushDownType.SCRIPT, but the fix now reads FilterDigest
+  # from SCRIPT operations too. isnotnull(description) contributes an exists query.
+  # Docs passing: 3 short (len 19) + 3 long (len >50) = 6 docs.
+  # Aggregation by keyword: 3 short rows + null bucket for 3 long.
+  # With fix: null bucket excluded → 3 rows.
   - match: { total: 3 }

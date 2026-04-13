@@ -175,11 +175,14 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
               filter.getCondition(), schema, fieldTypes, rowType, getCluster());
       // TODO: handle the case where condition contains a score function
       CalciteLogicalIndexScan newScan = this.copy();
-      Set<Integer> notNullIndices = extractNotNullFieldIndices(filter.getCondition());
       RexNode digestCondition =
           queryExpression.isPartial()
               ? constructCondition(queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
               : filter.getCondition();
+      // Infer NOT NULL constraints from the actually-pushed condition (digestCondition),
+      // not the original filter condition — in partial pushdown, the original may contain
+      // predicates that stay in Calcite and don't affect the OpenSearch-side aggregation.
+      Set<Integer> notNullIndices = extractNotNullFieldIndices(digestCondition);
       newScan.pushDownContext.add(
           queryExpression.getScriptCount() > 0 ? PushDownType.SCRIPT : PushDownType.FILTER,
           new FilterDigest(queryExpression.getScriptCount(), digestCondition, notNullIndices),
@@ -455,7 +458,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       PushDownContext context, Aggregate aggregate, @Nullable Project project) {
     Set<Integer> allNotNullIndices = new HashSet<>();
     for (PushDownOperation op : context) {
-      if (op.type() == PushDownType.FILTER && op.digest() instanceof FilterDigest fd) {
+      // FilterDigest is attached to both FILTER and SCRIPT push-down operations;
+      // the type only reflects whether a script is involved, not whether NOT NULL metadata exists.
+      if ((op.type() == PushDownType.FILTER || op.type() == PushDownType.SCRIPT)
+          && op.digest() instanceof FilterDigest fd) {
         allNotNullIndices.addAll(fd.notNullFieldIndices());
       }
     }

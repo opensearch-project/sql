@@ -1652,18 +1652,17 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   /**
-   * Regression test for https://github.com/opensearch-project/sql/issues/4463 When a text field
+   * Regression tests for https://github.com/opensearch-project/sql/issues/4463 When a text field
    * with keyword subfield has ignore_above, documents with values longer than the limit have null
    * keyword values. The isnotnull() filter operates on the root text field (via exists query), but
    * aggregation groups by the keyword subfield. Without the fix, null keyword buckets appear in
    * results despite the isnotnull filter.
    */
-  @Test
-  public void testIsNotNullFilterExcludesNullBucketsInAggregation() throws IOException {
-    enabledOnlyWhenPushdownIsEnabled();
-    String index = "issue4463_integ";
-    // Create index with text field having keyword subfield with low ignore_above
-    Request createIndex = new Request("PUT", "/" + index);
+  private String issue4463Index;
+
+  private void setupIssue4463Index() throws IOException {
+    issue4463Index = "issue4463_integ";
+    Request createIndex = new Request("PUT", "/" + issue4463Index);
     createIndex.setJsonEntity(
         "{"
             + "\"settings\":{\"number_of_shards\":1,\"number_of_replicas\":0},"
@@ -1674,55 +1673,124 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             + "}}}");
     client().performRequest(createIndex);
 
-    // Index documents: 3 short descriptions (keyword indexed), 3 long (keyword null), 1 empty
     Request bulk = new Request("POST", "/_bulk?refresh=true");
     bulk.setJsonEntity(
         "{\"index\":{\"_index\":\""
-            + index
+            + issue4463Index
             + "\"}}\n"
             + "{\"description\":\"Short desc 1\",\"value\":1}\n"
             + "{\"index\":{\"_index\":\""
-            + index
+            + issue4463Index
             + "\"}}\n"
             + "{\"description\":\"Short desc 2\",\"value\":2}\n"
             + "{\"index\":{\"_index\":\""
-            + index
+            + issue4463Index
             + "\"}}\n"
             + "{\"description\":\"Short desc 3\",\"value\":3}\n"
             + "{\"index\":{\"_index\":\""
-            + index
+            + issue4463Index
             + "\"}}\n"
             + "{\"description\":\"This is a very long description that exceeds the 50 char"
             + " ignore_above limit\",\"value\":100}\n"
             + "{\"index\":{\"_index\":\""
-            + index
+            + issue4463Index
             + "\"}}\n"
             + "{\"description\":\"Another long description that will also exceed the keyword"
             + " ignore_above limit set\",\"value\":101}\n"
             + "{\"index\":{\"_index\":\""
-            + index
+            + issue4463Index
             + "\"}}\n"
             + "{\"description\":\"Yet another long string exceeding the limit for the keyword"
             + " subfield\",\"value\":102}\n"
             + "{\"index\":{\"_index\":\""
-            + index
+            + issue4463Index
             + "\"}}\n"
             + "{\"description\":\"\",\"value\":200}\n");
     client().performRequest(bulk);
+  }
 
+  private void cleanupIssue4463Index() throws IOException {
+    client().performRequest(new Request("DELETE", "/" + issue4463Index));
+  }
+
+  @Test
+  public void testIsNotNullFilterExcludesNullBucketsInAggregation() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    setupIssue4463Index();
     try {
-      // isnotnull + non-empty filter with stats group-by should exclude null keyword buckets
+      // isnotnull + != '' → RexSimplify folds into just x<>''; Strong still infers non-null
       JSONObject actual =
           executeQuery(
               "source="
-                  + index
+                  + issue4463Index
                   + " | where isnotnull(description) and description != ''"
                   + " | stats count() by description");
-      // Should return exactly 3 rows (one per short description), no null bucket
       assertEquals(3, actual.getInt("total"));
     } finally {
-      // Cleanup
-      client().performRequest(new Request("DELETE", "/" + index));
+      cleanupIssue4463Index();
+    }
+  }
+
+  @Test
+  public void testIsNotNullAloneExcludesNullBucketsInAggregation() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    setupIssue4463Index();
+    try {
+      // isnotnull alone — all 7 docs pass, but null keyword bucket excluded
+      JSONObject actual =
+          executeQuery(
+              "source="
+                  + issue4463Index
+                  + " | where isnotnull(description)"
+                  + " | stats count() by description");
+      // 3 short + 1 empty = 4 (no null bucket)
+      assertEquals(4, actual.getInt("total"));
+    } finally {
+      cleanupIssue4463Index();
+    }
+  }
+
+  @Test
+  public void testIsNotNullWithScriptPredicateExcludesNullBuckets() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    setupIssue4463Index();
+    try {
+      // length() triggers a script predicate → PushDownType.SCRIPT, not FILTER.
+      // The fix reads FilterDigest from both SCRIPT and FILTER operations.
+      JSONObject actual =
+          executeQuery(
+              "source="
+                  + issue4463Index
+                  + " | where isnotnull(description) and length(description) > 5"
+                  + " | stats count() by description");
+      // 3 short (len ~12) + 3 long (len >50) pass length>5; null keyword bucket excluded → 3
+      assertEquals(3, actual.getInt("total"));
+    } finally {
+      cleanupIssue4463Index();
+    }
+  }
+
+  @Test
+  public void testIsNotNullAggregationDslHasMissingBucketFalse() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    setupIssue4463Index();
+    try {
+      // Verify at DSL level that missing_bucket is false for the non-nullable group field
+      String explain =
+          explainQueryToString(
+              "source="
+                  + issue4463Index
+                  + " | where isnotnull(description)"
+                  + " | stats count() by description");
+      // Explain output nests JSON inside JSON, so quotes are escaped.
+      // The actual string contains \\\"missing_bucket\\\":false
+      org.junit.Assert.assertTrue(
+          "DSL should contain missing_bucket:false for non-nullable group field. Got: " + explain,
+          explain.contains("missing_bucket\\\":false")
+              || explain.contains("\"missing_bucket\":false")
+              || explain.contains("\"missing_bucket\" : false"));
+    } finally {
+      cleanupIssue4463Index();
     }
   }
 
