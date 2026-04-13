@@ -62,7 +62,7 @@ Consult `.claude/harness/ppl-bugfix-reference.md` for test templates.
 Required deliverables:
 - Failing test reproducing the bug (written BEFORE the fix)
 - Unit tests covering happy path and edge cases
-- Integration test (`*IT.java` extending `CalcitePPLIT`)
+- Integration test — add to an existing `*IT.java` when possible; if creating a new one, add it to `CalciteNoPushdownIT`
 - YAML REST test at `integ-test/src/yamlRestTest/resources/rest-api-spec/test/issues/<ISSUE>.yml`
 
 ---
