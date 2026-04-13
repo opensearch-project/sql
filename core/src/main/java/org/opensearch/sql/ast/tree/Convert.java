@@ -23,6 +23,7 @@ import org.opensearch.sql.ast.expression.Let;
 @RequiredArgsConstructor
 public class Convert extends UnresolvedPlan {
   private final List<Let> conversions;
+  private final String timeFormat;
   private UnresolvedPlan child;
 
   @Override
