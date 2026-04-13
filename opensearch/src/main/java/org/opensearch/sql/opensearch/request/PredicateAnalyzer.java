@@ -587,18 +587,14 @@ public class PredicateAnalyzer {
         return QueryExpression.create(namedField).isFalse();
       }
       QueryExpression expr = (QueryExpression) operandExpr;
-      QueryExpression negated = expr.not();
       // For null-intolerant predicates (LIKE, comparisons, equality, etc.),
       // negation must also exclude documents where the field is NULL/missing.
       // Truth-test operators (IS_TRUE, IS_NULL, etc.) already encode null
       // semantics and must NOT get an additional exists filter.
-      if (isNullIntolerantPredicate(innerOperand)
-          && negated instanceof SimpleQueryExpression sqe
-          && sqe.getFieldExpression() != null) {
-        return CompoundQueryExpression.and(
-            false, negated, QueryExpression.create(sqe.getFieldExpression()).exists());
+      if (isNullIntolerantPredicate(innerOperand) && expr instanceof SimpleQueryExpression sqe) {
+        return sqe.notWithExistsFilter();
       }
-      return negated;
+      return expr.not();
     }
 
     /** Returns true if the given RexNode is a null-intolerant predicate (value comparison). */
@@ -1334,9 +1330,10 @@ public class PredicateAnalyzer {
       return this;
     }
 
-    /** Returns the field expression, or null if not available. */
-    NamedFieldExpression getFieldExpression() {
-      return rel;
+    /** Negate with an exists filter to exclude null/missing documents. */
+    QueryExpression notWithExistsFilter() {
+      builder = boolQuery().must(existsQuery(getFieldReference())).mustNot(builder());
+      return this;
     }
 
     @Override

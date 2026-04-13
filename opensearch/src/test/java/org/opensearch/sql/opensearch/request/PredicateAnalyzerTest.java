@@ -1264,25 +1264,19 @@ public class PredicateAnalyzerTest {
           "bool" : {
             "must" : [
               {
-                "bool" : {
-                  "must_not" : [
-                    {
-                      "wildcard" : {
-                        "b.keyword" : {
-                          "wildcard" : "*Hi*",
-                          "boost" : 1.0
-                        }
-                      }
-                    }
-                  ],
-                  "adjust_pure_negative" : true,
-                  "boost" : 1.0
-                }
-              },
-              {
                 "exists" : {
                   "field" : "b",
                   "boost" : 1.0
+                }
+              }
+            ],
+            "must_not" : [
+              {
+                "wildcard" : {
+                  "b.keyword" : {
+                    "wildcard" : "*Hi*",
+                    "boost" : 1.0
+                  }
                 }
               }
             ],
@@ -1308,28 +1302,22 @@ public class PredicateAnalyzerTest {
           "bool" : {
             "must" : [
               {
-                "bool" : {
-                  "must_not" : [
-                    {
-                      "range" : {
-                        "a" : {
-                          "from" : 12,
-                          "to" : null,
-                          "include_lower" : false,
-                          "include_upper" : true,
-                          "boost" : 1.0
-                        }
-                      }
-                    }
-                  ],
-                  "adjust_pure_negative" : true,
-                  "boost" : 1.0
-                }
-              },
-              {
                 "exists" : {
                   "field" : "a",
                   "boost" : 1.0
+                }
+              }
+            ],
+            "must_not" : [
+              {
+                "range" : {
+                  "a" : {
+                    "from" : 12,
+                    "to" : null,
+                    "include_lower" : false,
+                    "include_upper" : true,
+                    "boost" : 1.0
+                  }
                 }
               }
             ],
