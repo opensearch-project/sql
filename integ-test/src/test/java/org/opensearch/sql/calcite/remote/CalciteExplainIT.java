@@ -2799,56 +2799,58 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testXyseriesExplain() throws IOException {
     String query =
-            StringEscapeUtils.escapeJson(StringUtils.format(
-            "source=%s | stats avg(balance) as avg_balance by gender, state"
-                + " | xyseries state gender in (\"F\", \"M\") avg_balance",
-            TEST_INDEX_BANK));
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance by gender, state"
+                    + " | xyseries state gender in (\"F\", \"M\") avg_balance",
+                TEST_INDEX_BANK));
     var result = explainQueryYaml(query);
     String lower = result.toLowerCase();
     Assert.assertTrue(
-        "Expected explain to contain LogicalAggregate for pivot grouping",
-        lower.contains("logicalaggregate") || lower.contains("aggregate"));
+        "Expected explain to contain aggregate for pivot grouping", lower.contains("aggregate"));
+    Assert.assertTrue("Expected explain to contain FILTER for pivot", lower.contains("filter"));
+    // Verify the generated pivot column names appear in the plan
     Assert.assertTrue(
-        "Expected explain to contain CASE expression for pivot",
-        lower.contains("case"));
+        "Expected explain to contain pivot column 'avg_balance: F'",
+        result.contains("avg_balance: F"));
     Assert.assertTrue(
-        "Expected explain to contain pivot value 'F'",
-        result.contains("F"));
-    Assert.assertTrue(
-        "Expected explain to contain pivot value 'M'",
-        result.contains("M"));
+        "Expected explain to contain pivot column 'avg_balance: M'",
+        result.contains("avg_balance: M"));
   }
 
   @Test
   public void testXyseriesMultipleDataFieldsExplain() throws IOException {
     String query =
-            StringEscapeUtils.escapeJson(StringUtils.format(
-            "source=%s | stats avg(balance) as avg_balance, count() as cnt by gender, state"
-                + " | xyseries state gender in (\"F\", \"M\") avg_balance, cnt",
-            TEST_INDEX_BANK));
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance, count() as cnt by gender, state"
+                    + " | xyseries state gender in (\"F\", \"M\") avg_balance, cnt",
+                TEST_INDEX_BANK));
     var result = explainQueryYaml(query);
     String lower = result.toLowerCase();
+    Assert.assertTrue("Expected explain to contain aggregate", lower.contains("aggregate"));
+    Assert.assertTrue("Expected explain to contain FILTER for pivot", lower.contains("filter"));
+    // Verify pivot columns for both data fields and both pivot values
     Assert.assertTrue(
-        "Expected explain to contain aggregate",
-        lower.contains("aggregate"));
+        "Expected explain to contain pivot column 'avg_balance: F'",
+        result.contains("avg_balance: F"));
     Assert.assertTrue(
-        "Expected explain to contain CASE expression for pivot",
-        lower.contains("case"));
+        "Expected explain to contain pivot column 'avg_balance: M'",
+        result.contains("avg_balance: M"));
     Assert.assertTrue(
-        "Expected explain to contain avg_balance in plan",
-        result.contains("avg_balance"));
+        "Expected explain to contain pivot column 'cnt: F'", result.contains("cnt: F"));
     Assert.assertTrue(
-        "Expected explain to contain cnt in plan",
-        result.contains("cnt"));
+        "Expected explain to contain pivot column 'cnt: M'", result.contains("cnt: M"));
   }
 
   @Test
   public void testXyseriesWithFormatExplain() throws IOException {
     String query =
-            StringEscapeUtils.escapeJson(StringUtils.format(
-            "source=%s | stats avg(balance) as avg_balance by gender, state"
-                + " | xyseries format=\"$VAL$_$AGG$\" state gender in (\"F\", \"M\") avg_balance",
-            TEST_INDEX_BANK));
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance by gender, state | xyseries"
+                    + " format=\"$VAL$_$AGG$\" state gender in (\"F\", \"M\") avg_balance",
+                TEST_INDEX_BANK));
     var result = explainQueryYaml(query);
     Assert.assertTrue(
         "Expected explain to contain formatted column name F_avg_balance",

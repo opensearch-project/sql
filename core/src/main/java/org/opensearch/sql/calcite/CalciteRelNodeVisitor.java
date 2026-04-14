@@ -3225,11 +3225,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     for (String yDataFieldName : yDataFieldNames) {
       for (String pivotVal : pivotValues) {
         // CASE WHEN CAST(y_name_field AS VARCHAR) = 'pivotVal' THEN y_data_field ELSE NULL END
-        RexNode condition =
-            b.call(SqlStdOperatorTable.EQUALS, yNameAsString, b.literal(pivotVal));
+        RexNode condition = b.call(SqlStdOperatorTable.EQUALS, yNameAsString, b.literal(pivotVal));
         RexNode dataRef = b.field(yDataFieldName);
-        RexNode caseExpr =
-            b.call(SqlStdOperatorTable.CASE, condition, dataRef, b.literal(null));
+        RexNode caseExpr = b.call(SqlStdOperatorTable.CASE, condition, dataRef, b.literal(null));
 
         // Generate the output column name
         String colName = generateColumnName(yDataFieldName, pivotVal, separator, format);
