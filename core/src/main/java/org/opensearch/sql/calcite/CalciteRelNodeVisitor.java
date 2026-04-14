@@ -3406,7 +3406,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> yDataFieldNames =
         node.getYDataFields().stream().map(this::resolveFieldName).collect(Collectors.toList());
 
-    List<String> pivotValues = node.getPivotValues();
+    List<String> pivotValues = node.getPivotValues() != null ? node.getPivotValues() : List.of();
     String separator = node.getSeparator();
     String format = node.getFormat();
 
