@@ -536,6 +536,31 @@ class VectorSearchQueryBuilderTest {
     assertTrue(ex.getMessage().contains("unsupported sort expression"));
   }
 
+  @Test
+  void buildSucceedsRadialWithSortEmbeddedLimit() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder =
+        new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("max_distance", "10.0"));
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    // LogicalSort with count=50 simulates PPL sort-with-limit path
+    var sort =
+        new org.opensearch.sql.planner.logical.LogicalSort(
+            dummyChild,
+            50,
+            List.of(
+                org.apache.commons.lang3.tuple.ImmutablePair.of(
+                    org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC,
+                    new ReferenceExpression("_score", ExprCoreType.FLOAT))));
+
+    builder.pushDownSort(sort);
+
+    // build() should not reject — limitPushed must be true via pushDownSort's count path
+    OpenSearchRequestBuilder result = builder.build();
+    assertNotNull(result);
+  }
+
   private OpenSearchRequestBuilder createRequestBuilder() {
     return new OpenSearchRequestBuilder(
         mock(OpenSearchExprValueFactory.class), 10000, mock(Settings.class));

@@ -118,6 +118,7 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     // but PPL or future callers may set a non-zero count to combine sort+limit in one node.
     if (sort.getCount() != 0) {
       validateLimitWithinK(sort.getCount());
+      limitPushed = true;
       requestBuilder.pushDownLimit(sort.getCount(), 0);
     }
     return true;
