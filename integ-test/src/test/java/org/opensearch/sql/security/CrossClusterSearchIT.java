@@ -249,10 +249,7 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
                     + " | xyseries state gender in ('F', 'M') avg_balance",
                 TEST_INDEX_BANK_REMOTE));
     verifyColumn(
-        result,
-        columnName("state"),
-        columnName("avg_balance: F"),
-        columnName("avg_balance: M"));
+        result, columnName("state"), columnName("avg_balance: F"), columnName("avg_balance: M"));
     verifyDataRows(
         result,
         rows("IL", null, 39225.0),

@@ -1865,12 +1865,7 @@ public class AstBuilderTest {
   public void testXyseriesCommandWithSep() {
     Xyseries expected =
         new Xyseries(
-            field("url"),
-            field("response"),
-            List.of("200"),
-            List.of(field("host_cnt")),
-            "-",
-            null);
+            field("url"), field("response"), List.of("200"), List.of(field("host_cnt")), "-", null);
     expected.attach(relation("t"));
     assertEqual("source=t | xyseries sep=\"-\" url response in (\"200\") host_cnt", expected);
   }
@@ -1887,8 +1882,7 @@ public class AstBuilderTest {
             "$VAL$+$AGG$");
     expected.attach(relation("t"));
     assertEqual(
-        "source=t | xyseries format=\"$VAL$+$AGG$\" url response in (\"200\") host_cnt",
-        expected);
+        "source=t | xyseries format=\"$VAL$+$AGG$\" url response in (\"200\") host_cnt", expected);
   }
 
   @Test
@@ -1903,7 +1897,8 @@ public class AstBuilderTest {
             "$AGG$_$VAL$");
     expected.attach(relation("t"));
     assertEqual(
-        "source=t | xyseries sep=\"-\" format=\"$AGG$_$VAL$\" url response in (\"200\", \"404\") host_cnt",
+        "source=t | xyseries sep=\"-\" format=\"$AGG$_$VAL$\" url response in (\"200\", \"404\")"
+            + " host_cnt",
         expected);
   }
 }

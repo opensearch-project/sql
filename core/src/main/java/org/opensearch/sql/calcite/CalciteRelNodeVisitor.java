@@ -35,6 +35,7 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -3409,52 +3410,58 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     String separator = node.getSeparator();
     String format = node.getFormat();
 
-    // Cast the y-name field to VARCHAR for comparison with string pivot values
+    // Build the pivot axis - cast to VARCHAR if needed for string comparison
     RexNode yNameRef = b.field(yNameFieldName);
-    RelDataType varchar =
-        rx.getTypeFactory()
-            .createTypeWithNullability(
-                rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
-    RexNode yNameAsString;
+    RexNode axis;
     if (!SqlTypeUtil.isCharacter(yNameRef.getType())) {
-      yNameAsString = rx.makeCast(varchar, yNameRef, true);
+      RelDataType varchar =
+          rx.getTypeFactory()
+              .createTypeWithNullability(
+                  rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
+      axis = rx.makeCast(varchar, yNameRef, true);
     } else {
-      yNameAsString = yNameRef;
+      axis = yNameRef;
     }
 
-    // Build projections: x-field + CASE expressions for each (yDataField, pivotValue) combo
-    List<RexNode> projections = new ArrayList<>();
-    List<String> projectionNames = new ArrayList<>();
+    // Build aggregate calls - MAX for each y-data field
+    List<AggCall> aggCalls =
+        yDataFieldNames.stream()
+            .map(name -> b.max(b.field(name)).as(name))
+            .collect(Collectors.toList());
 
-    // First projection is the x-field
-    projections.add(b.field(xFieldName));
-    projectionNames.add(xFieldName);
+    // Build pivot value entries: alias -> [literal(value)]
+    // LinkedHashMap preserves insertion order for deterministic column ordering
+    LinkedHashMap<String, List<RexNode>> pivotValueMap = new LinkedHashMap<>();
+    for (String val : pivotValues) {
+      pivotValueMap.put(val, ImmutableList.of(b.literal(val)));
+    }
 
-    // For each y-data field and each pivot value, create a CASE WHEN expression
-    for (String yDataFieldName : yDataFieldNames) {
+    // Execute pivot: decomposes into GROUP BY x-field with FILTER-based aggregation
+    // Produces columns: x-field, {val1}_{agg1}, {val1}_{agg2}, {val2}_{agg1}, ...
+    b.pivot(
+        b.groupKey(b.field(xFieldName)),
+        aggCalls,
+        ImmutableList.of(axis),
+        pivotValueMap.entrySet());
+
+    // Pivot produces value-first column ordering: val1_agg1, val1_agg2, val2_agg1, ...
+    // Reorder to agg-first and apply custom column naming: agg1: val1, agg1: val2, ...
+    List<RexNode> reorderProjections = new ArrayList<>();
+    List<String> reorderNames = new ArrayList<>();
+
+    reorderProjections.add(b.field(xFieldName));
+    reorderNames.add(xFieldName);
+
+    for (String aggName : yDataFieldNames) {
       for (String pivotVal : pivotValues) {
-        // CASE WHEN CAST(y_name_field AS VARCHAR) = 'pivotVal' THEN y_data_field ELSE NULL END
-        RexNode condition =
-            b.call(SqlStdOperatorTable.EQUALS, yNameAsString, b.literal(pivotVal));
-        RexNode dataRef = b.field(yDataFieldName);
-        RexNode caseExpr =
-            b.call(SqlStdOperatorTable.CASE, condition, dataRef, b.literal(null));
-
-        // Generate the output column name
-        String colName = generateColumnName(yDataFieldName, pivotVal, separator, format);
-        projections.add(b.alias(caseExpr, colName));
-        projectionNames.add(colName);
+        // Reference pivot output column by its generated name: {value}_{agg}
+        String pivotColName = pivotVal + "_" + aggName;
+        reorderProjections.add(b.field(pivotColName));
+        reorderNames.add(generateColumnName(aggName, pivotVal, separator, format));
       }
     }
 
-    b.project(projections);
-
-    // Aggregate: group by x-field, MAX for each pivoted column
-    List<AggCall> aggCalls = new ArrayList<>();
-    for (int i = 1; i < projectionNames.size(); i++) {
-      aggCalls.add(b.max(b.field(projectionNames.get(i))).as(projectionNames.get(i)));
-    }
-    b.aggregate(b.groupKey(b.field(xFieldName)), aggCalls);
+    b.project(reorderProjections, reorderNames, true);
 
     // Order by x-field
     b.sort(b.field(0));
