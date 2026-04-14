@@ -279,7 +279,9 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
-        plugin(getAnalyticsEnginePlugin())
+        if (hasAnalyticsEngine) {
+            plugin(getAnalyticsEnginePlugin())
+        }
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
@@ -287,7 +289,9 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
-        plugin(getAnalyticsEnginePlugin())
+        if (hasAnalyticsEngine) {
+            plugin(getAnalyticsEnginePlugin())
+        }
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
@@ -295,19 +299,25 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
-        plugin(getAnalyticsEnginePlugin())
+        if (hasAnalyticsEngine) {
+            plugin(getAnalyticsEnginePlugin())
+        }
         plugin ":opensearch-sql-plugin"
     }
     integTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
-        plugin(getAnalyticsEnginePlugin())
+        if (hasAnalyticsEngine) {
+            plugin(getAnalyticsEnginePlugin())
+        }
         plugin ":opensearch-sql-plugin"
     }
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
-        plugin(getAnalyticsEnginePlugin())
+        if (hasAnalyticsEngine) {
+            plugin(getAnalyticsEnginePlugin())
+        }
         plugin ":opensearch-sql-plugin"
     }
 }
@@ -362,7 +372,9 @@ stopPrometheus.mustRunAfter startPrometheus
 
 task integJdbcTest(type: RestIntegTestTask) {
     testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().with {
-        plugin(getAnalyticsEnginePlugin())
+        if (hasAnalyticsEngine) {
+            plugin(getAnalyticsEnginePlugin())
+        }
         plugin ":opensearch-sql-plugin"
     }
 

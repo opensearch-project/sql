@@ -23,6 +23,12 @@ buildscript {
             // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT (opensearch_build)
             opensearch_build += "-SNAPSHOT"
         }
+        // Whether to build with analytics-engine support. Use -PhasAnalyticsEngine=true/false
+        // to override, otherwise auto-detect from file existence.
+        hasAnalyticsEngine = project.hasProperty('hasAnalyticsEngine')
+            ? Boolean.parseBoolean(project.property('hasAnalyticsEngine').toString())
+            : file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip").exists()
+        logger.lifecycle("Building with analytics-engine: ${hasAnalyticsEngine}")
         getArchType = {
             if (System.getProperty("os.arch").startsWith("x") || System.getProperty("os.arch").startsWith("amd")) {
                 return "amd64"
@@ -118,6 +124,10 @@ spotless {
 }
 
 allprojects {
+    // Propagate hasAnalyticsEngine as a Boolean ext property so -P String values
+    // (e.g., -PhasAnalyticsEngine=false → String "false") don't evaluate as truthy in Groovy.
+    ext.hasAnalyticsEngine = Boolean.parseBoolean(hasAnalyticsEngine.toString())
+
     version = opensearch_version.tokenize('-')[0] + '.0'
     if (buildVersionQualifier) {
         version += "-${buildVersionQualifier}"
