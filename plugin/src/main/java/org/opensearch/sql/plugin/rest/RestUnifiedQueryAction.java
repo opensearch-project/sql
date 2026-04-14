@@ -6,7 +6,9 @@
 package org.opensearch.sql.plugin.rest;
 
 import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
+import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
+import static org.opensearch.sql.monitor.profile.MetricName.EXECUTE;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
@@ -36,7 +38,6 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.common.response.ResponseListener;
-import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.lang.LangSpec;
@@ -109,11 +110,11 @@ public class RestUnifiedQueryAction {
                 () -> {
                   try (UnifiedQueryContext context = buildContext(queryType, profiling)) {
                     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-                    RelNode plan = planner.plan(query);
                     CalcitePlanContext planContext = context.getPlanContext();
-                    plan = addQuerySizeLimit(plan, planContext);
-                    analyticsEngine.execute(
-                        plan, planContext, createQueryListener(queryType, listener));
+                    RelNode plan = addQuerySizeLimit(planner.plan(query), planContext);
+                    QueryResponse response =
+                        context.measure(EXECUTE, () -> analyticsEngine.executeQuery(plan));
+                    createQueryListener(queryType, listener).onResponse(response);
                   } catch (Exception e) {
                     listener.onFailure(e);
                   }
