@@ -19,6 +19,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.FilterType;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
+import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder.ScriptQueryUnSupportedException;
 import org.opensearch.sql.opensearch.storage.serde.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
@@ -73,7 +74,19 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
   public boolean pushDownFilter(LogicalFilter filter) {
     FilterQueryBuilder queryBuilder = new FilterQueryBuilder(new DefaultExpressionSerializer());
     Expression queryCondition = filter.getCondition();
-    QueryBuilder whereQuery = queryBuilder.build(queryCondition);
+    QueryBuilder whereQuery;
+    try {
+      whereQuery = queryBuilder.build(queryCondition);
+    } catch (ScriptQueryUnSupportedException e) {
+      if (filterTypeExplicit) {
+        throw new ExpressionEvaluationException(
+            "filter_type requires a pushdownable WHERE clause, but the given condition"
+                + " cannot be pushed down: "
+                + e.getMessage());
+      }
+      // Default mode: fall back to in-memory filtering (matches base class behavior)
+      return false;
+    }
     filterPushed = true;
 
     if (filterType == FilterType.EFFICIENT) {
