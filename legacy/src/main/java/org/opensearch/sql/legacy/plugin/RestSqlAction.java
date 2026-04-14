@@ -23,6 +23,8 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.search.SearchPhaseExecutionException;
+import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.settings.Settings;
@@ -171,7 +173,18 @@ public class RestSqlAction extends BaseRestHandler {
     logAndPublishMetrics(exception);
     if (exception instanceof OpenSearchException) {
       OpenSearchException openSearchException = (OpenSearchException) exception;
-      reportError(restChannel, openSearchException, openSearchException.status());
+      RestStatus status = openSearchException.status();
+      if (exception instanceof SearchPhaseExecutionException) {
+        for (ShardSearchFailure failure :
+            ((SearchPhaseExecutionException) exception).shardFailures()) {
+          Throwable cause = failure.getCause();
+          if (cause instanceof Exception && isClientError((Exception) cause)) {
+            status = BAD_REQUEST;
+            break;
+          }
+        }
+      }
+      reportError(restChannel, openSearchException, status);
     } else {
       reportError(
           restChannel, exception, isClientError(exception) ? BAD_REQUEST : INTERNAL_SERVER_ERROR);

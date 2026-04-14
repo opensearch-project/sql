@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.search.SearchPhaseExecutionException;
+import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.OpenSearchException;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -50,16 +52,23 @@ public class RestPPLQueryAction extends BaseRestHandler {
   }
 
   private static boolean isClientError(Exception e) {
-    return e instanceof NullPointerException
-        // NPE is hard to differentiate but more likely caused by bad query
-        || e instanceof IllegalArgumentException
-        || e instanceof IndexNotFoundException
-        || e instanceof SemanticCheckException
-        || e instanceof ExpressionEvaluationException
-        || e instanceof QueryEngineException
-        || e instanceof SyntaxCheckException
-        || e instanceof DataSourceClientException
-        || e instanceof IllegalAccessException;
+    // NPE is hard to differentiate but more likely caused by bad query
+    Throwable current = e;
+    while (current != null) {
+      if (current instanceof NullPointerException
+          || current instanceof IllegalArgumentException
+          || current instanceof IndexNotFoundException
+          || current instanceof SemanticCheckException
+          || current instanceof ExpressionEvaluationException
+          || current instanceof QueryEngineException
+          || current instanceof SyntaxCheckException
+          || current instanceof DataSourceClientException
+          || current instanceof IllegalAccessException) {
+        return true;
+      }
+      current = current.getCause();
+    }
+    return false;
   }
 
   @Override
@@ -106,11 +115,29 @@ public class RestPPLQueryAction extends BaseRestHandler {
                     reportError(channel, e, INTERNAL_SERVER_ERROR);
                   }
                 } else if (e instanceof OpenSearchException) {
-                  Metrics.getInstance()
-                      .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS)
-                      .increment();
                   OpenSearchException exception = (OpenSearchException) e;
-                  reportError(channel, exception, exception.status());
+                  RestStatus status = exception.status();
+                  if (e instanceof SearchPhaseExecutionException) {
+                    for (ShardSearchFailure failure :
+                        ((SearchPhaseExecutionException) e).shardFailures()) {
+                      Throwable cause = failure.getCause();
+                      if (cause instanceof Exception
+                          && isClientError((Exception) cause)) {
+                        status = BAD_REQUEST;
+                        break;
+                      }
+                    }
+                  }
+                  if (status == BAD_REQUEST) {
+                    Metrics.getInstance()
+                        .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS)
+                        .increment();
+                  } else {
+                    Metrics.getInstance()
+                        .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_SYS)
+                        .increment();
+                  }
+                  reportError(channel, exception, status);
                 } else {
                   LOG.error("Error happened during query handling", e);
                   if (isClientError(e)) {
