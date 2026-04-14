@@ -1171,7 +1171,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     ConversionState state = new ConversionState();
 
     for (Let conversion : node.getConversions()) {
-      processConversion(conversion, state, context);
+      processConversion(conversion, node.getTimeFormat(), state, context);
     }
 
     return buildConversionProjection(state, context);
@@ -1184,14 +1184,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private void processConversion(
-      Let conversion, ConversionState state, CalcitePlanContext context) {
+      Let conversion, String timeFormat, ConversionState state, CalcitePlanContext context) {
     String target = conversion.getVar().getField().toString();
     UnresolvedExpression expression = conversion.getExpression();
 
     if (expression instanceof Field) {
       processFieldCopyConversion(target, (Field) expression, state, context);
     } else if (expression instanceof Function) {
-      processFunctionConversion(target, (Function) expression, state, context);
+      processFunctionConversion(target, (Function) expression, timeFormat, state, context);
     } else {
       throw new SemanticCheckException("Convert command requires function call expressions");
     }
@@ -1214,7 +1214,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private void processFunctionConversion(
-      String target, Function function, ConversionState state, CalcitePlanContext context) {
+      String target,
+      Function function,
+      String timeFormat,
+      ConversionState state,
+      CalcitePlanContext context) {
     String functionName = function.getFuncName();
     List<UnresolvedExpression> args = function.getFuncArgs();
 
@@ -1231,13 +1235,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     state.seenFields.add(source);
 
     RexNode sourceField = context.relBuilder.field(source);
-    RexNode convertCall =
-        PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, sourceField);
+    RexNode convertCall = resolveConvertFunction(functionName, sourceField, timeFormat, context);
 
     if (!target.equals(source)) {
       state.additions.add(Pair.of(target, context.relBuilder.alias(convertCall, target)));
     } else {
       state.replacements.put(source, context.relBuilder.alias(convertCall, source));
+    }
+  }
+
+  private RexNode resolveConvertFunction(
+      String functionName, RexNode sourceField, String timeFormat, CalcitePlanContext context) {
+
+    // Time functions that support timeformat parameter
+    Set<String> timeFunctions = Set.of("ctime", "mktime");
+
+    if (timeFunctions.contains(functionName.toLowerCase()) && timeFormat != null) {
+      // For time functions with custom timeformat, pass the format as a second parameter
+      RexNode timeFormatLiteral = context.rexBuilder.makeLiteral(timeFormat);
+      return PPLFuncImpTable.INSTANCE.resolve(
+          context.rexBuilder, functionName, sourceField, timeFormatLiteral);
+    } else {
+      // Regular conversion functions or time functions without custom format
+      return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, sourceField);
     }
   }
 
@@ -3240,7 +3260,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         || node.getColumnSplit() == null
         || Objects.equals(config.limit, 0)) {
       // The output of chart is expected to be ordered by row split names
-      relBuilder.sort(relBuilder.field(0));
+      relBuilder.sort(relBuilder.nullsLast(relBuilder.field(0)));
       return relBuilder.peek();
     }
 
@@ -3310,7 +3330,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 relBuilder.field(2))
             .as(aggFieldName));
     // The output of chart is expected to be ordered by row and column split names
-    relBuilder.sort(relBuilder.field(0), relBuilder.field(1));
+    relBuilder.sort(
+        relBuilder.nullsLast(relBuilder.field(0)), relBuilder.nullsLast(relBuilder.field(1)));
     return relBuilder.peek();
   }
 

@@ -83,6 +83,33 @@ Agent(
 
 ### 2B: Follow-up
 
+Before dispatching, check if an existing worktree already has the PR branch checked out:
+
+```bash
+# List worktrees and find one on the PR branch
+for wt in .claude/worktrees/agent-*/; do
+  branch=$(git -C "$wt" branch --show-current 2>/dev/null)
+  if [ "$branch" = "<pr_branch>" ]; then
+    echo "REUSE: $wt (branch: $branch)"
+  fi
+done
+```
+
+**If existing worktree found**: Do NOT use `isolation: "worktree"`. Pass the worktree path in the prompt so the subagent works there directly.
+
+```
+Agent(
+  mode: "<resolved_mode>",
+  name: "bugfix-<issue_number>",
+  description: "PPL bugfix #<issue_number> followup",
+  prompt: "cd <worktree_path> first, then read .claude/harness/ppl-bugfix-followup.md and follow it.
+           PR: <pr_number> (<pr_url>), Issue: #<issue_number>
+           Working directory: <worktree_path>"
+)
+```
+
+**If no existing worktree**: Create a new one.
+
 ```
 Agent(
   mode: "<resolved_mode>",
@@ -99,6 +126,16 @@ Agent(
 After all subagents complete, report a summary for each:
 - Classification, fix summary, PR URL, worktree path and branch, items needing human attention (2A)
 - What was addressed, current PR state, whether another round is needed (2B)
+
+**Always include the worktree→PR mapping** from the subagent's output, e.g.:
+
+```
+Worktree: /path/to/.claude/worktrees/agent-xxxx
+Branch: bugfix-1234
+PR: #5678
+```
+
+**Important**: After reporting, the main agent must remember this mapping. When the user later asks to make changes to the PR (e.g., "commit this to PR #5678"), operate in the worktree directory — not the main session directory.
 
 ## Subagent Lifecycle
 
