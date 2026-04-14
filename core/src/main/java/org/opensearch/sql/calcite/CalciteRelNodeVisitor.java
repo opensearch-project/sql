@@ -3391,6 +3391,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
+
   @Override
   public RelNode visitXyseries(Xyseries node, CalcitePlanContext context) {
     visitChildren(node, context);
@@ -3404,7 +3405,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Resolve y-data field names
     List<String> yDataFieldNames =
-        node.getYDataFields().stream().map(this::resolveFieldName).collect(Collectors.toList());
+            node.getYDataFields().stream().map(this::resolveFieldName).collect(Collectors.toList());
 
     List<String> pivotValues = node.getPivotValues();
     String separator = node.getSeparator();
@@ -3415,9 +3416,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode axis;
     if (!SqlTypeUtil.isCharacter(yNameRef.getType())) {
       RelDataType varchar =
-          rx.getTypeFactory()
-              .createTypeWithNullability(
-                  rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
+              rx.getTypeFactory()
+                      .createTypeWithNullability(
+                              rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
       axis = rx.makeCast(varchar, yNameRef, true);
     } else {
       axis = yNameRef;
@@ -3425,9 +3426,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Build aggregate calls - MAX for each y-data field
     List<AggCall> aggCalls =
-        yDataFieldNames.stream()
-            .map(name -> b.max(b.field(name)).as(name))
-            .collect(Collectors.toList());
+            yDataFieldNames.stream()
+                    .map(name -> b.max(b.field(name)).as(name))
+                    .collect(Collectors.toList());
 
     // Build pivot value entries: alias -> [literal(value)]
     // LinkedHashMap preserves insertion order for deterministic column ordering
@@ -3439,10 +3440,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Execute pivot: decomposes into GROUP BY x-field with FILTER-based aggregation
     // Produces columns: x-field, {val1}_{agg1}, {val1}_{agg2}, {val2}_{agg1}, ...
     b.pivot(
-        b.groupKey(b.field(xFieldName)),
-        aggCalls,
-        ImmutableList.of(axis),
-        pivotValueMap.entrySet());
+            b.groupKey(b.field(xFieldName)),
+            aggCalls,
+            ImmutableList.of(axis),
+            pivotValueMap.entrySet());
 
     // Pivot produces value-first column ordering: val1_agg1, val1_agg2, val2_agg1, ...
     // Reorder to agg-first and apply custom column naming: agg1: val1, agg1: val2, ...
@@ -3454,22 +3455,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     for (String aggName : yDataFieldNames) {
       for (String pivotVal : pivotValues) {
-<<<<<<< HEAD
-        // CASE WHEN CAST(y_name_field AS VARCHAR) = 'pivotVal' THEN y_data_field ELSE NULL END
-        RexNode condition = b.call(SqlStdOperatorTable.EQUALS, yNameAsString, b.literal(pivotVal));
-        RexNode dataRef = b.field(yDataFieldName);
-        RexNode caseExpr = b.call(SqlStdOperatorTable.CASE, condition, dataRef, b.literal(null));
-
-        // Generate the output column name
-        String colName = generateColumnName(yDataFieldName, pivotVal, separator, format);
-        projections.add(b.alias(caseExpr, colName));
-        projectionNames.add(colName);
-=======
         // Reference pivot output column by its generated name: {value}_{agg}
         String pivotColName = pivotVal + "_" + aggName;
         reorderProjections.add(b.field(pivotColName));
         reorderNames.add(generateColumnName(aggName, pivotVal, separator, format));
->>>>>>> 59ad4dc48ce98b5121320f8a226e6148a9386e27
       }
     }
 
