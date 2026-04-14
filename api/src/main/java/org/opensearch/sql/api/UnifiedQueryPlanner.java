@@ -14,6 +14,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -60,8 +61,7 @@ public class UnifiedQueryPlanner {
   public RelNode plan(String query) {
     try {
       return context.measure(ANALYZE, () -> strategy.plan(query));
-    } catch (SyntaxCheckException e) {
-      // Re-throw syntax error without wrapping
+    } catch (SyntaxCheckException | UnsupportedOperationException e) {
       throw e;
     } catch (Exception e) {
       throw new IllegalStateException("Failed to plan query", e);
@@ -82,6 +82,11 @@ public class UnifiedQueryPlanner {
     public RelNode plan(String query) throws Exception {
       try (Planner planner = Frameworks.getPlanner(context.getPlanContext().config)) {
         SqlNode parsed = planner.parse(query);
+        if (!parsed.isA(SqlKind.QUERY)) {
+          throw new UnsupportedOperationException(
+              "Only query statements are supported. Got: " + parsed.getKind());
+        }
+
         SqlNode rewritten = parsed.accept(NamedArgRewriter.INSTANCE);
         SqlNode validated = planner.validate(rewritten);
         RelRoot relRoot = planner.rel(validated);

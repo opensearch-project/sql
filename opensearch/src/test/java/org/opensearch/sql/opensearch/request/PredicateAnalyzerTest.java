@@ -1247,6 +1247,64 @@ public class PredicateAnalyzerTest {
   }
 
   @Test
+  void search_complementedPointsWithNullAsUnknown_generatesExistsAndNotInQuery()
+      throws ExpressionNotAnalyzableException {
+    // Simulates: a NOT IN (12, 13)
+    // Calcite represents this as SEARCH($0, Sarg[...; NULL AS UNKNOWN]) with complemented points
+    // SQL three-valued logic: NULL NOT IN (...) evaluates to UNKNOWN (not TRUE),
+    // so null rows must be excluded.
+    Sarg<BigDecimal> sarg =
+        Sarg.of(
+            RexUnknownAs.UNKNOWN,
+            ImmutableRangeSet.<BigDecimal>builder()
+                .add(Range.lessThan(BigDecimal.valueOf(12)))
+                .add(Range.open(BigDecimal.valueOf(12), BigDecimal.valueOf(13)))
+                .add(Range.greaterThan(BigDecimal.valueOf(13)))
+                .build());
+    RexNode sargLiteral =
+        builder.makeSearchArgumentLiteral(sarg, typeFactory.createSqlType(SqlTypeName.DECIMAL));
+    RexNode call = builder.makeCall(SqlStdOperatorTable.SEARCH, field1, sargLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must" : [
+              {
+                "bool" : {
+                  "must_not" : [
+                    {
+                      "terms" : {
+                        "a" : [
+                          12.0,
+                          13.0
+                        ],
+                        "boost" : 1.0
+                      }
+                    }
+                  ],
+                  "adjust_pure_negative" : true,
+                  "boost" : 1.0
+                }
+              },
+              {
+                "exists" : {
+                  "field" : "a",
+                  "boost" : 1.0
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
   void notLike_keywordField_generatesBoolWithExistsAndMustNot()
       throws ExpressionNotAnalyzableException {
     // NOT(LIKE(field, pattern)) should generate bool query with must(exists) + mustNot(wildcard)

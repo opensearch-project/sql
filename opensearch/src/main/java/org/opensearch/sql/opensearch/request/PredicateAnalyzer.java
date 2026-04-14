@@ -753,7 +753,14 @@ public class PredicateAnalyzer {
                     CompoundQueryExpression.or(
                         expression, QueryExpression.create(pair.getKey()).notExists());
                 // e.g. where a = 1 or a = 2
-                case UNKNOWN -> expression;
+                // For NOT IN (complemented points), SQL three-valued logic dictates
+                // NULL NOT IN (...) evaluates to UNKNOWN (not TRUE), so null rows
+                // must be excluded via an exists filter.
+                case UNKNOWN ->
+                    isSearchWithComplementedPoints(call)
+                        ? CompoundQueryExpression.and(
+                            false, expression, QueryExpression.create(pair.getKey()).exists())
+                        : expression;
               };
           finalExpression.updateAnalyzedNodes(call);
           return finalExpression;
