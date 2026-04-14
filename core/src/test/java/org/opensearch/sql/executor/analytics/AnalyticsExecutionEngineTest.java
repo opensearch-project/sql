@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.monitor.profile.MetricName.EXECUTE;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -31,6 +32,9 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.QueryProfile;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 class AnalyticsExecutionEngineTest {
@@ -247,6 +251,83 @@ class AnalyticsExecutionEngineTest {
             + errorRef.get().getClass().getSimpleName()
             + " - "
             + errorRef.get().getMessage());
+  }
+
+  // --- profiling tests ---
+
+  @Test
+  void executeQuery_returnsResponseDirectly() {
+    RelNode relNode = mockRelNode("name", SqlTypeName.VARCHAR);
+    when(mockExecutor.execute(relNode, null))
+        .thenReturn(Collections.singletonList(new Object[] {"Alice"}));
+
+    QueryResponse response = engine.executeQuery(relNode);
+
+    assertEquals(1, response.getSchema().getColumns().size());
+    assertEquals(1, response.getResults().size());
+    assertEquals("Alice", response.getResults().get(0).tupleValue().get("name").value());
+    System.out.println("executeQuery_returnsResponseDirectly: response returned directly, OK");
+  }
+
+  @Test
+  void executeQuery_executeMetricRecordedWithMeasure() throws Exception {
+    QueryProfiling.activate(true);
+    try {
+      RelNode relNode = mockRelNode("id", SqlTypeName.INTEGER);
+      when(mockExecutor.execute(relNode, null))
+          .thenReturn(Collections.singletonList(new Object[] {42}));
+
+      // Simulate what RestUnifiedQueryAction does: wrap executeQuery with measure
+      ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(EXECUTE);
+      long start = System.nanoTime();
+      QueryResponse response = engine.executeQuery(relNode);
+      metric.set(System.nanoTime() - start);
+
+      // Verify response
+      assertEquals(1, response.getResults().size());
+
+      // Verify EXECUTE metric was recorded
+      QueryProfile profile = QueryProfiling.current().finish();
+      assertNotNull(profile, "Profile should be present when profiling is enabled");
+      double executeMs = profile.getPhases().get("execute").getTimeMillis();
+      assertTrue(executeMs >= 0, "EXECUTE metric should be recorded, got: " + executeMs);
+      System.out.println(
+          "executeQuery_executeMetricRecordedWithMeasure: EXECUTE=" + executeMs + "ms, OK");
+    } finally {
+      QueryProfiling.clear();
+    }
+  }
+
+  @Test
+  void executeQuery_metricCapturedBeforeFinish() throws Exception {
+    QueryProfiling.activate(true);
+    try {
+      RelNode relNode = mockRelNode("id", SqlTypeName.INTEGER);
+      // Simulate slow execution so the metric is measurably non-zero
+      when(mockExecutor.execute(relNode, null))
+          .thenAnswer(
+              inv -> {
+                Thread.sleep(10);
+                return Collections.singletonList(new Object[] {1});
+              });
+
+      // Step 1: measure EXECUTE — simulates context.measure(EXECUTE, ...)
+      ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(EXECUTE);
+      long start = System.nanoTime();
+      QueryResponse response = engine.executeQuery(relNode);
+      metric.set(System.nanoTime() - start);
+
+      // Step 2: call finish() AFTER measure — simulates what the formatter does
+      QueryProfile profile = QueryProfiling.current().finish();
+
+      assertNotNull(profile, "Profile should not be null");
+      double executeMs = profile.getPhases().get("execute").getTimeMillis();
+      assertTrue(executeMs > 0, "EXECUTE metric should be > 0ms after measure, got: " + executeMs);
+      System.out.println(
+          "executeQuery_metricCapturedBeforeFinish: EXECUTE=" + executeMs + "ms (> 0), OK");
+    } finally {
+      QueryProfiling.clear();
+    }
   }
 
   // --- helpers ---

@@ -176,15 +176,21 @@ public class AnalyticsPPLIT extends PPLIntegTestCase {
     assertTrue("Profile should have 'phases' field", profile.has("phases"));
     JSONObject phases = profile.getJSONObject("phases");
 
+    assertTrue("Profile should have 'summary' field", profile.has("summary"));
+    double totalTime = profile.getJSONObject("summary").getDouble("total_time_ms");
+    assertTrue("Total time should be > 0, got " + totalTime + "ms", totalTime > 0);
+
     assertTrue("Phases should have 'analyze' field", phases.has("analyze"));
     double analyzeTime = phases.getJSONObject("analyze").getDouble("time_ms");
-    assertTrue(
-        "Analyze phase should have non-zero time, got " + analyzeTime + "ms", analyzeTime > 0);
+    assertTrue("Analyze phase should be > 0, got " + analyzeTime + "ms", analyzeTime > 0);
 
     assertTrue("Phases should have 'execute' field", phases.has("execute"));
     double executeTime = phases.getJSONObject("execute").getDouble("time_ms");
-    assertTrue(
-        "Execute phase should have non-zero time, got " + executeTime + "ms", executeTime > 0);
+    assertTrue("Execute phase should be > 0, got " + executeTime + "ms", executeTime > 0);
+
+    assertTrue("Phases should have 'format' field", phases.has("format"));
+    double formatTime = phases.getJSONObject("format").getDouble("time_ms");
+    assertTrue("Format phase should be > 0, got " + formatTime + "ms", formatTime > 0);
   }
 
   // --- Error handling tests ---
