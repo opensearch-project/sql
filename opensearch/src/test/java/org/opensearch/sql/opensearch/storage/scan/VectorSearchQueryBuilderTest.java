@@ -181,6 +181,28 @@ class VectorSearchQueryBuilderTest {
   }
 
   @Test
+  void pushDownSortCountExceedingKRejects() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    // LogicalSort with count=10 exceeds k=5 — should be rejected
+    var sort =
+        new org.opensearch.sql.planner.logical.LogicalSort(
+            dummyChild,
+            10,
+            List.of(
+                org.apache.commons.lang3.tuple.ImmutablePair.of(
+                    org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC,
+                    new ReferenceExpression("_score", ExprCoreType.FLOAT))));
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownSort(sort));
+    assertTrue(ex.getMessage().contains("LIMIT 10 exceeds k=5"));
+  }
+
+  @Test
   void pushDownSortNonScoreFieldRejected() {
     var requestBuilder = createRequestBuilder();
     var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");

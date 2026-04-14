@@ -57,13 +57,7 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
 
   @Override
   public boolean pushDownLimit(LogicalLimit limit) {
-    if (options.containsKey("k")) {
-      int k = Integer.parseInt(options.get("k"));
-      if (limit.getLimit() > k) {
-        throw new ExpressionEvaluationException(
-            String.format("LIMIT %d exceeds k=%d in top-k vector search", limit.getLimit(), k));
-      }
-    }
+    validateLimitWithinK(limit.getLimit());
     return super.pushDownLimit(limit);
   }
 
@@ -90,8 +84,20 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     // Preserve the parent's sort.getCount() → limit pushdown contract: SQL always sets count=0,
     // but PPL or future callers may set a non-zero count to combine sort+limit in one node.
     if (sort.getCount() != 0) {
+      validateLimitWithinK(sort.getCount());
       requestBuilder.pushDownLimit(sort.getCount(), 0);
     }
     return true;
+  }
+
+  /** Validates that the requested limit does not exceed k in top-k mode. */
+  private void validateLimitWithinK(int limit) {
+    if (options.containsKey("k")) {
+      int k = Integer.parseInt(options.get("k"));
+      if (limit > k) {
+        throw new ExpressionEvaluationException(
+            String.format("LIMIT %d exceeds k=%d in top-k vector search", limit, k));
+      }
+    }
   }
 }
