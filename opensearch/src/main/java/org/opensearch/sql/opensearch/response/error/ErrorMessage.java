@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.response.error;
 import lombok.Getter;
 import org.json.JSONObject;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.tasks.TaskCancelledException;
 
 /** Error Message. */
 public class ErrorMessage {
@@ -37,6 +38,9 @@ public class ErrorMessage {
   }
 
   protected String fetchReason() {
+    if (exception instanceof TaskCancelledException) {
+      return "Query cancelled";
+    }
     return status == RestStatus.BAD_REQUEST.getStatus()
         ? "Invalid Query"
         : "There was internal problem at backend";
