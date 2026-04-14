@@ -124,6 +124,10 @@ spotless {
 }
 
 allprojects {
+    // Propagate hasAnalyticsEngine as a Boolean ext property so -P String values
+    // (e.g., -PhasAnalyticsEngine=false → String "false") don't evaluate as truthy in Groovy.
+    ext.hasAnalyticsEngine = Boolean.parseBoolean(hasAnalyticsEngine.toString())
+
     version = opensearch_version.tokenize('-')[0] + '.0'
     if (buildVersionQualifier) {
         version += "-${buildVersionQualifier}"
