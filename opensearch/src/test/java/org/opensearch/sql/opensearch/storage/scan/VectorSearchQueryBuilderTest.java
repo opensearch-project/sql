@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -534,6 +535,48 @@ class VectorSearchQueryBuilderTest {
     ExpressionEvaluationException ex =
         assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownSort(sort));
     assertTrue(ex.getMessage().contains("unsupported sort expression"));
+  }
+
+  // ── Non-pushdownable filter handling ──────────────────────────────────
+
+  @Test
+  void pushDownFilterNonPushdownableWithExplicitFilterTypeThrows() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder =
+        new VectorSearchQueryBuilder(
+            requestBuilder, knnQuery, Map.of("k", "5"), FilterType.POST, true, null);
+
+    // STRUCT = STRUCT triggers ScriptQueryUnSupportedException in FilterQueryBuilder
+    var condition =
+        DSL.equal(
+            new ReferenceExpression("nested_field", ExprCoreType.STRUCT),
+            new ReferenceExpression("other_field", ExprCoreType.STRUCT));
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var filter = new LogicalFilter(dummyChild, condition);
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownFilter(filter));
+    assertTrue(ex.getMessage().contains("filter_type requires a pushdownable WHERE clause"));
+    assertTrue(ex.getMessage().contains("cannot be pushed down"));
+  }
+
+  @Test
+  void pushDownFilterNonPushdownableWithoutExplicitFilterTypeFallsBack() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    // STRUCT = STRUCT triggers ScriptQueryUnSupportedException in FilterQueryBuilder
+    var condition =
+        DSL.equal(
+            new ReferenceExpression("nested_field", ExprCoreType.STRUCT),
+            new ReferenceExpression("other_field", ExprCoreType.STRUCT));
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var filter = new LogicalFilter(dummyChild, condition);
+
+    boolean pushed = builder.pushDownFilter(filter);
+    assertFalse(pushed, "Non-pushdownable filter should return false for in-memory fallback");
   }
 
   @Test
