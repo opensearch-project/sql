@@ -9,6 +9,7 @@ import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.monitor.profile.MetricName.EXECUTE;
+import static org.opensearch.sql.monitor.profile.MetricName.FORMAT;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
@@ -114,7 +115,9 @@ public class RestUnifiedQueryAction {
                     RelNode plan = addQuerySizeLimit(planner.plan(query), planContext);
                     QueryResponse response =
                         context.measure(EXECUTE, () -> analyticsEngine.executeQuery(plan));
-                    createQueryListener(queryType, listener).onResponse(response);
+                    String result =
+                        context.measure(FORMAT, () -> formatResponse(response, queryType));
+                    listener.onResponse(new TransportPPLQueryResponse(result));
                   } catch (Exception e) {
                     listener.onFailure(e);
                   }
@@ -220,25 +223,16 @@ public class RestUnifiedQueryAction {
         context.relBuilder.literal(context.sysLimit.querySizeLimit()));
   }
 
-  private ResponseListener<QueryResponse> createQueryListener(
-      QueryType queryType, ActionListener<TransportPPLQueryResponse> transportListener) {
+  /**
+   * Format the query response as a JSON string without triggering profiling finish(). This allows
+   * the caller to wrap formatting with context.measure(FORMAT, ...) and call finish() afterwards.
+   */
+  private static String formatResponse(QueryResponse response, QueryType queryType) {
+    LangSpec langSpec = queryType == QueryType.PPL ? PPL_SPEC : LangSpec.SQL_SPEC;
     ResponseFormatter<QueryResult> formatter = new SimpleJsonResponseFormatter(PRETTY);
-    return new ResponseListener<QueryResponse>() {
-      @Override
-      public void onResponse(QueryResponse response) {
-        LangSpec langSpec = queryType == QueryType.PPL ? PPL_SPEC : LangSpec.SQL_SPEC;
-        String result =
-            formatter.format(
-                new QueryResult(
-                    response.getSchema(), response.getResults(), response.getCursor(), langSpec));
-        transportListener.onResponse(new TransportPPLQueryResponse(result));
-      }
-
-      @Override
-      public void onFailure(Exception e) {
-        transportListener.onFailure(e);
-      }
-    };
+    return formatter.format(
+        new QueryResult(
+            response.getSchema(), response.getResults(), response.getCursor(), langSpec));
   }
 
   private static Runnable withCurrentContext(final Runnable task) {
