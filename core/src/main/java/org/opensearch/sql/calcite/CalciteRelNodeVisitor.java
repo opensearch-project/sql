@@ -35,6 +35,7 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,9 +48,17 @@ import lombok.AllArgsConstructor;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
+import org.apache.calcite.rel.BiRel;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -145,7 +154,6 @@ import org.opensearch.sql.ast.tree.ReplacePair;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
-import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -157,6 +165,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
+import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.plan.rel.LogicalGraphLookup;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
@@ -172,6 +181,7 @@ import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.expression.parse.RegexCommonUtils;
@@ -226,10 +236,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     context.relBuilder.scan(node.getTableQualifiedName().getParts());
     RelNode scan = context.relBuilder.peek();
-    if (scan instanceof AliasFieldsWrappable) {
-      return ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
+
+    // Eagerly push down highlight config to the scan (highlight is a scan hint, not an operator)
+    if (context.getHighlightConfig() != null && scan instanceof HighlightPushDown) {
+      RelNode newScan = ((HighlightPushDown) scan).pushDownHighlight(context.getHighlightConfig());
+      context.relBuilder.build(); // pop old scan
+      context.relBuilder.push(newScan);
+      scan = newScan;
+      context.setHighlightConfig(null); // consumed
     }
-    return scan;
+
+    if (scan instanceof AliasFieldsWrappable) {
+      ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
+    }
+
+    return context.relBuilder.peek();
   }
 
   // This is a tool method to add an existed RelOptTable to builder stack, not used for now
@@ -419,6 +440,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> expandedFields =
         expandProjectFields(node.getProjectList(), currentFields, context);
+
+    // Include _highlight in projections when the highlight column is present in the schema
+    int hlIndex = currentFields.indexOf(HighlightExpression.HIGHLIGHT_FIELD);
+    if (hlIndex >= 0) {
+      expandedFields.add(context.relBuilder.field(hlIndex));
+    }
 
     if (node.isExcluded()) {
       validateExclusion(expandedFields, currentFields);
@@ -661,7 +688,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
-  public RelNode visitSort(Sort node, CalcitePlanContext context) {
+  public RelNode visitSort(org.opensearch.sql.ast.tree.Sort node, CalcitePlanContext context) {
     visitChildren(node, context);
     List<RexNode> sortList =
         node.getSortList().stream()
@@ -709,25 +736,161 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private static final String REVERSE_ROW_NUM = "__reverse_row_num__";
+  /**
+   * Backtrack through the RelNode tree to find the first Sort node with non-empty collation. Stops
+   * at blocking operators that break ordering:
+   *
+   * <ul>
+   *   <li>Aggregate - aggregation destroys input ordering
+   *   <li>BiRel - covers Join, Correlate, and other binary relations
+   *   <li>SetOp - covers Union, Intersect, Except
+   *   <li>Uncollect - unnesting operation that may change ordering
+   *   <li>Project with window functions (RexOver) - ordering determined by window's ORDER BY
+   * </ul>
+   *
+   * @param node the starting RelNode to backtrack from
+   * @return the collation found, or null if no sort or blocking operator encountered
+   */
+  private RelCollation backtrackForCollation(RelNode node) {
+    while (node != null) {
+      // Check for blocking operators that destroy collation
+      // BiRel covers Join, Correlate, and other binary relations
+      // SetOp covers Union, Intersect, Except
+      // Uncollect unnests arrays/multisets which may change ordering
+      if (node instanceof Aggregate
+          || node instanceof BiRel
+          || node instanceof SetOp
+          || node instanceof Uncollect) {
+        return null;
+      }
+
+      // Project with window functions has ordering determined by the window's ORDER BY clause
+      // We should not destroy its output order by inserting a reversed sort
+      if (node instanceof LogicalProject && ((LogicalProject) node).containsOver()) {
+        return null;
+      }
+
+      // Check for Sort node with collation
+      if (node instanceof Sort) {
+        Sort sort = (Sort) node;
+        if (sort.getCollation() != null && !sort.getCollation().getFieldCollations().isEmpty()) {
+          return sort.getCollation();
+        }
+      }
+
+      // Continue to child node
+      if (node.getInputs().isEmpty()) {
+        break;
+      }
+      node = node.getInput(0);
+    }
+    return null;
+  }
+
+  /**
+   * Insert a reversed sort node after finding the original sort in the tree. This rebuilds the tree
+   * with the reversed sort inserted right after the original sort.
+   *
+   * @param root the root of the tree to rebuild
+   * @param reversedCollation the reversed collation to insert
+   * @param context the Calcite plan context
+   * @return the rebuilt tree with reversed sort inserted
+   */
+  private RelNode insertReversedSortInTree(
+      RelNode root, RelCollation reversedCollation, CalcitePlanContext context) {
+    return root.accept(
+        new RelHomogeneousShuttle() {
+          boolean sortFound = false;
+
+          @Override
+          public RelNode visit(RelNode other) {
+            if (!sortFound && other instanceof Sort) {
+              Sort sort = (Sort) other;
+              // Treat a Sort with fetch or offset as a barrier (limit node).
+              // Place the reversed sort above the barrier to preserve limit semantics,
+              // rather than inserting below the downstream collation Sort.
+              if (sort.fetch != null || sort.offset != null) {
+                sortFound = true;
+                RelNode visitedBarrier = super.visit(other);
+                return LogicalSort.create(visitedBarrier, reversedCollation, null, null);
+              }
+              // Found a collation Sort - replace in-place with reversed collation.
+              // Stacking a reversed sort on top would create consecutive sorts, and
+              // Calcite's SortRemoveRule would merge them keeping the original direction.
+              if (sort.getCollation() != null
+                  && !sort.getCollation().getFieldCollations().isEmpty()) {
+                sortFound = true;
+                RelNode visitedInput = sort.getInput().accept(this);
+                return LogicalSort.create(visitedInput, reversedCollation, null, null);
+              }
+            }
+            // For all other nodes, continue traversal
+            return super.visit(other);
+          }
+        });
+  }
 
   @Override
   public RelNode visitReverse(
       org.opensearch.sql.ast.tree.Reverse node, CalcitePlanContext context) {
     visitChildren(node, context);
-    // Add ROW_NUMBER() column
-    RexNode rowNumber =
-        context
-            .relBuilder
-            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-            .over()
-            .rowsTo(RexWindowBounds.CURRENT_ROW)
-            .as(REVERSE_ROW_NUM);
-    context.relBuilder.projectPlus(rowNumber);
-    // Sort by row number descending
-    context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field(REVERSE_ROW_NUM)));
-    // Remove row number column
-    context.relBuilder.projectExcept(context.relBuilder.field(REVERSE_ROW_NUM));
+
+    // Check if there's an existing sort to reverse
+    List<RelCollation> collations =
+        context.relBuilder.getCluster().getMetadataQuery().collations(context.relBuilder.peek());
+    RelCollation collation = collations != null && !collations.isEmpty() ? collations.get(0) : null;
+
+    if (collation != null && !collation.getFieldCollations().isEmpty()) {
+      // If there's an existing sort, reverse its direction
+      RelCollation reversedCollation = PlanUtils.reverseCollation(collation);
+      RelNode currentNode = context.relBuilder.peek();
+      if (currentNode instanceof Sort) {
+        Sort existingSort = (Sort) currentNode;
+        if (existingSort.getCollation() != null
+            && !existingSort.getCollation().getFieldCollations().isEmpty()
+            && existingSort.fetch == null
+            && existingSort.offset == null) {
+          // Pure collation sort (no fetch/offset) - replace in-place to avoid consecutive
+          // sorts. Calcite's SortRemoveRule merges consecutive LogicalSort nodes and keeps
+          // the lower sort's direction, which discards the reversed direction.
+          // Replacing in-place avoids this issue.
+          RelCollation reversedFromSort = PlanUtils.reverseCollation(existingSort.getCollation());
+          RelNode replacedSort =
+              LogicalSort.create(existingSort.getInput(), reversedFromSort, null, null);
+          PlanUtils.replaceTop(context.relBuilder, replacedSort);
+        } else {
+          // Sort with fetch/offset (limit) or fetch-only Sort - add a separate reversed
+          // sort on top so the "limit then reverse" semantics are preserved.
+          context.relBuilder.sort(reversedCollation);
+        }
+      } else {
+        context.relBuilder.sort(reversedCollation);
+      }
+    } else {
+      // Collation not found on current node - try backtracking
+      RelNode currentNode = context.relBuilder.peek();
+      RelCollation backtrackCollation = backtrackForCollation(currentNode);
+
+      if (backtrackCollation != null && !backtrackCollation.getFieldCollations().isEmpty()) {
+        // Found collation through backtracking - rebuild tree with reversed sort
+        RelCollation reversedCollation = PlanUtils.reverseCollation(backtrackCollation);
+        RelNode rebuiltTree = insertReversedSortInTree(currentNode, reversedCollation, context);
+        // Replace the current node in the builder with the rebuilt tree
+        context.relBuilder.build(); // Pop the current node
+        context.relBuilder.push(rebuiltTree); // Push the rebuilt tree
+      } else {
+        // Check if @timestamp field exists in the row type
+        List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+        if (fieldNames.contains(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP)) {
+          // If @timestamp exists, sort by it in descending order
+          context.relBuilder.sort(
+              context.relBuilder.desc(
+                  context.relBuilder.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP)));
+        }
+        // If neither collation nor @timestamp exists, ignore the reverse command (no-op)
+      }
+    }
+
     return context.relBuilder.peek();
   }
 
@@ -1009,7 +1172,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     ConversionState state = new ConversionState();
 
     for (Let conversion : node.getConversions()) {
-      processConversion(conversion, state, context);
+      processConversion(conversion, node.getTimeFormat(), state, context);
     }
 
     return buildConversionProjection(state, context);
@@ -1022,14 +1185,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private void processConversion(
-      Let conversion, ConversionState state, CalcitePlanContext context) {
+      Let conversion, String timeFormat, ConversionState state, CalcitePlanContext context) {
     String target = conversion.getVar().getField().toString();
     UnresolvedExpression expression = conversion.getExpression();
 
     if (expression instanceof Field) {
       processFieldCopyConversion(target, (Field) expression, state, context);
     } else if (expression instanceof Function) {
-      processFunctionConversion(target, (Function) expression, state, context);
+      processFunctionConversion(target, (Function) expression, timeFormat, state, context);
     } else {
       throw new SemanticCheckException("Convert command requires function call expressions");
     }
@@ -1052,7 +1215,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private void processFunctionConversion(
-      String target, Function function, ConversionState state, CalcitePlanContext context) {
+      String target,
+      Function function,
+      String timeFormat,
+      ConversionState state,
+      CalcitePlanContext context) {
     String functionName = function.getFuncName();
     List<UnresolvedExpression> args = function.getFuncArgs();
 
@@ -1069,13 +1236,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     state.seenFields.add(source);
 
     RexNode sourceField = context.relBuilder.field(source);
-    RexNode convertCall =
-        PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, sourceField);
+    RexNode convertCall = resolveConvertFunction(functionName, sourceField, timeFormat, context);
 
     if (!target.equals(source)) {
       state.additions.add(Pair.of(target, context.relBuilder.alias(convertCall, target)));
     } else {
       state.replacements.put(source, context.relBuilder.alias(convertCall, source));
+    }
+  }
+
+  private RexNode resolveConvertFunction(
+      String functionName, RexNode sourceField, String timeFormat, CalcitePlanContext context) {
+
+    // Time functions that support timeformat parameter
+    Set<String> timeFunctions = Set.of("ctime", "mktime");
+
+    if (timeFunctions.contains(functionName.toLowerCase()) && timeFormat != null) {
+      // For time functions with custom timeformat, pass the format as a second parameter
+      RexNode timeFormatLiteral = context.rexBuilder.makeLiteral(timeFormat);
+      return PPLFuncImpTable.INSTANCE.resolve(
+          context.rexBuilder, functionName, sourceField, timeFormatLiteral);
+    } else {
+      // Regular conversion functions or time functions without custom format
+      return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, sourceField);
     }
   }
 
@@ -2674,18 +2857,43 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitGraphLookup(GraphLookup node, CalcitePlanContext context) {
-    // 1. Visit source (child) table
-    visitChildren(node, context);
     RelBuilder builder = context.relBuilder;
-    // TODO: Limit the number of source rows to 100 for now, make it configurable.
-    builder.limit(0, 100);
-    if (node.isBatchMode()) {
-      tryToRemoveMetaFields(context, true);
+
+    List<Object> startValuesForCalcite = null;
+    String startFieldName;
+    if (node.getStartValues() != null) {
+      // Literal start mode: create empty LogicalValues as dummy source (BiRel needs two inputs)
+      // And will ignore the previous pipe then.
+      RelDataType dummyType =
+          builder
+              .getTypeFactory()
+              .createStructType(
+                  List.of(builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR)),
+                  List.of("_dummy"));
+      builder.values(dummyType);
+      startFieldName = null;
+      startValuesForCalcite = new ArrayList<>();
+      for (var lit : node.getStartValues()) {
+        startValuesForCalcite.add(lit.getValue());
+      }
+    } else {
+      if (node.getChild().isEmpty()) {
+        throw new SemanticCheckException(
+            "Field reference start requires a piped source."
+                + " Use literal start values (e.g. start='value') for top-level graphLookup.");
+      }
+      // Piped mode: visit source child
+      visitChildren(node, context);
+      // TODO: Limit the number of source rows to 100 for now, make it configurable.
+      builder.limit(0, 100);
+      if (node.isBatchMode()) {
+        tryToRemoveMetaFields(context, true);
+      }
+      startFieldName = node.getStartField().getField().toString();
     }
     RelNode sourceTable = builder.build();
 
     // 2. Extract parameters
-    String startFieldName = node.getStartField().getField().toString();
     String fromFieldName = node.getFromField().getField().toString();
     String toFieldName = node.getToField().getField().toString();
     String outputFieldName = node.getAs().getField().toString();
@@ -2718,6 +2926,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             sourceTable,
             lookupTable,
             startFieldName,
+            startValuesForCalcite,
             fromFieldName,
             toFieldName,
             outputFieldName,
@@ -3018,7 +3227,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         || node.getColumnSplit() == null
         || Objects.equals(config.limit, 0)) {
       // The output of chart is expected to be ordered by row split names
-      relBuilder.sort(relBuilder.field(0));
+      relBuilder.sort(relBuilder.nullsLast(relBuilder.field(0)));
       return relBuilder.peek();
     }
 
@@ -3088,7 +3297,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 relBuilder.field(2))
             .as(aggFieldName));
     // The output of chart is expected to be ordered by row and column split names
-    relBuilder.sort(relBuilder.field(0), relBuilder.field(1));
+    relBuilder.sort(
+        relBuilder.nullsLast(relBuilder.field(0)), relBuilder.nullsLast(relBuilder.field(1)));
     return relBuilder.peek();
   }
 
@@ -3200,30 +3410,51 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     String separator = node.getSeparator();
     String format = node.getFormat();
 
-    // Cast the y-name field to VARCHAR for comparison with string pivot values
+    // Build the pivot axis - cast to VARCHAR if needed for string comparison
     RexNode yNameRef = b.field(yNameFieldName);
-    RelDataType varchar =
-        rx.getTypeFactory()
-            .createTypeWithNullability(
-                rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
-    RexNode yNameAsString;
+    RexNode axis;
     if (!SqlTypeUtil.isCharacter(yNameRef.getType())) {
-      yNameAsString = rx.makeCast(varchar, yNameRef, true);
+      RelDataType varchar =
+          rx.getTypeFactory()
+              .createTypeWithNullability(
+                  rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
+      axis = rx.makeCast(varchar, yNameRef, true);
     } else {
-      yNameAsString = yNameRef;
+      axis = yNameRef;
     }
 
-    // Build projections: x-field + CASE expressions for each (yDataField, pivotValue) combo
-    List<RexNode> projections = new ArrayList<>();
-    List<String> projectionNames = new ArrayList<>();
+    // Build aggregate calls - MAX for each y-data field
+    List<AggCall> aggCalls =
+        yDataFieldNames.stream()
+            .map(name -> b.max(b.field(name)).as(name))
+            .collect(Collectors.toList());
 
-    // First projection is the x-field
-    projections.add(b.field(xFieldName));
-    projectionNames.add(xFieldName);
+    // Build pivot value entries: alias -> [literal(value)]
+    // LinkedHashMap preserves insertion order for deterministic column ordering
+    LinkedHashMap<String, List<RexNode>> pivotValueMap = new LinkedHashMap<>();
+    for (String val : pivotValues) {
+      pivotValueMap.put(val, ImmutableList.of(b.literal(val)));
+    }
 
-    // For each y-data field and each pivot value, create a CASE WHEN expression
-    for (String yDataFieldName : yDataFieldNames) {
+    // Execute pivot: decomposes into GROUP BY x-field with FILTER-based aggregation
+    // Produces columns: x-field, {val1}_{agg1}, {val1}_{agg2}, {val2}_{agg1}, ...
+    b.pivot(
+        b.groupKey(b.field(xFieldName)),
+        aggCalls,
+        ImmutableList.of(axis),
+        pivotValueMap.entrySet());
+
+    // Pivot produces value-first column ordering: val1_agg1, val1_agg2, val2_agg1, ...
+    // Reorder to agg-first and apply custom column naming: agg1: val1, agg1: val2, ...
+    List<RexNode> reorderProjections = new ArrayList<>();
+    List<String> reorderNames = new ArrayList<>();
+
+    reorderProjections.add(b.field(xFieldName));
+    reorderNames.add(xFieldName);
+
+    for (String aggName : yDataFieldNames) {
       for (String pivotVal : pivotValues) {
+<<<<<<< HEAD
         // CASE WHEN CAST(y_name_field AS VARCHAR) = 'pivotVal' THEN y_data_field ELSE NULL END
         RexNode condition = b.call(SqlStdOperatorTable.EQUALS, yNameAsString, b.literal(pivotVal));
         RexNode dataRef = b.field(yDataFieldName);
@@ -3233,17 +3464,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         String colName = generateColumnName(yDataFieldName, pivotVal, separator, format);
         projections.add(b.alias(caseExpr, colName));
         projectionNames.add(colName);
+=======
+        // Reference pivot output column by its generated name: {value}_{agg}
+        String pivotColName = pivotVal + "_" + aggName;
+        reorderProjections.add(b.field(pivotColName));
+        reorderNames.add(generateColumnName(aggName, pivotVal, separator, format));
+>>>>>>> 59ad4dc48ce98b5121320f8a226e6148a9386e27
       }
     }
 
-    b.project(projections);
-
-    // Aggregate: group by x-field, MAX for each pivoted column
-    List<AggCall> aggCalls = new ArrayList<>();
-    for (int i = 1; i < projectionNames.size(); i++) {
-      aggCalls.add(b.max(b.field(projectionNames.get(i))).as(projectionNames.get(i)));
-    }
-    b.aggregate(b.groupKey(b.field(xFieldName)), aggCalls);
+    b.project(reorderProjections, reorderNames, true);
 
     // Order by x-field
     b.sort(b.field(0));

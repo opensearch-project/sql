@@ -104,6 +104,14 @@ def convert_sql_table_to_markdown(table_text: str) -> str:
             cells = [c.strip() for c in line.strip().strip('|').split('|')]
             # Escape angle brackets for Jekyll in converted tables (results tables)
             cells = [c.replace('<', '\\<').replace('>', '\\>').replace('*', '\\*') for c in cells]
+            # Wrap cell in backticks if it's a single %-prefixed token (e.g., %a -> `%a`)
+            def backtick_percent(cell):
+                if "'" in cell or '"' in cell or '`' in cell:
+                    return cell
+                if re.match(r'^%\S+$', cell):
+                    return f'`{cell}`'
+                return cell
+            cells = [backtick_percent(c) for c in cells]
             result.append('| ' + ' | '.join(cells) + ' |')
             if not header_done:
                 result.append('|' + '|'.join([' --- ' for _ in cells]) + '|')
@@ -350,6 +358,8 @@ def export_docs(
         files_by_dir[dir_name].sort(key=lambda f: f.name)
         if dir_name == "cmd" and any(f.name == "syntax.md" for f in files_by_dir[dir_name]):
             files_by_dir[dir_name].sort(key=lambda f: (f.name != "syntax.md", f.name))
+        if dir_name == "functions" and any(f.name == "index.md" for f in files_by_dir[dir_name]):
+            files_by_dir[dir_name].sort(key=lambda f: (f.name != "index.md", f.name))
 
     for _, files in files_by_dir.items():
         for i, md_file in enumerate(files, 1):

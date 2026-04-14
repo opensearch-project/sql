@@ -63,6 +63,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptTable.ViewExpander;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
@@ -74,6 +75,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -367,6 +369,36 @@ public class CalciteToolsHelper {
       return new OpenSearchSqlToRelConverter(
           this, validator, catalogReader, this.cluster, convertletTable, config);
     }
+
+    @Override
+    protected RelRoot trimUnusedFields(RelRoot root) {
+      final SqlToRelConverter.Config config =
+          SqlToRelConverter.config()
+              .withTrimUnusedFields(shouldTrim(root.rel))
+              .withExpand(THREAD_EXPAND.get())
+              .withInSubQueryThreshold(requireNonNull(THREAD_INSUBQUERY_THRESHOLD.get()));
+      // PPL analyzes into a pre-built RelNode before prepareStatement(rel). Reuse the incoming
+      // RelNode's cluster here so prepare-time trimming does not create replacement nodes under a
+      // different planner than the rest of the tree.
+      final SqlToRelConverter converter =
+          new OpenSearchSqlToRelConverter(
+              this,
+              getSqlValidator(),
+              catalogReader,
+              root.rel.getCluster(),
+              convertletTable,
+              config);
+      final boolean ordered = !root.collation.getFieldCollations().isEmpty();
+      final boolean dml = SqlKind.DML.contains(root.kind);
+      return root.withRel(converter.trimUnusedFields(dml || ordered, root.rel));
+    }
+
+    private static boolean shouldTrim(RelNode rootRel) {
+      // For now, don't trim if there are more than 3 joins. The projects
+      // near the leaves created by trim migrate past joins and seem to
+      // prevent join-reordering.
+      return THREAD_TRIM.get() || RelOptUtil.countJoins(rootRel) < 2;
+    }
   }
 
   public static class OpenSearchSqlToRelConverter extends SqlToRelConverter {
@@ -379,21 +411,50 @@ public class CalciteToolsHelper {
         RelOptCluster cluster,
         SqlRexConvertletTable convertletTable,
         Config config) {
-      super(viewExpander, validator, catalogReader, cluster, convertletTable, config);
+      this(
+          viewExpander,
+          validator,
+          catalogReader,
+          cluster,
+          convertletTable,
+          preserveHintStrategies(cluster, config),
+          true);
+    }
+
+    private OpenSearchSqlToRelConverter(
+        ViewExpander viewExpander,
+        @Nullable SqlValidator validator,
+        CatalogReader catalogReader,
+        RelOptCluster cluster,
+        SqlRexConvertletTable convertletTable,
+        Config effectiveConfig,
+        boolean ignored) {
+      super(viewExpander, validator, catalogReader, cluster, convertletTable, effectiveConfig);
       this.relBuilder =
-          config
+          effectiveConfig
               .getRelBuilderFactory()
               .create(
                   cluster,
                   validator != null
                       ? validator.getCatalogReader().unwrap(RelOptSchema.class)
                       : null)
-              .transform(config.getRelBuilderConfigTransform());
+              .transform(effectiveConfig.getRelBuilderConfigTransform());
     }
 
     @Override
     protected RelFieldTrimmer newFieldTrimmer() {
       return new OpenSearchRelFieldTrimmer(validator, this.relBuilder);
+    }
+
+    // SqlToRelConverter always installs the hint strategy table from its config onto the cluster.
+    // When prepare-time trimming reuses an incoming RelNode cluster, preserve any PPL-specific
+    // aggregate hint strategies that were already registered during analysis.
+    private static Config preserveHintStrategies(RelOptCluster cluster, Config config) {
+      if (config.getHintStrategyTable() == HintStrategyTable.EMPTY
+          && cluster.getHintStrategies() != HintStrategyTable.EMPTY) {
+        return config.withHintStrategyTable(cluster.getHintStrategies());
+      }
+      return config;
     }
   }
 
