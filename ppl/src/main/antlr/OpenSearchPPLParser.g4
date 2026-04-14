@@ -49,6 +49,7 @@ pplCommands
    | searchCommand
    | multisearchCommand
    | graphLookupCommand
+   | unionCommand
    ;
 
 commands
@@ -96,6 +97,7 @@ commands
    | fieldformatCommand
    | nomvCommand
    | graphLookupCommand
+   | unionCommand
    ;
 
 commandName
@@ -139,6 +141,7 @@ commandName
    | ADDCOLTOTALS
    | APPEND
    | MULTISEARCH
+   | UNION
    | REX
    | APPENDPIPE
    | REPLACE
@@ -594,6 +597,19 @@ appendCommand
 
 multisearchCommand
    : MULTISEARCH (LT_SQR_PRTHS subSearch RT_SQR_PRTHS)+
+   ;
+
+unionCommand
+   : UNION subsearchOptions? unionDataset (COMMA? unionDataset)*
+   ;
+
+subsearchOptions
+   : (MAXOUT EQUAL maxout=integerLiteral)?
+   ;
+
+unionDataset
+   : LT_SQR_PRTHS subSearch RT_SQR_PRTHS
+   | tableSource
    ;
 
 kmeansCommand
@@ -1683,6 +1699,7 @@ searchableKeyWord
    | ANOMALY_SCORE_THRESHOLD
    | COUNTFIELD
    | SHOWCOUNT
+   | MAXOUT
    | PATH
    | INPUT
    | OUTPUT

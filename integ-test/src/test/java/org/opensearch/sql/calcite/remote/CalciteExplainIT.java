@@ -2957,4 +2957,17 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | stats count() as c by gender | sort gender | sort - gender",
                 TEST_INDEX_BANK)));
   }
+
+  @Test
+  public void testExplainUnion() throws IOException {
+    String query =
+        "| union "
+            + "[search source=opensearch-sql_test_index_account | where age < 30] "
+            + "[search source=opensearch-sql_test_index_account | where age >= 30] "
+            + "| stats count() by gender";
+
+    String actual = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_union.yaml");
+    assertYamlEqualsIgnoreId(expected, actual);
+  }
 }
