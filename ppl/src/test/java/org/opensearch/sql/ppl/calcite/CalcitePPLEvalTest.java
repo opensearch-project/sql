@@ -12,6 +12,7 @@ import static org.junit.Assert.assertThrows;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
+import org.opensearch.sql.common.error.ErrorReport;
 
 public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
 
@@ -337,9 +338,9 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
         "source=EMP | eval col1 = SAL | sort - col1 | head 3 | fields ENAME, col1 | eval col2 ="
             + " col1 | sort + col2 | fields ENAME, col2 | eval col3 = col2 | head 2 | fields"
             + " HIREDATE, col3";
-    IllegalArgumentException e =
+    ErrorReport e =
         assertThrows(
-            IllegalArgumentException.class,
+            ErrorReport.class,
             () -> {
               RelNode root = getRelNode(ppl);
             });

@@ -66,6 +66,7 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -244,7 +245,12 @@ class OpenSearchNodeClientTest {
   @Test
   void get_index_mappings_with_index_patterns() {
     mockNodeClientIndicesMappings("", null);
-    assertThrows(IndexNotFoundException.class, () -> client.getIndexMappings("test*"));
+    ErrorReport report = assertThrows(ErrorReport.class, () -> client.getIndexMappings("test*"));
+    assertTrue(
+        report.getMessage().contains("test*") && report.getMessage().contains("no such index"),
+        "expected index-not-found error message \""
+            + report.getMessage()
+            + "\" to resemble \"no such index [index]\"");
   }
 
   @Test
@@ -252,7 +258,7 @@ class OpenSearchNodeClientTest {
     when(nodeClient.admin().indices().prepareGetMappings(any()).setLocal(anyBoolean()).get())
         .thenThrow(IndexNotFoundException.class);
 
-    assertThrows(IndexNotFoundException.class, () -> client.getIndexMappings("non_exist_index"));
+    assertThrows(ErrorReport.class, () -> client.getIndexMappings("non_exist_index"));
   }
 
   @Test
