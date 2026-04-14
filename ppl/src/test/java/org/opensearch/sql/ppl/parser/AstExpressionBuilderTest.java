@@ -299,6 +299,24 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         filter(relation("t"), function("is not null", field("a"))));
   }
 
+  @Test
+  public void testIsNullPredicate() {
+    assertEqual(
+        "source=t | where a is null", filter(relation("t"), function("is null", field("a"))));
+    assertEqual(
+        "source=t | where a IS NULL", filter(relation("t"), function("is null", field("a"))));
+  }
+
+  @Test
+  public void testIsNotNullPredicate() {
+    assertEqual(
+        "source=t | where a is not null",
+        filter(relation("t"), function("is not null", field("a"))));
+    assertEqual(
+        "source=t | where a IS NOT NULL",
+        filter(relation("t"), function("is not null", field("a"))));
+  }
+
   /** Todo. search operator should not include functionCall, need to change antlr. */
   @Ignore("search operator should not include functionCall, need to change antlr")
   public void testEvalExpr() {

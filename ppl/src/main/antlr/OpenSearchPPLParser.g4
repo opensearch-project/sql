@@ -927,6 +927,11 @@ expression
    | left = expression comparisonOperator right = expression    # compareExpr
    | expression NOT? IN LT_PRTHS valueList RT_PRTHS             # inExpr
    | expression NOT? BETWEEN expression AND expression          # between
+   | expression IS nullNotnull                                  # isNullPredicate
+   ;
+
+nullNotnull
+   : NOT? NULL
    ;
 
 
@@ -1610,6 +1615,8 @@ wildcard
 keywordsCanBeId
    : searchableKeyWord
    | IN
+   | IS
+   | NULL
    ;
 
 searchableKeyWord
