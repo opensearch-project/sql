@@ -33,7 +33,6 @@ jobs:
     with:
       issue_number: ${{ inputs.issue_number || '' }}
       grace_days: ${{ vars.DUPLICATE_GRACE_DAYS || '7' }}
-      show_full_output: 'true'
 
   auto-close:
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.job == 'auto-close')
