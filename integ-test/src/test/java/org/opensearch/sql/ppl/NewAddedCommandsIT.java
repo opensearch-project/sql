@@ -15,6 +15,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_MVEXPAND_EDGE_
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 
 import java.io.IOException;
+import org.apache.commons.text.StringEscapeUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
@@ -529,5 +530,79 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
           containsString("extraneous"));
       assertThat(error.getString("type"), equalTo("SyntaxCheckException"));
     }
+  }
+
+  @Test
+  public void testXyseriesCommand() throws IOException {
+
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              StringEscapeUtils.escapeJson(
+                  String.format(
+                      "search source=%s | stats avg(balance) as avg_balance by gender, state"
+                          + " | xyseries state gender in (\"F\", \"M\") avg_balance",
+                      TEST_INDEX_BANK)));
+
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
+
+  @Test
+  public void testXyseriesCommandMultipleDataFields() throws IOException {
+
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              StringEscapeUtils.escapeJson(
+                  String.format(
+                      "search source=%s | stats avg(balance) as avg_balance, count() as cnt by"
+                          + " gender, state | xyseries state gender in (\"F\", \"M\") avg_balance,"
+                          + " cnt",
+                      TEST_INDEX_BANK)));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
+
+  @Test
+  public void testXyseriesCommandWithSep() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              StringEscapeUtils.escapeJson(
+                  String.format(
+                      "search source=%s | stats avg(balance) as avg_balance by gender, state"
+                          + " | xyseries sep=\"-\" state gender in (\"F\", \"M\") avg_balance",
+                      TEST_INDEX_BANK)));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
+
+  @Test
+  public void testXyseriesCommandWithFormat() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              StringEscapeUtils.escapeJson(
+                  String.format(
+                      "search source=%s | stats avg(balance) as avg_balance by gender, state"
+                          + " | xyseries format=\"$VAL$_$AGG$\" state gender in (\"F\", \"M\")"
+                          + " avg_balance",
+                      TEST_INDEX_BANK)));
+
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
   }
 }
