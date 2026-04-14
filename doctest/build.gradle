@@ -196,7 +196,7 @@ testClusters {
         */
         plugin(getJobSchedulerPlugin(jsPlugin, bwcOpenSearchJSDownload))
         def analyticsZip = file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip")
-        if (analyticsZip.exists()) {
+        if (hasAnalyticsEngine) {
             plugin provider { (RegularFile) (() -> analyticsZip) }
         }
         plugin ':opensearch-sql-plugin'

@@ -270,7 +270,6 @@ def getGeoSpatialPlugin() {
     }
 }
 
-def analyticsEngineZip = file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip")
 def getAnalyticsEnginePlugin() {
     provider { (RegularFile) (() -> file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip")) }
 }
@@ -280,7 +279,7 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
-        if (analyticsEngineZip.exists()) {
+        if (hasAnalyticsEngine) {
             plugin(getAnalyticsEnginePlugin())
         }
         plugin ":opensearch-sql-plugin"
@@ -290,7 +289,7 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
-        if (analyticsEngineZip.exists()) {
+        if (hasAnalyticsEngine) {
             plugin(getAnalyticsEnginePlugin())
         }
         plugin ":opensearch-sql-plugin"
@@ -300,7 +299,7 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
-        if (analyticsEngineZip.exists()) {
+        if (hasAnalyticsEngine) {
             plugin(getAnalyticsEnginePlugin())
         }
         plugin ":opensearch-sql-plugin"
@@ -308,7 +307,7 @@ testClusters {
     integTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
-        if (analyticsEngineZip.exists()) {
+        if (hasAnalyticsEngine) {
             plugin(getAnalyticsEnginePlugin())
         }
         plugin ":opensearch-sql-plugin"
@@ -316,7 +315,7 @@ testClusters {
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
-        if (analyticsEngineZip.exists()) {
+        if (hasAnalyticsEngine) {
             plugin(getAnalyticsEnginePlugin())
         }
         plugin ":opensearch-sql-plugin"
@@ -373,7 +372,7 @@ stopPrometheus.mustRunAfter startPrometheus
 
 task integJdbcTest(type: RestIntegTestTask) {
     testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().with {
-        if (analyticsEngineZip.exists()) {
+        if (hasAnalyticsEngine) {
             plugin(getAnalyticsEnginePlugin())
         }
         plugin ":opensearch-sql-plugin"

@@ -62,8 +62,7 @@ opensearchplugin {
 
 // When analytics-engine is present, exclude jars it provides via extendedPlugins classloader.
 // When analytics-engine is absent, keep all jars so the SQL plugin works standalone.
-def analyticsEngineZip = file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip")
-if (analyticsEngineZip.exists()) {
+if (hasAnalyticsEngine) {
     bundlePlugin {
         exclude 'calcite-core-*.jar'
         exclude 'calcite-linq4j-*.jar'
@@ -206,7 +205,7 @@ dependencies {
     api project(':api')
     // analytics-framework: compileOnly when analytics-engine provides it via parent classloader,
     // runtimeOnly when standalone so it gets bundled in the plugin ZIP.
-    if (analyticsEngineZip.exists()) {
+    if (hasAnalyticsEngine) {
         compileOnly files("${rootDir}/libs/analytics-framework-3.6.0-SNAPSHOT.jar")
     } else {
         // Bundle analytics-framework when analytics-engine is absent
@@ -358,7 +357,7 @@ def getJobSchedulerPlugin() {
 
 testClusters.integTest {
     plugin(getJobSchedulerPlugin())
-    if (analyticsEngineZip.exists()) {
+    if (hasAnalyticsEngine) {
         plugin provider { (RegularFile) (() -> file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip")) }
     }
     plugin(project.tasks.bundlePlugin.archiveFile)

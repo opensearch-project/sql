@@ -65,7 +65,7 @@ dependencies {
     api project(':common')
     // When analytics-engine is present, framework classes come from parent classloader (compileOnly).
     // When absent, bundle the framework JAR so its classes are available at runtime.
-    if (file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip").exists()) {
+    if (hasAnalyticsEngine) {
         compileOnly files("${rootDir}/libs/analytics-framework-3.6.0-SNAPSHOT.jar")
     } else {
         api files("${rootDir}/libs/analytics-framework-3.6.0-SNAPSHOT.jar")
