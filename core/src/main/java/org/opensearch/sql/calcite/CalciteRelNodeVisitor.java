@@ -656,6 +656,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
 
       List<String> matchingFields = WildcardRenameUtils.matchFieldNames(sourcePattern, newNames);
+      // Exclude metadata fields from wildcard rename (issue #5099)
+      if (WildcardRenameUtils.isWildcardPattern(sourcePattern)) {
+        matchingFields.removeIf(this::isMetadataField);
+      }
 
       for (String fieldName : matchingFields) {
         String newName =
