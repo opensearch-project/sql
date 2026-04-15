@@ -7,6 +7,7 @@ package org.opensearch.sql.api.spec;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -17,8 +18,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
  * Language specification defining the dialect the engine accepts. Provides parser configuration,
- * validator configuration, and composable {@link LanguageExtension}s that contribute operators and
- * post-parse rewrite rules.
+ * validator configuration, and composable {@link LanguageExtension}s that contribute operators,
+ * post-parse rewrite rules, and post-analysis rewrite rules.
  *
  * <p>Implementations define a complete language surface — for example, {@link UnifiedSqlSpec}
  * provides ANSI and extended SQL modes. A future PPL spec would implement this same interface once
@@ -27,8 +28,18 @@ import org.apache.calcite.sql.validate.SqlValidator;
 public interface LanguageSpec {
 
   /**
-   * A composable language extension that contributes operators and post-parse rewrite rules. All
-   * methods have defaults so extensions only override what they need.
+   * A RelNode rewrite rule applied after analysis and before execution. Takes a logical plan and
+   * returns a rewritten plan.
+   */
+  @FunctionalInterface
+  interface PostAnalysisRule {
+    RelNode apply(RelNode plan);
+  }
+
+  /**
+   * A composable language extension that contributes operators, post-parse rewrite rules, and
+   * post-analysis rewrite rules. All methods have defaults so extensions only override what they
+   * need.
    */
   interface LanguageExtension {
 
@@ -47,6 +58,15 @@ public interface LanguageSpec {
     default List<SqlVisitor<SqlNode>> postParseRules() {
       return List.of();
     }
+
+    /**
+     * RelNode rewrite rules applied after analysis and before execution. Rules within a single
+     * extension are applied in list order; extensions that depend on ordering should return their
+     * rules together from one extension rather than relying on cross-extension ordering.
+     */
+    default List<PostAnalysisRule> postAnalysisRules() {
+      return List.of();
+    }
   }
 
   /**
@@ -62,9 +82,9 @@ public interface LanguageSpec {
   SqlValidator.Config validatorConfig();
 
   /**
-   * Language extensions registered with this spec. Each extension contributes operators and
-   * post-parse rewrite rules that are composed by {@link #operatorTable()} and {@link
-   * #postParseRules()}.
+   * Language extensions registered with this spec. Each extension contributes operators, post-parse
+   * rewrite rules, and post-analysis rewrite rules composed by {@link #operatorTable()}, {@link
+   * #postParseRules()}, and {@link #postAnalysisRules()}.
    */
   List<LanguageExtension> extensions();
 
@@ -85,5 +105,13 @@ public interface LanguageSpec {
    */
   default List<SqlVisitor<SqlNode>> postParseRules() {
     return extensions().stream().flatMap(ext -> ext.postParseRules().stream()).toList();
+  }
+
+  /**
+   * All post-analysis RelNode rewrite rules from registered extensions, flattened in registration
+   * order. Applied to the logical plan after analysis and before execution.
+   */
+  default List<PostAnalysisRule> postAnalysisRules() {
+    return extensions().stream().flatMap(ext -> ext.postAnalysisRules().stream()).toList();
   }
 }

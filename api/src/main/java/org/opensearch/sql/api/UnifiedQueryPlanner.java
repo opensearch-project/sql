@@ -60,7 +60,15 @@ public class UnifiedQueryPlanner {
    */
   public RelNode plan(String query) {
     try {
-      return context.measure(ANALYZE, () -> strategy.plan(query));
+      return context.measure(
+          ANALYZE,
+          () -> {
+            RelNode plan = strategy.plan(query);
+            for (var rule : context.getLangSpec().postAnalysisRules()) {
+              plan = rule.apply(plan);
+            }
+            return plan;
+          });
     } catch (SyntaxCheckException | UnsupportedOperationException e) {
       throw e;
     } catch (Exception e) {

@@ -6,6 +6,8 @@
 package org.opensearch.sql.expression.function;
 
 import java.util.List;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.apache.calcite.adapter.enumerable.CallImplementor;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -25,16 +27,28 @@ public abstract class ImplementorUDF implements UserDefinedFunctionBuilder {
 
   @Override
   public ImplementableFunction getFunction() {
-    return new ImplementableFunction() {
-      @Override
-      public List<FunctionParameter> getParameters() {
-        return List.of();
-      }
+    return new ImplementableUDFunction(implementor, nullPolicy);
+  }
 
-      @Override
-      public CallImplementor getImplementor() {
-        return RexImpTable.createImplementor(implementor, nullPolicy, false);
-      }
-    };
+  /**
+   * Named ImplementableFunction that exposes the NotNullImplementor and NullPolicy. This allows
+   * rewriters (e.g., DatetimeUdtRewriter) to access the original implementor for wrapping without
+   * reflection.
+   */
+  @Getter
+  @RequiredArgsConstructor
+  public static class ImplementableUDFunction implements ImplementableFunction {
+    private final NotNullImplementor notNullImplementor;
+    private final NullPolicy nullPolicy;
+
+    @Override
+    public List<FunctionParameter> getParameters() {
+      return List.of();
+    }
+
+    @Override
+    public CallImplementor getImplementor() {
+      return RexImpTable.createImplementor(notNullImplementor, nullPolicy, false);
+    }
   }
 }
