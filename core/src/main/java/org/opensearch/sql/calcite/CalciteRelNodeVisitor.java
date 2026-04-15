@@ -1295,7 +1295,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> toOverrideList =
         originalFieldNames.stream()
-            .filter(originalName -> shouldOverrideField(originalName, newNames))
+            .filter(originalName -> shouldOverrideField(originalName, newNames, originalFieldNames))
             .map(a -> (RexNode) context.relBuilder.field(a))
             .toList();
     // 1. add the new fields, For example "age0, country0"
@@ -1315,15 +1315,31 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.rename(expectedRenameFields);
   }
 
-  private boolean shouldOverrideField(String originalName, List<String> newNames) {
+  private boolean shouldOverrideField(
+      String originalName, List<String> newNames, List<String> allFieldNames) {
     return newNames.stream()
         .anyMatch(
             newName ->
                 // Match exact field names (e.g., "age" == "age") for flat fields
                 newName.equals(originalName)
                     // OR match nested paths (e.g., "resource.attributes..." starts with
-                    // "resource.")
-                    || newName.startsWith(originalName + "."));
+                    // "resource."), but only when the schema already contains sub-fields of
+                    // originalName. This distinguishes real struct parents (which have flattened
+                    // sub-field columns) from MAP columns produced by spath where dotted names
+                    // are just flat column names, not nested sub-fields.
+                    || (newName.startsWith(originalName + ".")
+                        && hasSubFields(originalName, allFieldNames)));
+  }
+
+  /**
+   * Checks whether the schema contains any field whose name starts with {@code parentName + "."}.
+   * This indicates that {@code parentName} is a real struct parent with flattened sub-field
+   * columns, as opposed to a standalone MAP column (e.g., from spath) that has no sub-fields in the
+   * schema.
+   */
+  private boolean hasSubFields(String parentName, List<String> allFieldNames) {
+    String prefix = parentName + ".";
+    return allFieldNames.stream().anyMatch(name -> name.startsWith(prefix));
   }
 
   private List<List<RexInputRef>> extractInputRefList(List<RelBuilder.AggCall> aggCalls) {

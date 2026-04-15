@@ -216,4 +216,27 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     verifySchema(result, schema("doc.user.name", "string"));
     verifyDataRowsInOrder(result, rows("Alice"), rows("John"));
   }
+
+  @Test
+  public void testSpathAutoExtractWithMultiFieldEval() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc"
+                + " | eval doc.user.name=doc.user.name, doc.user.age=doc.user.age"
+                + " | fields doc.user.name, doc.user.age");
+    verifySchema(result, schema("doc.user.name", "string"), schema("doc.user.age", "string"));
+    verifyDataRows(result, rows("Alice", "25"), rows("John", "30"));
+  }
+
+  @Test
+  public void testSpathAutoExtractWithSeparateEvalCommands() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc"
+                + " | eval doc.user.name=doc.user.name"
+                + " | eval doc.user.age=doc.user.age"
+                + " | fields doc.user.name, doc.user.age");
+    verifySchema(result, schema("doc.user.name", "string"), schema("doc.user.age", "string"));
+    verifyDataRows(result, rows("Alice", "25"), rows("John", "30"));
+  }
 }
