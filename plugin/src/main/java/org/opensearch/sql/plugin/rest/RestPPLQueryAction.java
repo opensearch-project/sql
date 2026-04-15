@@ -15,6 +15,8 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
+import org.opensearch.action.search.SearchPhaseExecutionException;
+import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
@@ -50,12 +52,19 @@ public class RestPPLQueryAction extends BaseRestHandler {
     // (Tombstone) NullPointerException has historically been treated as a client error, but
     // nowadays they're rare and should be treated as system errors, since it represents a broken
     // data model in our logic.
-    return ex instanceof IllegalArgumentException
-        || ex instanceof IndexNotFoundException
-        || ex instanceof QueryEngineException
-        || ex instanceof SyntaxCheckException
-        || ex instanceof DataSourceClientException
-        || ex instanceof IllegalAccessException;
+    Throwable current = ex;
+    while (current != null) {
+      if (current instanceof IllegalArgumentException
+          || current instanceof IndexNotFoundException
+          || current instanceof QueryEngineException
+          || current instanceof SyntaxCheckException
+          || current instanceof DataSourceClientException
+          || current instanceof IllegalAccessException) {
+        return true;
+      }
+      current = current.getCause();
+    }
+    return false;
   }
 
   private static int getRawErrorCode(Exception ex) {
@@ -63,6 +72,15 @@ public class RestPPLQueryAction extends BaseRestHandler {
       return getRawErrorCode(((ErrorReport) ex).getCause());
     }
     if (ex instanceof OpenSearchException) {
+      if (ex instanceof SearchPhaseExecutionException) {
+        for (ShardSearchFailure failure :
+            ((SearchPhaseExecutionException) ex).shardFailures()) {
+          Throwable cause = failure.getCause();
+          if (cause instanceof Exception && isClientError((Exception) cause)) {
+            return 400;
+          }
+        }
+      }
       return ((OpenSearchException) ex).status().getStatus();
     }
     // Possible future work: We currently do this on exception types, when we have more robust

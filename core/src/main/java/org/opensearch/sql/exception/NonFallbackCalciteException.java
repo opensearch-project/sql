@@ -6,7 +6,7 @@
 package org.opensearch.sql.exception;
 
 /** Non-fallback to v2 exception for Calcite. */
-public class NonFallbackCalciteException extends QueryEngineException {
+public class NonFallbackCalciteException extends RuntimeException {
 
   public NonFallbackCalciteException(String message) {
     super(message);

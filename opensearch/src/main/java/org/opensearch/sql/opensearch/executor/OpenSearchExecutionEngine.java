@@ -222,8 +222,12 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             metric.add(System.nanoTime() - execTime);
             listener.onResponse(response);
 
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
+          } catch (Throwable t) {
+            if (t instanceof VirtualMachineError) {
+              throw (VirtualMachineError) t;
+            }
+            Exception e = (t instanceof Exception) ? (Exception) t : new RuntimeException(t);
+            listener.onFailure(e);
           }
         });
   }
