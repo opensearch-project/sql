@@ -61,6 +61,10 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     this.options = options;
     this.filterType = filterType != null ? filterType : FilterType.POST;
     this.filterTypeExplicit = filterTypeExplicit;
+    if (this.filterType == FilterType.EFFICIENT && rebuildKnnWithFilter == null) {
+      throw new IllegalArgumentException(
+          "EFFICIENT filter mode requires a non-null rebuildKnnWithFilter callback");
+    }
     this.rebuildKnnWithFilter = rebuildKnnWithFilter;
   }
 

@@ -344,6 +344,20 @@ class VectorSearchQueryBuilderTest {
     assertEquals(1, boolQuery.filter().size());
   }
 
+  // ── Constructor validation ──────────────────────────────────────────
+
+  @Test
+  void constructorRejectsEfficientModeWithNullCallback() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new VectorSearchQueryBuilder(
+                requestBuilder, knnQuery, Map.of("k", "5"), FilterType.EFFICIENT, true, null));
+  }
+
   // ── Build-time validation ────────────────────────────────────────────
 
   @Test
