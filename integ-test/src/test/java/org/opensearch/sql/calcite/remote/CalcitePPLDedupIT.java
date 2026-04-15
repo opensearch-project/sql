@@ -297,6 +297,41 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         rows("Z", 1, "D"));
   }
 
+  /** Regression test for https://github.com/opensearch-project/sql/issues/3922 */
+  @Test
+  public void testSortThenDedup() throws IOException {
+    // Verify sort order is preserved through dedup
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | sort category | dedup 1 name | fields category, name",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    // category should be in ascending order after sort, even after dedup
+    verifyDataRows(
+        actual, rows("X", "A"), rows("X", "C"), rows("Z", "B"), rows("Z", "D"), rows(null, "E"));
+  }
+
+  /** Regression test for https://github.com/opensearch-project/sql/issues/3922 */
+  @Test
+  public void testSortThenDedupKeepEmpty() throws IOException {
+    // Verify sort order is preserved through dedup with keepempty=true
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | sort category | dedup 1 name KEEPEMPTY=true | fields category, name",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    // category should be in ascending order (with nulls first due to ASC-nulls-first)
+    verifyDataRows(
+        actual,
+        rows(null, "E"),
+        rows(null, null),
+        rows("X", "A"),
+        rows("X", "C"),
+        rows("Y", null),
+        rows("Z", "B"),
+        rows("Z", "D"));
+  }
+
   @Test
   public void testDedupExpr() throws IOException {
     JSONObject actual =
