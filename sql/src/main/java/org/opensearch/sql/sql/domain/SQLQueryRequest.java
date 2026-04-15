@@ -76,7 +76,11 @@ public class SQLQueryRequest {
     this.format = getFormat(params);
     this.sanitize = shouldSanitize(params);
     this.pretty = shouldPretty(params);
-    this.profile = jsonContent != null && jsonContent.optBoolean("profile", false);
+    this.profile =
+        jsonContent != null
+            && jsonContent.optBoolean("profile", false)
+            && !isExplainRequest()
+            && "jdbc".equalsIgnoreCase(format);
     this.cursor = cursor;
   }
 

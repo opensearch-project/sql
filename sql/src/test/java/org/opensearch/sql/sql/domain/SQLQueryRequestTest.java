@@ -320,6 +320,27 @@ public class SQLQueryRequestTest {
     assertTrue(request.isSupported());
   }
 
+  @Test
+  public void should_disable_profile_for_explain_request() {
+    SQLQueryRequest request =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .jsonContent("{\"query\": \"SELECT 1\", \"profile\": true}")
+            .path("_plugins/_sql/_explain")
+            .format("standard")
+            .build();
+    assertFalse(request.profile());
+  }
+
+  @Test
+  public void should_disable_profile_for_non_jdbc_format() {
+    SQLQueryRequest request =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .jsonContent("{\"query\": \"SELECT 1\", \"profile\": true}")
+            .format("csv")
+            .build();
+    assertFalse(request.profile());
+  }
+
   // --- ExplainMode tests ---
 
   @Test
