@@ -18,6 +18,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.protocol.response.format.Format;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -282,6 +283,75 @@ public class SQLQueryRequestTest {
   public void should_support_raw_format() {
     SQLQueryRequest csvRequest = SQLQueryRequestBuilder.request("SELECT 1").format("raw").build();
     assertTrue(csvRequest.isSupported());
+  }
+
+  // --- Profile tests ---
+
+  @Test
+  public void should_default_profile_to_false() {
+    SQLQueryRequest request = SQLQueryRequestBuilder.request("SELECT 1").build();
+    assertFalse(request.profile());
+  }
+
+  @Test
+  public void should_enable_profile_when_set_true() {
+    SQLQueryRequest request =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .jsonContent("{\"query\": \"SELECT 1\", \"profile\": true}")
+            .build();
+    assertTrue(request.profile());
+  }
+
+  @Test
+  public void should_disable_profile_when_set_false() {
+    SQLQueryRequest request =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .jsonContent("{\"query\": \"SELECT 1\", \"profile\": false}")
+            .build();
+    assertFalse(request.profile());
+  }
+
+  @Test
+  public void should_support_request_with_profile_field() {
+    SQLQueryRequest request =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .jsonContent("{\"query\": \"SELECT 1\", \"profile\": true}")
+            .build();
+    assertTrue(request.isSupported());
+  }
+
+  // --- ExplainMode tests ---
+
+  @Test
+  public void should_default_mode_to_standard() {
+    SQLQueryRequest request = SQLQueryRequestBuilder.request("SELECT 1").build();
+    assertEquals(ExplainMode.STANDARD, request.mode());
+  }
+
+  @Test
+  public void should_use_format_as_explain_mode() {
+    SQLQueryRequest request =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .format("extended")
+            .path("_plugins/_sql/_explain")
+            .build();
+    assertEquals(ExplainMode.EXTENDED, request.mode());
+  }
+
+  @Test
+  public void should_use_standard_mode_for_non_explain_request() {
+    SQLQueryRequest request = SQLQueryRequestBuilder.request("SELECT 1").format("csv").build();
+    assertEquals(ExplainMode.STANDARD, request.mode());
+  }
+
+  @Test
+  public void should_support_cost_explain_mode() {
+    SQLQueryRequest request =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .format("cost")
+            .path("_plugins/_sql/_explain")
+            .build();
+    assertEquals(ExplainMode.COST, request.mode());
   }
 
   /** SQL query request build helper to improve test data setup readability. */

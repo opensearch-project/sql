@@ -121,6 +121,29 @@ public class AnalyticsSQLIT extends SQLIntegTestCase {
     assertTrue("Format phase should be > 0, got " + formatTime + "ms", formatTime > 0);
   }
 
+  @Test
+  public void testProfileDisabledByDefault() throws IOException {
+    JSONObject result = executeQuery("SELECT * FROM parquet_logs");
+    assertFalse("Response should NOT have 'profile' field by default", result.has("profile"));
+  }
+
+  @Test
+  public void testProfileExplicitlyDisabled() throws IOException {
+    Request request = new Request("POST", QUERY_API_ENDPOINT);
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT,
+            "{\n  \"query\": \"%s\",\n  \"profile\": false\n}",
+            "SELECT * FROM parquet_logs"));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    Response response = client().performRequest(request);
+    JSONObject result = new JSONObject(getResponseBody(response, true));
+
+    assertFalse("Response should NOT have 'profile' when profile=false", result.has("profile"));
+  }
+
   @Test(expected = ResponseException.class)
   public void testSyntaxError() throws IOException {
     executeQuery("SELEC * FROM parquet_logs");
