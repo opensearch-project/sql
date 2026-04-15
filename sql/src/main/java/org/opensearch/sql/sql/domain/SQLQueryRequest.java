@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import org.json.JSONObject;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.protocol.response.format.Format;
 
 /** SQL query request. */
@@ -27,7 +28,7 @@ import org.opensearch.sql.protocol.response.format.Format;
 public class SQLQueryRequest {
   private static final String QUERY_FIELD_CURSOR = "cursor";
   private static final Set<String> SUPPORTED_FIELDS =
-      Set.of("query", "fetch_size", "parameters", QUERY_FIELD_CURSOR);
+      Set.of("query", "fetch_size", "parameters", QUERY_FIELD_CURSOR, "profile");
   private static final String QUERY_PARAMS_FORMAT = "format";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
@@ -55,6 +56,10 @@ public class SQLQueryRequest {
   @Accessors(fluent = true)
   private boolean pretty = false;
 
+  @Getter
+  @Accessors(fluent = true)
+  private boolean profile = false;
+
   private String cursor;
 
   /** Constructor of SQLQueryRequest that passes request params. */
@@ -71,6 +76,11 @@ public class SQLQueryRequest {
     this.format = getFormat(params);
     this.sanitize = shouldSanitize(params);
     this.pretty = shouldPretty(params);
+    this.profile =
+        jsonContent != null
+            && jsonContent.optBoolean("profile", false)
+            && !isExplainRequest()
+            && "jdbc".equalsIgnoreCase(format);
     this.cursor = cursor;
   }
 
@@ -120,6 +130,11 @@ public class SQLQueryRequest {
 
   public boolean isCursorCloseRequest() {
     return path.endsWith("/close");
+  }
+
+  /** Get the explain mode from the format parameter. */
+  public ExplainMode mode() {
+    return isExplainRequest() ? ExplainMode.of(format) : ExplainMode.STANDARD;
   }
 
   /** Decide on the formatter by the requested format. */

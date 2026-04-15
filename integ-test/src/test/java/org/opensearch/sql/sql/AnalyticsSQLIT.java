@@ -5,16 +5,21 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
+import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
@@ -81,6 +86,62 @@ public class AnalyticsSQLIT extends SQLIntegTestCase {
         rows("2024-01-15 10:30:00", 200),
         rows("2024-01-15 10:31:00", 200),
         rows("2024-01-15 10:32:00", 500));
+  }
+
+  @Test
+  public void testProfileResponseIncludesProfilingData() throws IOException {
+    Request request = new Request("POST", QUERY_API_ENDPOINT);
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT,
+            "{\n  \"query\": \"%s\",\n  \"profile\": true\n}",
+            "SELECT * FROM parquet_logs"));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    Response response = client().performRequest(request);
+    JSONObject result = new JSONObject(getResponseBody(response, true));
+
+    assertTrue("Response should have 'profile' field when profile=true", result.has("profile"));
+    JSONObject profile = result.getJSONObject("profile");
+
+    assertTrue("Profile should have 'summary' field", profile.has("summary"));
+    double totalTime = profile.getJSONObject("summary").getDouble("total_time_ms");
+    assertTrue("Total time should be > 0, got " + totalTime + "ms", totalTime > 0);
+
+    JSONObject phases = profile.getJSONObject("phases");
+
+    double analyzeTime = phases.getJSONObject("analyze").getDouble("time_ms");
+    assertTrue("Analyze phase should be > 0, got " + analyzeTime + "ms", analyzeTime > 0);
+
+    double executeTime = phases.getJSONObject("execute").getDouble("time_ms");
+    assertTrue("Execute phase should be > 0, got " + executeTime + "ms", executeTime > 0);
+
+    double formatTime = phases.getJSONObject("format").getDouble("time_ms");
+    assertTrue("Format phase should be > 0, got " + formatTime + "ms", formatTime > 0);
+  }
+
+  @Test
+  public void testProfileDisabledByDefault() throws IOException {
+    JSONObject result = executeQuery("SELECT * FROM parquet_logs");
+    assertFalse("Response should NOT have 'profile' field by default", result.has("profile"));
+  }
+
+  @Test
+  public void testProfileExplicitlyDisabled() throws IOException {
+    Request request = new Request("POST", QUERY_API_ENDPOINT);
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT,
+            "{\n  \"query\": \"%s\",\n  \"profile\": false\n}",
+            "SELECT * FROM parquet_logs"));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    Response response = client().performRequest(request);
+    JSONObject result = new JSONObject(getResponseBody(response, true));
+
+    assertFalse("Response should NOT have 'profile' when profile=false", result.has("profile"));
   }
 
   @Test(expected = ResponseException.class)
