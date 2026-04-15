@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 
 import java.io.IOException;
 import lombok.SneakyThrows;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Assert;
@@ -150,8 +151,11 @@ public class DataSourceEnabledIT extends PPLIntegTestCase {
   @SneakyThrows
   private Response performRequest(Request request) {
     try {
-      return client().performRequest(request);
+      Response response = client().performRequest(request);
+      System.err.println("Successful response: " + EntityUtils.toString(response.getEntity()));
+      return response;
     } catch (ResponseException e) {
+      System.err.println("Failed response: " + EntityUtils.toString(e.getResponse().getEntity()));
       return e.getResponse();
     }
   }

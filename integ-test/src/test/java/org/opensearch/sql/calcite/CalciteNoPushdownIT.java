@@ -23,7 +23,9 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteExplainIT.class,
   CalciteAddTotalsCommandIT.class,
   CalciteAddColTotalsCommandIT.class,
+  CalciteConvertCommandIT.class,
   CalciteArrayFunctionIT.class,
+  CalciteBinChartNullIT.class,
   CalciteBinCommandIT.class,
   CalciteConvertTZFunctionIT.class,
   CalciteCsvFormatIT.class,
@@ -91,6 +93,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteQueryAnalysisIT.class,
   CalciteRareCommandIT.class,
   CalciteRegexCommandIT.class,
+  CalciteReverseCommandIT.class,
   CalciteRexCommandIT.class,
   CalciteRenameCommandIT.class,
   CalciteReplaceCommandIT.class,
@@ -105,12 +108,14 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteTopCommandIT.class,
   CalciteTrendlineCommandIT.class,
   CalciteTransposeCommandIT.class,
+  CalciteUnionCommandIT.class,
   CalciteVisualizationFormatIT.class,
   CalciteWhereCommandIT.class,
   CalcitePPLTpchIT.class,
   CalciteMvCombineCommandIT.class,
   CalciteNoMvCommandIT.class,
   CalciteMvExpandCommandIT.class,
+  CalcitePPLGraphLookupIT.class,
 })
 public class CalciteNoPushdownIT {
   private static boolean wasPushdownEnabled;

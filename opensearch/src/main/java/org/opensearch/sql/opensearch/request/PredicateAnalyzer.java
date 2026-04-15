@@ -712,15 +712,27 @@ public class PredicateAnalyzer {
           QueryExpression finalExpression =
               switch (nullAs) {
                 // e.g. where isNotNull(a) and ( a = 1 or a = 2)
-                // For this case, return `expression` is equivalent
-                // But DSL `bool.must` could slow down the query, so we return `expression`
-                case FALSE -> expression;
+                // For positive matches (IN), the expression naturally excludes nulls.
+                // For negations (NOT IN, ranges), we must add an exists check
+                // to ensure null values are filtered out.
+                case FALSE ->
+                    isSearchWithPoints(call)
+                        ? expression
+                        : CompoundQueryExpression.and(
+                            false, expression, QueryExpression.create(pair.getKey()).exists());
                 // e.g. where isNull(a) or a = 1 or a = 2
                 case TRUE ->
                     CompoundQueryExpression.or(
                         expression, QueryExpression.create(pair.getKey()).notExists());
                 // e.g. where a = 1 or a = 2
-                case UNKNOWN -> expression;
+                // For NOT IN (complemented points), SQL three-valued logic dictates
+                // NULL NOT IN (...) evaluates to UNKNOWN (not TRUE), so null rows
+                // must be excluded via an exists filter.
+                case UNKNOWN ->
+                    isSearchWithComplementedPoints(call)
+                        ? CompoundQueryExpression.and(
+                            false, expression, QueryExpression.create(pair.getKey()).exists())
+                        : expression;
               };
           finalExpression.updateAnalyzedNodes(call);
           return finalExpression;

@@ -43,6 +43,7 @@ source=accounts
 | [fields command](cmd/fields.md) | 1.0 | stable (since 1.0) | Keep or remove fields from the search result. |
 | [rename command](cmd/rename.md) | 1.0 | stable (since 1.0) | Rename one or more fields in the search result. |
 | [eval command](cmd/eval.md) | 1.0 | stable (since 1.0) | Evaluate an expression and append the result to the search result. |
+| [convert command](cmd/convert.md) | 3.5 | experimental (since 3.5) | Transform field values to numeric values using specialized conversion functions. |
 | [replace command](cmd/replace.md) | 3.4 | experimental (since 3.4) | Replace text in one or more fields in the search result |
 | [fillnull command](cmd/fillnull.md) | 3.0 | experimental (since 3.0) | Fill null with provided value in one or more fields in the search result. |
 | [expand command](cmd/expand.md) | 3.1 | experimental (since 3.1) | Transform a single document into multiple documents by expanding a nested array field. |
@@ -72,6 +73,7 @@ source=accounts
 | [appendcol command](cmd/appendcol.md) | 3.1 | experimental (since 3.1) | Append the result of a sub-search and attach it alongside the input search results. |
 | [lookup command](cmd/lookup.md) | 3.0 | experimental (since 3.0) | Add or replace data from a lookup index. |
 | [multisearch command](cmd/multisearch.md) | 3.4 | experimental (since 3.4) | Execute multiple search queries and combine their results. |
+| [union command](cmd/union.md) | 3.7 | experimental (since 3.7) | Combine results from multiple datasets using UNION ALL semantics. |
 | [ml command](cmd/ml.md) | 2.5 | stable (since 2.5) | Apply machine learning algorithms to analyze data. |
 | [kmeans command](cmd/kmeans.md) | 1.3 | stable (since 1.3) | Apply the kmeans algorithm on the search result returned by a PPL command. |
 | [ad command](cmd/ad.md) | 1.3 | deprecated (since 2.5) | Apply Random Cut Forest algorithm on the search result returned by a PPL command. |

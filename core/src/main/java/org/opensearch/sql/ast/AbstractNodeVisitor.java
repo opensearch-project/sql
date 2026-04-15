@@ -54,6 +54,7 @@ import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -92,6 +93,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 
@@ -423,6 +425,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(fillNull, context);
   }
 
+  public T visitConvert(Convert node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitPatterns(Patterns patterns, C context) {
     return visitChildren(patterns, context);
   }
@@ -464,6 +470,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitMultisearch(Multisearch node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitUnion(Union node, C context) {
     return visitChildren(node, context);
   }
 

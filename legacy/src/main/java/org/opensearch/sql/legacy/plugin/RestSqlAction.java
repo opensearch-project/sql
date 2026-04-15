@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.legacy.plugin;
 
-import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
-import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.core.rest.RestStatus.OK;
 
 import com.alibaba.druid.sql.parser.ParserException;
@@ -33,6 +31,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -168,14 +167,28 @@ public class RestSqlAction extends BaseRestHandler {
   }
 
   private void handleException(RestChannel restChannel, Exception exception) {
-    logAndPublishMetrics(exception);
-    if (exception instanceof OpenSearchException) {
-      OpenSearchException openSearchException = (OpenSearchException) exception;
-      reportError(restChannel, openSearchException, openSearchException.status());
-    } else {
-      reportError(
-          restChannel, exception, isClientError(exception) ? BAD_REQUEST : INTERNAL_SERVER_ERROR);
+    RestStatus status = getRestStatus(exception);
+    logAndPublishMetrics(status, exception);
+    reportError(restChannel, exception, status);
+  }
+
+  private static RestStatus getRestStatus(Exception ex) {
+    int code = getRawErrorCode(ex);
+    return RestStatus.fromCode(code);
+  }
+
+  private static int getRawErrorCode(Exception ex) {
+    // Recursively unwrap ErrorReport to get to the underlying cause
+    if (ex instanceof ErrorReport) {
+      return getRawErrorCode(((ErrorReport) ex).getCause());
     }
+    if (ex instanceof OpenSearchException) {
+      return ((OpenSearchException) ex).status().getStatus();
+    }
+    if (isClientError(ex)) {
+      return 400;
+    }
+    return 500;
   }
 
   /**
@@ -208,13 +221,15 @@ public class RestSqlAction extends BaseRestHandler {
     cursorRestExecutor.execute(client, request.params(), channel);
   }
 
-  private static void logAndPublishMetrics(final Exception e) {
-    if (isClientError(e)) {
+  private static void logAndPublishMetrics(final RestStatus status, final Exception e) {
+    if (400 <= status.getStatus() && status.getStatus() < 500) {
       LOG.error(QueryContext.getRequestId() + " Client side error during query execution", e);
       Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
-    } else {
+    } else if (500 <= status.getStatus() && status.getStatus() < 600) {
       LOG.error(QueryContext.getRequestId() + " Server side error during query execution", e);
       Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+    } else {
+      LOG.warn("Got an exception returning non-error status {}", status, e);
     }
   }
 

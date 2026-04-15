@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertTrue;
+
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +33,9 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.Assert;
 import org.junit.Test;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
 
@@ -43,8 +47,8 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupBasic() {
     // Test basic graphLookup with same source and lookup table
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name as reportingHierarchy";
+        "source=employee | graphLookup employee start=reportsTo edge=reportsTo-->name"
+            + " as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -61,8 +65,8 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupWithDepthField() {
     // Test graphLookup with depthField parameter
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name depthField=level as reportingHierarchy";
+        "source=employee | graphLookup employee start=reportsTo edge=reportsTo-->name"
+            + " depthField=level as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -79,8 +83,8 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupWithMaxDepth() {
     // Test graphLookup with maxDepth parameter
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name maxDepth=3 as reportingHierarchy";
+        "source=employee | graphLookup employee start=reportsTo edge=reportsTo-->name"
+            + " maxDepth=3 as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -97,8 +101,8 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupWithFilter() {
     // Test graphLookup with filter parameter
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name filter=(id > 2) as reportingHierarchy";
+        "source=employee | graphLookup employee start=reportsTo edge=reportsTo-->name"
+            + " filter=(id > 2) as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -115,8 +119,8 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   public void testGraphLookupWithCompoundFilter() {
     // Test graphLookup with compound filter condition
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name filter=(id > 1 AND name != 'Andrew') as reportingHierarchy";
+        "source=employee | graphLookup employee start=reportsTo edge=reportsTo-->name"
+            + " filter=(id > 1 AND name != 'Andrew') as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -130,11 +134,44 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testGraphLookupTopLevelSingleLiteral() {
+    // Top-level graphLookup with single literal start value
+    String ppl =
+        "graphLookup employee start=\"Dev\" edge=reportsTo-->name" + " as reportingHierarchy";
+
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
+            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[0],"
+            + " bidirectional=[false], startValues=[[Dev]])\n"
+            + "  LogicalValues(tuples=[[]])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testGraphLookupTopLevelLiteralList() {
+    // Top-level graphLookup with multiple literal start values
+    String ppl =
+        "graphLookup employee start=\"Dev\", \"Eliot\" edge=reportsTo-->name"
+            + " as reportingHierarchy";
+
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
+            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[0],"
+            + " bidirectional=[false], startValues=[[Dev, Eliot]])\n"
+            + "  LogicalValues(tuples=[[]])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
   public void testGraphLookupBidirectional() {
     // Test graphLookup with bidirectional traversal
     String ppl =
-        "source=employee | graphLookup employee startField=reportsTo fromField=reportsTo"
-            + " toField=name direction=bi as reportingHierarchy";
+        "source=employee | graphLookup employee start=reportsTo edge=reportsTo<->name"
+            + " as reportingHierarchy";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -145,6 +182,33 @@ public class CalcitePPLGraphLookupTest extends CalcitePPLAbstractTest {
             + "    LogicalTableScan(table=[[scott, employee]])\n"
             + "  LogicalTableScan(table=[[scott, employee]])\n";
     verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testGraphLookupLiteralStartInPipedModeIgnoreChild() {
+    // Literal start values should not be allowed in piped mode
+    String ppl =
+        "source=employee | where name=\"Dev\" | graphLookup employee start=\"Dev\""
+            + " edge=reportsTo-->name as reportingHierarchy";
+
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalGraphLookup(fromField=[reportsTo], toField=[name],"
+            + " outputField=[reportingHierarchy], depthField=[null], maxDepth=[0],"
+            + " bidirectional=[false], startValues=[[Dev]])\n"
+            + "  LogicalValues(tuples=[[]])\n"
+            + "  LogicalTableScan(table=[[scott, employee]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testGraphLookupFieldStartInTopLevelModeRejectsError() {
+    // Field reference start should not be allowed in top-level mode (no piped source)
+    String ppl =
+        "graphLookup employee start=reportsTo edge=reportsTo-->name" + " as reportingHierarchy";
+
+    Throwable t = Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
+    assertTrue(t.getMessage().contains("Field reference start requires a piped source"));
   }
 
   @Override

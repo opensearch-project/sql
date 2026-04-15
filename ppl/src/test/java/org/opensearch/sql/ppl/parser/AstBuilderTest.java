@@ -671,6 +671,16 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testEdgeAsFieldName() {
+    // EDGE keyword can be used as a field name outside graphLookup command
+    assertEqual("source=t | eval edge=1", eval(relation("t"), let(field("edge"), intLiteral(1))));
+    assertEqual("source=t | eval edge = 1", eval(relation("t"), let(field("edge"), intLiteral(1))));
+    assertEqual(
+        "source=t | where edge > 5",
+        filter(relation("t"), compare(">", field("edge"), intLiteral(5))));
+  }
+
+  @Test
   public void testIndexName() {
     assertEqual(
         "source=`log.2020.04.20.` | where a=1",
@@ -1659,7 +1669,7 @@ public class AstBuilderTest {
   public void testGraphLookupCommand() {
     // Basic graphLookup with required parameters
     assertEqual(
-        "source=t | graphLookup employees fromField=manager toField=name maxDepth=3"
+        "source=t | graphLookup employees start=reportsTo edge=manager-->name maxDepth=3"
             + " as reportingHierarchy",
         GraphLookup.builder()
             .child(relation("t"))
@@ -1668,15 +1678,14 @@ public class AstBuilderTest {
             .toField(field("name"))
             .as(field("reportingHierarchy"))
             .maxDepth(intLiteral(3))
-            .startField(null)
+            .startField(field("reportsTo"))
             .depthField(null)
             .direction(GraphLookup.Direction.UNI)
             .build());
 
-    // graphLookup with startField filter
+    // graphLookup with startField
     assertEqual(
-        "source=t | graphLookup employees fromField=manager toField=name"
-            + " startField=id as reportingHierarchy",
+        "source=t | graphLookup employees start=id edge=manager-->name" + " as reportingHierarchy",
         GraphLookup.builder()
             .child(relation("t"))
             .fromTable(relation("employees"))
@@ -1691,8 +1700,8 @@ public class AstBuilderTest {
 
     // graphLookup with depthField and bidirectional
     assertEqual(
-        "source=t | graphLookup employees fromField=manager toField=name"
-            + " depthField=level direction=bi as reportingHierarchy",
+        "source=t | graphLookup employees start=reportsTo edge=manager<->name"
+            + " depthField=level as reportingHierarchy",
         GraphLookup.builder()
             .child(relation("t"))
             .fromTable(relation("employees"))
@@ -1700,30 +1709,158 @@ public class AstBuilderTest {
             .toField(field("name"))
             .as(field("reportingHierarchy"))
             .maxDepth(intLiteral(0))
-            .startField(null)
+            .startField(field("reportsTo"))
             .depthField(field("level"))
             .direction(GraphLookup.Direction.BI)
             .build());
 
-    // Error: missing fromField - SemanticCheckException thrown by AstBuilder
+    // Error: missing edge - SyntaxCheckException from grammar
     assertThrows(
-        SemanticCheckException.class,
-        () ->
-            plan(
-                "source=t | graphLookup employees toField=name startField=id as"
-                    + " reportingHierarchy"));
+        SyntaxCheckException.class,
+        () -> plan("source=t | graphLookup employees start=id as" + " reportingHierarchy"));
 
     // Error: missing lookup table - SyntaxCheckException from grammar
     assertThrows(
         SyntaxCheckException.class,
         () ->
-            plan(
-                "source=t | graphLookup fromField=manager toField=name as"
-                    + " reportingHierarchy"));
+            plan("source=t | graphLookup start=id edge=manager-->name as" + " reportingHierarchy"));
 
-    // Error: missing toField - SemanticCheckException thrown by AstBuilder
+    // Error: missing start - SyntaxCheckException from grammar
     assertThrows(
-        SemanticCheckException.class,
-        () -> plan("source=t | graphLookup employees fromField=manager as reportingHierarchy"));
+        SyntaxCheckException.class,
+        () -> plan("source=t | graphLookup employees edge=manager-->name as reportingHierarchy"));
+
+    // graphLookup with hyphenated fromField (space before arrow)
+    assertEqual(
+        "source=t | graphLookup employees start=reportsTo edge=manager- --> name"
+            + " as reportingHierarchy",
+        GraphLookup.builder()
+            .child(relation("t"))
+            .fromTable(relation("employees"))
+            .fromField(field("manager-"))
+            .toField(field("name"))
+            .as(field("reportingHierarchy"))
+            .maxDepth(intLiteral(0))
+            .startField(field("reportsTo"))
+            .depthField(null)
+            .direction(GraphLookup.Direction.UNI)
+            .build());
+  }
+
+  @Test
+  public void testTrailingPipeAfterSource() {
+    // Test that trailing pipe after source produces same AST
+    assertEqual("source=t |", relation("t"));
+  }
+
+  @Test
+  public void testTrailingPipeAfterStats() {
+    // Test trailing pipe after stats command
+    assertEqual(
+        "source=t | stats count(a) by b |",
+        agg(
+            relation("t"),
+            exprList(alias("count(a)", aggregate("count", field("a")))),
+            emptyList(),
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testTrailingPipeWithComplexQuery() {
+    // Test trailing pipe with complex query including where, stats, and sort
+    assertEqual(
+        "source=t | where a > 1 | stats count(b) by c | sort c |",
+        sort(
+            agg(
+                filter(relation("t"), compare(">", field("a"), intLiteral(1))),
+                exprList(alias("count(b)", aggregate("count", field("b")))),
+                emptyList(),
+                exprList(alias("c", field("c"))),
+                defaultStatsArgs()),
+            field("c", defaultSortFieldArgs())));
+  }
+
+  @Test
+  public void testEmptyPipeAfterSource() {
+    // Test that empty pipe after source is ignored
+    assertEqual("source=t | |", relation("t"));
+  }
+
+  @Test
+  public void testEmptyPipeInMiddle() {
+    // Test that empty pipe in middle is ignored
+    assertEqual(
+        "source=t | | where a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+  }
+
+  @Test
+  public void testMultipleEmptyPipes() {
+    // Test multiple empty pipes are ignored
+    assertEqual(
+        "source=t | | where a=1 | | fields b | |",
+        projectWithArg(
+            filter(relation("t"), compare("=", field("a"), intLiteral(1))),
+            defaultFieldsArgs(),
+            field("b")));
+  }
+
+  /**
+   * Tests that a combination of empty pipes in the middle and a trailing pipe at the end are
+   * properly handled and produce the same AST as a query without these extraneous pipes.
+   */
+  @Test
+  public void testEmptyPipeAndTrailingPipeTogether() {
+    // Test both empty pipe in middle and trailing pipe at end
+    assertEqual(
+        "source=t | | where a=1 | fields b |",
+        projectWithArg(
+            filter(relation("t"), compare("=", field("a"), intLiteral(1))),
+            defaultFieldsArgs(),
+            field("b")));
+  }
+
+  /**
+   * Tests that the parser correctly rejects queries with invalid command tokens after a pipe,
+   * ensuring proper error detection for malformed queries.
+   */
+  @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
+  public void testMalformedPipeProducesSyntaxError() {
+    plan("source=t | invalidCmd |");
+  }
+
+  @Test
+  public void testUnionWithSubsearches() {
+    plan("| union [search source=t1 | where age > 30] " + "[search source=t2 | where age < 20]");
+  }
+
+  @Test
+  public void testUnionWithDirectTableNames() {
+    plan("| union t1, t2");
+  }
+
+  @Test
+  public void testUnionWithDateSuffixIndex() {
+    plan("| union logs-2024.01.01, logs-2024.01.02");
+  }
+
+  @Test
+  public void testUnionWithDottedCatalogPath() {
+    plan("| union catalog.my_index, catalog.other_index");
+  }
+
+  @Test
+  public void testUnionMidPipeline() {
+    plan("source=t1 | union t2, t3");
+  }
+
+  @Test
+  public void testUnionWithMaxoutOption() {
+    plan("| union maxout=500 t1, t2");
+  }
+
+  @Test
+  public void testMaxoutAsFieldName() {
+    plan("source=t | eval maxout = 1");
   }
 }

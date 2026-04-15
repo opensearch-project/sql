@@ -19,6 +19,8 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -66,6 +68,18 @@ public class JsonFunctionsTest {
   }
 
   @Test
+  void test_convertToJsonPathWithDollarPrefix() {
+    // Issue #5167: paths already starting with $ or $. should not be double-prefixed
+    assertEquals("$.name", convertToJsonPath("$.name"));
+    assertEquals("$.a.b.c", convertToJsonPath("$.a.b.c"));
+    assertEquals("$.[*]", convertToJsonPath("$.[*]"));
+    assertEquals("$.a[2].c", convertToJsonPath("$.a[2].c"));
+    assertEquals("$.[3].bc[*].d[1]", convertToJsonPath("$.[3].bc[*].d[1]"));
+    // Bare $ should return $
+    assertEquals("$", convertToJsonPath("$"));
+  }
+
+  @Test
   void test_convertToJsonPathWithWrongPath() {
     IllegalArgumentException e =
         assertThrows(IllegalArgumentException.class, () -> convertToJsonPath("a.{"));
@@ -98,6 +112,23 @@ public class JsonFunctionsTest {
     String candidate4 = "$.a2[*].b2[1].c2";
     List<String> target4 = List.of("$.a2[0].b2[1].c2", "$.a2[1].b2[1].c2", "$.a2[2].b2[1]");
     assertEquals(expandJsonPath(node, candidate4), target4);
+  }
+
+  @Test
+  void test_jsonSetWithDollarPrefixedPath() {
+    // Issue #5167: json_set with $.key path should work correctly
+    Object result =
+        JsonSetFunctionImpl.eval(
+            "{\"name\":\"alice\",\"scores\":[90,85,92]}", "$.name", "modified_alice");
+    assertEquals("{\"name\":\"modified_alice\",\"scores\":[90,85,92]}", result);
+  }
+
+  @Test
+  void test_jsonDeleteWithDollarPrefixedPath() throws Exception {
+    // Issue #5167: json_delete with $.key path should remove the key
+    Object result =
+        JsonDeleteFunctionImpl.eval("{\"name\":\"alice\",\"scores\":[90,85,92]}", "$.name");
+    assertEquals("{\"scores\":[90,85,92]}", result);
   }
 
   @Test

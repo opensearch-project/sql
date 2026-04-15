@@ -23,6 +23,15 @@ public class JsonUtils {
   public static String convertToJsonPath(String input) {
     if (input == null || input.isEmpty()) return "$";
 
+    // Strip leading "$." or "$" to avoid double-prefixing (issue #5167)
+    if (input.startsWith("$.")) {
+      input = input.substring(2);
+    } else if (input.startsWith("$")) {
+      input = input.substring(1);
+    }
+
+    if (input.isEmpty()) return "$";
+
     StringBuilder sb = new StringBuilder("$.");
     int i = 0;
     while (i < input.length()) {

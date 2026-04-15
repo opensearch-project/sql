@@ -7,19 +7,25 @@ package org.opensearch.sql.opensearch.response.error;
 
 import lombok.experimental.UtilityClass;
 import org.opensearch.OpenSearchException;
+import org.opensearch.sql.common.error.ErrorReport;
 
 @UtilityClass
 public class ErrorMessageFactory {
   /**
    * Create error message based on the exception type. Exceptions of OpenSearch exception type and
    * exceptions with wrapped OpenSearch exception causes should create {@link
-   * OpenSearchErrorMessage}
+   * OpenSearchErrorMessage}. ErrorReport exceptions preserve their context information.
    *
    * @param e exception to create error message
    * @param status exception status code
    * @return error message
    */
   public static ErrorMessage createErrorMessage(Throwable e, int status) {
+    // Check for ErrorReport BEFORE unwrapping - we want to preserve the context
+    if (e instanceof ErrorReport) {
+      return new ErrorMessage(e, status);
+    }
+
     Throwable cause = unwrapCause(e);
     if (cause instanceof OpenSearchException) {
       OpenSearchException exception = (OpenSearchException) cause;

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.security;
 
+import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -13,9 +14,15 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.apache.commons.text.StringEscapeUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Assert;
 import org.junit.Test;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
 
 /** Cross Cluster Search tests with Calcite enabled for enhanced fields features. */
 public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
@@ -439,6 +446,28 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
   }
 
   @Test
+  public void testCrossClusterConvert() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | convert auto(balance) | fields balance",
+                TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("balance"));
+    verifySchema(result, schema("balance", "double"));
+  }
+
+  @Test
+  public void testCrossClusterConvertWithAlias() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | convert auto(balance) AS balance_num | fields balance_num",
+                TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("balance_num"));
+    verifySchema(result, schema("balance_num", "double"));
+  }
+
+  @Test
   public void testCrossClusterMvExpandBasic() throws IOException {
     JSONObject result =
         executeQuery(
@@ -451,6 +480,44 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
   }
 
   @Test
+  public void testCrossClusterHighlightWildcard() throws IOException {
+    JSONObject result =
+        executeQueryWithHighlight(
+            String.format(
+                "search source=%s \\\"Hattie\\\" | fields firstname", TEST_INDEX_BANK_REMOTE),
+            "[\"*\"]");
+    JSONArray schemaArray = result.getJSONArray("schema");
+    int hlIndex = -1;
+    for (int i = 0; i < schemaArray.length(); i++) {
+      if ("_highlight".equals(schemaArray.getJSONObject(i).getString("name"))) {
+        hlIndex = i;
+        break;
+      }
+    }
+    Assert.assertTrue("Schema should contain _highlight column", hlIndex >= 0);
+    JSONArray dataRows = result.getJSONArray("datarows");
+    Assert.assertTrue("Should have at least one row", dataRows.length() > 0);
+    var highlight = dataRows.getJSONArray(0).getJSONObject(hlIndex);
+    Assert.assertTrue(
+        "Highlight should contain <em>Hattie</em>",
+        highlight.getJSONArray("firstname").getString(0).contains("<em>Hattie</em>"));
+  }
+
+  private JSONObject executeQueryWithHighlight(String query, String highlightJson)
+      throws IOException {
+    Request request = new Request("POST", "/_plugins/_ppl");
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT, "{\n  \"query\": \"%s\",\n  \"highlight\": %s\n}", query, highlightJson));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    Response response = client().performRequest(request);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    return new JSONObject(getResponseBody(response, true));
+  }
+
+  @Test
   public void testCrossClusterMvExpandWithLimit() throws IOException {
     JSONObject result =
         executeQuery(
@@ -460,5 +527,16 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
                 TEST_INDEX_MVEXPAND_REMOTE));
     verifySchema(result, schema("username", "string"), schema("skills.name", "string"));
     verifyDataRows(result, rows("limituser", "a"), rows("limituser", "b"));
+  }
+
+  @Test
+  public void testCrossClusterUnion() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "| union [search source=%s | where age < 30] [search source=%s | where age >= 30] |"
+                    + " stats count() by gender",
+                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("count()"), columnName("gender"));
   }
 }

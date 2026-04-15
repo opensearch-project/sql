@@ -66,6 +66,7 @@ import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -105,6 +106,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
@@ -535,6 +537,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitConvert(Convert node, AnalysisContext context) {
+    throw getOnlyForCalciteException("convert");
+  }
+
+  @Override
   public LogicalPlan visitAddTotals(AddTotals node, AnalysisContext context) {
     throw getOnlyForCalciteException("addtotals");
   }
@@ -889,6 +896,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitMultisearch(Multisearch node, AnalysisContext context) {
     throw getOnlyForCalciteException("Multisearch");
+  }
+
+  @Override
+  public LogicalPlan visitUnion(Union node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Union");
   }
 
   private LogicalSort buildSort(

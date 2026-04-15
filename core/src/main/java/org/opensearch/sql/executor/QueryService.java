@@ -27,6 +27,7 @@ import org.apache.calcite.tools.Programs;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
@@ -34,6 +35,9 @@ import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.QueryProcessingStage;
+import org.opensearch.sql.common.error.StageErrorHandler;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
@@ -87,8 +91,17 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    execute(plan, queryType, null, listener);
+  }
+
+  /** Execute with optional highlight config. */
+  public void execute(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
     if (shouldUseCalcite(queryType)) {
-      executeWithCalcite(plan, queryType, listener);
+      executeWithCalcite(plan, queryType, highlightConfig, listener);
     } else {
       executeWithLegacy(plan, queryType, listener, Optional.empty());
     }
@@ -100,8 +113,18 @@ public class QueryService {
       QueryType queryType,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode) {
+    explain(plan, queryType, null, listener, mode);
+  }
+
+  /** Explain with optional highlight config. */
+  public void explain(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      ResponseListener<ExecutionEngine.ExplainResponse> listener,
+      ExplainMode mode) {
     if (shouldUseCalcite(queryType)) {
-      explainWithCalcite(plan, queryType, listener, mode);
+      explainWithCalcite(plan, queryType, highlightConfig, listener, mode);
     } else {
       explainWithLegacy(plan, queryType, listener, mode, Optional.empty());
     }
@@ -110,6 +133,7 @@ public class QueryService {
   public void executeWithCalcite(
       UnresolvedPlan plan,
       QueryType queryType,
+      HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
     CalcitePlanContext.run(
         () -> {
@@ -121,10 +145,30 @@ public class QueryService {
             CalcitePlanContext context =
                 CalcitePlanContext.create(
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-            RelNode relNode = analyze(plan, context);
-            RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+
+            context.setHighlightConfig(highlightConfig);
+
+            // Wrap analyze with ANALYZING stage tracking
+            RelNode relNode =
+                StageErrorHandler.executeStage(
+                    QueryProcessingStage.ANALYZING,
+                    () -> analyze(plan, context),
+                    "while preparing and validating the query plan");
+
+            // Wrap plan conversion with PLAN_CONVERSION stage tracking
+            RelNode calcitePlan =
+                StageErrorHandler.executeStage(
+                    QueryProcessingStage.PLAN_CONVERSION,
+                    () -> convertToCalcitePlan(relNode, context),
+                    "while converting the query to an executable plan");
+
             analyzeMetric.set(System.nanoTime() - analyzeStart);
-            executionEngine.execute(calcitePlan, context, listener);
+
+            // Wrap execution with EXECUTING stage tracking
+            StageErrorHandler.executeStageVoid(
+                QueryProcessingStage.EXECUTING,
+                () -> executionEngine.execute(calcitePlan, context, listener),
+                "while running the query");
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
@@ -140,6 +184,7 @@ public class QueryService {
   public void explainWithCalcite(
       UnresolvedPlan plan,
       QueryType queryType,
+      HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode) {
     CalcitePlanContext.run(
@@ -149,6 +194,7 @@ public class QueryService {
             CalcitePlanContext context =
                 CalcitePlanContext.create(
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+            context.setHighlightConfig(highlightConfig);
             context.run(
                 () -> {
                   RelNode relNode = analyze(plan, context);
@@ -267,22 +313,31 @@ public class QueryService {
     return planner.plan(plan);
   }
 
+  private boolean isCalciteUnsupportedError(@Nullable Throwable t) {
+    return switch (t) {
+      case null -> false;
+      case CalciteUnsupportedException calciteUnsupportedException -> true;
+      case ErrorReport errorReport when t.getCause() instanceof CalciteUnsupportedException -> true;
+      default -> false;
+    };
+  }
+
   private boolean isCalciteFallbackAllowed(@Nullable Throwable t) {
     // We always allow fallback the query failed with CalciteUnsupportedException.
     // This is for avoiding breaking changes when enable Calcite by default.
-    if (t instanceof CalciteUnsupportedException) {
+    if (isCalciteUnsupportedError(t)) {
       return true;
-    } else {
-      if (settings != null) {
-        Boolean fallback_allowed = settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
-        if (fallback_allowed == null) {
-          return false;
-        }
-        return fallback_allowed;
-      } else {
-        return true;
-      }
     }
+
+    if (settings != null) {
+      Boolean fallback_allowed = settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
+      if (fallback_allowed == null) {
+        return false;
+      }
+      return fallback_allowed;
+    }
+
+    return true;
   }
 
   private boolean isCalciteEnabled(Settings settings) {

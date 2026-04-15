@@ -32,6 +32,15 @@ repositories {
     mavenCentral()
 }
 
+test {
+    maxParallelForks = Runtime.runtime.availableProcessors()
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
+
 dependencies {
     api "org.antlr:antlr4-runtime:4.13.2"
     api group: 'com.google.guava', name: 'guava', version: "${guava_version}"
@@ -52,6 +61,8 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
     testImplementation group: 'com.squareup.okhttp3', name: 'mockwebserver', version: '4.12.0'
+
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
 }
 
 

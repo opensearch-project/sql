@@ -11,7 +11,12 @@ public class AlwaysHealthyMonitor extends ResourceMonitor {
 
   /** always healthy. */
   @Override
-  public boolean isHealthy() {
+  protected boolean isHealthyImpl() {
     return true;
+  }
+
+  @Override
+  public ResourceStatus getStatus() {
+    return ResourceStatus.healthy(ResourceStatus.ResourceType.OTHER);
   }
 }

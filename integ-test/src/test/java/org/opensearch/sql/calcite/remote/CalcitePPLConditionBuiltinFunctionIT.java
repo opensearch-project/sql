@@ -93,6 +93,36 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testIsNotNullWithMultipleNotEquals() throws IOException {
+    // Verifies isnotnull() correctly filters null values when combined with multiple != conditions.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where name != 'Jake' and name != 'Hello' and isnotnull(name)"
+                    + " | fields name",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"));
+
+    verifyDataRows(actual, rows("John"), rows("Jane"), rows("Kevin"), rows("    "), rows(""));
+  }
+
+  @Test
+  public void testIsNotNullWithSingleNotEquals() throws IOException {
+    // Verifies isnotnull() correctly filters null values when combined with a single != condition.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where name != 'Jake' and isnotnull(name) | fields name",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"));
+
+    verifyDataRows(
+        actual, rows("John"), rows("Jane"), rows("Hello"), rows("Kevin"), rows("    "), rows(""));
+  }
+
+  @Test
   public void testIsNotNullWithStruct() throws IOException {
     JSONObject actual = executeQuery("source=big5 | where isnotnull(aws) | fields aws");
     verifySchema(actual, schema("aws", "struct"));

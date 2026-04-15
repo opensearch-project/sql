@@ -23,6 +23,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.AUTO;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.AVG;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CBRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEIL;
@@ -38,6 +39,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.COSH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COUNT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CRC32;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_DATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIME;
@@ -60,6 +62,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDEFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DUR2SEC;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EARLIEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
@@ -136,18 +139,21 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_P
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEMK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINSPAN_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_HOUR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MKTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MOD;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUSFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTHNAME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MSTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
@@ -162,6 +168,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NULLIF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NUM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.OR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERCENTILE_APPROX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_ADD;
@@ -185,6 +192,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXT
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_OFFSET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RINT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RMCOMMA;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RMUNIT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SCALAR_MAX;
@@ -418,14 +427,10 @@ public class PPLFuncImpTable {
             functionName.name(),
             operator instanceof SqlUserDefinedFunction);
     CalciteFuncSignature signature = new CalciteFuncSignature(functionName.getName(), typeChecker);
-    externalFunctionRegistry.compute(
+    externalFunctionRegistry.put(
         functionName,
-        (name, existingList) -> {
-          List<Pair<CalciteFuncSignature, FunctionImp>> list =
-              existingList == null ? new ArrayList<>() : new ArrayList<>(existingList);
-          list.add(Pair.of(signature, (builder, args) -> builder.makeCall(operator, args)));
-          return list;
-        });
+        List.of(
+            Pair.of(signature, (FunctionImp) (builder, args) -> builder.makeCall(operator, args))));
   }
 
   /**
@@ -983,6 +988,18 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
       registerOperator(TONUMBER, PPLBuiltinOperators.TONUMBER);
       registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
+
+      // Register PPL Convert command functions
+      registerOperator(AUTO, PPLBuiltinOperators.AUTO);
+      registerOperator(NUM, PPLBuiltinOperators.NUM);
+      registerOperator(RMCOMMA, PPLBuiltinOperators.RMCOMMA);
+      registerOperator(RMUNIT, PPLBuiltinOperators.RMUNIT);
+      registerOperator(MEMK, PPLBuiltinOperators.MEMK);
+      registerOperator(CTIME, PPLBuiltinOperators.CTIME);
+      registerOperator(MKTIME, PPLBuiltinOperators.MKTIME);
+      registerOperator(MSTIME, PPLBuiltinOperators.MSTIME);
+      registerOperator(DUR2SEC, PPLBuiltinOperators.DUR2SEC);
+
       register(
           TOSTRING,
           (FunctionImp1)

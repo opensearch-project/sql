@@ -66,6 +66,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
@@ -228,6 +229,59 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testContainsOperatorExpr() {
+    assertEqual(
+        "source=t | where a contains 'hello'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%hello%"))));
+
+    assertEqual(
+        "source=t | where message contains 'err'",
+        filter(relation("t"), compare("ilike", field("message"), stringLiteral("%err%"))));
+  }
+
+  @Test
+  public void testContainsOperatorCaseInsensitive() {
+    assertEqual(
+        "source=t | where a CONTAINS 'hello'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%hello%"))));
+
+    assertEqual(
+        "source=t | where a Contains 'hello'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%hello%"))));
+  }
+
+  @Test
+  public void testContainsOperatorNonLiteralRhsThrows() {
+    assertThrows(
+        SemanticCheckException.class,
+        () -> assertEqual("source=t | where a contains b", (Node) null));
+  }
+
+  @Test
+  public void testContainsOperatorEscapesSpecialChars() {
+    // % must be escaped so it is treated as a literal character, not a wildcard
+    assertEqual(
+        "source=t | where a contains '%'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%\\%%"))));
+
+    // _ must be escaped so it is treated as a literal character, not a single-char wildcard
+    assertEqual(
+        "source=t | where a contains '_'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%\\_%"))));
+
+    // backslash in PPL is written as '\\'; unquotes to \, then escaped to \\ in the pattern
+    // Java: "source=t | where a contains '\\\\'" produces PPL: source=t | where a contains '\\'
+    assertEqual(
+        "source=t | where a contains '\\\\'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%\\\\%"))));
+
+    // mixed special characters are all escaped
+    assertEqual(
+        "source=t | where a contains 'foo%bar_baz'",
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("%foo\\%bar\\_baz%"))));
+  }
+
+  @Test
   public void testBooleanIsNullFunction() {
     assertEqual(
         "source=t | where isnull(a)", filter(relation("t"), function("is null", field("a"))));
@@ -242,6 +296,24 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         filter(relation("t"), function("is not null", field("a"))));
     assertEqual(
         "source=t | where ISNOTNULL(a)",
+        filter(relation("t"), function("is not null", field("a"))));
+  }
+
+  @Test
+  public void testIsNullPredicate() {
+    assertEqual(
+        "source=t | where a is null", filter(relation("t"), function("is null", field("a"))));
+    assertEqual(
+        "source=t | where a IS NULL", filter(relation("t"), function("is null", field("a"))));
+  }
+
+  @Test
+  public void testIsNotNullPredicate() {
+    assertEqual(
+        "source=t | where a is not null",
+        filter(relation("t"), function("is not null", field("a"))));
+    assertEqual(
+        "source=t | where a IS NOT NULL",
         filter(relation("t"), function("is not null", field("a"))));
   }
 

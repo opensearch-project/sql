@@ -46,6 +46,7 @@ import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
 import org.opensearch.jobscheduler.spi.ScheduledJobParser;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.plugins.ActionPlugin;
+import org.opensearch.plugins.ExtensiblePlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ScriptPlugin;
 import org.opensearch.plugins.SystemIndexPlugin;
@@ -85,6 +86,7 @@ import org.opensearch.sql.directquery.transport.config.DirectQueryModule;
 import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionResponse;
 import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionResponse;
 import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionResponse;
+import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
@@ -93,7 +95,9 @@ import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine;
+import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
+import org.opensearch.sql.plugin.rest.RestPPLGrammarAction;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
@@ -125,10 +129,15 @@ import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.watcher.ResourceWatcherService;
 
 public class SQLPlugin extends Plugin
-    implements ActionPlugin, ScriptPlugin, SystemIndexPlugin, JobSchedulerExtension {
+    implements ActionPlugin,
+        ScriptPlugin,
+        SystemIndexPlugin,
+        JobSchedulerExtension,
+        ExtensiblePlugin {
 
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
+  private List<ExecutionEngine> executionEngineExtensions = List.of();
   private ClusterService clusterService;
 
   /** Settings should be inited when bootstrap the plugin. */
@@ -148,6 +157,18 @@ public class SQLPlugin extends Plugin
   }
 
   @Override
+  public void loadExtensions(ExtensionLoader loader) {
+    List<ExecutionEngine> loaded = loader.loadExtensions(ExecutionEngine.class);
+    this.executionEngineExtensions = loaded != null ? List.copyOf(loaded) : List.of();
+    if (!executionEngineExtensions.isEmpty()) {
+      LOGGER.info(
+          "Loaded {} execution engine extension(s): {}",
+          executionEngineExtensions.size(),
+          executionEngineExtensions.stream().map(e -> e.getClass().getSimpleName()).toList());
+    }
+  }
+
+  @Override
   public List<RestHandler> getRestHandlers(
       Settings settings,
       RestController restController,
@@ -163,6 +184,7 @@ public class SQLPlugin extends Plugin
 
     return Arrays.asList(
         new RestPPLQueryAction(),
+        new RestPPLGrammarAction(),
         new RestSqlAction(settings, injector),
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
@@ -250,7 +272,7 @@ public class SQLPlugin extends Plugin
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
     LocalClusterState.state().setClient(client);
     ModulesBuilder modules = new ModulesBuilder();
-    modules.add(new OpenSearchPluginModule());
+    modules.add(new OpenSearchPluginModule(executionEngineExtensions));
     modules.add(
         b -> {
           b.bind(NodeClient.class).toInstance((NodeClient) client);
@@ -285,12 +307,15 @@ public class SQLPlugin extends Plugin
     ScheduledAsyncQueryJobRunner.getJobRunnerInstance()
         .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
+    EngineExtensionsHolder extensionsHolder = new EngineExtensionsHolder(executionEngineExtensions);
+
     return ImmutableList.of(
         dataSourceService,
         asyncQueryExecutorService,
         clusterManagerEventListener,
         pluginSettings,
-        directQueryExecutorService);
+        directQueryExecutorService,
+        extensionsHolder);
   }
 
   @Override
