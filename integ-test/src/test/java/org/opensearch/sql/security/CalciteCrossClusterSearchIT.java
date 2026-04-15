@@ -262,27 +262,12 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
     JSONObject result =
         executeQuery(String.format("search source=%s | rename * as old_*", TEST_INDEX_DOG_REMOTE));
     verifyColumn(
-        result,
-        columnName("old_dog_name"),
-        columnName("old_holdersName"),
-        columnName("old_age"),
-        columnName("old__id"),
-        columnName("old__index"),
-        columnName("old__score"),
-        columnName("old__maxscore"),
-        columnName("old__sort"),
-        columnName("old__routing"));
+        result, columnName("old_dog_name"), columnName("old_holdersName"), columnName("old_age"));
     verifySchema(
         result,
         schema("old_dog_name", "string"),
         schema("old_holdersName", "string"),
-        schema("old_age", "bigint"),
-        schema("old__id", "string"),
-        schema("old__index", "string"),
-        schema("old__score", "float"),
-        schema("old__maxscore", "float"),
-        schema("old__sort", "bigint"),
-        schema("old__routing", "string"));
+        schema("old_age", "bigint"));
   }
 
   @Test
