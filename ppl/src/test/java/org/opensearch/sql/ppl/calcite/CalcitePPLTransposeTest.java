@@ -24,12 +24,13 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
             + "  LogicalAggregate(group=[{1}], row 1_null=[MAX($0) FILTER $2], row 2_null=[MAX($0)"
             + " FILTER $3], row 3_null=[MAX($0) FILTER $4], row 4_null=[MAX($0) FILTER $5], row"
             + " 5_null=[MAX($0) FILTER $6])\n"
-            + "    LogicalProject(value=[CAST($3):VARCHAR NOT NULL], $f4=[TRIM(FLAG(BOTH), ' ',"
+            + "    LogicalProject(_value_transpose_=[CAST($3):VARCHAR NOT NULL],"
+            + " $f4=[TRIM(FLAG(BOTH), ' ',"
             + " $2)], $f5=[=($1, 1)], $f6=[=($1, 2)], $f7=[=($1, 3)], $f8=[=($1, 4)], $f9=[=($1,"
             + " 5)])\n"
             + "      LogicalFilter(condition=[IS NOT NULL($3)])\n"
             + "        LogicalProject(c=[$0], _row_number_transpose_=[$1], column=[$2],"
-            + " value=[CASE(=($2, 'c'), CAST($0):VARCHAR NOT NULL, null:NULL)])\n"
+            + " _value_transpose_=[CASE(=($2, 'c'), CAST($0):VARCHAR NOT NULL, null:NULL)])\n"
             + "          LogicalJoin(condition=[true], joinType=[inner])\n"
             + "            LogicalProject(c=[$0], _row_number_transpose_=[ROW_NUMBER() OVER ()])\n"
             + "              LogicalAggregate(group=[{}], c=[COUNT()])\n"
@@ -40,18 +41,23 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TRIM(`column`) `column`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
-            + " `_row_number_transpose_` = 1) `row 1`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
-            + " `_row_number_transpose_` = 2) `row 2`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
-            + " `_row_number_transpose_` = 3) `row 3`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
-            + " `_row_number_transpose_` = 4) `row 4`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
+        "SELECT TRIM(`column`) `column`, MAX(CAST(`_value_transpose_` AS STRING)) FILTER (WHERE"
+            + " `_row_number_transpose_` = 1) `row 1`, MAX(CAST(`_value_transpose_` AS STRING))"
+            + " FILTER (WHERE"
+            + " `_row_number_transpose_` = 2) `row 2`, MAX(CAST(`_value_transpose_` AS STRING))"
+            + " FILTER (WHERE"
+            + " `_row_number_transpose_` = 3) `row 3`, MAX(CAST(`_value_transpose_` AS STRING))"
+            + " FILTER (WHERE"
+            + " `_row_number_transpose_` = 4) `row 4`, MAX(CAST(`_value_transpose_` AS STRING))"
+            + " FILTER (WHERE"
             + " `_row_number_transpose_` = 5) `row 5`\n"
             + "FROM (SELECT `t0`.`c`, `t0`.`_row_number_transpose_`, `t1`.`column`, CASE WHEN"
-            + " `t1`.`column` = 'c' THEN CAST(`t0`.`c` AS STRING) ELSE NULL END `value`\n"
+            + " `t1`.`column` = 'c' THEN CAST(`t0`.`c` AS STRING) ELSE NULL END"
+            + " `_value_transpose_`\n"
             + "FROM (SELECT COUNT(*) `c`, ROW_NUMBER() OVER () `_row_number_transpose_`\n"
             + "FROM `scott`.`EMP`) `t0`\n"
             + "CROSS JOIN (VALUES ('c')) `t1` (`column`)) `t2`\n"
-            + "WHERE `t2`.`value` IS NOT NULL\n"
+            + "WHERE `t2`.`_value_transpose_` IS NOT NULL\n"
             + "GROUP BY TRIM(`column`)";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -68,12 +74,13 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
             + "  LogicalAggregate(group=[{1}], row 1_null=[MAX($0) FILTER $2], row 2_null=[MAX($0)"
             + " FILTER $3], row 3_null=[MAX($0) FILTER $4], row 4_null=[MAX($0) FILTER $5], row"
             + " 5_null=[MAX($0) FILTER $6])\n"
-            + "    LogicalProject(value=[CAST($6):VARCHAR NOT NULL], $f7=[TRIM(FLAG(BOTH), ' ',"
-            + " $5)], $f8=[=($4, 1)], $f9=[=($4, 2)], $f10=[=($4, 3)], $f11=[=($4, 4)], $f12=[=($4,"
-            + " 5)])\n"
+            + "    LogicalProject(_value_transpose_=[CAST($6):VARCHAR NOT NULL],"
+            + " $f7=[TRIM(FLAG(BOTH), ' ',"
+            + " $5)], $f8=[=($4, 1)], $f9=[=($4, 2)], $f10=[=($4, 3)], $f11=[=($4, 4)],"
+            + " $f12=[=($4, 5)])\n"
             + "      LogicalFilter(condition=[IS NOT NULL($6)])\n"
             + "        LogicalProject(avg_sal=[$0], max_sal=[$1], min_sal=[$2], cnt=[$3],"
-            + " _row_number_transpose_=[$4], column=[$5], value=[CASE(=($5, 'avg_sal'),"
+            + " _row_number_transpose_=[$4], column=[$5], _value_transpose_=[CASE(=($5, 'avg_sal'),"
             + " NUMBER_TO_STRING($0), =($5, 'max_sal'), NUMBER_TO_STRING($1), =($5, 'min_sal'),"
             + " NUMBER_TO_STRING($2), =($5, 'cnt'), CAST($3):VARCHAR NOT NULL, null:NULL)])\n"
             + "          LogicalJoin(condition=[true], joinType=[inner])\n"
@@ -95,18 +102,22 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TRIM(`column`) `column`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
-            + " `_row_number_transpose_` = 1) `row 1`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
-            + " `_row_number_transpose_` = 2) `row 2`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
-            + " `_row_number_transpose_` = 3) `row 3`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
-            + " `_row_number_transpose_` = 4) `row 4`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
+        "SELECT TRIM(`column`) `column`, MAX(CAST(`_value_transpose_` AS STRING)) FILTER (WHERE"
+            + " `_row_number_transpose_` = 1) `row 1`, MAX(CAST(`_value_transpose_` AS STRING))"
+            + " FILTER (WHERE"
+            + " `_row_number_transpose_` = 2) `row 2`, MAX(CAST(`_value_transpose_` AS STRING))"
+            + " FILTER (WHERE"
+            + " `_row_number_transpose_` = 3) `row 3`, MAX(CAST(`_value_transpose_` AS STRING))"
+            + " FILTER (WHERE"
+            + " `_row_number_transpose_` = 4) `row 4`, MAX(CAST(`_value_transpose_` AS STRING))"
+            + " FILTER (WHERE"
             + " `_row_number_transpose_` = 5) `row 5`\n"
             + "FROM (SELECT `t1`.`avg_sal`, `t1`.`max_sal`, `t1`.`min_sal`, `t1`.`cnt`,"
             + " `t1`.`_row_number_transpose_`, `t2`.`column`, CASE WHEN `t2`.`column` = 'avg_sal'"
             + " THEN NUMBER_TO_STRING(`t1`.`avg_sal`) WHEN `t2`.`column` = 'max_sal' THEN"
             + " NUMBER_TO_STRING(`t1`.`max_sal`) WHEN `t2`.`column` = 'min_sal' THEN"
             + " NUMBER_TO_STRING(`t1`.`min_sal`) WHEN `t2`.`column` = 'cnt' THEN CAST(`t1`.`cnt` AS"
-            + " STRING) ELSE NULL END `value`\n"
+            + " STRING) ELSE NULL END `_value_transpose_`\n"
             + "FROM (SELECT AVG(`SAL`) `avg_sal`, MAX(`SAL`) `max_sal`, MIN(`SAL`) `min_sal`,"
             + " COUNT(*) `cnt`, ROW_NUMBER() OVER () `_row_number_transpose_`\n"
             + "FROM `scott`.`EMP`) `t1`\n"
@@ -114,7 +125,7 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
             + "('max_sal'),\n"
             + "('min_sal'),\n"
             + "('cnt')) `t2` (`column`)) `t3`\n"
-            + "WHERE `t3`.`value` IS NOT NULL\n"
+            + "WHERE `t3`.`_value_transpose_` IS NOT NULL\n"
             + "GROUP BY TRIM(`column`)";
 
     /*
@@ -152,11 +163,12 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
         "LogicalProject(column=[$0], row 1=[$1], row 2=[$2], row 3=[$3])\n"
             + "  LogicalAggregate(group=[{1}], row 1_null=[MAX($0) FILTER $2], row 2_null=[MAX($0)"
             + " FILTER $3], row 3_null=[MAX($0) FILTER $4])\n"
-            + "    LogicalProject(value=[CAST($6):VARCHAR NOT NULL], $f7=[TRIM(FLAG(BOTH), ' ',"
+            + "    LogicalProject(_value_transpose_=[CAST($6):VARCHAR NOT NULL],"
+            + " $f7=[TRIM(FLAG(BOTH), ' ',"
             + " $5)], $f8=[=($4, 1)], $f9=[=($4, 2)], $f10=[=($4, 3)])\n"
             + "      LogicalFilter(condition=[IS NOT NULL($6)])\n"
             + "        LogicalProject(ENAME=[$0], COMM=[$1], JOB=[$2], SAL=[$3],"
-            + " _row_number_transpose_=[$4], column=[$5], value=[CASE(=($5, 'ENAME'),"
+            + " _row_number_transpose_=[$4], column=[$5], _value_transpose_=[CASE(=($5, 'ENAME'),"
             + " CAST($0):VARCHAR NOT NULL, =($5, 'COMM'), NUMBER_TO_STRING($1), =($5, 'JOB'),"
             + " CAST($2):VARCHAR NOT NULL, =($5, 'SAL'), NUMBER_TO_STRING($3), null:NULL)])\n"
             + "          LogicalJoin(condition=[true], joinType=[inner])\n"
@@ -176,16 +188,18 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TRIM(`column`) `column`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
-            + " `_row_number_transpose_` = 1) `row 1`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
-            + " `_row_number_transpose_` = 2) `row 2`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
+        "SELECT TRIM(`column`) `column`, MAX(CAST(`_value_transpose_` AS STRING)) FILTER (WHERE"
+            + " `_row_number_transpose_` = 1) `row 1`, MAX(CAST(`_value_transpose_` AS STRING))"
+            + " FILTER (WHERE"
+            + " `_row_number_transpose_` = 2) `row 2`, MAX(CAST(`_value_transpose_` AS STRING))"
+            + " FILTER (WHERE"
             + " `_row_number_transpose_` = 3) `row 3`\n"
             + "FROM (SELECT `t`.`ENAME`, `t`.`COMM`, `t`.`JOB`, `t`.`SAL`,"
             + " `t`.`_row_number_transpose_`, `t0`.`column`, CASE WHEN `t0`.`column` = 'ENAME' THEN"
             + " CAST(`t`.`ENAME` AS STRING) WHEN `t0`.`column` = 'COMM' THEN"
             + " NUMBER_TO_STRING(`t`.`COMM`) WHEN `t0`.`column` = 'JOB' THEN CAST(`t`.`JOB` AS"
             + " STRING) WHEN `t0`.`column` = 'SAL' THEN NUMBER_TO_STRING(`t`.`SAL`) ELSE NULL END"
-            + " `value`\n"
+            + " `_value_transpose_`\n"
             + "FROM (SELECT `ENAME`, `COMM`, `JOB`, `SAL`, ROW_NUMBER() OVER ()"
             + " `_row_number_transpose_`\n"
             + "FROM `scott`.`EMP`) `t`\n"
@@ -193,10 +207,24 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
             + "('COMM'),\n"
             + "('JOB'),\n"
             + "('SAL')) `t0` (`column`)) `t1`\n"
-            + "WHERE `t1`.`value` IS NOT NULL\n"
+            + "WHERE `t1`.`_value_transpose_` IS NOT NULL\n"
             + "GROUP BY TRIM(`column`)";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTransposeWithValueFieldNameCollision() {
+    // Reproduce issue #5172: hardcoded 'value' unpivot column collides with
+    // input field named 'value'
+    String ppl = "source=EMP | stats count() as value, avg(SAL) as avg_sal | transpose";
+    RelNode root = getRelNode(ppl);
+    // The 'value' field from stats should appear correctly in transposed output
+    // and not be confused with the internal unpivot 'value' column
+    String expectedResult =
+        "column=avg_sal; row 1=2073.214285; row 2=null; row 3=null; row 4=null; row 5=null\n"
+            + "column=value; row 1=14; row 2=null; row 3=null; row 4=null; row 5=null\n";
+    verifyResult(root, expectedResult);
   }
 
   @Test
@@ -208,11 +236,13 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
         "LogicalProject(column_names=[$0], row 1=[$1], row 2=[$2], row 3=[$3])\n"
             + "  LogicalAggregate(group=[{1}], row 1_null=[MAX($0) FILTER $2], row 2_null=[MAX($0)"
             + " FILTER $3], row 3_null=[MAX($0) FILTER $4])\n"
-            + "    LogicalProject(value=[CAST($6):VARCHAR NOT NULL], $f7=[TRIM(FLAG(BOTH), ' ',"
+            + "    LogicalProject(_value_transpose_=[CAST($6):VARCHAR NOT NULL],"
+            + " $f7=[TRIM(FLAG(BOTH), ' ',"
             + " $5)], $f8=[=($4, 1)], $f9=[=($4, 2)], $f10=[=($4, 3)])\n"
             + "      LogicalFilter(condition=[IS NOT NULL($6)])\n"
             + "        LogicalProject(ENAME=[$0], COMM=[$1], JOB=[$2], SAL=[$3],"
-            + " _row_number_transpose_=[$4], column_names=[$5], value=[CASE(=($5, 'ENAME'),"
+            + " _row_number_transpose_=[$4], column_names=[$5],"
+            + " _value_transpose_=[CASE(=($5, 'ENAME'),"
             + " CAST($0):VARCHAR NOT NULL, =($5, 'COMM'), NUMBER_TO_STRING($1), =($5, 'JOB'),"
             + " CAST($2):VARCHAR NOT NULL, =($5, 'SAL'), NUMBER_TO_STRING($3), null:NULL)])\n"
             + "          LogicalJoin(condition=[true], joinType=[inner])\n"
@@ -231,16 +261,19 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TRIM(`column_names`) `column_names`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
-            + " `_row_number_transpose_` = 1) `row 1`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
-            + " `_row_number_transpose_` = 2) `row 2`, MAX(CAST(`value` AS STRING)) FILTER (WHERE"
+        "SELECT TRIM(`column_names`) `column_names`,"
+            + " MAX(CAST(`_value_transpose_` AS STRING)) FILTER (WHERE"
+            + " `_row_number_transpose_` = 1) `row 1`,"
+            + " MAX(CAST(`_value_transpose_` AS STRING)) FILTER (WHERE"
+            + " `_row_number_transpose_` = 2) `row 2`,"
+            + " MAX(CAST(`_value_transpose_` AS STRING)) FILTER (WHERE"
             + " `_row_number_transpose_` = 3) `row 3`\n"
             + "FROM (SELECT `t`.`ENAME`, `t`.`COMM`, `t`.`JOB`, `t`.`SAL`,"
             + " `t`.`_row_number_transpose_`, `t0`.`column_names`, CASE WHEN `t0`.`column_names` ="
             + " 'ENAME' THEN CAST(`t`.`ENAME` AS STRING) WHEN `t0`.`column_names` = 'COMM' THEN"
             + " NUMBER_TO_STRING(`t`.`COMM`) WHEN `t0`.`column_names` = 'JOB' THEN CAST(`t`.`JOB`"
             + " AS STRING) WHEN `t0`.`column_names` = 'SAL' THEN NUMBER_TO_STRING(`t`.`SAL`) ELSE"
-            + " NULL END `value`\n"
+            + " NULL END `_value_transpose_`\n"
             + "FROM (SELECT `ENAME`, `COMM`, `JOB`, `SAL`, ROW_NUMBER() OVER ()"
             + " `_row_number_transpose_`\n"
             + "FROM `scott`.`EMP`) `t`\n"
@@ -248,7 +281,7 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
             + "('COMM'),\n"
             + "('JOB'),\n"
             + "('SAL')) `t0` (`column_names`)) `t1`\n"
-            + "WHERE `t1`.`value` IS NOT NULL\n"
+            + "WHERE `t1`.`_value_transpose_` IS NOT NULL\n"
             + "GROUP BY TRIM(`column_names`)";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);

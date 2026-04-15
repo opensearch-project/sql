@@ -923,7 +923,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Step 2: UNPIVOT
     b.unpivot(
         false,
-        ImmutableList.of("value"),
+        ImmutableList.of(PlanUtils.VALUE_COLUMN_FOR_TRANSPOSE),
         ImmutableList.of(columnName),
         fieldNames.stream()
             .map(
@@ -945,7 +945,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Step 4: PIVOT
     b.pivot(
         b.groupKey(trimmedColumnName),
-        ImmutableList.of(b.max(b.field("value"))),
+        ImmutableList.of(b.max(b.field(PlanUtils.VALUE_COLUMN_FOR_TRANSPOSE))),
         ImmutableList.of(b.field(PlanUtils.ROW_NUMBER_COLUMN_FOR_TRANSPOSE)),
         IntStream.rangeClosed(1, maxRows)
             .mapToObj(i -> Map.entry("row " + i, ImmutableList.of((RexNode) b.literal(i))))
