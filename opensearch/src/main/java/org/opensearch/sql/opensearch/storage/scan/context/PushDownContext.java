@@ -7,8 +7,10 @@ package org.opensearch.sql.opensearch.storage.scan.context;
 
 import java.util.AbstractCollection;
 import java.util.ArrayDeque;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
@@ -87,11 +89,10 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
           || operation.type() == PushDownType.PROJECT) {
         continue;
       }
-      if (operation.type() == PushDownType.FILTER) {
+      if (operation.type() == PushDownType.FILTER || operation.type() == PushDownType.SCRIPT) {
         List<Integer> currentColumns = null;
-        // If project push down happens between this aggregate push down and previous filter push
-        // down,
-        // there is a single project left in the queue. That project will affect the mapping between
+        // If project push down happens between this filter/script push down and the aggregate,
+        // there may be project(s) left in the queue. That project will affect the mapping between
         // them.
         while (!tempQueue.isEmpty() && tempQueue.peekFirst().type() == PushDownType.PROJECT) {
           ProjectDigest projectDigest = (ProjectDigest) tempQueue.pollFirst().digest();
@@ -103,7 +104,8 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
         }
         // Check if filter is derived from aggregate. Ensure there is no other push down operations
         // left between them.
-        if (tempQueue.isEmpty()
+        if (operation.type() == PushDownType.FILTER
+            && tempQueue.isEmpty()
             && PlanUtils.isNotNullDerivedFromAgg(
                 ((FilterDigest) operation.digest()).condition(),
                 aggregate,
@@ -111,10 +113,34 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
                 currentColumns)) {
           continue;
         }
+        // If a project pushdown occurred between this filter/script and the aggregate, the
+        // notNullFieldIndices in the FilterDigest refer to the pre-project field space. Remap
+        // them to the post-project field space so they align with the aggregate's group indices.
+        if (currentColumns != null && operation.digest() instanceof FilterDigest fd) {
+          operation = remapFilterDigest(operation, fd, currentColumns);
+        }
       }
       newContext.add(operation);
     }
     return newContext;
+  }
+
+  /**
+   * Remap a FilterDigest's notNullFieldIndices through a project column mapping. Each old index is
+   * looked up in {@code selectedColumns} to find its new position. Indices that were dropped by the
+   * project are removed.
+   */
+  private static PushDownOperation remapFilterDigest(
+      PushDownOperation operation, FilterDigest fd, List<Integer> selectedColumns) {
+    Set<Integer> remapped = new HashSet<>();
+    for (int oldIdx : fd.notNullFieldIndices()) {
+      int newIdx = selectedColumns.indexOf(oldIdx);
+      if (newIdx >= 0) {
+        remapped.add(newIdx);
+      }
+    }
+    FilterDigest newDigest = new FilterDigest(fd.scriptCount(), fd.condition(), remapped);
+    return new PushDownOperation(operation.type(), newDigest, operation.action());
   }
 
   @NotNull
