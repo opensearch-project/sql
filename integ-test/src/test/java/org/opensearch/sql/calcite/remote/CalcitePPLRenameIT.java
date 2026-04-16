@@ -200,6 +200,41 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testRenameFullWildcardExcludesMetadataFields() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source = %s | rename * as old_*", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("old_name", "string"),
+        schema("old_age", "int"),
+        schema("old_state", "string"),
+        schema("old_country", "string"),
+        schema("old_year", "int"),
+        schema("old_month", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
+  }
+
+  @Test
+  public void testRenamePartialWildcardExcludesMetadataFields() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source = %s | rename _* as meta_*", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyStandardDataRows(result);
+  }
+
+  @Test
   public void testRenameMultipleWildcards() throws IOException {
     JSONObject result =
         executeQuery(
