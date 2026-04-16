@@ -571,8 +571,9 @@ class VectorSearchQueryBuilderTest {
 
     ExpressionEvaluationException ex =
         assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownFilter(filter));
-    assertTrue(ex.getMessage().contains("filter_type requires a pushdownable WHERE clause"));
-    assertTrue(ex.getMessage().contains("cannot be pushed down"));
+    assertTrue(
+        ex.getMessage().contains("filter_type only works when the WHERE clause can be translated"));
+    assertTrue(ex.getMessage().contains("Rewrite the WHERE clause or omit filter_type"));
   }
 
   @Test
