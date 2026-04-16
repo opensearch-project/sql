@@ -59,43 +59,8 @@ public class RestPPLQueryAction extends BaseRestHandler {
   }
 
   private static int getRawErrorCode(Exception ex) {
-
     if (ex instanceof ErrorReport) {
-      ErrorReport report = (ErrorReport) ex;
-      // Map ErrorCode to appropriate HTTP status
-      if (report.getCode() != null) {
-        switch (report.getCode()) {
-          case PERMISSION_DENIED:
-            return 403;
-          case INDEX_NOT_FOUND:
-            return 404;
-          case FIELD_NOT_FOUND:
-          case SYNTAX_ERROR:
-          case SEMANTIC_ERROR:
-          case TYPE_ERROR:
-          case AMBIGUOUS_FIELD:
-            return 400;
-          case RESOURCE_LIMIT_EXCEEDED:
-            return 429;
-          case UNSUPPORTED_OPERATION:
-            return 501;
-          case EVALUATION_ERROR:
-          case PLANNING_ERROR:
-          case EXECUTION_ERROR:
-          case UNKNOWN:
-          default:
-            break; // Fall through to check underlying cause
-        }
-      }
-      // If no specific mapping, check the underlying cause
       return getRawErrorCode(((ErrorReport) ex).getCause());
-    }
-    // Check for SQLException wrapping client errors
-    if (ex instanceof java.sql.SQLException) {
-      Throwable cause = ex.getCause();
-      if (cause instanceof Exception && isClientError((Exception) cause)) {
-        return 400;
-      }
     }
     if (ex instanceof OpenSearchException) {
       return ((OpenSearchException) ex).status().getStatus();
@@ -108,7 +73,6 @@ public class RestPPLQueryAction extends BaseRestHandler {
     }
     return 500;
   }
-
 
   private static RestStatus loggedErrorCode(Exception ex) {
     int code = getRawErrorCode(ex);

@@ -160,7 +160,8 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
       executeQuery(query);
       fail("Expected to return 400, but none was thrown for query: " + query);
     } catch (ResponseException e) {
-      assertEquals("HTTP status should be 400", 400, e.getResponse().getStatusLine().getStatusCode());
+      assertEquals(
+          "HTTP status should be 400", 400, e.getResponse().getStatusLine().getStatusCode());
     } catch (IOException e) {
       throw new IllegalStateException("Unexpected exception raised for query: " + query);
     }
