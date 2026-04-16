@@ -15,6 +15,9 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.search.SearchPhaseExecutionException;
+import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
@@ -23,6 +26,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
 import org.opensearch.sql.exception.QueryEngineException;
@@ -67,14 +71,59 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   private static int getRawErrorCode(Exception ex) {
     if (ex instanceof ErrorReport) {
+      ErrorReport report = (ErrorReport) ex;
+      // Map ErrorCode to appropriate HTTP status
+      if (report.getCode() != null) {
+        switch (report.getCode()) {
+          case PERMISSION_DENIED:
+            return 403;
+          case INDEX_NOT_FOUND:
+          case FIELD_NOT_FOUND:
+            return 404;
+          case SYNTAX_ERROR:
+          case SEMANTIC_ERROR:
+          case TYPE_ERROR:
+          case AMBIGUOUS_FIELD:
+            return 400;
+          case RESOURCE_LIMIT_EXCEEDED:
+            return 429;
+          case UNSUPPORTED_OPERATION:
+            return 501;
+          case EVALUATION_ERROR:
+          case PLANNING_ERROR:
+          case EXECUTION_ERROR:
+          case UNKNOWN:
+          default:
+            break; // Fall through to check underlying cause
+        }
+      }
+      // If no specific mapping, check the underlying cause
       return getRawErrorCode(((ErrorReport) ex).getCause());
     }
     if (ex instanceof OpenSearchException) {
       return ((OpenSearchException) ex).status().getStatus();
     }
+    if (ex instanceof SearchPhaseExecutionException) {
+      return getSearchPhaseExecutionExceptionStatus((SearchPhaseExecutionException) ex);
+    }
     // Possible future work: We currently do this on exception types, when we have more robust
     // ErrorCodes in more locations it may be worth switching this to be based on those instead.
     // That lets us identify specific error cases at a granularity higher than exception types.
+    if (isClientError(ex)) {
+      return 400;
+    }
+    return 500;
+  }
+
+  private static int getSearchPhaseExecutionExceptionStatus(SearchPhaseExecutionException ex) {
+    ShardSearchFailure[] shardFailures = ex.shardFailures();
+    if (shardFailures != null && shardFailures.length > 0) {
+      Throwable cause = shardFailures[0].getCause();
+      if (cause instanceof OpenSearchException) {
+        return ((OpenSearchException) cause).status().getStatus();
+      }
+    }
+    // Fallback to client error check if no shard failures or OpenSearch exception found
     if (isClientError(ex)) {
       return 400;
     }
