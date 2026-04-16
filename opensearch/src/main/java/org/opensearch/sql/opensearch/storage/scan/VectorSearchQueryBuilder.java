@@ -68,7 +68,7 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     this.rebuildKnnWithFilter = rebuildKnnWithFilter;
   }
 
-  /** Backward-compatible constructor — defaults to POST, not explicit. */
+  /** Default constructor — preserves existing call sites; defaults to POST, not explicit. */
   public VectorSearchQueryBuilder(
       OpenSearchRequestBuilder requestBuilder, QueryBuilder knnQuery, Map<String, String> options) {
     this(requestBuilder, knnQuery, options, FilterType.POST, false, null);
