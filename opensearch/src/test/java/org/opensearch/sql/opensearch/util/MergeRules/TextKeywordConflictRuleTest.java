@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.util.MergeRules;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
@@ -140,6 +141,6 @@ class TextKeywordConflictRuleTest {
     OpenSearchDataType mergedType = target.get("msg");
     String result = OpenSearchTextType.toKeywordSubField("msg", mergedType.getExprType());
     // Should return null because the merged text type has no keyword subfield
-    assertEquals(null, result);
+    assertNull(result);
   }
 }
