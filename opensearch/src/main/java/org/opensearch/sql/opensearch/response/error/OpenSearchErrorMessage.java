@@ -14,7 +14,14 @@ import org.opensearch.action.search.ShardSearchFailure;
 public class OpenSearchErrorMessage extends ErrorMessage {
 
   OpenSearchErrorMessage(OpenSearchException exception, int status) {
-    super(exception, status);
+    super(exception, determineStatus(exception, status));
+  }
+
+  private static int determineStatus(OpenSearchException exception, int status) {
+    int originalStatus = exception.status() != null ? exception.status().getStatus() : 500;
+    // If the passed status differs from original, use the passed status (it was corrected)
+    // If they're the same, use the original (no correction needed)
+    return status != originalStatus ? status : originalStatus;
   }
 
   @Override
