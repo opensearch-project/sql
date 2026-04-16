@@ -14,6 +14,5 @@ root:
           adjust_pure_negative\":true,\"boost\":1.0}},\"_source\":{\"includes\":[\"\
           agent\",\"process\",\"log\",\"message\",\"tags\",\"cloud\",\"input\",\"\
           @timestamp\",\"ecs\",\"data_stream\",\"meta\",\"host\",\"metrics\",\"aws\"\
-          ,\"event\"]}}, pitId=*, cursorKeepAlive=null, searchAfter=null,\
-          \ searchResponse=null)"
+          ,\"event\"]}}, pitId=*, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
       children: []
