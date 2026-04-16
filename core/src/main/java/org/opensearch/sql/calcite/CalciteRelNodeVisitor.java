@@ -2093,14 +2093,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.projectPlus(streamSeq);
       RelNode left = context.relBuilder.build();
 
-      // 2. Run correlate + aggregate
-      return buildStreamWindowJoinPlan(
+      // 2. Use self-join approach to avoid nested correlates (which cause NPE
+      //    in Calcite's RelDecorrelator when chaining multiple streamstats)
+      return buildStreamWindowSelfJoinPlan(
           context,
           left,
           node,
           groupList,
           ROW_NUMBER_COLUMN_FOR_STREAMSTATS,
-          null,
           new String[] {ROW_NUMBER_COLUMN_FOR_STREAMSTATS});
     }
 
@@ -2229,6 +2229,262 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     context.relBuilder.projectExcept(cleanup);
     return context.relBuilder.peek();
+  }
+
+  /**
+   * Builds a self-join based plan for streamstats with global=true + window + group. This avoids
+   * using LogicalCorrelate which causes NPE in Calcite's RelDecorrelator when chaining multiple
+   * streamstats commands.
+   *
+   * <p>Plan structure:
+   *
+   * <ol>
+   *   <li>left = input + __stream_seq__
+   *   <li>right = trim to only aggregate input + __stream_seq__
+   *   <li>Join left and right on window frame + group conditions
+   *   <li>Group by all left field indices, compute AGG(right.X)
+   *   <li>Sort by __stream_seq__, then remove it
+   * </ol>
+   */
+  private RelNode buildStreamWindowSelfJoinPlan(
+      CalcitePlanContext context,
+      RelNode leftWithHelpers,
+      StreamWindow node,
+      List<UnresolvedExpression> groupList,
+      String seqCol,
+      String[] helperColsToCleanup) {
+
+    int leftFieldCount = leftWithHelpers.getRowType().getFieldCount();
+
+    // Build right side: project only the fields needed for aggregation + seq + group columns
+    // This avoids field name collisions and keeps the right side minimal
+    context.relBuilder.push(leftWithHelpers);
+
+    // Collect fields needed on right side: seq col + group cols + aggregate input fields
+    List<RexNode> rightFields = new ArrayList<>();
+    List<String> rightFieldNames = new ArrayList<>();
+
+    // Always include seq col
+    rightFields.add(context.relBuilder.field(seqCol));
+    rightFieldNames.add("__r_seq__");
+
+    // Include group columns
+    for (UnresolvedExpression groupExpr : groupList) {
+      String groupName = extractGroupFieldName(groupExpr);
+      rightFields.add(context.relBuilder.field(groupName));
+      rightFieldNames.add("__r_" + groupName + "__");
+    }
+
+    // Include aggregate input fields (extract field names from window functions)
+    Set<String> aggInputFields = new HashSet<>();
+    for (UnresolvedExpression wfExpr : node.getWindowFunctionList()) {
+      collectFieldNames(wfExpr, aggInputFields);
+    }
+    // Remove already-included fields
+    aggInputFields.remove(seqCol);
+    for (UnresolvedExpression groupExpr : groupList) {
+      aggInputFields.remove(extractGroupFieldName(groupExpr));
+    }
+    for (String aggField : aggInputFields) {
+      rightFields.add(context.relBuilder.field(aggField));
+      rightFieldNames.add("__r_" + aggField + "__");
+    }
+
+    context.relBuilder.project(rightFields, rightFieldNames);
+    RelNode rightProjected = context.relBuilder.build();
+
+    // Push left and right
+    context.relBuilder.push(leftWithHelpers);
+    context.relBuilder.push(rightProjected);
+
+    // Build join condition using 2-input references
+    RexNode leftSeq = context.relBuilder.field(2, 0, seqCol);
+    RexNode rightSeq = context.relBuilder.field(2, 1, "__r_seq__");
+
+    // Frame filter
+    RexNode frameFilter;
+    if (node.isCurrent()) {
+      RexNode lower =
+          context.relBuilder.call(
+              SqlStdOperatorTable.MINUS, leftSeq, context.relBuilder.literal(node.getWindow() - 1));
+      frameFilter = context.relBuilder.between(rightSeq, lower, leftSeq);
+    } else {
+      RexNode lower =
+          context.relBuilder.call(
+              SqlStdOperatorTable.MINUS, leftSeq, context.relBuilder.literal(node.getWindow()));
+      RexNode upper =
+          context.relBuilder.call(
+              SqlStdOperatorTable.MINUS, leftSeq, context.relBuilder.literal(1));
+      frameFilter = context.relBuilder.between(rightSeq, lower, upper);
+    }
+
+    // Group filter
+    List<RexNode> groupFilters = new ArrayList<>();
+    for (UnresolvedExpression groupExpr : groupList) {
+      String groupName = extractGroupFieldName(groupExpr);
+      RexNode leftGroup = context.relBuilder.field(2, 0, groupName);
+      RexNode rightGroup = context.relBuilder.field(2, 1, "__r_" + groupName + "__");
+      RexNode equalCondition = context.relBuilder.equals(leftGroup, rightGroup);
+      if (node.isBucketNullable()) {
+        RexNode bothNull =
+            context.relBuilder.and(
+                context.relBuilder.isNull(leftGroup), context.relBuilder.isNull(rightGroup));
+        groupFilters.add(context.relBuilder.or(equalCondition, bothNull));
+      } else {
+        groupFilters.add(equalCondition);
+      }
+    }
+
+    RexNode joinCondition =
+        groupFilters.isEmpty()
+            ? frameFilter
+            : context.relBuilder.and(frameFilter, context.relBuilder.and(groupFilters));
+    context.relBuilder.join(JoinRelType.LEFT, joinCondition);
+
+    // After join: [left_fields(0..leftFieldCount-1), right_fields(leftFieldCount..)]
+    // Aggregate: group by all left fields, compute AGG on right fields
+    // The aggregate functions need to reference the right-side fields in the joined row
+
+    // Build aggregate calls using the right-side field references
+    List<AggCall> aggCalls =
+        buildAggCallsFromJoinedRight(node.getWindowFunctionList(), leftFieldCount, context);
+
+    RelBuilder.GroupKey groupKey =
+        context.relBuilder.groupKey(
+            IntStream.range(0, leftFieldCount).mapToObj(context.relBuilder::field).toList());
+
+    context.relBuilder.aggregate(groupKey, aggCalls);
+
+    // Resort by the sequence column
+    context.relBuilder.sort(context.relBuilder.field(seqCol));
+
+    // Cleanup helper columns
+    List<RexNode> cleanup = new ArrayList<>();
+    for (String c : helperColsToCleanup) {
+      cleanup.add(context.relBuilder.field(c));
+    }
+    context.relBuilder.projectExcept(cleanup);
+    return context.relBuilder.peek();
+  }
+
+  /** Collect field names referenced by an expression tree. */
+  private void collectFieldNames(UnresolvedExpression expr, Set<String> fieldNames) {
+    if (expr instanceof Field f) {
+      fieldNames.add(f.getField().toString());
+    } else if (expr instanceof Alias a) {
+      collectFieldNames(a.getDelegated(), fieldNames);
+    } else if (expr instanceof WindowFunction wf) {
+      collectFieldNames(wf.getFunction(), fieldNames);
+    } else if (expr instanceof Function func) {
+      for (UnresolvedExpression arg : func.getFuncArgs()) {
+        collectFieldNames(arg, fieldNames);
+      }
+    }
+  }
+
+  /**
+   * Build AggCall list for the self-join plan. The aggregate functions reference fields from the
+   * right side of the join (offset by leftFieldCount).
+   */
+  private List<AggCall> buildAggCallsFromJoinedRight(
+      List<UnresolvedExpression> windowFunctionList,
+      int leftFieldCount,
+      CalcitePlanContext context) {
+    List<AggCall> aggCalls = new ArrayList<>();
+    for (UnresolvedExpression wfExpr : windowFunctionList) {
+      String alias = null;
+      UnresolvedExpression inner = wfExpr;
+      if (wfExpr instanceof Alias a) {
+        // Use Alias.getName() for the aggregate output name (e.g. "max(SAL)" or user-defined alias)
+        alias = a.getName();
+        inner = a.getDelegated();
+      }
+      if (inner instanceof WindowFunction wf && wf.getFunction() instanceof Function func) {
+        String funcName = func.getFuncName().toUpperCase();
+        List<UnresolvedExpression> args = func.getFuncArgs();
+        AggCall aggCall = buildSingleAggCall(funcName, args, alias, leftFieldCount, context);
+        aggCalls.add(aggCall);
+      }
+    }
+    return aggCalls;
+  }
+
+  /** Build a single AggCall for the self-join aggregate, referencing right-side fields. */
+  private AggCall buildSingleAggCall(
+      String funcName,
+      List<UnresolvedExpression> args,
+      String alias,
+      int leftFieldCount,
+      CalcitePlanContext context) {
+    // Map function name to Calcite aggregate function
+    RelBuilder.AggCall aggCall;
+    if (args.isEmpty()) {
+      // COUNT()
+      aggCall = context.relBuilder.count();
+      if (alias != null) {
+        aggCall = aggCall.as(alias);
+      }
+    } else {
+      // Get the right-side field reference for the argument
+      String argFieldName = extractFieldNameFromExpr(args.get(0));
+      String rightArgFieldName = "__r_" + argFieldName + "__";
+      // Find it in the right side (after left fields)
+      int rightFieldIndex = -1;
+      RelDataType joinedRowType = context.relBuilder.peek().getRowType();
+      List<String> fieldNames = joinedRowType.getFieldNames();
+      for (int i = leftFieldCount; i < fieldNames.size(); i++) {
+        if (fieldNames.get(i).equals(rightArgFieldName)) {
+          rightFieldIndex = i;
+          break;
+        }
+      }
+      if (rightFieldIndex == -1) {
+        throw new IllegalArgumentException(
+            "Cannot find aggregate input field '" + rightArgFieldName + "' in right side of join");
+      }
+      RexNode argRef = context.relBuilder.field(rightFieldIndex);
+
+      aggCall =
+          switch (funcName) {
+            case "AVG" -> context.relBuilder.avg(false, alias, argRef);
+            case "SUM" -> context.relBuilder.sum(false, alias, argRef);
+            case "MIN" -> context.relBuilder.min(alias, argRef);
+            case "MAX" -> context.relBuilder.max(alias, argRef);
+            case "COUNT" -> context.relBuilder.count(false, alias, argRef);
+            case "DC", "DISTINCT_COUNT" -> context.relBuilder.count(true, alias, argRef);
+            case "STDDEV_POP" -> {
+              AggCall c = context.relBuilder.aggregateCall(SqlStdOperatorTable.STDDEV_POP, argRef);
+              yield alias != null ? c.as(alias) : c;
+            }
+            case "STDDEV_SAMP" -> {
+              AggCall c = context.relBuilder.aggregateCall(SqlStdOperatorTable.STDDEV_SAMP, argRef);
+              yield alias != null ? c.as(alias) : c;
+            }
+            case "VAR_POP" -> {
+              AggCall c = context.relBuilder.aggregateCall(SqlStdOperatorTable.VAR_POP, argRef);
+              yield alias != null ? c.as(alias) : c;
+            }
+            case "VAR_SAMP" -> {
+              AggCall c = context.relBuilder.aggregateCall(SqlStdOperatorTable.VAR_SAMP, argRef);
+              yield alias != null ? c.as(alias) : c;
+            }
+            case "EARLIEST" -> context.relBuilder.min(alias, argRef);
+            case "LATEST" -> context.relBuilder.max(alias, argRef);
+            default ->
+                throw new UnsupportedOperationException("Unexpected window function: " + funcName);
+          };
+    }
+    return aggCall;
+  }
+
+  private String extractFieldNameFromExpr(UnresolvedExpression expr) {
+    if (expr instanceof Field f) {
+      return f.getField().toString();
+    } else if (expr instanceof Alias a) {
+      return extractFieldNameFromExpr(a.getDelegated());
+    } else {
+      throw new IllegalArgumentException("Cannot extract field name from: " + expr);
+    }
   }
 
   private RelNode buildResetHelperColumns(CalcitePlanContext context, StreamWindow node) {

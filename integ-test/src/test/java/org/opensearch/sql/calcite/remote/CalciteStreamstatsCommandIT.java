@@ -824,6 +824,41 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMultipleStreamstatsWithWindow() throws IOException {
+    // Test case from GitHub issue #4800: chained streamstats with window=2
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats window=2 avg(age) as avg_age by state, country"
+                    + " | streamstats window=2 avg(avg_age) as avg_state_age by country",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchemaInOrder(
+        actual,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("avg_age", "double"),
+        schema("avg_state_age", "double"));
+
+    verifyDataRows(
+        actual,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 22.5),
+        rows(null, "Canada", null, 4, 2023, 10, 10, 15),
+        rows("Kevin", null, null, 4, 2023, null, null, null));
+  }
+
+  // TODO: Fix chained reset_before + window streamstats (nested correlate issue, see #4800)
+  // The reset path still uses correlate, and the window self-join copies it into the right side,
+  // causing Calcite's RelDecorrelator to fail on duplicate correlate references.
+
+  @Test
   public void testMultipleStreamstatsWithNull1() throws IOException {
     JSONObject actual =
         executeQuery(
