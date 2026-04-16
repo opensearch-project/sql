@@ -43,7 +43,7 @@ public class VectorSearchIndex extends OpenSearchIndex {
     this.filterType = filterType;
   }
 
-  /** Backward-compatible constructor — defaults to no explicit filter type. */
+  /** Default constructor — preserves existing call sites; uses no explicit filter type. */
   public VectorSearchIndex(
       OpenSearchClient client,
       Settings settings,
