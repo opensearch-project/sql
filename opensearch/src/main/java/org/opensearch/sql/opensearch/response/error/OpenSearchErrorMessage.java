@@ -14,7 +14,7 @@ import org.opensearch.action.search.ShardSearchFailure;
 public class OpenSearchErrorMessage extends ErrorMessage {
 
   OpenSearchErrorMessage(OpenSearchException exception, int status) {
-    super(exception, status);
+    super(exception, exception.status() != null ? exception.status().getStatus() : status);
   }
 
   @Override

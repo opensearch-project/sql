@@ -28,7 +28,8 @@ public class ErrorMessageFactory {
 
     Throwable cause = unwrapCause(e);
     if (cause instanceof OpenSearchException) {
-      return new OpenSearchErrorMessage((OpenSearchException) cause, status);
+      OpenSearchException exception = (OpenSearchException) cause;
+      return new OpenSearchErrorMessage(exception, exception.status().getStatus());
     }
     return new ErrorMessage(cause, status);
   }

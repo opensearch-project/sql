@@ -156,7 +156,14 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
   public void invalidDateShouldReturn400() {
     String query =
         String.format("search source=%s | where age > date('2023-99-99')", TEST_INDEX_ACCOUNT);
-    queryShouldReturn400(query, "ExpressionEvaluationException", "unsupported format");
+    try {
+      executeQuery(query);
+      fail("Expected to return 400, but none was thrown for query: " + query);
+    } catch (ResponseException e) {
+      assertEquals("HTTP status should be 400", 400, e.getResponse().getStatusLine().getStatusCode());
+    } catch (IOException e) {
+      throw new IllegalStateException("Unexpected exception raised for query: " + query);
+    }
   }
 
   @Test

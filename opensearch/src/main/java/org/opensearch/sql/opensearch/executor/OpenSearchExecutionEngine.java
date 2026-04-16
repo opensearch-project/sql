@@ -223,10 +223,10 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             listener.onResponse(response);
 
           } catch (Throwable t) {
-            if (t instanceof VirtualMachineError) {
-              throw (VirtualMachineError) t;
+            if (t instanceof Error) {
+              throw (Error) t;
             }
-            Exception e = (t instanceof Exception) ? (Exception) t : new RuntimeException(t);
+            Exception e = (Exception) t;
             listener.onFailure(e);
           }
         });
