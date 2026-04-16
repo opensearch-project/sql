@@ -245,17 +245,21 @@ public class UnifiedQueryPlannerSqlTest extends UnifiedQueryTestBase {
 
   @Test
   public void testNonQueryStatementsBlockedByParser() {
-    List.of(
+    // Babel parser rejects CREATE MATERIALIZED VIEW
+    givenInvalidQuery(
             """
             CREATE MATERIALIZED VIEW mv AS
             SELECT department, count(*)
             FROM catalog.employees
             GROUP BY department\
-            """,
+            """)
+        .assertErrorMessage("Encountered");
+
+    // Babel parser accepts SHOW TABLES but it's blocked by query-type whitelist
+    givenInvalidQuery(
             """
             SHOW TABLES\
             """)
-        .forEach(
-            sql -> givenInvalidQuery(sql).assertErrorMessage("Incorrect syntax near the keyword"));
+        .assertErrorMessage("Only query statements are supported");
   }
 }
