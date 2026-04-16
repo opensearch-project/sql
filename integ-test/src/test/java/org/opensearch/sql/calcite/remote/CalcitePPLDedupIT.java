@@ -321,14 +321,17 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
                 "source=%s | sort category | dedup 1 name KEEPEMPTY=true | fields category, name",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     // category should be in ascending order (with nulls first due to ASC-nulls-first)
+    // dedup 1 name KEEPEMPTY=true: keep first occurrence of each name, plus ALL null-name rows
     verifyDataRows(
         actual,
-        rows(null, "E"),
         rows(null, null),
+        rows(null, "B"),
+        rows(null, "E"),
+        rows("X", null),
         rows("X", "A"),
         rows("X", "C"),
         rows("Y", null),
-        rows("Z", "B"),
+        rows("Z", null),
         rows("Z", "D"));
   }
 
