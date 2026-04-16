@@ -1,0 +1,90 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: log_text_4659
+        body:
+          mappings:
+            properties:
+              msg:
+                type: text
+              idx:
+                type: integer
+  - do:
+      indices.create:
+        index: log_keyword_4659
+        body:
+          mappings:
+            properties:
+              msg:
+                type: keyword
+              idx:
+                type: integer
+  - do:
+      bulk:
+        index: log_text_4659
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"msg": "status=200", "idx": 1}'
+  - do:
+      bulk:
+        index: log_keyword_4659
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"msg": "status=200", "idx": 2}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+  - do:
+      indices.delete:
+        index: log_text_4659
+        ignore: 404
+  - do:
+      indices.delete:
+        index: log_keyword_4659
+        ignore: 404
+
+---
+"PPL wildcard query returns all documents across indices with mixed text/keyword field types":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=log_*_4659 | fields msg, idx | sort idx'
+  - match: {"total": 2}
+  - match: {"datarows": [["status=200", 1], ["status=200", 2]]}
+
+---
+"PPL script filter works across indices with mixed text/keyword field types":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=log_*_4659 | where upper(msg) = 'STATUS=200' | fields msg, idx | sort idx"
+  - match: {"total": 2}
+  - match: {"datarows": [["status=200", 1], ["status=200", 2]]}
