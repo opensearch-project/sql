@@ -202,8 +202,33 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
                 + "WHERE v.state = 'TX' "
                 + "LIMIT 5");
 
-    // Efficient mode: knn rebuilt with filter inside, wrapped in WrapperQueryBuilder
+    // Efficient mode: knn rebuilt with filter inside, wrapped in WrapperQueryBuilder.
+    // The knn JSON (including the embedded filter) is base64-encoded inside the wrapper,
+    // so we verify structure by: (1) wrapper present, (2) no bool/must in plaintext
+    // (that would be post-filter shape), (3) decode the base64 payload to confirm
+    // the filter and predicate field are embedded inside the knn query.
     assertTrue("Explain should contain wrapper query:\n" + explain, explain.contains("wrapper"));
+    assertFalse(
+        "Efficient mode should not produce bool query (that is post-filter shape):\n" + explain,
+        explain.contains("\"bool\""));
+    assertFalse(
+        "Efficient mode should not contain must clause:\n" + explain, explain.contains("\"must\""));
+
+    // Extract and decode the base64 knn payload to verify filter embedding.
+    // The explain output escapes quotes as \", so match both \" and " forms.
+    java.util.regex.Matcher m =
+        java.util.regex.Pattern.compile("\\\\?\"query\\\\?\":\\\\?\"([A-Za-z0-9+/=]+)\\\\?\"")
+            .matcher(explain);
+    assertTrue("Explain should contain base64-encoded knn query:\n" + explain, m.find());
+    String knnJson =
+        new String(
+            java.util.Base64.getDecoder().decode(m.group(1)),
+            java.nio.charset.StandardCharsets.UTF_8);
+    assertTrue(
+        "Efficient mode knn JSON should contain filter:\n" + knnJson, knnJson.contains("filter"));
+    assertTrue(
+        "Efficient mode knn JSON should contain the WHERE predicate field:\n" + knnJson,
+        knnJson.contains("state"));
   }
 
   @Test

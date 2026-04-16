@@ -84,9 +84,8 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     } catch (ScriptQueryUnSupportedException e) {
       if (filterTypeExplicit) {
         throw new ExpressionEvaluationException(
-            "filter_type requires a pushdownable WHERE clause, but the given condition"
-                + " cannot be pushed down: "
-                + e.getMessage());
+            "filter_type only works when the WHERE clause can be translated to an"
+                + " OpenSearch filter. Rewrite the WHERE clause or omit filter_type.");
       }
       // Default mode: fall back to in-memory filtering (matches base class behavior)
       return false;
