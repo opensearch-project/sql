@@ -9,4 +9,4 @@ calcite:
     EnumerableLimit(fetch=[10000])
       CalciteEnumerableGraphLookup(fromField=[reportsTo], toField=[name], outputField=[reportingHierarchy], depthField=[null], maxDepth=[0], bidirectional=[false], startValues=[[Eliot]])
         EnumerableValues(tuples=[[]])
-        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_graph_employees]], PushDownContext=[[PROJECT->[name, reportsTo, id]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["name","reportsTo","id"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_graph_employees]], PushDownContext=[[PROJECT->[name, reportsTo, id]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["name","reportsTo","id"]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

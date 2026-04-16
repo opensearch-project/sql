@@ -6,4 +6,4 @@ calcite:
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableWindow(window#0=[window(rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ARG_MIN($3, $2), ARG_MAX($3, $2)])])
-        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]], PushDownContext=[[PROJECT->[created_at, server, @timestamp, message, level]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["created_at","server","@timestamp","message","level"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]], PushDownContext=[[PROJECT->[created_at, server, @timestamp, message, level]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["created_at","server","@timestamp","message","level"]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

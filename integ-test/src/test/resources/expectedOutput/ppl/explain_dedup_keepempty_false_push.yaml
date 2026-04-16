@@ -18,7 +18,6 @@ root:
               description:
                 request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
                   \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"\
-                  _source\":{\"includes\":[\"account_number\",\"gender\",\"age\"],\"\
-                  excludes\":[]}}, needClean=true, searchDone=false, pitId=*,\
+                  _source\":{\"includes\":[\"account_number\",\"gender\",\"age\"]}}, needClean=true, searchDone=false, pitId=*,\
                   \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
               children: []

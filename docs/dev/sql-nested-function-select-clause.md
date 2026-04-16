@@ -106,8 +106,7 @@ A basic nested function in the SELECT clause and output DSL pushed to OpenSearch
                                         "_source": {
                                             "includes": [
                                                 "message.info"
-                                            ],
-                                            "excludes": []
+                                            ]
                                         }
                                     }
                                 }
@@ -147,8 +146,7 @@ Example with multiple SELECT clause function calls sharing same path. These two 
                                             "includes": [
                                                 "message.info",
                                                 "message.author"
-                                            ],
-                                            "excludes": []
+                                            ]
                                         }
                                     }
                                 }
@@ -187,8 +185,7 @@ An example with multiple nested function calls in the SELECT clause having diffe
                                         "_source": {
                                             "includes": [
                                                 "comment.data"
-                                            ],
-                                            "excludes": []
+                                            ]
                                         }
                                     }
                                 }
@@ -207,8 +204,7 @@ An example with multiple nested function calls in the SELECT clause having diffe
                                         "_source": {
                                             "includes": [
                                                 "message.info"
-                                            ],
-                                            "excludes": []
+                                            ]
                                         }
                                     }
                                 }
