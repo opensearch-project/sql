@@ -15,9 +15,6 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.action.search.SearchPhaseExecutionException;
-import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
@@ -26,7 +23,6 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
 import org.opensearch.sql.exception.QueryEngineException;
@@ -54,22 +50,16 @@ public class RestPPLQueryAction extends BaseRestHandler {
     // (Tombstone) NullPointerException has historically been treated as a client error, but
     // nowadays they're rare and should be treated as system errors, since it represents a broken
     // data model in our logic.
-    Throwable current = ex;
-    while (current != null) {
-      if (current instanceof IllegalArgumentException
-          || current instanceof IndexNotFoundException
-          || current instanceof QueryEngineException
-          || current instanceof SyntaxCheckException
-          || current instanceof DataSourceClientException
-          || current instanceof IllegalAccessException) {
-        return true;
-      }
-      current = current.getCause();
-    }
-    return false;
+    return ex instanceof IllegalArgumentException
+        || ex instanceof IndexNotFoundException
+        || ex instanceof QueryEngineException
+        || ex instanceof SyntaxCheckException
+        || ex instanceof DataSourceClientException
+        || ex instanceof IllegalAccessException;
   }
 
   private static int getRawErrorCode(Exception ex) {
+
     if (ex instanceof ErrorReport) {
       ErrorReport report = (ErrorReport) ex;
       // Map ErrorCode to appropriate HTTP status
@@ -78,8 +68,8 @@ public class RestPPLQueryAction extends BaseRestHandler {
           case PERMISSION_DENIED:
             return 403;
           case INDEX_NOT_FOUND:
-          case FIELD_NOT_FOUND:
             return 404;
+          case FIELD_NOT_FOUND:
           case SYNTAX_ERROR:
           case SEMANTIC_ERROR:
           case TYPE_ERROR:
@@ -100,11 +90,15 @@ public class RestPPLQueryAction extends BaseRestHandler {
       // If no specific mapping, check the underlying cause
       return getRawErrorCode(((ErrorReport) ex).getCause());
     }
+    // Check for SQLException wrapping client errors
+    if (ex instanceof java.sql.SQLException) {
+      Throwable cause = ex.getCause();
+      if (cause instanceof Exception && isClientError((Exception) cause)) {
+        return 400;
+      }
+    }
     if (ex instanceof OpenSearchException) {
       return ((OpenSearchException) ex).status().getStatus();
-    }
-    if (ex instanceof SearchPhaseExecutionException) {
-      return getSearchPhaseExecutionExceptionStatus((SearchPhaseExecutionException) ex);
     }
     // Possible future work: We currently do this on exception types, when we have more robust
     // ErrorCodes in more locations it may be worth switching this to be based on those instead.
@@ -115,20 +109,6 @@ public class RestPPLQueryAction extends BaseRestHandler {
     return 500;
   }
 
-  private static int getSearchPhaseExecutionExceptionStatus(SearchPhaseExecutionException ex) {
-    ShardSearchFailure[] shardFailures = ex.shardFailures();
-    if (shardFailures != null && shardFailures.length > 0) {
-      Throwable cause = shardFailures[0].getCause();
-      if (cause instanceof OpenSearchException) {
-        return ((OpenSearchException) cause).status().getStatus();
-      }
-    }
-    // Fallback to client error check if no shard failures or OpenSearch exception found
-    if (isClientError(ex)) {
-      return 400;
-    }
-    return 500;
-  }
 
   private static RestStatus loggedErrorCode(Exception ex) {
     int code = getRawErrorCode(ex);

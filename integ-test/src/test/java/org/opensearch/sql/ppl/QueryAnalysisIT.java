@@ -151,4 +151,33 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
       throw new IllegalStateException("Unexpected exception raised for query: " + query);
     }
   }
+
+  @Test
+  public void invalidDateShouldReturn400() {
+    String query =
+        String.format("search source=%s | where age > date('2023-99-99')", TEST_INDEX_ACCOUNT);
+    queryShouldReturn400(query, "ExpressionEvaluationException", "unsupported format");
+  }
+
+  @Test
+  public void invalidDateInEvalShouldReturn400() {
+    String query =
+        String.format("search source=%s | eval bad_date = date('2023-99-99')", TEST_INDEX_ACCOUNT);
+    queryShouldReturn400(query, "ExpressionEvaluationException", "unsupported format");
+  }
+
+  private void queryShouldReturn400(String query, String... messages) {
+    try {
+      executeQuery(query);
+      fail("Expected to return 400, but none was thrown for query: " + query);
+    } catch (ResponseException e) {
+      assertEquals("Expected HTTP 400", 400, e.getResponse().getStatusLine().getStatusCode());
+      String errorMsg = e.getMessage();
+      for (String msg : messages) {
+        assertTrue("Error message should contain: " + msg, errorMsg.contains(msg));
+      }
+    } catch (IOException e) {
+      throw new IllegalStateException("Unexpected exception raised for query: " + query);
+    }
+  }
 }
