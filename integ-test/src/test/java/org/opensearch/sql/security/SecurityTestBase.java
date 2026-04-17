@@ -343,6 +343,18 @@ public abstract class SecurityTestBase extends PPLIntegTestCase {
   }
 
   /**
+   * Asserts that a bulk response contains no errors.
+   *
+   * @param response the bulk operation response to check
+   */
+  protected void assertNoBulkErrors(Response response)
+      throws IOException, org.apache.hc.core5.http.ParseException {
+    String body = org.apache.hc.core5.http.io.entity.EntityUtils.toString(response.getEntity());
+    JSONObject json = new JSONObject(body);
+    assertFalse("Bulk indexing reported errors: " + body, json.getBoolean("errors"));
+  }
+
+  /**
    * Creates an index with a simple mapping.
    *
    * @param indexName the name of the index

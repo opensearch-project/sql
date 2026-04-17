@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.util.Locale;
 import lombok.SneakyThrows;
 import org.apache.hc.core5.http.ParseException;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
@@ -221,9 +220,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
 
     Response response = client().performRequest(request);
     assertEquals(200, response.getStatusLine().getStatusCode());
-    String body = EntityUtils.toString(response.getEntity());
-    JSONObject json = new JSONObject(body);
-    assertFalse("Bulk indexing reported errors: " + body, json.getBoolean("errors"));
+    assertNoBulkErrors(response);
   }
 
   /** Bulk inserts employee records with sensitive fields for FLS testing. */
@@ -240,9 +237,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
 
     Response response = client().performRequest(request);
     assertEquals(200, response.getStatusLine().getStatusCode());
-    String body = EntityUtils.toString(response.getEntity());
-    JSONObject json = new JSONObject(body);
-    assertFalse("Bulk indexing reported errors: " + body, json.getBoolean("errors"));
+    assertNoBulkErrors(response);
   }
 
   @NotNull
@@ -345,9 +340,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
 
     Response response = client().performRequest(request);
     assertEquals(200, response.getStatusLine().getStatusCode());
-    String body = EntityUtils.toString(response.getEntity());
-    JSONObject json = new JSONObject(body);
-    assertFalse("Bulk indexing reported errors: " + body, json.getBoolean("errors"));
+    assertNoBulkErrors(response);
   }
 
   /** Creates security roles and users for testing. */
