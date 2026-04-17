@@ -237,6 +237,9 @@ public class UnifiedQueryPlannerSqlTest extends UnifiedQueryTestBase {
             MERGE INTO catalog.employees AS t
             USING (SELECT 99 AS id) AS s ON t.id = s.id
             WHEN MATCHED THEN UPDATE SET name = 'hacked'\
+            """,
+            """
+            SHOW TABLES\
             """)
         .forEach(
             sql ->
@@ -245,7 +248,6 @@ public class UnifiedQueryPlannerSqlTest extends UnifiedQueryTestBase {
 
   @Test
   public void testNonQueryStatementsBlockedByParser() {
-    // Babel parser rejects CREATE MATERIALIZED VIEW
     givenInvalidQuery(
             """
             CREATE MATERIALIZED VIEW mv AS
@@ -254,12 +256,5 @@ public class UnifiedQueryPlannerSqlTest extends UnifiedQueryTestBase {
             GROUP BY department\
             """)
         .assertErrorMessage("Encountered");
-
-    // Babel parser accepts SHOW TABLES but it's blocked by query-type whitelist
-    givenInvalidQuery(
-            """
-            SHOW TABLES\
-            """)
-        .assertErrorMessage("Only query statements are supported");
   }
 }

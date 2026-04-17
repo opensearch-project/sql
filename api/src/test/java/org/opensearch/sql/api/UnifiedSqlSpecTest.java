@@ -48,13 +48,14 @@ public class UnifiedSqlSpecTest extends UnifiedQueryTestBase {
 
   @Test
   public void doubleQuotedStringLiteral() {
-    givenQuery("SELECT \"Hello\" FROM employees").assertPlanContains("LogicalProject");
+    givenQuery("SELECT \"Hello\" AS greeting FROM employees")
+        .assertPlanContains("LogicalProject(greeting=['Hello'])");
   }
 
   @Test
   public void matchNotReserved() {
     givenQuery("SELECT * FROM employees WHERE match(name, 'Hattie')")
-        .assertPlanContains("LogicalFilter");
+        .assertPlanContains("match(MAP('field', $1), MAP('query', 'Hattie'))");
   }
 
   @Test
@@ -80,18 +81,21 @@ public class UnifiedSqlSpecTest extends UnifiedQueryTestBase {
 
   @Test
   public void groupByOrdinal() {
-    givenQuery("SELECT name, COUNT(*) FROM employees GROUP BY 1")
-        .assertPlanContains("LogicalAggregate");
+    givenQuery("SELECT name, COUNT(*) AS cnt FROM employees GROUP BY 1")
+        .assertPlanContains("LogicalAggregate(group=[{0}], cnt=[COUNT()])")
+        .assertPlanContains("LogicalProject(name=[$1])");
   }
 
   @Test
   public void castBooleanToInteger() {
-    givenQuery("SELECT CAST(true AS INTEGER) FROM employees").assertPlanContains("LogicalProject");
+    givenQuery("SELECT CAST(true AS INTEGER) AS val FROM employees")
+        .assertPlanContains("LogicalProject(val=[1])");
   }
 
   @Test
   public void integerComparedToString() {
-    givenQuery("SELECT * FROM employees WHERE age > '30'").assertPlanContains("LogicalFilter");
+    givenQuery("SELECT * FROM employees WHERE age > '30'")
+        .assertPlanContains("condition=[>($2, CAST('30'):INTEGER NOT NULL)]");
   }
 
   @Test
