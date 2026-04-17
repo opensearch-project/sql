@@ -230,4 +230,36 @@ public class VectorSearchIT extends SQLIntegTestCase {
 
     assertThat(ex.getMessage(), containsString("filter_type must be one of"));
   }
+
+  @Test
+  public void testGroupByRejects() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v.gender, COUNT(*) FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='f', vector='[1.0]', option='k=5') AS v GROUP BY v.gender"));
+
+    assertThat(
+        ex.getMessage(),
+        containsString("Aggregations are not supported on vectorSearch() relations"));
+  }
+
+  @Test
+  public void testBareAggregateRejects() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT COUNT(*) FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='f', vector='[1.0]', option='k=5') AS v"));
+
+    assertThat(
+        ex.getMessage(),
+        containsString("Aggregations are not supported on vectorSearch() relations"));
+  }
 }
