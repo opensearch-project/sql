@@ -36,8 +36,8 @@ All four arguments are required and must be passed by name. ``table``,
 Arguments
 ---------
 
-- ``table`` — index to search. Must be a knn-enabled index with the given
-  vector field mapped as ``knn_vector``.
+- ``table`` — index to search. The index must have ``index.knn: true`` and
+  map the target field as ``knn_vector``.
 - ``field`` — name of the ``knn_vector`` field.
 - ``vector`` — query vector as a JSON-style array of numbers, passed as a
   string (for example, ``'[0.1, 0.2, 0.3]'``). The vector dimension must match
@@ -49,14 +49,17 @@ Arguments
 Supported option keys
 ---------------------
 
+Option keys are lower-case and case-sensitive. ``K=5`` or ``Filter_Type=post``
+will be rejected with an "Unknown option key" error.
+
 - ``k`` — top-k mode. Integer between 1 and 10000. The query returns up to
   ``k`` nearest neighbors.
 - ``max_distance`` — radial mode. Returns all documents within the given
   distance of the query vector. ``LIMIT`` is required.
 - ``min_score`` — radial mode. Returns all documents with score at or above
   the given threshold. ``LIMIT`` is required.
-- ``filter_type`` — ``post`` (default) or ``efficient``. Controls how a
-  ``WHERE`` clause is applied. See `Filtering`_.
+- ``filter_type`` — ``post`` or ``efficient``. Controls how a ``WHERE``
+  clause is applied. See `Filtering`_.
 
 ``k``, ``max_distance``, and ``min_score`` are mutually exclusive; specify
 exactly one.
@@ -142,10 +145,10 @@ Filtering
 =========
 
 A ``WHERE`` clause on non-vector fields of the ``vectorSearch()`` alias is
-pushed down to OpenSearch. Two placement strategies are supported via the
-``filter_type`` option:
+pushed down to OpenSearch when it can be translated to an OpenSearch filter.
+Two placement strategies are available via the ``filter_type`` option:
 
-- ``post`` (default) — the ``WHERE`` predicate is applied as a non-scoring
+- ``post`` — the ``WHERE`` predicate is applied as a non-scoring
   ``bool.filter`` alongside the k-NN query. The k-NN query runs first and
   its results are then filtered.
 - ``efficient`` — the ``WHERE`` predicate is embedded directly inside the
@@ -153,8 +156,22 @@ pushed down to OpenSearch. Two placement strategies are supported via the
   See the `k-NN filtering guide <https://docs.opensearch.org/latest/vector-search/filter-search-knn/efficient-knn-filtering/>`_
   for engine and method requirements.
 
-Example 4: Post-filter (default)
---------------------------------
+Behavior depends on whether ``filter_type`` is specified:
+
+- **Omitted** — pushdown is attempted using the ``post`` placement. If the
+  ``WHERE`` clause cannot be translated to an OpenSearch filter (for example,
+  it contains an expression that requires in-memory evaluation), the engine
+  falls back to evaluating the predicate in memory. A query with no ``WHERE``
+  clause is valid.
+- **Explicit (``post`` or ``efficient``)** — a ``WHERE`` clause is required,
+  and it must be fully translatable to an OpenSearch filter. If the ``WHERE``
+  clause is missing or cannot be translated, the query fails with a
+  descriptive error. This applies to both ``post`` and ``efficient``.
+  Specifying ``filter_type=post`` explicitly is useful when you want the
+  query to fail fast rather than silently fall back to in-memory filtering.
+
+Example 4: Implicit pushdown (no ``filter_type``)
+-------------------------------------------------
 
 ::
 
@@ -191,12 +208,6 @@ Example 5: Efficient (pre-)filtering
       """
     }
 
-When ``filter_type=efficient`` is specified, the ``WHERE`` clause must be
-translatable to an OpenSearch filter. If it is not pushdownable (for example,
-it contains an expression that requires in-memory evaluation), the query
-fails with a descriptive error. Omit ``filter_type`` to allow the engine to
-fall back to post-filtering semantics automatically.
-
 Scoring, sorting, and limits
 ============================
 
@@ -211,11 +222,11 @@ Scoring, sorting, and limits
 Limitations
 ===========
 
-The following are not validated in this preview and should be avoided:
+The following are not part of the ``vectorSearch()`` preview contract and
+should be avoided:
 
-- ``GROUP BY`` and aggregations over a ``vectorSearch()`` relation are
-  rejected. To aggregate over vector-search results, wrap the
-  ``vectorSearch()`` call in a subquery and aggregate over that subquery.
+- ``GROUP BY`` and aggregations over a ``vectorSearch()`` relation are not
+  validated.
 - ``JOIN`` between a ``vectorSearch()`` relation and another relation is
   not validated.
 - ``UNION`` / ``INTERSECT`` / ``EXCEPT`` combining a ``vectorSearch()``
