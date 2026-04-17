@@ -48,11 +48,11 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Assemble
         run: |
-          chown -R 1000:1000 `pwd`
+          chown -R 1000:1000 `pwd` /root/.gradle
           su `id -un 1000` -c "./gradlew assemble --no-daemon"
 
   assemble-windows-macos:
@@ -76,7 +76,7 @@ jobs:
           java-version: ${{ matrix.entry.java }}
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Assemble
         run: ./gradlew assemble --no-daemon ${{ matrix.entry.os_build_args }}
@@ -102,11 +102,11 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Spotless Check
         run: |
-          chown -R 1000:1000 `pwd`
+          chown -R 1000:1000 `pwd` /root/.gradle
           su `id -un 1000` -c "./gradlew spotlessCheck --no-daemon"
 
   build-linux:
@@ -134,11 +134,11 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Build and Test
         run: |
-          chown -R 1000:1000 `pwd`
+          chown -R 1000:1000 `pwd` /root/.gradle
           if [ "${{ matrix.test-type }}" = "unit" ]; then
             su `id -un 1000` -c "./gradlew --continue build -x spotlessCheck -x integTest -x yamlRestTest -x doctest"
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
@@ -217,12 +217,12 @@ jobs:
           java-version: ${{ matrix.entry.java }}
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Build and Test
         run: |
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            ./gradlew --continue build -x spotlessCheck -x integTest -x doctest ${{ matrix.entry.os_build_args }}
+            ./gradlew --continue build -x spotlessCheck -x integTest -x yamlRestTest -x doctest ${{ matrix.entry.os_build_args }}
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
             ./gradlew --continue integTest yamlRestTest ${{ matrix.entry.os_build_args }}
           else
@@ -294,11 +294,11 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Run backward compatibility tests in rolling upgrade
         run: |
-          chown -R 1000:1000 `pwd`
+          chown -R 1000:1000 `pwd` /root/.gradle
           su `id -un 1000` -c "./scripts/bwctest-rolling-upgrade.sh"
 
       - name: Upload test reports
@@ -321,7 +321,7 @@ jobs:
             integ-test/build/testclusters/*/logs/*
 
   bwc-tests-full-restart:
-    needs: Get-CI-Image-Tag
+    needs: [Get-CI-Image-Tag, assemble-linux]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -342,9 +342,12 @@ jobs:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Run backward compatibility tests in full restart
         run: |
-          chown -R 1000:1000 `pwd`
+          chown -R 1000:1000 `pwd` /root/.gradle
           su `id -un 1000` -c "./scripts/bwctest-full-restart.sh"
 
       - name: Upload test reports
@@ -352,7 +355,7 @@ jobs:
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: test-reports-ubuntu-latest-${{ matrix.java }}-bwc
+          name: test-reports-ubuntu-latest-${{ matrix.java }}-bwc-full-restart
           path: |
             sql/build/reports/**
             ppl/build/reports/**
@@ -365,3 +368,80 @@ jobs:
             plugin/build/reports/**
             doctest/build/testclusters/docTestCluster-0/logs/*
             integ-test/build/testclusters/*/logs/*
+
+  security-it-linux:
+    needs: [Get-CI-Image-Tag, assemble-linux]
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [21, 25]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
+
+    steps:
+    - name: Run start commands
+      run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@v5
+      with:
+        distribution: 'temurin'
+        java-version: ${{ matrix.java }}
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+
+    - name: Run security integration tests
+      run: |
+        chown -R 1000:1000 `pwd` /root/.gradle
+        su `id -un 1000` -c "./gradlew integTestWithSecurity"
+
+    - name: Upload test reports
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v4
+      continue-on-error: true
+      with:
+        name: test-reports-ubuntu-latest-${{ matrix.java }}-security-it
+        path: |
+          integ-test/build/reports/**
+          integ-test/build/testclusters/*/logs/*
+          integ-test/build/testclusters/*/config/*
+
+  security-it-windows-macos:
+    needs: assemble-windows-macos
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest, macos-14 ]
+        java: [21, 25]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@v5
+      with:
+        distribution: 'temurin'
+        java-version: ${{ matrix.java }}
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+
+    - name: Run security integration tests
+      run: ./gradlew integTestWithSecurity
+
+    - name: Upload test reports
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v4
+      continue-on-error: true
+      with:
+        name: test-reports-${{ matrix.os }}-${{ matrix.java }}-security-it
+        path: |
+          integ-test/build/reports/**
+          integ-test/build/testclusters/*/logs/*
+          integ-test/build/testclusters/*/config/*
