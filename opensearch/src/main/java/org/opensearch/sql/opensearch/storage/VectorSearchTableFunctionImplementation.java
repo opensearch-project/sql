@@ -28,6 +28,7 @@ import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.storage.capability.KnnPluginCapability;
 import org.opensearch.sql.storage.Table;
 
 public class VectorSearchTableFunctionImplementation extends FunctionExpression
@@ -47,17 +48,20 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
   private final List<Expression> arguments;
   private final OpenSearchClient client;
   private final Settings settings;
+  private final KnnPluginCapability knnCapability;
 
   public VectorSearchTableFunctionImplementation(
       FunctionName functionName,
       List<Expression> arguments,
       OpenSearchClient client,
-      Settings settings) {
+      Settings settings,
+      KnnPluginCapability knnCapability) {
     super(functionName, arguments);
     this.functionName = functionName;
     this.arguments = arguments;
     this.client = client;
     this.settings = settings;
+    this.knnCapability = knnCapability;
   }
 
   @Override
@@ -89,6 +93,7 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
 
   @Override
   public Table applyArguments() {
+    knnCapability.requireInstalled();
     validateNamedArgs();
     String tableName = getArgumentValue(TABLE);
     String fieldName = getArgumentValue(FIELD);
