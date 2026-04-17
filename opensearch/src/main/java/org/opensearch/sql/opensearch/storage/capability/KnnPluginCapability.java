@@ -24,7 +24,9 @@ import org.opensearch.transport.client.node.NodeClient;
  * <p>The probe requires a {@link NodeClient}. In REST-client mode (standalone SQL service) the node
  * client is absent and the check is skipped — execution-time errors remain the signal there.
  *
- * <p>The check runs lazily on the first vectorSearch() invocation so cluster boot is unaffected.
+ * <p>The check runs lazily at scan open() — i.e. only when a vectorSearch() query is actually
+ * executed — so analysis-time paths like _explain and local argument validation keep working on
+ * clusters without k-NN.
  */
 public class KnnPluginCapability {
 

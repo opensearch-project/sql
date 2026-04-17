@@ -68,12 +68,11 @@ class VectorSearchTableFunctionImplementationTest {
   }
 
   @Test
-  void testApplyArgumentsPropagatesKnnCapabilityFailure() {
-    // If the capability check fires, applyArguments() must not proceed to build the table.
-    KnnPluginCapability throwingCapability = org.mockito.Mockito.mock(KnnPluginCapability.class);
-    org.mockito.Mockito.doThrow(new ExpressionEvaluationException("k-NN plugin not installed"))
-        .when(throwingCapability)
-        .requireInstalled();
+  void testApplyArgumentsDoesNotProbeKnnCapability() {
+    // Contract: applyArguments() runs during analysis (including _explain) and must NOT invoke
+    // the k-NN plugin probe. The probe is deferred to scan open() so pluginless clusters can
+    // still explain and validate vectorSearch() queries locally.
+    KnnPluginCapability observingCapability = org.mockito.Mockito.mock(KnnPluginCapability.class);
     FunctionName functionName = FunctionName.of("vectorsearch");
     List<Expression> args =
         List.of(
@@ -83,10 +82,9 @@ class VectorSearchTableFunctionImplementationTest {
             DSL.namedArgument("option", DSL.literal("k=5")));
     VectorSearchTableFunctionImplementation impl =
         new VectorSearchTableFunctionImplementation(
-            functionName, args, client, settings, throwingCapability);
-    ExpressionEvaluationException ex =
-        assertThrows(ExpressionEvaluationException.class, impl::applyArguments);
-    assertTrue(ex.getMessage().contains("k-NN plugin"));
+            functionName, args, client, settings, observingCapability);
+    impl.applyArguments();
+    org.mockito.Mockito.verify(observingCapability, org.mockito.Mockito.never()).requireInstalled();
   }
 
   @Test

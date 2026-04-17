@@ -262,4 +262,42 @@ public class VectorSearchIT extends SQLIntegTestCase {
         ex.getMessage(),
         containsString("Aggregations are not supported on vectorSearch() relations"));
   }
+
+  // ── k-NN plugin capability check ──────────────────────────────────────
+  // The default integ-test cluster does not have the k-NN plugin installed. Execution-path
+  // queries against vectorSearch() should therefore fail with the clear "k-NN plugin missing"
+  // error from KnnPluginCapability, while _explain continues to work because the capability
+  // probe is deferred to scan open() and does not run during analysis/planning.
+
+  @Test
+  public void testExecutionWithoutKnnPluginReturnsCapabilityError() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v "
+                        + "LIMIT 5"));
+
+    assertThat(ex.getMessage(), containsString("k-NN plugin"));
+    assertThat(ex.getMessage(), containsString("not installed"));
+  }
+
+  @Test
+  public void testExplainWithoutKnnPluginStillWorks() throws IOException {
+    // _explain only parses and plans the query. It must NOT require the k-NN plugin — the
+    // capability probe is intentionally deferred to scan open() so pluginless clusters can
+    // still inspect query plans. If this test starts failing with "k-NN plugin not installed",
+    // the probe has leaked back into an analysis-time path.
+    String explain =
+        explainQuery(
+            "SELECT v._id FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v "
+                + "LIMIT 5");
+
+    assertThat(explain, containsString("wrapper"));
+  }
 }

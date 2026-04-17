@@ -13,7 +13,9 @@ import org.opensearch.index.query.WrapperQueryBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.storage.capability.KnnPluginCapability;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.VectorSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.VectorSearchIndexScanBuilder;
 import org.opensearch.sql.opensearch.storage.scan.VectorSearchQueryBuilder;
 import org.opensearch.sql.storage.read.TableScanBuilder;
@@ -27,6 +29,27 @@ public class VectorSearchIndex extends OpenSearchIndex {
   private final float[] vector;
   private final Map<String, String> options;
   private final FilterType filterType; // null means default (POST)
+  // Nullable for back-compat with existing tests and the non-vector-search constructor. When
+  // present, the scan defers a lazy k-NN plugin probe to open() so execution fails fast with a
+  // clear SQL error if the plugin is missing.
+  private final KnnPluginCapability knnCapability;
+
+  public VectorSearchIndex(
+      OpenSearchClient client,
+      Settings settings,
+      String indexName,
+      String field,
+      float[] vector,
+      Map<String, String> options,
+      FilterType filterType,
+      KnnPluginCapability knnCapability) {
+    super(client, settings, indexName);
+    this.field = field;
+    this.vector = vector;
+    this.options = options;
+    this.filterType = filterType;
+    this.knnCapability = knnCapability;
+  }
 
   public VectorSearchIndex(
       OpenSearchClient client,
@@ -36,11 +59,7 @@ public class VectorSearchIndex extends OpenSearchIndex {
       float[] vector,
       Map<String, String> options,
       FilterType filterType) {
-    super(client, settings, indexName);
-    this.field = field;
-    this.vector = vector;
-    this.options = options;
-    this.filterType = filterType;
+    this(client, settings, indexName, field, vector, options, filterType, null);
   }
 
   /** Default constructor — preserves existing call sites; uses no explicit filter type. */
@@ -51,7 +70,7 @@ public class VectorSearchIndex extends OpenSearchIndex {
       String field,
       float[] vector,
       Map<String, String> options) {
-    this(client, settings, indexName, field, vector, options, null);
+    this(client, settings, indexName, field, vector, options, null, null);
   }
 
   @Override
@@ -89,11 +108,15 @@ public class VectorSearchIndex extends OpenSearchIndex {
     }
 
     Function<OpenSearchRequestBuilder, OpenSearchIndexScan> createScanOperator =
-        rb ->
-            new OpenSearchIndexScan(
-                getClient(),
-                rb.getMaxResponseSize(),
-                rb.build(getIndexName(), cursorKeepAlive, getClient(), getFieldTypes().isEmpty()));
+        rb -> {
+          var request =
+              rb.build(getIndexName(), cursorKeepAlive, getClient(), getFieldTypes().isEmpty());
+          if (knnCapability != null) {
+            return new VectorSearchIndexScan(
+                getClient(), rb.getMaxResponseSize(), request, knnCapability);
+          }
+          return new OpenSearchIndexScan(getClient(), rb.getMaxResponseSize(), request);
+        };
     return new VectorSearchIndexScanBuilder(queryBuilder, createScanOperator);
   }
 
