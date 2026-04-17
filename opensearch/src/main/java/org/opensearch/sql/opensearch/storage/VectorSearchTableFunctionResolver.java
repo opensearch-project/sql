@@ -8,7 +8,6 @@ package org.opensearch.sql.opensearch.storage;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.expression.Expression;
@@ -17,8 +16,8 @@ import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.storage.capability.KnnPluginCapability;
 
-@RequiredArgsConstructor
 public class VectorSearchTableFunctionResolver implements FunctionResolver {
 
   public static final String VECTOR_SEARCH = "vectorsearch";
@@ -30,6 +29,18 @@ public class VectorSearchTableFunctionResolver implements FunctionResolver {
 
   private final OpenSearchClient client;
   private final Settings settings;
+  private final KnnPluginCapability knnCapability;
+
+  public VectorSearchTableFunctionResolver(OpenSearchClient client, Settings settings) {
+    this(client, settings, new KnnPluginCapability(client));
+  }
+
+  VectorSearchTableFunctionResolver(
+      OpenSearchClient client, Settings settings, KnnPluginCapability knnCapability) {
+    this.client = client;
+    this.settings = settings;
+    this.knnCapability = knnCapability;
+  }
 
   @Override
   public Pair<FunctionSignature, FunctionBuilder> resolve(FunctionSignature unresolvedSignature) {
@@ -40,7 +51,7 @@ public class VectorSearchTableFunctionResolver implements FunctionResolver {
         (functionProperties, arguments) -> {
           validateArguments(arguments);
           return new VectorSearchTableFunctionImplementation(
-              functionName, arguments, client, settings);
+              functionName, arguments, client, settings, knnCapability);
         };
     return Pair.of(functionSignature, functionBuilder);
   }

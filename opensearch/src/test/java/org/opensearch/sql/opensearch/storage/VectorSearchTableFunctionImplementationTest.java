@@ -22,6 +22,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.storage.capability.KnnPluginCapability;
 import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +31,11 @@ class VectorSearchTableFunctionImplementationTest {
   @Mock private OpenSearchClient client;
 
   @Mock private Settings settings;
+
+  // No-op capability — tests in this class don't exercise the k-NN plugin probe.
+  // Dedicated tests for the probe live in KnnPluginCapabilityTest.
+  private final KnnPluginCapability knnCapability =
+      org.mockito.Mockito.mock(KnnPluginCapability.class);
 
   @Test
   void testValueOfThrows() {
@@ -59,6 +65,28 @@ class VectorSearchTableFunctionImplementationTest {
     VectorSearchTableFunctionImplementation impl = createImpl();
     Table table = impl.applyArguments();
     assertTrue(table instanceof VectorSearchIndex);
+  }
+
+  @Test
+  void testApplyArgumentsPropagatesKnnCapabilityFailure() {
+    // If the capability check fires, applyArguments() must not proceed to build the table.
+    KnnPluginCapability throwingCapability = org.mockito.Mockito.mock(KnnPluginCapability.class);
+    org.mockito.Mockito.doThrow(new ExpressionEvaluationException("k-NN plugin not installed"))
+        .when(throwingCapability)
+        .requireInstalled();
+    FunctionName functionName = FunctionName.of("vectorsearch");
+    List<Expression> args =
+        List.of(
+            DSL.namedArgument("table", DSL.literal("my-index")),
+            DSL.namedArgument("field", DSL.literal("embedding")),
+            DSL.namedArgument("vector", DSL.literal("[1.0, 2.0]")),
+            DSL.namedArgument("option", DSL.literal("k=5")));
+    VectorSearchTableFunctionImplementation impl =
+        new VectorSearchTableFunctionImplementation(
+            functionName, args, client, settings, throwingCapability);
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, impl::applyArguments);
+    assertTrue(ex.getMessage().contains("k-NN plugin"));
   }
 
   @Test
@@ -183,7 +211,8 @@ class VectorSearchTableFunctionImplementationTest {
             DSL.namedArgument("field", DSL.literal("embedding")),
             DSL.namedArgument("vector", DSL.literal("[1.0, 2.0]")));
     VectorSearchTableFunctionImplementation impl =
-        new VectorSearchTableFunctionImplementation(functionName, args, client, settings);
+        new VectorSearchTableFunctionImplementation(
+            functionName, args, client, settings, knnCapability);
     ExpressionEvaluationException ex =
         assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
     assertEquals("Missing required argument: option", ex.getMessage());
@@ -297,7 +326,8 @@ class VectorSearchTableFunctionImplementationTest {
     FunctionName functionName = FunctionName.of("vectorsearch");
     List<Expression> args = List.of(DSL.literal("my-index"));
     VectorSearchTableFunctionImplementation impl =
-        new VectorSearchTableFunctionImplementation(functionName, args, client, settings);
+        new VectorSearchTableFunctionImplementation(
+            functionName, args, client, settings, knnCapability);
     ExpressionEvaluationException ex =
         assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
     assertTrue(ex.getMessage().contains("requires named arguments"));
@@ -313,7 +343,8 @@ class VectorSearchTableFunctionImplementationTest {
             DSL.namedArgument("vector", DSL.literal("[1.0, 2.0]")),
             DSL.namedArgument("option", DSL.literal("k=5")));
     VectorSearchTableFunctionImplementation impl =
-        new VectorSearchTableFunctionImplementation(functionName, args, client, settings);
+        new VectorSearchTableFunctionImplementation(
+            functionName, args, client, settings, knnCapability);
     ExpressionEvaluationException ex =
         assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
     assertTrue(ex.getMessage().contains("requires named arguments"));
@@ -383,7 +414,8 @@ class VectorSearchTableFunctionImplementationTest {
             DSL.namedArgument("VECTOR", DSL.literal("[1.0, 2.0]")),
             DSL.namedArgument("OPTION", DSL.literal("k=5")));
     VectorSearchTableFunctionImplementation impl =
-        new VectorSearchTableFunctionImplementation(functionName, args, client, settings);
+        new VectorSearchTableFunctionImplementation(
+            functionName, args, client, settings, knnCapability);
     Table table = impl.applyArguments();
     assertTrue(table instanceof VectorSearchIndex);
   }
@@ -398,7 +430,8 @@ class VectorSearchTableFunctionImplementationTest {
             DSL.namedArgument("vector", DSL.literal("[1.0, 2.0]")),
             DSL.namedArgument("option", DSL.literal("k=5,filter_type=invalid")));
     VectorSearchTableFunctionImplementation impl =
-        new VectorSearchTableFunctionImplementation(functionName, args, client, settings);
+        new VectorSearchTableFunctionImplementation(
+            functionName, args, client, settings, knnCapability);
     ExpressionEvaluationException ex =
         assertThrows(ExpressionEvaluationException.class, impl::applyArguments);
     assertTrue(ex.getMessage().contains("filter_type must be one of"));
@@ -440,6 +473,7 @@ class VectorSearchTableFunctionImplementationTest {
             DSL.namedArgument("field", DSL.literal(field)),
             DSL.namedArgument("vector", DSL.literal(vector)),
             DSL.namedArgument("option", DSL.literal(option)));
-    return new VectorSearchTableFunctionImplementation(functionName, args, client, settings);
+    return new VectorSearchTableFunctionImplementation(
+        functionName, args, client, settings, knnCapability);
   }
 }
