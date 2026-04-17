@@ -43,6 +43,8 @@ OpenSearch SQL enables you to extract insights out of OpenSearch using the famil
 
   - `Window Functions <dql/window.rst>`_
 
+  - `Vector Search <dql/vector-search.rst>`_
+
 * **Beyond SQL**
 
   - `PartiQL (JSON) Support <beyond/partiql.rst>`_
