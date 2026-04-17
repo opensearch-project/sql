@@ -93,7 +93,10 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
 
   @Override
   public Table applyArguments() {
-    knnCapability.requireInstalled();
+    // Local validation runs first so that malformed queries return stable SQL validation errors
+    // regardless of cluster state. The k-NN plugin presence is checked later, lazily at scan
+    // open() time, so analysis-time paths (_explain, local validation) stay functional on
+    // clusters without k-NN.
     validateNamedArgs();
     String tableName = getArgumentValue(TABLE);
     String fieldName = getArgumentValue(FIELD);
@@ -112,7 +115,7 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     }
 
     return new VectorSearchIndex(
-        client, settings, tableName, fieldName, vector, options, filterType);
+        client, settings, tableName, fieldName, vector, options, filterType, knnCapability);
   }
 
   private float[] parseVector(String vectorLiteral) {
