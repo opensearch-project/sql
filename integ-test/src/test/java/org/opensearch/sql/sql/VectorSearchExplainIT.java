@@ -27,6 +27,10 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
   // quotes as \", so the regex tolerates both \" and " forms around the query key/value.
   private static final Pattern WRAPPER_PAYLOAD =
       Pattern.compile("\\\\?\"query\\\\?\":\\\\?\"([A-Za-z0-9+/=]+)\\\\?\"");
+  // Anchored on the surrounding `sourceBuilder=...`, `pitId=` tokens in OpenSearchRequest's
+  // toString() output. Test-only coupling: if that request-string format changes (token renamed,
+  // pitId removed), this helper breaks even when the DSL shape is still correct. Update the regex
+  // anchors if that happens.
   private static final Pattern SOURCE_BUILDER_JSON =
       Pattern.compile("sourceBuilder=(\\{.*?\\}), pitId=", Pattern.DOTALL);
 
@@ -79,6 +83,12 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
     assertTrue(
         "Explain should contain track_scores:\n" + explain, explain.contains("track_scores"));
 
+    // Top-k without WHERE should have the knn at the root, not wrapped in an outer bool.
+    String sourceBuilderJson = extractSourceBuilderJson(explain);
+    assertFalse(
+        "Top-k without WHERE should not wrap knn in an outer bool:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"bool\""));
+
     String knnJson = decodeSoleKnnJson(explain);
     assertTrue("knn JSON should contain knn key:\n" + knnJson, knnJson.contains("\"knn\""));
     assertTrue(
@@ -102,6 +112,12 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
                 + "', field='embedding', "
                 + "vector='[1.0, 2.0]', option='max_distance=10.5') AS v "
                 + "LIMIT 100");
+
+    // Radial without WHERE should have the knn at the root, not wrapped in an outer bool.
+    String sourceBuilderJson = extractSourceBuilderJson(explain);
+    assertFalse(
+        "Radial without WHERE should not wrap knn in an outer bool:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"bool\""));
 
     String knnJson = decodeSoleKnnJson(explain);
     assertTrue("knn JSON should contain knn key:\n" + knnJson, knnJson.contains("\"knn\""));
@@ -127,6 +143,12 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
                 + "', field='embedding', "
                 + "vector='[1.0, 2.0]', option='min_score=0.8') AS v "
                 + "LIMIT 100");
+
+    // Radial without WHERE should have the knn at the root, not wrapped in an outer bool.
+    String sourceBuilderJson = extractSourceBuilderJson(explain);
+    assertFalse(
+        "Radial without WHERE should not wrap knn in an outer bool:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"bool\""));
 
     String knnJson = decodeSoleKnnJson(explain);
     assertTrue("knn JSON should contain knn key:\n" + knnJson, knnJson.contains("\"knn\""));
@@ -406,8 +428,23 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
                 + "ORDER BY v._score DESC "
                 + "LIMIT 5");
 
+    // Same efficient-mode shape guarantee as testExplainFilterTypeEfficientProducesKnnWithFilter,
+    // with an added ORDER BY _score DESC: no outer bool/must, and the WHERE predicate must be
+    // embedded inside the knn payload (efficient filtering, not post-filter).
+    String sourceBuilderJson = extractSourceBuilderJson(explain);
+    assertFalse(
+        "Efficient mode should not produce bool query (that is post-filter shape):\n"
+            + sourceBuilderJson,
+        sourceBuilderJson.contains("\"bool\""));
+    assertFalse(
+        "Efficient mode should not contain must clause:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"must\""));
+
+    String knnJson = decodeSoleKnnJson(explain);
     assertTrue(
-        "Explain should succeed with efficient + ORDER BY _score DESC:\n" + explain,
-        explain.contains("wrapper"));
+        "Efficient mode knn JSON should contain filter:\n" + knnJson, knnJson.contains("filter"));
+    assertTrue(
+        "Efficient mode knn JSON should contain the WHERE predicate field:\n" + knnJson,
+        knnJson.contains("state"));
   }
 }
