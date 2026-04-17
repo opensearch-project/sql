@@ -11,10 +11,10 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 
 /**
- * Scan builder for vector search relations. Rejects aggregation pushdown because the semantics of
- * aggregations over knn-scored documents are ambiguous at the SQL surface (e.g., per-bucket _score
- * is undefined). Rejecting at push-down time keeps the MVP contract tight; support can be added
- * later without breaking existing users.
+ * Scan builder for vector search relations. Rejects aggregation pushdown as a SQL preview
+ * constraint: aggregations over vectorSearch() relations are not supported in the current preview.
+ * Native OpenSearch k-NN does support aggregations alongside similarity search; this restriction is
+ * specific to the SQL surface and may be lifted in a later release.
  */
 public class VectorSearchIndexScanBuilder extends OpenSearchIndexScanBuilder {
 
@@ -27,7 +27,6 @@ public class VectorSearchIndexScanBuilder extends OpenSearchIndexScanBuilder {
   @Override
   public boolean pushDownAggregation(LogicalAggregation aggregation) {
     throw new ExpressionEvaluationException(
-        "GROUP BY / aggregations are not supported on vectorSearch() relations. "
-            + "Wrap the vectorSearch() call in a subquery and aggregate over the subquery result.");
+        "Aggregations are not supported on vectorSearch() relations in the SQL preview.");
   }
 }

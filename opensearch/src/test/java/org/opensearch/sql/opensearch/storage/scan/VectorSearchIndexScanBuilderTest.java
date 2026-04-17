@@ -43,8 +43,8 @@ class VectorSearchIndexScanBuilderTest {
         assertThrows(
             ExpressionEvaluationException.class, () -> scanBuilder.pushDownAggregation(agg));
     assertTrue(
-        ex.getMessage().contains("GROUP BY"),
-        "Error should mention GROUP BY; actual: " + ex.getMessage());
+        ex.getMessage().contains("Aggregations are not supported"),
+        "Error should state aggregations are not supported; actual: " + ex.getMessage());
     assertTrue(
         ex.getMessage().contains("vectorSearch"),
         "Error should mention vectorSearch; actual: " + ex.getMessage());
