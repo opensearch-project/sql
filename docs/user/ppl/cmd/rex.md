@@ -228,7 +228,7 @@ source=accounts
 The query returns the following results:
   
 ```text
-{'reason': 'Invalid Query', 'details': "Invalid capture group name 'user_name'. Java regex group names must start with a letter and contain only letters and digits.", 'type': 'IllegalArgumentException'}
+{'reason': "Invalid capture group name 'user_name'.", 'code': 'SYNTAX_ERROR', 'suggestion': 'Java Regex capture groups must be alphanumeric and start with a letter. Update the capture group to be alphanumeric.', 'context': {'stage': 'analyzing', 'stage_description': 'Parsing and validating the query', 'command': 'rex'}, 'details': "Invalid capture group name 'user_name'.", 'location': ['while preparing and validating the query plan', 'while processing the rex command', 'while validating the capture groups for the pattern'], 'type': 'IllegalArgumentException'}
 Error: Query returned no data
 ```
 

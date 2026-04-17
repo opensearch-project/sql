@@ -14,6 +14,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.sql.common.error.ErrorReport;
 
 public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
 
@@ -201,9 +202,9 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
   @Test
   public void testFieldsMinusThenPlusShouldThrowException() {
     String ppl = "source=EMP | fields - DEPTNO, SAL | fields + EMPNO, DEPTNO, SAL";
-    IllegalArgumentException e =
+    ErrorReport e =
         assertThrows(
-            IllegalArgumentException.class,
+            ErrorReport.class,
             () -> {
               RelNode root = getRelNode(ppl);
             });

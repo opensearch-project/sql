@@ -8,6 +8,7 @@ package org.opensearch.sql.api;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
+import java.util.List;
 import java.util.Map;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -210,5 +211,51 @@ public class UnifiedQueryPlannerSqlTest extends UnifiedQueryTestBase {
   @Test
   public void testInvalidSqlThrowsException() {
     assertThrows(IllegalStateException.class, () -> planner.plan("SELECT FROM"));
+  }
+
+  @Test
+  public void testNonQueryStatementsBlockedByWhitelist() {
+    List.of(
+            """
+            INSERT INTO catalog.employees (id, name, age, department)
+            VALUES (99, 'injected', 0, 'hacked')\
+            """,
+            """
+            DELETE FROM catalog.employees
+            WHERE age > 30\
+            """,
+            """
+            UPDATE catalog.employees
+            SET department = 'Fired'
+            WHERE age > 50\
+            """,
+            """
+            EXPLAIN PLAN FOR
+            SELECT * FROM catalog.employees\
+            """,
+            """
+            MERGE INTO catalog.employees AS t
+            USING (SELECT 99 AS id) AS s ON t.id = s.id
+            WHEN MATCHED THEN UPDATE SET name = 'hacked'\
+            """)
+        .forEach(
+            sql ->
+                givenInvalidQuery(sql).assertErrorMessage("Only query statements are supported"));
+  }
+
+  @Test
+  public void testNonQueryStatementsBlockedByParser() {
+    List.of(
+            """
+            CREATE MATERIALIZED VIEW mv AS
+            SELECT department, count(*)
+            FROM catalog.employees
+            GROUP BY department\
+            """,
+            """
+            SHOW TABLES\
+            """)
+        .forEach(
+            sql -> givenInvalidQuery(sql).assertErrorMessage("Incorrect syntax near the keyword"));
   }
 }

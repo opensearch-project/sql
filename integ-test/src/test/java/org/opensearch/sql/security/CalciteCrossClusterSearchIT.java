@@ -262,27 +262,12 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
     JSONObject result =
         executeQuery(String.format("search source=%s | rename * as old_*", TEST_INDEX_DOG_REMOTE));
     verifyColumn(
-        result,
-        columnName("old_dog_name"),
-        columnName("old_holdersName"),
-        columnName("old_age"),
-        columnName("old__id"),
-        columnName("old__index"),
-        columnName("old__score"),
-        columnName("old__maxscore"),
-        columnName("old__sort"),
-        columnName("old__routing"));
+        result, columnName("old_dog_name"), columnName("old_holdersName"), columnName("old_age"));
     verifySchema(
         result,
         schema("old_dog_name", "string"),
         schema("old_holdersName", "string"),
-        schema("old_age", "bigint"),
-        schema("old__id", "string"),
-        schema("old__index", "string"),
-        schema("old__score", "float"),
-        schema("old__maxscore", "float"),
-        schema("old__sort", "bigint"),
-        schema("old__routing", "string"));
+        schema("old_age", "bigint"));
   }
 
   @Test
@@ -527,5 +512,16 @@ public class CalciteCrossClusterSearchIT extends CrossClusterTestBase {
                 TEST_INDEX_MVEXPAND_REMOTE));
     verifySchema(result, schema("username", "string"), schema("skills.name", "string"));
     verifyDataRows(result, rows("limituser", "a"), rows("limituser", "b"));
+  }
+
+  @Test
+  public void testCrossClusterUnion() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "| union [search source=%s | where age < 30] [search source=%s | where age >= 30] |"
+                    + " stats count() by gender",
+                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("count()"), columnName("gender"));
   }
 }

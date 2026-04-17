@@ -1,0 +1,99 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  - do:
+      indices.create:
+        index: issue5173
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              gender:
+                type: keyword
+              age:
+                type: integer
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5173", "_id": "1"}}'
+          - '{"gender": "F", "age": 10}'
+          - '{"index": {"_index": "issue5173", "_id": "2"}}'
+          - '{"gender": "F", "age": 20}'
+          - '{"index": {"_index": "issue5173", "_id": "3"}}'
+          - '{"gender": "M", "age": 30}'
+          - '{"index": {"_index": "issue5173", "_id": "4"}}'
+          - '{"gender": "M", "age": 40}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5173
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5173: double appendpipe with different aggregations should succeed":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5173 | stats sum(age) as sum_age by gender | appendpipe [ stats avg(sum_age) as avg_sum_age ] | appendpipe [ stats max(sum_age) as max_sum_age ]"
+
+  - match: { total: 4 }
+  - match:
+      schema:
+        - { name: sum_age, type: bigint }
+        - { name: gender, type: string }
+        - { name: avg_sum_age, type: double }
+        - { name: max_sum_age, type: bigint }
+  - match:
+      datarows:
+        - [ 30, "F", null, null ]
+        - [ 70, "M", null, null ]
+        - [ null, null, 50.0, null ]
+        - [ null, null, null, 70 ]
+
+---
+"Issue 5173: triple appendpipe with different aggregations should succeed":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5173 | stats sum(age) as sum_age by gender | appendpipe [ stats avg(sum_age) as avg_sum_age ] | appendpipe [ stats max(sum_age) as max_sum_age ] | appendpipe [ stats min(sum_age) as min_sum_age ]"
+
+  - match: { total: 5 }
+  - match:
+      schema:
+        - { name: sum_age, type: bigint }
+        - { name: gender, type: string }
+        - { name: avg_sum_age, type: double }
+        - { name: max_sum_age, type: bigint }
+        - { name: min_sum_age, type: bigint }
+  - match:
+      datarows:
+        - [ 30, "F", null, null, null ]
+        - [ 70, "M", null, null, null ]
+        - [ null, null, 50.0, null, null ]
+        - [ null, null, null, 70, null ]
+        - [ null, null, null, null, 30 ]
