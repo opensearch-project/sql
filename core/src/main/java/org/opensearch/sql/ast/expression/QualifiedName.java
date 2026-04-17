@@ -27,10 +27,6 @@ public class QualifiedName extends UnresolvedExpression {
   public static final String DELIMITER = ".";
   private final List<String> parts;
 
-  /**
-   * Optional source position for error reporting. Only populated when parsing from source text. Not
-   * included in equals/hashCode as it's metadata for diagnostics.
-   */
   private final Integer line;
 
   private final Integer column;

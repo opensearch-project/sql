@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
@@ -339,6 +340,10 @@ public class QualifiedNameResolver {
             .code(ErrorCode.FIELD_NOT_FOUND)
             .context("requested_field", node.toString())
             .context("available_fields", availableFields);
+
+    // Add a suggestion based on Levenshtein distance
+    StringUtils.findClosestMatch(node.toString(), availableFields)
+        .ifPresent(suggestion -> builder.suggestion("Did you mean: " + suggestion));
 
     // Add source position if available (populated by PPL parser)
     if (node.getLine() != null && node.getColumn() != null) {

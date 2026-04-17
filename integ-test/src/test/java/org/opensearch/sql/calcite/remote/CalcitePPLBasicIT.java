@@ -99,6 +99,20 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testFieldNotFoundWithSuggestion() {
+    // Typo: "nam" instead of "name"
+    Throwable e =
+        assertThrowsWithReplace(
+            IllegalStateException.class, () -> executeQuery("source=test | fields nam"));
+    String stack = org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace(e);
+    verifyErrorMessageContains(e, "Field [nam] not found.");
+    // Verify suggestion based on Levenshtein distance
+    verifyErrorMessageContains(e, "Did you mean: name");
+    // Verify available fields are listed
+    verifyErrorMessageContains(e, "available_fields");
+  }
+
+  @Test
   public void testFilterQuery1() throws IOException {
     JSONObject actual = executeQuery("source=test | where age = 30 | fields name, age");
     verifySchema(actual, schema("name", "string"), schema("age", "bigint"));
