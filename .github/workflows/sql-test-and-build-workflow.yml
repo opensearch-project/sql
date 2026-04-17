@@ -24,8 +24,93 @@ jobs:
     with:
       product: opensearch
 
-  build-linux:
+  assemble-linux:
     needs: Get-CI-Image-Tag
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [21, 25]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
+
+    steps:
+      - name: Run start commands
+        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Assemble
+        run: |
+          chown -R 1000:1000 `pwd`
+          su `id -un 1000` -c "./gradlew assemble --no-daemon"
+
+  assemble-windows-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        entry:
+          - { os: windows-latest, java: 21, os_build_args: -PbuildPlatform=windows }
+          - { os: windows-latest, java: 24, os_build_args: -PbuildPlatform=windows }
+          - { os: macos-13, java: 21, os_build_args: '' }
+          - { os: macos-13, java: 24, os_build_args: '' }
+    runs-on: ${{ matrix.entry.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.entry.java }}
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.entry.java }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Assemble
+        run: ./gradlew assemble --no-daemon ${{ matrix.entry.os_build_args }}
+        shell: bash
+
+  spotless:
+    needs: Get-CI-Image-Tag
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
+
+    steps:
+      - name: Run start commands
+        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Spotless Check
+        run: |
+          chown -R 1000:1000 `pwd`
+          su `id -un 1000` -c "./gradlew spotlessCheck --no-daemon"
+
+  build-linux:
+    needs: [Get-CI-Image-Tag, assemble-linux]
     strategy:
       fail-fast: false
       matrix:
@@ -43,16 +128,19 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Build and Test
         run: |
           chown -R 1000:1000 `pwd`
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            su `id -un 1000` -c "./gradlew --continue build -x integTest -x yamlRestTest -x doctest"
+            su `id -un 1000` -c "./gradlew --continue build -x spotlessCheck -x integTest -x yamlRestTest -x doctest"
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
             su `id -un 1000` -c "./gradlew --continue integTest yamlRestTest"
           else
@@ -101,6 +189,7 @@ jobs:
             integ-test/build/testclusters/*/logs/*
 
   build-windows-macos:
+    needs: assemble-windows-macos
     strategy:
       fail-fast: false
       matrix:
@@ -122,15 +211,18 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDK ${{ matrix.entry.java }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.entry.java }}
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
       - name: Build and Test
         run: |
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            ./gradlew --continue build -x integTest -x yamlRestTest -x doctest ${{ matrix.entry.os_build_args }}
+            ./gradlew --continue build -x spotlessCheck -x integTest -x doctest ${{ matrix.entry.os_build_args }}
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
             ./gradlew --continue integTest yamlRestTest ${{ matrix.entry.os_build_args }}
           else
@@ -180,7 +272,7 @@ jobs:
             integ-test/build/testclusters/*/logs/*
 
   bwc-tests-rolling-upgrade:
-    needs: Get-CI-Image-Tag
+    needs: [Get-CI-Image-Tag, assemble-linux]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -196,10 +288,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Run backward compatibility tests in rolling upgrade
         run: |
@@ -242,7 +337,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
