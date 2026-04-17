@@ -19,13 +19,7 @@ on:
   merge_group:
 
 jobs:
-  Get-CI-Image-Tag:
-    uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@main
-    with:
-      product: opensearch
-
   assemble-linux:
-    needs: Get-CI-Image-Tag
     strategy:
       fail-fast: false
       matrix:
@@ -79,37 +73,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: 21
+    - name: Set up JDK 21
+      uses: actions/setup-java@v5
+      with:
+        distribution: 'temurin'
+        java-version: 21
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
 
-      - name: Spotless Check
-        run: |
-          ./gradlew spotlessCheck --no-daemon
+    - name: Spotless Check
+      run: |
+        ./gradlew spotlessCheck --no-daemon
 
   build-linux:
-    needs: [Get-CI-Image-Tag, assemble-linux]
+    needs: [assemble-linux]
     strategy:
       fail-fast: false
       matrix:
         java: [21, 25]
         test-type: ['unit', 'integration', 'doc']
     runs-on: ubuntu-latest
-    container:
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
-      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
-      - name: Run start commands
-        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
-
       - uses: actions/checkout@v4
 
       - name: Set up JDK ${{ matrix.java }}
@@ -123,14 +111,12 @@ jobs:
 
       - name: Build and Test
         run: |
-          mkdir -p $GRADLE_USER_HOME
-          chown -R 1000:1000 `pwd` $GRADLE_USER_HOME
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            su `id -un 1000` -c "./gradlew --continue build -x spotlessCheck -x integTest -x yamlRestTest -x doctest"
+            ./gradlew --continue build -x spotlessCheck -x integTest -x yamlRestTest -x doctest
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
-            su `id -un 1000` -c "./gradlew --continue integTest yamlRestTest"
+            ./gradlew --continue integTest yamlRestTest
           else
-            su `id -un 1000` -c "./gradlew --continue doctest"
+            ./gradlew --continue doctest
           fi
 
       - name: Create Artifact Path
@@ -258,18 +244,13 @@ jobs:
             integ-test/build/testclusters/*/logs/*
 
   bwc-tests-rolling-upgrade:
-    needs: [Get-CI-Image-Tag, assemble-linux]
+    needs: [assemble-linux]
     runs-on: ubuntu-latest
     strategy:
       matrix:
         java: [21, 25]
-    container:
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
-      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
-      - name: Run start commands
-        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
 
       - uses: actions/checkout@v4
 
@@ -284,9 +265,7 @@ jobs:
 
       - name: Run backward compatibility tests in rolling upgrade
         run: |
-          mkdir -p $GRADLE_USER_HOME
-          chown -R 1000:1000 `pwd` $GRADLE_USER_HOME
-          su `id -un 1000` -c "./scripts/bwctest-rolling-upgrade.sh"
+          ./scripts/bwctest-rolling-upgrade.sh
 
       - name: Upload test reports
         if: ${{ always() }}
@@ -308,19 +287,13 @@ jobs:
             integ-test/build/testclusters/*/logs/*
 
   bwc-tests-full-restart:
-    needs: [Get-CI-Image-Tag, assemble-linux]
+    needs: [assemble-linux]
     runs-on: ubuntu-latest
     strategy:
       matrix:
         java: [21, 25]
-    container:
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
-      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
-      - name: Run start commands
-        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
-
       - uses: actions/checkout@v4
 
       - name: Set up JDK ${{ matrix.java }}
@@ -334,9 +307,7 @@ jobs:
 
       - name: Run backward compatibility tests in full restart
         run: |
-          mkdir -p $GRADLE_USER_HOME
-          chown -R 1000:1000 `pwd` $GRADLE_USER_HOME
-          su `id -un 1000` -c "./scripts/bwctest-full-restart.sh"
+          ./scripts/bwctest-full-restart.sh
 
       - name: Upload test reports
         if: ${{ always() }}
@@ -358,20 +329,14 @@ jobs:
             integ-test/build/testclusters/*/logs/*
 
   security-it-linux:
-    needs: [Get-CI-Image-Tag, assemble-linux]
+    needs: [assemble-linux]
     strategy:
       fail-fast: false
       matrix:
         java: [21, 25]
     runs-on: ubuntu-latest
-    container:
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
-      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
-    - name: Run start commands
-      run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
-
     - uses: actions/checkout@v4
 
     - name: Set up JDK ${{ matrix.java }}
@@ -385,9 +350,7 @@ jobs:
 
     - name: Run security integration tests
       run: |
-        mkdir -p $GRADLE_USER_HOME
-        chown -R 1000:1000 `pwd` $GRADLE_USER_HOME
-        su `id -un 1000` -c "./gradlew integTestWithSecurity"
+        ./gradlew integTestWithSecurity
 
     - name: Upload test reports
       if: ${{ always() }}
