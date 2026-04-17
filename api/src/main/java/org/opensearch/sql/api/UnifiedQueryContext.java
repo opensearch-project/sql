@@ -29,6 +29,7 @@ import org.opensearch.sql.api.parser.CalciteSqlQueryParser;
 import org.opensearch.sql.api.parser.PPLQueryParser;
 import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.api.spec.LanguageSpec;
+import org.opensearch.sql.api.spec.UnifiedPplSpec;
 import org.opensearch.sql.api.spec.UnifiedSqlSpec;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
@@ -57,7 +58,7 @@ public class UnifiedQueryContext implements AutoCloseable {
   /** Query parser created eagerly from this context's configuration. */
   private final UnifiedQueryParser<?> parser;
 
-  /** Language spec for SQL, or null for PPL (TODO: converge PPL onto LanguageSpec). */
+  /** Language spec for the query's frontend (SQL or PPL). */
   private final LanguageSpec langSpec;
 
   /**
@@ -208,7 +209,11 @@ public class UnifiedQueryContext implements AutoCloseable {
     public UnifiedQueryContext build() {
       Objects.requireNonNull(queryType, "Must specify language before build");
 
-      LanguageSpec langSpec = (queryType == QueryType.SQL) ? UnifiedSqlSpec.extended() : null;
+      LanguageSpec langSpec =
+          switch (queryType) {
+            case SQL -> UnifiedSqlSpec.extended();
+            case PPL -> UnifiedPplSpec.create();
+          };
       Settings settings = buildSettings();
       CalcitePlanContext planContext =
           CalcitePlanContext.create(
@@ -252,13 +257,11 @@ public class UnifiedQueryContext implements AutoCloseable {
               .traitDefs((List<RelTraitDef>) null)
               .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE));
 
-      if (langSpec != null) {
-        builder
-            .parserConfig(langSpec.parserConfig())
-            .sqlValidatorConfig(langSpec.validatorConfig())
-            .operatorTable(langSpec.operatorTable());
-      }
-      return builder.build();
+      return builder
+          .parserConfig(langSpec.parserConfig())
+          .sqlValidatorConfig(langSpec.validatorConfig())
+          .operatorTable(langSpec.operatorTable())
+          .build();
     }
 
     private SchemaPlus findSchemaByPath(SchemaPlus rootSchema, String defaultPath) {
