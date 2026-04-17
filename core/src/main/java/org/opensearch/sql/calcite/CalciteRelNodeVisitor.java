@@ -35,6 +35,7 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -2280,7 +2281,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     // Include aggregate input fields (extract field names from window functions)
-    Set<String> aggInputFields = new HashSet<>();
+    Set<String> aggInputFields = new LinkedHashSet<>();
     for (UnresolvedExpression wfExpr : node.getWindowFunctionList()) {
       collectFieldNames(wfExpr, aggInputFields);
     }
@@ -2423,7 +2424,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Map function name to Calcite aggregate function
     RelBuilder.AggCall aggCall;
     if (args.isEmpty()) {
-      // COUNT()
+      // Only COUNT() supports zero arguments
+      if (!funcName.equals("COUNT")) {
+        throw new UnsupportedOperationException(
+            "Zero-argument window function not supported: " + funcName);
+      }
       aggCall = context.relBuilder.count();
       if (alias != null) {
         aggCall = aggCall.as(alias);

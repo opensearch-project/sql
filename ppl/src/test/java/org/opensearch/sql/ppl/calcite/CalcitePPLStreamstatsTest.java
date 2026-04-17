@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
@@ -209,6 +213,14 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
         "source=EMP | streamstats window=2 avg(SAL) as avg_sal by DEPTNO"
             + " | streamstats window=2 avg(avg_sal) as avg_dept_sal by DEPTNO";
     RelNode root = getRelNode(ppl);
+    assertNotNull("Chained streamstats with window should produce a valid plan", root);
+    // Verify the plan uses self-join (LogicalJoin) instead of LogicalCorrelate
+    String plan = root.explain();
+    assertTrue(
+        "Plan should contain LogicalJoin for self-join approach", plan.contains("LogicalJoin"));
+    assertFalse(
+        "Plan should not contain LogicalCorrelate for window+group streamstats",
+        plan.contains("LogicalCorrelate"));
   }
 
   @Test
