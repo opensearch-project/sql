@@ -14,7 +14,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
-import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
+import org.opensearch.sql.opensearch.storage.scan.VectorSearchIndexScanBuilder;
 import org.opensearch.sql.opensearch.storage.scan.VectorSearchQueryBuilder;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
@@ -94,7 +94,7 @@ public class VectorSearchIndex extends OpenSearchIndex {
                 getClient(),
                 rb.getMaxResponseSize(),
                 rb.build(getIndexName(), cursorKeepAlive, getClient(), getFieldTypes().isEmpty()));
-    return new OpenSearchIndexScanBuilder(queryBuilder, createScanOperator);
+    return new VectorSearchIndexScanBuilder(queryBuilder, createScanOperator);
   }
 
   private QueryBuilder buildKnnQuery() {
