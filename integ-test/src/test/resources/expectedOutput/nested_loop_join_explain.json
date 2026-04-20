@@ -74,7 +74,6 @@
     },
     "from": 0,
     "_source": {
-      "excludes": [],
       "includes": [
         "firstname",
         "lastname",
@@ -113,7 +112,6 @@
     },
     "from": 0,
     "_source": {
-      "excludes": [],
       "includes": [
         "dog_name",
         "holdersName"

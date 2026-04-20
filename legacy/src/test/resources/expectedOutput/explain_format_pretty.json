@@ -4,7 +4,6 @@
   "_source" : {
     "includes" : [
       "firstname"
-    ],
-    "excludes" : [ ]
+    ]
   }
 }

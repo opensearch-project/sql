@@ -286,8 +286,7 @@ Explain::
 	                    "_source" : {
 	                      "includes" : [
 	                        "projects.name"
-	                      ],
-	                      "excludes" : [ ]
+	                      ]
 	                    }
 	                  }
 	                }
@@ -305,8 +304,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "name"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
@@ -423,8 +421,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "name"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
