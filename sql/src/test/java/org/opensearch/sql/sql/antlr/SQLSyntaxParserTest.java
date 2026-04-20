@@ -6,8 +6,10 @@
 package org.opensearch.sql.sql.antlr;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
@@ -24,6 +26,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 
 class SQLSyntaxParserTest {
 
@@ -72,7 +75,7 @@ class SQLSyntaxParserTest {
 
   @Test
   public void canNotParseIndexNameWithSpecialChar() {
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT * FROM hello+world"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT * FROM hello+world"));
   }
 
   @Test
@@ -82,12 +85,12 @@ class SQLSyntaxParserTest {
 
   @Test
   public void canNotParseIndexNameStartingWithNumber() {
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT * FROM 123test"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT * FROM 123test"));
   }
 
   @Test
   public void canNotParseIndexNameSingleQuoted() {
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT * FROM 'test'"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT * FROM 'test'"));
   }
 
   @Test
@@ -136,11 +139,42 @@ class SQLSyntaxParserTest {
 
   @Test
   public void canNotParseAggregateFunctionWithWrongArgument() {
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT SUM() FROM test"));
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT AVG() FROM test"));
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT SUM(a,b) FROM test"));
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT AVG(a,b,c) FROM test"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT SUM() FROM test"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT AVG() FROM test"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT SUM(a,b) FROM test"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT AVG(a,b,c) FROM test"));
   }
+
+  @Test
+  public void syntaxErrorContainsStructuredInformation() {
+    ErrorReport report = assertThrows(ErrorReport.class, () -> parser.parse("SELECT SUM() FROM test"));
+
+    // Verify the underlying exception is still SyntaxCheckException
+    assertTrue(report.getCause() instanceof SyntaxCheckException);
+    assertEquals("SyntaxCheckException", report.getExceptionType());
+
+    // Verify structured context is available
+    assertEquals("SYNTAX_ERROR", report.getCode().name());
+    assertEquals("analyzing", report.getStage().toJsonKey());
+
+    // Verify context contains position information
+    assertTrue(report.getContext().containsKey("line"));
+    assertTrue(report.getContext().containsKey("char_position"));
+    assertTrue(report.getContext().containsKey("offending_token"));
+    assertTrue(report.getContext().containsKey("expected_tokens"));
+
+    // Verify suggestion is provided
+    assertNotNull(report.getSuggestion());
+    assertTrue(report.getSuggestion().startsWith("Try using"));
+
+    // Verify JSON structure would include all expected fields
+    var jsonMap = report.toJsonMap();
+    assertEquals("SyntaxCheckException", jsonMap.get("type"));
+    assertEquals("SYNTAX_ERROR", jsonMap.get("code"));
+    assertTrue(jsonMap.containsKey("context"));
+    assertTrue(jsonMap.containsKey("suggestion"));
+  }
+
 
   @Test
   public void canParseOrderByClause() {
@@ -155,7 +189,7 @@ class SQLSyntaxParserTest {
 
   @Test
   public void canNotParseShowStatementWithoutFilterClause() {
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES"));
   }
 
   private static Stream<Arguments> nowLikeFunctionsData() {
@@ -632,20 +666,20 @@ class SQLSyntaxParserTest {
     assertAll(
         () ->
             assertThrows(
-                SyntaxCheckException.class, () -> parser.parse("DESCRIBE TABLES LIKE bank")),
+                ErrorReport.class, () -> parser.parse("DESCRIBE TABLES LIKE bank")),
         () ->
             assertThrows(
-                SyntaxCheckException.class, () -> parser.parse("DESCRIBE TABLES LIKE %bank%")),
+                ErrorReport.class, () -> parser.parse("DESCRIBE TABLES LIKE %bank%")),
         () ->
             assertThrows(
-                SyntaxCheckException.class, () -> parser.parse("DESCRIBE TABLES LIKE `bank`")),
+                ErrorReport.class, () -> parser.parse("DESCRIBE TABLES LIKE `bank`")),
         () ->
             assertThrows(
-                SyntaxCheckException.class,
+                ErrorReport.class,
                 () -> parser.parse("DESCRIBE TABLES LIKE %bank% COLUMNS LIKE %status%")),
         () ->
             assertThrows(
-                SyntaxCheckException.class,
+                ErrorReport.class,
                 () -> parser.parse("DESCRIBE TABLES LIKE 'bank' COLUMNS LIKE status")),
         () -> assertNotNull(parser.parse("DESCRIBE TABLES LIKE 'bank' COLUMNS LIKE \"status\"")),
         () -> assertNotNull(parser.parse("DESCRIBE TABLES LIKE \"bank\" COLUMNS LIKE 'status'")));
@@ -654,11 +688,11 @@ class SQLSyntaxParserTest {
   @Test
   public void show_request_accepts_only_quoted_string_literals() {
     assertAll(
-        () -> assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES LIKE bank")),
+        () -> assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES LIKE bank")),
         () ->
-            assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES LIKE %bank%")),
+            assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES LIKE %bank%")),
         () ->
-            assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES LIKE `bank`")),
+            assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES LIKE `bank`")),
         () -> assertNotNull(parser.parse("SHOW TABLES LIKE 'bank'")),
         () -> assertNotNull(parser.parse("SHOW TABLES LIKE \"bank\"")));
   }

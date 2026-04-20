@@ -15,6 +15,9 @@ import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
 import org.antlr.v4.runtime.misc.IntervalSet;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.QueryProcessingStage;
 
 /**
  * Syntax analysis error listener that handles any syntax error by throwing exception with useful
@@ -39,13 +42,31 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     Token offendingToken = (Token) offendingSymbol;
     String query = tokens.getText();
 
-    throw new SyntaxCheckException(
-        String.format(
-            Locale.ROOT,
-            "[%s] is not a valid term at this part of the query: '%s' <-- HERE. %s",
-            getOffendingText(offendingToken),
-            truncateQueryAtOffendingToken(query, offendingToken),
-            getDetails(recognizer, msg, e)));
+    String offendingText = getOffendingText(offendingToken);
+    String errorContext = truncateQueryAtOffendingToken(query, offendingToken);
+    String details = getDetails(recognizer, msg, e);
+    int expectedTokenCount = getExpectedTokenCount(recognizer, e);
+
+    String errorMessage = String.format(
+        Locale.ROOT,
+        "[%s] is not a valid term at this part of the query: '%s' <-- HERE",
+        offendingText,
+        errorContext);
+
+    SyntaxCheckException syntaxException = new SyntaxCheckException(errorMessage);
+
+    throw ErrorReport.wrap(syntaxException)
+        .code(ErrorCode.SYNTAX_ERROR)
+        .stage(QueryProcessingStage.ANALYZING)
+        .location("while parsing query syntax")
+        .context("offending_token", offendingText)
+        .context("line", line)
+        .context("char_position", charPositionInLine)
+        .context("token_start", offendingToken.getStartIndex())
+        .context("token_end", offendingToken.getStopIndex())
+        .context("error_context", errorContext)
+        .context("expected_token_count", expectedTokenCount)
+        .build();
   }
 
   private String getOffendingText(Token offendingToken) {
@@ -96,4 +117,12 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     }
     return details.toString();
   }
+
+  private int getExpectedTokenCount(Recognizer<?, ?> recognizer, RecognitionException ex) {
+    if (ex == null) {
+      return 0;
+    }
+    return ex.getExpectedTokens().size();
+  }
+
 }
