@@ -495,57 +495,62 @@ class OpenSearchNodeClientTest {
 
   @Test
   void get_index_mappings_error_message_includes_single_index() {
-    when(nodeClient.admin().indices()).thenThrow(new RuntimeException("Connection timeout"));
+    String underlyingError = "Connection timeout";
+    when(nodeClient.admin().indices()).thenThrow(new RuntimeException(underlyingError));
 
-    IllegalStateException exception = assertThrows(
-        IllegalStateException.class,
-        () -> client.getIndexMappings("test_index")
-    );
+    IllegalStateException exception =
+        assertThrows(IllegalStateException.class, () -> client.getIndexMappings("test_index"));
 
-    assertTrue(exception.getMessage().contains("test_index"));
+    assertAll(
+        () -> assertTrue(exception.getMessage().contains("test_index")),
+        () -> assertTrue(exception.getMessage().contains(underlyingError)));
   }
 
   @Test
   void get_index_mappings_error_message_includes_multiple_indices() {
-    when(nodeClient.admin().indices()).thenThrow(new RuntimeException("Access denied"));
+    String underlyingError = "Access denied";
+    when(nodeClient.admin().indices()).thenThrow(new RuntimeException(underlyingError));
 
-    IllegalStateException exception = assertThrows(
-        IllegalStateException.class,
-        () -> client.getIndexMappings("index1", "index2", "index3")
-    );
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class,
+            () -> client.getIndexMappings("index1", "index2", "index3"));
 
     assertAll(
         () -> assertTrue(exception.getMessage().contains("index1")),
         () -> assertTrue(exception.getMessage().contains("index2")),
-        () -> assertTrue(exception.getMessage().contains("index3"))
-    );
+        () -> assertTrue(exception.getMessage().contains("index3")),
+        () -> assertTrue(exception.getMessage().contains(underlyingError)));
   }
 
   @Test
   void get_index_max_result_windows_error_message_includes_single_index() {
-    when(nodeClient.admin().indices()).thenThrow(new RuntimeException("Network error"));
+    String underlyingError = "Network error";
+    when(nodeClient.admin().indices()).thenThrow(new RuntimeException(underlyingError));
 
-    IllegalStateException exception = assertThrows(
-        IllegalStateException.class,
-        () -> client.getIndexMaxResultWindows("test_index")
-    );
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class, () -> client.getIndexMaxResultWindows("test_index"));
 
-    assertTrue(exception.getMessage().contains("test_index"));
+    assertAll(
+        () -> assertTrue(exception.getMessage().contains("test_index")),
+        () -> assertTrue(exception.getMessage().contains(underlyingError)));
   }
 
   @Test
   void get_index_max_result_windows_error_message_includes_multiple_indices() {
-    when(nodeClient.admin().indices()).thenThrow(new RuntimeException("Permission denied"));
+    String underlyingError = "Permission denied";
+    when(nodeClient.admin().indices()).thenThrow(new RuntimeException(underlyingError));
 
-    IllegalStateException exception = assertThrows(
-        IllegalStateException.class,
-        () -> client.getIndexMaxResultWindows("logs-2024", "metrics-2024")
-    );
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class,
+            () -> client.getIndexMaxResultWindows("logs-2024", "metrics-2024"));
 
     assertAll(
         () -> assertTrue(exception.getMessage().contains("logs-2024")),
-        () -> assertTrue(exception.getMessage().contains("metrics-2024"))
-    );
+        () -> assertTrue(exception.getMessage().contains("metrics-2024")),
+        () -> assertTrue(exception.getMessage().contains(underlyingError)));
   }
 
   public void mockNodeClientIndicesMappings(String indexName, String mappings) {

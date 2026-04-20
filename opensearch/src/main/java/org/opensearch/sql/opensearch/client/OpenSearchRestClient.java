@@ -80,7 +80,10 @@ public class OpenSearchRestClient implements OpenSearchClient {
           .collect(Collectors.toMap(Map.Entry::getKey, e -> new IndexMapping(e.getValue())));
     } catch (IOException e) {
       throw new IllegalStateException(
-          "Failed to get index mappings for " + String.join(",", indexExpression) + ": " + e.getMessage(),
+          "Failed to get index mappings for "
+              + String.join(",", indexExpression)
+              + ": "
+              + e.getMessage(),
           e);
     }
   }
@@ -114,7 +117,10 @@ public class OpenSearchRestClient implements OpenSearchClient {
       return result;
     } catch (IOException e) {
       throw new IllegalStateException(
-          "Failed to get max result window for " + String.join(",", indexExpression) + ": " + e.getMessage(),
+          "Failed to get max result window for "
+              + String.join(",", indexExpression)
+              + ": "
+              + e.getMessage(),
           e);
     }
   }
