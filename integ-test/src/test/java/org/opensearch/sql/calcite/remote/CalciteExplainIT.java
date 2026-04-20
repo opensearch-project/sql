@@ -2955,14 +2955,8 @@ public class CalciteExplainIT extends ExplainIT {
                     + " | xyseries state gender in (\"F\", \"M\") avg_balance",
                 TEST_INDEX_BANK));
     var result = explainQueryYaml(query);
-    String lower = result.toLowerCase();
-    Assert.assertTrue(
-        "Expected explain to contain LogicalAggregate for pivot grouping",
-        lower.contains("logicalaggregate") || lower.contains("aggregate"));
-    Assert.assertTrue(
-        "Expected explain to contain CASE expression for pivot", lower.contains("case"));
-    Assert.assertTrue("Expected explain to contain pivot value 'F'", result.contains("F"));
-    Assert.assertTrue("Expected explain to contain pivot value 'M'", result.contains("M"));
+    String expected = loadExpectedPlan("explain_xyseries.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -2974,13 +2968,8 @@ public class CalciteExplainIT extends ExplainIT {
                     + " | xyseries state gender in (\"F\", \"M\") avg_balance, cnt",
                 TEST_INDEX_BANK));
     var result = explainQueryYaml(query);
-    String lower = result.toLowerCase();
-    Assert.assertTrue("Expected explain to contain aggregate", lower.contains("aggregate"));
-    Assert.assertTrue(
-        "Expected explain to contain CASE expression for pivot", lower.contains("case"));
-    Assert.assertTrue(
-        "Expected explain to contain avg_balance in plan", result.contains("avg_balance"));
-    Assert.assertTrue("Expected explain to contain cnt in plan", result.contains("cnt"));
+    String expected = loadExpectedPlan("explain_xyseries_multiple_data_fields.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -2992,12 +2981,8 @@ public class CalciteExplainIT extends ExplainIT {
                     + " format=\"$VAL$_$AGG$\" state gender in (\"F\", \"M\") avg_balance",
                 TEST_INDEX_BANK));
     var result = explainQueryYaml(query);
-    Assert.assertTrue(
-        "Expected explain to contain formatted column name F_avg_balance",
-        result.contains("F_avg_balance"));
-    Assert.assertTrue(
-        "Expected explain to contain formatted column name M_avg_balance",
-        result.contains("M_avg_balance"));
+    String expected = loadExpectedPlan("explain_xyseries_with_format.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
