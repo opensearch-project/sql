@@ -108,6 +108,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteTopCommandIT.class,
   CalciteTrendlineCommandIT.class,
   CalciteTransposeCommandIT.class,
+  CalciteUnionCommandIT.class,
   CalciteVisualizationFormatIT.class,
   CalciteWhereCommandIT.class,
   CalcitePPLTpchIT.class,

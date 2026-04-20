@@ -54,7 +54,8 @@ public class CreateAsyncQueryRequestConverterTest {
     Assertions.assertTrue(
         illegalArgumentException
             .getMessage()
-            .contains("Error while parsing the request body: Duplicate field 'datasource'"));
+            .contains(
+                "Error while parsing the request body: Duplicate Object property \"datasource\""));
   }
 
   @Test

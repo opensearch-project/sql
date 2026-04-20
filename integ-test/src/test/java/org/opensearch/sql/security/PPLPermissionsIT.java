@@ -614,6 +614,29 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testUserWithoutMappingPermissionGetsPermissionDeniedErrorCode() throws IOException {
+    // Test that security exceptions return PERMISSION_DENIED error code, not INDEX_NOT_FOUND
+    try {
+      executeQueryAsUser(String.format("describe %s", TEST_INDEX_BANK), NO_MAPPING_USER);
+      fail("Expected security exception for user without mapping permission");
+    } catch (ResponseException e) {
+      assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+      String responseBody =
+          org.opensearch.sql.legacy.TestUtils.getResponseBody(e.getResponse(), false);
+      JSONObject responseJson = new JSONObject(responseBody);
+
+      // Verify the error code is PERMISSION_DENIED, not INDEX_NOT_FOUND
+      assertTrue("Response should have error field", responseJson.has("error"));
+      JSONObject error = responseJson.getJSONObject("error");
+      assertTrue("Error should have code field", error.has("code"));
+      assertEquals(
+          "Security exception should return PERMISSION_DENIED error code",
+          "PERMISSION_DENIED",
+          error.getString("code"));
+    }
+  }
+
+  @Test
   public void testUserWithoutSettingsPermissionCannotGetSettings() throws IOException {
     // Test that user without settings permission gets 403 error
     try {

@@ -80,8 +80,7 @@ Explain::
 	      "firstname",
 	      "lastname",
 	      "balance"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 

@@ -160,6 +160,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
@@ -176,6 +177,8 @@ import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -346,7 +349,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  public RelNode visitRex(Rex node, CalcitePlanContext context) {
+  private RelNode innerRex(Rex node, CalcitePlanContext context) {
     visitChildren(node, context);
 
     RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
@@ -409,6 +412,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     projectPlusOverriding(newFields, newFieldNames, context);
     return context.relBuilder.peek();
+  }
+
+  public RelNode visitRex(Rex node, CalcitePlanContext context) {
+    try {
+      return innerRex(node, context);
+    } catch (RuntimeException ex) {
+      throw ErrorReport.wrap(ex)
+          .location("while processing the rex command")
+          .context("command", "rex")
+          .build();
+    }
   }
 
   private boolean containsSubqueryExpression(Node expr) {
@@ -658,6 +672,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
 
       List<String> matchingFields = WildcardRenameUtils.matchFieldNames(sourcePattern, newNames);
+      // Exclude metadata fields from wildcard rename (issue #5099)
+      if (WildcardRenameUtils.isWildcardPattern(sourcePattern)) {
+        matchingFields.removeIf(this::isMetadataField);
+      }
 
       for (String fieldName : matchingFields) {
         String newName =
@@ -925,7 +943,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Step 2: UNPIVOT
     b.unpivot(
         false,
-        ImmutableList.of("value"),
+        ImmutableList.of(PlanUtils.VALUE_COLUMN_FOR_TRANSPOSE),
         ImmutableList.of(columnName),
         fieldNames.stream()
             .map(
@@ -947,7 +965,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Step 4: PIVOT
     b.pivot(
         b.groupKey(trimmedColumnName),
-        ImmutableList.of(b.max(b.field("value"))),
+        ImmutableList.of(b.max(b.field(PlanUtils.VALUE_COLUMN_FOR_TRANSPOSE))),
         ImmutableList.of(b.field(PlanUtils.ROW_NUMBER_COLUMN_FOR_TRANSPOSE)),
         IntStream.rangeClosed(1, maxRows)
             .mapToObj(i -> Map.entry("row " + i, ImmutableList.of((RexNode) b.literal(i))))
@@ -2629,6 +2647,40 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return null;
   }
 
+  @Override
+  public RelNode visitUnion(Union node, CalcitePlanContext context) {
+    List<RelNode> inputNodes = new ArrayList<>();
+
+    for (UnresolvedPlan dataset : node.getDatasets()) {
+      UnresolvedPlan prunedDataset = dataset.accept(new EmptySourcePropagateVisitor(), null);
+      prunedDataset.accept(this, context);
+      inputNodes.add(context.relBuilder.build());
+    }
+
+    if (inputNodes.size() < 2) {
+      throw new IllegalArgumentException(
+          "Union command requires at least two datasets. Provided: " + inputNodes.size());
+    }
+
+    List<RelNode> unifiedInputs =
+        SchemaUnifier.buildUnifiedSchemaWithTypeCoercion(inputNodes, context);
+
+    for (RelNode input : unifiedInputs) {
+      context.relBuilder.push(input);
+    }
+    context.relBuilder.union(true, unifiedInputs.size()); // true = UNION ALL
+
+    if (node.getMaxout() != null) {
+      context.relBuilder.push(
+          LogicalSystemLimit.create(
+              LogicalSystemLimit.SystemLimitType.SUBSEARCH_MAXOUT,
+              context.relBuilder.build(),
+              context.relBuilder.literal(node.getMaxout())));
+    }
+
+    return context.relBuilder.peek();
+  }
+
   /*
    * Unsupported Commands of PPL with Calcite for OpenSearch 3.0.0-beta
    */
@@ -3862,8 +3914,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         inputType.getField(fieldName, /*caseSensitive*/ true, /*elideRecord*/ false);
 
     if (inputField == null) {
-      throw new SemanticCheckException(
-          String.format("Field '%s' not found in the schema", fieldName));
+      throw ErrorReport.wrap(
+              new SemanticCheckException(
+                  String.format("Field '%s' not found in the schema", fieldName)))
+          .code(ErrorCode.FIELD_NOT_FOUND)
+          .location("while evaluating the input field for mvexpand")
+          .context("command", "mvexpand")
+          .build();
     }
 
     final RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(field, context);

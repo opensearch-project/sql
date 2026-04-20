@@ -120,6 +120,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.ast.tree.Xyseries;
@@ -1346,6 +1347,37 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     return new Multisearch(subsearches);
+  }
+
+  @Override
+  public UnresolvedPlan visitUnionCommand(OpenSearchPPLParser.UnionCommandContext ctx) {
+    List<UnresolvedPlan> datasets = new ArrayList<>();
+
+    Integer maxout = null;
+    if (ctx.subsearchOptions() != null) {
+      OpenSearchPPLParser.SubsearchOptionsContext opts = ctx.subsearchOptions();
+      if (opts.maxout != null) {
+        maxout = Integer.parseInt(opts.maxout.getText());
+      }
+    }
+
+    for (OpenSearchPPLParser.UnionDatasetContext datasetCtx : ctx.unionDataset()) {
+      if (datasetCtx.subSearch() != null) {
+        datasets.add(visitSubSearch(datasetCtx.subSearch()));
+      } else if (datasetCtx.tableSource() != null) {
+        datasets.add(
+            new Relation(
+                Collections.singletonList(internalVisitExpression(datasetCtx.tableSource()))));
+      }
+    }
+
+    // Allow 1+ here; total count (including implicit upstream) validated during planning
+    if (datasets.isEmpty()) {
+      throw new SyntaxCheckException(
+          "Union command requires at least one dataset. Provided: " + datasets.size());
+    }
+
+    return new Union(datasets, maxout);
   }
 
   @Override

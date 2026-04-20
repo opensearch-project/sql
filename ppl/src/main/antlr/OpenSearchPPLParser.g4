@@ -49,6 +49,7 @@ pplCommands
    | searchCommand
    | multisearchCommand
    | graphLookupCommand
+   | unionCommand
    ;
 
 commands
@@ -97,6 +98,7 @@ commands
    | nomvCommand
    | graphLookupCommand
    | xyseriesCommand
+   | unionCommand
    ;
 
 commandName
@@ -140,6 +142,7 @@ commandName
    | ADDCOLTOTALS
    | APPEND
    | MULTISEARCH
+   | UNION
    | REX
    | APPENDPIPE
    | REPLACE
@@ -598,6 +601,19 @@ multisearchCommand
    : MULTISEARCH (LT_SQR_PRTHS subSearch RT_SQR_PRTHS)+
    ;
 
+unionCommand
+   : UNION subsearchOptions? unionDataset (COMMA? unionDataset)*
+   ;
+
+subsearchOptions
+   : (MAXOUT EQUAL maxout=integerLiteral)?
+   ;
+
+unionDataset
+   : LT_SQR_PRTHS subSearch RT_SQR_PRTHS
+   | tableSource
+   ;
+
 kmeansCommand
    : KMEANS (kmeansParameter)*
    ;
@@ -926,6 +942,11 @@ expression
    | left = expression comparisonOperator right = expression    # compareExpr
    | expression NOT? IN LT_PRTHS valueList RT_PRTHS             # inExpr
    | expression NOT? BETWEEN expression AND expression          # between
+   | expression IS nullNotnull                                  # isNullPredicate
+   ;
+
+nullNotnull
+   : NOT? NULL
    ;
 
 
@@ -1609,6 +1630,8 @@ wildcard
 keywordsCanBeId
    : searchableKeyWord
    | IN
+   | IS
+   | NULL
    ;
 
 searchableKeyWord
@@ -1698,6 +1721,7 @@ searchableKeyWord
    | ANOMALY_SCORE_THRESHOLD
    | COUNTFIELD
    | SHOWCOUNT
+   | MAXOUT
    | PATH
    | INPUT
    | OUTPUT
