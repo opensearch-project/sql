@@ -6,15 +6,19 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.ConstantScoreQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.query.ScriptQueryBuilder;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.FilterType;
@@ -78,6 +82,18 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
   public boolean pushDownFilter(LogicalFilter filter) {
     FilterQueryBuilder queryBuilder = new FilterQueryBuilder(new DefaultExpressionSerializer());
     Expression queryCondition = filter.getCondition();
+
+    // Reject WHERE predicates that reference the synthetic _score column. The planner surfaces
+    // _score as a projectable/filterable field, but it is not a stored document field in
+    // OpenSearch. If we let this pass through, FilterQueryBuilder produces a range query on a
+    // non-existent field and the cluster silently returns 0 rows. Users who want a score floor
+    // should use option='min_score=...' instead.
+    if (containsScoreReference(queryCondition)) {
+      throw new ExpressionEvaluationException(
+          "WHERE on _score is not supported on vectorSearch()."
+              + " Use option='min_score=...' for score-floor filtering.");
+    }
+
     QueryBuilder whereQuery;
     try {
       whereQuery = queryBuilder.build(queryCondition);
@@ -93,6 +109,16 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     filterPushed = true;
 
     if (filterType == FilterType.EFFICIENT) {
+      // knn.filter on AOSS/serverless vector collections rejects script queries. If any WHERE
+      // subtree compiled to a ScriptQueryBuilder (arithmetic, function calls, CASE, date math),
+      // refuse to embed it under knn.filter instead of shipping a request that will fail at the
+      // cluster with an opaque error.
+      if (containsScriptQuery(whereQuery)) {
+        throw new ExpressionEvaluationException(
+            "filter_type=efficient does not support predicates that compile to script queries"
+                + " (arithmetic, function calls, CASE, date math). Rewrite the WHERE clause to"
+                + " use comparable/term/range predicates, or omit filter_type.");
+      }
       QueryBuilder rebuiltKnn = rebuildKnnWithFilter.apply(whereQuery);
       requestBuilder.getSourceBuilder().query(rebuiltKnn);
     } else {
@@ -105,6 +131,14 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
 
   @Override
   public boolean pushDownLimit(LogicalLimit limit) {
+    // OFFSET on vectorSearch() silently rewrites the search window and drops top results, which
+    // defeats the entire point of a relevance-ranked top-k query. The parent path would push
+    // `from: <offset>` into the OpenSearch request; reject it explicitly so users get a clear
+    // error instead of surprising result shifts.
+    if (limit.getOffset() != null && limit.getOffset() != 0) {
+      throw new ExpressionEvaluationException(
+          "OFFSET is not supported on vectorSearch(). Remove OFFSET and use LIMIT only.");
+    }
     validateLimitWithinK(limit.getLimit());
     limitPushed = true;
     return super.pushDownLimit(limit);
@@ -149,6 +183,74 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
             String.format("LIMIT %d exceeds k=%d in top-k vector search", limit, k));
       }
     }
+  }
+
+  /**
+   * Returns true if any subexpression is a ReferenceExpression whose attr is "_score". Uses the
+   * standard ExpressionNodeVisitor so compound predicates (AND/OR/NOT, function calls, CASE) are
+   * walked uniformly.
+   */
+  private static boolean containsScoreReference(Expression expr) {
+    AtomicBoolean found = new AtomicBoolean(false);
+    expr.accept(
+        new ExpressionNodeVisitor<Void, Void>() {
+          @Override
+          public Void visitReference(ReferenceExpression node, Void context) {
+            // Case-insensitive match so _SCORE, _Score, and any quoted/backticked variant that
+            // preserves original casing cannot bypass the guard and reach the cluster as a range
+            // query on a non-existent field.
+            if (node.getAttr() != null && "_score".equalsIgnoreCase(node.getAttr())) {
+              found.set(true);
+            }
+            return null;
+          }
+        },
+        null);
+    return found.get();
+  }
+
+  /**
+   * Recursively scans a QueryBuilder tree for any ScriptQueryBuilder. Handles the common wrappers
+   * that FilterQueryBuilder produces: BoolQueryBuilder (must/should/mustNot/filter) and
+   * ConstantScoreQueryBuilder. Other QueryBuilder subtypes are leaves for our purposes: if the
+   * top-level builder itself is a ScriptQueryBuilder we catch it, otherwise we treat it as
+   * script-free.
+   */
+  private static boolean containsScriptQuery(QueryBuilder qb) {
+    if (qb == null) {
+      return false;
+    }
+    if (qb instanceof ScriptQueryBuilder) {
+      return true;
+    }
+    if (qb instanceof BoolQueryBuilder) {
+      BoolQueryBuilder bool = (BoolQueryBuilder) qb;
+      for (QueryBuilder child : bool.must()) {
+        if (containsScriptQuery(child)) {
+          return true;
+        }
+      }
+      for (QueryBuilder child : bool.filter()) {
+        if (containsScriptQuery(child)) {
+          return true;
+        }
+      }
+      for (QueryBuilder child : bool.should()) {
+        if (containsScriptQuery(child)) {
+          return true;
+        }
+      }
+      for (QueryBuilder child : bool.mustNot()) {
+        if (containsScriptQuery(child)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    if (qb instanceof ConstantScoreQueryBuilder) {
+      return containsScriptQuery(((ConstantScoreQueryBuilder) qb).innerQuery());
+    }
+    return false;
   }
 
   @Override
