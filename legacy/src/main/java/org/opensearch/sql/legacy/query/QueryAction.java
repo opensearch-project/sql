@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.legacy.query;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +13,9 @@ import java.util.Optional;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.collapse.CollapseBuilder;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
@@ -88,16 +88,15 @@ public abstract class QueryAction {
 
   protected void updateRequestWithCollapse(Select select, SearchRequestBuilder request)
       throws SqlParseException {
-    JsonFactory jsonFactory = new JsonFactory();
     for (Hint hint : select.getHints()) {
       if (hint.getType() == HintType.COLLAPSE
           && hint.getParams() != null
           && 0 < hint.getParams().length) {
-        try (JsonXContentParser parser =
-            new JsonXContentParser(
+        try (XContentParser parser =
+            JsonXContent.jsonXContent.createParser(
                 NamedXContentRegistry.EMPTY,
                 LoggingDeprecationHandler.INSTANCE,
-                jsonFactory.createParser(hint.getParams()[0].toString()))) {
+                hint.getParams()[0].toString())) {
           request.setCollapse(CollapseBuilder.fromXContent(parser));
         } catch (IOException e) {
           throw new SqlParseException("could not parse collapse hint: " + e.getMessage());
