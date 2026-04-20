@@ -228,6 +228,19 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
             });
     TableFunction tableFunction =
         new TableFunction(visitAstExpression(ctx.qualifiedName()), args.build());
+    if (ctx.alias() == null) {
+      String functionName = ctx.qualifiedName().getText();
+      // Use SemanticCheckException (not SyntaxCheckException) so the request does not fall back
+      // to the legacy SQL engine, whose opaque parser error would mask this message.
+      throw new SemanticCheckException(
+          String.format(
+              Locale.ROOT,
+              "Table function '%s' requires a table alias."
+                  + " Add an alias after the closing parenthesis, for example:"
+                  + " FROM %s(...) AS v",
+              functionName,
+              functionName));
+    }
     String alias = StringUtils.unquoteIdentifier(ctx.alias().getText());
     return new SubqueryAlias(alias, tableFunction);
   }
