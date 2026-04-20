@@ -594,6 +594,163 @@ class VectorSearchQueryBuilderTest {
     assertFalse(pushed, "Non-pushdownable filter should return false for in-memory fallback");
   }
 
+  // ── OFFSET rejection ────────────────────────────────────────────────
+
+  @Test
+  void pushDownLimit_rejectsNonZeroOffset() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    // LIMIT 3 OFFSET 2: the planner passes both through LogicalLimit
+    var limit = new LogicalLimit(dummyChild, 3, 2);
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownLimit(limit));
+    assertTrue(
+        ex.getMessage().contains("OFFSET is not supported on vectorSearch()"),
+        "Expected OFFSET rejection message, got: " + ex.getMessage());
+    assertTrue(
+        ex.getMessage().contains("LIMIT only"),
+        "Expected remediation guidance in message, got: " + ex.getMessage());
+  }
+
+  @Test
+  void pushDownLimit_acceptsZeroOffset() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var limit = new LogicalLimit(dummyChild, 3, 0);
+
+    // Zero offset is the normal case; must continue to succeed.
+    assertTrue(builder.pushDownLimit(limit));
+  }
+
+  // ── WHERE on _score rejection ────────────────────────────────────────
+
+  @Test
+  void pushDownFilter_rejectsScoreReferenceInWhere() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    // WHERE _score > 0.5 (note: _score is a synthetic column, not a stored field)
+    var condition =
+        DSL.greater(new ReferenceExpression("_score", ExprCoreType.FLOAT), DSL.literal(0.5));
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var filter = new LogicalFilter(dummyChild, condition);
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownFilter(filter));
+    assertTrue(
+        ex.getMessage().contains("WHERE on _score is not supported"),
+        "Expected _score rejection message, got: " + ex.getMessage());
+    assertTrue(
+        ex.getMessage().contains("min_score"),
+        "Expected remediation guidance pointing at option='min_score=...', got: "
+            + ex.getMessage());
+  }
+
+  @Test
+  void pushDownFilter_rejectsScoreReferenceInsideCompound() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    // WHERE state = 'TX' AND _score > 0.5: rejection must walk compound predicates
+    var condition =
+        DSL.and(
+            DSL.equal(new ReferenceExpression("state", STRING), DSL.literal("TX")),
+            DSL.greater(new ReferenceExpression("_score", ExprCoreType.FLOAT), DSL.literal(0.5)));
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var filter = new LogicalFilter(dummyChild, condition);
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownFilter(filter));
+    assertTrue(
+        ex.getMessage().contains("WHERE on _score is not supported"),
+        "Expected _score rejection message, got: " + ex.getMessage());
+  }
+
+  @Test
+  void pushDownFilter_rejectsUppercaseScoreReference() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    // WHERE _SCORE > 0.5 must be rejected the same way as _score; the check is case-insensitive
+    // so variants that preserve original casing cannot bypass the guard.
+    var condition =
+        DSL.greater(new ReferenceExpression("_SCORE", ExprCoreType.FLOAT), DSL.literal(0.5));
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var filter = new LogicalFilter(dummyChild, condition);
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownFilter(filter));
+    assertTrue(
+        ex.getMessage().contains("WHERE on _score is not supported"),
+        "Expected _score rejection message, got: " + ex.getMessage());
+  }
+
+  // ── filter_type=efficient rejects script subtrees ───────────────────
+
+  @Test
+  void pushDownFilter_efficient_rejectsScriptSubtree() {
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    Function<QueryBuilder, QueryBuilder> rebuildWithFilter =
+        whereQuery -> new WrapperQueryBuilder("{\"knn\":{\"filter\":\"embedded\"}}");
+    var builder =
+        new VectorSearchQueryBuilder(
+            requestBuilder,
+            knnQuery,
+            Map.of("k", "5"),
+            FilterType.EFFICIENT,
+            true,
+            rebuildWithFilter);
+
+    // WHERE price + 1 > 100: the outer > is not a direct field ref, so FilterQueryBuilder
+    // falls through to buildScriptQuery() and produces a ScriptQueryBuilder. Under filter_type=
+    // efficient that would be embedded under knn.filter, which AOSS rejects.
+    var condition =
+        DSL.greater(
+            DSL.add(new ReferenceExpression("price", ExprCoreType.INTEGER), DSL.literal(1)),
+            DSL.literal(100));
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var filter = new LogicalFilter(dummyChild, condition);
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownFilter(filter));
+    assertTrue(
+        ex.getMessage().contains("filter_type=efficient does not support"),
+        "Expected script rejection message, got: " + ex.getMessage());
+    assertTrue(
+        ex.getMessage().contains("script queries"),
+        "Expected script queries guidance in message, got: " + ex.getMessage());
+  }
+
+  @Test
+  void pushDownFilter_post_allowsScriptSubtree() {
+    // Under POST mode, script queries are fine: the WHERE lives in an outer bool.filter
+    // that OpenSearch evaluates against hits, not inside knn.filter. Verify we do not
+    // false-positive on the POST branch.
+    var requestBuilder = createRequestBuilder();
+    var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
+    var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
+
+    var condition =
+        DSL.greater(
+            DSL.add(new ReferenceExpression("price", ExprCoreType.INTEGER), DSL.literal(1)),
+            DSL.literal(100));
+    var dummyChild = new LogicalValues(Collections.emptyList());
+    var filter = new LogicalFilter(dummyChild, condition);
+
+    assertTrue(builder.pushDownFilter(filter), "POST mode must still accept script predicates");
+  }
+
   @Test
   void buildSucceedsRadialWithSortEmbeddedLimit() {
     var requestBuilder = createRequestBuilder();

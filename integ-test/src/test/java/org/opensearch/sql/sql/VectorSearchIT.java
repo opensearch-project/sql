@@ -263,6 +263,86 @@ public class VectorSearchIT extends SQLIntegTestCase {
         containsString("Aggregations are not supported on vectorSearch() relations"));
   }
 
+  // ── OFFSET / WHERE _score / filter_type=efficient script rejection ───
+
+  @Test
+  public void testOffsetRejected() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', "
+                        + "vector='[1.0, 2.0]', option='k=5') AS v "
+                        + "LIMIT 5 OFFSET 2"));
+
+    assertThat(ex.getMessage(), containsString("OFFSET is not supported on vectorSearch()"));
+    assertThat(ex.getMessage(), containsString("LIMIT only"));
+  }
+
+  @Test
+  public void testScoreInWhereRejected() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', "
+                        + "vector='[1.0, 2.0]', option='k=5') AS v "
+                        + "WHERE v._score > 0.5 "
+                        + "LIMIT 5"));
+
+    assertThat(ex.getMessage(), containsString("WHERE on _score is not supported"));
+    assertThat(ex.getMessage(), containsString("min_score"));
+  }
+
+  @Test
+  public void testOrderByScoreDescLimitOffsetRejected() throws IOException {
+    // The natural user shape pairs sort with pagination: ORDER BY _score DESC LIMIT N OFFSET M.
+    // The planner's pushDownSort() path can collapse the sort+limit into a top-k size, so OFFSET
+    // must still be rejected by pushDownLimit when the combined form is used. Without this guard
+    // the parent builder would push `from: <offset>` and silently shift the top-k window.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', "
+                        + "vector='[1.0, 2.0]', option='k=5') AS v "
+                        + "ORDER BY v._score DESC "
+                        + "LIMIT 5 OFFSET 2"));
+
+    assertThat(ex.getMessage(), containsString("OFFSET is not supported on vectorSearch()"));
+  }
+
+  @Test
+  public void testEfficientModeRejectsScriptPredicate() throws IOException {
+    // WHERE age + 1 > 30 compiles to a ScriptQueryBuilder under the hood because the outer >
+    // is applied to an arithmetic expression, not a direct field reference. Efficient mode
+    // cannot embed script queries under knn.filter, so this must be rejected up front with a
+    // clear remediation hint instead of a cluster-side failure.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', "
+                        + "vector='[1.0, 2.0]', option='k=5,filter_type=efficient') AS v "
+                        + "WHERE v.age + 1 > 30 "
+                        + "LIMIT 5"));
+
+    assertThat(ex.getMessage(), containsString("filter_type=efficient does not support"));
+    assertThat(ex.getMessage(), containsString("script queries"));
+  }
+
   // ── k-NN plugin capability check ──────────────────────────────────────
   // The default integ-test cluster does not have the k-NN plugin installed. Execution-path
   // queries against vectorSearch() should therefore fail with the clear "k-NN plugin missing"
