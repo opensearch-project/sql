@@ -434,4 +434,25 @@ public class VectorSearchIT extends SQLIntegTestCase {
 
     assertThat(ex.getMessage(), containsString("requires 4 arguments"));
   }
+
+  /**
+   * Users running FROM vectorSearch(...) without an AS alias previously received an opaque parser
+   * error from the legacy SQL engine fallback. The clearer SemanticCheckException from the v2
+   * engine must surface to the user instead.
+   */
+  @Test
+  public void testVectorSearchRequiresAlias() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT * FROM vectorSearch("
+                        + "table='t', field='f', vector='[1.0]', option='k=5') "
+                        + "LIMIT 3"));
+
+    String body = ex.getMessage();
+    assertThat(body, containsString("requires a table alias"));
+    assertThat(body, containsString("vectorSearch"));
+  }
 }

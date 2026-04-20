@@ -109,9 +109,9 @@ fromClause
    ;
 
 relation
-   : tableName (AS? alias)?                                         # tableAsRelation
-   | LR_BRACKET subquery = querySpecification RR_BRACKET AS? alias  # subqueryAsRelation
-   | qualifiedName LR_BRACKET tableFunctionArgs RR_BRACKET AS? alias # tableFunctionRelation
+   : tableName (AS? alias)?                                            # tableAsRelation
+   | LR_BRACKET subquery = querySpecification RR_BRACKET AS? alias     # subqueryAsRelation
+   | qualifiedName LR_BRACKET tableFunctionArgs RR_BRACKET (AS? alias)? # tableFunctionRelation
    ;
 
 tableFunctionArgs

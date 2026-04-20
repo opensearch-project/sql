@@ -6,6 +6,8 @@
 package org.opensearch.sql.sql.parser;
 
 import static java.util.Collections.emptyList;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
@@ -243,13 +245,16 @@ class AstBuilderTest extends AstBuilderTestBase {
 
   @Test
   public void table_function_relation_requires_alias() {
-    assertThrows(
-        SyntaxCheckException.class,
-        () ->
-            buildAST(
-                "SELECT * FROM vectorSearch("
-                    + "table='products', field='embedding', "
-                    + "vector='[0.1,0.2]', option='k=10')"));
+    SemanticCheckException ex =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                buildAST(
+                    "SELECT * FROM vectorSearch("
+                        + "table='products', field='embedding', "
+                        + "vector='[0.1,0.2]', option='k=10')"));
+    assertThat(ex.getMessage(), containsString("requires a table alias"));
+    assertThat(ex.getMessage(), containsString("vectorSearch"));
   }
 
   @Test
