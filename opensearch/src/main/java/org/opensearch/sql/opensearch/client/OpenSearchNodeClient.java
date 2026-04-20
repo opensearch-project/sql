@@ -102,7 +102,11 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       throw e;
     } catch (Exception e) {
       throw new IllegalStateException(
-          "Failed to read mapping for index pattern [" + indexExpression + "]", e);
+          "Failed to read mapping for index pattern ["
+              + String.join(",", indexExpression)
+              + "]: "
+              + e.getMessage(),
+          e);
     }
   }
 
@@ -132,7 +136,11 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       throw e;
     } catch (Exception e) {
       throw new IllegalStateException(
-          "Failed to read setting for index pattern [" + indexExpression + "]", e);
+          "Failed to read setting for index pattern ["
+              + String.join(",", indexExpression)
+              + "]: "
+              + e.getMessage(),
+          e);
     }
   }
 
