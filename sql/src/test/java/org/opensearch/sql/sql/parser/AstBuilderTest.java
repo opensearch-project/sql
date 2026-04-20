@@ -44,6 +44,7 @@ import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 class AstBuilderTest extends AstBuilderTestBase {
 
@@ -249,6 +250,22 @@ class AstBuilderTest extends AstBuilderTestBase {
                 "SELECT * FROM vectorSearch("
                     + "table='products', field='embedding', "
                     + "vector='[0.1,0.2]', option='k=10')"));
+  }
+
+  @Test
+  public void table_function_relation_rejects_positional_argument() {
+    // Grammar accepts both `ident=value` and bare `value` for each table function argument so
+    // the real positional shape reaches the V2 AstBuilder. The AstBuilder must reject it with a
+    // SemanticCheckException rather than let the request fall back to the legacy engine.
+    SemanticCheckException ex =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                buildAST(
+                    "SELECT * FROM vectorSearch('products', field='embedding', "
+                        + "vector='[0.1,0.2]', option='k=10') AS v"));
+    org.junit.jupiter.api.Assertions.assertTrue(
+        ex.getMessage().contains("requires named arguments"));
   }
 
   @Test

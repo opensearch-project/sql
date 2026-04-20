@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.FunctionBuilder;
@@ -78,9 +79,10 @@ class VectorSearchTableFunctionResolverTest {
     Pair<FunctionSignature, FunctionBuilder> resolution = resolver.resolve(functionSignature);
     FunctionBuilder builder = resolution.getValue();
 
-    IllegalArgumentException ex =
+    ExpressionEvaluationException ex =
         assertThrows(
-            IllegalArgumentException.class, () -> builder.apply(functionProperties, expressions));
+            ExpressionEvaluationException.class,
+            () -> builder.apply(functionProperties, expressions));
     assertTrue(ex.getMessage().contains("requires 4 arguments"));
   }
 
@@ -103,9 +105,10 @@ class VectorSearchTableFunctionResolverTest {
     Pair<FunctionSignature, FunctionBuilder> resolution = resolver.resolve(functionSignature);
     FunctionBuilder builder = resolution.getValue();
 
-    IllegalArgumentException ex =
+    ExpressionEvaluationException ex =
         assertThrows(
-            IllegalArgumentException.class, () -> builder.apply(functionProperties, expressions));
+            ExpressionEvaluationException.class,
+            () -> builder.apply(functionProperties, expressions));
     assertTrue(ex.getMessage().contains("requires 4 arguments"));
   }
 
@@ -122,9 +125,84 @@ class VectorSearchTableFunctionResolverTest {
     Pair<FunctionSignature, FunctionBuilder> resolution = resolver.resolve(functionSignature);
     FunctionBuilder builder = resolution.getValue();
 
-    IllegalArgumentException ex =
+    ExpressionEvaluationException ex =
         assertThrows(
-            IllegalArgumentException.class, () -> builder.apply(functionProperties, expressions));
+            ExpressionEvaluationException.class,
+            () -> builder.apply(functionProperties, expressions));
     assertTrue(ex.getMessage().contains("requires 4 arguments"));
+  }
+
+  @Test
+  void resolve_rejectsPositionalArgument() {
+    VectorSearchTableFunctionResolver resolver =
+        new VectorSearchTableFunctionResolver(client, settings);
+    FunctionName functionName = FunctionName.of("vectorsearch");
+    // One positional literal mixed with three named arguments. Arity passes, but the resolver
+    // must reject this before planning so the SQL layer returns a clean 400 rather than a 200
+    // with zero rows.
+    List<Expression> expressions =
+        List.of(
+            DSL.literal("my-index"),
+            DSL.namedArgument("field", DSL.literal("embedding")),
+            DSL.namedArgument("vector", DSL.literal("[1.0, 2.0]")),
+            DSL.namedArgument("option", DSL.literal("k=5")));
+    FunctionSignature functionSignature =
+        new FunctionSignature(
+            functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
+    FunctionBuilder builder = resolver.resolve(functionSignature).getValue();
+
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> builder.apply(functionProperties, expressions));
+    assertTrue(ex.getMessage().contains("requires named arguments"));
+  }
+
+  @Test
+  void resolve_rejectsDuplicateNamedArgument() {
+    VectorSearchTableFunctionResolver resolver =
+        new VectorSearchTableFunctionResolver(client, settings);
+    FunctionName functionName = FunctionName.of("vectorsearch");
+    List<Expression> expressions =
+        List.of(
+            DSL.namedArgument("table", DSL.literal("a")),
+            DSL.namedArgument("table", DSL.literal("b")),
+            DSL.namedArgument("vector", DSL.literal("[1.0]")),
+            DSL.namedArgument("option", DSL.literal("k=5")));
+    FunctionSignature functionSignature =
+        new FunctionSignature(
+            functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
+    FunctionBuilder builder = resolver.resolve(functionSignature).getValue();
+
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> builder.apply(functionProperties, expressions));
+    assertTrue(ex.getMessage().contains("Duplicate argument name"));
+    assertTrue(ex.getMessage().contains("table"));
+  }
+
+  @Test
+  void resolve_rejectsUnknownArgumentName() {
+    VectorSearchTableFunctionResolver resolver =
+        new VectorSearchTableFunctionResolver(client, settings);
+    FunctionName functionName = FunctionName.of("vectorsearch");
+    List<Expression> expressions =
+        List.of(
+            DSL.namedArgument("table", DSL.literal("my-index")),
+            DSL.namedArgument("field", DSL.literal("embedding")),
+            DSL.namedArgument("vector", DSL.literal("[1.0, 2.0]")),
+            DSL.namedArgument("bogus", DSL.literal("k=5")));
+    FunctionSignature functionSignature =
+        new FunctionSignature(
+            functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
+    FunctionBuilder builder = resolver.resolve(functionSignature).getValue();
+
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> builder.apply(functionProperties, expressions));
+    assertTrue(ex.getMessage().contains("Unknown argument name"));
+    assertTrue(ex.getMessage().contains("bogus"));
   }
 }

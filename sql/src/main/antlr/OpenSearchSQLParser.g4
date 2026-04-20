@@ -120,6 +120,7 @@ tableFunctionArgs
 
 tableFunctionArg
    : ident EQUAL_SYMBOL functionArg
+   | functionArg
    ;
 
 whereClause

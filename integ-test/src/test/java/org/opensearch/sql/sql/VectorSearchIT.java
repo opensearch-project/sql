@@ -300,4 +300,138 @@ public class VectorSearchIT extends SQLIntegTestCase {
 
     assertThat(explain, containsString("wrapper"));
   }
+
+  // ── Argument shape validation (PR B) ──────────────────────────────────
+
+  @Test
+  public void testInvalidTableNameRejected() throws IOException {
+    // A slash is outside the SAFE_FIELD_NAME regex and is not a valid OpenSearch index character,
+    // so it should be rejected at the SQL layer before any cluster call is attempted.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='idx/evil', field='f', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("Invalid table name"));
+  }
+
+  @Test
+  public void testDuplicateNamedArgRejected() throws IOException {
+    // Previously this crashed the server with 500 ArrayIndexOutOfBoundsException. Must now
+    // surface as a clean 400 with a user-facing message.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='a', table='b', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("Duplicate argument name"));
+  }
+
+  @Test
+  public void testUnknownNamedArgRejected() throws IOException {
+    // A grammar-legal but unknown name must surface as a clean 400 from the resolver.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(bogus='idx', field='f', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("Unknown argument name"));
+  }
+
+  @Test
+  public void testPositionalArgRejected() throws IOException {
+    // The real shape a user would hit: `vectorSearch('idx', field=..., vector=..., option=...)`.
+    // The V2 grammar now accepts this form so the AstBuilder can surface a clean
+    // SemanticCheckException instead of letting the request fall back to the legacy SQL engine,
+    // which previously returned 200 with zero rows.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch('idx', field='embedding', "
+                        + "vector='[1.0, 1.0]', option='k=3') AS v LIMIT 3"));
+
+    assertThat(ex.getMessage(), containsString("requires named arguments"));
+  }
+
+  @Test
+  public void testCaseInsensitiveDuplicateArgRejected() throws IOException {
+    // Argument names are normalized to lower-case, so `table` and `TABLE` must be treated as the
+    // same key and rejected as a duplicate rather than silently keeping one of the two values.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='a', TABLE='b', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("Duplicate argument name"));
+  }
+
+  @Test
+  public void testTableNameAllRejected() throws IOException {
+    // `_all` would fan out to every index. The preview contract is a single concrete index or
+    // alias, so it must be rejected explicitly rather than allowed to route broadly.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='_all', field='f', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("Invalid table name"));
+  }
+
+  @Test
+  public void testTableNameSingleDotRejected() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='.', field='f', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("Invalid table name"));
+  }
+
+  @Test
+  public void testTableNameDoubleDotRejected() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='..', field='f', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("Invalid table name"));
+  }
+
+  @Test
+  public void testMissingRequiredArgRejected() throws IOException {
+    // Omitting a required named argument (here: `field`) must produce a clean 400 rather than a
+    // NullPointerException or a legacy-engine fallback.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='a', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("requires 4 arguments"));
+  }
 }
