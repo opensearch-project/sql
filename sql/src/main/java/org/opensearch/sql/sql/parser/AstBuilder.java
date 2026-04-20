@@ -42,6 +42,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QuerySpecificationContext;
@@ -195,6 +196,26 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitTableFunctionRelation(TableFunctionRelationContext ctx) {
+    // The grammar accepts both `ident = value` and bare `value` forms for each table function
+    // argument so that the real positional shape (e.g. `vectorSearch('idx', field='f', ...)`)
+    // reaches this V2 builder instead of failing to parse and silently falling back to the
+    // legacy SQL engine. Reject the positional shape here with a SemanticCheckException so the
+    // user receives a clean 400 rather than an opaque legacy parser error.
+    ctx.tableFunctionArgs()
+        .tableFunctionArg()
+        .forEach(
+            arg -> {
+              if (arg.ident() == null) {
+                String functionName = ctx.qualifiedName().getText();
+                throw new SemanticCheckException(
+                    String.format(
+                        Locale.ROOT,
+                        "Table function '%s' requires named arguments (e.g. name='value'),"
+                            + " but received a positional argument: %s",
+                        functionName,
+                        arg.functionArg().getText()));
+              }
+            });
     ImmutableList.Builder<UnresolvedExpression> args = ImmutableList.builder();
     ctx.tableFunctionArgs()
         .tableFunctionArg()

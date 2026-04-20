@@ -10,6 +10,7 @@ import static org.opensearch.sql.opensearch.storage.VectorSearchTableFunctionRes
 import static org.opensearch.sql.opensearch.storage.VectorSearchTableFunctionResolver.TABLE;
 import static org.opensearch.sql.opensearch.storage.VectorSearchTableFunctionResolver.VECTOR;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +41,8 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
 
   /**
    * Field names must be safe for JSON interpolation: alphanumeric, dots (nested), underscores,
-   * hyphens. Rejects characters that could corrupt the WrapperQueryBuilder JSON.
+   * hyphens. Rejects characters that could corrupt the WrapperQueryBuilder JSON. The same regex is
+   * reused for table names so user-supplied identifiers cannot break out of the JSON context.
    */
   private static final Pattern SAFE_FIELD_NAME = Pattern.compile("^[a-zA-Z0-9._\\-]+$");
 
@@ -99,6 +101,7 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     // clusters without k-NN.
     validateNamedArgs();
     String tableName = getArgumentValue(TABLE);
+    validateTableName(tableName);
     String fieldName = getArgumentValue(FIELD);
     validateFieldName(fieldName);
     String vectorLiteral = getArgumentValue(VECTOR);
@@ -162,8 +165,12 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     return options;
   }
 
-  /** Reject non-named arguments and null arg names early. */
+  /**
+   * Reject non-named arguments, null arg names, and duplicate named arguments early. Runs before
+   * any list-index-based lookup so a malformed argument list can never cause an AIOOBE downstream.
+   */
   private void validateNamedArgs() {
+    HashSet<String> seen = new HashSet<>();
     for (Expression arg : arguments) {
       if (!(arg instanceof NamedArgumentExpression)) {
         throw new ExpressionEvaluationException(
@@ -177,6 +184,39 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
             "vectorSearch() requires named arguments (e.g., table='index'), "
                 + "but received an argument with no name");
       }
+      if (!seen.add(name.toLowerCase(java.util.Locale.ROOT))) {
+        throw new ExpressionEvaluationException(
+            "Duplicate argument name '"
+                + name
+                + "' in vectorSearch(); each named argument may appear at most once");
+      }
+    }
+  }
+
+  /**
+   * Reject table names with characters that could corrupt the WrapperQueryBuilder JSON or escape
+   * the target index name. Allows alphanumeric, dots, underscores, and hyphens (the characters
+   * OpenSearch index names already permit). Explicitly rejects the `_all` routing target and the
+   * pathologic `.` / `..` names because those either fan out to every index or are not valid
+   * concrete index names. Other native-invalid names (leading dot, leading hyphen, bare underscore,
+   * uppercase, and so on) are intentionally passed through for the OpenSearch client to reject with
+   * its own error message.
+   */
+  private void validateTableName(String tableName) {
+    if (!SAFE_FIELD_NAME.matcher(tableName).matches()) {
+      throw new ExpressionEvaluationException(
+          String.format(
+              "Invalid table name '%s': must contain only alphanumeric characters,"
+                  + " dots, underscores, or hyphens",
+              tableName));
+    }
+    String lower = tableName.toLowerCase(java.util.Locale.ROOT);
+    if (lower.equals("_all") || tableName.equals(".") || tableName.equals("..")) {
+      throw new ExpressionEvaluationException(
+          String.format(
+              "Invalid table name '%s': vectorSearch() requires a single concrete index or alias;"
+                  + " '_all', '.', and '..' are not supported",
+              tableName));
     }
   }
 

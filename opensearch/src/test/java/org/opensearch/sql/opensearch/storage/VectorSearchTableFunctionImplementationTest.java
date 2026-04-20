@@ -458,6 +458,65 @@ class VectorSearchTableFunctionImplementationTest {
     assertEquals("post", options.get("filter_type"));
   }
 
+  @Test
+  void applyArguments_rejectsInvalidTableName() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("idx\"; DROP", "embedding", "[1.0, 2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Invalid table name"));
+    assertTrue(
+        ex.getMessage()
+            .contains("must contain only alphanumeric characters, dots, underscores, or hyphens"));
+  }
+
+  @Test
+  void applyArguments_rejectsAllRoutingTarget() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("_all", "embedding", "[1.0, 2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Invalid table name"));
+    assertTrue(ex.getMessage().contains("_all"));
+  }
+
+  @Test
+  void applyArguments_rejectsSingleDotTable() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs(".", "embedding", "[1.0, 2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Invalid table name"));
+  }
+
+  @Test
+  void applyArguments_rejectsDoubleDotTable() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("..", "embedding", "[1.0, 2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Invalid table name"));
+  }
+
+  @Test
+  void validateNamedArgs_rejectsDuplicateNames() {
+    // Two occurrences of "table" reach the Implementation layer directly (bypassing the resolver).
+    FunctionName functionName = FunctionName.of("vectorsearch");
+    List<Expression> args =
+        List.of(
+            DSL.namedArgument("table", DSL.literal("a")),
+            DSL.namedArgument("table", DSL.literal("b")),
+            DSL.namedArgument("vector", DSL.literal("[1.0]")),
+            DSL.namedArgument("option", DSL.literal("k=5")));
+    VectorSearchTableFunctionImplementation impl =
+        new VectorSearchTableFunctionImplementation(
+            functionName, args, client, settings, knnCapability);
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Duplicate argument name"));
+    assertTrue(ex.getMessage().contains("table"));
+  }
+
   private VectorSearchTableFunctionImplementation createImpl() {
     return createImplWithArgs("my-index", "embedding", "[1.0, 2.0, 3.0]", "k=5");
   }
