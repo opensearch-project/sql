@@ -18,7 +18,6 @@ import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +27,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHits;
@@ -283,10 +282,8 @@ public class ConditionalIT extends SQLIntegTestCase {
     final String rsp = executeQueryWithStringOutput(query);
 
     final XContentParser parser =
-        new JsonXContentParser(
-            NamedXContentRegistry.EMPTY,
-            LoggingDeprecationHandler.INSTANCE,
-            new JsonFactory().createParser(rsp));
+        JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, rsp);
     return SearchResponse.fromXContent(parser).getHits();
   }
 }

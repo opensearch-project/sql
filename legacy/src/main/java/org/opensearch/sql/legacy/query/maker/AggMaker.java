@@ -6,7 +6,6 @@
 package org.opensearch.sql.legacy.query.maker;
 
 import com.alibaba.druid.sql.ast.expr.SQLAggregateOption;
-import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.ZoneOffset;
@@ -19,7 +18,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.json.JsonXContent;
-import org.opensearch.common.xcontent.json.JsonXContentParser;
 import org.opensearch.core.common.ParsingException;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -340,11 +338,9 @@ public class AggMaker {
               terms.order(BucketOrder.key(false));
             } else {
               List<BucketOrder> orderElements = new ArrayList<>();
-              try (JsonXContentParser parser =
-                  new JsonXContentParser(
-                      NamedXContentRegistry.EMPTY,
-                      LoggingDeprecationHandler.INSTANCE,
-                      new JsonFactory().createParser(value))) {
+              try (XContentParser parser =
+                  JsonXContent.jsonXContent.createParser(
+                      NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, value)) {
                 XContentParser.Token currentToken = parser.nextToken();
                 if (currentToken == XContentParser.Token.START_OBJECT) {
                   orderElements.add(InternalOrder.Parser.parseOrderParam(parser));

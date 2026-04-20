@@ -15,7 +15,7 @@ calcite:
         EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
           EnumerableAggregate(group=[{}], patterns_field=[pattern($0, $1, $2, $3)])
             EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=[100000], expr#3=[true], proj#0..3=[{exprs}])
-              CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[email]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["email"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+              CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[email]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["email"]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
           EnumerableUncollect
             EnumerableCalc(expr#0=[{inputs}], expr#1=[$cor0], expr#2=[$t1.patterns_field], patterns_field=[$t2])
               EnumerableValues(tuples=[[{ 0 }]])

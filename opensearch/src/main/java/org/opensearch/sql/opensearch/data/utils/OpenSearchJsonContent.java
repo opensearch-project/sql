@@ -19,7 +19,7 @@ import org.opensearch.OpenSearchParseException;
 import org.opensearch.common.Numbers;
 import org.opensearch.common.geo.GeoPoint;
 import org.opensearch.common.geo.GeoUtils;
-import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
@@ -149,10 +149,10 @@ public class OpenSearchJsonContent implements Content {
   public Pair<Double, Double> geoValue() {
     final JsonNode value = value();
     try (XContentParser parser =
-        new JsonXContentParser(
+        JsonXContent.jsonXContent.createParser(
             NamedXContentRegistry.EMPTY,
             DeprecationHandler.IGNORE_DEPRECATIONS,
-            value.traverse())) {
+            value.toString())) {
       parser.nextToken();
       GeoPoint point = new GeoPoint();
       GeoUtils.parseGeoPoint(parser, point, true);
