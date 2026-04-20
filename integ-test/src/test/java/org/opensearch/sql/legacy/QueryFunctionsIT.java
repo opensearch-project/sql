@@ -13,7 +13,6 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PHRASE;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,7 +29,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
@@ -242,10 +241,8 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
     final JSONObject jsonObject = executeQuery(sql);
 
     final XContentParser parser =
-        new JsonXContentParser(
-            NamedXContentRegistry.EMPTY,
-            LoggingDeprecationHandler.INSTANCE,
-            new JsonFactory().createParser(jsonObject.toString()));
+        JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, jsonObject.toString());
     return SearchResponse.fromXContent(parser);
   }
 }
