@@ -75,6 +75,22 @@ public class VectorSearchIndex extends OpenSearchIndex {
 
   @Override
   public TableScanBuilder createScanBuilder() {
+    // Reject mappings that declare a user field named _score. OpenSearch rejects _id (and most
+    // other metadata names) at mapping time, but _score is not blocked there, so a user index
+    // can legitimately contain a stored _score field. If it did, the response path would collide
+    // with the synthetic v._score column (both get written to the same tuple key) and the query
+    // would fail with an opaque duplicate-key error. We check here so the user sees a clear,
+    // actionable SQL error instead, and so _explain surfaces the problem without sending a
+    // request to k-NN. Running in createScanBuilder keeps this out of the AstBuilder /
+    // TableFunction resolver paths which are off-limits for this change.
+    if (getFieldTypes().containsKey("_score")) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Index '%s' defines a user field named '_score' that collides with the synthetic"
+                  + " _score column exposed by vectorSearch(). Rename the stored field or query"
+                  + " the index without vectorSearch().",
+              getIndexName()));
+    }
     final TimeValue cursorKeepAlive =
         getSettings().getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
     var requestBuilder = createRequestBuilder();
