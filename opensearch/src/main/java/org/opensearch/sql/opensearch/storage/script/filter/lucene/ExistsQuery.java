@@ -45,6 +45,17 @@ public class ExistsQuery extends LuceneQuery {
         && !isNestedFunction(func.getArguments().get(0));
   }
 
+  /**
+   * Unary IS NULL / IS NOT NULL has no {@code arg[1]}, so we must never route through {@link
+   * org.opensearch.sql.opensearch.storage.script.filter.lucene.NestedQuery#buildNested} — that path
+   * reads {@code func.getArguments().get(1)} and would throw. Returning {@code false} here forces
+   * {@code FilterQueryBuilder} to fall back to the script-query path for nested-field predicates.
+   */
+  @Override
+  public boolean isNestedPredicate(FunctionExpression func) {
+    return false;
+  }
+
   @Override
   public QueryBuilder build(FunctionExpression func) {
     ReferenceExpression ref = (ReferenceExpression) func.getArguments().get(0);
