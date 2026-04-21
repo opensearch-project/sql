@@ -137,6 +137,7 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     if (ex == null) {
       return 0;
     }
-    return ex.getExpectedTokens().size();
+    IntervalSet expectedTokens = ex.getExpectedTokens();
+    return expectedTokens != null ? expectedTokens.size() : 0;
   }
 }
