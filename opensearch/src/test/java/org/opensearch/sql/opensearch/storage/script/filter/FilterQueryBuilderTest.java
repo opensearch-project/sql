@@ -174,20 +174,35 @@ class FilterQueryBuilderTest {
   }
 
   @Test
-  void should_build_script_query_for_unsupported_lucene_query() {
-    mockToStringSerializer();
+  void should_build_exists_query_for_is_not_null() {
     assertJsonEquals(
         "{\n"
-            + "  \"script\" : {\n"
-            + "    \"script\" : {\n"
-            + "      \"source\" : \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"is not"
-            + " null(age)\\\"}\",\n"
-            + "      \"lang\" : \"opensearch_compounded_script\"\n"
-            + "    },\n"
+            + "  \"exists\" : {\n"
+            + "    \"field\" : \"age\",\n"
             + "    \"boost\" : 1.0\n"
             + "  }\n"
             + "}",
         buildQuery(DSL.isnotnull(ref("age", INTEGER))));
+  }
+
+  @Test
+  void should_build_must_not_exists_query_for_is_null() {
+    assertJsonEquals(
+        "{\n"
+            + "  \"bool\" : {\n"
+            + "    \"must_not\" : [\n"
+            + "      {\n"
+            + "        \"exists\" : {\n"
+            + "          \"field\" : \"age\",\n"
+            + "          \"boost\" : 1.0\n"
+            + "        }\n"
+            + "      }\n"
+            + "    ],\n"
+            + "    \"adjust_pure_negative\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        buildQuery(DSL.is_null(ref("age", INTEGER))));
   }
 
   @Test
