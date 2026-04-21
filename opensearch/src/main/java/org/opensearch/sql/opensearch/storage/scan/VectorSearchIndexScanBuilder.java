@@ -66,8 +66,8 @@ public class VectorSearchIndexScanBuilder extends OpenSearchIndexScanBuilder {
    *       LogicalFilter}. Projects only matter below a filter, so without a filter ancestor a
    *       project is just the outer SELECT and should not trigger rejection.
    *   <li>{@code sawProjectSinceFilter} — true iff a {@link LogicalProject} has been seen between
-   *       <em>any</em> enclosing filter ancestor and the current position. Once an outer Filter
-   *       has been separated from the scan by a Project, that separation is permanent — a lower
+   *       <em>any</em> enclosing filter ancestor and the current position. Once an outer Filter has
+   *       been separated from the scan by a Project, that separation is permanent — a lower
    *       LogicalFilter below the Project does not undo the outer boundary.
    * </ul>
    *
