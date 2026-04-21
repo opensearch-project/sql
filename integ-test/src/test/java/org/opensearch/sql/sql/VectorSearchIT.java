@@ -301,7 +301,7 @@ public class VectorSearchIT extends SQLIntegTestCase {
     assertThat(explain, containsString("wrapper"));
   }
 
-  // ── Argument shape validation (PR B) ──────────────────────────────────
+  // ── Argument shape validation ─────────────────────────────────────────
 
   @Test
   public void testInvalidTableNameRejected() throws IOException {
