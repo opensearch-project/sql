@@ -66,13 +66,15 @@ public class VectorSearchIndexScanBuilder extends OpenSearchIndexScanBuilder {
    *       LogicalFilter}. Projects only matter below a filter, so without a filter ancestor a
    *       project is just the outer SELECT and should not trigger rejection.
    *   <li>{@code sawProjectSinceFilter} — true iff a {@link LogicalProject} has been seen between
-   *       the <em>nearest enclosing</em> filter and the current position. That project is the
-   *       subquery-boundary marker that separates "outer WHERE on a subquery" (bad) from "WHERE
-   *       directly on vectorSearch()" (fine, handled by push-down).
+   *       <em>any</em> enclosing filter ancestor and the current position. Once an outer Filter
+   *       has been separated from the scan by a Project, that separation is permanent — a lower
+   *       LogicalFilter below the Project does not undo the outer boundary.
    * </ul>
    *
-   * <p>Entering a new {@link LogicalFilter} resets {@code sawProjectSinceFilter} to false because
-   * the nearest enclosing filter is now this one, and the contract is evaluated from here down.
+   * <p>This matters for shapes like {@code Filter(outer) -> Project(subquery) -> Filter(inner) ->
+   * Scan}, where the outer predicate is still blocked from reaching the push-down contract by the
+   * subquery Project regardless of the inner filter. Resetting {@code sawProjectSinceFilter} when
+   * entering the inner filter would make the walker miss this shape.
    */
   private void checkForOuterFilter(
       LogicalPlan node, boolean insideFilter, boolean sawProjectSinceFilter) {
@@ -83,18 +85,15 @@ public class VectorSearchIndexScanBuilder extends OpenSearchIndexScanBuilder {
                 + " push into the k-NN search and would be applied only after top-k results have"
                 + " been selected by vector distance, which can silently yield zero rows."
                 + " Move the predicate inside the subquery (WHERE directly on vectorSearch()) so"
-                + " it is applied during the k-NN search.");
+                + " it can participate in the vectorSearch WHERE pushdown contract.");
       }
       return;
     }
     boolean nextInsideFilter = insideFilter;
     boolean nextSawProject = sawProjectSinceFilter;
     if (node instanceof LogicalFilter) {
-      // Entering a new filter: nearest enclosing filter is now this one, reset project marker.
       nextInsideFilter = true;
-      nextSawProject = false;
     } else if (node instanceof LogicalProject && insideFilter) {
-      // A project between the nearest enclosing filter and a scan builder is the bug marker.
       nextSawProject = true;
     }
     for (LogicalPlan child : node.getChild()) {

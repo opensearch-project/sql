@@ -94,6 +94,30 @@ public class VectorSearchSubqueryIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testOuterWhereWithInnerWhereStillRejected() throws IOException {
+    // Outer WHERE must be rejected even when the subquery already has its own inner WHERE.
+    // The shape reaches the planner as Filter(outer) -> Project -> Filter(inner) -> Scan, and
+    // the outer predicate is still separated from the k-NN search by the subquery project
+    // boundary. Without preserving the project marker across the inner filter, the walker
+    // would miss this shape and the outer predicate would silently produce zero rows.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT * FROM (SELECT v.firstname, v.state, v.age "
+                        + "FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v "
+                        + "WHERE v.age > 10) t "
+                        + "WHERE t.state = 'TX'"));
+
+    assertThat(
+        ex.getMessage(),
+        containsString("Outer WHERE on a vectorSearch() subquery is not supported"));
+  }
+
+  @Test
   public void testInnerWhereStillWorks() throws IOException {
     // Positive control: WHERE directly on vectorSearch() inside the subquery must still plan
     // successfully — the rejection is scoped to OUTER filters that cannot reach the push-down
