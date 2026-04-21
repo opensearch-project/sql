@@ -447,4 +447,131 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
         "Efficient mode knn JSON should contain the WHERE predicate field:\n" + knnJson,
         knnJson.contains("state"));
   }
+
+  // ── BETWEEN / NOT IN pushdown regression guards ─────────────────────
+  // These tests lock in the DSL shape currently produced for BETWEEN and NOT IN predicates
+  // when pushed down through vectorSearch(). They exist to catch silent regressions where a
+  // change in the v2 FilterQueryBuilder pipeline would fall back to a serialized script query
+  // instead of the native range/bool shape the cluster can index-accelerate.
+
+  @Test
+  public void testBetweenPushesAsRange() throws IOException {
+    String explain =
+        explainQuery(
+            "SELECT v._id, v._score "
+                + "FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', "
+                + "vector='[1.0, 2.0, 3.0]', option='k=10') AS v "
+                + "WHERE v.balance BETWEEN 50 AND 200 "
+                + "LIMIT 10");
+
+    // BETWEEN is desugared by the analyzer into AND(>=, <=), which FilterQueryBuilder renders as
+    // two range clauses combined under a bool. The goal here is regression lock-in: ensure the
+    // pushed filter is native range DSL, not a serialized script query.
+    String sourceBuilderJson = extractSourceBuilderJson(explain);
+    assertTrue(
+        "Explain should contain bool query:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"bool\""));
+    assertTrue(
+        "Explain should contain must clause (knn in scoring context):\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"must\""));
+    assertTrue(
+        "Explain should contain filter clause (WHERE in non-scoring context):\n"
+            + sourceBuilderJson,
+        sourceBuilderJson.contains("\"filter\""));
+    assertTrue(
+        "BETWEEN should push as native range DSL:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"range\""));
+    assertTrue(
+        "Range should target balance field:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"balance\""));
+    // RangeQueryBuilder serializes inclusive bounds as from/to + include_lower/include_upper. Lock
+    // both the lower bound (50) and upper bound (200) are present in the pushed DSL.
+    assertTrue(
+        "Range should contain lower bound 50:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"from\" : 50") || sourceBuilderJson.contains("\"from\":50"));
+    assertTrue(
+        "Range should contain upper bound 200:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"to\" : 200") || sourceBuilderJson.contains("\"to\":200"));
+    // Script-query fallback sentinel: the CompoundedScriptEngine lang marker must NOT appear when
+    // BETWEEN is pushed down natively.
+    assertFalse(
+        "BETWEEN must not fall back to a serialized script query:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"script\""));
+
+    // POST-filter mode (default): the WHERE predicate must live OUTSIDE the knn payload.
+    String knnJson = decodeSoleKnnJson(explain);
+    assertTrue("knn JSON should contain knn key:\n" + knnJson, knnJson.contains("\"knn\""));
+    assertFalse(
+        "Post-filter mode must not embed the balance predicate inside knn:\n" + knnJson,
+        knnJson.contains("balance"));
+    assertFalse(
+        "Post-filter mode must not embed a range inside knn:\n" + knnJson,
+        knnJson.contains("range"));
+  }
+
+  @Test
+  public void testNotInPushesAsMustNotTerms() throws IOException {
+    String explain =
+        explainQuery(
+            "SELECT v._id, v._score "
+                + "FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', "
+                + "vector='[1.0, 2.0, 3.0]', option='k=10') AS v "
+                + "WHERE v.gender NOT IN ('M', 'F') "
+                + "LIMIT 10");
+
+    // v2 analyzer desugars `x NOT IN (a, b)` into `NOT(x = a OR x = b)`. FilterQueryBuilder maps
+    // NOT to bool.must_not and OR to bool.should, so the pushed DSL is must_not[should[term,term]]
+    // rather than a single terms clause. The shape we're locking in is: native bool with must_not
+    // on the keyword subfield, *not* a serialized script query.
+    String sourceBuilderJson = extractSourceBuilderJson(explain);
+    assertTrue(
+        "Explain should contain bool query:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"bool\""));
+    assertTrue(
+        "Explain should contain must clause (knn in scoring context):\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"must\""));
+    assertTrue(
+        "Explain should contain filter clause (WHERE in non-scoring context):\n"
+            + sourceBuilderJson,
+        sourceBuilderJson.contains("\"filter\""));
+    assertTrue(
+        "NOT IN should push as bool.must_not:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"must_not\""));
+    // OR-of-equals desugaring means the two literals land in a bool.should of term clauses.
+    assertTrue(
+        "NOT IN should contain should clause for OR-of-equals desugaring:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"should\""));
+    assertTrue(
+        "NOT IN should produce term clauses for each literal:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"term\""));
+    // Terms target the keyword subfield of gender (text field with .keyword multi-field).
+    assertTrue(
+        "NOT IN term clauses should target gender.keyword:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"gender.keyword\""));
+    // Both literals must be present in the pushed DSL.
+    assertTrue(
+        "NOT IN should contain the 'M' literal:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"M\""));
+    assertTrue(
+        "NOT IN should contain the 'F' literal:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"F\""));
+    // Script-query fallback sentinel: native pushdown must not degrade to a serialized script.
+    assertFalse(
+        "NOT IN must not fall back to a serialized script query:\n" + sourceBuilderJson,
+        sourceBuilderJson.contains("\"script\""));
+
+    // POST-filter mode (default): the WHERE predicate must live OUTSIDE the knn payload.
+    String knnJson = decodeSoleKnnJson(explain);
+    assertTrue("knn JSON should contain knn key:\n" + knnJson, knnJson.contains("\"knn\""));
+    assertFalse(
+        "Post-filter mode must not embed the gender predicate inside knn:\n" + knnJson,
+        knnJson.contains("gender"));
+    assertFalse(
+        "Post-filter mode must not embed must_not inside knn:\n" + knnJson,
+        knnJson.contains("must_not"));
+  }
 }
