@@ -133,13 +133,16 @@ jobs:
           mkdir -p opensearch-sql-builds
           cp -r ./plugin/build/distributions/*.zip opensearch-sql-builds/
 
-      - name: Upload SQL Coverage Report
-        if: ${{ always() }}
-        uses: codecov/codecov-action@v4
-        continue-on-error: true
-        with:
-          flags: sql-engine
-          token: ${{ secrets.CODECOV_TOKEN }}
+      # Codecov disabled as it's been broken for a while and nontrivial to reactivate.
+      # Re-enable if you dare.
+      #
+      # - name: Upload SQL Coverage Report
+      #   if: ${{ always() }}
+      #   uses: codecov/codecov-action@v4
+      #   continue-on-error: true
+      #   with:
+      #     flags: sql-engine
+      #     token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload Artifacts
         if: ${{ matrix.test-type == 'unit' }}
@@ -176,8 +179,8 @@ jobs:
         entry:
           - { os: windows-latest, java: 21, os_build_args: -PbuildPlatform=windows }
           - { os: windows-latest, java: 25, os_build_args: -PbuildPlatform=windows }
-          - { os: macos-14, java: 21, os_build_args: '' }
-          - { os: macos-14, java: 25, os_build_args: '' }
+          - { os: macos-latest, java: 21, os_build_args: '' }
+          - { os: macos-latest, java: 25, os_build_args: '' }
         test-type: ['unit', 'integration', 'doc']
         exclude:
           # Exclude doctest for Windows
@@ -218,13 +221,16 @@ jobs:
           mkdir -p opensearch-sql-builds
           cp -r ./plugin/build/distributions/*.zip opensearch-sql-builds/
 
-      - name: Upload SQL Coverage Report
-        if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
-        uses: codecov/codecov-action@v4
-        continue-on-error: true
-        with:
-          flags: sql-engine
-          token: ${{ secrets.CODECOV_TOKEN }}
+      # Codecov disabled as it's been broken for a while and nontrivial to reactivate.
+      # Re-enable if you dare.
+      #
+      # - name: Upload SQL Coverage Report
+      #   if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
+      #   uses: codecov/codecov-action@v4
+      #   continue-on-error: true
+      #   with:
+      #     flags: sql-engine
+      #     token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload Artifacts
         if: ${{ matrix.test-type == 'unit' }}
@@ -384,7 +390,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-latest, macos-14 ]
+        os: [ windows-latest, macos-latest ]
         java: [21, 25]
     runs-on: ${{ matrix.os }}
 
