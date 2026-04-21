@@ -19,7 +19,7 @@ on:
   merge_group:
 
 jobs:
-  assemble-linux:
+  compile-linux:
     strategy:
       fail-fast: false
       matrix:
@@ -36,11 +36,11 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: 'gradle'
 
-      - name: Assemble
+      - name: Compile
         run: |
-          ./gradlew assemble compileTestJava --no-daemon
+          ./gradlew assemble compileTestJava dependencies --no-daemon
 
-  assemble-windows-macos:
+  compile-windows-macos:
     strategy:
       fail-fast: false
       matrix:
@@ -61,8 +61,8 @@ jobs:
           java-version: ${{ matrix.entry.java }}
           cache: 'gradle'
 
-      - name: Assemble
-        run: ./gradlew assemble compileTestJava --no-daemon ${{ matrix.entry.os_build_args }}
+      - name: Compile
+        run: ./gradlew assemble compileTestJava dependencies --no-daemon ${{ matrix.entry.os_build_args }}
         shell: bash
 
   spotless:
@@ -80,10 +80,12 @@ jobs:
 
     - name: Spotless Check
       run: |
-        ./gradlew spotlessCheck --no-daemon
+        # include dependencies since this will probably be the first gradle-cached action to finis
+        # others also use it in case this one is slow
+        ./gradlew spotlessCheck dependencies --no-daemon
 
   build-linux:
-    needs: [assemble-linux]
+    needs: [compile-linux]
     strategy:
       fail-fast: false
       matrix:
@@ -156,7 +158,7 @@ jobs:
             integ-test/build/testclusters/*/logs/*
 
   build-windows-macos:
-    needs: assemble-windows-macos
+    needs: compile-windows-macos
     strategy:
       fail-fast: false
       matrix:
@@ -240,7 +242,7 @@ jobs:
             integ-test/build/testclusters/*/logs/*
 
   bwc-tests-rolling-upgrade:
-    needs: [assemble-linux]
+    needs: [compile-linux]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -281,7 +283,7 @@ jobs:
             integ-test/build/testclusters/*/logs/*
 
   bwc-tests-full-restart:
-    needs: [assemble-linux]
+    needs: [compile-linux]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -321,7 +323,7 @@ jobs:
             integ-test/build/testclusters/*/logs/*
 
   security-it-linux:
-    needs: [assemble-linux]
+    needs: [compile-linux]
     strategy:
       fail-fast: false
       matrix:
@@ -354,7 +356,7 @@ jobs:
           integ-test/build/testclusters/*/config/*
 
   security-it-windows-macos:
-    needs: assemble-windows-macos
+    needs: compile-windows-macos
     strategy:
       fail-fast: false
       matrix:
