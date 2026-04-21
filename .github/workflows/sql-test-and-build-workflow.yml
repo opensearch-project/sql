@@ -34,11 +34,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-provider: basic
+          cache: 'gradle'
 
       - name: Assemble
         run: |
@@ -63,11 +59,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.entry.java }}
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-provider: basic
+          cache: 'gradle'
 
       - name: Assemble
         run: ./gradlew assemble compileTestJava --no-daemon ${{ matrix.entry.os_build_args }}
@@ -84,11 +76,7 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: 21
-
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v6
-      with:
-        cache-provider: basic
+        cache: 'gradle'
 
     - name: Spotless Check
       run: |
@@ -111,11 +99,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-provider: basic
+          cache: 'gradle'
 
       - name: Build and Test
         run: |
@@ -198,11 +182,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.entry.java }}
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-provider: basic
+          cache: 'gradle'
 
       - name: Build and Test
         run: |
@@ -275,11 +255,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-provider: basic
+          cache: 'gradle'
 
       - name: Run backward compatibility tests in rolling upgrade
         run: |
@@ -319,11 +295,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-provider: basic
+          cache: 'gradle'
 
       - name: Run backward compatibility tests in full restart
         run: |
@@ -364,11 +336,7 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: ${{ matrix.java }}
-
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v6
-      with:
-        cache-provider: basic
+        cache: 'gradle'
 
     - name: Run security integration tests
       run: |
@@ -402,11 +370,7 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: ${{ matrix.java }}
-
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v6
-      with:
-        cache-provider: basic
+        cache: 'gradle'
 
     - name: Run security integration tests
       run: ./gradlew integTestWithSecurity
