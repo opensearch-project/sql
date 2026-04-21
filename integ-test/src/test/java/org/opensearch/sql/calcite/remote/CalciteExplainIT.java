@@ -2948,6 +2948,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testXyseriesExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         StringEscapeUtils.escapeJson(
             StringUtils.format(
@@ -2961,6 +2962,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testXyseriesMultipleDataFieldsExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         StringEscapeUtils.escapeJson(
             StringUtils.format(
@@ -2974,6 +2976,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testXyseriesWithFormatExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         StringEscapeUtils.escapeJson(
             StringUtils.format(
