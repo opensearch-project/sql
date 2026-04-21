@@ -51,8 +51,8 @@ jobs:
         entry:
           - { os: windows-latest, java: 21, os_build_args: -PbuildPlatform=windows }
           - { os: windows-latest, java: 24, os_build_args: -PbuildPlatform=windows }
-          - { os: macos-13, java: 21, os_build_args: '' }
-          - { os: macos-13, java: 24, os_build_args: '' }
+          - { os: macos-latest, java: 21, os_build_args: '' }
+          - { os: macos-latest, java: 24, os_build_args: '' }
     runs-on: ${{ matrix.entry.os }}
 
     steps:
