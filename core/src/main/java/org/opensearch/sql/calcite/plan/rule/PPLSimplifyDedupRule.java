@@ -5,14 +5,21 @@
 
 package org.opensearch.sql.calcite.plan.rule;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindow;
@@ -106,6 +113,8 @@ public class PPLSimplifyDedupRule extends RelRule<PPLSimplifyDedupRule.Config> {
       return;
     }
 
+    RelCollation inputCollation = extractCollationFromWindow(windows.get(0));
+
     RelBuilder relBuilder = call.builder();
     relBuilder.push(bucketNonNullFilter.getInput());
     List<Pair<RexNode, String>> targetProjections =
@@ -117,11 +126,31 @@ public class PPLSimplifyDedupRule extends RelRule<PPLSimplifyDedupRule.Config> {
         targetProjections.stream().map(Pair::getValue).collect(Collectors.toList()));
 
     LogicalDedup dedup =
-        LogicalDedup.create(relBuilder.build(), dedupColumns, dedupNumber, false, false);
+        LogicalDedup.create(
+            relBuilder.build(), dedupColumns, dedupNumber, false, false, inputCollation);
     relBuilder.push(dedup);
     relBuilder.project(finalProject.getProjects(), finalProject.getRowType().getFieldNames());
 
     call.transformTo(relBuilder.build());
+  }
+
+  private static @Nullable RelCollation extractCollationFromWindow(RexWindow window) {
+    if (window.orderKeys.isEmpty()) {
+      return null;
+    }
+    List<RelFieldCollation> fieldCollations = new ArrayList<>();
+    for (RexFieldCollation rfc : window.orderKeys) {
+      if (!(rfc.left instanceof RexInputRef ref)) {
+        return null;
+      }
+      fieldCollations.add(
+          new RelFieldCollation(ref.getIndex(), rfc.getDirection(), rfc.getNullDirection()));
+    }
+    RelCollation collation = RelCollations.of(fieldCollations);
+    if (collation.equals(RelCollations.EMPTY)) {
+      return null;
+    }
+    return collation;
   }
 
   /** Rule configuration. */

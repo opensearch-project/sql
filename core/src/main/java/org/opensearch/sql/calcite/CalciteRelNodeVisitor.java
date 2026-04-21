@@ -22,6 +22,7 @@ import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_S
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_SUBSEARCH;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRexCall;
+import static org.opensearch.sql.calcite.utils.PlanUtils.stripInputSort;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
@@ -47,16 +48,12 @@ import lombok.AllArgsConstructor;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
-import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.core.Uncollect;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
@@ -734,55 +731,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  /**
-   * Backtrack through the RelNode tree to find the first Sort node with non-empty collation. Stops
-   * at blocking operators that break ordering:
-   *
-   * <ul>
-   *   <li>Aggregate - aggregation destroys input ordering
-   *   <li>BiRel - covers Join, Correlate, and other binary relations
-   *   <li>SetOp - covers Union, Intersect, Except
-   *   <li>Uncollect - unnesting operation that may change ordering
-   *   <li>Project with window functions (RexOver) - ordering determined by window's ORDER BY
-   * </ul>
-   *
-   * @param node the starting RelNode to backtrack from
-   * @return the collation found, or null if no sort or blocking operator encountered
-   */
   private RelCollation backtrackForCollation(RelNode node) {
-    while (node != null) {
-      // Check for blocking operators that destroy collation
-      // BiRel covers Join, Correlate, and other binary relations
-      // SetOp covers Union, Intersect, Except
-      // Uncollect unnests arrays/multisets which may change ordering
-      if (node instanceof Aggregate
-          || node instanceof BiRel
-          || node instanceof SetOp
-          || node instanceof Uncollect) {
-        return null;
-      }
-
-      // Project with window functions has ordering determined by the window's ORDER BY clause
-      // We should not destroy its output order by inserting a reversed sort
-      if (node instanceof LogicalProject && ((LogicalProject) node).containsOver()) {
-        return null;
-      }
-
-      // Check for Sort node with collation
-      if (node instanceof Sort) {
-        Sort sort = (Sort) node;
-        if (sort.getCollation() != null && !sort.getCollation().getFieldCollations().isEmpty()) {
-          return sort.getCollation();
-        }
-      }
-
-      // Continue to child node
-      if (node.getInputs().isEmpty()) {
-        break;
-      }
-      node = node.getInput(0);
-    }
-    return null;
+    return PlanUtils.findInputCollation(node);
   }
 
   /**
@@ -1733,7 +1683,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 : duplicatedFieldNames.stream()
                     .map(a -> (RexNode) context.relBuilder.field(a))
                     .toList();
-        buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication);
+        buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication, null);
       }
       // add LogicalSystemLimit after dedup
       addSysLimitForJoinSubsearch(context);
@@ -1791,7 +1741,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         List<RexNode> dedupeFields =
             getRightColumnsInJoinCriteria(context.relBuilder, joinCondition);
 
-        buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication);
+        buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication, null);
       }
       // add LogicalSystemLimit after dedup
       addSysLimitForJoinSubsearch(context);
@@ -1967,10 +1917,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Columns to deduplicate
     List<RexNode> dedupeFields =
         node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
+    RelCollation inputCollation = stripInputSort(context.relBuilder);
     if (keepEmpty) {
-      buildDedupOrNull(context.relBuilder, dedupeFields, allowedDuplication);
+      buildDedupOrNull(context.relBuilder, dedupeFields, allowedDuplication, inputCollation);
     } else {
-      buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication);
+      buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication, inputCollation);
     }
     return context.relBuilder.peek();
   }

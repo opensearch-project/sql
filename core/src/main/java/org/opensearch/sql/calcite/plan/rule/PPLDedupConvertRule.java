@@ -14,7 +14,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -51,16 +50,22 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
     final LogicalDedup dedup = call.rel(0);
     RelBuilder relBuilder = call.builder();
     relBuilder.push(dedup.getInput());
+    RelCollation inputCollation = dedup.getInputCollation();
     if (dedup.getKeepEmpty()) {
-      buildDedupOrNull(relBuilder, dedup.getDedupeFields(), dedup.getAllowedDuplication());
+      buildDedupOrNull(
+          relBuilder, dedup.getDedupeFields(), dedup.getAllowedDuplication(), inputCollation);
     } else {
-      buildDedupNotNull(relBuilder, dedup.getDedupeFields(), dedup.getAllowedDuplication());
+      buildDedupNotNull(
+          relBuilder, dedup.getDedupeFields(), dedup.getAllowedDuplication(), inputCollation);
     }
     call.transformTo(relBuilder.build());
   }
 
   public static void buildDedupOrNull(
-      RelBuilder relBuilder, List<RexNode> dedupeFields, Integer allowedDuplication) {
+      RelBuilder relBuilder,
+      List<RexNode> dedupeFields,
+      Integer allowedDuplication,
+      RelCollation inputCollation) {
     /*
      * | dedup 2 a, b keepempty=true
      * LogicalSort(...)  -- re-sort to restore input order
@@ -69,7 +74,6 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
      *       +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b)])
      *           +- ... (input with Sort stripped)
      */
-    RelCollation inputCollation = stripInputSort(relBuilder);
     List<RexNode> orderKeys = collationToOrderKeys(relBuilder, inputCollation);
     RexNode rowNumber =
         relBuilder
@@ -95,7 +99,10 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
   }
 
   public static void buildDedupNotNull(
-      RelBuilder relBuilder, List<RexNode> dedupeFields, Integer allowedDuplication) {
+      RelBuilder relBuilder,
+      List<RexNode> dedupeFields,
+      Integer allowedDuplication,
+      RelCollation inputCollation) {
     /*
      * | dedup 2 a, b keepempty=false
      * LogicalSort(...)  -- re-sort to restore input order
@@ -105,9 +112,6 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
      *           +- LogicalFilter(condition=[AND(IS NOT NULL(a), IS NOT NULL(b))])
      *              +- ... (input with Sort stripped)
      */
-    // Strip input sort before building the window to prevent Calcite from incorrectly
-    // propagating collation metadata through the window and eliminating the post-dedup sort
-    RelCollation inputCollation = stripInputSort(relBuilder);
     List<RexNode> orderKeys = collationToOrderKeys(relBuilder, inputCollation);
     // Filter (isnotnull('a) AND isnotnull('b))
     String rowNumberAlias = ROW_NUMBER_COLUMN_FOR_DEDUP;
@@ -131,53 +135,6 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
     relBuilder.projectExcept(rowNumberField);
     // Re-sort to restore the input order that was stripped before the window
     restoreInputOrder(relBuilder, inputCollation);
-  }
-
-  /**
-   * Strip the Sort node from the input on the RelBuilder stack, returning its collation. This is
-   * necessary because EnumerableWindow re-partitions data by PARTITION BY key, which can destroy
-   * input sort order. Calcite's metadata system (RelMdCollation) incorrectly propagates the input's
-   * collation through the Window, causing the optimizer to eliminate a post-dedup Sort as
-   * "redundant". By stripping the Sort before the window and re-adding it after, we break this
-   * incorrect metadata chain.
-   *
-   * @return the collation of the stripped Sort, or null if no Sort was found
-   */
-  private static RelCollation stripInputSort(RelBuilder relBuilder) {
-    RelNode input = relBuilder.peek();
-    RelCollation collation = findCollation(input);
-    if (collation != null && !collation.getFieldCollations().isEmpty()) {
-      RelNode stripped = removeSortFromTree(input);
-      if (stripped != input) {
-        relBuilder.clear();
-        relBuilder.push(stripped);
-      }
-    }
-    return collation;
-  }
-
-  /**
-   * Remove the first Sort node found in the tree, replacing it with its input. Only traverses
-   * through single-input operators (Filter, Project) that preserve order.
-   */
-  private static RelNode removeSortFromTree(RelNode node) {
-    if (node instanceof org.apache.calcite.rel.core.Sort) {
-      org.apache.calcite.rel.core.Sort sort = (org.apache.calcite.rel.core.Sort) node;
-      if (sort.getCollation() != null
-          && !sort.getCollation().getFieldCollations().isEmpty()
-          && sort.fetch == null
-          && sort.offset == null) {
-        return sort.getInput();
-      }
-    }
-    if (node.getInputs().size() == 1) {
-      RelNode child = node.getInput(0);
-      RelNode newChild = removeSortFromTree(child);
-      if (newChild != child) {
-        return node.copy(node.getTraitSet(), List.of(newChild));
-      }
-    }
-    return node;
   }
 
   /**
@@ -214,31 +171,6 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
       List<RexNode> sortKeys = collationToOrderKeys(relBuilder, inputCollation);
       relBuilder.sort(sortKeys);
     }
-  }
-
-  /**
-   * Walk down the plan tree to find the first Sort node with collation. Traverses through Filter
-   * and Project nodes which preserve input ordering.
-   */
-  private static RelCollation findCollation(RelNode node) {
-    while (node != null) {
-      if (node instanceof org.apache.calcite.rel.core.Sort) {
-        org.apache.calcite.rel.core.Sort sort = (org.apache.calcite.rel.core.Sort) node;
-        if (sort.getCollation() != null && !sort.getCollation().getFieldCollations().isEmpty()) {
-          return sort.getCollation();
-        }
-      }
-      if (node.getInputs().isEmpty()) {
-        break;
-      }
-      // Only traverse through single-input operators that preserve order
-      if (node.getInputs().size() == 1) {
-        node = node.getInput(0);
-      } else {
-        break;
-      }
-    }
-    return null;
   }
 
   /** Rule configuration. */

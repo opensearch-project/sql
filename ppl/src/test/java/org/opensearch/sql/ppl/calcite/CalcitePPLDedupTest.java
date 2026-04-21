@@ -331,4 +331,26 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "            LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
+
+  /**
+   * Edge case: sort field is projected away before dedup. The sort collation references a field
+   * (DEPTNO) that is no longer in the schema after the fields command. The dedup should still work
+   * correctly but without the sort-restore optimization since the sort field is unavailable.
+   */
+  @Test
+  public void testSortFieldProjectedAwayBeforeDedup() {
+    String ppl = "source=EMP | sort DEPTNO | fields ENAME, JOB | dedup 1 JOB";
+    RelNode root = getRelNode(ppl);
+    // No restore Sort at top because DEPTNO was projected away
+    String expectedLogical =
+        "LogicalProject(ENAME=[$0], JOB=[$1])\n"
+            + "  LogicalFilter(condition=[<=($2, 1)])\n"
+            + "    LogicalProject(ENAME=[$0], JOB=[$1], _row_number_dedup_=[ROW_NUMBER() OVER"
+            + " (PARTITION BY $1)])\n"
+            + "      LogicalFilter(condition=[IS NOT NULL($1)])\n"
+            + "        LogicalProject(ENAME=[$1], JOB=[$2])\n"
+            + "          LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
 }

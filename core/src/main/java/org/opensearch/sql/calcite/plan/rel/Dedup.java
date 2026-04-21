@@ -6,10 +6,12 @@
 package org.opensearch.sql.calcite.plan.rel;
 
 import java.util.List;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
@@ -23,8 +25,8 @@ public abstract class Dedup extends SingleRel {
   final Integer allowedDuplication;
   final Boolean keepEmpty;
   final Boolean consecutive;
+  final @Nullable RelCollation inputCollation;
 
-  /** */
   protected Dedup(
       RelOptCluster cluster,
       RelTraitSet traitSet,
@@ -32,7 +34,8 @@ public abstract class Dedup extends SingleRel {
       List<RexNode> dedupeFields,
       Integer allowedDuplication,
       Boolean keepEmpty,
-      Boolean consecutive) {
+      Boolean consecutive,
+      @Nullable RelCollation inputCollation) {
     super(cluster, traitSet, input);
     if (allowedDuplication <= 0) {
       throw new IllegalArgumentException("Number of duplicate events must be greater than 0");
@@ -44,6 +47,7 @@ public abstract class Dedup extends SingleRel {
     this.allowedDuplication = allowedDuplication;
     this.keepEmpty = keepEmpty;
     this.consecutive = consecutive;
+    this.inputCollation = inputCollation;
   }
 
   @Override
@@ -54,7 +58,8 @@ public abstract class Dedup extends SingleRel {
         this.dedupeFields,
         this.allowedDuplication,
         this.keepEmpty,
-        this.consecutive);
+        this.consecutive,
+        this.inputCollation);
   }
 
   public abstract Dedup copy(
@@ -63,7 +68,8 @@ public abstract class Dedup extends SingleRel {
       List<RexNode> dedupeFields,
       Integer allowedDuplication,
       Boolean keepEmpty,
-      Boolean consecutive);
+      Boolean consecutive,
+      @Nullable RelCollation inputCollation);
 
   public Dedup copy(RelNode input, List<RexNode> dedupeFields) {
     return this.copy(
@@ -72,7 +78,8 @@ public abstract class Dedup extends SingleRel {
         dedupeFields,
         this.allowedDuplication,
         this.keepEmpty,
-        this.consecutive);
+        this.consecutive,
+        this.inputCollation);
   }
 
   @Override
@@ -81,7 +88,8 @@ public abstract class Dedup extends SingleRel {
         .item("dedup_fields", dedupeFields)
         .item("allowed_dedup", allowedDuplication)
         .item("keepEmpty", keepEmpty)
-        .item("consecutive", consecutive);
+        .item("consecutive", consecutive)
+        .itemIf("inputCollation", inputCollation, inputCollation != null);
   }
 
   @Override

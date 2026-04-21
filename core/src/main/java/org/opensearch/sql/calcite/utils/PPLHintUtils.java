@@ -7,7 +7,10 @@ package org.opensearch.sql.calcite.utils;
 
 import com.google.common.base.Suppliers;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 import lombok.experimental.UtilityClass;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
@@ -19,6 +22,8 @@ public class PPLHintUtils {
   private static final String HINT_AGG_ARGUMENTS = "AGG_ARGS";
   private static final String KEY_IGNORE_NULL_BUCKET = "ignoreNullBucket";
   private static final String KEY_HAS_NESTED_AGG_CALL = "hasNestedAggCall";
+  private static final String KEY_DEDUP_SORT_FIELD = "dedupSortField";
+  private static final String KEY_DEDUP_SORT_ORDER = "dedupSortOrder";
 
   private static final Supplier<HintStrategyTable> HINT_STRATEGY_TABLE =
       Suppliers.memoize(
@@ -80,5 +85,47 @@ public class PPLHintUtils {
                     && hint.kvOptions
                         .getOrDefault(KEY_HAS_NESTED_AGG_CALL, "false")
                         .equals("true"));
+  }
+
+  /**
+   * Add dedup sort info hint to aggregate so that AggregateAnalyzer can set top_hits sort. Only the
+   * first field collation is used since top_hits supports a single sort field.
+   */
+  public static void addDedupSortHintToAggregate(
+      RelBuilder relBuilder, RelCollation collation, java.util.List<String> fieldNames) {
+    assert relBuilder.peek() instanceof LogicalAggregate
+        : "Hint HINT_AGG_ARGUMENTS can be added to LogicalAggregate only";
+    RelFieldCollation fc = collation.getFieldCollations().get(0);
+    String sortField = fieldNames.get(fc.getFieldIndex());
+    String sortOrder = fc.direction.isDescending() ? "DESC" : "ASC";
+    final RelHint sortHint =
+        RelHint.builder(HINT_AGG_ARGUMENTS)
+            .hintOption(KEY_DEDUP_SORT_FIELD, sortField)
+            .hintOption(KEY_DEDUP_SORT_ORDER, sortOrder)
+            .build();
+    relBuilder.hints(sortHint);
+    if (relBuilder.getCluster().getHintStrategies() == HintStrategyTable.EMPTY) {
+      relBuilder.getCluster().setHintStrategies(HINT_STRATEGY_TABLE.get());
+    }
+  }
+
+  /** Return the dedup sort field name from aggregate hints, or null if not present. */
+  public static @Nullable String getDedupSortField(Aggregate aggregate) {
+    return aggregate.getHints().stream()
+        .filter(hint -> hint.hintName.equals(HINT_AGG_ARGUMENTS))
+        .map(hint -> hint.kvOptions.get(KEY_DEDUP_SORT_FIELD))
+        .filter(java.util.Objects::nonNull)
+        .findFirst()
+        .orElse(null);
+  }
+
+  /** Return the dedup sort order from aggregate hints, or null if not present. */
+  public static @Nullable String getDedupSortOrder(Aggregate aggregate) {
+    return aggregate.getHints().stream()
+        .filter(hint -> hint.hintName.equals(HINT_AGG_ARGUMENTS))
+        .map(hint -> hint.kvOptions.get(KEY_DEDUP_SORT_ORDER))
+        .filter(java.util.Objects::nonNull)
+        .findFirst()
+        .orElse(null);
   }
 }
