@@ -47,33 +47,48 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     String details = getDetails(recognizer, msg, e);
     int expectedTokenCount = getExpectedTokenCount(recognizer, e);
 
-    String errorMessage = String.format(
-        Locale.ROOT,
-        "[%s] is not a valid term at this part of the query: '%s' <-- HERE",
-        offendingText,
-        errorContext);
+    String errorMessage =
+        String.format(
+            Locale.ROOT,
+            "[%s] is not a valid term at this part of the query: '%s' <-- HERE. %s",
+            offendingText,
+            errorContext,
+            details);
 
     SyntaxCheckException syntaxException = new SyntaxCheckException(errorMessage);
 
-    throw ErrorReport.wrap(syntaxException)
-        .code(ErrorCode.SYNTAX_ERROR)
-        .stage(QueryProcessingStage.ANALYZING)
-        .location("while parsing query syntax")
-        .context("offending_token", offendingText)
-        .context("line", line)
-        .context("char_position", charPositionInLine)
-        .context("token_start", offendingToken.getStartIndex())
-        .context("token_end", offendingToken.getStopIndex())
-        .context("error_context", errorContext)
-        .context("expected_token_count", expectedTokenCount)
-        .build();
+    ErrorReport.Builder builder =
+        ErrorReport.wrap(syntaxException)
+            .code(ErrorCode.SYNTAX_ERROR)
+            .stage(QueryProcessingStage.ANALYZING)
+            .location("while parsing query syntax")
+            .context("offending_token", offendingText)
+            .context("line", line)
+            .context("char_position", charPositionInLine)
+            .context("error_context", errorContext)
+            .context("expected_token_count", expectedTokenCount);
+
+    // Add token position info only if offendingToken is not null
+    if (offendingToken != null) {
+      builder
+          .context("token_start", offendingToken.getStartIndex())
+          .context("token_end", offendingToken.getStopIndex());
+    }
+
+    throw builder.build();
   }
 
   private String getOffendingText(Token offendingToken) {
-    return offendingToken.getText();
+    return offendingToken != null ? offendingToken.getText() : "<unknown>";
   }
 
   private String truncateQueryAtOffendingToken(String query, Token offendingToken) {
+    if (offendingToken == null) {
+      return query.length() > CONTEXT_TRUNCATION_THRESHOLD
+          ? "..." + query.substring(query.length() - CONTEXT_TRUNCATION_THRESHOLD)
+          : query;
+    }
+
     int contextStartIndex = offendingToken.getStartIndex() - CONTEXT_TRUNCATION_THRESHOLD;
     if (contextStartIndex < 3) { // The ellipses won't save us anything below the first 4 characters
       return query.substring(0, offendingToken.getStopIndex() + 1);
@@ -124,5 +139,4 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     }
     return ex.getExpectedTokens().size();
   }
-
 }

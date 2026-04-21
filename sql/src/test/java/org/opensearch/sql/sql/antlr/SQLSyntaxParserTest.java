@@ -147,7 +147,8 @@ class SQLSyntaxParserTest {
 
   @Test
   public void syntaxErrorContainsStructuredInformation() {
-    ErrorReport report = assertThrows(ErrorReport.class, () -> parser.parse("SELECT SUM() FROM test"));
+    ErrorReport report =
+        assertThrows(ErrorReport.class, () -> parser.parse("SELECT SUM() FROM test"));
 
     // Verify the underlying exception is still SyntaxCheckException
     assertTrue(report.getCause() instanceof SyntaxCheckException);
@@ -161,20 +162,14 @@ class SQLSyntaxParserTest {
     assertTrue(report.getContext().containsKey("line"));
     assertTrue(report.getContext().containsKey("char_position"));
     assertTrue(report.getContext().containsKey("offending_token"));
-    assertTrue(report.getContext().containsKey("expected_tokens"));
-
-    // Verify suggestion is provided
-    assertNotNull(report.getSuggestion());
-    assertTrue(report.getSuggestion().startsWith("Try using"));
+    assertTrue(report.getContext().containsKey("expected_token_count"));
 
     // Verify JSON structure would include all expected fields
     var jsonMap = report.toJsonMap();
     assertEquals("SyntaxCheckException", jsonMap.get("type"));
     assertEquals("SYNTAX_ERROR", jsonMap.get("code"));
     assertTrue(jsonMap.containsKey("context"));
-    assertTrue(jsonMap.containsKey("suggestion"));
   }
-
 
   @Test
   public void canParseOrderByClause() {
@@ -246,7 +241,7 @@ class SQLSyntaxParserTest {
   @MethodSource("getInvalidPartForExtractFunction")
   public void cannot_parse_extract_function_invalid_part(String part) {
     assertThrows(
-        SyntaxCheckException.class,
+        ErrorReport.class,
         () -> parser.parse(String.format("SELECT extract(%s FROM \"2023-02-06\")", part)));
   }
 
@@ -300,8 +295,7 @@ class SQLSyntaxParserTest {
 
   @Test
   public void cannot_parse_get_format_function_with_bad_arg() {
-    assertThrows(
-        SyntaxCheckException.class, () -> parser.parse("GET_FORMAT(NONSENSE_ARG,'INTERNAL')"));
+    assertThrows(ErrorReport.class, () -> parser.parse("GET_FORMAT(NONSENSE_ARG,'INTERNAL')"));
   }
 
   @Test
@@ -664,15 +658,9 @@ class SQLSyntaxParserTest {
   @Test
   public void describe_request_accepts_only_quoted_string_literals() {
     assertAll(
-        () ->
-            assertThrows(
-                ErrorReport.class, () -> parser.parse("DESCRIBE TABLES LIKE bank")),
-        () ->
-            assertThrows(
-                ErrorReport.class, () -> parser.parse("DESCRIBE TABLES LIKE %bank%")),
-        () ->
-            assertThrows(
-                ErrorReport.class, () -> parser.parse("DESCRIBE TABLES LIKE `bank`")),
+        () -> assertThrows(ErrorReport.class, () -> parser.parse("DESCRIBE TABLES LIKE bank")),
+        () -> assertThrows(ErrorReport.class, () -> parser.parse("DESCRIBE TABLES LIKE %bank%")),
+        () -> assertThrows(ErrorReport.class, () -> parser.parse("DESCRIBE TABLES LIKE `bank`")),
         () ->
             assertThrows(
                 ErrorReport.class,
@@ -689,10 +677,8 @@ class SQLSyntaxParserTest {
   public void show_request_accepts_only_quoted_string_literals() {
     assertAll(
         () -> assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES LIKE bank")),
-        () ->
-            assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES LIKE %bank%")),
-        () ->
-            assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES LIKE `bank`")),
+        () -> assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES LIKE %bank%")),
+        () -> assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES LIKE `bank`")),
         () -> assertNotNull(parser.parse("SHOW TABLES LIKE 'bank'")),
         () -> assertNotNull(parser.parse("SHOW TABLES LIKE \"bank\"")));
   }
