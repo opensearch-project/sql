@@ -7,16 +7,24 @@ package org.opensearch.sql.opensearch.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
+import org.opensearch.sql.opensearch.mapping.IndexMapping;
 
 @ExtendWith(MockitoExtension.class)
 class VectorSearchIndexTest {
@@ -24,6 +32,8 @@ class VectorSearchIndexTest {
   @Mock private OpenSearchClient client;
 
   @Mock private Settings settings;
+
+  @Mock private IndexMapping indexMapping;
 
   @Test
   void buildKnnQueryJsonTopK() {
@@ -225,5 +235,32 @@ class VectorSearchIndexTest {
         new VectorSearchIndex(
             client, settings, "test-index", "embedding", new float[] {1.0f}, Map.of("k", "5"));
     assertTrue(index instanceof OpenSearchIndex);
+  }
+
+  @Test
+  void createScanBuilderRejectsIndexWithScoreField() {
+    // A mapping that declares a user field named _score cannot coexist with the synthetic
+    // v._score column exposed by vectorSearch(); the guard in createScanBuilder should reject
+    // it with a clear, user-facing error.
+    lenient()
+        .when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
+    when(indexMapping.getFieldMappings())
+        .thenReturn(Map.of("_score", OpenSearchDataType.of(MappingType.Float)));
+    when(client.getIndexMappings("test-index"))
+        .thenReturn(ImmutableMap.of("test-index", indexMapping));
+
+    VectorSearchIndex index =
+        new VectorSearchIndex(
+            client, settings, "test-index", "embedding", new float[] {1.0f}, Map.of("k", "5"));
+
+    IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, index::createScanBuilder);
+    assertTrue(
+        ex.getMessage().contains("_score"),
+        "error message should mention the colliding _score field");
+    assertTrue(
+        ex.getMessage().contains("collides"),
+        "error message should describe the collision, got: " + ex.getMessage());
   }
 }

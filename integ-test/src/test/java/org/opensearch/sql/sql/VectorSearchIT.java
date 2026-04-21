@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.containsString;
 
 import java.io.IOException;
 import org.junit.Test;
+import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
@@ -454,5 +455,71 @@ public class VectorSearchIT extends SQLIntegTestCase {
     String body = ex.getMessage();
     assertThat(body, containsString("requires a table alias"));
     assertThat(body, containsString("vectorSearch"));
+  }
+
+  // Synthetic column collision (metadata vs. user field).
+  //
+  // v._score and v._id on a vectorSearch() relation are synthetic columns that expose the k-NN
+  // similarity score and the document metadata _id. A user-defined stored field of the same name
+  // would collide with these synthetic columns in the response tuple. Probe results on
+  // OpenSearch 3.6:
+  //   - _id: OpenSearch's mapper rejects a property named _id at mapping time, so no collision
+  //     is possible. The testUserMappingWithIdFieldIsRejectedByOpenSearch test locks this in.
+  //   - _score: OpenSearch accepts a property named _score. Left unchecked the SQL response
+  //     layer would fail with an opaque duplicate-key error when the hit's _source contains the
+  //     user field and the metadata _score both write to the same tuple key. VectorSearchIndex
+  //     therefore rejects the mapping at scan-build time with a clear SQL error; the
+  //     testVectorSearchAgainstIndexWithScoreFieldRejects test exercises that guard (works via
+  //     _explain so no k-NN plugin is needed).
+
+  @Test
+  public void testUserMappingWithIdFieldIsRejectedByOpenSearch() throws IOException {
+    String indexName = "vs_collision_id";
+    deleteIndexIfExists(indexName);
+
+    // OpenSearch rejects _id as a user mapping property; this guarantees v._id on a
+    // vectorSearch() relation always resolves to the document metadata _id. The exact error
+    // message belongs to OpenSearch; this test only locks in that the mapping creation fails.
+    Request createIndex = new Request("PUT", "/" + indexName);
+    createIndex.setJsonEntity("{\"mappings\":{\"properties\":{\"_id\":{\"type\":\"keyword\"}}}}");
+
+    expectThrows(ResponseException.class, () -> client().performRequest(createIndex));
+  }
+
+  @Test
+  public void testVectorSearchAgainstIndexWithScoreFieldRejects() throws IOException {
+    String indexName = "vs_collision_score";
+    deleteIndexIfExists(indexName);
+
+    // Unlike _id, OpenSearch accepts _score as a user-defined mapping property. Without the
+    // VectorSearchIndex guard, a vectorSearch() query against such an index would fail at
+    // response time with an opaque duplicate-key error because the stored _score field and the
+    // metadata _score both map to the same tuple key. The guard raises a clear SQL error
+    // up-front. Using _explain here exercises planning (which runs the guard) without needing
+    // the k-NN plugin.
+    Request createIndex = new Request("PUT", "/" + indexName);
+    createIndex.setJsonEntity("{\"mappings\":{\"properties\":{\"_score\":{\"type\":\"float\"}}}}");
+    client().performRequest(createIndex);
+
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                explainQuery(
+                    "SELECT v._score FROM vectorSearch(table='"
+                        + indexName
+                        + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v "
+                        + "LIMIT 5"));
+
+    assertThat(ex.getMessage(), containsString("_score"));
+    assertThat(ex.getMessage(), containsString("collides"));
+  }
+
+  private void deleteIndexIfExists(String indexName) {
+    try {
+      client().performRequest(new Request("DELETE", "/" + indexName));
+    } catch (IOException ignored) {
+      // Index does not exist, which is fine.
+    }
   }
 }
