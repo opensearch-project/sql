@@ -119,6 +119,19 @@ public abstract class TableScanBuilder extends LogicalPlan {
     return false;
   }
 
+  /**
+   * Post-optimization validation hook. Called once by the planner after all push-down rules have
+   * run, with the fully optimized plan root. Subclasses may inspect the ancestors of this scan
+   * builder to reject planner shapes that push-down alone cannot express safely (for example,
+   * operators that land above the scan but outside its push-down contract and would be executed
+   * after the scan has already returned a bounded result set). Default is no-op.
+   *
+   * @param root the fully optimized logical plan containing this scan builder
+   */
+  public void validatePlan(LogicalPlan root) {
+    // no-op by default
+  }
+
   @Override
   public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {
     return visitor.visitTableScanBuilder(this, context);
