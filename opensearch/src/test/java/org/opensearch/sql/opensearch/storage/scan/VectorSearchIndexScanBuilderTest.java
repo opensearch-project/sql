@@ -122,6 +122,24 @@ class VectorSearchIndexScanBuilderTest {
   }
 
   @Test
+  void validatePlanRejectsFilterProjectFilterShape() {
+    // Models: SELECT * FROM (SELECT v.id FROM vs(...) AS v WHERE v.gender='M') t
+    //          WHERE t.price < 150
+    // Shape: Filter(outer) → Project(subquery) → Filter(inner) → scanBuilder
+    // The outer filter is still separated from the scan by the subquery Project; the inner
+    // filter sitting between the Project and the scan does not erase that boundary. Without
+    // preserving the project marker across the inner filter, the walker would miss this shape.
+    var scanBuilder = newScanBuilder();
+    LogicalPlan root = filter(project(filter(scanBuilder)));
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> scanBuilder.validatePlan(root));
+    assertTrue(
+        ex.getMessage().contains("Outer WHERE on a vectorSearch() subquery"),
+        "Error should mention outer WHERE on subquery; actual: " + ex.getMessage());
+  }
+
+  @Test
   void validatePlanAllowsNoFilterAtAll() {
     // Baseline: no WHERE anywhere. SELECT * FROM (SELECT v.id FROM vs(...) AS v) t
     var scanBuilder = newScanBuilder();
