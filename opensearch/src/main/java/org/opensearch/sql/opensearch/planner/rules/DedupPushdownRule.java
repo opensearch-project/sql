@@ -112,11 +112,13 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
 
     // add bucket_nullable = false hint
     PPLHintUtils.addIgnoreNullBucketHintToAggregate(relBuilder);
-    // add dedup sort hint if input collation is available
+    // add dedup sort hint if input collation is available.
+    // The collation's field indices refer to the dedup's input row type (i.e., `project`),
+    // not the reordered `targetChildProject`.
     if (dedup.getInputCollation() != null
         && !dedup.getInputCollation().getFieldCollations().isEmpty()) {
       PPLHintUtils.addDedupSortHintToAggregate(
-          relBuilder, dedup.getInputCollation(), targetChildProject.getRowType().getFieldNames());
+          relBuilder, dedup.getInputCollation(), project.getRowType().getFieldNames());
     }
     // peek the aggregate after hint being added
     LogicalAggregate aggregate = (LogicalAggregate) relBuilder.build();

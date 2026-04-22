@@ -621,15 +621,14 @@ public class AggregateAnalyzer {
             hasDedupSort ? ("DESC".equals(dedupSortOrder) ? SortOrder.DESC : SortOrder.ASC) : null;
         TopHitsAggregationBuilder topHitsAggregationBuilder =
             createTopHitsBuilder(
-                aggCall,
-                args,
-                aggName,
-                helper,
-                dedupNumber,
-                false,
-                hasDedupSort,
-                dedupSortField,
-                sortOrder);
+                aggCall, args, aggName, helper, dedupNumber, false, false, null, null);
+        if (hasDedupSort) {
+          // Align pushed-down top_hits null ordering with PPL's default Calcite sort semantics
+          // (ASC -> NULLS FIRST, DESC -> NULLS LAST) so dedup selects the same row either way.
+          String missing = sortOrder == SortOrder.ASC ? "_first" : "_last";
+          topHitsAggregationBuilder.sort(
+              SortBuilders.fieldSort(dedupSortField).order(sortOrder).missing(missing));
+        }
         yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggName, false, false));
       }
       default ->

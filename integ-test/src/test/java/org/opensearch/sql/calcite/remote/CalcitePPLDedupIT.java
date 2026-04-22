@@ -306,9 +306,12 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | sort category | dedup 1 name | fields category, name",
                 TEST_INDEX_DUPLICATION_NULLABLE));
-    // category should be in ascending order after sort, even after dedup
+    // PPL default sort is ASC NULLS FIRST, so null-category rows come first in the sort.
+    // For each name, dedup keeps the first row in sort order:
+    //   name=A first cat=X, name=B first cat=null (row #14), name=C first cat=X,
+    //   name=D first cat=Z, name=E first cat=null.
     verifyDataRows(
-        actual, rows("X", "A"), rows("X", "C"), rows("Z", "B"), rows("Z", "D"), rows(null, "E"));
+        actual, rows(null, "B"), rows(null, "E"), rows("X", "A"), rows("X", "C"), rows("Z", "D"));
   }
 
   /** Regression test for https://github.com/opensearch-project/sql/issues/3922 */
