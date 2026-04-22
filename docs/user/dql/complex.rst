@@ -112,7 +112,6 @@ Explain::
 	              "size" : 200,
 	              "from" : 0,
 	              "_source" : {
-	                "excludes" : [ ],
 	                "includes" : [
 	                  "firstname",
 	                  "lastname",
@@ -223,8 +222,7 @@ Explain::
 	      "firstname",
 	      "lastname",
 	      "age"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
@@ -325,7 +323,6 @@ Explain::
 	              "size" : 200,
 	              "from" : 0,
 	              "_source" : {
-	                "excludes" : [ ],
 	                "includes" : [
 	                  "id",
 	                  "name"
@@ -338,7 +335,6 @@ Explain::
 	              "size" : 200,
 	              "from" : 0,
 	              "_source" : {
-	                "excludes" : [ ],
 	                "includes" : [
 	                  "account_number",
 	                  "firstname",

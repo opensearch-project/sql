@@ -6,8 +6,7 @@
             "address",
             "script",
             "COUNT"
-        ],
-        "excludes" : [ ]
+        ]
     },
     "stored_fields" : [
         "address",

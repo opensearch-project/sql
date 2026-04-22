@@ -10,7 +10,6 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.matchesPattern;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.time.Month;
 import org.joda.time.DateTime;
@@ -21,7 +20,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
@@ -262,10 +261,8 @@ public class DateFunctionsIT extends SQLIntegTestCase {
     final JSONObject jsonObject = executeRequest(makeRequest(sqlRequest));
 
     final XContentParser parser =
-        new JsonXContentParser(
-            NamedXContentRegistry.EMPTY,
-            LoggingDeprecationHandler.INSTANCE,
-            new JsonFactory().createParser(jsonObject.toString()));
+        JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, jsonObject.toString());
     return SearchResponse.fromXContent(parser).getHits().getHits();
   }
 

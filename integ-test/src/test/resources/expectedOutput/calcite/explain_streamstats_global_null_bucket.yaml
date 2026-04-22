@@ -20,4 +20,4 @@ calcite:
             EnumerableSort(sort0=[$1], dir0=[ASC])
               EnumerableCalc(expr#0..2=[{inputs}], __r_seq__=[$t2], __r_gender__=[$t0], __r_age__=[$t1])
                 EnumerableWindow(window#0=[window(rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
-                  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[gender, age]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["gender","age"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+                  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[gender, age]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["gender","age"]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

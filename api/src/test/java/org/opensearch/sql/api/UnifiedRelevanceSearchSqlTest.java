@@ -25,7 +25,7 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
     givenQuery(
             """
             SELECT * FROM catalog.employees
-            WHERE "match"(name, 'John')\
+            WHERE match(name, 'John')\
             """)
         .assertPlan(
             """
@@ -100,7 +100,7 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
     givenQuery(
             """
             SELECT * FROM catalog.employees
-            WHERE "match"(name, 'John', operator='AND', boost=2.0)\
+            WHERE match(name, 'John', operator='AND', boost=2.0)\
             """)
         .assertPlanContains(
             "match(MAP('field', $1), MAP('query', 'John'),"
@@ -112,7 +112,7 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
     givenInvalidQuery(
             """
             SELECT * FROM catalog.employees
-            WHERE "match"('John')\
+            WHERE match('John')\
             """)
         .assertErrorMessage(
             "No match found for function signature match(<(CHAR(5), CHAR(4)) MAP>)");
