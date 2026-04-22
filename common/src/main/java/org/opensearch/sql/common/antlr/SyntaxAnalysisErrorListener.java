@@ -15,9 +15,6 @@ import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
 import org.antlr.v4.runtime.misc.IntervalSet;
-import org.opensearch.sql.common.error.ErrorCode;
-import org.opensearch.sql.common.error.ErrorReport;
-import org.opensearch.sql.common.error.QueryProcessingStage;
 
 /**
  * Syntax analysis error listener that handles any syntax error by throwing exception with useful
@@ -45,7 +42,6 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     String offendingText = getOffendingText(offendingToken);
     String errorContext = truncateQueryAtOffendingToken(query, offendingToken);
     String details = getDetails(recognizer, msg, e);
-    int expectedTokenCount = getExpectedTokenCount(recognizer, e);
 
     String errorMessage =
         String.format(
@@ -55,27 +51,20 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
             errorContext,
             details);
 
+    // Create SyntaxCheckException with structured info attached for response formatting
     SyntaxCheckException syntaxException = new SyntaxCheckException(errorMessage);
 
-    ErrorReport.Builder builder =
-        ErrorReport.wrap(syntaxException)
-            .code(ErrorCode.SYNTAX_ERROR)
-            .stage(QueryProcessingStage.ANALYZING)
-            .location("while parsing query syntax")
-            .context("offending_token", offendingText)
-            .context("line", line)
-            .context("char_position", charPositionInLine)
-            .context("error_context", errorContext)
-            .context("expected_token_count", expectedTokenCount);
-
-    // Add token position info only if offendingToken is not null
+    // Store structured context in the exception for response layer to use
+    syntaxException.setOffendingToken(offendingText);
+    syntaxException.setLine(line);
+    syntaxException.setCharPosition(charPositionInLine);
+    syntaxException.setErrorContext(errorContext);
     if (offendingToken != null) {
-      builder
-          .context("token_start", offendingToken.getStartIndex())
-          .context("token_end", offendingToken.getStopIndex());
+      syntaxException.setTokenStart(offendingToken.getStartIndex());
+      syntaxException.setTokenEnd(offendingToken.getStopIndex());
     }
 
-    throw builder.build();
+    throw syntaxException;
   }
 
   private String getOffendingText(Token offendingToken) {
@@ -133,11 +122,4 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     return details.toString();
   }
 
-  private int getExpectedTokenCount(Recognizer<?, ?> recognizer, RecognitionException ex) {
-    if (ex == null) {
-      return 0;
-    }
-    IntervalSet expectedTokens = ex.getExpectedTokens();
-    return expectedTokens != null ? expectedTokens.size() : 0;
-  }
 }
