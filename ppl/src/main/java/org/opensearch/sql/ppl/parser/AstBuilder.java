@@ -123,6 +123,7 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
@@ -1693,5 +1694,37 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .usePIT(usePIT)
         .filter(filter)
         .build();
+  }
+
+  /** Xyseries command. */
+  @Override
+  public UnresolvedPlan visitXyseriesCommand(OpenSearchPPLParser.XyseriesCommandContext ctx) {
+    UnresolvedExpression xField = internalVisitExpression(ctx.xField);
+    UnresolvedExpression yNameField = internalVisitExpression(ctx.yNameField);
+
+    // Parse pivot values from IN (...) clause
+    List<String> pivotValues =
+        ctx.xyseriesPivotValues().stringLiteral().stream()
+            .map(s -> StringUtils.unquoteText(s.getText()))
+            .collect(Collectors.toList());
+
+    // Parse y-data fields
+    List<UnresolvedExpression> yDataFields =
+        ctx.yDataFields.fieldExpression().stream()
+            .map(this::internalVisitExpression)
+            .collect(Collectors.toList());
+
+    // Parse options
+    String separator = ": ";
+    String format = null;
+    for (OpenSearchPPLParser.XyseriesOptionContext optCtx : ctx.xyseriesOption()) {
+      if (optCtx.SEP() != null) {
+        separator = StringUtils.unquoteText(optCtx.sep.getText());
+      } else if (optCtx.FORMAT() != null) {
+        format = StringUtils.unquoteText(optCtx.format.getText());
+      }
+    }
+
+    return new Xyseries(xField, yNameField, pivotValues, yDataFields, separator, format);
   }
 }

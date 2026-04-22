@@ -35,6 +35,7 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -163,6 +164,7 @@ import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -3439,6 +3441,102 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String nullStr = (String) argMap.getOrDefault("nullstr", Chart.DEFAULT_NULL_STR).getValue();
       return new ChartConfig(limit, top, useOther, useNull, otherStr, nullStr);
     }
+  }
+
+  @Override
+  public RelNode visitXyseries(Xyseries node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RelBuilder b = context.relBuilder;
+    RexBuilder rx = context.rexBuilder;
+
+    // Resolve x-field and y-name-field names
+    String xFieldName = resolveFieldName(node.getXField());
+    String yNameFieldName = resolveFieldName(node.getYNameField());
+
+    // Resolve y-data field names
+    List<String> yDataFieldNames =
+        node.getYDataFields().stream().map(this::resolveFieldName).collect(Collectors.toList());
+
+    List<String> pivotValues = node.getPivotValues() != null ? node.getPivotValues() : List.of();
+    String separator = node.getSeparator();
+    String format = node.getFormat();
+
+    // Build the pivot axis - cast to VARCHAR if needed for string comparison
+    RexNode yNameRef = b.field(yNameFieldName);
+    RexNode axis;
+    if (!SqlTypeUtil.isCharacter(yNameRef.getType())) {
+      RelDataType varchar =
+          rx.getTypeFactory()
+              .createTypeWithNullability(
+                  rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
+      axis = rx.makeCast(varchar, yNameRef, true);
+    } else {
+      axis = yNameRef;
+    }
+
+    // Build aggregate calls - MAX for each y-data field
+    List<AggCall> aggCalls =
+        yDataFieldNames.stream()
+            .map(name -> b.max(b.field(name)).as(name))
+            .collect(Collectors.toList());
+
+    // Build pivot value entries: alias -> [literal(value)]
+    // LinkedHashMap preserves insertion order for deterministic column ordering
+    LinkedHashMap<String, List<RexNode>> pivotValueMap = new LinkedHashMap<>();
+    for (String val : pivotValues) {
+      pivotValueMap.put(val, ImmutableList.of(b.literal(val)));
+    }
+
+    // Execute pivot: decomposes into GROUP BY x-field with FILTER-based aggregation
+    // Produces columns: x-field, {val1}_{agg1}, {val1}_{agg2}, {val2}_{agg1}, ...
+    b.pivot(
+        b.groupKey(b.field(xFieldName)),
+        aggCalls,
+        ImmutableList.of(axis),
+        pivotValueMap.entrySet());
+
+    // Pivot produces value-first column ordering: val1_agg1, val1_agg2, val2_agg1, ...
+    // Reorder to agg-first and apply custom column naming: agg1: val1, agg1: val2, ...
+    List<RexNode> reorderProjections = new ArrayList<>();
+    List<String> reorderNames = new ArrayList<>();
+
+    reorderProjections.add(b.field(xFieldName));
+    reorderNames.add(xFieldName);
+
+    for (String aggName : yDataFieldNames) {
+      for (String pivotVal : pivotValues) {
+        // Reference pivot output column by its generated name: {value}_{agg}
+        String pivotColName = pivotVal + "_" + aggName;
+        reorderProjections.add(b.field(pivotColName));
+        reorderNames.add(generateColumnName(aggName, pivotVal, separator, format));
+      }
+    }
+
+    b.project(reorderProjections, reorderNames, true);
+
+    // Order by x-field
+    b.sort(b.field(0));
+
+    return b.peek();
+  }
+
+  private String resolveFieldName(UnresolvedExpression expr) {
+    if (expr instanceof Field) {
+      return ((Field) expr).getField().toString();
+    }
+    if (expr instanceof Alias) {
+      return ((Alias) expr).getName();
+    }
+    return expr.toString();
+  }
+
+  private String generateColumnName(
+      String yDataFieldName, String pivotValue, String separator, String format) {
+    if (format != null) {
+      return format.replace("$AGG$", yDataFieldName).replace("$VAL$", pivotValue);
+    }
+    return yDataFieldName + separator + pivotValue;
   }
 
   @Override

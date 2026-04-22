@@ -2947,6 +2947,48 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testXyseriesExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance by gender, state"
+                    + " | xyseries state gender in (\"F\", \"M\") avg_balance",
+                TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_xyseries.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testXyseriesMultipleDataFieldsExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance, count() as cnt by gender, state"
+                    + " | xyseries state gender in (\"F\", \"M\") avg_balance, cnt",
+                TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_xyseries_multiple_data_fields.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testXyseriesWithFormatExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance by gender, state | xyseries"
+                    + " format=\"$VAL$_$AGG$\" state gender in (\"F\", \"M\") avg_balance",
+                TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_xyseries_with_format.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testExplainConsecutiveSortsAfterAggIssue5125() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_agg_consecutive_sorts_issue_5125.yaml");
