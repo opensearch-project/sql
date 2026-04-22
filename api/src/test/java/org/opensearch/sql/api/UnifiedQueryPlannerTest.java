@@ -13,7 +13,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.junit.Test;
-import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.executor.QueryType;
 
