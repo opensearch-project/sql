@@ -6,14 +6,27 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.ConstantScoreQueryBuilder;
+import org.opensearch.index.query.ExistsQueryBuilder;
+import org.opensearch.index.query.MatchBoolPrefixQueryBuilder;
+import org.opensearch.index.query.MatchPhrasePrefixQueryBuilder;
+import org.opensearch.index.query.MatchPhraseQueryBuilder;
+import org.opensearch.index.query.MatchQueryBuilder;
+import org.opensearch.index.query.MultiMatchQueryBuilder;
+import org.opensearch.index.query.NestedQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.query.QueryStringQueryBuilder;
+import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.ScriptQueryBuilder;
+import org.opensearch.index.query.SimpleQueryStringBuilder;
+import org.opensearch.index.query.TermQueryBuilder;
+import org.opensearch.index.query.WildcardQueryBuilder;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -83,11 +96,8 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     FilterQueryBuilder queryBuilder = new FilterQueryBuilder(new DefaultExpressionSerializer());
     Expression queryCondition = filter.getCondition();
 
-    // Reject WHERE predicates that reference the synthetic _score column. The planner surfaces
-    // _score as a projectable/filterable field, but it is not a stored document field in
-    // OpenSearch. If we let this pass through, FilterQueryBuilder produces a range query on a
-    // non-existent field and the cluster silently returns 0 rows. Users who want a score floor
-    // should use option='min_score=...' instead.
+    // _score is synthetic, not a stored field; a range query on it silently returns 0 rows.
+    // Users who want a score floor should use option='min_score=...'.
     if (containsScoreReference(queryCondition)) {
       throw new ExpressionEvaluationException(
           "WHERE on _score is not supported on vectorSearch()."
@@ -109,16 +119,9 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     filterPushed = true;
 
     if (filterType == FilterType.EFFICIENT) {
-      // knn.filter on AOSS/serverless vector collections rejects script queries. If any WHERE
-      // subtree compiled to a ScriptQueryBuilder (arithmetic, function calls, CASE, date math),
-      // refuse to embed it under knn.filter instead of shipping a request that will fail at the
-      // cluster with an opaque error.
-      if (containsScriptQuery(whereQuery)) {
-        throw new ExpressionEvaluationException(
-            "filter_type=efficient does not support predicates that compile to script queries"
-                + " (arithmetic, function calls, CASE, date math). Rewrite the WHERE clause to"
-                + " use comparable/term/range predicates, or omit filter_type.");
-      }
+      // Fail closed: knn.filter on AOSS rejects script queries and nested predicates expand the
+      // preview contract. Allow-list validator beats a blacklist walker.
+      validateEfficientFilterSafe(whereQuery);
       QueryBuilder rebuiltKnn = rebuildKnnWithFilter.apply(whereQuery);
       requestBuilder.getSourceBuilder().query(rebuiltKnn);
     } else {
@@ -131,10 +134,8 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
 
   @Override
   public boolean pushDownLimit(LogicalLimit limit) {
-    // OFFSET on vectorSearch() silently rewrites the search window and drops top results, which
-    // defeats the entire point of a relevance-ranked top-k query. The parent path would push
-    // `from: <offset>` into the OpenSearch request; reject it explicitly so users get a clear
-    // error instead of surprising result shifts.
+    // OFFSET would shift the search window and silently drop top results; reject with a clear
+    // error rather than have the parent path push `from: <offset>` into the request.
     if (limit.getOffset() != null && limit.getOffset() != 0) {
       throw new ExpressionEvaluationException(
           "OFFSET is not supported on vectorSearch(). Remove OFFSET and use LIMIT only.");
@@ -163,9 +164,8 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
             "vectorSearch only supports ORDER BY _score DESC; _score ASC is not supported");
       }
     }
-    // _score DESC is the natural knn order — no need to push the sort itself to OpenSearch.
-    // Preserve the parent's sort.getCount() → limit pushdown contract: SQL always sets count=0,
-    // but PPL or future callers may set a non-zero count to combine sort+limit in one node.
+    // _score DESC is knn's natural order, so the sort itself is not pushed. Preserve the
+    // parent's sort.getCount() → limit contract; SQL sends 0, PPL may combine sort+limit.
     if (sort.getCount() != 0) {
       validateLimitWithinK(sort.getCount());
       limitPushed = true;
@@ -185,20 +185,14 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     }
   }
 
-  /**
-   * Returns true if any subexpression is a ReferenceExpression whose attr is "_score". Uses the
-   * standard ExpressionNodeVisitor so compound predicates (AND/OR/NOT, function calls, CASE) are
-   * walked uniformly.
-   */
+  // True if any ReferenceExpression in the tree names _score (case-insensitive, so quoted/
+  // backticked variants cannot bypass the guard).
   private static boolean containsScoreReference(Expression expr) {
     AtomicBoolean found = new AtomicBoolean(false);
     expr.accept(
         new ExpressionNodeVisitor<Void, Void>() {
           @Override
           public Void visitReference(ReferenceExpression node, Void context) {
-            // Case-insensitive match so _SCORE, _Score, and any quoted/backticked variant that
-            // preserves original casing cannot bypass the guard and reach the cluster as a range
-            // query on a non-existent field.
             if (node.getAttr() != null && "_score".equalsIgnoreCase(node.getAttr())) {
               found.set(true);
             }
@@ -209,48 +203,60 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     return found.get();
   }
 
-  /**
-   * Recursively scans a QueryBuilder tree for any ScriptQueryBuilder. Handles the common wrappers
-   * that FilterQueryBuilder produces: BoolQueryBuilder (must/should/mustNot/filter) and
-   * ConstantScoreQueryBuilder. Other QueryBuilder subtypes are leaves for our purposes: if the
-   * top-level builder itself is a ScriptQueryBuilder we catch it, otherwise we treat it as
-   * script-free.
-   */
-  private static boolean containsScriptQuery(QueryBuilder qb) {
+  // Allow-list of leaf query types FilterQueryBuilder emits today. Any new wrapper or container
+  // appearing here must fail closed rather than silently embed under knn.filter.
+  private static final Set<Class<? extends QueryBuilder>> SAFE_EFFICIENT_FILTER_LEAVES =
+      Set.of(
+          TermQueryBuilder.class,
+          RangeQueryBuilder.class,
+          WildcardQueryBuilder.class,
+          MatchQueryBuilder.class,
+          MatchPhraseQueryBuilder.class,
+          MatchPhrasePrefixQueryBuilder.class,
+          MultiMatchQueryBuilder.class,
+          QueryStringQueryBuilder.class,
+          SimpleQueryStringBuilder.class,
+          MatchBoolPrefixQueryBuilder.class,
+          ExistsQueryBuilder.class);
+
+  // Package-private for direct branch coverage in unit tests. Fail-closed: recurse known
+  // containers, reject ScriptQueryBuilder/NestedQueryBuilder with targeted messages, allow
+  // listed leaves, reject everything else as unsupported shape.
+  static void validateEfficientFilterSafe(QueryBuilder qb) {
     if (qb == null) {
-      return false;
+      return;
     }
     if (qb instanceof ScriptQueryBuilder) {
-      return true;
+      throw new ExpressionEvaluationException(
+          "filter_type=efficient does not support predicates that compile to script queries"
+              + " (arithmetic, function calls, CASE, date math). Rewrite the WHERE clause to"
+              + " use comparable/term/range predicates, or omit filter_type.");
     }
     if (qb instanceof BoolQueryBuilder) {
       BoolQueryBuilder bool = (BoolQueryBuilder) qb;
-      for (QueryBuilder child : bool.must()) {
-        if (containsScriptQuery(child)) {
-          return true;
-        }
-      }
-      for (QueryBuilder child : bool.filter()) {
-        if (containsScriptQuery(child)) {
-          return true;
-        }
-      }
-      for (QueryBuilder child : bool.should()) {
-        if (containsScriptQuery(child)) {
-          return true;
-        }
-      }
-      for (QueryBuilder child : bool.mustNot()) {
-        if (containsScriptQuery(child)) {
-          return true;
-        }
-      }
-      return false;
+      bool.must().forEach(VectorSearchQueryBuilder::validateEfficientFilterSafe);
+      bool.filter().forEach(VectorSearchQueryBuilder::validateEfficientFilterSafe);
+      bool.should().forEach(VectorSearchQueryBuilder::validateEfficientFilterSafe);
+      bool.mustNot().forEach(VectorSearchQueryBuilder::validateEfficientFilterSafe);
+      return;
     }
     if (qb instanceof ConstantScoreQueryBuilder) {
-      return containsScriptQuery(((ConstantScoreQueryBuilder) qb).innerQuery());
+      validateEfficientFilterSafe(((ConstantScoreQueryBuilder) qb).innerQuery());
+      return;
     }
-    return false;
+    if (qb instanceof NestedQueryBuilder) {
+      throw new ExpressionEvaluationException(
+          "filter_type=efficient does not support nested predicates in this preview."
+              + " Rewrite the WHERE clause using non-nested fields or omit filter_type.");
+    }
+    if (SAFE_EFFICIENT_FILTER_LEAVES.contains(qb.getClass())) {
+      return;
+    }
+    throw new ExpressionEvaluationException(
+        "filter_type=efficient encountered an unsupported filter query shape: "
+            + qb.getClass().getSimpleName()
+            + ". Rewrite the WHERE clause using simple term/range/bool predicates,"
+            + " or omit filter_type.");
   }
 
   @Override
