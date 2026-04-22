@@ -72,9 +72,7 @@ public class AnalysisContext {
     return curEnv;
   }
 
-  /**
-   * Push a new isolated environment without parent access.
-   */
+  /** Push a new isolated environment without parent access. */
   public void pushIsolated() {
     environment = new TypeEnvironment(null);
   }
