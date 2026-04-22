@@ -20,6 +20,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.exception.UnsupportedCursorRequestException;
@@ -131,7 +132,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
 
       @Override
       public void onFailure(Exception e) {
-        if (e instanceof SyntaxCheckException || e instanceof UnsupportedCursorRequestException) {
+        if (e instanceof SyntaxCheckException || e instanceof UnsupportedCursorRequestException || e instanceof ErrorReport) {
           fallBackHandler.accept(channel, e);
         } else {
           next.onFailure(e);
