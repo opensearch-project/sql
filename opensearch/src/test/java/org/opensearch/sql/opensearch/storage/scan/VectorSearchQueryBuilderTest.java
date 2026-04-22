@@ -17,9 +17,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import org.apache.lucene.search.join.ScoreMode;
 import org.junit.jupiter.api.Test;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.WrapperQueryBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -712,9 +714,8 @@ class VectorSearchQueryBuilderTest {
             true,
             rebuildWithFilter);
 
-    // WHERE price + 1 > 100: the outer > is not a direct field ref, so FilterQueryBuilder
-    // falls through to buildScriptQuery() and produces a ScriptQueryBuilder. Under filter_type=
-    // efficient that would be embedded under knn.filter, which AOSS rejects.
+    // price + 1 > 100 lowers to a ScriptQueryBuilder; embedding it under knn.filter would
+    // trigger the AOSS rejection this PR guards against.
     var condition =
         DSL.greater(
             DSL.add(new ReferenceExpression("price", ExprCoreType.INTEGER), DSL.literal(1)),
@@ -734,9 +735,7 @@ class VectorSearchQueryBuilderTest {
 
   @Test
   void pushDownFilter_post_allowsScriptSubtree() {
-    // Under POST mode, script queries are fine: the WHERE lives in an outer bool.filter
-    // that OpenSearch evaluates against hits, not inside knn.filter. Verify we do not
-    // false-positive on the POST branch.
+    // POST puts WHERE in an outer bool.filter, not under knn.filter, so scripts are fine.
     var requestBuilder = createRequestBuilder();
     var knnQuery = new WrapperQueryBuilder("{\"knn\":{}}");
     var builder = new VectorSearchQueryBuilder(requestBuilder, knnQuery, Map.of("k", "5"));
@@ -774,6 +773,78 @@ class VectorSearchQueryBuilderTest {
     // build() should not reject — limitPushed must be true via pushDownSort's count path
     OpenSearchRequestBuilder result = builder.build();
     assertNotNull(result);
+  }
+
+  // ── filter_type=efficient allow-list validator ──────────────────────
+
+  @Test
+  void validateEfficientFilterSafe_rejectsNestedQuery() {
+    // FilterQueryBuilder emits NestedQueryBuilder for SQL nested(field, pred); nested vector
+    // semantics are outside the P0 preview so rejection must be targeted, not generic.
+    QueryBuilder nested =
+        QueryBuilders.nestedQuery(
+            "parent", QueryBuilders.termQuery("parent.f", "v"), ScoreMode.None);
+
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> VectorSearchQueryBuilder.validateEfficientFilterSafe(nested));
+    assertTrue(
+        ex.getMessage().contains("filter_type=efficient does not support nested predicates"),
+        "Expected targeted nested rejection, got: " + ex.getMessage());
+  }
+
+  @Test
+  void validateEfficientFilterSafe_rejectsNestedBuriedInBool() {
+    // AND-ing nested() with a term must still be caught; otherwise the guard is trivially bypassed.
+    QueryBuilder tree =
+        QueryBuilders.boolQuery()
+            .filter(QueryBuilders.termQuery("state", "CA"))
+            .filter(
+                QueryBuilders.nestedQuery(
+                    "parent", QueryBuilders.termQuery("parent.f", "v"), ScoreMode.None));
+
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> VectorSearchQueryBuilder.validateEfficientFilterSafe(tree));
+    assertTrue(ex.getMessage().contains("nested predicates"));
+  }
+
+  @Test
+  void validateEfficientFilterSafe_acceptsBoolOfSafeLeaves() {
+    QueryBuilder tree =
+        QueryBuilders.boolQuery()
+            .filter(QueryBuilders.termQuery("category", "shoes"))
+            .filter(QueryBuilders.rangeQuery("price").gte(80).lte(150));
+
+    VectorSearchQueryBuilder.validateEfficientFilterSafe(tree);
+  }
+
+  @Test
+  void validateEfficientFilterSafe_acceptsExistsLeaf() {
+    // IS NOT NULL lowers to ExistsQueryBuilder; locks in allow-list coverage for that path.
+    QueryBuilder exists = QueryBuilders.existsQuery("brand");
+
+    VectorSearchQueryBuilder.validateEfficientFilterSafe(exists);
+  }
+
+  @Test
+  void validateEfficientFilterSafe_rejectsUnknownWrapper() {
+    // Unknown shapes must fail closed so future FilterQueryBuilder additions cannot silently
+    // re-introduce the AOSS-rejection bug class this PR is guarding against.
+    QueryBuilder unknown = new WrapperQueryBuilder("{\"term\":{\"f\":\"v\"}}");
+
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> VectorSearchQueryBuilder.validateEfficientFilterSafe(unknown));
+    assertTrue(
+        ex.getMessage().contains("unsupported filter query shape"),
+        "Expected unknown-shape rejection, got: " + ex.getMessage());
+    assertTrue(
+        ex.getMessage().contains("WrapperQueryBuilder"),
+        "Expected class name in message, got: " + ex.getMessage());
   }
 
   private OpenSearchRequestBuilder createRequestBuilder() {
