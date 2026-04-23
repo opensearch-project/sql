@@ -203,11 +203,8 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
    * its own error message.
    */
   private void validateTableName(String tableName) {
-    // Flag wildcard and multi-target patterns with a dedicated message before the generic
-    // character-class check, so users get an actionable hint instead of "must contain only
-    // alphanumeric characters, dots, ...". vectorSearch() targets a single index because
-    // top-k semantics, dimension checks, and the embedded filter JSON are not defined across
-    // heterogeneous shards.
+    // Dedicated error for fan-out patterns ('*' and ',') before the generic regex; see Javadoc
+    // for why vectorSearch() targets a single index.
     if (tableName.indexOf('*') >= 0 || tableName.indexOf(',') >= 0) {
       throw new ExpressionEvaluationException(
           String.format(
