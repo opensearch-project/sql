@@ -23,6 +23,8 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.util.SqlOperatorTables;
@@ -248,7 +250,14 @@ public class UnifiedQueryContext implements AutoCloseable {
           .parserConfig(buildParserConfig())
           .operatorTable(
               SqlOperatorTables.chain(
-                  SqlStdOperatorTable.instance(), UnifiedFunctionSpec.RELEVANCE.operatorTable()))
+                  SqlStdOperatorTable.instance(),
+                  UnifiedFunctionSpec.RELEVANCE.operatorTable(),
+                  SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                      java.util.EnumSet.of(
+                          SqlLibrary.POSTGRESQL,
+                          SqlLibrary.MYSQL,
+                          SqlLibrary.BIG_QUERY,
+                          SqlLibrary.SPARK))))
           .defaultSchema(defaultSchema)
           .traitDefs((List<RelTraitDef>) null)
           .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
