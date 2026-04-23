@@ -731,10 +731,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private RelCollation backtrackForCollation(RelNode node) {
-    return PlanUtils.findInputCollation(node);
-  }
-
   /**
    * Insert a reversed sort node after finding the original sort in the tree. This rebuilds the tree
    * with the reversed sort inserted right after the original sort.
@@ -817,7 +813,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else {
       // Collation not found on current node - try backtracking
       RelNode currentNode = context.relBuilder.peek();
-      RelCollation backtrackCollation = backtrackForCollation(currentNode);
+      RelCollation backtrackCollation = PlanUtils.findInputCollation(currentNode);
 
       if (backtrackCollation != null && !backtrackCollation.getFieldCollations().isEmpty()) {
         // Found collation through backtracking - rebuild tree with reversed sort

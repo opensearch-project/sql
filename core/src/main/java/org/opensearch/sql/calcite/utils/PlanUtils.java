@@ -45,6 +45,7 @@ import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -614,7 +615,7 @@ public interface PlanUtils {
    * @param node the starting RelNode to backtrack from
    * @return the collation found, or null if no sort or blocking operator encountered
    */
-  static @Nullable RelCollation findInputCollation(RelNode node) {
+  public static @Nullable RelCollation findInputCollation(RelNode node) {
     while (node != null) {
       if (node instanceof Aggregate
           || node instanceof BiRel
@@ -651,74 +652,36 @@ public interface PlanUtils {
    */
   public static @Nullable RelCollation stripInputSort(RelBuilder relBuilder) {
     RelNode input = relBuilder.peek();
-    RelCollation collation = findInputCollation(input);
-    if (collation != null && !collation.getFieldCollations().isEmpty()) {
-      // Remap collation field indices through any intermediate Projects between the top
-      // of the tree and the Sort. This is necessary because the Sort's collation references
-      // field indices relative to its own input, which may differ from the top-level schema
-      // after a Project narrows the output fields.
-      collation = remapCollationThroughProjects(input, collation);
-      if (collation == null) {
-        return null;
-      }
-      RelNode stripped = removeSortFromTree(input);
-      if (stripped != input) {
-        relBuilder.clear();
-        relBuilder.push(stripped);
-      }
+    // First check whether a Sort exists in the (single-input) prefix of the subtree. If there is
+    // no Sort, there is nothing to strip and the index-space remapping below would be pointless.
+    if (findInputCollation(input) == null) {
+      return null;
     }
-    return collation;
-  }
-
-  /**
-   * Remap a collation's field indices through intermediate Projects between the root and the Sort
-   * node. Returns null if any collation field was projected away.
-   */
-  private static @Nullable RelCollation remapCollationThroughProjects(
-      RelNode node, RelCollation collation) {
-    java.util.Map<Integer, Integer> inputToTopMapping = null;
-    while (node != null) {
-      if (node instanceof LogicalProject proj && !proj.containsOver()) {
-        java.util.Map<Integer, Integer> projMapping = new java.util.HashMap<>();
-        List<RexNode> projects = proj.getProjects();
-        for (int i = 0; i < projects.size(); i++) {
-          if (projects.get(i) instanceof RexInputRef ref) {
-            projMapping.put(ref.getIndex(), i);
-          }
-        }
-        if (inputToTopMapping == null) {
-          inputToTopMapping = projMapping;
-        } else {
-          java.util.Map<Integer, Integer> composed = new java.util.HashMap<>();
-          for (var entry : projMapping.entrySet()) {
-            Integer topIndex = inputToTopMapping.get(entry.getValue());
-            if (topIndex != null) {
-              composed.put(entry.getKey(), topIndex);
-            }
-          }
-          inputToTopMapping = composed;
+    // Ask Calcite's RelMdCollation for the subtree's output collation. This already accounts for
+    // intermediate Projects (they rewrite collation via a `Mappings.TargetMapping`), so we don't
+    // need to hand-roll an index remapper.
+    RelMetadataQuery mq = input.getCluster().getMetadataQuery();
+    List<RelCollation> collations = mq.collations(input);
+    RelCollation outputCollation = null;
+    if (collations != null) {
+      for (RelCollation c : collations) {
+        if (c != null && !c.getFieldCollations().isEmpty()) {
+          outputCollation = c;
+          break;
         }
       }
-      if (node instanceof Sort) {
-        break;
-      }
-      if (node.getInputs().isEmpty()) {
-        break;
-      }
-      node = node.getInput(0);
     }
-    if (inputToTopMapping == null) {
-      return collation;
+    if (outputCollation == null) {
+      // Any collation field was projected away (or RelMdCollation couldn't propagate through the
+      // subtree). Leave the tree untouched and report no collation.
+      return null;
     }
-    List<RelFieldCollation> remapped = new ArrayList<>();
-    for (RelFieldCollation fc : collation.getFieldCollations()) {
-      Integer topIndex = inputToTopMapping.get(fc.getFieldIndex());
-      if (topIndex == null) {
-        return null;
-      }
-      remapped.add(fc.withFieldIndex(topIndex));
+    RelNode stripped = removeSortFromTree(input);
+    if (stripped != input) {
+      relBuilder.clear();
+      relBuilder.push(stripped);
     }
-    return RelCollations.of(remapped);
+    return outputCollation;
   }
 
   /**
