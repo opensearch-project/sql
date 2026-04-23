@@ -499,6 +499,46 @@ class VectorSearchTableFunctionImplementationTest {
   }
 
   @Test
+  void applyArguments_rejectsWildcardTableWithDedicatedMessage() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("sql_vector_*", "embedding", "[1.0, 2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Invalid table name"));
+    assertTrue(ex.getMessage().contains("wildcards ('*')"));
+    assertTrue(ex.getMessage().contains("single concrete index"));
+  }
+
+  @Test
+  void applyArguments_rejectsBareStarTableWithDedicatedMessage() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("*", "embedding", "[1.0, 2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("wildcards ('*')"));
+  }
+
+  @Test
+  void applyArguments_rejectsMultiTargetTableWithDedicatedMessage() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("idx_a,idx_b", "embedding", "[1.0, 2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Invalid table name"));
+    assertTrue(ex.getMessage().contains("multi-target"));
+    assertTrue(ex.getMessage().contains("single concrete index"));
+  }
+
+  @Test
+  void applyArguments_rejectsMidNameStarTable() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("foo*bar", "embedding", "[1.0, 2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("wildcards ('*')"));
+  }
+
+  @Test
   void validateNamedArgs_rejectsDuplicateNames() {
     // Two occurrences of "table" reach the Implementation layer directly (bypassing the resolver).
     FunctionName functionName = FunctionName.of("vectorsearch");

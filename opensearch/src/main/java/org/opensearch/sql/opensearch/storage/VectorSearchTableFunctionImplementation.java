@@ -203,6 +203,19 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
    * its own error message.
    */
   private void validateTableName(String tableName) {
+    // Flag wildcard and multi-target patterns with a dedicated message before the generic
+    // character-class check, so users get an actionable hint instead of "must contain only
+    // alphanumeric characters, dots, ...". vectorSearch() targets a single index because
+    // top-k semantics, dimension checks, and the embedded filter JSON are not defined across
+    // heterogeneous shards.
+    if (tableName.indexOf('*') >= 0 || tableName.indexOf(',') >= 0) {
+      throw new ExpressionEvaluationException(
+          String.format(
+              "Invalid table name '%s': vectorSearch() requires a single concrete index or alias;"
+                  + " wildcards ('*') and multi-target patterns (comma-separated) are not"
+                  + " supported",
+              tableName));
+    }
     if (!SAFE_FIELD_NAME.matcher(tableName).matches()) {
       throw new ExpressionEvaluationException(
           String.format(
