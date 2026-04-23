@@ -622,6 +622,20 @@ public class VectorSearchIT extends SQLIntegTestCase {
     assertThat(ex.getMessage(), containsString("non-negative"));
   }
 
+  @Test
+  public void testTrailingCommaInVectorRejected() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='t', field='f', "
+                        + "vector='[1.0,2.0,]', option='k=5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("Invalid vector component"));
+    assertThat(ex.getMessage(), containsString("trailing or consecutive commas"));
+  }
+
   private void deleteIndexIfExists(String indexName) {
     try {
       client().performRequest(new Request("DELETE", "/" + indexName));
