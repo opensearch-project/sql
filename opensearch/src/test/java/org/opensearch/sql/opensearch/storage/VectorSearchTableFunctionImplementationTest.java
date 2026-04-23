@@ -703,12 +703,20 @@ class VectorSearchTableFunctionImplementationTest {
         createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=5,bogus=1");
     ExpressionEvaluationException ex =
         assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
-    String msg = ex.getMessage();
-    int kIdx = msg.indexOf("k");
-    int maxIdx = msg.indexOf("max_distance");
-    int minIdx = msg.indexOf("min_score");
-    int filterIdx = msg.indexOf("filter_type");
-    assertTrue(kIdx >= 0 && maxIdx > kIdx && minIdx > maxIdx && filterIdx > minIdx);
+    // Match the rendered list literal (e.g. "[k, max_distance, min_score, filter_type]") rather
+    // than searching for the substring "k", which would match the first "k" in "Unknown option
+    // key" and reduce the assertion to a tautology.
+    assertTrue(
+        ex.getMessage().contains("[k, max_distance, min_score, filter_type]"),
+        "expected stable key order in error; got: " + ex.getMessage());
+  }
+
+  @Test
+  void parseOptions_emptyStringReturnsEmptyMap() {
+    // The wholly empty option string is explicitly allowed through parseOptions so it flows to
+    // the "Missing required option" gate in validateOptions. Pins that contract.
+    Map<String, String> opts = VectorSearchTableFunctionImplementation.parseOptions("");
+    assertTrue(opts.isEmpty());
   }
 
   private VectorSearchTableFunctionImplementation createImpl() {
