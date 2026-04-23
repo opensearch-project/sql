@@ -116,9 +116,13 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     // The collation's field indices refer to the dedup's input row type (i.e., `project`),
     // not the reordered `targetChildProject`.
     if (dedup.getInputCollation() != null
-        && !dedup.getInputCollation().getFieldCollations().isEmpty()) {
+        && !dedup.getInputCollation().getFieldCollations().isEmpty()
+        && dedup.getInputCollationFieldNames() != null) {
+      // Use the field names captured on LogicalDedup itself. These were recorded against the row
+      // type that produced the collation and are stable even if planner rules later narrow the
+      // dedup's input — which otherwise would make the index-based RelCollation unsafe to resolve.
       PPLHintUtils.addDedupSortHintToAggregate(
-          relBuilder, dedup.getInputCollation(), project.getRowType().getFieldNames());
+          relBuilder, dedup.getInputCollation(), dedup.getInputCollationFieldNames());
     }
     // peek the aggregate after hint being added
     LogicalAggregate aggregate = (LogicalAggregate) relBuilder.build();

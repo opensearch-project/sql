@@ -27,7 +27,8 @@ public class LogicalDedup extends Dedup {
       Integer allowedDuplication,
       Boolean keepEmpty,
       Boolean consecutive,
-      @Nullable RelCollation inputCollation) {
+      @Nullable RelCollation inputCollation,
+      @Nullable List<String> inputCollationFieldNames) {
     super(
         cluster,
         traitSet,
@@ -36,7 +37,8 @@ public class LogicalDedup extends Dedup {
         allowedDuplication,
         keepEmpty,
         consecutive,
-        inputCollation);
+        inputCollation,
+        inputCollationFieldNames);
   }
 
   @Override
@@ -47,7 +49,8 @@ public class LogicalDedup extends Dedup {
       Integer allowedDuplication,
       Boolean keepEmpty,
       Boolean consecutive,
-      @Nullable RelCollation inputCollation) {
+      @Nullable RelCollation inputCollation,
+      @Nullable List<String> inputCollationFieldNames) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalDedup(
         getCluster(),
@@ -57,7 +60,8 @@ public class LogicalDedup extends Dedup {
         allowedDuplication,
         keepEmpty,
         consecutive,
-        inputCollation);
+        inputCollation,
+        inputCollationFieldNames);
   }
 
   public static LogicalDedup create(
@@ -76,6 +80,29 @@ public class LogicalDedup extends Dedup {
       Boolean keepEmpty,
       Boolean consecutive,
       @Nullable RelCollation inputCollation) {
+    // Capture field names from the current input row type at construction time — the collation's
+    // RexInputRef indices refer to this row type and may not be resolvable later if planner rules
+    // narrow the dedup's input.
+    List<String> inputCollationFieldNames =
+        inputCollation == null ? null : input.getRowType().getFieldNames();
+    return create(
+        input,
+        dedupeFields,
+        allowedDuplication,
+        keepEmpty,
+        consecutive,
+        inputCollation,
+        inputCollationFieldNames);
+  }
+
+  public static LogicalDedup create(
+      RelNode input,
+      List<RexNode> dedupeFields,
+      Integer allowedDuplication,
+      Boolean keepEmpty,
+      Boolean consecutive,
+      @Nullable RelCollation inputCollation,
+      @Nullable List<String> inputCollationFieldNames) {
     final RelOptCluster cluster = input.getCluster();
     RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalDedup(
@@ -86,7 +113,8 @@ public class LogicalDedup extends Dedup {
         allowedDuplication,
         keepEmpty,
         consecutive,
-        inputCollation);
+        inputCollation,
+        inputCollationFieldNames);
   }
 
   @Override

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
@@ -21,6 +22,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     enableCalcite();
 
     loadIndex(Index.DUPLICATION_NULLABLE);
+    loadIndex(Index.ACCOUNT);
   }
 
   @Test
@@ -312,6 +314,29 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     //   name=D first cat=Z, name=E first cat=null.
     verifyDataRows(
         actual, rows(null, "B"), rows(null, "E"), rows("X", "A"), rows("X", "C"), rows("Z", "D"));
+  }
+
+  /**
+   * Regression test for multi-field sort pushed through dedup.
+   *
+   * <p>Verifies that when a PPL {@code sort} has multiple fields before a {@code dedup}, every
+   * field is preserved through the pushdown (not only the first one). A single-field pushdown would
+   * lose the tie-breaker and return a non-deterministic row for each dedup group.
+   *
+   * <p>Data used: the {@code accounts} test index. In state {@code AK} there are multiple F and M
+   * accounts; under {@code sort state, age, account_number} the first M row is {@code (state=AK,
+   * age=20, account_number=23)} and the first F row is {@code (state=AK, age=21,
+   * account_number=334)}. Only a correct multi-field pushdown produces these exact rows.
+   */
+  @Test
+  public void testMultiColumnSortThenDedup() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | sort state, age, account_number | dedup 1 gender | fields gender,"
+                    + " state, age, account_number",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(actual, rows("M", "AK", 20, 23), rows("F", "AK", 21, 334));
   }
 
   /** Regression test for https://github.com/opensearch-project/sql/issues/3922 */

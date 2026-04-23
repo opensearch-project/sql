@@ -211,18 +211,12 @@ public class AggregateAnalyzer {
     try {
       final List<Integer> groupList = aggregate.getGroupSet().asList();
       List<String> aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());
-      // Extract dedup sort hint if present
-      String dedupSortField = PPLHintUtils.getDedupSortField(aggregate);
-      String dedupSortOrder = PPLHintUtils.getDedupSortOrder(aggregate);
+      // Extract dedup sort hint if present (may be a multi-field sort)
+      List<PPLHintUtils.DedupSortKey> dedupSortKeys = PPLHintUtils.getDedupSortKeys(aggregate);
       // Process all aggregate calls
       Pair<Builder, List<MetricParser>> builderAndParser =
           processAggregateCalls(
-              aggFieldNames,
-              aggregate.getAggCallList(),
-              project,
-              helper,
-              dedupSortField,
-              dedupSortOrder);
+              aggFieldNames, aggregate.getAggCallList(), project, helper, dedupSortKeys);
       Builder metricBuilder = builderAndParser.getLeft();
       List<MetricParser> metricParsers = builderAndParser.getRight();
 
@@ -381,8 +375,7 @@ public class AggregateAnalyzer {
       List<AggregateCall> aggCalls,
       Project project,
       AggregateAnalyzer.AggregateBuilderHelper helper,
-      @Nullable String dedupSortField,
-      @Nullable String dedupSortOrder)
+      List<PPLHintUtils.DedupSortKey> dedupSortKeys)
       throws PredicateAnalyzer.ExpressionNotAnalyzableException {
     Builder metricBuilder = new AggregatorFactories.Builder();
     List<MetricParser> metricParserList = new ArrayList<>();
@@ -394,8 +387,7 @@ public class AggregateAnalyzer {
       String aggName = aggNames.get(i);
 
       Pair<AggregationBuilder, MetricParser> builderAndParser =
-          createAggregationBuilderAndParser(
-              aggCall, args, aggName, helper, dedupSortField, dedupSortOrder);
+          createAggregationBuilderAndParser(aggCall, args, aggName, helper, dedupSortKeys);
       builderAndParser = aggFilterAnalyzer.analyze(builderAndParser, aggCall, aggName);
       // Nested aggregation (https://docs.opensearch.org/docs/latest/aggregations/bucket/nested/)
       String nestedPath =
@@ -450,13 +442,11 @@ public class AggregateAnalyzer {
       List<Pair<RexNode, String>> args,
       String aggName,
       AggregateAnalyzer.AggregateBuilderHelper helper,
-      @Nullable String dedupSortField,
-      @Nullable String dedupSortOrder) {
+      List<PPLHintUtils.DedupSortKey> dedupSortKeys) {
     if (aggCall.isDistinct()) {
       return createDistinctAggregation(aggCall, args, aggName, helper);
     } else {
-      return createRegularAggregation(
-          aggCall, args, aggName, helper, dedupSortField, dedupSortOrder);
+      return createRegularAggregation(aggCall, args, aggName, helper, dedupSortKeys);
     }
   }
 
@@ -484,8 +474,7 @@ public class AggregateAnalyzer {
       List<Pair<RexNode, String>> args,
       String aggName,
       AggregateBuilderHelper helper,
-      @Nullable String dedupSortField,
-      @Nullable String dedupSortOrder) {
+      List<PPLHintUtils.DedupSortKey> dedupSortKeys) {
 
     return switch (aggCall.getAggregation().kind) {
       case AVG ->
@@ -616,18 +605,18 @@ public class AggregateAnalyzer {
               String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         }
         Integer dedupNumber = literal.getValueAs(Integer.class);
-        boolean hasDedupSort = dedupSortField != null && dedupSortOrder != null;
-        SortOrder sortOrder =
-            hasDedupSort ? ("DESC".equals(dedupSortOrder) ? SortOrder.DESC : SortOrder.ASC) : null;
         TopHitsAggregationBuilder topHitsAggregationBuilder =
             createTopHitsBuilder(
                 aggCall, args, aggName, helper, dedupNumber, false, false, null, null);
-        if (hasDedupSort) {
-          // Align pushed-down top_hits null ordering with PPL's default Calcite sort semantics
-          // (ASC -> NULLS FIRST, DESC -> NULLS LAST) so dedup selects the same row either way.
-          String missing = sortOrder == SortOrder.ASC ? "_first" : "_last";
+        // Emit a top_hits sort array that mirrors the original PPL sort collation
+        // (all fields, in order). Align NULL ordering with PPL/Calcite defaults
+        // (ASC -> NULLS FIRST, DESC -> NULLS LAST) so dedup picks the same row whether
+        // pushdown is on or off.
+        for (PPLHintUtils.DedupSortKey key : dedupSortKeys) {
+          SortOrder order = "DESC".equals(key.order()) ? SortOrder.DESC : SortOrder.ASC;
+          String missing = order == SortOrder.ASC ? "_first" : "_last";
           topHitsAggregationBuilder.sort(
-              SortBuilders.fieldSort(dedupSortField).order(sortOrder).missing(missing));
+              SortBuilders.fieldSort(key.field()).order(order).missing(missing));
         }
         yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggName, false, false));
       }
