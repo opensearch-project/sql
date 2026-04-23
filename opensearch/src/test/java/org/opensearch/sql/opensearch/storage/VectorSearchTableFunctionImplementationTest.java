@@ -517,6 +517,123 @@ class VectorSearchTableFunctionImplementationTest {
     assertTrue(ex.getMessage().contains("table"));
   }
 
+  // ── Option parsing: empty value, whitespace, unknown keys ────────────
+
+  @Test
+  void parseOptions_rejectsEmptyValue() {
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> VectorSearchTableFunctionImplementation.parseOptions("k="));
+    assertTrue(ex.getMessage().contains("Malformed option segment"));
+  }
+
+  @Test
+  void parseOptions_rejectsEmptyValueInMidSegment() {
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> VectorSearchTableFunctionImplementation.parseOptions("k=,filter_type=post"));
+    assertTrue(ex.getMessage().contains("Malformed option segment"));
+  }
+
+  @Test
+  void parseOptions_trimsWhitespaceAroundKeyAndValue() {
+    Map<String, String> options =
+        VectorSearchTableFunctionImplementation.parseOptions(" k = 5 , filter_type = post ");
+    assertEquals("5", options.get("k"));
+    assertEquals("post", options.get("filter_type"));
+  }
+
+  @Test
+  void applyArguments_rejectsUnknownOptionKey() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs(
+            "my-index", "embedding", "[1.0, 2.0]", "k=5,method_parameters.ef_search=100");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Unknown option key"));
+    assertTrue(ex.getMessage().contains("method_parameters.ef_search"));
+  }
+
+  // ── Vector parsing: non-comma separator ─────────────────────────────
+
+  @Test
+  void applyArguments_rejectsSemicolonSeparatorInVector() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0;2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("vector="));
+    assertTrue(ex.getMessage().contains("comma-separated"));
+  }
+
+  @Test
+  void applyArguments_rejectsColonSeparatorInVector() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0:2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("vector="));
+  }
+
+  @Test
+  void applyArguments_rejectsPipeSeparatorInVector() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0|2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("vector="));
+  }
+
+  // ── Option bounds: negative k, min_score, max_distance ──────────────
+
+  @Test
+  void applyArguments_negativeKMessageCitesRange() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=-3");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("1"));
+    assertTrue(ex.getMessage().contains("10000"));
+  }
+
+  @Test
+  void applyArguments_rejectsNegativeMinScore() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "min_score=-0.5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("min_score"));
+    assertTrue(ex.getMessage().contains("non-negative"));
+  }
+
+  @Test
+  void applyArguments_rejectsNegativeMaxDistance() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "max_distance=-1.0");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("max_distance"));
+    assertTrue(ex.getMessage().contains("non-negative"));
+  }
+
+  @Test
+  void applyArguments_acceptsZeroMinScore() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "min_score=0");
+    Table table = impl.applyArguments();
+    assertTrue(table instanceof VectorSearchIndex);
+  }
+
+  @Test
+  void applyArguments_acceptsZeroMaxDistance() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "max_distance=0");
+    Table table = impl.applyArguments();
+    assertTrue(table instanceof VectorSearchIndex);
+  }
+
   private VectorSearchTableFunctionImplementation createImpl() {
     return createImplWithArgs("my-index", "embedding", "[1.0, 2.0, 3.0]", "k=5");
   }

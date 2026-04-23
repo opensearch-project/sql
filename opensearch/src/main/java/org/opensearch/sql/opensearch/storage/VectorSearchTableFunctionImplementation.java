@@ -126,6 +126,15 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     if (cleaned.isEmpty()) {
       throw new ExpressionEvaluationException("Vector literal must not be empty");
     }
+    // Reject common non-comma separators before Float.parseFloat fails with a generic
+    // "Invalid vector component" that doesn't hint the user at the separator.
+    if (cleaned.indexOf(';') >= 0 || cleaned.indexOf(':') >= 0 || cleaned.indexOf('|') >= 0) {
+      throw new ExpressionEvaluationException(
+          String.format(
+              "Invalid vector literal '%s': vector= requires comma-separated components,"
+                  + " e.g., vector='[1.0,2.0,3.0]'",
+              vectorLiteral));
+    }
     String[] parts = cleaned.split(",");
     float[] vector = new float[parts.length];
     for (int i = 0; i < parts.length; i++) {
@@ -274,9 +283,20 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     }
     if (hasMaxDistance) {
       parseDoubleOption(options, "max_distance");
+      double maxDistance = Double.parseDouble(options.get("max_distance"));
+      if (maxDistance < 0) {
+        throw new ExpressionEvaluationException(
+            String.format(
+                "max_distance must be non-negative, got %s", options.get("max_distance")));
+      }
     }
     if (hasMinScore) {
       parseDoubleOption(options, "min_score");
+      double minScore = Double.parseDouble(options.get("min_score"));
+      if (minScore < 0) {
+        throw new ExpressionEvaluationException(
+            String.format("min_score must be non-negative, got %s", options.get("min_score")));
+      }
     }
   }
 

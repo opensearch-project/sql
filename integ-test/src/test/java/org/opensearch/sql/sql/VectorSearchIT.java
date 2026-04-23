@@ -580,6 +580,48 @@ public class VectorSearchIT extends SQLIntegTestCase {
     assertThat(ex.getMessage(), containsString("collides"));
   }
 
+  @Test
+  public void testSemicolonSeparatorInVectorRejected() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='t', field='f', "
+                        + "vector='[1.0;2.0]', option='k=5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("vector="));
+    assertThat(ex.getMessage(), containsString("comma-separated"));
+  }
+
+  @Test
+  public void testNegativeMinScoreRejected() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='t', field='f', "
+                        + "vector='[1.0]', option='min_score=-0.5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("min_score"));
+    assertThat(ex.getMessage(), containsString("non-negative"));
+  }
+
+  @Test
+  public void testNegativeMaxDistanceRejected() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='t', field='f', "
+                        + "vector='[1.0]', option='max_distance=-1.0') AS v"));
+
+    assertThat(ex.getMessage(), containsString("max_distance"));
+    assertThat(ex.getMessage(), containsString("non-negative"));
+  }
+
   private void deleteIndexIfExists(String indexName) {
     try {
       client().performRequest(new Request("DELETE", "/" + indexName));
