@@ -27,7 +27,8 @@ public class LogicalDedup extends Dedup {
       Integer allowedDuplication,
       Boolean keepEmpty,
       Boolean consecutive,
-      @Nullable RelCollation inputCollation) {
+      @Nullable RelCollation inputCollation,
+      @Nullable List<String> inputCollationFieldNames) {
     super(
         cluster,
         traitSet,
@@ -36,7 +37,8 @@ public class LogicalDedup extends Dedup {
         allowedDuplication,
         keepEmpty,
         consecutive,
-        inputCollation);
+        inputCollation,
+        inputCollationFieldNames);
   }
 
   @Override
@@ -47,7 +49,8 @@ public class LogicalDedup extends Dedup {
       Integer allowedDuplication,
       Boolean keepEmpty,
       Boolean consecutive,
-      @Nullable RelCollation inputCollation) {
+      @Nullable RelCollation inputCollation,
+      @Nullable List<String> inputCollationFieldNames) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalDedup(
         getCluster(),
@@ -57,7 +60,8 @@ public class LogicalDedup extends Dedup {
         allowedDuplication,
         keepEmpty,
         consecutive,
-        inputCollation);
+        inputCollation,
+        inputCollationFieldNames);
   }
 
   public static LogicalDedup create(
@@ -76,6 +80,11 @@ public class LogicalDedup extends Dedup {
       Boolean keepEmpty,
       Boolean consecutive,
       @Nullable RelCollation inputCollation) {
+    // Record the field names from the current input's row type so callers that encounter a stale
+    // collation (after a planner rule has swapped in a different, non-Project-derived input) can
+    // still resolve the sort keys to positions in the new input by name. See
+    // Dedup.inputCollationFieldNames.
+    List<String> fieldNames = inputCollation == null ? null : input.getRowType().getFieldNames();
     final RelOptCluster cluster = input.getCluster();
     RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalDedup(
@@ -86,7 +95,8 @@ public class LogicalDedup extends Dedup {
         allowedDuplication,
         keepEmpty,
         consecutive,
-        inputCollation);
+        inputCollation,
+        fieldNames);
   }
 
   @Override

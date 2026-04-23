@@ -27,6 +27,21 @@ public abstract class Dedup extends SingleRel {
   final Boolean consecutive;
   final @Nullable RelCollation inputCollation;
 
+  /**
+   * Field names of the row type that {@link #inputCollation} was captured against. Used as a
+   * name-based anchor so callers can resolve the collation's stale indices after a planner rule has
+   * narrowed or replaced the dedup's input (typically a scan absorbing a narrowing project).
+   *
+   * <p>Renames are handled by Calcite's own {@code Project.getMapping} propagation when a {@code
+   * Project} sits between dedup's old and new input — see {@code Dedup.copy}. This name list is
+   * only the fallback for cases where the replacement is not a {@code Project} (e.g. a scan that
+   * swaps in a narrower row type without a {@code Project} RelNode). Scans don't rename, so name
+   * equality is a stable identifier for that specific fallback.
+   *
+   * <p>{@code null} iff {@link #inputCollation} is {@code null}.
+   */
+  final @Nullable List<String> inputCollationFieldNames;
+
   protected Dedup(
       RelOptCluster cluster,
       RelTraitSet traitSet,
@@ -35,7 +50,8 @@ public abstract class Dedup extends SingleRel {
       Integer allowedDuplication,
       Boolean keepEmpty,
       Boolean consecutive,
-      @Nullable RelCollation inputCollation) {
+      @Nullable RelCollation inputCollation,
+      @Nullable List<String> inputCollationFieldNames) {
     super(cluster, traitSet, input);
     if (allowedDuplication <= 0) {
       throw new IllegalArgumentException("Number of duplicate events must be greater than 0");
@@ -48,6 +64,7 @@ public abstract class Dedup extends SingleRel {
     this.keepEmpty = keepEmpty;
     this.consecutive = consecutive;
     this.inputCollation = inputCollation;
+    this.inputCollationFieldNames = inputCollationFieldNames;
   }
 
   @Override
@@ -59,7 +76,8 @@ public abstract class Dedup extends SingleRel {
         this.allowedDuplication,
         this.keepEmpty,
         this.consecutive,
-        this.inputCollation);
+        this.inputCollation,
+        this.inputCollationFieldNames);
   }
 
   public abstract Dedup copy(
@@ -69,7 +87,8 @@ public abstract class Dedup extends SingleRel {
       Integer allowedDuplication,
       Boolean keepEmpty,
       Boolean consecutive,
-      @Nullable RelCollation inputCollation);
+      @Nullable RelCollation inputCollation,
+      @Nullable List<String> inputCollationFieldNames);
 
   public Dedup copy(RelNode input, List<RexNode> dedupeFields) {
     return this.copy(
@@ -79,7 +98,8 @@ public abstract class Dedup extends SingleRel {
         this.allowedDuplication,
         this.keepEmpty,
         this.consecutive,
-        this.inputCollation);
+        this.inputCollation,
+        this.inputCollationFieldNames);
   }
 
   @Override

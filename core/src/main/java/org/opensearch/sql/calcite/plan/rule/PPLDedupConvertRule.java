@@ -10,6 +10,7 @@ import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_D
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
@@ -50,7 +51,11 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
     final LogicalDedup dedup = call.rel(0);
     RelBuilder relBuilder = call.builder();
     relBuilder.push(dedup.getInput());
-    RelCollation inputCollation = dedup.getInputCollation();
+    RelCollation inputCollation =
+        resolveCollationToCurrentInput(
+            dedup.getInputCollation(),
+            dedup.getInputCollationFieldNames(),
+            dedup.getInput().getRowType().getFieldNames());
     if (dedup.getKeepEmpty()) {
       buildDedupOrNull(
           relBuilder, dedup.getDedupeFields(), dedup.getAllowedDuplication(), inputCollation);
@@ -59,6 +64,50 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
           relBuilder, dedup.getDedupeFields(), dedup.getAllowedDuplication(), inputCollation);
     }
     call.transformTo(relBuilder.build());
+  }
+
+  /**
+   * Resolve {@code collation}'s indices against {@code currentNames} (dedup's current input row
+   * type). If the indices are still valid against {@code currentNames}, return {@code collation}
+   * unchanged. Otherwise, look each collation field up by name in {@code originalNames} (the row
+   * type captured at LogicalDedup creation time) and find its position in {@code currentNames}; if
+   * any field is no longer present, drop that key.
+   */
+  private static @Nullable RelCollation resolveCollationToCurrentInput(
+      @Nullable RelCollation collation,
+      @Nullable List<String> originalNames,
+      List<String> currentNames) {
+    if (collation == null || collation.getFieldCollations().isEmpty()) {
+      return collation;
+    }
+    int currentSize = currentNames.size();
+    int maxIdx = -1;
+    for (RelFieldCollation fc : collation.getFieldCollations()) {
+      maxIdx = Math.max(maxIdx, fc.getFieldIndex());
+    }
+    if (maxIdx < currentSize) {
+      // Collation is already in the current input's index space — nothing to do.
+      return collation;
+    }
+    if (originalNames == null) {
+      return null;
+    }
+    List<RelFieldCollation> remapped = new ArrayList<>();
+    for (RelFieldCollation fc : collation.getFieldCollations()) {
+      int oldIdx = fc.getFieldIndex();
+      if (oldIdx < 0 || oldIdx >= originalNames.size()) {
+        continue;
+      }
+      int newIdx = currentNames.indexOf(originalNames.get(oldIdx));
+      if (newIdx < 0) {
+        continue;
+      }
+      remapped.add(fc.withFieldIndex(newIdx));
+    }
+    if (remapped.isEmpty()) {
+      return null;
+    }
+    return org.apache.calcite.rel.RelCollations.of(remapped);
   }
 
   public static void buildDedupOrNull(

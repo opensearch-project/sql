@@ -123,7 +123,7 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     // an OS `top_hits` sort, so drop the hint entirely and let Calcite restore order post-dedup.
     if (dedup.getInputCollation() != null
         && !dedup.getInputCollation().getFieldCollations().isEmpty()) {
-      RelCollation scanCollation = permuteCollationToScanSource(dedup, project);
+      RelCollation scanCollation = resolveCollationToScanSchema(dedup, project);
       if (scanCollation != null) {
         PPLHintUtils.addDedupSortHintToAggregate(
             relBuilder, scanCollation, project.getInput().getRowType().getFieldNames());
@@ -144,40 +144,33 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
   }
 
   /**
-   * Rewrite {@code dedup.inputCollation} into scan-schema indices, or return {@code null} if that
-   * isn't safely possible.
-   *
-   * <p>The collation was captured in {@link
-   * org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule} against the row type of the dedup's
-   * original input. Two cases can happen by the time we reach this rule:
+   * Rewrite {@code dedup.inputCollation} into scan-schema indices. The collation was captured in
+   * {@link org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule} against a specific row type;
+   * by the time we reach this rule Calcite may have swapped in a different input, so the
+   * collation's indices may be stale. Strategy:
    *
    * <ol>
-   *   <li><b>Project not narrowed</b>: the dedup's current input has as many fields as the
-   *       collation expects. Indices point into {@code project}'s output; permute them through
-   *       {@code project.getProjects()} into scan indices (mirrors {@code Project.getMapping} +
-   *       {@link org.apache.calcite.rel.RelCollations#permute}).
-   *   <li><b>Project narrowed after creation</b>: a later Calcite rule pushed a narrower projection
-   *       below the dedup, so indices no longer point into {@code project}'s output — they still
-   *       point into the <i>original</i> (typically scan-shaped) row type. If this original row
-   *       type matches {@code project.getInput()}'s schema, the indices are already scan-schema
-   *       indices and need no remap. Otherwise give up safely (an outer Calcite sort will restore
-   *       order; only the top_hits inner sort is skipped).
+   *   <li>If the collation's indices are all valid in {@code project}'s output, permute them
+   *       through {@code project.getProjects()} into scan indices (mirrors {@code
+   *       Project.getMapping} + {@code RelCollations.permute}).
+   *   <li>Otherwise, resolve each collation position by name: look up {@code
+   *       dedup.inputCollationFieldNames[idx]} in the scan's row type.
    * </ol>
+   *
+   * A computed-column sort key (non-{@code RexInputRef}) is not pushable as an OS field sort, so
+   * returns {@code null} in that case. Returns {@code null} also if any sort key cannot be resolved
+   * by either path.
    */
-  private static @Nullable RelCollation permuteCollationToScanSource(
+  private static @Nullable RelCollation resolveCollationToScanSchema(
       LogicalDedup dedup, LogicalProject project) {
     RelCollation collation = dedup.getInputCollation();
-    List<RexNode> projections = project.getProjects();
     int projectOutputSize = project.getRowType().getFieldCount();
-    int scanSize = project.getInput().getRowType().getFieldCount();
     int maxIdx = -1;
     for (org.apache.calcite.rel.RelFieldCollation fc : collation.getFieldCollations()) {
       maxIdx = Math.max(maxIdx, fc.getFieldIndex());
     }
     if (maxIdx < projectOutputSize) {
-      // Case 1: collation still addresses project's output — permute each key through the
-      // project's projection list. A non-RexInputRef projection is a computed column and cannot
-      // be expressed as an OS field sort, so skip the whole hint in that case.
+      List<RexNode> projections = project.getProjects();
       List<org.apache.calcite.rel.RelFieldCollation> remapped = new ArrayList<>();
       for (org.apache.calcite.rel.RelFieldCollation fc : collation.getFieldCollations()) {
         RexNode expr = projections.get(fc.getFieldIndex());
@@ -188,14 +181,24 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
       }
       return org.apache.calcite.rel.RelCollations.of(remapped);
     }
-    if (maxIdx < scanSize) {
-      // Case 2: indices are out of range for project's output but within the scan's schema.
-      // Assume they're scan-schema indices (captured before the narrower project was inserted)
-      // and use them as-is. If that assumption is wrong the outer Calcite sort still restores
-      // the required order, this just misses the top_hits-level pushdown.
-      return collation;
+    List<String> originalNames = dedup.getInputCollationFieldNames();
+    if (originalNames == null) {
+      return null;
     }
-    return null;
+    List<String> scanNames = project.getInput().getRowType().getFieldNames();
+    List<org.apache.calcite.rel.RelFieldCollation> remapped = new ArrayList<>();
+    for (org.apache.calcite.rel.RelFieldCollation fc : collation.getFieldCollations()) {
+      int oldIdx = fc.getFieldIndex();
+      if (oldIdx < 0 || oldIdx >= originalNames.size()) {
+        return null;
+      }
+      int scanIdx = scanNames.indexOf(originalNames.get(oldIdx));
+      if (scanIdx < 0) {
+        return null;
+      }
+      remapped.add(fc.withFieldIndex(scanIdx));
+    }
+    return org.apache.calcite.rel.RelCollations.of(remapped);
   }
 
   @Value.Immutable
