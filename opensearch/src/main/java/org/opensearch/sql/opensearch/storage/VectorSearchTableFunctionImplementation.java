@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.opensearch.sql.common.setting.Settings;
@@ -35,9 +34,13 @@ import org.opensearch.sql.storage.Table;
 public class VectorSearchTableFunctionImplementation extends FunctionExpression
     implements TableFunctionImplementation {
 
-  /** P0 allowed option keys. Rejects unknown/future keys to prevent unvalidated DSL injection. */
-  static final Set<String> ALLOWED_OPTION_KEYS =
-      Set.of("k", "max_distance", "min_score", "filter_type");
+  /**
+   * P0 allowed option keys. Rejects unknown/future keys to prevent unvalidated DSL injection. A
+   * {@link List} (rather than a {@link Set}) so the unknown-key error message renders the supported
+   * keys in a stable, user-friendly order.
+   */
+  static final List<String> ALLOWED_OPTION_KEYS =
+      List.of("k", "max_distance", "min_score", "filter_type");
 
   /**
    * Field names must be safe for JSON interpolation: alphanumeric, dots (nested), underscores,
@@ -135,19 +138,28 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
                   + " e.g., vector='[1.0,2.0,3.0]'",
               vectorLiteral));
     }
-    String[] parts = cleaned.split(",");
+    // Preserve trailing empties (split(",", -1)) so malformed literals like "[1.0,]" or
+    // "[1.0,,2.0]" surface an explicit error instead of silently shrinking the vector.
+    String[] parts = cleaned.split(",", -1);
     float[] vector = new float[parts.length];
     for (int i = 0; i < parts.length; i++) {
+      String component = parts[i].trim();
+      if (component.isEmpty()) {
+        throw new ExpressionEvaluationException(
+            String.format(
+                "Invalid vector component at position %d: must be a number (check for"
+                    + " trailing or consecutive commas in '%s')",
+                i, vectorLiteral));
+      }
       try {
-        vector[i] = Float.parseFloat(parts[i].trim());
+        vector[i] = Float.parseFloat(component);
       } catch (NumberFormatException e) {
         throw new ExpressionEvaluationException(
-            String.format("Invalid vector component '%s': must be a number", parts[i].trim()));
+            String.format("Invalid vector component '%s': must be a number", component));
       }
       if (!Float.isFinite(vector[i])) {
         throw new ExpressionEvaluationException(
-            String.format(
-                "Invalid vector component '%s': must be a finite number", parts[i].trim()));
+            String.format("Invalid vector component '%s': must be a finite number", component));
       }
     }
     return vector;
@@ -155,10 +167,20 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
 
   static Map<String, String> parseOptions(String optionStr) {
     Map<String, String> options = new LinkedHashMap<>();
-    for (String pair : optionStr.split(",")) {
+    // A wholly empty option string is handled downstream with a clearer "missing required option"
+    // message than a generic malformed-segment error.
+    if (optionStr.trim().isEmpty()) {
+      return options;
+    }
+    // split(",", -1) preserves trailing empties so malformed inputs like "k=5," or "k=5,,k2=v"
+    // surface an explicit error instead of being silently dropped.
+    String[] pairs = optionStr.split(",", -1);
+    for (String pair : pairs) {
       String trimmed = pair.trim();
       if (trimmed.isEmpty()) {
-        continue;
+        throw new ExpressionEvaluationException(
+            "Malformed option segment '': expected key=value (check for trailing or"
+                + " consecutive commas)");
       }
       String[] kv = trimmed.split("=", 2);
       if (kv.length != 2 || kv[0].trim().isEmpty() || kv[1].trim().isEmpty()) {

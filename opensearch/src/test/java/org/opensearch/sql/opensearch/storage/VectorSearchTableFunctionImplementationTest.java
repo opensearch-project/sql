@@ -634,6 +634,83 @@ class VectorSearchTableFunctionImplementationTest {
     assertTrue(table instanceof VectorSearchIndex);
   }
 
+  // ── Vector parsing: trailing / empty components (PR #5381 review) ─────
+
+  @Test
+  void applyArguments_rejectsTrailingCommaInVector() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0,2.0,]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Invalid vector component"));
+    assertTrue(ex.getMessage().contains("trailing or consecutive commas"));
+  }
+
+  @Test
+  void applyArguments_rejectsConsecutiveCommasInVector() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0,,2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Invalid vector component"));
+    assertTrue(ex.getMessage().contains("trailing or consecutive commas"));
+  }
+
+  @Test
+  void applyArguments_rejectsLeadingCommaInVector() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[,1.0,2.0]", "k=5");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    assertTrue(ex.getMessage().contains("Invalid vector component"));
+  }
+
+  // ── Option parsing: empty segments (PR #5381 review) ─────────────────
+
+  @Test
+  void parseOptions_rejectsTrailingEmptySegment() {
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> VectorSearchTableFunctionImplementation.parseOptions("k=5,"));
+    assertTrue(ex.getMessage().contains("Malformed option segment"));
+    assertTrue(ex.getMessage().contains("trailing or consecutive commas"));
+  }
+
+  @Test
+  void parseOptions_rejectsLeadingEmptySegment() {
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> VectorSearchTableFunctionImplementation.parseOptions(",k=5"));
+    assertTrue(ex.getMessage().contains("Malformed option segment"));
+  }
+
+  @Test
+  void parseOptions_rejectsConsecutiveCommas() {
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> VectorSearchTableFunctionImplementation.parseOptions("k=5,,filter_type=post"));
+    assertTrue(ex.getMessage().contains("Malformed option segment"));
+  }
+
+  // ── Unknown-key error lists supported keys in stable order (PR #5381 review) ──
+
+  @Test
+  void applyArguments_unknownOptionKeyErrorListsSupportedKeysInStableOrder() {
+    VectorSearchTableFunctionImplementation impl =
+        createImplWithArgs("my-index", "embedding", "[1.0, 2.0]", "k=5,bogus=1");
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> impl.applyArguments());
+    String msg = ex.getMessage();
+    int kIdx = msg.indexOf("k");
+    int maxIdx = msg.indexOf("max_distance");
+    int minIdx = msg.indexOf("min_score");
+    int filterIdx = msg.indexOf("filter_type");
+    assertTrue(kIdx >= 0 && maxIdx > kIdx && minIdx > maxIdx && filterIdx > minIdx);
+  }
+
   private VectorSearchTableFunctionImplementation createImpl() {
     return createImplWithArgs("my-index", "embedding", "[1.0, 2.0, 3.0]", "k=5");
   }
