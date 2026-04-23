@@ -296,16 +296,14 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     }
     // Parse and canonicalize numeric values — closes JSON injection via option values
     if (hasK) {
-      parseIntOption(options, "k");
-      int k = Integer.parseInt(options.get("k"));
+      int k = parseIntOption(options, "k");
       if (k < 1 || k > 10000) {
         throw new ExpressionEvaluationException(
             String.format("k must be between 1 and 10000, got %d", k));
       }
     }
     if (hasMaxDistance) {
-      parseDoubleOption(options, "max_distance");
-      double maxDistance = Double.parseDouble(options.get("max_distance"));
+      double maxDistance = parseDoubleOption(options, "max_distance");
       if (maxDistance < 0) {
         throw new ExpressionEvaluationException(
             String.format(
@@ -313,8 +311,7 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
       }
     }
     if (hasMinScore) {
-      parseDoubleOption(options, "min_score");
-      double minScore = Double.parseDouble(options.get("min_score"));
+      double minScore = parseDoubleOption(options, "min_score");
       if (minScore < 0) {
         throw new ExpressionEvaluationException(
             String.format("min_score must be non-negative, got %s", options.get("min_score")));
@@ -322,17 +319,18 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
     }
   }
 
-  private void parseIntOption(Map<String, String> options, String key) {
+  private int parseIntOption(Map<String, String> options, String key) {
     try {
       int value = Integer.parseInt(options.get(key));
       options.put(key, Integer.toString(value));
+      return value;
     } catch (NumberFormatException e) {
       throw new ExpressionEvaluationException(
           String.format("Option '%s' must be an integer, got '%s'", key, options.get(key)));
     }
   }
 
-  private void parseDoubleOption(Map<String, String> options, String key) {
+  private double parseDoubleOption(Map<String, String> options, String key) {
     try {
       double value = Double.parseDouble(options.get(key));
       if (!Double.isFinite(value)) {
@@ -340,6 +338,7 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
             String.format("Option '%s' must be a finite number, got '%s'", key, options.get(key)));
       }
       options.put(key, Double.toString(value));
+      return value;
     } catch (NumberFormatException e) {
       throw new ExpressionEvaluationException(
           String.format("Option '%s' must be a number, got '%s'", key, options.get(key)));
