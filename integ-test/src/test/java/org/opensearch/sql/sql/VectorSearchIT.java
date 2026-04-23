@@ -400,6 +400,39 @@ public class VectorSearchIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testWildcardTableRejectedWithDedicatedMessage() throws IOException {
+    // Wildcards in a table name fan out to multiple indices, which vectorSearch() does not
+    // support (top-k semantics, dimension checks, and embedded filter JSON are not defined
+    // across heterogeneous shards). Surface a dedicated user-facing error instead of the
+    // generic "must contain only alphanumeric..." fallback.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='sql_vector_*', field='f', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("Invalid table name"));
+    assertThat(ex.getMessage(), containsString("wildcards"));
+    assertThat(ex.getMessage(), containsString("single concrete index"));
+  }
+
+  @Test
+  public void testMultiTargetTableRejectedWithDedicatedMessage() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='idx_a,idx_b', field='f', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertThat(ex.getMessage(), containsString("Invalid table name"));
+    assertThat(ex.getMessage(), containsString("multi-target"));
+  }
+
+  @Test
   public void testDuplicateNamedArgRejected() throws IOException {
     // Previously this crashed the server with 500 ArrayIndexOutOfBoundsException. Must now
     // surface as a clean 400 with a user-facing message.
