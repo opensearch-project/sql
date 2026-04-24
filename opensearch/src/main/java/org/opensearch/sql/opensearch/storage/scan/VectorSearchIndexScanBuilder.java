@@ -27,10 +27,10 @@ import org.opensearch.sql.planner.logical.LogicalSort;
  *   <li><b>Outer operators over a vectorSearch() subquery</b> — when vectorSearch() is wrapped in a
  *       subquery (e.g. {@code SELECT * FROM (SELECT v.id FROM vectorSearch(...) AS v) t WHERE
  *       t.price < 150}), outer WHERE / ORDER BY / OFFSET / GROUP BY / aggregation / DISTINCT do not
- *       reach the push-down contract (the inner {@link LogicalProject} sits between the outer
- *       operator and this scan builder, so those nodes never match the direct-adjacency push-down
- *       patterns). They would then be applied in memory <i>after</i> k-NN has already returned
- *       top-k documents ranked by vector distance, which can silently yield zero rows or
+ *       participate in the vectorSearch pushdown contract (the inner {@link LogicalProject} sits
+ *       between the outer operator and this scan builder, so those nodes never match the
+ *       direct-adjacency push-down patterns). They would then be applied in memory <i>after</i>
+ *       top-k results have been selected by vector distance, which can silently yield zero rows or
  *       mis-ordered results. We detect these shapes in {@link #validatePlan(LogicalPlan)} and
  *       reject with a clear error.
  * </ul>
@@ -128,15 +128,33 @@ public class VectorSearchIndexScanBuilder extends OpenSearchIndexScanBuilder {
     return null;
   }
 
+  // Operator-specific messages: the generic "move it inside the subquery" advice is only right
+  // for WHERE and for ORDER BY _score DESC. OFFSET, aggregation, GROUP BY, and DISTINCT are
+  // themselves unsupported on vectorSearch() directly, so the message must not claim a workaround
+  // that would only trip the user on a second validation error.
   private static String rejectionMessage(String outerOp) {
-    return "Outer "
-        + outerOp
-        + " on a vectorSearch() subquery is not supported: the operator does not push into the"
-        + " k-NN search and would be applied only after top-k results have been selected by"
-        + " vector distance, which can silently yield zero rows or mis-ordered results."
-        + " Move the "
-        + outerOp
-        + " inside the subquery (directly on vectorSearch()) so it can participate in the"
-        + " vectorSearch push-down contract.";
+    switch (outerOp) {
+      case "WHERE":
+        return "Outer WHERE on a vectorSearch() subquery is not supported: the predicate does not"
+            + " participate in the vectorSearch pushdown contract and would be applied only"
+            + " after top-k results have been selected by vector distance, which can silently"
+            + " yield zero rows. Move the WHERE into the same SELECT block as vectorSearch() so"
+            + " it participates in the vectorSearch WHERE pushdown contract.";
+      case "ORDER BY":
+        return "Outer ORDER BY on a vectorSearch() subquery is not supported: sorting does not"
+            + " participate in the vectorSearch pushdown contract and would be applied only"
+            + " after top-k results have been selected by vector distance, which can yield"
+            + " mis-ordered results. Use ORDER BY <alias>._score DESC in the same SELECT block"
+            + " as vectorSearch(), or omit ORDER BY.";
+      case "OFFSET":
+        return "Outer OFFSET on a vectorSearch() subquery is not supported. OFFSET is not"
+            + " supported on vectorSearch(); use LIMIT only.";
+      case "GROUP BY / aggregation / DISTINCT":
+        return "Outer GROUP BY / aggregation / DISTINCT on a vectorSearch() subquery is not"
+            + " supported. Aggregations and DISTINCT are not supported on vectorSearch()"
+            + " relations.";
+      default:
+        return "Outer " + outerOp + " on a vectorSearch() subquery is not supported.";
+    }
   }
 }
