@@ -84,11 +84,20 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
           ? "..." + query.substring(query.length() - CONTEXT_TRUNCATION_THRESHOLD)
           : query;
     }
-    int contextStartIndex = offendingToken.getStartIndex() - CONTEXT_TRUNCATION_THRESHOLD;
-    if (contextStartIndex < 3) {
-      return query.substring(0, offendingToken.getStopIndex() + 1);
+    int startIndex = offendingToken.getStartIndex();
+    int stopIndex = offendingToken.getStopIndex();
+    // ANTLR returns -1 / out-of-bounds for synthetic tokens (EOF, error-recovery inserts).
+    // Fall back to tail-of-query truncation in that case.
+    if (startIndex < 0 || stopIndex < 0 || stopIndex >= query.length()) {
+      return query.length() > CONTEXT_TRUNCATION_THRESHOLD
+          ? "..." + query.substring(query.length() - CONTEXT_TRUNCATION_THRESHOLD)
+          : query;
     }
-    return "..." + query.substring(contextStartIndex, offendingToken.getStopIndex() + 1);
+    int contextStartIndex = startIndex - CONTEXT_TRUNCATION_THRESHOLD;
+    if (contextStartIndex < 3) {
+      return query.substring(0, stopIndex + 1);
+    }
+    return "..." + query.substring(contextStartIndex, stopIndex + 1);
   }
 
   /** Human-readable summary of what the parser expected at the error position. */

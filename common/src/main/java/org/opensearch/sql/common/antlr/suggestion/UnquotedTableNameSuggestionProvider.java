@@ -26,6 +26,11 @@ public class UnquotedTableNameSuggestionProvider implements SyntaxErrorSuggestio
     return 30;
   }
 
+  // Keywords that end the FROM clause — if we hit any of these walking backwards, the offending
+  // token is NOT in the table-name position.
+  private static final java.util.Set<String> FROM_CLAUSE_BOUNDARIES =
+      java.util.Set.of("select", "where", "join", "on", "group", "order", "having", "limit", ";");
+
   private static boolean followsFromClause(SyntaxErrorContext ctx) {
     Token offending = ctx.getOffendingToken();
     if (offending == null) return false;
@@ -33,7 +38,9 @@ public class UnquotedTableNameSuggestionProvider implements SyntaxErrorSuggestio
     for (int i = offending.getTokenIndex() - 1; i >= 0; i--) {
       Token t = all.get(i);
       if (t.getChannel() != Token.DEFAULT_CHANNEL) continue;
-      if ("from".equalsIgnoreCase(t.getText())) return true;
+      String text = t.getText();
+      if ("from".equalsIgnoreCase(text)) return true;
+      if (FROM_CLAUSE_BOUNDARIES.contains(text.toLowerCase())) return false;
     }
     return false;
   }

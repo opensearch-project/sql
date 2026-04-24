@@ -5,14 +5,16 @@
 
 package org.opensearch.sql.common.antlr.suggestion;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /** Registry of syntax-error suggestion providers, evaluated in priority order. */
 public final class SyntaxErrorSuggestionRegistry {
-  private static final List<SyntaxErrorSuggestionProvider> PROVIDERS = new ArrayList<>();
+  // CopyOnWriteArrayList: safe iteration during concurrent register() calls.
+  private static final CopyOnWriteArrayList<SyntaxErrorSuggestionProvider> PROVIDERS =
+      new CopyOnWriteArrayList<>();
 
   static {
     register(
