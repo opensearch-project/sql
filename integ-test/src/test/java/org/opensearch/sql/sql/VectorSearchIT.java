@@ -669,6 +669,44 @@ public class VectorSearchIT extends SQLIntegTestCase {
     assertThat(ex.getMessage(), containsString("trailing or consecutive commas"));
   }
 
+  // ── k-NN plugin absent execution paths ────────────────────────────────
+  // The default integ-test cluster does not install opensearch-knn, so execution of a
+  // vectorSearch() must fail fast with a clear error at scan open() time while _explain and
+  // validation-time errors keep working.
+
+  @Test
+  public void testExecutionWithoutKnnPluginFailsWithClearMessage() throws IOException {
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v"));
+
+    assertThat(
+        ex.getMessage(),
+        containsString(
+            "vectorSearch() requires the k-NN plugin, which is not installed on this cluster."));
+  }
+
+  @Test
+  public void testExplainWithoutKnnPluginStillSucceeds() throws IOException {
+    // Plugin check is deferred to scan open(), so _explain must still return a plan — useful for
+    // users debugging queries on clusters without k-NN installed. The DSL body is base64-encoded
+    // inside a wrapper query in the explain output, so we assert on the scan operator name and
+    // the wrapper marker rather than the inner "knn" string.
+    String explain =
+        explainQuery(
+            "SELECT v._id FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v");
+
+    assertThat(explain, containsString("VectorSearchIndexScan"));
+    assertThat(explain, containsString("wrapper"));
+  }
+
   private void deleteIndexIfExists(String indexName) {
     try {
       client().performRequest(new Request("DELETE", "/" + indexName));
