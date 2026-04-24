@@ -20,13 +20,13 @@ public class ErrorFormatter {
 
   /** Util method to format {@link Throwable} response to JSON string in compact printing. */
   public static String compactFormat(Throwable t) {
-    JsonError error = new ErrorFormatter.JsonError(t.getClass().getSimpleName(), t.getMessage());
+    JsonError error = new JsonError(t.getClass().getSimpleName(), t.getMessage());
     return compactJsonify(error);
   }
 
   /** Util method to format {@link Throwable} response to JSON string in pretty printing. */
   public static String prettyFormat(Throwable t) {
-    JsonError error = new ErrorFormatter.JsonError(t.getClass().getSimpleName(), t.getMessage());
+    JsonError error = new JsonError(t.getClass().getSimpleName(), t.getMessage());
     return prettyJsonify(error);
   }
 

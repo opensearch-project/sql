@@ -86,7 +86,7 @@ public class SQLQueryUtils {
     try {
       flintSparkSqlExtensionsParser.statement();
       return true;
-    } catch (SyntaxCheckException syntaxCheckException) {
+    } catch (SyntaxCheckException | ErrorReport syntaxCheckException) {
       return false;
     }
   }

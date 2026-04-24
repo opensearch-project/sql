@@ -15,16 +15,21 @@ import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
 import org.antlr.v4.runtime.misc.IntervalSet;
+import org.opensearch.sql.common.antlr.suggestion.SyntaxErrorContext;
+import org.opensearch.sql.common.antlr.suggestion.SyntaxErrorSuggestionRegistry;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.QueryProcessingStage;
 
 /**
- * Syntax analysis error listener that handles any syntax error by throwing exception with useful
- * information.
+ * Standardized syntax-error listener. Wraps every ANTLR syntax error in an {@link ErrorReport} with
+ * a fixed code, stage, location, and context schema so downstream consumers can rely on a single
+ * shape.
  */
 public class SyntaxAnalysisErrorListener extends BaseErrorListener {
-  // Show up to this many characters before the offending token in the query.
   private static final int CONTEXT_TRUNCATION_THRESHOLD = 20;
-  // Avoid presenting too many alternatives when many are available.
-  private static final int SUGGESTION_TRUNCATION_THRESHOLD = 5;
+  private static final int EXPECTED_TOKENS_THRESHOLD = 5;
+  private static final String LOCATION = "while parsing query syntax";
 
   @Override
   public void syntaxError(
@@ -39,87 +44,73 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     Token offendingToken = (Token) offendingSymbol;
     String query = tokens.getText();
 
-    String offendingText = getOffendingText(offendingToken);
-    String errorContext = truncateQueryAtOffendingToken(query, offendingToken);
-    String details = getDetails(recognizer, msg, e);
-
-    String errorMessage =
+    String offendingText = offendingToken != null ? offendingToken.getText() : "<unknown>";
+    String queryContext = truncateQueryAtOffendingToken(query, offendingToken);
+    String details =
         String.format(
             Locale.ROOT,
             "[%s] is not a valid term at this part of the query: '%s' <-- HERE. %s",
             offendingText,
-            errorContext,
-            details);
+            queryContext,
+            getDetails(recognizer, msg, e));
 
-    // Create SyntaxCheckException with structured info attached for response formatting
-    SyntaxCheckException syntaxException = new SyntaxCheckException(errorMessage);
-
-    // Store structured context in the exception for response layer to use
-    syntaxException.setOffendingToken(offendingText);
-    syntaxException.setLine(line);
-    syntaxException.setCharPosition(charPositionInLine);
-    syntaxException.setErrorContext(errorContext);
-    if (offendingToken != null) {
-      syntaxException.setTokenStart(offendingToken.getStartIndex());
-      syntaxException.setTokenEnd(offendingToken.getStopIndex());
+    List<String> suggestions;
+    try {
+      suggestions =
+          SyntaxErrorSuggestionRegistry.findSuggestions(
+              new SyntaxErrorContext(recognizer, offendingToken, tokens, query, e));
+    } catch (Exception suggestionFailure) {
+      // Never let a buggy provider turn a 400 syntax error into a 500.
+      suggestions = List.of();
     }
 
-    throw syntaxException;
+    SyntaxCheckException cause = new SyntaxCheckException(details);
+    throw ErrorReport.wrap(cause)
+        .code(ErrorCode.SYNTAX_ERROR)
+        .stage(QueryProcessingStage.ANALYZING)
+        .location(LOCATION)
+        .details(details)
+        .context("offending_token", offendingText)
+        .context("line", line)
+        .context("column", charPositionInLine)
+        .context("query_context", queryContext)
+        .context("suggestions", suggestions)
+        .build();
   }
 
-  private String getOffendingText(Token offendingToken) {
-    return offendingToken != null ? offendingToken.getText() : "<unknown>";
-  }
-
-  private String truncateQueryAtOffendingToken(String query, Token offendingToken) {
+  private static String truncateQueryAtOffendingToken(String query, Token offendingToken) {
     if (offendingToken == null) {
       return query.length() > CONTEXT_TRUNCATION_THRESHOLD
           ? "..." + query.substring(query.length() - CONTEXT_TRUNCATION_THRESHOLD)
           : query;
     }
-
     int contextStartIndex = offendingToken.getStartIndex() - CONTEXT_TRUNCATION_THRESHOLD;
-    if (contextStartIndex < 3) { // The ellipses won't save us anything below the first 4 characters
+    if (contextStartIndex < 3) {
       return query.substring(0, offendingToken.getStopIndex() + 1);
     }
     return "..." + query.substring(contextStartIndex, offendingToken.getStopIndex() + 1);
   }
 
-  private List<String> topSuggestions(Recognizer<?, ?> recognizer, IntervalSet continuations) {
+  /** Human-readable summary of what the parser expected at the error position. */
+  private static String getDetails(
+      Recognizer<?, ?> recognizer, String msg, RecognitionException e) {
+    if (e == null) return msg == null ? "" : msg;
+    IntervalSet expected = e.getExpectedTokens();
+    if (expected == null || expected.size() == 0) return msg == null ? "" : msg;
+    List<Integer> types = expected.toList();
+    if (types.isEmpty()) return msg == null ? "" : msg;
     Vocabulary vocab = recognizer.getVocabulary();
-    List<String> tokenNames = new ArrayList<>(SUGGESTION_TRUNCATION_THRESHOLD);
-    for (int tokenType :
-        continuations
-            .toList()
-            .subList(0, Math.min(continuations.size(), SUGGESTION_TRUNCATION_THRESHOLD))) {
-      tokenNames.add(vocab.getDisplayName(tokenType));
+    List<String> names = new ArrayList<>(EXPECTED_TOKENS_THRESHOLD);
+    for (int type : types.subList(0, Math.min(types.size(), EXPECTED_TOKENS_THRESHOLD))) {
+      names.add(vocab.getDisplayName(type));
     }
-    return tokenNames;
+    if (types.size() > EXPECTED_TOKENS_THRESHOLD) {
+      return String.format(
+          Locale.ROOT,
+          "Expecting one of %d possible tokens. Some examples: %s, ...",
+          types.size(),
+          String.join(", ", names));
+    }
+    return "Expecting tokens: " + String.join(", ", names);
   }
-
-  private String getDetails(Recognizer<?, ?> recognizer, String msg, RecognitionException ex) {
-    if (ex == null) {
-      // According to the ANTLR docs, ex == null means the parser was able to recover from the
-      // error.
-      // In such cases, `msg` includes the raw error information we care about.
-      return msg;
-    }
-
-    IntervalSet possibleContinuations = ex.getExpectedTokens();
-    List<String> suggestions = topSuggestions(recognizer, possibleContinuations);
-
-    StringBuilder details = new StringBuilder("Expecting ");
-    if (possibleContinuations.size() > SUGGESTION_TRUNCATION_THRESHOLD) {
-      details
-          .append("one of ")
-          .append(possibleContinuations.size())
-          .append(" possible tokens. Some examples: ")
-          .append(String.join(", ", suggestions))
-          .append(", ...");
-    } else {
-      details.append("tokens: ").append(String.join(", ", suggestions));
-    }
-    return details.toString();
-  }
-
 }
