@@ -227,11 +227,13 @@ public class VectorSearchTableFunctionImplementation extends FunctionExpression
   /**
    * Reject table names with characters that could corrupt the WrapperQueryBuilder JSON or escape
    * the target index name. Allows alphanumeric, dots, underscores, and hyphens (the characters
-   * OpenSearch index names already permit). Explicitly rejects the `_all` routing target and the
-   * pathologic `.` / `..` names because those either fan out to every index or are not valid
-   * concrete index names. Other native-invalid names (leading dot, leading hyphen, bare underscore,
-   * uppercase, and so on) are intentionally passed through for the OpenSearch client to reject with
-   * its own error message.
+   * OpenSearch index names already permit). Explicitly rejects wildcards ('*') and multi-target
+   * patterns (comma-separated) with a dedicated message, because vectorSearch() targets a single
+   * concrete index or alias and fan-out patterns would otherwise fall through to the generic regex
+   * message. Also rejects the `_all` routing target and the pathologic `.` / `..` names because
+   * those either fan out to every index or are not valid concrete index names. Other native-invalid
+   * names (leading dot, leading hyphen, bare underscore, uppercase, and so on) are intentionally
+   * passed through for the OpenSearch client to reject with its own error message.
    */
   private void validateTableName(String tableName) {
     // Dedicated error for fan-out patterns ('*' and ',') before the generic regex; see Javadoc
