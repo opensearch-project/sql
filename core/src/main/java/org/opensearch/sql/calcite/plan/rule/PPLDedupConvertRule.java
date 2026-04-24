@@ -14,6 +14,7 @@ import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
@@ -107,7 +108,7 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
     if (remapped.isEmpty()) {
       return null;
     }
-    return org.apache.calcite.rel.RelCollations.of(remapped);
+    return RelCollations.of(remapped);
   }
 
   public static void buildDedupOrNull(

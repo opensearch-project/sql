@@ -9,6 +9,7 @@ import com.google.common.base.Suppliers;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 import lombok.experimental.UtilityClass;
 import org.apache.calcite.rel.RelCollation;
@@ -130,20 +131,19 @@ public class PPLHintUtils {
     return aggregate.getHints().stream()
         .filter(hint -> hint.hintName.equals(HINT_AGG_ARGUMENTS))
         .map(hint -> hint.kvOptions.get(KEY_DEDUP_SORT_FIELDS))
-        .filter(java.util.Objects::nonNull)
+        .filter(Objects::nonNull)
         .findFirst()
         .map(PPLHintUtils::decodeDedupSortFields)
         .orElse(Collections.emptyList());
   }
 
-  private static String encodeDedupSortFields(
-      RelCollation collation, java.util.List<String> fieldNames) {
+  private static String encodeDedupSortFields(RelCollation collation, List<String> fieldNames) {
     StringBuilder sb = new StringBuilder();
     for (RelFieldCollation fc : collation.getFieldCollations()) {
       int idx = fc.getFieldIndex();
       if (idx < 0 || idx >= fieldNames.size()) {
-        // Skip entries we can't map back to a field name (defensive).
-        continue;
+        throw new IllegalStateException(
+            "Dedup sort collation index " + idx + " out of range for scan fields " + fieldNames);
       }
       if (sb.length() > 0) {
         sb.append(DEDUP_SORT_ENTRY_SEP);

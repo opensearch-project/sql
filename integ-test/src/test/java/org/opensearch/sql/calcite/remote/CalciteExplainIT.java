@@ -65,12 +65,6 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Override
-  public void testExplain() throws IOException {
-    enabledOnlyWhenPushdownIsEnabled();
-    super.testExplain();
-  }
-
-  @Override
   @Ignore("test only in v2")
   public void testExplainModeUnsupportedInV2() throws IOException {}
 
