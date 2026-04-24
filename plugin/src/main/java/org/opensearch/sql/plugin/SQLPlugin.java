@@ -35,6 +35,7 @@ import org.opensearch.common.settings.IndexScopedSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.settings.SettingsFilter;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
@@ -121,7 +122,6 @@ import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
 import org.opensearch.sql.storage.DataSourceFactory;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ScalingExecutorBuilder;
@@ -343,7 +343,7 @@ public class SQLPlugin extends Plugin
   @Override
   public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
     // The worker pool is the primary pool where most of the work is done. It uses a scaling
-    // executor to dynamically adjust thread count based on the load, similar to the search thread pool.
+    // executor to dynamically adjust thread count based on load, similar to the search thread pool.
     // The background thread pool is a separate queue for asynchronous requests to other nodes.
     // We keep them separate to prevent deadlocks during async fetches on small node counts.
     // Tasks in the background pool should do no work except I/O to other services.
