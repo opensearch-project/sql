@@ -260,8 +260,7 @@ Scoring, sorting, and limits
 Limitations
 ===========
 
-The following shapes are unsupported or not guaranteed by
-``vectorSearch()``:
+The following are not supported on ``vectorSearch()``:
 
 - ``GROUP BY`` and aggregations over a ``vectorSearch()`` relation are
   rejected with an error.
@@ -271,12 +270,11 @@ The following shapes are unsupported or not guaranteed by
   silently yield zero rows. Place the predicate inside the subquery,
   directly on the ``vectorSearch()`` alias, so it can participate in
   ``WHERE`` pushdown.
-- ``JOIN`` between a ``vectorSearch()`` relation and another relation:
-  unsupported, behavior not guaranteed.
+- ``JOIN`` between a ``vectorSearch()`` relation and another relation is
+  not supported.
 - ``UNION`` / ``INTERSECT`` / ``EXCEPT`` combining a ``vectorSearch()``
-  relation with another relation: unsupported, behavior not guaranteed.
-- Multiple ``vectorSearch()`` calls in the same query: unsupported,
-  behavior not guaranteed.
+  relation with another relation is not supported.
+- Multiple ``vectorSearch()`` calls in the same query are not supported.
 - The query vector must be supplied as a literal. Parameterized vectors
   (for example, values bound from another column) are not supported.
 - Indexes that define a user field named ``_score`` cannot be queried
