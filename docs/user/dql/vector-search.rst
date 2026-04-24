@@ -158,15 +158,18 @@ Two placement strategies are available via the ``filter_type`` option:
 
 Behavior depends on whether ``filter_type`` is specified:
 
-- **Omitted** — pushdown is attempted using the ``post`` placement. If the
-  ``WHERE`` clause cannot be translated to an OpenSearch filter (for example,
-  it contains an expression that requires in-memory evaluation), the engine
-  falls back to evaluating the predicate in memory. A query with no ``WHERE``
-  clause is valid.
+- **Omitted** — pushdown is attempted using the ``post`` placement.
+  Predicates that translate to native OpenSearch queries are pushed down as a
+  ``bool.filter`` alongside the k-NN query. Predicates that do not have a
+  native equivalent (for example, arithmetic or function calls on indexed
+  fields) are pushed down as an OpenSearch script query and evaluated
+  server-side. Only when predicate translation itself fails does the engine
+  fall back to evaluating the ``WHERE`` clause in memory after the k-NN
+  results are returned. A query with no ``WHERE`` clause is valid.
 - **Explicit (``post`` or ``efficient``)** — a ``WHERE`` clause is required,
-  and it must be fully translatable to an OpenSearch filter. If the ``WHERE``
-  clause is missing or cannot be translated, the query fails with a
-  descriptive error. This applies to both ``post`` and ``efficient``.
+  and it must be translatable to an OpenSearch filter query. If the
+  ``WHERE`` clause is missing or cannot be translated, the query fails with
+  a descriptive error. This applies to both ``post`` and ``efficient``.
   Specifying ``filter_type=post`` explicitly is useful when you want the
   query to fail fast rather than silently fall back to in-memory filtering.
 
@@ -222,11 +225,16 @@ Scoring, sorting, and limits
 Limitations
 ===========
 
-The following are not part of the ``vectorSearch()`` preview contract and
-should be avoided:
+The following shapes are outside the ``vectorSearch()`` preview contract:
 
-- ``GROUP BY`` and aggregations over a ``vectorSearch()`` relation are not
-  validated.
+- ``GROUP BY`` and aggregations over a ``vectorSearch()`` relation are
+  rejected with an error.
+- An outer ``WHERE`` clause applied to a ``vectorSearch()`` subquery is
+  rejected with an error, because the predicate would be evaluated only
+  after the top-k rows have been selected by vector distance and can
+  silently yield zero rows. Place the predicate inside the subquery,
+  directly on the ``vectorSearch()`` alias, so it can participate in
+  ``WHERE`` pushdown.
 - ``JOIN`` between a ``vectorSearch()`` relation and another relation is
   not validated.
 - ``UNION`` / ``INTERSECT`` / ``EXCEPT`` combining a ``vectorSearch()``
