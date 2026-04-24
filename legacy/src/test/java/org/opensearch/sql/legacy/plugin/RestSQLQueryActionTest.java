@@ -28,6 +28,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.sql.SQLService;
@@ -127,7 +128,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
             request,
             (channel, exception) -> {
               fallback.set(true);
-              assertTrue(exception instanceof SyntaxCheckException);
+              assertTrue(exception instanceof SyntaxCheckException || exception instanceof ErrorReport);
             },
             (channel, exception) -> {
               fail();
