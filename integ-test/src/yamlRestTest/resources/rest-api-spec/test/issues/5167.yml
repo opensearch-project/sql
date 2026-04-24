@@ -1,0 +1,84 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  - do:
+      indices.create:
+        index: issue5167
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              int_field:
+                type: integer
+              json_data:
+                type: keyword
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5167", "_id": "1"}}'
+          - '{"int_field": 42, "json_data": "{\"name\":\"alice\",\"scores\":[90,85,92]}"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5167
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5167: json_set with $.key path should update the value":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5167 | where int_field = 42 | eval modified = json_set(json_data, '$.name', 'modified_alice') | fields modified"
+
+  - match: { total: 1 }
+  - match: { datarows: [ [ "{\"name\":\"modified_alice\",\"scores\":[90,85,92]}" ] ] }
+
+---
+"Issue 5167: json_delete with $.key path should remove the key":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5167 | where int_field = 42 | eval deleted = json_delete(json_data, '$.name') | fields deleted"
+
+  - match: { total: 1 }
+  - match: { datarows: [ [ "{\"scores\":[90,85,92]}" ] ] }
+
+---
+"Issue 5167: json_set with unprefixed path still works":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5167 | where int_field = 42 | eval modified = json_set(json_data, 'name', 'bob') | fields modified"
+
+  - match: { total: 1 }
+  - match: { datarows: [ [ "{\"name\":\"bob\",\"scores\":[90,85,92]}" ] ] }

@@ -7,29 +7,34 @@ The `convert` command uses conversion functions to transform field values into n
 The `convert` command has the following syntax:
 
 ```syntax
-convert <convert-function>(<field>) [AS <field>] [, <convert-function>(<field>) [AS <field>]]...
+convert [timeformat=<string>] <convert-function>(<field>) [AS <field>] [, <convert-function>(<field>) [AS <field>]]...
 ```
 
 ## Parameters
 
 The `convert` command supports the following parameters.
 
-| Parameter | Required/Optional | Description |
-| --- | --- | --- |
-| `<convert-function>` | Required | One of the conversion functions: `auto()`, `num()`, `rmcomma()`, `rmunit()`, `memk()`, or `none()`. |
-| `<field>` | Required | Single field name to convert. |
-| `AS <field>` | Optional | Create new field with converted value, preserving original field. |
+| Parameter | Required/Optional | Description | Default |
+| --- | --- | --- | --- |
+| `<convert-function>` | Required | One of the conversion functions: `auto()`, `ctime()`, `dur2sec()`, `memk()`, `mktime()`, `mstime()`, `none()`, `num()`, `rmcomma()`, or `rmunit()`. | N/A |
+| `<field>` | Required | Single field name to convert. | N/A |
+| `AS <field>` | Optional | Create new field with converted value, preserving original field. | N/A |
+| `timeformat=<string>` | Optional | A strftime format string used by `ctime()` and `mktime()`. | `%m/%d/%Y %H:%M:%S`. |
 
 ## Conversion Functions
 
 | Function | Description |
 | --- | --- |
 | `auto(field)` | Automatically converts fields to numbers using intelligent conversion. Handles memory sizes (k/m/g), commas, units, and scientific notation. Returns `null` for non-convertible values. |
+| `ctime(field)` | Converts a UNIX epoch timestamp to a human-readable time string. Uses the `timeformat` parameter if specified, otherwise defaults to `%m/%d/%Y %H:%M:%S`. All timestamps are interpreted in UTC timezone. |
+| `dur2sec(field)` | Converts a duration string in `HH:MM:SS` format to total seconds. Hours must be less than 24. Returns `null` for invalid formats. |
+| `memk(field)` | Converts memory size strings to kilobytes. Accepts numbers with optional k/m/g suffix (case-insensitive). Default unit is kilobytes. Returns `null` for invalid formats. |
+| `mktime(field)` | Converts a human-readable time string to a UNIX epoch timestamp. Uses the `timeformat` parameter if specified, otherwise defaults to `%m/%d/%Y %H:%M:%S`. Input strings are interpreted as UTC timezone. |
+| `mstime(field)` | Converts a time string in `[MM:]SS.SSS` format to total seconds. The minutes portion is optional. Returns `null` for invalid formats. |
+| `none(field)` | No-op function that preserves the original field value. |
 | `num(field)` | Extracts leading numbers from strings. For strings without letters: removes commas as thousands separators. For strings with letters: extracts leading number, stops at letters or commas. Returns `null` for non-convertible values. |
 | `rmcomma(field)` | Removes commas from field values and converts to a number. Returns `null` if the value contains letters. |
 | `rmunit(field)` | Extracts leading numeric values from strings. Stops at the first non-numeric character (including commas). Returns `null` for non-convertible values. |
-| `memk(field)` | Converts memory size strings to kilobytes. Accepts numbers with optional k/m/g suffix (case-insensitive). Default unit is kilobytes. Returns `null` for invalid formats. |
-| `none(field)` | No-op function that preserves the original field value. Used for excluding specific fields from wildcard conversions. |
 
 ## Example 1: Basic auto() conversion
 
@@ -240,6 +245,128 @@ fetched rows / total rows = 3/3
 ```
 
 **Note:** The `none()` function is particularly useful when wildcard support is implemented, allowing you to exclude specific fields from bulk conversions.
+
+## Example 9: Convert epoch timestamp to time string with ctime()
+
+```ppl
+source=accounts
+| eval timestamp = 1066507633
+| convert ctime(timestamp)
+| fields timestamp
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++---------------------+
+| timestamp           |
+|---------------------|
+| 10/18/2003 20:07:13 |
++---------------------+
+```
+
+## Example 10: Convert time string to epoch with mktime()
+
+```ppl
+source=accounts
+| eval date_str = '10/18/2003 20:07:13'
+| convert mktime(date_str)
+| fields date_str
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++--------------+
+| date_str     |
+|--------------|
+| 1.066507633E9|
++--------------+
+```
+
+## Example 11: Using timeformat with ctime() and mktime()
+
+The `timeformat` parameter specifies a strftime format string for `ctime()` and `mktime()`:
+
+```ppl
+source=accounts
+| eval timestamp = 1066507633
+| convert timeformat="%Y-%m-%d %H:%M:%S" ctime(timestamp)
+| fields timestamp
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++---------------------+
+| timestamp           |
+|---------------------|
+| 2003-10-18 20:07:13 |
++---------------------+
+```
+
+Similarly, you can use `timeformat` with `mktime()` to parse dates in custom formats:
+
+```ppl
+source=accounts
+| eval date_str = '2000-01-01 00:00:00'
+| convert timeformat="%Y-%m-%d %H:%M:%S" mktime(date_str)
+| fields date_str
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++------------+
+| date_str   |
+|------------|
+| 9.466848E8 |
++------------+
+```
+
+## Example 12: Convert duration to seconds with dur2sec()
+
+```ppl
+source=accounts
+| eval duration = '01:23:45'
+| convert dur2sec(duration)
+| fields duration
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++----------+
+| duration |
+|----------|
+| 5025.0   |
++----------+
+```
+
+## Example 13: Convert minutes and seconds with mstime()
+
+```ppl
+source=accounts
+| eval time_str = '03:45.5'
+| convert mstime(time_str)
+| fields time_str
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++----------+
+| time_str |
+|----------|
+| 225.5    |
++----------+
+```
 
 ## Notes
 

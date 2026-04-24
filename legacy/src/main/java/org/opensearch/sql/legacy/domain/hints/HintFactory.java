@@ -5,15 +5,14 @@
 
 package org.opensearch.sql.legacy.domain.hints;
 
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLParser;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.yaml.YamlXContentParser;
+import org.opensearch.common.xcontent.yaml.YamlXContent;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 
 /** Created by Eliran on 5/9/2015. */
@@ -104,13 +103,9 @@ public class HintFactory {
           builder.append(highlights[i]);
         }
         String heighlightParam = builder.toString();
-        YAMLFactory yamlFactory = new YAMLFactory();
-        YAMLParser yamlParser = null;
-        try {
-          yamlParser = yamlFactory.createParser(heighlightParam.toCharArray());
-          YamlXContentParser yamlXContentParser =
-              new YamlXContentParser(
-                  NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, yamlParser);
+        try (XContentParser yamlXContentParser =
+            YamlXContent.yamlXContent.createParser(
+                NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, heighlightParam)) {
           Map<String, Object> map = yamlXContentParser.map();
           hintParams.add(map);
         } catch (IOException e) {

@@ -1,0 +1,116 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Test field not found returns 400 bad_request":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      bulk:
+        index: test_error_handling
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"age": 25, "name": "John"}'
+          - '{"index": {}}'
+          - '{"age": 30, "name": "Jane"}'
+
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_error_handling | fields nonexistent_field
+  - match: {"$body": "/[Ff]ield|[Cc]olumn/"}
+
+---
+"Test index not found returns 404 missing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: missing
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=nonexistent_index_12345 | fields age
+
+---
+"Test syntax error returns 400 bad_request":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test_error_syntax
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"age": 25}'
+
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_error_syntax | invalid_command_xyz
+
+---
+"Test semantic error returns 400 bad_request":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test_error_semantic
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"age": 25, "name": "John"}'
+
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_error_semantic | where age IN ('a', 'b', 'c') | fields age
+
+---
+"Test aggregation validation error returns 400 bad_request":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test_error_agg
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"age": 25, "name": "John"}'
+
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_error_agg | stats count(eval(age)) as cnt
+  - match: {"$body": "/[Cc]ondition.*boolean|[Bb]oolean.*expected/"}

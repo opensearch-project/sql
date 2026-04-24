@@ -194,6 +194,27 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testIsNullPredicate() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where age IS NULL | fields firstname",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(result, rows("Virginia"));
+  }
+
+  @Test
+  public void testIsNotNullPredicate() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where age IS NOT NULL and like(firstname, 'Ambe_%%') | fields"
+                    + " firstname",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(result, rows("Amber JOHnny"));
+  }
+
+  @Test
   public void testWhereWithMetadataFields() throws IOException {
     JSONObject result =
         executeQuery(

@@ -53,8 +53,7 @@ GET /employee_nested/_search
   "_source": {
     "includes": [
       "name"
-    ],
-    "excludes": []
+    ]
   }
 }
 
@@ -110,8 +109,7 @@ WHERE EXISTS(SELECT *
   "_source": {
     "includes": [
       "name"
-    ],
-    "excludes": []
+    ]
   }
 }
 

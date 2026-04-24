@@ -84,6 +84,7 @@ public interface PlanUtils {
   String ROW_NUMBER_COLUMN_FOR_STREAMSTATS = "__stream_seq__";
   String ROW_NUMBER_COLUMN_FOR_CHART = "_row_number_chart_";
   String ROW_NUMBER_COLUMN_FOR_TRANSPOSE = "_row_number_transpose_";
+  String VALUE_COLUMN_FOR_TRANSPOSE = "_value_transpose_";
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {

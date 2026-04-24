@@ -13,7 +13,7 @@ calcite:
       EnumerableCalc(expr#0..5=[{inputs}], proj#0..3=[{exprs}], skills_arr=[$t5])
         EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{4}])
           EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[2], expr#6=[3], expr#7=[array($t4, $t5, $t6)], proj#0..3=[{exprs}], skills_arr=[$t7])
-            CalciteEnumerableIndexScan(table=[[OpenSearch, mvexpand_edge_cases]], PushDownContext=[[PROJECT->[skills, skills_int, skills_not_array, username]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["skills","skills_int","skills_not_array","username"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, mvexpand_edge_cases]], PushDownContext=[[PROJECT->[skills, skills_int, skills_not_array, username]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["skills","skills_int","skills_not_array","username"]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
           EnumerableUncollect
             EnumerableCalc(expr#0=[{inputs}], expr#1=[$cor0], expr#2=[$t1.skills_arr], skills_arr=[$t2])
               EnumerableValues(tuples=[[{ 0 }]])
