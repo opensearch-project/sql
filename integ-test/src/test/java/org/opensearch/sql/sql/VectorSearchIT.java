@@ -362,8 +362,13 @@ public class VectorSearchIT extends SQLIntegTestCase {
                         + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v "
                         + "LIMIT 5"));
 
-    assertThat(ex.getMessage(), containsString("k-NN plugin"));
-    assertThat(ex.getMessage(), containsString("not installed"));
+    // Lock in the full user-facing sentence, not just loose substrings — the exact wording is
+    // part of the contract and regressions should fail loudly rather than keep passing on a
+    // subtly reworded message.
+    assertThat(
+        ex.getMessage(),
+        containsString(
+            "vectorSearch() requires the k-NN plugin, which is not installed on this cluster."));
   }
 
   @Test
@@ -379,6 +384,9 @@ public class VectorSearchIT extends SQLIntegTestCase {
                 + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v "
                 + "LIMIT 5");
 
+    // Assert the scan-operator name, not just "wrapper": the name confirms the plan reached
+    // the vectorSearch scan builder rather than some other scan shape.
+    assertThat(explain, containsString("VectorSearchIndexScan"));
     assertThat(explain, containsString("wrapper"));
   }
 
