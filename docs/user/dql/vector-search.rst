@@ -225,7 +225,8 @@ Scoring, sorting, and limits
 Limitations
 ===========
 
-The following shapes are not supported by ``vectorSearch()``:
+The following shapes are either rejected or not covered by current
+testing. Avoid relying on them:
 
 - ``GROUP BY`` and aggregations over a ``vectorSearch()`` relation are
   rejected with an error.
@@ -236,9 +237,10 @@ The following shapes are not supported by ``vectorSearch()``:
   directly on the ``vectorSearch()`` alias, so it can participate in
   ``WHERE`` pushdown.
 - ``JOIN`` between a ``vectorSearch()`` relation and another relation is
-  not validated.
+  not covered by tests.
 - ``UNION`` / ``INTERSECT`` / ``EXCEPT`` combining a ``vectorSearch()``
-  relation with another relation are not validated.
-- Multiple ``vectorSearch()`` calls in the same query are not validated.
+  relation with another relation are not covered by tests.
+- Multiple ``vectorSearch()`` calls in the same query are not covered by
+  tests.
 - The query vector must be supplied as a literal. Parameterized vectors
   (for example, values bound from another column) are not supported.
