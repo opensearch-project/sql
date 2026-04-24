@@ -362,7 +362,7 @@ public class VectorSearchIT extends SQLIntegTestCase {
                         + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v "
                         + "LIMIT 5"));
 
-    // Lock in the full user-facing sentence, not just loose substrings — the exact wording is
+    // Lock in the full user-facing sentence, not just loose substrings. The exact wording is
     // part of the contract and regressions should fail loudly rather than keep passing on a
     // subtly reworded message.
     assertThat(
@@ -691,7 +691,7 @@ public class VectorSearchIT extends SQLIntegTestCase {
     // k-NN accepts the alias at execution is a separate concern tested on a k-NN-enabled
     // cluster.
     // Randomized names so a stale alias/index left by an aborted prior run of this class does
-    // not shadow a fresh setup — a concrete risk on local reruns.
+    // not shadow a fresh setup, which is a concrete risk on local reruns.
     String suffix = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 8);
     String idx1 = "vector_alias_backing_1_" + suffix;
     String idx2 = "vector_alias_backing_2_" + suffix;
