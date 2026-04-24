@@ -10,26 +10,29 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalProject;
+import org.opensearch.sql.planner.logical.LogicalSort;
 
 /**
  * Scan builder for vector search relations.
  *
- * <p>Rejects two planner shapes that the SQL surface cannot express safely:
+ * <p>Rejects planner shapes that the SQL surface cannot express safely:
  *
  * <ul>
  *   <li><b>Aggregations</b> — native OpenSearch k-NN supports aggregations alongside similarity
  *       search, but the SQL layer does not plumb them through, so we fail fast rather than return
  *       silently unaggregated results.
- *   <li><b>Outer WHERE over a vectorSearch() subquery</b> — when vectorSearch() is wrapped in a
+ *   <li><b>Outer operators over a vectorSearch() subquery</b> — when vectorSearch() is wrapped in a
  *       subquery (e.g. {@code SELECT * FROM (SELECT v.id FROM vectorSearch(...) AS v) t WHERE
- *       t.price < 150}), the outer predicate does not reach the push-down contract (the inner
- *       {@link LogicalProject} sits between the outer {@link LogicalFilter} and this scan builder,
- *       so the filter never matches the {@code filter(scanBuilder)} push-down pattern). The filter
- *       is then applied in memory, but only <i>after</i> k-NN has already returned the top-k
- *       documents ranked by vector distance, so the outer predicate can silently produce zero rows.
- *       We detect this shape in {@link #validatePlan(LogicalPlan)} and reject with a clear error.
+ *       t.price < 150}), outer WHERE / ORDER BY / OFFSET / GROUP BY / aggregation / DISTINCT do not
+ *       reach the push-down contract (the inner {@link LogicalProject} sits between the outer
+ *       operator and this scan builder, so those nodes never match the direct-adjacency push-down
+ *       patterns). They would then be applied in memory <i>after</i> k-NN has already returned
+ *       top-k documents ranked by vector distance, which can silently yield zero rows or
+ *       mis-ordered results. We detect these shapes in {@link #validatePlan(LogicalPlan)} and
+ *       reject with a clear error.
  * </ul>
  */
 public class VectorSearchIndexScanBuilder extends OpenSearchIndexScanBuilder {
@@ -47,57 +50,93 @@ public class VectorSearchIndexScanBuilder extends OpenSearchIndexScanBuilder {
   }
 
   /**
-   * Walk the fully-optimized plan and reject the outer-WHERE-over-subquery shape. We look for a
-   * {@link LogicalFilter} whose descendant chain reaches this scan builder through one or more
-   * {@link LogicalProject} nodes (the subquery-boundary marker). A filter directly above this scan
-   * builder is fine — that WHERE has already gone through the push-down contract.
+   * Walk the fully-optimized plan and reject outer-operator-over-subquery shapes. We look for an
+   * outer {@link LogicalFilter}, {@link LogicalSort}, {@link LogicalLimit} with non-zero offset, or
+   * {@link LogicalAggregation} whose descendant chain reaches this scan builder through one or more
+   * {@link LogicalProject} nodes (the subquery-boundary marker). An operator directly above this
+   * scan builder is fine — those go through the push-down contract in the query builder.
    */
   @Override
   public void validatePlan(LogicalPlan root) {
-    checkForOuterFilter(root, false, false);
+    checkForOuterOperator(root, null, false);
   }
 
   /**
-   * Recursive walker with two booleans that together encode the "outer filter separated by a
-   * subquery boundary" pattern:
+   * Recursive walker that tracks the outermost "risky" operator seen on the current walk path and
+   * whether a {@link LogicalProject} has been crossed since then:
    *
    * <ul>
-   *   <li>{@code insideFilter} — true iff some ancestor on the current walk path is a {@link
-   *       LogicalFilter}. Projects only matter below a filter, so without a filter ancestor a
+   *   <li>{@code outerOp} — name of the outermost filter/sort/offset/aggregation ancestor, or
+   *       {@code null} if none. Projects only matter below such an operator — without one, a
    *       project is just the outer SELECT and should not trigger rejection.
-   *   <li>{@code sawProjectSinceFilter} — true iff a {@link LogicalProject} has been seen between
-   *       <em>any</em> enclosing filter ancestor and the current position. Once an outer Filter has
-   *       been separated from the scan by a Project, that separation is permanent — a lower
-   *       LogicalFilter below the Project does not undo the outer boundary.
+   *   <li>{@code sawProjectSinceOuter} — true iff a {@link LogicalProject} has been seen between
+   *       the outermost risky ancestor and the current position. Once separation by a Project has
+   *       been established, it is permanent — a lower {@link LogicalFilter} below the Project does
+   *       not undo the outer boundary.
    * </ul>
    *
    * <p>This matters for shapes like {@code Filter(outer) -> Project(subquery) -> Filter(inner) ->
    * Scan}, where the outer predicate is still blocked from reaching the push-down contract by the
-   * subquery Project regardless of the inner filter. Resetting {@code sawProjectSinceFilter} when
-   * entering the inner filter would make the walker miss this shape.
+   * subquery Project regardless of the inner filter. Resetting on the inner filter would make the
+   * walker miss this shape.
    */
-  private void checkForOuterFilter(
-      LogicalPlan node, boolean insideFilter, boolean sawProjectSinceFilter) {
+  private void checkForOuterOperator(
+      LogicalPlan node, String outerOp, boolean sawProjectSinceOuter) {
     if (node == this) {
-      if (insideFilter && sawProjectSinceFilter) {
-        throw new ExpressionEvaluationException(
-            "Outer WHERE on a vectorSearch() subquery is not supported: the predicate does not"
-                + " push into the k-NN search and would be applied only after top-k results have"
-                + " been selected by vector distance, which can silently yield zero rows."
-                + " Move the predicate inside the subquery (WHERE directly on vectorSearch()) so"
-                + " it can participate in the vectorSearch WHERE pushdown contract.");
+      if (outerOp != null && sawProjectSinceOuter) {
+        throw new ExpressionEvaluationException(rejectionMessage(outerOp));
       }
       return;
     }
-    boolean nextInsideFilter = insideFilter;
-    boolean nextSawProject = sawProjectSinceFilter;
-    if (node instanceof LogicalFilter) {
-      nextInsideFilter = true;
-    } else if (node instanceof LogicalProject && insideFilter) {
+    String nextOuterOp = outerOp;
+    boolean nextSawProject = sawProjectSinceOuter;
+    if (outerOp == null) {
+      String operator = classifyOuterOperator(node);
+      if (operator != null) {
+        nextOuterOp = operator;
+      }
+    } else if (node instanceof LogicalProject) {
       nextSawProject = true;
     }
     for (LogicalPlan child : node.getChild()) {
-      checkForOuterFilter(child, nextInsideFilter, nextSawProject);
+      checkForOuterOperator(child, nextOuterOp, nextSawProject);
     }
+  }
+
+  /**
+   * Returns a user-facing label for operators that cannot safely sit above a vectorSearch()
+   * subquery, or {@code null} for operators that are fine (Project, scan, etc.). {@link
+   * LogicalLimit} with {@code offset == 0} is safe — plain LIMIT wrapping a subquery just caps the
+   * row count. Non-zero OFFSET skips top-k rows by distance and is rejected.
+   */
+  private static String classifyOuterOperator(LogicalPlan node) {
+    if (node instanceof LogicalFilter) {
+      return "WHERE";
+    }
+    if (node instanceof LogicalSort) {
+      return "ORDER BY";
+    }
+    if (node instanceof LogicalAggregation) {
+      return "GROUP BY / aggregation / DISTINCT";
+    }
+    if (node instanceof LogicalLimit) {
+      Integer offset = ((LogicalLimit) node).getOffset();
+      if (offset != null && offset != 0) {
+        return "OFFSET";
+      }
+    }
+    return null;
+  }
+
+  private static String rejectionMessage(String outerOp) {
+    return "Outer "
+        + outerOp
+        + " on a vectorSearch() subquery is not supported: the operator does not push into the"
+        + " k-NN search and would be applied only after top-k results have been selected by"
+        + " vector distance, which can silently yield zero rows or mis-ordered results."
+        + " Move the "
+        + outerOp
+        + " inside the subquery (directly on vectorSearch()) so it can participate in the"
+        + " vectorSearch push-down contract.";
   }
 }

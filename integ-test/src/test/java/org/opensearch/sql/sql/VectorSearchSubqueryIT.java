@@ -165,4 +165,124 @@ public class VectorSearchSubqueryIT extends SQLIntegTestCase {
 
     assertThat(explain, containsString("wrapper"));
   }
+
+  @Test
+  public void testOuterOrderByOnSubqueryRejected() throws IOException {
+    // Outer ORDER BY over a vectorSearch() subquery would run on a truncated top-k slice rather
+    // than the full relation, silently reordering only the already-ANN-selected rows.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                explainQuery(
+                    "SELECT * FROM (SELECT v.firstname, v.state "
+                        + "FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v) t "
+                        + "ORDER BY t.state"));
+
+    assertThat(
+        ex.getMessage(),
+        containsString("Outer ORDER BY on a vectorSearch() subquery is not supported"));
+  }
+
+  @Test
+  public void testOuterOffsetOnSubqueryRejected() throws IOException {
+    // Outer OFFSET silently drops top-k rows by vector distance. The inner query already caps at
+    // k and any outer OFFSET shifts that window in an opaque way, so reject it.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                explainQuery(
+                    "SELECT * FROM (SELECT v.firstname "
+                        + "FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v) t "
+                        + "LIMIT 3 OFFSET 2"));
+
+    assertThat(
+        ex.getMessage(),
+        containsString("Outer OFFSET on a vectorSearch() subquery is not supported"));
+  }
+
+  @Test
+  public void testOuterLimitWithoutOffsetOnSubqueryAllowed() throws IOException {
+    // Positive control: outer LIMIT without OFFSET just caps the row count and must plan without
+    // error. Locks in the offset==0 boundary of the OFFSET rejection.
+    String explain =
+        explainQuery(
+            "SELECT * FROM (SELECT v.firstname "
+                + "FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v) t "
+                + "LIMIT 3");
+
+    assertThat(explain, containsString("wrapper"));
+  }
+
+  @Test
+  public void testOuterAggregationOnSubqueryRejected() throws IOException {
+    // Outer aggregation (here COUNT(*)) over a vectorSearch() subquery would run on the
+    // truncated top-k slice, producing a count that silently depends on k rather than the full
+    // population. vectorSearch() does not support aggregations, so reject the outer-subquery
+    // variant with the same subquery-boundary walker that catches outer WHERE.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                explainQuery(
+                    "SELECT COUNT(*) FROM (SELECT v.firstname "
+                        + "FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v) t"));
+
+    assertThat(
+        ex.getMessage(),
+        containsString(
+            "Outer GROUP BY / aggregation / DISTINCT on a vectorSearch() subquery is not"
+                + " supported"));
+  }
+
+  @Test
+  public void testOuterGroupByOnSubqueryRejected() throws IOException {
+    // GROUP BY rewrites to LogicalAggregation and is caught by the same subquery-boundary walker.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                explainQuery(
+                    "SELECT t.state, COUNT(*) FROM (SELECT v.firstname, v.state "
+                        + "FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v) t "
+                        + "GROUP BY t.state"));
+
+    assertThat(
+        ex.getMessage(),
+        containsString(
+            "Outer GROUP BY / aggregation / DISTINCT on a vectorSearch() subquery is not"
+                + " supported"));
+  }
+
+  @Test
+  public void testOuterDistinctOnSubqueryRejected() throws IOException {
+    // SELECT DISTINCT rewrites to a LogicalAggregation with empty aggregator list and the select
+    // items as the group-by list. The subquery-boundary walker must catch this shape too.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                explainQuery(
+                    "SELECT DISTINCT t.state FROM (SELECT v.firstname, v.state "
+                        + "FROM vectorSearch(table='"
+                        + TEST_INDEX
+                        + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v) t"));
+
+    assertThat(
+        ex.getMessage(),
+        containsString(
+            "Outer GROUP BY / aggregation / DISTINCT on a vectorSearch() subquery is not"
+                + " supported"));
+  }
 }

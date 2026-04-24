@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.opensearch.index.query.WrapperQueryBuilder;
+import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -23,8 +24,10 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalProject;
+import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
 
 class VectorSearchIndexScanBuilderTest {
@@ -47,6 +50,22 @@ class VectorSearchIndexScanBuilderTest {
   private static LogicalFilter filter(LogicalPlan input) {
     return new LogicalFilter(
         input, DSL.less(DSL.ref("price", ExprCoreType.INTEGER), DSL.literal(150)));
+  }
+
+  private static LogicalSort sort(LogicalPlan input) {
+    return new LogicalSort(
+        input,
+        ImmutableList.of(
+            org.apache.commons.lang3.tuple.Pair.of(
+                Sort.SortOption.DEFAULT_DESC, DSL.ref("price", ExprCoreType.INTEGER))));
+  }
+
+  private static LogicalLimit limit(LogicalPlan input, int offset) {
+    return new LogicalLimit(input, 10, offset);
+  }
+
+  private static LogicalAggregation aggregation(LogicalPlan input) {
+    return new LogicalAggregation(input, Collections.emptyList(), Collections.emptyList(), false);
   }
 
   @Test
@@ -154,5 +173,62 @@ class VectorSearchIndexScanBuilderTest {
     var scanBuilder = newScanBuilder();
 
     assertDoesNotThrow(() -> scanBuilder.validatePlan(scanBuilder));
+  }
+
+  @Test
+  void validatePlanRejectsOuterSortOverSubqueryProject() {
+    // Models: SELECT * FROM (SELECT v.id FROM vs(...) AS v) t ORDER BY t.price
+    // Shape: Sort(outer) → Project(subquery) → scanBuilder
+    // Outer ORDER BY would be applied only after top-k ANN results, producing an order the user
+    // did not ask for (vector distance ordering leaks through when rows are fewer than expected).
+    var scanBuilder = newScanBuilder();
+    LogicalPlan root = sort(project(scanBuilder));
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> scanBuilder.validatePlan(root));
+    assertTrue(
+        ex.getMessage().contains("Outer ORDER BY on a vectorSearch() subquery"),
+        "Error should mention outer ORDER BY on subquery; actual: " + ex.getMessage());
+  }
+
+  @Test
+  void validatePlanRejectsOuterOffsetOverSubqueryProject() {
+    // Models: SELECT * FROM (SELECT v.id FROM vs(...) AS v) t LIMIT 10 OFFSET 5
+    // Outer OFFSET silently skips the top-N nearest rows chosen by ANN, so the remaining rows
+    // would be a truncated tail of the k-NN result set rather than the user's intended window.
+    var scanBuilder = newScanBuilder();
+    LogicalPlan root = limit(project(scanBuilder), 5);
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> scanBuilder.validatePlan(root));
+    assertTrue(
+        ex.getMessage().contains("Outer OFFSET on a vectorSearch() subquery"),
+        "Error should mention outer OFFSET on subquery; actual: " + ex.getMessage());
+  }
+
+  @Test
+  void validatePlanAllowsOuterLimitWithoutOffsetOverSubquery() {
+    // Outer LIMIT with offset=0 just caps row count and is safe over a subquery — reject only
+    // non-zero OFFSET. Locks in the offset==0 boundary of the guard.
+    var scanBuilder = newScanBuilder();
+    LogicalPlan root = limit(project(scanBuilder), 0);
+
+    assertDoesNotThrow(() -> scanBuilder.validatePlan(root));
+  }
+
+  @Test
+  void validatePlanRejectsOuterAggregationOverSubqueryProject() {
+    // Models: SELECT COUNT(*) FROM (SELECT v.id FROM vs(...) AS v) t
+    // (Or outer GROUP BY / DISTINCT, both of which rewrite to LogicalAggregation.) The outer
+    // aggregation would run on a truncated top-k slice rather than a meaningful population,
+    // masking the fact that aggregations are not supported on vectorSearch() in this preview.
+    var scanBuilder = newScanBuilder();
+    LogicalPlan root = aggregation(project(scanBuilder));
+
+    ExpressionEvaluationException ex =
+        assertThrows(ExpressionEvaluationException.class, () -> scanBuilder.validatePlan(root));
+    assertTrue(
+        ex.getMessage().contains("Outer GROUP BY / aggregation / DISTINCT on a vectorSearch()"),
+        "Error should mention outer aggregation on subquery; actual: " + ex.getMessage());
   }
 }
