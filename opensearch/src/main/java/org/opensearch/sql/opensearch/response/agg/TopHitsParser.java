@@ -27,10 +27,27 @@ public class TopHitsParser implements MetricParser {
   private final boolean returnSingleValue;
   private final boolean returnMergeValue;
 
+  /**
+   * Mapping from original OpenSearch field names to output field names (e.g., renamed via {@code
+   * rename} command). When a field is renamed (e.g., {@code rename value as val}), the top_hits
+   * response still contains the original field name ({@code value}), but the output schema expects
+   * the renamed name ({@code val}). This mapping enables the translation.
+   */
+  private final Map<String, String> fieldNameMapping;
+
   public TopHitsParser(String name, boolean returnSingleValue, boolean returnMergeValue) {
+    this(name, returnSingleValue, returnMergeValue, Collections.emptyMap());
+  }
+
+  public TopHitsParser(
+      String name,
+      boolean returnSingleValue,
+      boolean returnMergeValue,
+      Map<String, String> fieldNameMapping) {
     this.name = name;
     this.returnSingleValue = returnSingleValue;
     this.returnMergeValue = returnMergeValue;
+    this.fieldNameMapping = fieldNameMapping;
   }
 
   @Override
@@ -43,6 +60,9 @@ public class TopHitsParser implements MetricParser {
           new HashMap<>(Collections.singletonMap(agg.getName(), null)));
     }
 
+    // Field name mapping is not applied in returnSingleValue or returnMergeValue paths
+    // because they use the aggregation name (agg.getName()) as the map key, not field names.
+    // Only the multi-row path below uses actual field names as keys and needs mapping.
     if (returnSingleValue) {
       Object value = null;
       if (!isSourceEmpty(hits)) {
@@ -129,10 +149,26 @@ public class TopHitsParser implements MetricParser {
                         ? new LinkedHashMap<>()
                         : new LinkedHashMap<>(hit.getSourceAsMap());
                 hit.getFields().values().forEach(f -> map.put(f.getName(), f.getValue()));
-                return map;
+                return applyFieldNameMapping(map);
               })
           .toList();
     }
+  }
+
+  /**
+   * Apply field name mapping to translate original OpenSearch field names to output field names.
+   * Fields not present in the mapping are kept as-is.
+   */
+  private Map<String, Object> applyFieldNameMapping(Map<String, Object> map) {
+    if (fieldNameMapping.isEmpty()) {
+      return map;
+    }
+    Map<String, Object> result = new LinkedHashMap<>();
+    for (Map.Entry<String, Object> entry : map.entrySet()) {
+      String mappedName = fieldNameMapping.getOrDefault(entry.getKey(), entry.getKey());
+      result.put(mappedName, entry.getValue());
+    }
+    return result;
   }
 
   private boolean isEmptyHits(SearchHit[] hits) {
