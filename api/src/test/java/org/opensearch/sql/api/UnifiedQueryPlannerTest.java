@@ -13,7 +13,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.junit.Test;
-import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.executor.QueryType;
 
 public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
@@ -111,7 +111,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
     planner.plan("explain source = catalog.employees"); // explain statement
   }
 
-  @Test(expected = ErrorReport.class)
+  @Test(expected = SyntaxCheckException.class)
   public void testPlanPropagatingSyntaxCheckException() {
     planner.plan("source = catalog.employees | eval"); // Trigger syntax error from parser
   }

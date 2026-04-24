@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.sql.common.error.ErrorReport;
 
 /** A base class for tests for SQL or PPL parser. */
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
@@ -33,6 +32,6 @@ public abstract class SyntaxParserTestBase {
    * @param query Query to test.
    */
   protected void rejectQuery(String query) {
-    assertThrows(ErrorReport.class, () -> parser.parse(query));
+    assertThrows(SyntaxCheckException.class, () -> parser.parse(query));
   }
 }

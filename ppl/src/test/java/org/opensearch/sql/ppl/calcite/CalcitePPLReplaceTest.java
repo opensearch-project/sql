@@ -8,7 +8,6 @@ package org.opensearch.sql.ppl.calcite;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
-import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
 
 public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {

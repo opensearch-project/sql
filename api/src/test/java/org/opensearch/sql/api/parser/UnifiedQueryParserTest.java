@@ -28,7 +28,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import org.junit.Test;
 import org.opensearch.sql.api.UnifiedQueryTestBase;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 public class UnifiedQueryParserTest extends UnifiedQueryTestBase {
 
@@ -77,7 +77,7 @@ public class UnifiedQueryParserTest extends UnifiedQueryTestBase {
 
   @Test
   public void testSyntaxErrorThrows() {
-    assertThrows(ErrorReport.class, () -> context.getParser().parse("not a valid query"));
+    assertThrows(SyntaxCheckException.class, () -> context.getParser().parse("not a valid query"));
   }
 
   private void assertEqual(String query, UnresolvedPlan expected) {
