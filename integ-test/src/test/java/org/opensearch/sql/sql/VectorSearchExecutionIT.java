@@ -166,7 +166,7 @@ public class VectorSearchExecutionIT extends SQLIntegTestCase {
                 + "', field='embedding', "
                 + "vector='[1.0, 1.0]', option='k=3,filter_type=efficient') AS v "
                 + "WHERE v.state = 'CA' "
-                + "LIMIT 5");
+                + "LIMIT 3");
 
     assertRowIdsEqual(result, "4", "5", "6");
   }
