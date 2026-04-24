@@ -988,9 +988,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    * fields *} projection runs.
    *
    * <p>This preserves the behaviour that issue #4482 originally required for {@code bin} on a
-   * nested field without an explicit {@code fields} projection, scoped to the command that actually
-   * needs it instead of a global prefix-override in {@link #shouldOverrideField} (which broke #5185
-   * and the reviewer's {@code eval agent.name = ...} case).
+   * nested field without an explicit {@code fields} projection. It is invoked from two places:
+   *
+   * <ul>
+   *   <li>{@link #projectPlusOverriding(List, List, CalcitePlanContext)} — for every override whose
+   *       new name exactly matched a pre-existing column. This catches {@code eval} (and every
+   *       other command that funnels through {@code projectPlusOverriding}) assigning to an
+   *       existing flattened nested leaf.
+   *   <li>{@link #visitBin(Bin, CalcitePlanContext)} — defensively, so that {@code bin} keeps
+   *       dropping struct parents even when the alias happens not to match an existing field name
+   *       (e.g. when the user supplied a custom alias). This is also what the regression test in
+   *       {@code CalciteBinCommandIT#testBinWithNestedFieldWithoutExplicitProjection} exercises.
+   * </ul>
+   *
+   * Using this narrowly-scoped pruning instead of a global prefix-override in {@link
+   * #shouldOverrideField} is what keeps issue #5185 and the reviewer's {@code eval agent.name =
+   * ...} case safe.
    *
    * <p>No-op when no such struct-parent columns exist (e.g. flat columns or MAP roots from {@code
    * spath}).
@@ -1329,12 +1342,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private void projectPlusOverriding(
       List<RexNode> newFields, List<String> newNames, CalcitePlanContext context) {
-    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    Set<String> originalFieldNameSet =
+        new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
+    List<String> overriddenNames =
+        newNames.stream().filter(originalFieldNameSet::contains).toList();
     List<RexNode> toOverrideList =
-        originalFieldNames.stream()
-            .filter(originalName -> shouldOverrideField(originalName, newNames))
-            .map(a -> (RexNode) context.relBuilder.field(a))
-            .toList();
+        overriddenNames.stream().map(a -> (RexNode) context.relBuilder.field(a)).toList();
     // 1. add the new fields, For example "age0, country0"
     context.relBuilder.projectPlus(newFields);
     // 2. drop the overriding field list, it's duplicated now. For example "age, country"
@@ -1350,6 +1363,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     expectedRenameFields.addAll(newNames);
     // 5. rename
     context.relBuilder.rename(expectedRenameFields);
+    // 6. For each overridden dotted-path name that matched an existing flattened nested leaf,
+    // prune the struct-parent columns that OpenSearch exposed side-by-side with that leaf. Without
+    // this, a downstream implicit `fields *` invokes `tryToRemoveNestedFields`, which would drop
+    // the freshly-assigned dotted leaf back out again because its struct-parent prefix is still in
+    // the row schema (see issue #4482 and the scratch coverage in CalciteEvalCommandIT).
+    //
+    // Gating on "the override actually fired" is what keeps the reviewer's PR #5351 case safe:
+    // `source=idx | fields agent | eval agent.name = "test"` has no pre-existing `agent.name`
+    // column, so overriddenNames is empty and the struct-parent `agent` survives untouched.
+    // It also keeps issue #5185 safe — spath introduces a MAP root and subsequent eval assigns
+    // to brand-new dotted paths that were not already in the row schema.
+    for (String overridden : overriddenNames) {
+      dropStructParentsFor(overridden, context);
+    }
   }
 
   /**
@@ -1370,9 +1397,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    *       "test"} dropped the {@code agent} column entirely.
    * </ul>
    *
-   * Command-specific behaviour that genuinely wants to prune struct-parent columns (such as {@code
-   * bin} on a nested field, the original motivation for #4606) must handle that inside the command
-   * visitor — see {@link #dropStructParentsFor(String, CalcitePlanContext)}.
+   * Struct-parent pruning for the "override on a real flattened nested leaf" case is handled
+   * uniformly in {@link #projectPlusOverriding(List, List, CalcitePlanContext)}, which invokes
+   * {@link #dropStructParentsFor(String, CalcitePlanContext)} only for overrides that actually
+   * replaced an existing column. This keeps issue #4482 fixed across every command that funnels
+   * through {@code projectPlusOverriding} (bin, eval, rex/sed, trendline, expand, flatten,
+   * patterns) without reintroducing the #5185 / reviewer regressions here.
    */
   private boolean shouldOverrideField(String originalName, List<String> newNames) {
     return newNames.contains(originalName);

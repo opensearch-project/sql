@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TELEMETRY;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -26,6 +27,7 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
     enableCalcite();
 
     loadIndex(Index.BANK);
+    loadIndex(Index.TELEMETRY);
 
     // Create test data for string concatenation
     Request request1 = new Request("PUT", "/test_eval/_doc/1?refresh=true");
@@ -133,6 +135,57 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery("source=test_eval_agent | fields agent | eval `agent.name` = 'test'");
     verifySchema(result, schema("agent", "struct"));
+  }
+
+  @Test
+  public void testEvalOverrideOfFlattenedNestedLeafSurvivesImplicitProject() throws IOException {
+    // Regression guard for PR #5351: eval assigning a new value to a dotted name that matches an
+    // existing OpenSearch flattened nested leaf must not have that value silently eaten by the
+    // implicit `fields *` pass.
+    //
+    // The telemetry mapping exposes struct parents (resource, resource.attributes, ...,
+    // resource.attributes.telemetry.sdk) side-by-side with the flattened leaves. When eval
+    // overrides the leaf, projectPlusOverriding now prunes those struct parents so a subsequent
+    // tryToRemoveNestedFields pass does not delete the overridden leaf on the way out.
+    //
+    // Before the fix, this query returned rows with the original `resource` struct (still
+    // containing the pre-override integer version) and no `resource.attributes.telemetry.sdk.*`
+    // flattened leaves at all -- the "OVERRIDE" string was completely lost.
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval `resource.attributes.telemetry.sdk.version` = 'OVERRIDE'",
+                TEST_INDEX_TELEMETRY));
+
+    verifyDataRows(
+        result,
+        rows(true, "java", "opentelemetry", 9, "OVERRIDE"),
+        rows(false, "python", "opentelemetry", 12, "OVERRIDE"),
+        rows(true, "javascript", "opentelemetry", 9, "OVERRIDE"),
+        rows(false, "go", "opentelemetry", 16, "OVERRIDE"),
+        rows(true, "rust", "opentelemetry", 12, "OVERRIDE"));
+  }
+
+  @Test
+  public void testEvalOverrideOfFlattenedNestedLeafWithExplicitProject() throws IOException {
+    // Control for the test above: with an explicit trailing `fields` projection, the implicit
+    // `fields *` codepath (and tryToRemoveNestedFields) does not run, so eval always returned
+    // the overridden value even before the fix. This test pins the user-facing contract for the
+    // explicit-projection variant regardless of internal pruning behaviour.
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval `resource.attributes.telemetry.sdk.version` = 'OVERRIDE' | fields"
+                    + " `resource.attributes.telemetry.sdk.version`",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(result, schema("resource.attributes.telemetry.sdk.version", "string"));
+    verifyDataRows(
+        result,
+        rows("OVERRIDE"),
+        rows("OVERRIDE"),
+        rows("OVERRIDE"),
+        rows("OVERRIDE"),
+        rows("OVERRIDE"));
   }
 
   @Test
