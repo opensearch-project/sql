@@ -171,8 +171,61 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
                     + " head 1",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    verifySchema(actual, schema("name", "string"), schema("result", "string"));
+    // When every COALESCE operand is missing/null, the result has no known type (see #5175).
+    verifySchema(actual, schema("name", "string"), schema("result", "undefined"));
     verifyDataRows(actual, rows("Jake", null));
+  }
+
+  @Test
+  public void testCoalesceWithNullLiteralAndInteger() throws IOException {
+    // Bug #5175: COALESCE(null, 42) must return the integer 42, not the string "42".
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = coalesce(null, 42) | fields result | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(42));
+  }
+
+  @Test
+  public void testCoalesceWithIntegerAndNullLiteral() throws IOException {
+    // Bug #5175: COALESCE(42, null) must return the integer 42, not the string "42".
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = coalesce(42, null) | fields result | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(42));
+  }
+
+  @Test
+  public void testCoalesceWithNullLiteralAndDouble() throws IOException {
+    // Bug #5175: COALESCE(null, 3.14) must return a numeric double, not a string.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = coalesce(null, 3.14) | fields result | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("result", "double"));
+    verifyDataRows(actual, rows(3.14));
+  }
+
+  @Test
+  public void testCoalesceWithNullLiteralAndIntegerField() throws IOException {
+    // Bug #5175: COALESCE(null, age) on an int field must keep the integer type.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = coalesce(null, age) | fields age, result | head 3",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("age", "int"), schema("result", "int"));
+    verifyDataRows(actual, rows(70, 70), rows(30, 30), rows(25, 25));
   }
 
   @Test

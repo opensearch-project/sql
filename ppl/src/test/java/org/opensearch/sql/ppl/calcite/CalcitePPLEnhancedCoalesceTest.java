@@ -138,7 +138,7 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[2])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, $1)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, $1)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -155,7 +155,7 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR, $1,"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, null:NULL, $1,"
             + " 'fallback':VARCHAR)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -175,8 +175,8 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR,"
-            + " null:VARCHAR)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, null:NULL,"
+            + " null:NULL)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -233,6 +233,40 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
         "SELECT `EMPNO`, `COMM`, `SAL`, COALESCE(`COMM`, `SAL`, 999) `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 2";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testCoalesceWithNullLiteralAndInteger() {
+    // Bug #5175: COALESCE(null, 42) previously inferred VARCHAR because the NULL identifier
+    // was replaced with null:VARCHAR. The result type should be INTEGER so the value comes
+    // back as an int.
+    String ppl = "source=EMP | eval result = coalesce(null, 42) | fields EMPNO, result | head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:NULL, 42)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, COALESCE(NULL, 42) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testCoalesceWithIntegerAndNullLiteral() {
+    // Bug #5175: COALESCE(42, null) should also be typed as INTEGER, not VARCHAR.
+    String ppl = "source=EMP | eval result = coalesce(42, null) | fields EMPNO, result | head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(42, null:NULL)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, COALESCE(42, NULL) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

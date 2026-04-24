@@ -209,24 +209,15 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testNoMvMissingFieldShouldReturn4xx() throws IOException {
-    ResponseException ex =
-        Assertions.assertThrows(
-            ResponseException.class,
-            () -> executeQuery("source=" + TEST_INDEX_BANK + " | nomv does_not_exist"));
+  public void testNoMvMissingField() throws IOException {
+    // After issue #5175 was fixed, unresolved identifiers inside COALESCE (the rewrite target
+    // of `nomv`) resolve to a null literal of SqlTypeName.NULL. Calcite can then promote that
+    // null to the array type expected by ARRAY_COMPACT, so the query succeeds instead of
+    // returning 4xx. The resulting column is the COALESCE empty-string fallback.
+    JSONObject result =
+        executeQuery("source=" + TEST_INDEX_BANK + " | nomv does_not_exist | head 1");
 
-    int status = ex.getResponse().getStatusLine().getStatusCode();
-
-    Assertions.assertEquals(400, status, "Unexpected status. ex=" + ex.getMessage());
-
-    String msg = ex.getMessage();
-    Assertions.assertTrue(
-        msg.contains("does_not_exist")
-            || msg.contains("field")
-            || msg.contains("Field")
-            || msg.contains("ARRAY_COMPACT")
-            || msg.contains("ARRAY"),
-        msg);
+    Assertions.assertTrue(result.getJSONArray("datarows").length() > 0);
   }
 
   @Test
