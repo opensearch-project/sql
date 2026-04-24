@@ -167,6 +167,24 @@ public class VectorSearchSubqueryIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testInnerOrderByScoreDescInSubqueryAllowed() throws IOException {
+    // Positive control: inner ORDER BY _score DESC on the vectorSearch() relation inside the
+    // subquery is the only supported sort, and must continue to plan successfully even when
+    // wrapped in an outer SELECT. Proves the walker does not over-reject sort shapes that are
+    // below the subquery Project rather than above it.
+    String explain =
+        explainQuery(
+            "SELECT * FROM (SELECT v.firstname, v._score "
+                + "FROM vectorSearch(table='"
+                + TEST_INDEX
+                + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v "
+                + "ORDER BY v._score DESC) t "
+                + "LIMIT 3");
+
+    assertThat(explain, containsString("wrapper"));
+  }
+
+  @Test
   public void testOuterOrderByOnSubqueryRejected() throws IOException {
     // Outer ORDER BY over a vectorSearch() subquery would run on a truncated top-k slice rather
     // than the full relation, silently reordering only the already-ANN-selected rows.
