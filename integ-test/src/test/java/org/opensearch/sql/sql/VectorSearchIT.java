@@ -677,11 +677,78 @@ public class VectorSearchIT extends SQLIntegTestCase {
     assertThat(ex.getMessage(), containsString("trailing or consecutive commas"));
   }
 
+  // ── Alias with multiple backing indices ───────────────────────────────
+  // vectorSearch() accepts an alias as `table=`. When the alias points at multiple backing
+  // indices, planning must accept the alias string instead of treating it as a wildcard or
+  // multi-target. Execution correctness over compatible knn_vector mappings is a separate
+  // concern covered by k-NN-enabled tests/follow-up; these tests lock in planning acceptance
+  // only, via _explain on the default no-kNN cluster.
+
+  @Test
+  public void testExplainOverAliasWithMultipleBackingIndices() throws IOException {
+    // Create two indices with identical keyword mappings (no knn_vector, since the plugin is
+    // not installed) and a shared alias. We only assert the planner accepts the alias; whether
+    // k-NN accepts the alias at execution is a separate concern tested on a k-NN-enabled
+    // cluster.
+    // Randomized names so a stale alias/index left by an aborted prior run of this class does
+    // not shadow a fresh setup — a concrete risk on local reruns.
+    String suffix = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+    String idx1 = "vector_alias_backing_1_" + suffix;
+    String idx2 = "vector_alias_backing_2_" + suffix;
+    String alias = "vector_alias_combined_" + suffix;
+    try {
+      createSimpleIndex(idx1);
+      createSimpleIndex(idx2);
+      addToAlias(idx1, alias);
+      addToAlias(idx2, alias);
+
+      String explain =
+          explainQuery(
+              "SELECT v._id FROM vectorSearch(table='"
+                  + alias
+                  + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v");
+
+      assertThat(explain, containsString("VectorSearchIndexScan"));
+      assertThat(explain, containsString(alias));
+    } finally {
+      // Deleting the backing indices removes the alias automatically, but delete the alias
+      // first for robustness against partial setup failures.
+      deleteAliasIfExists(alias);
+      deleteIndexIfExists(idx1);
+      deleteIndexIfExists(idx2);
+    }
+  }
+
+  private void createSimpleIndex(String indexName) throws IOException {
+    Request create = new Request("PUT", "/" + indexName);
+    create.setJsonEntity("{\"mappings\":{\"properties\":{\"state\":{\"type\":\"keyword\"}}}}");
+    client().performRequest(create);
+  }
+
+  private void addToAlias(String indexName, String aliasName) throws IOException {
+    Request req = new Request("POST", "/_aliases");
+    req.setJsonEntity(
+        "{\"actions\":[{\"add\":{\"index\":\""
+            + indexName
+            + "\",\"alias\":\""
+            + aliasName
+            + "\"}}]}");
+    client().performRequest(req);
+  }
+
   private void deleteIndexIfExists(String indexName) {
     try {
       client().performRequest(new Request("DELETE", "/" + indexName));
     } catch (IOException ignored) {
       // Index does not exist, which is fine.
+    }
+  }
+
+  private void deleteAliasIfExists(String aliasName) {
+    try {
+      client().performRequest(new Request("DELETE", "/_all/_alias/" + aliasName));
+    } catch (IOException ignored) {
+      // Alias does not exist, which is fine.
     }
   }
 }
