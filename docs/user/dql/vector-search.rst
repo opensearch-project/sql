@@ -31,33 +31,33 @@ Description
 ``vectorSearch(table='<index>', field='<vector-field>', vector='<array>', option='<key=value[,key=value]*>')``
 
 All four arguments are required and must be passed by name as string
-literals. Positional or mixed-positional calls are rejected, for example::
+literals. Positional arguments, or a mix of positional and named
+arguments, are not supported. For example, the following is invalid::
 
-    -- invalid: positional argument
     FROM vectorSearch('my_vectors', field='embedding',
                       vector='[0.1,0.2]', option='k=5') AS v
 
-A table alias is required. Reference projected fields through the alias
-(``v._id``, ``v._score``, ``v.category``).
+A table alias is required. Projected fields are referenced through the
+alias (``v._id``, ``v._score``, ``v.category``).
 
 If the ``opensearch-knn`` plugin is not installed on the target cluster,
 query execution fails with a ``vectorSearch() requires the k-NN plugin``
-error. ``_explain`` still works without the plugin.
+error. ``_explain`` continues to work without the plugin.
 
 Arguments
 ---------
 
 - ``table`` — single concrete index or alias to search. Wildcards
   (``*``), comma-separated multi-index targets, ``_all``, ``.``, and
-  ``..`` are rejected. The target index must have ``index.knn: true`` and
-  map the target field as ``knn_vector``.
+  ``..`` are not supported. The target index must have
+  ``index.knn: true`` and map the target field as ``knn_vector``.
 - ``field`` — name of the ``knn_vector`` field.
 - ``vector`` — query vector as a JSON-style array of numbers, passed as a
   string (for example, ``'[0.1, 0.2, 0.3]'``). Components must be
-  comma-separated finite numbers; semicolon, colon, or pipe separators
-  and empty components (for example, ``'[1.0,,2.0]'`` or ``'[1.0,]'``)
-  are rejected. The vector dimension must match the ``knn_vector``
-  mapping on the target index.
+  comma-separated finite numbers. Semicolon, colon, and pipe separators
+  are not supported, and empty components (for example, ``'[1.0,,2.0]'``
+  or ``'[1.0,]'``) return an error. The vector dimension must match the
+  ``knn_vector`` mapping on the target index.
 - ``option`` — comma-separated ``key=value`` pairs. Exactly one of ``k``,
   ``max_distance``, or ``min_score`` is required. ``filter_type`` is
   optional.
@@ -65,8 +65,8 @@ Arguments
 Supported option keys
 ---------------------
 
-Option keys are lower-case and case-sensitive. ``K=5`` or ``Filter_Type=post``
-will be rejected with an "Unknown option key" error.
+Option keys are lower-case and case-sensitive. ``K=5`` or
+``Filter_Type=post`` returns an "Unknown option key" error.
 
 - ``k`` — top-k mode. Integer between 1 and 10000. The query returns up to
   ``k`` nearest neighbors.
@@ -83,8 +83,8 @@ exactly one.
 
 Native k-NN tuning options (for example, ``method_parameters.ef_search``,
 ``method_parameters.nprobes``, ``rescore.oversample_factor``) are not
-exposed through ``vectorSearch()`` and are rejected as unknown option
-keys.
+supported through ``vectorSearch()`` and return an "Unknown option
+key" error.
 
 Syntax
 ------
@@ -190,10 +190,10 @@ Behavior depends on whether ``filter_type`` is specified:
   results are returned. A query with no ``WHERE`` clause is valid.
 - **Explicit ``post``** — a ``WHERE`` clause is required and must be
   translatable to an OpenSearch filter query. If the ``WHERE`` clause is
-  missing or cannot be translated, the query fails with a descriptive
-  error. Specifying ``filter_type=post`` explicitly is useful when you
-  want the query to fail fast rather than silently fall back to in-memory
-  filtering.
+  missing or cannot be translated, the query fails with an error.
+  Specifying ``filter_type=post`` explicitly is useful when the query
+  should fail with an error instead of silently falling back to
+  in-memory filtering.
 - **Explicit ``efficient``** — a ``WHERE`` clause is required and must
   compile to a filter shape that can be embedded under ``knn.filter``.
   ``efficient`` supports simple native filters: ``term``, ``range``,
@@ -201,8 +201,8 @@ Behavior depends on whether ``filter_type`` is specified:
   ``match_phrase_prefix``, ``match_bool_prefix``, ``multi_match``,
   ``query_string``, ``simple_query_string``), and boolean combinations of
   those filters. Predicates that compile to script queries (arithmetic,
-  function calls, ``CASE``, date math), nested predicates, and unknown
-  query shapes are rejected.
+  function calls, ``CASE``, date math), nested predicates, and other
+  query shapes are not supported in this mode and return an error.
 
 Example 4: Implicit pushdown (no ``filter_type``)
 -------------------------------------------------
@@ -263,13 +263,13 @@ Limitations
 The following are not supported on ``vectorSearch()``:
 
 - ``GROUP BY`` and aggregations over a ``vectorSearch()`` relation are
-  rejected with an error.
+  not supported and return an error.
 - An outer ``WHERE`` clause applied to a ``vectorSearch()`` subquery is
-  rejected with an error, because the predicate would be evaluated only
-  after the top-k rows have been selected by vector distance and can
-  silently yield zero rows. Place the predicate inside the subquery,
-  directly on the ``vectorSearch()`` alias, so it can participate in
-  ``WHERE`` pushdown.
+  not supported and returns an error, because the predicate would be
+  evaluated only after the top-k rows have been selected by vector
+  distance and can silently yield zero rows. Place the predicate inside
+  the subquery, directly on the ``vectorSearch()`` alias, so that it
+  participates in ``WHERE`` pushdown.
 - ``JOIN`` between a ``vectorSearch()`` relation and another relation is
   not supported.
 - ``UNION`` / ``INTERSECT`` / ``EXCEPT`` combining a ``vectorSearch()``
