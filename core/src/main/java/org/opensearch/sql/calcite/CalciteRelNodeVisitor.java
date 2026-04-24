@@ -973,8 +973,45 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     String alias = node.getAlias() != null ? node.getAlias() : fieldName;
     projectPlusOverriding(List.of(binExpression), List.of(alias), context);
+    dropStructParentsFor(alias, context);
 
     return context.relBuilder.peek();
+  }
+
+  /**
+   * If {@code dottedName} addresses a nested leaf inside a struct that OpenSearch has exposed
+   * through both its struct-parent columns and its flattened leaf columns (e.g. the telemetry
+   * mapping exposes {@code resource}, {@code resource.attributes}, ..., {@code
+   * resource.attributes.telemetry.sdk.version} side-by-side), drop the struct-parent prefixes from
+   * the current row. This keeps a subsequent {@link #tryToRemoveNestedFields(CalcitePlanContext)}
+   * pass from collapsing the flattened leaves back into the parents when the final implicit {@code
+   * fields *} projection runs.
+   *
+   * <p>This preserves the behaviour that issue #4482 originally required for {@code bin} on a
+   * nested field without an explicit {@code fields} projection, scoped to the command that actually
+   * needs it instead of a global prefix-override in {@link #shouldOverrideField} (which broke #5185
+   * and the reviewer's {@code eval agent.name = ...} case).
+   *
+   * <p>No-op when no such struct-parent columns exist (e.g. flat columns or MAP roots from {@code
+   * spath}).
+   */
+  private void dropStructParentsFor(String dottedName, CalcitePlanContext context) {
+    if (dottedName == null || dottedName.indexOf('.') < 0) {
+      return;
+    }
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> parentsToDrop = new ArrayList<>();
+    int dotIdx = dottedName.indexOf('.');
+    while (dotIdx >= 0) {
+      String prefix = dottedName.substring(0, dotIdx);
+      if (fieldNames.contains(prefix)) {
+        parentsToDrop.add(context.relBuilder.field(prefix));
+      }
+      dotIdx = dottedName.indexOf('.', dotIdx + 1);
+    }
+    if (!parentsToDrop.isEmpty()) {
+      context.relBuilder.projectExcept(parentsToDrop);
+    }
   }
 
   @Override
@@ -1295,7 +1332,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> toOverrideList =
         originalFieldNames.stream()
-            .filter(originalName -> shouldOverrideField(originalName, newNames, originalFieldNames))
+            .filter(originalName -> shouldOverrideField(originalName, newNames))
             .map(a -> (RexNode) context.relBuilder.field(a))
             .toList();
     // 1. add the new fields, For example "age0, country0"
@@ -1315,31 +1352,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.rename(expectedRenameFields);
   }
 
-  private boolean shouldOverrideField(
-      String originalName, List<String> newNames, List<String> allFieldNames) {
-    return newNames.stream()
-        .anyMatch(
-            newName ->
-                // Match exact field names (e.g., "age" == "age") for flat fields
-                newName.equals(originalName)
-                    // OR match nested paths (e.g., "resource.attributes..." starts with
-                    // "resource."), but only when the schema already contains sub-fields of
-                    // originalName. This distinguishes real struct parents (which have flattened
-                    // sub-field columns) from MAP columns produced by spath where dotted names
-                    // are just flat column names, not nested sub-fields.
-                    || (newName.startsWith(originalName + ".")
-                        && hasSubFields(originalName, allFieldNames)));
-  }
-
   /**
-   * Checks whether the schema contains any field whose name starts with {@code parentName + "."}.
-   * This indicates that {@code parentName} is a real struct parent with flattened sub-field
-   * columns, as opposed to a standalone MAP column (e.g., from spath) that has no sub-fields in the
-   * schema.
+   * Determine whether the column {@code originalName} should be replaced when a batch of new
+   * columns named {@code newNames} is being added. Only exact-name matches count as overrides —
+   * {@code eval foo.bar = ...} creates a brand new field literally named {@code foo.bar} and must
+   * never drop sibling or parent fields. This mirrors SPL1 semantics, where assigning a dotted name
+   * introduces a literal column of that name without touching any other field.
+   *
+   * <p>Earlier revisions (see PR #4606 / #5351) attempted to broaden this to a {@code
+   * newName.startsWith(originalName + ".")} prefix match. That prefix branch silently dropped any
+   * column that happened to be a prefix of an eval target, which caused two regressions:
+   *
+   * <ul>
+   *   <li>Issue #5185 — a MAP-typed root column produced by {@code spath} got dropped when eval
+   *       introduced multiple dotted-path fields under it.
+   *   <li>The reviewer's case on PR #5351 — {@code source=big5 | fields agent | eval agent.name =
+   *       "test"} dropped the {@code agent} column entirely.
+   * </ul>
+   *
+   * Command-specific behaviour that genuinely wants to prune struct-parent columns (such as {@code
+   * bin} on a nested field, the original motivation for #4606) must handle that inside the command
+   * visitor — see {@link #dropStructParentsFor(String, CalcitePlanContext)}.
    */
-  private boolean hasSubFields(String parentName, List<String> allFieldNames) {
-    String prefix = parentName + ".";
-    return allFieldNames.stream().anyMatch(name -> name.startsWith(prefix));
+  private boolean shouldOverrideField(String originalName, List<String> newNames) {
+    return newNames.contains(originalName);
   }
 
   private List<List<RexInputRef>> extractInputRefList(List<RelBuilder.AggCall> aggCalls) {
