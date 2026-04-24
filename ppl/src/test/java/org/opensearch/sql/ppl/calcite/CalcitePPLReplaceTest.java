@@ -9,6 +9,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 
 public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
 
@@ -140,19 +141,19 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  @Test(expected = SyntaxCheckException.class)
+  @Test(expected = ErrorReport.class)
   public void testReplaceWithoutWithKeywordShouldFail() {
     String ppl = "source=EMP | replace \"CLERK\" \"EMPLOYEE\" IN JOB";
     getRelNode(ppl);
   }
 
-  @Test(expected = SyntaxCheckException.class)
+  @Test(expected = ErrorReport.class)
   public void testReplaceWithoutInKeywordShouldFail() {
     String ppl = "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\" JOB";
     getRelNode(ppl);
   }
 
-  @Test(expected = SyntaxCheckException.class)
+  @Test(expected = ErrorReport.class)
   public void testReplaceWithExpressionShouldFail() {
     String ppl = "source=EMP | replace EMPNO + 1 WITH \"EMPLOYEE\" IN JOB";
     getRelNode(ppl);
@@ -170,13 +171,13 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
     getRelNode(ppl);
   }
 
-  @Test(expected = SyntaxCheckException.class)
+  @Test(expected = ErrorReport.class)
   public void testReplaceWithMissingQuotesShouldFail() {
     String ppl = "source=EMP | replace CLERK WITH EMPLOYEE IN JOB";
     getRelNode(ppl);
   }
 
-  @Test(expected = SyntaxCheckException.class)
+  @Test(expected = ErrorReport.class)
   public void testReplaceWithMissingReplacementValueShouldFail() {
     String ppl = "source=EMP | replace \"CLERK\" WITH IN JOB";
     getRelNode(ppl);
@@ -311,7 +312,7 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  @Test(expected = SyntaxCheckException.class)
+  @Test(expected = ErrorReport.class)
   public void testReplaceWithMultiplePairsMissingWithKeywordShouldFail() {
     // Missing WITH keyword between pairs
     String ppl =
@@ -319,7 +320,7 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
     getRelNode(ppl);
   }
 
-  @Test(expected = SyntaxCheckException.class)
+  @Test(expected = ErrorReport.class)
   public void testReplaceWithMultiplePairsTrailingCommaShouldFail() {
     // Trailing comma after last pair
     String ppl = "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\", IN JOB";

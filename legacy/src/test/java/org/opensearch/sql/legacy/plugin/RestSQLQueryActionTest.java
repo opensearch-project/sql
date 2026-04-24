@@ -128,7 +128,8 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
             request,
             (channel, exception) -> {
               fallback.set(true);
-              assertTrue(exception instanceof SyntaxCheckException || exception instanceof ErrorReport);
+              assertTrue(
+                  exception instanceof SyntaxCheckException || exception instanceof ErrorReport);
             },
             (channel, exception) -> {
               fail();
