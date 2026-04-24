@@ -669,6 +669,61 @@ public class VectorSearchIT extends SQLIntegTestCase {
     assertThat(ex.getMessage(), containsString("trailing or consecutive commas"));
   }
 
+  // ── Alias with multiple backing indices ───────────────────────────────
+  // vectorSearch() accepts an alias as `table=`. When the alias points at multiple backing
+  // indices with matching knn_vector mappings, planning must succeed — the query then runs
+  // across all backing indices just like a regular alias query. Execution requires the k-NN
+  // plugin, which is not installed on the default integ-test cluster, so these tests verify
+  // the planning path via _explain only.
+
+  @Test
+  public void testExplainOverAliasWithMultipleBackingIndices() throws IOException {
+    // Create two indices with identical keyword mappings (no knn_vector, since the plugin is
+    // not installed) and a shared alias. We only assert the planner accepts the alias; whether
+    // k-NN accepts the alias at execution is a separate concern tested on a k-NN-enabled
+    // cluster.
+    String idx1 = "vector_alias_backing_1";
+    String idx2 = "vector_alias_backing_2";
+    String alias = "vector_alias_combined";
+    try {
+      deleteIndexIfExists(idx1);
+      deleteIndexIfExists(idx2);
+      createSimpleIndex(idx1);
+      createSimpleIndex(idx2);
+      addToAlias(idx1, alias);
+      addToAlias(idx2, alias);
+
+      String explain =
+          explainQuery(
+              "SELECT v._id FROM vectorSearch(table='"
+                  + alias
+                  + "', field='embedding', vector='[1.0, 2.0]', option='k=5') AS v");
+
+      assertThat(explain, containsString("VectorSearchIndexScan"));
+      assertThat(explain, containsString(alias));
+    } finally {
+      deleteIndexIfExists(idx1);
+      deleteIndexIfExists(idx2);
+    }
+  }
+
+  private void createSimpleIndex(String indexName) throws IOException {
+    Request create = new Request("PUT", "/" + indexName);
+    create.setJsonEntity("{\"mappings\":{\"properties\":{\"state\":{\"type\":\"keyword\"}}}}");
+    client().performRequest(create);
+  }
+
+  private void addToAlias(String indexName, String aliasName) throws IOException {
+    Request req = new Request("POST", "/_aliases");
+    req.setJsonEntity(
+        "{\"actions\":[{\"add\":{\"index\":\""
+            + indexName
+            + "\",\"alias\":\""
+            + aliasName
+            + "\"}}]}");
+    client().performRequest(req);
+  }
+
   private void deleteIndexIfExists(String indexName) {
     try {
       client().performRequest(new Request("DELETE", "/" + indexName));
