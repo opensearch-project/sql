@@ -225,7 +225,7 @@ Scoring, sorting, and limits
 Limitations
 ===========
 
-The following shapes are outside the ``vectorSearch()`` preview contract:
+The following shapes are not supported by ``vectorSearch()``:
 
 - ``GROUP BY`` and aggregations over a ``vectorSearch()`` relation are
   rejected with an error.
