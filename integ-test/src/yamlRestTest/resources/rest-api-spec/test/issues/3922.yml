@@ -49,6 +49,16 @@ teardown:
           - '{"name": "C", "category": "Z", "value": 4}'
           - '{"index": {}}'
           - '{"name": "B", "category": "Z", "value": 5}'
+          - '{"index": {}}'
+          - '{"name": "D", "category": "A", "value": 10}'
+          - '{"index": {}}'
+          - '{"name": "E", "category": "B", "value": 11}'
+          - '{"index": {}}'
+          - '{"name": "F", "category": "C", "value": 12}'
+          - '{"index": {}}'
+          - '{"name": "G", "category": "D", "value": 13}'
+          - '{"index": {}}'
+          - '{"name": "D", "category": "E", "value": 14}'
   - do:
       allowed_warnings:
         - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
@@ -57,5 +67,5 @@ teardown:
       ppl:
         body:
           query: 'source=test_issue_3922 | sort category | dedup 1 name | fields category, name'
-  - match: {"total": 3}
-  - match: {"datarows": [["X", "A"], ["X", "B"], ["Z", "C"]]}
+  - match: {"total": 7}
+  - match: {"datarows": [["A", "D"], ["B", "E"], ["C", "F"], ["D", "G"], ["X", "A"], ["X", "B"], ["Z", "C"]]}
