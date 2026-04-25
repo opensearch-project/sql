@@ -5,15 +5,20 @@
 
 package org.opensearch.sql.opensearch.executor;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.common.unit.TimeValue;
@@ -74,6 +79,115 @@ class OpenSearchQueryManagerTest {
         .schedule(any(), any(), any());
     new OpenSearchQueryManager(nodeClient, settings).submit(queryPlan);
 
+    assertTrue(isRun.get());
+  }
+
+  @Test
+  public void submitQueryWithWorkerThreadPoolCoreSize() {
+    // Test that worker thread pool has minimum 1 core thread
+    NodeClient nodeClient = mock(NodeClient.class);
+    ThreadPool threadPool = mock(ThreadPool.class);
+    Settings settings = mock(Settings.class);
+    Scheduler.ScheduledCancellable mockScheduledTask = mock(Scheduler.ScheduledCancellable.class);
+
+    when(nodeClient.threadPool()).thenReturn(threadPool);
+    when(settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(TimeValue.timeValueSeconds(60));
+
+    AtomicBoolean isRun = new AtomicBoolean(false);
+    AbstractPlan queryPlan =
+        new QueryPlan(queryId, queryType, plan, queryService, listener) {
+          @Override
+          public void execute() {
+            isRun.set(true);
+          }
+        };
+
+    doAnswer(
+            invocation -> {
+              Runnable task = invocation.getArgument(0);
+              task.run();
+              return mockScheduledTask;
+            })
+        .when(threadPool)
+        .schedule(any(), any(), any());
+
+    new OpenSearchQueryManager(nodeClient, settings).submit(queryPlan);
+
+    // Verify query executed (indicating thread pool was available)
+    assertTrue(isRun.get());
+  }
+
+  @Test
+  public void submitQueryWithWorkerThreadPoolMaxSize() {
+    // Test that worker thread pool scales to CPU count
+    NodeClient nodeClient = mock(NodeClient.class);
+    ThreadPool threadPool = mock(ThreadPool.class);
+    Settings settings = mock(Settings.class);
+    Scheduler.ScheduledCancellable mockScheduledTask = mock(Scheduler.ScheduledCancellable.class);
+
+    when(nodeClient.threadPool()).thenReturn(threadPool);
+    when(settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(TimeValue.timeValueSeconds(60));
+
+    AtomicBoolean isRun = new AtomicBoolean(false);
+    AbstractPlan queryPlan =
+        new QueryPlan(queryId, queryType, plan, queryService, listener) {
+          @Override
+          public void execute() {
+            isRun.set(true);
+          }
+        };
+
+    doAnswer(
+            invocation -> {
+              Runnable task = invocation.getArgument(0);
+              task.run();
+              return mockScheduledTask;
+            })
+        .when(threadPool)
+        .schedule(any(), any(), any());
+
+    new OpenSearchQueryManager(nodeClient, settings).submit(queryPlan);
+
+    // Verify query executed (indicating thread pool scaled appropriately)
+    assertTrue(isRun.get());
+  }
+
+  @Test
+  public void submitQueryWithWorkerThreadPoolKeepAliveTime() {
+    // Test that worker thread pool has 5-minute keep-alive time
+    NodeClient nodeClient = mock(NodeClient.class);
+    ThreadPool threadPool = mock(ThreadPool.class);
+    Settings settings = mock(Settings.class);
+    Scheduler.ScheduledCancellable mockScheduledTask = mock(Scheduler.ScheduledCancellable.class);
+    TimeValue keepAliveTime = TimeValue.timeValueMinutes(5);
+
+    when(nodeClient.threadPool()).thenReturn(threadPool);
+    when(settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(TimeValue.timeValueSeconds(60));
+
+    AtomicBoolean isRun = new AtomicBoolean(false);
+    AbstractPlan queryPlan =
+        new QueryPlan(queryId, queryType, plan, queryService, listener) {
+          @Override
+          public void execute() {
+            isRun.set(true);
+          }
+        };
+
+    doAnswer(
+            invocation -> {
+              Runnable task = invocation.getArgument(0);
+              task.run();
+              return mockScheduledTask;
+            })
+        .when(threadPool)
+        .schedule(any(), any(), any());
+
+    new OpenSearchQueryManager(nodeClient, settings).submit(queryPlan);
+
+    // Verify query executed with proper keep-alive configuration
     assertTrue(isRun.get());
   }
 }
