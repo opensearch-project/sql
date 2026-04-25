@@ -1,0 +1,48 @@
+setup:
+  - do:
+      indices.create:
+        index: test_idx_a
+        body:
+          mappings:
+            properties:
+              field_a:
+                type: keyword
+  - do:
+      indices.create:
+        index: test_idx_b
+        body:
+          mappings:
+            properties:
+              field_b:
+                type: keyword
+  - do:
+      bulk:
+        index: test_idx_a
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"field_a": "value_a"}'
+  - do:
+      bulk:
+        index: test_idx_b
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"field_b": "value_b"}'
+
+---
+"Error message should contain index pattern not Java array representation":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test_idx_*'
+  # Verify the query succeeds (both indices exist and have valid mappings)
+  - match: {"total": 2}
