@@ -100,15 +100,6 @@ public class PPLServiceTest {
 
   @Test
   public void testExecuteShouldPass() {
-    doAnswer(
-            invocation -> {
-              ResponseListener<QueryResponse> listener = invocation.getArgument(3);
-              listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
-              return null;
-            })
-        .when(queryService)
-        .execute(any(), any(), any(), any());
-
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY),
         getQueryListener(false),
@@ -117,15 +108,6 @@ public class PPLServiceTest {
 
   @Test
   public void testExecuteCsvFormatShouldPass() {
-    doAnswer(
-            invocation -> {
-              ResponseListener<QueryResponse> listener = invocation.getArgument(3);
-              listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
-              return null;
-            })
-        .when(queryService)
-        .execute(any(), any(), any(), any());
-
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY, "csv"),
         getQueryListener(false),
@@ -134,15 +116,6 @@ public class PPLServiceTest {
 
   @Test
   public void testExplainShouldPass() {
-    doAnswer(
-            invocation -> {
-              ResponseListener<ExplainResponse> listener = invocation.getArgument(3);
-              listener.onResponse(new ExplainResponse(new ExplainResponseNode("test")));
-              return null;
-            })
-        .when(queryService)
-        .explain(any(), any(), any(), any(), any());
-
     pplService.explain(
         new PPLQueryRequest("search source=t a=1", null, EXPLAIN),
         new ResponseListener<ExplainResponse>() {
@@ -171,15 +144,6 @@ public class PPLServiceTest {
 
   @Test
   public void testPrometheusQuery() {
-    doAnswer(
-            invocation -> {
-              ResponseListener<QueryResponse> listener = invocation.getArgument(3);
-              listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
-              return null;
-            })
-        .when(queryService)
-        .execute(any(), any(), any(), any());
-
     pplService.execute(
         new PPLQueryRequest("source = prometheus.http_requests_total", null, QUERY),
         getQueryListener(false),

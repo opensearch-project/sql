@@ -64,16 +64,16 @@ public class CalcitePPLFlattenTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     // Regarded as an identity scan. See RelBuilder#L2801
     String expectedLogical =
-        "LogicalProject(DEPTNO=[$0], EMP=[$1], EMPNAME=[$2], EMPNO=[$3])\n"
+        "LogicalProject(DEPTNO=[$0], EMP=[$1], EMP.EMPNAME=[$2], EMP.EMPNO=[$3], EMPNAME=[$2], EMPNO=[$3])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     String expectedSparkSql =
-        "SELECT `DEPTNO`, `EMP`, `EMP.EMPNAME` `EMPNAME`, `EMP.EMPNO` `EMPNO`\nFROM `scott`.`DEPT`";
+        "SELECT `DEPTNO`, `EMP`, `EMP.EMPNAME`, `EMP.EMPNO`, `EMP.EMPNAME` `EMPNAME`, `EMP.EMPNO` `EMPNO`\nFROM `scott`.`DEPT`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
     String expectedResult =
-        "DEPTNO=10; EMP={7369, SMITH}; EMPNAME=SMITH; EMPNO=7369\n"
-            + "DEPTNO=20; EMP={7499, ALLEN}; EMPNAME=ALLEN; EMPNO=7499\n"
-            + "DEPTNO=30; EMP={7521, WARD}; EMPNAME=WARD; EMPNO=7521\n";
+        "DEPTNO=10; EMP={7369, SMITH}; EMP.EMPNAME=SMITH; EMP.EMPNO=7369; EMPNAME=SMITH; EMPNO=7369\n"
+            + "DEPTNO=20; EMP={7499, ALLEN}; EMP.EMPNAME=ALLEN; EMP.EMPNO=7499; EMPNAME=ALLEN; EMPNO=7499\n"
+            + "DEPTNO=30; EMP={7521, WARD}; EMP.EMPNAME=WARD; EMP.EMPNO=7521; EMPNAME=WARD; EMPNO=7521\n";
     verifyResult(root, expectedResult);
   }
 
@@ -82,16 +82,16 @@ public class CalcitePPLFlattenTest extends CalcitePPLAbstractTest {
     String ppl = "source=DEPT | flatten EMP as name, number";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(DEPTNO=[$0], EMP=[$1], name=[$2], number=[$3])\n"
+        "LogicalProject(DEPTNO=[$0], EMP=[$1], EMP.EMPNAME=[$2], EMP.EMPNO=[$3], name=[$2], number=[$3])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     String expectedSparkSql =
-        "SELECT `DEPTNO`, `EMP`, `EMP.EMPNAME` `name`, `EMP.EMPNO` `number`\nFROM `scott`.`DEPT`";
+        "SELECT `DEPTNO`, `EMP`, `EMP.EMPNAME`, `EMP.EMPNO`, `EMP.EMPNAME` `name`, `EMP.EMPNO` `number`\nFROM `scott`.`DEPT`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
     String expectedResult =
-        "DEPTNO=10; EMP={7369, SMITH}; name=SMITH; number=7369\n"
-            + "DEPTNO=20; EMP={7499, ALLEN}; name=ALLEN; number=7499\n"
-            + "DEPTNO=30; EMP={7521, WARD}; name=WARD; number=7521\n";
+        "DEPTNO=10; EMP={7369, SMITH}; EMP.EMPNAME=SMITH; EMP.EMPNO=7369; name=SMITH; number=7369\n"
+            + "DEPTNO=20; EMP={7499, ALLEN}; EMP.EMPNAME=ALLEN; EMP.EMPNO=7499; name=ALLEN; number=7499\n"
+            + "DEPTNO=30; EMP={7521, WARD}; EMP.EMPNAME=WARD; EMP.EMPNO=7521; name=WARD; number=7521\n";
     verifyResult(root, expectedResult);
   }
 
@@ -104,12 +104,12 @@ public class CalcitePPLFlattenTest extends CalcitePPLAbstractTest {
     String ppl = "source=DEPT";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(DEPTNO=[$0], EMP=[$1])\n  LogicalTableScan(table=[[scott, DEPT]])\n";
+        "LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
-        "DEPTNO=10; EMP={7369, SMITH}\n"
-            + "DEPTNO=20; EMP={7499, ALLEN}\n"
-            + "DEPTNO=30; EMP={7521, WARD}\n";
+        "DEPTNO=10; EMP={7369, SMITH}; EMP.EMPNAME=SMITH; EMP.EMPNO=7369\n"
+            + "DEPTNO=20; EMP={7499, ALLEN}; EMP.EMPNAME=ALLEN; EMP.EMPNO=7499\n"
+            + "DEPTNO=30; EMP={7521, WARD}; EMP.EMPNAME=WARD; EMP.EMPNO=7521\n";
     verifyResult(root, expectedResult);
   }
 

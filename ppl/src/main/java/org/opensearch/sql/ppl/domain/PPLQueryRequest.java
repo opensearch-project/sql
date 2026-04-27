@@ -26,6 +26,7 @@ public class PPLQueryRequest {
   private static final String DEFAULT_PPL_PATH = "/_plugins/_ppl";
   private static final String FETCH_SIZE_FIELD = "fetch_size";
   private static final String HIGHLIGHT_FIELD = "highlight";
+  private static final String INCLUDE_METADATA_FIELD = "include_metadata";
   private static final int MAX_HIGHLIGHT_FIELDS = 100;
   private static final int MAX_TAG_ENTRIES = 10;
 
@@ -122,6 +123,20 @@ public class PPLQueryRequest {
       return 0;
     }
     return jsonContent.optInt(FETCH_SIZE_FIELD, 0);
+  }
+
+  /**
+   * Get whether to include metadata fields (_id, _index, _score, etc.) in the response. When
+   * enabled, metadata fields will be included alongside regular fields in wildcard field selections
+   * (e.g., fields *).
+   *
+   * @return true if metadata fields should be included, false otherwise (default: false)
+   */
+  public boolean getIncludeMetadata() {
+    if (jsonContent == null) {
+      return false;
+    }
+    return jsonContent.optBoolean(INCLUDE_METADATA_FIELD, false);
   }
 
   /**
