@@ -35,6 +35,7 @@ import org.opensearch.common.settings.IndexScopedSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.settings.SettingsFilter;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
@@ -123,6 +124,7 @@ import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionRespons
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
+import org.opensearch.threadpool.ScalingExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
@@ -340,16 +342,17 @@ public class SQLPlugin extends Plugin
 
   @Override
   public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
-    // The worker pool is the primary pool where most of the work is done. The background thread
-    // pool is a separate queue for asynchronous requests to other nodes. We keep them separate to
-    // prevent deadlocks during async fetches on small node counts. Tasks in the background pool
-    // should do no work except I/O to other services.
+    // The worker pool is the primary pool where most of the work is done. It uses a scaling
+    // executor to dynamically adjust thread count based on load, similar to the search thread pool.
+    // The background thread pool is a separate queue for asynchronous requests to other nodes.
+    // We keep them separate to prevent deadlocks during async fetches on small node counts.
+    // Tasks in the background pool should do no work except I/O to other services.
     return List.of(
-        new FixedExecutorBuilder(
-            settings,
+        new ScalingExecutorBuilder(
             SQL_WORKER_THREAD_POOL_NAME,
+            1,
             OpenSearchExecutors.allocatedProcessors(settings),
-            1000,
+            TimeValue.timeValueMinutes(5),
             "thread_pool." + SQL_WORKER_THREAD_POOL_NAME),
         new FixedExecutorBuilder(
             settings,
