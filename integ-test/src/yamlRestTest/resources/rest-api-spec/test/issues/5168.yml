@@ -1,0 +1,88 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  - do:
+      indices.create:
+        index: bounty-types
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              int_field:
+                type: integer
+              str_field:
+                type: keyword
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "bounty-types", "_id": "1"}}'
+          - '{"int_field": 42, "str_field": "alpha"}'
+          - '{"index": {"_index": "bounty-types", "_id": "2"}}'
+          - '{"int_field": -1, "str_field": "alpha"}'
+          - '{"index": {"_index": "bounty-types", "_id": "3"}}'
+          - '{"int_field": 0, "str_field": "beta"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: bounty-types
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5168: eventstats row_number() should execute for grouped rows":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=bounty-types | sort str_field | eventstats row_number() as rn by str_field | stats max(rn) as max_rn by str_field | sort str_field
+
+  - match: { total: 2 }
+  - match: { datarows: [ [ 1, alpha ], [ 1, beta ] ] }
+
+---
+"Issue 5168: streamstats rank() should execute for grouped rows":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=bounty-types | streamstats rank() as rk by int_field | stats max(rk) as max_rk by int_field | sort int_field
+
+  - match: { total: 3 }
+  - match: { datarows: [ [ 1, -1 ], [ 1, 0 ], [ 1, 42 ] ] }
+
+---
+"Issue 5168: eventstats dense_rank() should execute for grouped rows":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=bounty-types | sort str_field | eventstats dense_rank() as dr by str_field | stats max(dr) as max_dr by str_field | sort str_field
+
+  - match: { total: 2 }
+  - match: { datarows: [ [ 1, alpha ], [ 1, beta ] ] }

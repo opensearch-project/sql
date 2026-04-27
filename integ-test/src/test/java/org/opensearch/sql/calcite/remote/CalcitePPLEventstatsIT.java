@@ -323,6 +323,82 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testEventstatsRowNumberWindowFunction() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | sort country, age | eventstats row_number() as row_num by country |"
+                    + " stats min(row_num) as min_row_num, max(row_num) as max_row_num by"
+                    + " country | sort country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchemaInOrder(
+        actual,
+        schema("min_row_num", "bigint"),
+        schema("max_row_num", "bigint"),
+        schema("country", "string"));
+
+    verifyDataRowsInOrder(actual, rows(1, 1, "Canada"), rows(1, 1, "USA"));
+  }
+
+  @Test
+  public void testEventstatsRankWindowFunction() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | sort country, age | eventstats rank() as rank_value by country |"
+                    + " stats min(rank_value) as min_rank, max(rank_value) as max_rank by"
+                    + " country | sort country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchemaInOrder(
+        actual,
+        schema("min_rank", "bigint"),
+        schema("max_rank", "bigint"),
+        schema("country", "string"));
+
+    verifyDataRowsInOrder(actual, rows(1, 1, "Canada"), rows(1, 1, "USA"));
+  }
+
+  @Test
+  public void testEventstatsDenseRankWindowFunction() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | sort country, age | eventstats dense_rank() as dense_rank_value by"
+                    + " country | stats min(dense_rank_value) as min_dense_rank,"
+                    + " max(dense_rank_value) as max_dense_rank by country | sort country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchemaInOrder(
+        actual,
+        schema("min_dense_rank", "bigint"),
+        schema("max_dense_rank", "bigint"),
+        schema("country", "string"));
+
+    verifyDataRowsInOrder(actual, rows(1, 1, "Canada"), rows(1, 1, "USA"));
+  }
+
+  @Test
+  public void testEventstatsNthValueWindowFunction() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | sort country, age | eventstats nth(age, 2) as nth_age by"
+                    + " country | stats min(nth_age) as min_nth_age, max(nth_age) as"
+                    + " max_nth_age by country | sort country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchemaInOrder(
+        actual,
+        schema("min_nth_age", "int"),
+        schema("max_nth_age", "int"),
+        schema("country", "string"));
+
+    verifyDataRowsInOrder(actual, rows(25, 25, "Canada"), rows(70, 70, "USA"));
+  }
+
+  @Test
   public void testMultipleEventstats() throws IOException {
     JSONObject actual =
         executeQuery(
