@@ -6,6 +6,7 @@
 package org.opensearch.sql.security;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
@@ -27,6 +28,7 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.OTELLOGS);
   }
 
   @Test
@@ -234,6 +236,51 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
                 "search source=%s | convert auto(balance) AS balance_num | fields balance_num",
                 TEST_INDEX_BANK_REMOTE));
     verifyColumn(result, columnName("balance_num"));
+
+    disableCalcite();
+  }
+
+  @Test
+  public void testCrossClusterClusterCommand() throws IOException {
+    enableCalcite();
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | cluster body | fields cluster_label", TEST_INDEX_OTEL_LOGS));
+    verifyColumn(result, columnName("cluster_label"));
+
+    disableCalcite();
+  }
+
+  @Test
+  public void testCrossClusterClusterCommandWithParameters() throws IOException {
+    enableCalcite();
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | cluster body t=0.8 match=termset showcount=true"
+                    + " | fields cluster_label, cluster_count, body",
+                TEST_INDEX_OTEL_LOGS));
+    verifyColumn(
+        result, columnName("cluster_label"), columnName("cluster_count"), columnName("body"));
+
+    disableCalcite();
+  }
+
+  @Test
+  public void testCrossClusterClusterCommandMultiCluster() throws IOException {
+    enableCalcite();
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | cluster body showcount=true | fields"
+                    + " cluster_label, cluster_count, body",
+                TEST_INDEX_OTEL_LOGS));
+    verifyColumn(
+        result, columnName("cluster_label"), columnName("cluster_count"), columnName("body"));
 
     disableCalcite();
   }
