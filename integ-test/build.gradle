@@ -278,6 +278,32 @@ testClusters {
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
+    integTestCalcite {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+    }
+    integTestNonCalcite {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+    }
+    remoteClusterCalcite {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
+        plugin ":opensearch-sql-plugin"
+    }
+    remoteClusterNonCalcite {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
+        plugin ":opensearch-sql-plugin"
+    }
     yamlRestTest {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
@@ -455,9 +481,18 @@ yamlRestTest {
     systemProperty 'tests.security.manager', 'false'
 }
 
-// Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
-integTest {
-    useCluster testClusters.remoteCluster
+task printIntegTestPaths {
+    doLast {
+        println "Test report available at: file://${project.buildDir}/reports/tests/integTest/index.html"
+        println "integTest cluster logs available at: file://${project.buildDir}/testclusters/integTest-0/logs/integTest.log"
+        println "remoteCluster cluster logs available at: file://${project.buildDir}/testclusters/remoteCluster-0/logs/remoteCluster.log"
+    }
+}
+
+// Run Calcite integration tests
+task integTestCalcite(type: RestIntegTestTask) {
+    useCluster testClusters.integTestCalcite
+    useCluster testClusters.remoteClusterCalcite
 
     // Set properties for connection to clusters and between clusters
     doFirst {
@@ -477,12 +512,9 @@ integTest {
     testLogging {
         events "failed"
     }
-    
+
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
-    if(!ignorePrometheus && getOSFamilyType() != "windows") {
-        dependsOn startPrometheus
-        finalizedBy stopPrometheus
-    }
+    // Prometheus is managed by the main integTest task to avoid conflicts
 
     // enable calcite codegen in IT
     systemProperty 'calcite.debug', 'false'
@@ -508,6 +540,74 @@ integTest {
         systemProperty 'cluster.debug', getDebug()
     }
 
+    if (System.getProperty("test.debug") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5006'
+    }
+
+    if (System.getProperty("tests.rest.bwcsuite") == null) {
+        filter {
+            excludeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
+    }
+
+    // Include only Calcite tests
+    include 'org/opensearch/sql/calcite/**/*IT.class'
+
+    // Exclude doctest and correctness
+    exclude 'org/opensearch/sql/doctest/**/*IT.class'
+    exclude 'org/opensearch/sql/correctness/**'
+}
+
+// Run non-Calcite integration tests
+task integTestNonCalcite(type: RestIntegTestTask) {
+    useCluster testClusters.integTestNonCalcite
+    useCluster testClusters.remoteClusterNonCalcite
+
+    // Set properties for connection to clusters and between clusters
+    doFirst {
+        getClusters().forEach { cluster ->
+            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllTransportPortURI().stream()
+            }.collect(Collectors.joining(","))
+            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllHttpSocketURI().stream()
+            }.collect(Collectors.joining(","))
+
+            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
+            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
+        }
+    }
+
+    testLogging {
+        events "failed"
+    }
+
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+    // Prometheus is managed by the main integTest task to avoid conflicts
+
+    // enable calcite codegen in IT
+    systemProperty 'calcite.debug', 'false'
+    systemProperty 'org.codehaus.janino.source_debugging.enable', 'false'
+    systemProperty 'org.codehaus.janino.source_debugging.dir', calciteCodegen
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty('project.root', project.projectDir.absolutePath)
+
+    systemProperty "https", System.getProperty("https")
+    systemProperty "user", System.getProperty("user")
+    systemProperty "password", System.getProperty("password")
+
+    // Set default query size limit
+    systemProperty 'defaultQuerySizeLimit', '10000'
+
+    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
+    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
+    doFirst {
+        if (System.getProperty("debug-jvm") != null) {
+            setDebug(true);
+        }
+        systemProperty 'cluster.debug', getDebug()
+    }
 
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5006'
@@ -524,6 +624,9 @@ integTest {
         exclude 'org/opensearch/sql/ppl/ShowDataSourcesCommandIT.class'
         exclude 'org/opensearch/sql/ppl/InformationSchemaCommandIT.class'
     }
+
+    // Exclude Calcite tests
+    exclude 'org/opensearch/sql/calcite/**'
 
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
     exclude 'org/opensearch/sql/correctness/**'
@@ -545,16 +648,17 @@ integTest {
 
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
-
-    finalizedBy 'printIntegTestPaths'
 }
 
-task printIntegTestPaths {
-    doLast {
-        println "Test report available at: file://${project.buildDir}/reports/tests/integTest/index.html"
-        println "integTest cluster logs available at: file://${project.buildDir}/testclusters/integTest-0/logs/integTest.log"
-        println "remoteCluster cluster logs available at: file://${project.buildDir}/testclusters/remoteCluster-0/logs/remoteCluster.log"
+// Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
+// This task now orchestrates both Calcite and non-Calcite integration tests
+integTest {
+    dependsOn integTestCalcite, integTestNonCalcite
+    if(!ignorePrometheus && getOSFamilyType() != "windows") {
+        dependsOn startPrometheus
+        finalizedBy stopPrometheus
     }
+    finalizedBy 'printIntegTestPaths'
 }
 
 task comparisonTest(type: RestIntegTestTask) {
