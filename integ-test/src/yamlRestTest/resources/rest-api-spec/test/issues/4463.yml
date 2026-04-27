@@ -1,0 +1,106 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  - do:
+      indices.create:
+        index: issue4463
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              description:
+                type: text
+                fields:
+                  keyword:
+                    type: keyword
+                    ignore_above: 50
+              value:
+                type: long
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "Short description 1", "value": 1}'
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "Short description 2", "value": 2}'
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "Short description 3", "value": 3}'
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "This is a very long description that definitely exceeds the 50 character limit set in ignore_above", "value": 100}'
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "Another extremely long description that will be ignored by the keyword subfield due to exceeding limit", "value": 101}'
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "Yet another long string to ensure multiple documents have null keyword subfield values for testing", "value": 102}'
+          - '{"index": {"_index": "issue4463"}}'
+          - '{"description": "", "value": 200}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue4463
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 4463: isnotnull with additional predicate excludes null keyword buckets":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue4463 | where isnotnull(description) and description != '' | stats count() by description"
+  # RexSimplify folds IS_NOT_NULL(x) AND x<>'' into just x<>''.
+  # Strong.isNotTrue still infers field 0 is non-nullable from x<>''.
+  # 3 short descriptions pass; long and empty filtered out.
+  - match: { total: 3 }
+
+---
+"Issue 4463: isnotnull alone excludes null keyword buckets":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue4463 | where isnotnull(description) | stats count() by description"
+  # isnotnull keeps all 7 docs (all have text values).
+  # Aggregation by keyword: 3 short + 1 empty + null bucket for 3 long.
+  # With fix: null bucket excluded → 4 rows.
+  - match: { total: 4 }
+
+---
+"Issue 4463: isnotnull with script predicate excludes null keyword buckets":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue4463 | where isnotnull(description) and length(description) > 5 | stats count() by description"
+  # length(description) > 5 triggers a script predicate (not native DSL).
+  # The filter is tagged as PushDownType.SCRIPT, but the fix now reads FilterDigest
+  # from SCRIPT operations too. isnotnull(description) contributes an exists query.
+  # Docs passing: 3 short (len 19) + 3 long (len >50) = 6 docs.
+  # Aggregation by keyword: 3 short rows + null bucket for 3 long.
+  # With fix: null bucket excluded → 3 rows.
+  - match: { total: 3 }

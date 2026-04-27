@@ -7,9 +7,12 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import lombok.Getter;
@@ -19,6 +22,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
@@ -34,9 +38,12 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -64,6 +71,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
 import org.opensearch.sql.opensearch.storage.scan.context.ProjectDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownOperation;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
 import org.opensearch.sql.utils.Utils;
@@ -167,14 +175,17 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
               filter.getCondition(), schema, fieldTypes, rowType, getCluster());
       // TODO: handle the case where condition contains a score function
       CalciteLogicalIndexScan newScan = this.copy();
+      RexNode digestCondition =
+          queryExpression.isPartial()
+              ? constructCondition(queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
+              : filter.getCondition();
+      // Infer NOT NULL constraints from the actually-pushed condition (digestCondition),
+      // not the original filter condition — in partial pushdown, the original may contain
+      // predicates that stay in Calcite and don't affect the OpenSearch-side aggregation.
+      Set<Integer> notNullIndices = extractNotNullFieldIndices(digestCondition);
       newScan.pushDownContext.add(
           queryExpression.getScriptCount() > 0 ? PushDownType.SCRIPT : PushDownType.FILTER,
-          new FilterDigest(
-              queryExpression.getScriptCount(),
-              queryExpression.isPartial()
-                  ? constructCondition(
-                      queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
-                  : filter.getCondition()),
+          new FilterDigest(queryExpression.getScriptCount(), digestCondition, notNullIndices),
           (OSRequestBuilderAction)
               requestBuilder -> requestBuilder.pushDownFilterForCalcite(queryExpression.builder()));
 
@@ -401,9 +412,16 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       }
       int queryBucketSize = osIndex.getQueryBucketSize();
       boolean bucketNullable = !PPLHintUtils.ignoreNullBucket(aggregate);
+      Set<Integer> nonNullableGroupIndices =
+          extractNonNullableGroupIndices(newScan.pushDownContext, aggregate, project);
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
-              getRowType(), fieldTypes, getCluster(), bucketNullable, queryBucketSize);
+              getRowType(),
+              fieldTypes,
+              getCluster(),
+              bucketNullable,
+              queryBucketSize,
+              nonNullableGroupIndices);
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser =
           AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
       Map<String, OpenSearchDataType> extendedTypeMapping =
@@ -429,6 +447,74 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       }
     }
     return null;
+  }
+
+  /**
+   * Extract group-by field indices that are constrained by IS_NOT_NULL in the pushed filter. This
+   * allows setting missingBucket=false per-field for those group-by fields, preventing null buckets
+   * in aggregation results when the user explicitly filters with isnotnull().
+   */
+  private static Set<Integer> extractNonNullableGroupIndices(
+      PushDownContext context, Aggregate aggregate, @Nullable Project project) {
+    Set<Integer> allNotNullIndices = new HashSet<>();
+    for (PushDownOperation op : context) {
+      // FilterDigest is attached to both FILTER and SCRIPT push-down operations;
+      // the type only reflects whether a script is involved, not whether NOT NULL metadata exists.
+      if ((op.type() == PushDownType.FILTER || op.type() == PushDownType.SCRIPT)
+          && op.digest() instanceof FilterDigest fd) {
+        allNotNullIndices.addAll(fd.notNullFieldIndices());
+      }
+    }
+    if (allNotNullIndices.isEmpty()) {
+      return Collections.emptySet();
+    }
+    // Map scan-level not-null indices to aggregate group indices, resolving through project
+    List<Integer> groupList = aggregate.getGroupSet().asList();
+    Set<Integer> result = new HashSet<>();
+    for (int groupIndex : groupList) {
+      int scanIndex = resolveGroupToScanIndex(groupIndex, project);
+      if (scanIndex >= 0 && allNotNullIndices.contains(scanIndex)) {
+        result.add(groupIndex);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Extract scan-level field indices that are implicitly constrained to be NOT NULL by the filter
+   * condition. Uses Calcite's {@link Strong#isNotTrue} to detect fields where the condition would
+   * not be true if the field were null — this covers explicit IS_NOT_NULL as well as implicit
+   * constraints like {@code x <> ''} (which is null if x is null).
+   */
+  private static Set<Integer> extractNotNullFieldIndices(RexNode condition) {
+    Set<Integer> allRefs = new HashSet<>();
+    condition.accept(
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitInputRef(RexInputRef inputRef) {
+            allRefs.add(inputRef.getIndex());
+            return null;
+          }
+        });
+    Set<Integer> result = new HashSet<>();
+    for (int idx : allRefs) {
+      if (Strong.isNotTrue(condition, ImmutableBitSet.of(idx))) {
+        result.add(idx);
+      }
+    }
+    return result;
+  }
+
+  /** Resolve a group-by index to a scan-level field index through an optional project. */
+  private static int resolveGroupToScanIndex(int groupIndex, @Nullable Project project) {
+    if (project == null) {
+      return groupIndex;
+    }
+    RexNode projected = project.getProjects().get(groupIndex);
+    if (projected instanceof RexInputRef scanRef) {
+      return scanRef.getIndex();
+    }
+    return -1;
   }
 
   public AbstractRelNode pushDownLimit(LogicalSort sort, Integer limit, Integer offset) {
