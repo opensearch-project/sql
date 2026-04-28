@@ -53,8 +53,7 @@ public class CalciteDisabledObjectFieldIT extends PPLIntegTestCase {
   public void testSelectNestedFieldFromDisabledObject() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | fields log.c.d", DISABLED_OBJECT_INDEX));
-    // Schema is undefined because disabled object fields have no field mapping.
-    // The important check is that the value is extracted correctly from _source.
+    verifySchema(result, schema("log.c.d", "int"));
     verifyDataRows(result, rows(2));
   }
 
@@ -62,8 +61,7 @@ public class CalciteDisabledObjectFieldIT extends PPLIntegTestCase {
   public void testSelectTopLevelFieldFromDisabledObject() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | fields log.a", DISABLED_OBJECT_INDEX));
-    // Schema is undefined because disabled object fields have no field mapping.
-    // The important check is that the value is extracted correctly from _source.
+    verifySchema(result, schema("log.a", "int"));
     verifyDataRows(result, rows(1));
   }
 
@@ -72,6 +70,7 @@ public class CalciteDisabledObjectFieldIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("source=%s | fields log", DISABLED_OBJECT_INDEX));
     verifySchema(result, schema("log", "struct"));
+    verifyDataRows(result, rows(new JSONObject("{\"a\":1,\"c\":{\"d\":2},\"c.d\":2}")));
   }
 
   @Test
@@ -79,5 +78,6 @@ public class CalciteDisabledObjectFieldIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("source=%s | fields log.c", DISABLED_OBJECT_INDEX));
     verifySchema(result, schema("log.c", "struct"));
+    verifyDataRows(result, rows(new JSONObject("{\"d\":2}")));
   }
 }
