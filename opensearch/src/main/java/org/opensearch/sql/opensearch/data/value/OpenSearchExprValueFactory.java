@@ -203,13 +203,7 @@ public class OpenSearchExprValueFactory {
     //  is resolved
     if (fieldType.isEmpty()
         || fieldType.get().equals(OpenSearchDataType.of(ExprCoreType.UNDEFINED))) {
-      // If the content is an object (e.g. inside a disabled object field, see issue #4906),
-      // recurse into it as a struct so downstream path access (log.c.d) works. Without this,
-      // parseContent would fall through to stringify the object and nested keys would be lost.
-      if (content.isObject()) {
-        return parseUnmappedStruct(content, field, supportArrays);
-      }
-      return parseContent(content);
+      return parseContent(content, field, supportArrays);
     }
 
     final ExprType type = fieldType.get();
@@ -233,7 +227,15 @@ public class OpenSearchExprValueFactory {
     }
   }
 
-  private ExprValue parseContent(Content content) {
+  /**
+   * Parse {@link Content} into an {@link ExprValue} when the declared field type is unknown (either
+   * absent from the mapping or {@code UNDEFINED}). Dispatches purely on the shape of the content.
+   *
+   * <p>Objects are recursed into as unmapped structs (see issue #4906). Without this, an object
+   * inside a disabled-object field would be stringified and nested keys like {@code log.c.d} would
+   * be lost.
+   */
+  private ExprValue parseContent(Content content, String field, boolean supportArrays) {
     if (content.isNumber()) {
       if (content.isInt()) {
         return new ExprIntegerValue(content.intValue());
@@ -257,6 +259,8 @@ public class OpenSearchExprValueFactory {
       return ExprBooleanValue.of(content.booleanValue());
     } else if (content.isNull()) {
       return ExprNullValue.of();
+    } else if (content.isObject()) {
+      return parseUnmappedStruct(content, field, supportArrays);
     }
     // Default case, treat as a string value
     return new ExprStringValue(content.objectValue().toString());
@@ -397,27 +401,16 @@ public class OpenSearchExprValueFactory {
               }
               Content childContent = entry.getValue();
               String fullFieldPath = makeField(prefix, fieldKey);
-              // Always recurse on child values using the unmapped-struct parser so nested maps
-              // are preserved. Single ITEM lookups will still succeed because we also expose
-              // descendants under their dotted-path keys below.
-              ExprValue childValue;
-              if (childContent.isNull()) {
-                childValue = ExprNullValue.of();
-              } else if (childContent.isObject()) {
-                childValue = parseUnmappedStruct(childContent, fullFieldPath, supportArrays);
-              } else {
-                // Scalars and arrays both go through parseContent, which handles them correctly.
-                childValue = parseContent(childContent);
-              }
+              // Recurse via parseContent, which handles nulls, scalars, and objects (by
+              // recursing back into this method). Single ITEM lookups still succeed because
+              // we also expose descendants under their dotted-path keys below.
+              ExprValue childValue = parseContent(childContent, fullFieldPath, supportArrays);
               result.tupleValue().put(fieldKey, childValue);
               // Additionally expose every descendant at the current level using dotted-path keys
               // so ITEM(parent, "c.d") can resolve to a scalar leaf value. Intermediate dotted
               // paths (e.g. "c" mapping to a tuple) are already provided by the direct child entry.
               if (childValue instanceof ExprTupleValue childTuple) {
-                for (Map.Entry<String, ExprValue> descendant : childTuple.tupleValue().entrySet()) {
-                  String descendantKey = fieldKey + "." + descendant.getKey();
-                  result.tupleValue().putIfAbsent(descendantKey, descendant.getValue());
-                }
+                exposeDescendantsAsDottedKeys(result, fieldKey, childTuple);
               }
             });
     return result;
@@ -433,30 +426,42 @@ public class OpenSearchExprValueFactory {
    */
   private ExprValue parseStruct(Content content, String prefix, boolean supportArrays) {
     ExprTupleValue result = ExprTupleValue.empty();
-    content
-        .map()
-        .forEachRemaining(
-            entry -> {
-              String fieldKey = entry.getKey();
-              String fullFieldPath = makeField(prefix, fieldKey);
-              // Check for malformed field names before creating JsonPath.
-              // See isFieldNameMalformed() for details on what constitutes a malformed field name.
-              if (isFieldNameMalformed(fieldKey)) {
-                result.tupleValue().put(fieldKey, ExprNullValue.of());
-              } else {
-                Optional<ExprType> childType = type(fullFieldPath);
-                ExprValue childValue =
-                    parse(entry.getValue(), fullFieldPath, childType, supportArrays);
-                populateValueRecursive(result, new JsonPath(fieldKey), childValue);
-                // If the child's type is unmapped (e.g. inside a disabled object — see #4906),
-                // also expose every descendant under its dotted-path key so single-key ITEM
-                // lookups at this level resolve nested paths like log.c.d.
-                if (isUnmappedType(childType) && childValue instanceof ExprTupleValue) {
-                  exposeDescendantsAsDottedKeys(result, fieldKey, (ExprTupleValue) childValue);
-                }
-              }
-            });
+    content.map().forEachRemaining(entry -> parseStructEntry(result, prefix, entry, supportArrays));
     return result;
+  }
+
+  /**
+   * Parse a single entry of a struct and merge it into {@code result}. This is the per-child body
+   * of {@link #parseStruct}: it resolves the child's type, parses it via {@link #parse}, and
+   * inserts it into the parent tuple — additionally exposing the child's descendants under
+   * dotted-path keys when the child is unmapped (see issue #4906).
+   *
+   * <p>The dotted-key exposure is part of the parse contract for this child rather than something
+   * the outer loop needs to know about, which keeps {@link #parseStruct}'s body trivial.
+   */
+  private void parseStructEntry(
+      ExprTupleValue result,
+      String prefix,
+      Map.Entry<String, Content> entry,
+      boolean supportArrays) {
+    String fieldKey = entry.getKey();
+    // Check for malformed field names before creating JsonPath.
+    // See isFieldNameMalformed() for details on what constitutes a malformed field name.
+    if (isFieldNameMalformed(fieldKey)) {
+      result.tupleValue().put(fieldKey, ExprNullValue.of());
+      return;
+    }
+    String fullFieldPath = makeField(prefix, fieldKey);
+    Optional<ExprType> childType = type(fullFieldPath);
+    ExprValue childValue = parse(entry.getValue(), fullFieldPath, childType, supportArrays);
+    populateValueRecursive(result, new JsonPath(fieldKey), childValue);
+    // If the child's type is unmapped (e.g. inside a disabled object — see #4906), also expose
+    // every descendant under its dotted-path key so single-key ITEM lookups at this level
+    // resolve nested paths like log.c.d. parseContent produces the flat entries inside the
+    // child tuple; this step just lifts them up one level with the fieldKey prefix.
+    if (isUnmappedType(childType) && childValue instanceof ExprTupleValue childTuple) {
+      exposeDescendantsAsDottedKeys(result, fieldKey, childTuple);
+    }
   }
 
   private static boolean isUnmappedType(Optional<ExprType> fieldType) {
