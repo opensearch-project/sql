@@ -17,11 +17,7 @@ public final class SyntaxErrorSuggestionRegistry {
       new CopyOnWriteArrayList<>();
 
   static {
-    register(
-        new EmptyAggregateSuggestionProvider(),
-        new ShowTablesLikeSuggestionProvider(),
-        new UnquotedTableNameSuggestionProvider(),
-        new ExpectedTokensSuggestionProvider());
+    register(new UnquotedTableNameSuggestionProvider(), new ExpectedTokensSuggestionProvider());
   }
 
   private SyntaxErrorSuggestionRegistry() {}
