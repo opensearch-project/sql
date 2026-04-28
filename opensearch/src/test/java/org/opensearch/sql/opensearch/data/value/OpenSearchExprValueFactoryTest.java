@@ -1180,6 +1180,78 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(stringValue("value"), structValue.get("good"));
   }
 
+  // ==================== Disabled Object Field Tests ====================
+  // Tests for issue #4906: PPL query returns null when accessing nested keys of an object
+  // declared with "enabled": false. Such objects are stored in _source but not indexed, so the
+  // plugin cannot learn their inner schema. The factory must parse the raw _source recursively
+  // AND also expose each descendant under a dotted-path key so the Calcite ITEM operator — which
+  // treats a tuple as a flat map — can resolve log.c.d with a single lookup.
+
+  private OpenSearchExprValueFactory disabledObjectFactory() {
+    // "log" is mapped as an object with no properties (equivalent to {type:object, enabled:false}).
+    return new OpenSearchExprValueFactory(
+        Map.of("log", OpenSearchDataType.of(OpenSearchDataType.MappingType.Object)), true);
+  }
+
+  @Test
+  public void disabledObject_topLevelScalarChildRetainsType() {
+    Map<String, ExprValue> tuple =
+        disabledObjectFactory()
+            .construct("{\"log\":{\"a\":1,\"c\":{\"d\":2}}}", false)
+            .tupleValue();
+    ExprValue log = tuple.get("log");
+    assertEquals(integerValue(1), log.tupleValue().get("a"));
+  }
+
+  @Test
+  public void disabledObject_intermediateChildIsParsedAsTuple() {
+    Map<String, ExprValue> tuple =
+        disabledObjectFactory()
+            .construct("{\"log\":{\"a\":1,\"c\":{\"d\":2}}}", false)
+            .tupleValue();
+    ExprValue logC = tuple.get("log").tupleValue().get("c");
+    assertTrue(logC instanceof ExprTupleValue);
+    assertEquals(integerValue(2), logC.tupleValue().get("d"));
+  }
+
+  @Test
+  public void disabledObject_leafExposedUnderDottedKeyForItemLookup() {
+    // The core fix: ITEM(log, "c.d") must resolve to 2. This requires the "log" tuple to carry
+    // the flat dotted-path key "c.d" in addition to the nested "c" -> tuple{d:2}.
+    Map<String, ExprValue> tuple =
+        disabledObjectFactory()
+            .construct("{\"log\":{\"a\":1,\"c\":{\"d\":2}}}", false)
+            .tupleValue();
+    ExprValue log = tuple.get("log");
+    assertEquals(integerValue(2), log.tupleValue().get("c.d"));
+  }
+
+  @Test
+  public void disabledObject_deeplyNestedLeafExposedAtEveryAncestor() {
+    // Verify that deeper nesting {c:{d:{e:3}}} works with single-key ITEM at any level.
+    Map<String, ExprValue> tuple =
+        disabledObjectFactory()
+            .construct("{\"log\":{\"c\":{\"d\":{\"e\":3}}}}", false)
+            .tupleValue();
+    ExprValue log = tuple.get("log");
+    assertEquals(integerValue(3), log.tupleValue().get("c.d.e"));
+    ExprValue logC = log.tupleValue().get("c");
+    assertEquals(integerValue(3), logC.tupleValue().get("d.e"));
+  }
+
+  @Test
+  public void disabledObject_mappedSiblingsAreUnaffected() {
+    // With a normal mapped struct (structV.id, structV.state), the factory should NOT inject flat
+    // dotted keys at the top level. Only the existing behaviour is preserved.
+    Map<String, ExprValue> tuple = tupleValue("{\"structV\":{\"id\":1,\"state\":\"WA\"}}");
+    ExprValue structV = tuple.get("structV");
+    assertEquals(integerValue(1), structV.tupleValue().get("id"));
+    assertEquals(stringValue("WA"), structV.tupleValue().get("state"));
+    // No accidental flat-key injection on mapped structs.
+    assertFalse(structV.tupleValue().containsKey("structV.id"));
+    assertFalse(tuple.containsKey("structV.id"));
+  }
+
   @EqualsAndHashCode(callSuper = false)
   @ToString
   private static class TestType extends OpenSearchDataType {
