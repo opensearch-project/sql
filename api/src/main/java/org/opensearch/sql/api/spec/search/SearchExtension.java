@@ -22,6 +22,8 @@ public class SearchExtension implements LanguageSpec.LanguageExtension {
 
   @Override
   public List<SqlVisitor<SqlNode>> postParseRules() {
-    return List.of(NamedArgRewriter.INSTANCE);
+    return List.of(
+        SelectItemAliasRewriter.INSTANCE, // TODO: non-search-specific and temporarily placed here
+        NamedArgRewriter.INSTANCE);
   }
 }

@@ -257,4 +257,22 @@ public class UnifiedQueryPlannerSqlTest extends UnifiedQueryTestBase {
             """)
         .assertErrorMessage("Encountered");
   }
+
+  @Test
+  public void testUnnamedMixedAggregates() {
+    givenQuery(
+            """
+            SELECT id, COUNT(*), AVG(age) FROM catalog.employees\
+            """)
+        .assertFields("id", "COUNT(*)", "AVG(age)");
+  }
+
+  @Test
+  public void testExplicitAliasStillWorks() {
+    givenQuery(
+            """
+            SELECT COUNT(*) AS cnt FROM catalog.employees\
+            """)
+        .assertFields("cnt");
+  }
 }

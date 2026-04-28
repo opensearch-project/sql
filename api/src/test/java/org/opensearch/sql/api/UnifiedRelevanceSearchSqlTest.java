@@ -137,7 +137,7 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
             """)
         .assertPlan(
             """
-            LogicalProject(EXPR$0=[UPPER($1)])
+            LogicalProject(UPPER(name)=[UPPER($1)])
               LogicalTableScan(table=[[catalog, employees]])
             """);
   }
