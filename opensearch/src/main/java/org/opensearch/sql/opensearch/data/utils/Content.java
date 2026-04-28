@@ -53,6 +53,18 @@ public interface Content {
   /** Is array value. */
   boolean isArray();
 
+  /** Is an object / map-like value. */
+  default boolean isObject() {
+    Object raw = objectValue();
+    if (raw instanceof Map) {
+      return true;
+    }
+    if (raw instanceof com.fasterxml.jackson.databind.JsonNode node) {
+      return node.isObject();
+    }
+    return false;
+  }
+
   /** Get integer value. */
   Integer intValue();
 
