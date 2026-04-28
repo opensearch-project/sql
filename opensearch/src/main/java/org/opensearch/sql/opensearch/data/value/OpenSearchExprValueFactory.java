@@ -405,9 +405,8 @@ public class OpenSearchExprValueFactory {
                 childValue = ExprNullValue.of();
               } else if (childContent.isObject()) {
                 childValue = parseUnmappedStruct(childContent, fullFieldPath, supportArrays);
-              } else if (childContent.isArray()) {
-                childValue = parseContent(childContent);
               } else {
+                // Scalars and arrays both go through parseContent, which handles them correctly.
                 childValue = parseContent(childContent);
               }
               result.tupleValue().put(fieldKey, childValue);

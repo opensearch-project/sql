@@ -145,6 +145,11 @@ public class ObjectContent implements Content {
   }
 
   @Override
+  public boolean isObject() {
+    return value instanceof Map;
+  }
+
+  @Override
   public boolean isString() {
     return value instanceof String;
   }
