@@ -18,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsBaseVisitor;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsLexer;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser;
@@ -85,7 +86,7 @@ public class SQLQueryUtils {
     try {
       flintSparkSqlExtensionsParser.statement();
       return true;
-    } catch (SyntaxCheckException syntaxCheckException) {
+    } catch (SyntaxCheckException | ErrorReport syntaxCheckException) {
       return false;
     }
   }

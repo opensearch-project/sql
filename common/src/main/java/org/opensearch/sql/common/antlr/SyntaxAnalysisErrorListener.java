@@ -6,8 +6,10 @@
 package org.opensearch.sql.common.antlr;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
@@ -15,6 +17,10 @@ import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
 import org.antlr.v4.runtime.misc.IntervalSet;
+import org.opensearch.sql.common.antlr.suggestion.SyntaxErrorContext;
+import org.opensearch.sql.common.antlr.suggestion.SyntaxErrorSuggestionRegistry;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 
 /**
  * Syntax analysis error listener that handles any syntax error by throwing exception with useful
@@ -39,13 +45,56 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     Token offendingToken = (Token) offendingSymbol;
     String query = tokens.getText();
 
-    throw new SyntaxCheckException(
+    // Build the original error message for backward compatibility
+    String details =
         String.format(
             Locale.ROOT,
             "[%s] is not a valid term at this part of the query: '%s' <-- HERE. %s",
             getOffendingText(offendingToken),
             truncateQueryAtOffendingToken(query, offendingToken),
-            getDetails(recognizer, msg, e)));
+            getDetails(recognizer, msg, e));
+
+    // Create a SyntaxCheckException as the underlying cause
+    SyntaxCheckException cause = new SyntaxCheckException(details);
+
+    // Build position information
+    Map<String, Object> position = new HashMap<>();
+    position.put("line", line);
+    position.put("column", charPositionInLine);
+
+    // Build ErrorReport with structured context
+    ErrorReport.Builder reportBuilder =
+        ErrorReport.wrap(cause)
+            .code(ErrorCode.SYNTAX_ERROR)
+            .location("while parsing the query")
+            .context("query", query)
+            .context("position", position)
+            .context("offending_token", getOffendingText(offendingToken));
+
+    // Use the suggestion registry to find pattern-based suggestions
+    SyntaxErrorContext context =
+        new SyntaxErrorContext(recognizer, offendingToken, tokens, query, e);
+    List<String> customSuggestions = SyntaxErrorSuggestionRegistry.findSuggestions(context);
+
+    if (!customSuggestions.isEmpty()) {
+      // Use the first suggestion from the registry
+      reportBuilder.suggestion(customSuggestions.get(0));
+    } else if (e != null) {
+      // Fall back to expected tokens as suggestion if no pattern matches
+      IntervalSet possibleContinuations = e.getExpectedTokens();
+      List<String> suggestions = topSuggestions(recognizer, possibleContinuations);
+      if (!suggestions.isEmpty()) {
+        String suggestionText =
+            possibleContinuations.size() > SUGGESTION_TRUNCATION_THRESHOLD
+                ? String.format(
+                    "Expected one of %d possible tokens. Examples: %s",
+                    possibleContinuations.size(), String.join(", ", suggestions))
+                : "Expected tokens: " + String.join(", ", suggestions);
+        reportBuilder.suggestion(suggestionText);
+      }
+    }
+
+    throw reportBuilder.build();
   }
 
   private String getOffendingText(Token offendingToken) {

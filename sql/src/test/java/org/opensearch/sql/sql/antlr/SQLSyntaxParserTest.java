@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 
 class SQLSyntaxParserTest {
 
@@ -72,7 +72,7 @@ class SQLSyntaxParserTest {
 
   @Test
   public void canNotParseIndexNameWithSpecialChar() {
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT * FROM hello+world"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT * FROM hello+world"));
   }
 
   @Test
@@ -82,12 +82,12 @@ class SQLSyntaxParserTest {
 
   @Test
   public void canNotParseIndexNameStartingWithNumber() {
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT * FROM 123test"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT * FROM 123test"));
   }
 
   @Test
   public void canNotParseIndexNameSingleQuoted() {
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT * FROM 'test'"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT * FROM 'test'"));
   }
 
   @Test
@@ -136,10 +136,10 @@ class SQLSyntaxParserTest {
 
   @Test
   public void canNotParseAggregateFunctionWithWrongArgument() {
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT SUM() FROM test"));
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT AVG() FROM test"));
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT SUM(a,b) FROM test"));
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SELECT AVG(a,b,c) FROM test"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT SUM() FROM test"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT AVG() FROM test"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT SUM(a,b) FROM test"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SELECT AVG(a,b,c) FROM test"));
   }
 
   @Test
@@ -155,7 +155,7 @@ class SQLSyntaxParserTest {
 
   @Test
   public void canNotParseShowStatementWithoutFilterClause() {
-    assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES"));
+    assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES"));
   }
 
   private static Stream<Arguments> nowLikeFunctionsData() {
@@ -212,7 +212,7 @@ class SQLSyntaxParserTest {
   @MethodSource("getInvalidPartForExtractFunction")
   public void cannot_parse_extract_function_invalid_part(String part) {
     assertThrows(
-        SyntaxCheckException.class,
+        ErrorReport.class,
         () -> parser.parse(String.format("SELECT extract(%s FROM \"2023-02-06\")", part)));
   }
 
@@ -266,8 +266,7 @@ class SQLSyntaxParserTest {
 
   @Test
   public void cannot_parse_get_format_function_with_bad_arg() {
-    assertThrows(
-        SyntaxCheckException.class, () -> parser.parse("GET_FORMAT(NONSENSE_ARG,'INTERNAL')"));
+    assertThrows(ErrorReport.class, () -> parser.parse("GET_FORMAT(NONSENSE_ARG,'INTERNAL')"));
   }
 
   @Test
@@ -630,22 +629,16 @@ class SQLSyntaxParserTest {
   @Test
   public void describe_request_accepts_only_quoted_string_literals() {
     assertAll(
+        () -> assertThrows(ErrorReport.class, () -> parser.parse("DESCRIBE TABLES LIKE bank")),
+        () -> assertThrows(ErrorReport.class, () -> parser.parse("DESCRIBE TABLES LIKE %bank%")),
+        () -> assertThrows(ErrorReport.class, () -> parser.parse("DESCRIBE TABLES LIKE `bank`")),
         () ->
             assertThrows(
-                SyntaxCheckException.class, () -> parser.parse("DESCRIBE TABLES LIKE bank")),
-        () ->
-            assertThrows(
-                SyntaxCheckException.class, () -> parser.parse("DESCRIBE TABLES LIKE %bank%")),
-        () ->
-            assertThrows(
-                SyntaxCheckException.class, () -> parser.parse("DESCRIBE TABLES LIKE `bank`")),
-        () ->
-            assertThrows(
-                SyntaxCheckException.class,
+                ErrorReport.class,
                 () -> parser.parse("DESCRIBE TABLES LIKE %bank% COLUMNS LIKE %status%")),
         () ->
             assertThrows(
-                SyntaxCheckException.class,
+                ErrorReport.class,
                 () -> parser.parse("DESCRIBE TABLES LIKE 'bank' COLUMNS LIKE status")),
         () -> assertNotNull(parser.parse("DESCRIBE TABLES LIKE 'bank' COLUMNS LIKE \"status\"")),
         () -> assertNotNull(parser.parse("DESCRIBE TABLES LIKE \"bank\" COLUMNS LIKE 'status'")));
@@ -654,11 +647,9 @@ class SQLSyntaxParserTest {
   @Test
   public void show_request_accepts_only_quoted_string_literals() {
     assertAll(
-        () -> assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES LIKE bank")),
-        () ->
-            assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES LIKE %bank%")),
-        () ->
-            assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES LIKE `bank`")),
+        () -> assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES LIKE bank")),
+        () -> assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES LIKE %bank%")),
+        () -> assertThrows(ErrorReport.class, () -> parser.parse("SHOW TABLES LIKE `bank`")),
         () -> assertNotNull(parser.parse("SHOW TABLES LIKE 'bank'")),
         () -> assertNotNull(parser.parse("SHOW TABLES LIKE \"bank\"")));
   }

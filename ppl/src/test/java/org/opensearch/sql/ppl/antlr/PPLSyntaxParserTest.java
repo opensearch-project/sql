@@ -15,7 +15,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
-import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLLexer;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 
@@ -667,7 +667,7 @@ public class PPLSyntaxParserTest {
   @Test
   public void testCannotParseGetFormatFunctionWithBadArg() {
     assertThrows(
-        SyntaxCheckException.class,
+        ErrorReport.class,
         () ->
             new PPLSyntaxParser()
                 .parse("SOURCE=test | eval k = GET_FORMAT(NONSENSE_ARG,'INTERNAL')"));
@@ -994,7 +994,6 @@ public class PPLSyntaxParserTest {
   @Test
   public void testPipeWithInvalidCommandShouldFail() {
     assertThrows(
-        SyntaxCheckException.class,
-        () -> new PPLSyntaxParser().parse("source=t | | 123invalidcommand"));
+        ErrorReport.class, () -> new PPLSyntaxParser().parse("source=t | | 123invalidcommand"));
   }
 }
