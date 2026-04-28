@@ -111,8 +111,9 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
     planner.plan("explain source = catalog.employees"); // explain statement
   }
 
-  @Test(expected = ErrorReport.class)
+  @Test
   public void testPlanPropagatingSyntaxCheckException() {
-    planner.plan("source = catalog.employees | eval"); // Trigger syntax error from parser
+    assertThrows(ErrorReport.class, () ->
+        planner.plan("source = catalog.employees | eval")); // Trigger syntax error from parser
   }
 }

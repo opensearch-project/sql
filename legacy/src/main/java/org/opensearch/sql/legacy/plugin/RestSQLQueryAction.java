@@ -133,8 +133,9 @@ public class RestSQLQueryAction extends BaseRestHandler {
       @Override
       public void onFailure(Exception e) {
         if (e instanceof SyntaxCheckException
-            || e instanceof ErrorReport
-            || e instanceof UnsupportedCursorRequestException) {
+            || e instanceof UnsupportedCursorRequestException
+            || (e instanceof ErrorReport
+                && ((ErrorReport) e).getCause() instanceof SyntaxCheckException)) {
           fallBackHandler.accept(channel, e);
         } else {
           next.onFailure(e);
