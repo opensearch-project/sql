@@ -253,7 +253,7 @@ fetched rows / total rows = 3/3
 +------------+-----------+----------+
 ```
 
-**Note:** The `none()` function is useful with wildcard support, allowing you to exclude specific fields from bulk conversions.
+>**Note**: The `none()` function is useful with wildcard support, allowing you to exclude specific fields from bulk conversions.
 
 ## Example 9: Converting epoch timestamp to time string with ctime()
 

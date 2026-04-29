@@ -55,7 +55,7 @@ fetched rows / total rows = 1/1
 The `nomv` command has the following limitations:
 
 - The `nomv` command is only available when the Apache Calcite query engine is enabled.
-- The newline delimiter (`\n`) is fixed and cannot be customized. For custom delimiters, use the [`mvjoin`]({{site.url}}{{site.baseurl}}/sql-and-ppl/ppl/functions/collection/#mvjoin) function directly in an [`eval`]({{site.url}}{{site.baseurl}}/sql-and-ppl/ppl/commands/eval/) expression.
+- The newline delimiter (`\n`) is fixed and cannot be customized. For custom delimiters, use the [`mvjoin`](../functions/collection.md/#mvjoin) function directly in an [`eval`](./eval.md) expression.
 - `NULL` values within the array are automatically filtered out and do not appear in the output.
 
 ## Related commands

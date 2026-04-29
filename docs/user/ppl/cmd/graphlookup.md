@@ -73,16 +73,6 @@ The `edge` parameter uses the syntax `edge=<fromField><operator><toField>` and c
 
 ## Example 1: Traversing an employee hierarchy
 
-1. For each source document, extract the value of `start`
-2. Query the lookup index to find documents where `toField` matches the start value
-3. Add matched documents to the result array
-4. Extract `fromField` values from matched documents to continue traversal
-5. Repeat steps 2-4 until no new documents are found or `maxDepth` is reached
-
-For bidirectional traversal (`<->`), the algorithm also follows edges in the reverse direction by additionally matching `fromField` values.
-
-## Example 1: Traversing an employee hierarchy
-
 Consider an `employees` index containing the following documents.
 
 | id | name | reportsTo |
@@ -284,13 +274,9 @@ When `batchMode=true`, the `graphLookup` command collects all start values from 
 
 Use `batchMode=true` when:
 
-In batch mode, the output is a **single row** with two arrays:
-- First array: All source rows collected
-- Second array: All lookup results from the unified BFS traversal
-
-In batch mode, the output is a **single row** containing two arrays:
-1. All source rows collected.
-2. All lookup results from the unified BFS traversal.
+- You want to find all nodes reachable from **any** of the source start values.
+- You need a global view of the graph connectivity from multiple starting points.
+- You want to avoid duplicate traversals when multiple source rows share overlapping paths.
 
 In batch mode, the output is a **single row** containing two arrays:
 1. All source rows collected.
@@ -366,55 +352,6 @@ source = employees
 ```
 
 The filter is applied at the OpenSearch query level, so it combines efficiently with the BFS traversal queries. At each BFS level, the query sent to OpenSearch is  `bool { filter: [user_filter, bfs_terms_query] }`.
-
-### When to Use as First Command
-
-When the starting points for graph traversal are known in advance, `graphLookup` can be used as the first command in a pipeline without `source`. In this case, `start` accepts literal values instead of a field reference.
-
-This is useful when:
-- You want to explore the graph from specific known nodes
-- You don't need source document fields in the output
-- You want a quick lookup without creating a source query first
-
-**Single start value:**
-
-```ppl ignore
-graphLookup employees
-  start='Eliot'
-  edge=reportsTo-->name
-  as reportingHierarchy
-```
-
-The query returns a single row containing the BFS results:
-
-```text
-+---------------------------------------------------------------+
-| reportingHierarchy                                            |
-+---------------------------------------------------------------+
-| [{name:Eliot, reportsTo:Ron, id:2}, {name:Ron, ...}, ...]    |
-+---------------------------------------------------------------+
-```
-
-**Multiple start values:**
-
-```ppl ignore
-graphLookup employees
-  start='Eliot', 'Andrew'
-  edge=reportsTo-->name
-  as reportingHierarchy
-```
-
-All literal start values are combined into a single BFS traversal. The output is a single row with all discovered nodes.
-
-**With depth tracking:**
-
-```ppl ignore
-graphLookup employees
-  start='Eliot'
-  edge=reportsTo-->name
-  depthField=level
-  as reportingHierarchy
-```
 
 ### When to Use as First Command
 
