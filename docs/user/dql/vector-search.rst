@@ -22,6 +22,10 @@ It relies on the OpenSearch `k-NN plugin
 map the vector field as ``knn_vector`` and the index must be created with
 ``index.knn: true``.
 
+The SQL layer translates ``vectorSearch()`` into an OpenSearch search
+request whose body is native k-NN query DSL; the query vector is parsed
+into a numeric array before that DSL is emitted.
+
 Relevance is expressed through the OpenSearch ``_score`` metadata field, and
 results are returned ordered by ``_score DESC`` by default.
 
@@ -53,12 +57,12 @@ Arguments
 - ``table``: single concrete index or alias to search. Wildcards
   (``*``), comma-separated multi-index targets, ``_all``, ``.``, and
   ``..`` are not supported. The target index must have
-  ``index.knn: true`` and map the target field as ``knn_vector``. An
-  alias that resolves to multiple backing indices is accepted: the k-NN
-  query fans out across all backing indices and the combined top-k
-  results are returned, provided every backing index has
-  ``index.knn: true`` and the same ``knn_vector`` mapping for the
-  target field.
+  ``index.knn: true`` and map the target field as ``knn_vector``. A
+  normal alias name is accepted. If the alias resolves to multiple
+  backing indices, the SQL layer does not prevalidate that every
+  backing index has a compatible ``knn_vector`` mapping, dimension, or
+  engine; OpenSearch execution remains the source of truth for those
+  checks.
 - ``field``: name of the ``knn_vector`` field.
 - ``vector``: query vector as a JSON-style array of numbers, passed as a
   string (for example, ``'[0.1, 0.2, 0.3]'``). Components must be
@@ -189,15 +193,21 @@ Two placement strategies are available via the ``filter_type`` option:
   ``filter_type=post``. See the `k-NN filtering guide
   <https://docs.opensearch.org/latest/vector-search/filter-search-knn/efficient-knn-filtering/>`_
   for engine and method requirements.
-- ``post``: the ``WHERE`` predicate is applied as a non-scoring
-  ``bool.filter`` alongside the k-NN query. The k-NN query runs first and
-  its results are then filtered.
+- ``post``: the k-NN query is placed in a scoring (``bool.must``)
+  context and the ``WHERE`` predicate is placed as a non-scoring
+  ``bool.filter`` outside the k-NN clause. This is Boolean filter
+  placement, not the REST ``post_filter`` parameter, and may return
+  fewer than ``k`` rows when the filter is selective.
 
 Full-text predicates (``match``, ``match_phrase``, ``multi_match``, and
-the rest of the full-text family) under a ``WHERE`` clause are applied
-as filters alongside the k-NN query: they restrict which candidates are
-retained but do not combine their relevance scores with ``_score``.
-``vectorSearch()`` is not a hybrid vector + text relevance scorer.
+the rest of the full-text family) under a ``WHERE`` clause are used as
+filters, not as hybrid keyword-vector score fusion. Their placement
+follows ``filter_type``: the default (``efficient``) embeds supported
+full-text predicates under ``knn.filter``, while ``post`` places them
+in ``bool.filter`` outside the k-NN clause. In both cases they restrict
+which candidates are retained but their text relevance score does not
+combine with the vector ``_score``. ``vectorSearch()`` is not a hybrid
+vector + text relevance scorer.
 
 Behavior depends on whether ``filter_type`` is specified:
 
@@ -231,10 +241,10 @@ Behavior depends on whether ``filter_type`` is specified:
   server-side. If predicate translation itself fails, the query returns
   an error; there is no silent in-memory fallback under explicit
   ``post``. Use ``filter_type=post`` when the predicate shape is not
-  supported by ``efficient`` pre-filtering.
+  supported by efficient filtering.
 
-Example 4: Default pre-filtering (no ``filter_type``)
------------------------------------------------------
+Example 4: Default efficient filtering (no ``filter_type``)
+-----------------------------------------------------------
 
 ::
 
@@ -279,12 +289,13 @@ Scoring, sorting, and limits
 ============================
 
 - ``vectorSearch()`` exposes the OpenSearch ``_score`` metadata field on the
-  alias. Select it as ``<alias>._score``.
+  alias. For an alias ``v``, select it as ``v._score``.
 - ``_score`` can be selected and referenced in ``ORDER BY``, but it cannot
   appear in ``WHERE``. Use ``option='min_score=...'`` for score-threshold
   vector search.
 - Results are returned in ``_score DESC`` order by default. The only
-  supported ``ORDER BY`` expression is ``<alias>._score DESC``.
+  supported ``ORDER BY`` expression is ``<alias>._score DESC`` (for
+  example, ``v._score DESC``).
 - In top-k mode (``k=N``), ``LIMIT n`` is optional; when present, ``n`` must
   be ``≤ k``.
 - In radial mode (``max_distance`` or ``min_score``), ``LIMIT`` is required.
@@ -298,13 +309,13 @@ The following are not supported on ``vectorSearch()``:
 - ``GROUP BY`` and aggregations directly over a ``vectorSearch()``
   relation are not supported and return an error.
 - Operators wrapped around a ``vectorSearch()`` subquery are rejected
-  when they would run after the top-k rows have already been selected
-  by vector distance, because they can silently yield zero or
-  incorrect rows. Specifically, an outer ``WHERE``, ``ORDER BY``,
-  ``OFFSET`` (non-zero), ``GROUP BY``, aggregation, or ``DISTINCT``
-  applied to a ``vectorSearch()`` subquery returns an error. Place
-  ``WHERE`` predicates inside the subquery, directly on the
-  ``vectorSearch()`` alias, so that they participate in ``WHERE``
+  when they would run after ``vectorSearch()`` has already produced a
+  finite result set, because they can silently yield zero, skipped, or
+  incorrectly ordered rows. Specifically, an outer ``WHERE``,
+  ``ORDER BY``, ``OFFSET`` (non-zero), ``GROUP BY``, aggregation, or
+  ``DISTINCT`` applied to a ``vectorSearch()`` subquery returns an
+  error. Place ``WHERE`` predicates inside the subquery, directly on
+  the ``vectorSearch()`` alias, so that they participate in ``WHERE``
   pushdown. A plain outer ``LIMIT`` (without ``OFFSET``) wrapping a
   ``vectorSearch()`` subquery is allowed and caps the returned rows.
 - ``JOIN`` between a ``vectorSearch()`` relation and another relation is
