@@ -25,7 +25,7 @@ The `rare` command supports the following parameters.
 | `<by-clause>` | Optional | One or more fields to group the results by. |
 | `rare-options` | Optional | Additional options for controlling output: <br> - `showcount`: Whether to create a field in the output containing the frequency count for each combination of values. Default is `true`. <br> - `countfield`: The name of the field that contains the count. Default is `count`. <br> - `usenull`: Whether to output null values. Default is the value of `plugins.ppl.syntax.legacy.preferred`. |
 
-## Example 1: Find the least common values without showing counts
+## Example 1: Finding the least common values without showing counts
 
 The following query uses `showcount=false` to find the least common severity levels without displaying frequency counts:
 
@@ -48,7 +48,7 @@ fetched rows / total rows = 4/4
 +--------------+
 ```
 
-## Example 2: Find the least common values grouped by field
+## Example 2: Finding the least common values grouped by field
 
 The following query finds the least common severity levels grouped by service:
 
@@ -79,7 +79,7 @@ fetched rows / total rows = 12/12
 +----------------------------------+--------------+
 ```
 
-## Example 3: Find the least common values with frequency counts
+## Example 3: Finding the least common values with frequency counts
 
 The following query finds the least common severity levels with their frequency counts:
 
@@ -102,7 +102,7 @@ fetched rows / total rows = 4/4
 +--------------+-------+
 ```
 
-## Example 4: Customize the count field name
+## Example 4: Customizing the count field name
 
 The following query uses `countfield` to specify a custom name for the frequency count field:
 
@@ -125,7 +125,7 @@ fetched rows / total rows = 4/4
 +--------------+-----+
 ```
 
-## Example 5: Specify null value handling
+## Example 5: Specifying null value handling
 
 The following query uses `usenull=false` to exclude null values:
 

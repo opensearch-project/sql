@@ -166,7 +166,7 @@ fetched rows / total rows = 8/8
 ```
   
 
-## Example 4: Exclude the OTHER category
+## Example 4: Excluding the OTHER category
 
 The following query shows only the top 2 services without an OTHER bucket by setting useother=false:
 
@@ -239,7 +239,7 @@ fetched rows / total rows = 1/1
 ```
   
 
-## Example 7: Use limit=0 with count() to show all values  
+## Example 7: Using limit=0 with count() to show all values
 
 This example uses the `events_many_hosts` dataset, which contains 11 distinct hosts.
 
@@ -271,7 +271,7 @@ fetched rows / total rows = 11/11
 +---------------------+--------+---------+
 ```
 
-## Example 8: Use useother=false with the count() function  
+## Example 8: Using useother=false with the count() function
 
 The following query limits the results to the top 10 hosts without creating an `OTHER` category by setting `useother=false`:
   
@@ -301,7 +301,7 @@ fetched rows / total rows = 10/10
 ```
   
 
-## Example 9: Use the limit parameter with the useother parameter and the avg() function  
+## Example 9: Using the limit parameter with the useother parameter and the avg() function
 
 The following query displays the top 3 hosts based on average `cpu_usage` per hour. All remaining hosts are grouped into an `OTHER` category (by default, `useother=true`):
   
@@ -369,7 +369,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 11: Calculate the per-second packet rate  
+## Example 11: Calculating the per-second packet rate
 
 The following query calculates the per-second packet rate for network traffic data using the `per_second()` function:
   

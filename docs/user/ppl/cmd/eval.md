@@ -25,7 +25,7 @@ The `eval` command supports the following parameters.
 | `<expression>` | Required | The expression to evaluate. |  
   
 
-## Example 1: Classify logs by severity tier  
+## Example 1: Classifying logs by severity tier
 
 The following query creates an `is_critical` field that classifies each log as critical or non-critical based on severity, useful for building alert rules:
   
@@ -52,7 +52,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 2: Find untraced errors  
+## Example 2: Finding untraced errors
 
 The following query creates two boolean fields to identify error logs and whether they have distributed tracing context. Untraced errors are harder to debug because you can't follow the request across services:
   
@@ -82,7 +82,7 @@ fetched rows / total rows = 7/7
 ```
   
 
-## Example 3: Build a standardized log line  
+## Example 3: Building a standardized log line
 
 The following query prepends the severity level to the log body, creating a standardized format for export or alerting:
   

@@ -35,7 +35,7 @@ The `sort` command supports the following parameters.
 | `[+|-]` | Optional | **Prefix notation only.** The plus sign (`+`) specifies ascending order, and the minus sign (`-`) specifies descending order. Default is ascending order. |
 | `[asc|desc|a|d]` | Optional | **Suffix notation only.** Specifies the sort order: `asc`/`a` for ascending, `desc`/`d` for descending. Default is ascending order. |
 
-## Example 1: Sort by one field
+## Example 1: Sorting by one field
 
 The following query sorts logs by severity number in ascending order, showing the least severe entries first:
 
@@ -61,7 +61,7 @@ fetched rows / total rows = 4/4
 ```
 
 
-## Example 2: Sort by one field in descending order
+## Example 2: Sorting by one field in descending order
 
 The following query sorts logs by severity in descending order to surface the most critical issues first. You can use either prefix notation (`- severityNumber`) or suffix notation (`severityNumber desc`):
 
@@ -96,7 +96,7 @@ fetched rows / total rows = 4/4
 ```
 
 
-## Example 3: Sort by multiple fields
+## Example 3: Sorting by multiple fields
 
 The following query sorts errors by severity descending and service name ascending, so the most critical issues appear first and services are alphabetical within each severity level. You can use either prefix notation (`+`/`-`) or suffix notation (`asc`/`desc`):
   
@@ -149,7 +149,7 @@ fetched rows / total rows = 5/5
 ```
   
 
-## Example 4: Sort fields with null values
+## Example 4: Sorting fields with null values
 
 The default ascending order lists null values first. The following query sorts by the `instrumentationScope.name` field, showing that logs without instrumentation metadata appear before instrumented ones:
   
@@ -177,7 +177,7 @@ fetched rows / total rows = 6/6
 ```
   
 
-## Example 6: Specify the number of sorted documents to return  
+## Example 6: Specifying the number of sorted documents to return
 
 The following query sorts all logs by severity and returns only the 3 least severe entries:
   
@@ -201,7 +201,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 7: Sort by specifying field type
+## Example 7: Sorting by specifying field type
 
 The following query uses `str()` to sort severity numbers lexicographically instead of numerically. Notice that `5` and `9` appear after `21` because string sorting compares character by character:
 

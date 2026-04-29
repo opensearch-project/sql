@@ -19,7 +19,7 @@ The `where` command supports the following parameters.
 | --- | --- | --- |
 | `<boolean-expression>` | Required | The condition used to filter the results. Only rows in which this condition evaluates to `true` are returned. |
 
-## Example 1: Filter by severity level
+## Example 1: Filtering by severity level
 
 The following query finds all log entries with a severity level above `INFO` (severityNumber > 9), filtering out routine logs to focus on warnings and errors:
 
@@ -51,7 +51,7 @@ fetched rows / total rows = 11/11
 +--------------+----------------+----------------------------------+
 ```
 
-## Example 2: Filter using combined criteria
+## Example 2: Filtering using combined criteria
 
 The following query narrows down errors to a specific service during an incident investigation, combining severity and service name conditions with `AND`:
 
@@ -74,7 +74,7 @@ fetched rows / total rows = 2/2
 ```
 
 
-## Example 3: Filter with multiple possible values
+## Example 3: Filtering with multiple possible values
 
 The following query retrieves all warnings and errors using `OR` to match either condition:
 
@@ -101,7 +101,7 @@ fetched rows / total rows = 5/5
 ```
   
 
-## Example 4: Filter by text patterns 
+## Example 4: Filtering by text patterns 
 
 The `LIKE` operator enables pattern matching on string fields using wildcards.
 
@@ -140,7 +140,7 @@ fetched rows / total rows = 3/3
 +--------------+----------------------------------+----------------------------------------------------------------------------------------+
 ```
 
-## Example 5: Filter by excluding specific values  
+## Example 5: Filtering by excluding specific values  
 
 The following query uses a `NOT` operator to exclude routine informational and debug logs, focusing on warnings and errors that need attention:
   
@@ -167,7 +167,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 6: Filter using value lists  
+## Example 6: Filtering using value lists  
 
 The following query uses an `IN` operator to match multiple severity levels at once, retrieving all errors and warnings for incident response:
   
@@ -200,7 +200,7 @@ fetched rows / total rows = 11/11
 ```
   
 
-## Example 7: Filter records with missing data  
+## Example 7: Filtering records with missing data  
 
 The following query finds logs that have instrumentation scope metadata:
   
@@ -225,7 +225,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 8: Filter using grouped conditions  
+## Example 8: Filtering using grouped conditions  
 
 The following query investigates a specific service's errors by combining severity conditions with a service filter, using parentheses to control evaluation order:
   

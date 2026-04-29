@@ -28,7 +28,7 @@ The `parse` command supports the following parameters.
 
 The regular expression pattern is used to match the whole text field of each document based on the [Java regular expression syntax](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html). Each named capture group in the expression becomes a new `STRING` field.  
 
-## Example 1: Extract error details from log messages  
+## Example 1: Extracting error details from log messages
 
 The following query extracts the error summary and detail from error log messages. This is useful for categorizing errors during incident triage:
   
@@ -54,7 +54,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 2: Extract IP addresses from log messages  
+## Example 2: Extracting IP addresses from log messages
 
 The following query extracts IP addresses from log messages for a specific service:
   

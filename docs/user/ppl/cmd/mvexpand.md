@@ -1,7 +1,7 @@
 
 # mvexpand
 
-The `mvexpand` command expands each value in a multivalue (array) field into a separate row. For each document, every element in the specified array field is returned as a new row.
+The `mvexpand` command expands each value in a multivalue (array) field into a separate row. For each document, every element in the specified array field is returned as its own row.
 
 ## Syntax
 
@@ -18,9 +18,9 @@ The `mvexpand` command supports the following parameters.
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `<field>` | Required | The multivalue (array) field to expand. |
-| `limit` | Optional | Maximum number of values per document to expand. If not specified, all array elements are expanded. |
+| `limit` | Optional | The maximum number of values per document to expand. If not specified, all array elements are expanded. |
 
-## Example 1: Basic expansion
+## Example 1: Using basic expansion
 
 The following query creates an array and expands it into separate rows:
 
@@ -46,9 +46,9 @@ fetched rows / total rows = 3/3
 +---------+
 ```
 
-## Example 2: Expansion with limit
+## Example 2: Limiting the number of expanded rows
 
-The following query expands an array but limits the number of expanded rows:
+The following query expands an array while limiting the number of expanded rows:
 
 ```ppl
 source=people
@@ -72,7 +72,7 @@ fetched rows / total rows = 3/3
 +-----+
 ```
 
-## Example 3: Expand nested fields
+## Example 3: Expanding nested fields
 
 The following query expands a multivalue `projects` field into one row per project:
 
@@ -121,9 +121,9 @@ fetched rows / total rows = 1/1
 +-------+
 ```
 
-## Example 5: Missing field
+## Example 5: Missing fields
 
-If the field does not exist in the input schema, `mvexpand` throws a semantic check exception:
+The following query attempts to expand a field that does not exist in the input schema:
 
 ```ppl ignore
 source=people
@@ -133,6 +133,8 @@ source=people
 | mvexpand tags
 | fields tags
 ```
+
+The query throws the following semantic check exception:
 
 ```text
 {'context': {'stage': 'analyzing', 'stage_description': 'Parsing and validating the query', 'command': 'mvexpand'}, 'reason': "Field 'tags' not found in the schema", 'details': "Field 'tags' not found in the schema", 'location': ['while preparing and validating the query plan', 'while evaluating the input field for mvexpand'], 'code': 'FIELD_NOT_FOUND', 'type': 'SemanticCheckException'}

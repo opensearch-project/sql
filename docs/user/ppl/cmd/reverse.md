@@ -23,7 +23,7 @@ The `reverse` command has the following syntax:
 reverse
 ```
 
-## Example 1: Basic reverse operation
+## Example 1: Using basic reverse operation
 
 The following query reverses the order of all documents in the results:
 
@@ -49,7 +49,7 @@ fetched rows / total rows = 5/5
 +--------------+----------------------------------+
 ```
 
-## Example 2: Use the reverse and sort commands
+## Example 2: Using the reverse and sort commands
 
 The following query reverses results after sorting by `severityNumber` in ascending order, effectively implementing descending order:
 
@@ -76,7 +76,7 @@ fetched rows / total rows = 5/5
 +--------------+----------------+
 ```
 
-## Example 3: Use the reverse and head commands
+## Example 3: Using the reverse and head commands
 
 The following query uses the `reverse` command together with the `head` command to retrieve the last two records from the original result order:
 
@@ -126,7 +126,7 @@ fetched rows / total rows = 5/5
 +--------------+----------------------------------+
 ```
 
-## Example 5: Use the reverse command with filtering
+## Example 5: Using the reverse command with filtering
 
 The following query uses the `reverse` command with filtering and field selection:
 

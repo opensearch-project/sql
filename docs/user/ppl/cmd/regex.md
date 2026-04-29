@@ -33,7 +33,7 @@ The `regex` command supports the following parameters.
 | `<field>` | Required | The field name to match against. |
 | `<pattern>` | Required | The regular expression pattern to match. Supports [Java regular expression syntax](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html). |
 
-## Example 1: Find logs matching a pattern  
+## Example 1: Finding logs matching a pattern
 
 The following query finds error logs mentioning connection timeouts:
   
@@ -56,7 +56,7 @@ fetched rows / total rows = 1/1
 ```
   
 
-## Example 2: Exclude logs matching a pattern  
+## Example 2: Excluding logs matching a pattern
 
 The following query finds all errors except those related to timeouts:
   
@@ -82,7 +82,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 3: Filter by service name pattern  
+## Example 3: Filtering by service name pattern
 
 The following query finds warning logs from services whose names end with "catalog":
   

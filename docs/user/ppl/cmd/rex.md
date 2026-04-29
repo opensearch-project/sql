@@ -42,7 +42,7 @@ The `rex` command supports the following parameters.
 > **Note**: You can set the `max_match` limit in the `plugins.ppl.rex.max_match.limit` cluster setting. For more information, see [SQL settings](../../admin/settings.rst). Setting this limit to a large value is not recommended because it can lead to excessive memory consumption, especially with patterns that match empty strings (for example, `\d*` or `\w*`).
 
 
-## Example 1: Extract service name and error type from log messages  
+## Example 1: Extracting service name and error type from log messages
 
 The following query extracts the error type from Java exception log messages. Non-matching rows return `null` for the extracted field:
   
@@ -68,7 +68,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 2: Extract multiple words using max_match  
+## Example 2: Extracting multiple words using max_match
 
 The following query uses the `rex` command with the `max_match` parameter to extract multiple words from the `body` field. The extracted field is returned as an array of strings:
   
@@ -94,7 +94,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 3: Replace text using sed mode  
+## Example 3: Replacing text using sed mode
 
 The following query uses `sed` mode to mask IP addresses in log messages for privacy compliance:
 
@@ -116,7 +116,7 @@ fetched rows / total rows = 1/1
 +---------------------------------------------------------+
 ```
 
-## Example 4: Track match positions using offset_field  
+## Example 4: Tracking match positions using offset_field
 
 The following query tracks the character positions where matches occur, useful for highlighting matches in a UI:
   

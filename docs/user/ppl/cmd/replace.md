@@ -21,7 +21,7 @@ The `replace` command supports the following parameters.
 | `<replacement>` | Required | The text to use as the replacement. |
 | `<field-name>` | Required | One or more fields to which the replacement should be applied. |
 
-## Example 1: Replace text in one field  
+## Example 1: Replacing text in one field
 
 The following query replaces text in one field:
   
@@ -48,7 +48,7 @@ fetched rows / total rows = 5/5
 ```
   
 
-## Example 2: Replace text in multiple fields  
+## Example 2: Replacing text in multiple fields
 
 The following query replaces text in multiple fields:
   
@@ -75,7 +75,7 @@ fetched rows / total rows = 5/5
 ```
   
 
-## Example 3: Use the replace command in a pipeline
+## Example 3: Using the replace command in a pipeline
 
 The following query uses the `replace` command with other commands in a query pipeline:
   
@@ -104,7 +104,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 4: Replace text using multiple pattern-replacement pairs
+## Example 4: Replacing text using multiple pattern-replacement pairs
 
 The following query uses the `replace` command with multiple pattern and replacement pairs in a single replace command. The replacements are applied sequentially:
   
@@ -227,7 +227,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 9: Multiple wildcards for pattern transformation  
+## Example 9: Transforming patterns with multiple wildcards  
 
 The following query uses multiple wildcards to transform patterns. Each wildcard in the replacement is substituted with the corresponding captured value:
   
@@ -252,7 +252,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 10: Replace any match with a fixed value  
+## Example 10: Replacing any match with a fixed value
 
 The following query shows that when the replacement contains zero wildcards, all matching values are replaced with the literal replacement string:
   
@@ -302,7 +302,7 @@ fetched rows / total rows = 4/4
 +------------+
 ```
 
-## Example 12: Replace text with literal asterisk symbols  
+## Example 12: Replacing text with literal asterisk symbols
 
 The following query shows how to insert literal asterisk symbols into text while using wildcards to preserve other parts of the pattern:
   

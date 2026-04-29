@@ -38,7 +38,7 @@ The `lookup` command supports the following parameters.
 | `<outputField>` | Optional | The name of the field in the results (output) in which matched values are placed. Specify multiple fields as a comma-separated list. If the `outputField` specifies an existing field in the source query, its values are replaced or appended with matched values from the `inputField`. If the field specified in the `outputField` is not an existing field, a new field is added to the results when using `replace`, or the operation fails when using `append`. |
 | `(replace \| append \| output)` | Optional | Specifies how matched values are applied to the output. `replace` overwrites existing values with matched values from the lookup index. `append` fills only missing values in the results with matched values from the lookup index. `output` is a synonym for `replace` (provided for SPL compatibility). Default is `replace`. |
   
-## Example 1: Replace existing values  
+## Example 1: Replacing existing values
 
 The following query uses the `lookup` command with the `replace` strategy to overwrite existing values:  
   
@@ -64,7 +64,7 @@ The query returns the following results:
 ```
   
 
-## Example 2: Append missing values  
+## Example 2: Appending missing values
 
 The following query uses the `lookup` command with the `append` strategy to append missing values only:
   
@@ -75,7 +75,7 @@ source = worker
 ```
   
 
-## Example 3: No input field specified  
+## Example 3: Specifying no input field
 
 The following query uses the `lookup` command without specifying an `inputField`, which adds all fields from the lookup index to the results:
   
@@ -100,7 +100,7 @@ The query returns the following results:
 +------+-------+---------+--------+------------+------------+
 ```
   
-## Example 4: Add matched values to a new field
+## Example 4: Adding matched values to a new field
 
 The following query places matched values into a new field specified by `outputField`:
   

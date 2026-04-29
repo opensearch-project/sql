@@ -21,7 +21,7 @@ The `append` command supports the following parameters.
 | --- | --- | --- |
 | `<subsearch>` | Required | Executes PPL commands as a secondary search. |  
 
-## Example 1: Append error and warning counts side by side
+## Example 1: Appending error and warning counts side by side
 
 The following query shows error counts per service, then appends warning counts from a separate query. This lets you compare error and warning rates across services:
   
@@ -53,7 +53,7 @@ fetched rows / total rows = 7/7
 ```
   
 
-## Example 2: Append summary rows to detail rows
+## Example 2: Appending summary rows to detail rows
 
 The following query shows severity levels by count, then appends the total count across all levels:
   

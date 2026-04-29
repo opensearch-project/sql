@@ -1,8 +1,9 @@
 
 # fieldformat
 
-The `fieldformat` command sets the value to a field with the specified expression and appends the field with evaluated result to the search results. The command is an alias of eval command.
-Additionally, it also provides string concatenation dot operator followed by and/or follows a string that will be concatenated to the expression.
+The `fieldformat` command sets a field to the result of a specified expression and appends the evaluated field to the search results. This command is an alias of [`eval`](./eval.md/).
+
+It also supports string concatenation using the dot (`.`) operator, allowing you to append strings to expressions.
 
 
 ## Syntax
@@ -20,15 +21,14 @@ The `fieldformat` command supports the following parameters.
 
 | Parameter| Required/Optional | Description                                                                                                                                   |
 |----------------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| `<field>`      | Required          | The name of the field to create or update. If the field does not exist, a new field is added. If it already exists, its value is overwritten. |
-| `<expression>` | Required          | The expression to evaluate.  The expression can have a prefix and/or suffix string part that will be concatenated to the expression.          |
-| `prefix`       | Optional          | A string before the expression followed by dot operator which will be concatenated as prefix to the evaluated expression value.               |
-| `suffix`       | Optional          | A string that follows  the expression and dot operator which will be concatenated as suffix to the evaluated expression value.                |
-  
+| `<field>`      | Required | The name of the field to create or update. If the field does not exist, it is added. If it already exists, its value is overwritten. |
+| `<expression>` | Required | The expression to evaluate. It may include optional prefix and/or suffix strings that are concatenated using the dot (`.`) operator. |
+| `prefix`       | Optional | A string placed before the expression. When combined using the dot (`.`) operator, it is concatenated as a prefix to the evaluated result. |
+| `suffix`       | Optional | A string placed after the expression. When combined using the dot (`.`) operator, it is concatenated as a suffix to the evaluated result. | 
 
-## Example 1: Create a computed field for incident classification  
+## Example 1: Creating a computed field for incident classification  
 
-The following query creates an `is_critical` field that flags whether a log entry represents a critical issue, useful for filtering in dashboards:
+The following query creates an `is_critical` field that indicates whether a log entry represents a critical issue, useful for filtering in dashboards:
   
 ```ppl
 source=otellogs
@@ -54,7 +54,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 2: Override a field with a formatted value  
+## Example 2: Overriding a field with a formatted value  
 
 The following query overrides the `severityNumber` field with a human-readable severity tier:
   
@@ -80,3 +80,6 @@ fetched rows / total rows = 4/4
 +--------------+----------------+
 ```
   
+## Related commands
+
+- [`eval`](./eval.md)

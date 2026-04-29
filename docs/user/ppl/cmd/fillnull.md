@@ -31,7 +31,7 @@ The `fillnull` command supports the following parameters.
 | `<field>` | Required (with `using` syntax) | The name of the field to which a specific replacement value is applied. |
 | `<field-list>` | Optional | A list of fields in which null values are replaced. You can specify the list as comma-delimited (using `with` or `using` syntax) or space-delimited (using `value=` syntax). By default, all fields are processed. |
 
-## Example 1: Replace null values with different values per field
+## Example 1: Replacing null values with different values per field
 
 The following query fills in missing instrumentation scope names with a default value:
   
@@ -65,7 +65,7 @@ fetched rows / total rows = 11/11
 ```
   
 
-## Example 2: Replace null values using value= syntax
+## Example 2: Replacing null values using value= syntax
 
 The following query uses the `value=` syntax to fill null instrumentation scope names, helping identify uninstrumented services:
   
@@ -94,3 +94,15 @@ fetched rows / total rows = 7/7
 +--------------+----------------------------------+-------------------------------------+
 ```
   
+## Limitations
+
+The `fillnull` command has the following limitations:
+
+* When applying the same value to all fields without specifying field names, all fields must be of the same type. For mixed types, use separate `fillnull` commands or explicitly specify fields.
+* The replacement value type must match all field types in the field list. When applying the same value to multiple fields, all fields must be of the same type (all strings or all numeric). The following query shows the error that occurs when this rule is violated:
+
+    ```sql
+      # This FAILS - same value for mixed-type fields
+      source=accounts | fillnull value=0 firstname, age
+      # ERROR: fillnull failed: replacement value type INTEGER is not compatible with field 'firstname' (type: VARCHAR). The replacement value type must match the field type.
+    ```

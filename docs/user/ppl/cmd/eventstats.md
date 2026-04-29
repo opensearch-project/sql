@@ -76,7 +76,7 @@ The `eventstats` command supports the following aggregation functions:
 
 For detailed documentation of each function, see [Functions](../functions/aggregations.md).  
 
-## Example 1: Enrich logs with per-service counts  
+## Example 1: Enriching logs with per-service counts
 
 The following query adds the total log count for each service to every log entry, letting you see how active each service is alongside individual log details:
   
@@ -103,7 +103,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 2: Calculate severity statistics by group  
+## Example 2: Calculating severity statistics by group
 
 The following query adds the average severity and error count per service to each log entry:
   

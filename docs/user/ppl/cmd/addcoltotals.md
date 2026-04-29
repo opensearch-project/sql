@@ -24,7 +24,7 @@ The `addcoltotals` command supports the following parameters.
 | `labelfield` | Optional | The field in which the label is placed. If the field does not exist, it is created and the label is shown in the summary row (last row) of the new field. |
 | `label` | Optional | The text that appears in the summary row (last row) to identify the computed totals. When used with `labelfield`, this text is placed in the specified field in the summary row. Default is `Total`. |
 
-## Example 1: Add column totals to a severity breakdown
+## Example 1: Adding column totals to a severity breakdown
 
 The following query adds a total row to a severity breakdown, showing the grand total of all log entries:
 
@@ -51,7 +51,7 @@ fetched rows / total rows = 5/5
 +--------------+-----------+
 ```
 
-## Example 2: Add column totals with a custom label
+## Example 2: Adding column totals with a custom label
 
 The following query adds totals to error counts per service with a custom summary label:
 

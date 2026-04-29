@@ -24,7 +24,7 @@ The `dedup` command supports the following parameters.
 | `consecutive` | Optional | When set to `true`, removes only consecutive duplicate documents. Default is `false`. Requires the legacy SQL engine (`plugins.calcite.enabled=false`). |
   
 
-## Example 1: Remove duplicates based on a single field  
+## Example 1: Removing duplicates based on a single field
 
 The following query deduplicates by service name to get one sample error per service, giving you a quick view of what's failing across your system:
   
@@ -52,7 +52,7 @@ fetched rows / total rows = 5/5
 ```
   
 
-## Example 2: Retain multiple duplicate documents  
+## Example 2: Retaining multiple duplicate documents
 
 The following query keeps up to two logs per severity level, giving you a broader sample of each level to understand the variety of issues:
   
@@ -81,7 +81,7 @@ fetched rows / total rows = 6/6
 ```
   
 
-## Example 3: Handle documents with empty field values  
+## Example 3: Handling documents with empty field values
 
 The following query deduplicates by instrumentation scope name to see which OTel SDKs are reporting. By default, records with null values are dropped:
   
@@ -128,7 +128,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 4: Deduplicate consecutive documents  
+## Example 4: Deduplicating consecutive documents
 
 The following query removes duplicate consecutive documents. When logs are sorted by severity, this shows the transitions between severity levels, helping you see the pattern of escalation:
   

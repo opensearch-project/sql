@@ -78,7 +78,7 @@ The `streamstats` command supports the following aggregation functions:
   
 For detailed documentation of each function, see [Aggregation Functions](../functions/aggregations.md).
 
-## Example 1: Calculate the running count of errors by service  
+## Example 1: Calculating the running count of errors by service
 
 The following query calculates a running count of error logs, grouped by service. This is useful for tracking how errors accumulate across services during an incident:
   
@@ -112,7 +112,7 @@ fetched rows / total rows = 11/11
 ```
   
 
-## Example 2: Calculate running maximum severity over a sliding window
+## Example 2: Calculating running maximum severity over a sliding window
 
 The following query calculates the running maximum severity level over the previous 2 log entries, excluding the current event. This is useful for alerting when severity escalates beyond recent patterns:
 
@@ -141,7 +141,7 @@ fetched rows / total rows = 6/6
 ```
   
 
-## Example 3: Global compared to group-specific windows  
+## Example 3: Comparing global with group-specific windows 
 
 The `global` parameter takes the following values:
 
@@ -220,7 +220,7 @@ fetched rows / total rows = 8/8
 ```
   
 
-## Example 4: Conditional statistics reset  
+## Example 4: Resetting statistics conditionally  
 
 The following query calculates the running average of `age` across accounts by `country`, with resets applied:
   

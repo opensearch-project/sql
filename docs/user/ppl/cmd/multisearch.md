@@ -41,7 +41,7 @@ The `multisearch` command supports the following parameters.
 | `<subsearchN>` | Required | At least two subsearches are required. Each subsearch must be enclosed in square brackets and start with the `search` keyword (`[search source=index | <commands>]`). All PPL commands are supported within subsearches. |
 | `<result-processing>` | Optional | Commands applied to the merged results after the multisearch operation (for example, `stats`, `sort`, or `head`). |  
 
-## Example 1: Compare errors with debug logs
+## Example 1: Comparing errors with debug logs
 
 This example merges error logs with debug logs side by side. This is useful when investigating whether debug-level logs from the same services provide clues about the root cause of errors:
   

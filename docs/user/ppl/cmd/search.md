@@ -126,7 +126,7 @@ Consider the following performance optimizations when working with different fie
 
 Cross-cluster search lets any node in a cluster execute search requests against other clusters. Refer to [Cross-Cluster Search](../admin/cross_cluster_search.md/) for configuration.
 
-## Example 1: Fetch all data
+## Example 1: Fetching all data
 
 Retrieve all documents from an index:
 
@@ -149,7 +149,7 @@ fetched rows / total rows = 3/3
 ```
 
 
-## Example 2: Text search
+## Example 2: Searching text
 
 For basic text search, use an unquoted single term:
   
@@ -294,27 +294,27 @@ The operators are evaluated using the following precedence:
 Parentheses > NOT > OR > AND
 ```
 
-The following query demonstrates operator precedence. Because `AND` binds tighter than `OR`, this is evaluated as `severityText="ERROR" OR (resource.attributes.service.name="frontend" AND severityText="INFO")`:
+The following query demonstrates operator precedence.
 
 ```ppl
-search severityText="ERROR" OR `resource.attributes.service.name`="frontend" AND severityText="INFO" source=otellogs
-| fields severityText, `resource.attributes.service.name`
-| head 5
-```
-  
-```text
-fetched rows / total rows = 4/4
-+--------------+----------------------------------+
-| severityText | resource.attributes.service.name |
-|--------------+----------------------------------|
-| INFO         | frontend                         |
-| INFO         | frontend                         |
-| INFO         | frontend                         |
-| INFO         | frontend                         |
-+--------------+----------------------------------+
+search severityText="ERROR" OR severityText="WARN" AND severityNumber>15 source=otellogs
+| fields severityText, severityNumber
+| head 2
 ```
 
-## Example 4: NOT compared to != semantics
+The preceding expression is evaluated as `(severityText="ERROR" OR severityText="WARN") AND severityNumber>15`. The query returns the following results:
+  
+```text
+fetched rows / total rows = 2/2
++--------------+----------------+
+| severityText | severityNumber |
+|--------------+----------------|
+| ERROR        | 17             |
+| ERROR        | 17             |
++--------------+----------------+
+```
+
+## Example 4: Comparing NOT with != semantics
 
 Both `!=` and `NOT` operators find documents in which the field value is not equal to the specified value. However, the `!=` operator excludes documents containing null or missing fields, while the `NOT` operator includes them. The following queries show this difference using `instrumentationScope.name`, which is null for most records.
 
@@ -363,7 +363,7 @@ fetched rows / total rows = 5/5
 +------------------------------+
 ```
 
-## Example 5: Range queries
+## Example 5: Querying ranges
 
 Use comparison operators (`>,` `<,` `>=` and `<=`) to filter numeric and date fields within specific ranges. Range queries are particularly useful for filtering by age, price, timestamps, or any numeric metrics:
 
@@ -389,7 +389,7 @@ fetched rows / total rows = 3/3
 
 
 
-## Example 6: Wildcards
+## Example 6: Using wildcards
 
 The following queries demonstrate wildcard pattern matching. In wildcard patterns, `*` matches zero or more characters, while `?` matches exactly one character.
 
@@ -439,7 +439,7 @@ fetched rows / total rows = 2/2
 Use `?` to match exactly one character in specific positions:
 
 ```ppl
-search severityText=ERR?R source=otellogs
+search severityText="ERR?R" source=otellogs
 | fields severityText, `resource.attributes.service.name`
 | head 3
 ```
@@ -447,10 +447,13 @@ search severityText=ERR?R source=otellogs
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 0/0
+fetched rows / total rows = 3/3
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
+| ERROR        | payment                          |
+| ERROR        | checkout                         |
+| ERROR        | payment                          |
 +--------------+----------------------------------+
 ```
 
@@ -556,7 +559,7 @@ fetched rows / total rows = 7/7
 +----------------------------------------------------------------------------------------------+----------------------------------+
 ```
 
-## Example 9: Complex expressions  
+## Example 9: Using complex expressions  
 
 To create sophisticated search queries, combine multiple conditions using Boolean operators and parentheses:
   
@@ -580,7 +583,7 @@ fetched rows / total rows = 3/3
 +--------------+
 ```
 
-## Example 10: Time modifiers  
+## Example 10: Using time modifiers  
 
 Time modifiers filter search results by time range using the implicit `@timestamp` field. They support various time formats for precise temporal filtering.
 
