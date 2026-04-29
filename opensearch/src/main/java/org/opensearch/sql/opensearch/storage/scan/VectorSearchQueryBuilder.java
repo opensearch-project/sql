@@ -43,15 +43,18 @@ import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalSort;
 
 /**
- * Query builder for vector search that keeps the knn query in a scoring (must) context and puts
- * WHERE filters in a non-scoring (filter) context. This prevents the knn relevance scores from
- * being destroyed when a WHERE clause is pushed down.
+ * Query builder for vector search. The knn relevance score is preserved regardless of placement
+ * strategy — in {@code EFFICIENT} mode the knn query carries its own scores, and in {@code POST}
+ * mode the knn query sits in a scoring ({@code must}) context while the WHERE clause is applied as
+ * a non-scoring ({@code filter}) clause.
  *
  * <p>Supports two filter placement strategies via {@link FilterType}:
  *
  * <ul>
- *   <li>{@code POST} — WHERE in {@code bool.filter} outside knn (post-filtering, default)
  *   <li>{@code EFFICIENT} — WHERE inside {@code knn.filter} for pre-filtering during ANN search
+ *       (default).
+ *   <li>{@code POST} — WHERE in {@code bool.filter} outside knn (post-filtering fallback, used when
+ *       the WHERE shape is not compatible with pre-filtering).
  * </ul>
  */
 public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
@@ -76,7 +79,7 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     requestBuilder.getSourceBuilder().query(knnQuery);
     this.knnQuery = knnQuery;
     this.options = options;
-    this.filterType = filterType != null ? filterType : FilterType.POST;
+    this.filterType = filterType != null ? filterType : FilterType.EFFICIENT;
     this.filterTypeExplicit = filterTypeExplicit;
     if (this.filterType == FilterType.EFFICIENT && rebuildKnnWithFilter == null) {
       throw new IllegalArgumentException(
@@ -85,7 +88,12 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     this.rebuildKnnWithFilter = rebuildKnnWithFilter;
   }
 
-  /** Default constructor — preserves existing call sites; defaults to POST, not explicit. */
+  /**
+   * Test-only constructor — pins {@link FilterType#POST} so callers that do not wire a {@code
+   * rebuildKnnWithFilter} callback (unit tests) can still exercise the push-down contract.
+   * Production callers always go through the full constructor, which defaults to {@link
+   * FilterType#EFFICIENT}.
+   */
   public VectorSearchQueryBuilder(
       OpenSearchRequestBuilder requestBuilder, QueryBuilder knnQuery, Map<String, String> options) {
     this(requestBuilder, knnQuery, options, FilterType.POST, false, null);
@@ -228,9 +236,10 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     }
     if (qb instanceof ScriptQueryBuilder) {
       throw new ExpressionEvaluationException(
-          "filter_type=efficient does not support predicates that compile to script queries"
-              + " (arithmetic, function calls, CASE, date math). Rewrite the WHERE clause to"
-              + " use comparable/term/range predicates, or omit filter_type.");
+          "vectorSearch WHERE pre-filtering does not support predicates that compile to"
+              + " script queries (arithmetic, function calls, CASE, date math). Rewrite the"
+              + " WHERE clause to use term/range/bool predicates, or set filter_type=post to"
+              + " apply the predicate after the k-NN search.");
     }
     if (qb instanceof BoolQueryBuilder) {
       BoolQueryBuilder bool = (BoolQueryBuilder) qb;
@@ -246,17 +255,18 @@ public class VectorSearchQueryBuilder extends OpenSearchIndexScanQueryBuilder {
     }
     if (qb instanceof NestedQueryBuilder) {
       throw new ExpressionEvaluationException(
-          "filter_type=efficient does not support nested predicates in this preview."
-              + " Rewrite the WHERE clause using non-nested fields or omit filter_type.");
+          "vectorSearch WHERE pre-filtering does not support nested predicates in this"
+              + " preview. Rewrite the WHERE clause using non-nested fields, or set"
+              + " filter_type=post to apply the predicate after the k-NN search.");
     }
     if (SAFE_EFFICIENT_FILTER_LEAVES.contains(qb.getClass())) {
       return;
     }
     throw new ExpressionEvaluationException(
-        "filter_type=efficient encountered an unsupported filter query shape: "
+        "vectorSearch WHERE pre-filtering encountered an unsupported filter query shape: "
             + qb.getClass().getSimpleName()
-            + ". Rewrite the WHERE clause using simple term/range/bool predicates,"
-            + " or omit filter_type.");
+            + ". Rewrite the WHERE clause using simple term/range/bool predicates, or set"
+            + " filter_type=post to apply the predicate after the k-NN search.");
   }
 
   @Override

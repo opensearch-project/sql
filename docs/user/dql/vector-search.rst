@@ -1,7 +1,7 @@
 
-=============
-Vector Search
-=============
+==============================
+Vector Search [Experimental]
+==============================
 
 .. rubric:: Table of contents
 
@@ -11,6 +11,9 @@ Vector Search
 
 Introduction
 ============
+
+``vectorSearch()`` is an experimental feature. Syntax, options, and
+pushdown behavior may change in future releases based on feedback.
 
 The ``vectorSearch()`` table function runs a k-NN query against a ``knn_vector``
 field and exposes the matching documents as a relation in the ``FROM`` clause.
@@ -170,42 +173,45 @@ A ``WHERE`` clause on non-vector fields of the ``vectorSearch()`` alias is
 pushed down to OpenSearch when it can be translated to an OpenSearch filter.
 Two placement strategies are available via the ``filter_type`` option:
 
-- ``post`` — the ``WHERE`` predicate is applied as a non-scoring
+- ``efficient`` (default): the ``WHERE`` predicate is embedded directly
+  inside the k-NN query (``knn.filter``), enabling pre-filtering during
+  the ANN search. See the `k-NN filtering guide
+  <https://docs.opensearch.org/latest/vector-search/filter-search-knn/efficient-knn-filtering/>`_
+  for engine and method requirements.
+- ``post``: the ``WHERE`` predicate is applied as a non-scoring
   ``bool.filter`` alongside the k-NN query. The k-NN query runs first and
   its results are then filtered.
-- ``efficient`` — the ``WHERE`` predicate is embedded directly inside the
-  k-NN query (``knn.filter``), enabling pre-filtering during the ANN search.
-  See the `k-NN filtering guide <https://docs.opensearch.org/latest/vector-search/filter-search-knn/efficient-knn-filtering/>`_
-  for engine and method requirements.
 
 Behavior depends on whether ``filter_type`` is specified:
 
-- **Omitted** — pushdown is attempted using the ``post`` placement.
-  Predicates that translate to native OpenSearch queries are pushed down as a
-  ``bool.filter`` alongside the k-NN query. Predicates that do not have a
-  native equivalent (for example, arithmetic or function calls on indexed
-  fields) are pushed down as an OpenSearch script query and evaluated
-  server-side. Only when predicate translation itself fails does the engine
-  fall back to evaluating the ``WHERE`` clause in memory after the k-NN
-  results are returned. A query with no ``WHERE`` clause is valid.
-- **Explicit ``post``** — a ``WHERE`` clause is required and must be
-  translatable to an OpenSearch filter query. If the ``WHERE`` clause is
-  missing or cannot be translated, the query fails with an error.
-  Specifying ``filter_type=post`` explicitly is useful when the query
-  should fail with an error instead of silently falling back to
-  in-memory filtering.
-- **Explicit ``efficient``** — a ``WHERE`` clause is required and must
-  compile to a filter shape that can be embedded under ``knn.filter``.
+- **Omitted (default, ``efficient``)**: the ``WHERE`` predicate is
+  embedded under ``knn.filter`` so the k-NN engine pre-filters candidates
+  during the ANN search. A query with no ``WHERE`` clause is valid.
   ``efficient`` supports simple native filters: ``term``, ``range``,
   ``wildcard``, ``exists``, full-text family (``match``, ``match_phrase``,
   ``match_phrase_prefix``, ``match_bool_prefix``, ``multi_match``,
   ``query_string``, ``simple_query_string``), and boolean combinations of
   those filters. Predicates that compile to script queries (arithmetic,
-  function calls, ``CASE``, date math), nested predicates, and other
-  query shapes are not supported in this mode and return an error.
+  function calls on indexed fields, ``CASE``, date math), nested
+  predicates, and other query shapes are not supported under
+  ``knn.filter`` and return an error. Set ``filter_type=post`` to apply
+  such predicates after the k-NN search.
+- **Explicit ``efficient``**: same contract as the default. Specifying
+  it is equivalent and is useful when a query should be explicit about
+  the placement strategy.
+- **Explicit ``post``**: a ``WHERE`` clause is required and must be
+  translatable to an OpenSearch filter query. Predicates that translate
+  to native OpenSearch queries are pushed down as a ``bool.filter``
+  alongside the k-NN query. Predicates that do not have a native
+  equivalent (for example, arithmetic or function calls on indexed
+  fields) are pushed down as an OpenSearch script query and evaluated
+  server-side. Only when predicate translation itself fails does the
+  engine fall back to evaluating the ``WHERE`` clause in memory after
+  the k-NN results are returned. Use ``filter_type=post`` when the
+  predicate shape is not supported by ``efficient`` pre-filtering.
 
-Example 4: Implicit pushdown (no ``filter_type``)
--------------------------------------------------
+Example 4: Default pre-filtering (no ``filter_type``)
+-----------------------------------------------------
 
 ::
 
@@ -223,10 +229,14 @@ Example 4: Implicit pushdown (no ``filter_type``)
       """
     }
 
-Example 5: Efficient (pre-)filtering
-------------------------------------
+The predicate is embedded under ``knn.filter`` so the k-NN engine
+pre-filters candidates during the ANN search.
 
-::
+Example 5: Post-filtering fallback
+----------------------------------
+
+Use ``filter_type=post`` for predicates that do not fit the ``efficient``
+allow-list, such as arithmetic or function calls on indexed fields::
 
     POST /_plugins/_sql
     {
@@ -236,9 +246,9 @@ Example 5: Efficient (pre-)filtering
           table='my_vectors',
           field='embedding',
           vector='[0.1, 0.2, 0.3]',
-          option='k=10,filter_type=efficient'
+          option='k=10,filter_type=post'
         ) AS v
-        WHERE v.category = 'books'
+        WHERE v.price * 1.1 < 100
       """
     }
 

@@ -28,7 +28,7 @@ public class VectorSearchIndex extends OpenSearchIndex {
   private final String field;
   private final float[] vector;
   private final Map<String, String> options;
-  private final FilterType filterType; // null means default (POST)
+  private final FilterType filterType; // null means default (EFFICIENT)
   // Nullable for back-compat with existing tests and the non-vector-search constructor. When
   // present, the scan defers a lazy k-NN plugin probe to open() so execution fails fast with a
   // clear SQL error if the plugin is missing.
@@ -62,7 +62,10 @@ public class VectorSearchIndex extends OpenSearchIndex {
     this(client, settings, indexName, field, vector, options, filterType, null);
   }
 
-  /** Default constructor — preserves existing call sites; uses no explicit filter type. */
+  /**
+   * Default constructor — preserves existing call sites; uses no explicit filter type, so the scan
+   * falls back to the default placement ({@link FilterType#EFFICIENT}).
+   */
   public VectorSearchIndex(
       OpenSearchClient client,
       Settings settings,
@@ -97,7 +100,7 @@ public class VectorSearchIndex extends OpenSearchIndex {
         whereQuery -> new WrapperQueryBuilder(buildKnnQueryJson(whereQuery.toString()));
 
     boolean filterTypeExplicit = filterType != null;
-    FilterType effectiveFilterType = filterType != null ? filterType : FilterType.POST;
+    FilterType effectiveFilterType = filterType != null ? filterType : FilterType.EFFICIENT;
 
     var queryBuilder =
         new VectorSearchQueryBuilder(

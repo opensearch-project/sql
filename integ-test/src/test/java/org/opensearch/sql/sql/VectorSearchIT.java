@@ -340,7 +340,8 @@ public class VectorSearchIT extends SQLIntegTestCase {
                         + "WHERE v.age + 1 > 30 "
                         + "LIMIT 5"));
 
-    assertThat(ex.getMessage(), containsString("filter_type=efficient does not support"));
+    assertThat(
+        ex.getMessage(), containsString("vectorSearch WHERE pre-filtering does not support"));
     assertThat(ex.getMessage(), containsString("script queries"));
   }
 
