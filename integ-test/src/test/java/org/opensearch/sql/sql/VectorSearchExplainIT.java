@@ -164,10 +164,10 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
         "Radial without WHERE should not embed a filter:\n" + knnJson, knnJson.contains("filter"));
   }
 
-  // ── Post-filter DSL shape ────────────────────────────────────────────
+  // ── Default (EFFICIENT) pre-filter DSL shape ────────────────────────
 
   @Test
-  public void testExplainPostFilterProducesBoolQuery() throws IOException {
+  public void testExplainDefaultFilterProducesKnnWithFilter() throws IOException {
     String explain =
         explainQuery(
             "SELECT v._id, v._score "
@@ -178,22 +178,15 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
                 + "WHERE v.state = 'TX' "
                 + "LIMIT 10");
 
-    // Post-filter shape: outer bool.must=[knn], bool.filter=[term] — WHERE lives OUTSIDE the knn
-    // payload. Verify by decoding the wrapper and asserting the predicate field is NOT embedded.
+    // Default (EFFICIENT) shape: WHERE is embedded inside knn.filter, the knn JSON is base64-
+    // encoded inside a WrapperQueryBuilder, and there is no outer bool/must wrapping.
     String sourceBuilderJson = extractSourceBuilderJson(explain);
-    assertTrue(
-        "Explain should contain bool query:\n" + sourceBuilderJson,
+    assertFalse(
+        "Default EFFICIENT mode should not produce bool query:\n" + sourceBuilderJson,
         sourceBuilderJson.contains("\"bool\""));
-    assertTrue(
-        "Explain should contain must clause (knn in scoring context):\n" + sourceBuilderJson,
+    assertFalse(
+        "Default EFFICIENT mode should not contain must clause:\n" + sourceBuilderJson,
         sourceBuilderJson.contains("\"must\""));
-    assertTrue(
-        "Explain should contain filter clause (WHERE in non-scoring context):\n"
-            + sourceBuilderJson,
-        sourceBuilderJson.contains("\"filter\""));
-    assertTrue(
-        "Explain should contain the outer state predicate:\n" + sourceBuilderJson,
-        sourceBuilderJson.contains("\"state.keyword\""));
 
     String knnJson = decodeSoleKnnJson(explain);
     assertTrue("knn JSON should contain knn key:\n" + knnJson, knnJson.contains("\"knn\""));
@@ -201,16 +194,16 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
         "knn JSON should target the embedding field:\n" + knnJson,
         knnJson.contains("\"embedding\""));
     assertTrue("knn JSON should contain k=10:\n" + knnJson, knnJson.contains("\"k\":10"));
-    assertFalse(
-        "Post-filter mode must not embed the WHERE predicate inside knn:\n" + knnJson,
-        knnJson.contains("state"));
-    assertFalse(
-        "Post-filter mode must not embed a filter inside knn:\n" + knnJson,
+    assertTrue(
+        "Default EFFICIENT mode must embed filter inside knn:\n" + knnJson,
         knnJson.contains("filter"));
+    assertTrue(
+        "Default EFFICIENT mode must embed the WHERE predicate inside knn:\n" + knnJson,
+        knnJson.contains("state"));
   }
 
   @Test
-  public void testExplainCompoundPredicateProducesBoolQuery() throws IOException {
+  public void testExplainDefaultCompoundPredicateProducesKnnWithFilter() throws IOException {
     String explain =
         explainQuery(
             "SELECT v._id, v._score "
@@ -221,25 +214,15 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
                 + "WHERE v.state = 'TX' AND v.age > 30 "
                 + "LIMIT 10");
 
-    // Compound post-filter still uses outer bool.must=[knn]/bool.filter=[predicates]. Both WHERE
-    // predicates must stay outside the knn payload; otherwise efficient mode could false-positive.
+    // Compound default-mode WHERE must also route through knn.filter: no outer bool/must, and
+    // both predicate fields embedded inside the knn payload.
     String sourceBuilderJson = extractSourceBuilderJson(explain);
-    assertTrue(
-        "Explain should contain bool query:\n" + sourceBuilderJson,
+    assertFalse(
+        "Default EFFICIENT mode should not produce bool query:\n" + sourceBuilderJson,
         sourceBuilderJson.contains("\"bool\""));
-    assertTrue(
-        "Explain should contain must clause (knn in scoring context):\n" + sourceBuilderJson,
+    assertFalse(
+        "Default EFFICIENT mode should not contain must clause:\n" + sourceBuilderJson,
         sourceBuilderJson.contains("\"must\""));
-    assertTrue(
-        "Explain should contain filter clause (compound WHERE in non-scoring context):\n"
-            + sourceBuilderJson,
-        sourceBuilderJson.contains("\"filter\""));
-    assertTrue(
-        "Explain should contain the outer state predicate:\n" + sourceBuilderJson,
-        sourceBuilderJson.contains("\"state.keyword\""));
-    assertTrue(
-        "Explain should contain the outer age predicate:\n" + sourceBuilderJson,
-        sourceBuilderJson.contains("\"age\""));
 
     String knnJson = decodeSoleKnnJson(explain);
     assertTrue("knn JSON should contain knn key:\n" + knnJson, knnJson.contains("\"knn\""));
@@ -247,19 +230,19 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
         "knn JSON should target the embedding field:\n" + knnJson,
         knnJson.contains("\"embedding\""));
     assertTrue("knn JSON should contain k=10:\n" + knnJson, knnJson.contains("\"k\":10"));
-    assertFalse(
-        "Compound post-filter must not embed the state predicate inside knn:\n" + knnJson,
-        knnJson.contains("state"));
-    assertFalse(
-        "Compound post-filter must not embed the age predicate inside knn:\n" + knnJson,
-        knnJson.contains("age"));
-    assertFalse(
-        "Compound post-filter must not embed a filter inside knn:\n" + knnJson,
+    assertTrue(
+        "Compound default EFFICIENT must embed filter inside knn:\n" + knnJson,
         knnJson.contains("filter"));
+    assertTrue(
+        "Compound default EFFICIENT must embed the state predicate inside knn:\n" + knnJson,
+        knnJson.contains("state"));
+    assertTrue(
+        "Compound default EFFICIENT must embed the age predicate inside knn:\n" + knnJson,
+        knnJson.contains("age"));
   }
 
   @Test
-  public void testExplainRadialWithWhereProducesBoolQuery() throws IOException {
+  public void testExplainDefaultRadialWithWhereProducesKnnWithFilter() throws IOException {
     String explain =
         explainQuery(
             "SELECT v._id, v._score "
@@ -270,22 +253,15 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
                 + "WHERE v.state = 'TX' "
                 + "LIMIT 100");
 
-    // Radial + WHERE should also keep the WHERE predicate in the outer bool.filter rather than
-    // embedding it into the radial knn payload.
+    // Radial + default WHERE must also use the EFFICIENT shape: no outer bool/must, radial
+    // parameters preserved inside the knn payload, and the WHERE predicate embedded alongside.
     String sourceBuilderJson = extractSourceBuilderJson(explain);
-    assertTrue(
-        "Explain should contain bool query:\n" + sourceBuilderJson,
+    assertFalse(
+        "Default EFFICIENT mode should not produce bool query:\n" + sourceBuilderJson,
         sourceBuilderJson.contains("\"bool\""));
-    assertTrue(
-        "Explain should contain must clause (knn in scoring context):\n" + sourceBuilderJson,
+    assertFalse(
+        "Default EFFICIENT mode should not contain must clause:\n" + sourceBuilderJson,
         sourceBuilderJson.contains("\"must\""));
-    assertTrue(
-        "Explain should contain filter clause (WHERE in non-scoring context):\n"
-            + sourceBuilderJson,
-        sourceBuilderJson.contains("\"filter\""));
-    assertTrue(
-        "Explain should contain the outer state predicate:\n" + sourceBuilderJson,
-        sourceBuilderJson.contains("\"state.keyword\""));
 
     String knnJson = decodeSoleKnnJson(explain);
     assertTrue("knn JSON should contain knn key:\n" + knnJson, knnJson.contains("\"knn\""));
@@ -295,12 +271,12 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
     assertTrue(
         "knn JSON should contain max_distance=10.5:\n" + knnJson,
         knnJson.contains("\"max_distance\":10.5"));
-    assertFalse(
-        "Radial post-filter must not embed the WHERE predicate inside knn:\n" + knnJson,
-        knnJson.contains("state"));
-    assertFalse(
-        "Radial post-filter must not embed a filter inside knn:\n" + knnJson,
+    assertTrue(
+        "Radial default EFFICIENT must embed filter inside knn:\n" + knnJson,
         knnJson.contains("filter"));
+    assertTrue(
+        "Radial default EFFICIENT must embed the WHERE predicate inside knn:\n" + knnJson,
+        knnJson.contains("state"));
   }
 
   // ── Sort + LIMIT explain ─────────────────────────────────────────────
@@ -456,13 +432,16 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
 
   @Test
   public void testBetweenPushesAsRange() throws IOException {
+    // Pin filter_type=post to keep the regression guard aimed at the post-filter serialization
+    // path: these assertions lock in the outer bool/must/filter shape that only appears when
+    // WHERE is applied alongside knn rather than embedded under knn.filter.
     String explain =
         explainQuery(
             "SELECT v._id, v._score "
                 + "FROM vectorSearch(table='"
                 + TEST_INDEX
                 + "', field='embedding', "
-                + "vector='[1.0, 2.0, 3.0]', option='k=10') AS v "
+                + "vector='[1.0, 2.0, 3.0]', option='k=10,filter_type=post') AS v "
                 + "WHERE v.balance BETWEEN 50 AND 200 "
                 + "LIMIT 10");
 
@@ -513,13 +492,16 @@ public class VectorSearchExplainIT extends SQLIntegTestCase {
 
   @Test
   public void testNotInPushesAsMustNotTerms() throws IOException {
+    // Pin filter_type=post to keep the regression guard aimed at the post-filter serialization
+    // path: these assertions lock in the outer bool/must/filter shape that only appears when
+    // WHERE is applied alongside knn rather than embedded under knn.filter.
     String explain =
         explainQuery(
             "SELECT v._id, v._score "
                 + "FROM vectorSearch(table='"
                 + TEST_INDEX
                 + "', field='embedding', "
-                + "vector='[1.0, 2.0, 3.0]', option='k=10') AS v "
+                + "vector='[1.0, 2.0, 3.0]', option='k=10,filter_type=post') AS v "
                 + "WHERE v.gender NOT IN ('M', 'F') "
                 + "LIMIT 10");
 

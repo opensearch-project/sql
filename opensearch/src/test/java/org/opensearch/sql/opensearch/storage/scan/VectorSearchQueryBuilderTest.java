@@ -726,11 +726,14 @@ class VectorSearchQueryBuilderTest {
     ExpressionEvaluationException ex =
         assertThrows(ExpressionEvaluationException.class, () -> builder.pushDownFilter(filter));
     assertTrue(
-        ex.getMessage().contains("filter_type=efficient does not support"),
+        ex.getMessage().contains("vectorSearch WHERE pre-filtering does not support"),
         "Expected script rejection message, got: " + ex.getMessage());
     assertTrue(
         ex.getMessage().contains("script queries"),
         "Expected script queries guidance in message, got: " + ex.getMessage());
+    assertTrue(
+        ex.getMessage().contains("filter_type=post"),
+        "Expected filter_type=post fallback guidance, got: " + ex.getMessage());
   }
 
   @Test
@@ -790,7 +793,7 @@ class VectorSearchQueryBuilderTest {
             ExpressionEvaluationException.class,
             () -> VectorSearchQueryBuilder.validateEfficientFilterSafe(nested));
     assertTrue(
-        ex.getMessage().contains("filter_type=efficient does not support nested predicates"),
+        ex.getMessage().contains("vectorSearch WHERE pre-filtering does not support nested"),
         "Expected targeted nested rejection, got: " + ex.getMessage());
   }
 

@@ -135,14 +135,16 @@ public class VectorSearchExecutionIT extends SQLIntegTestCase {
   public void testPostFilterReturnsOnlyMatchingDocs() throws IOException {
     // Query from cluster B with WHERE state='TX' forces POST filtering to surface TX docs
     // (cluster A) even though the vector is closer to cluster B. k=10 covers all 6 docs so
-    // post-filtering to state='TX' deterministically yields exactly {1,2,3}.
+    // post-filtering to state='TX' deterministically yields exactly {1,2,3}. filter_type=post
+    // is specified explicitly because the default placement is EFFICIENT — this test
+    // guarantees POST continues to work when the user opts into it.
     JSONObject result =
         executeJdbcRequest(
             "SELECT v._id, v._score "
                 + "FROM vectorSearch(table='"
                 + TEST_INDEX
                 + "', field='embedding', "
-                + "vector='[9.0, 9.0]', option='k=10') AS v "
+                + "vector='[9.0, 9.0]', option='k=10,filter_type=post') AS v "
                 + "WHERE v.state = 'TX' "
                 + "LIMIT 10");
 
