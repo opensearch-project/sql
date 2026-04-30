@@ -60,44 +60,40 @@ opensearchplugin {
     noticeFile rootProject.file("NOTICE")
 }
 
-// Exclude jars provided by analytics-engine plugin (shared via extendedPlugins classloader).
-// Must match exactly what's in the analytics-engine ZIP to avoid both jar hell and missing classes.
+// Exclude jars provided by the analytics-engine plugin (shared via extendedPlugins classloader).
+// MUST match what's actually in the analytics-engine ZIP to avoid both jar hell (when analytics-engine
+// ships it) and ClassNotFoundException at runtime (when it doesn't). Last verified against
+// analytics-engine-3.7.0-SNAPSHOT — keep this list aligned when bumping versions.
 bundlePlugin {
     exclude 'calcite-core-*.jar'
     exclude 'calcite-linq4j-*.jar'
     exclude 'avatica-core-*.jar'
-    exclude 'avatica-metrics-*.jar'
     exclude 'guava-*.jar'
     exclude 'failureaccess-*.jar'
     exclude 'slf4j-api-*.jar'
     exclude 'commons-codec-*.jar'
     exclude 'commons-compiler-*.jar'
+    exclude 'commons-io-*.jar'
+    exclude 'commons-lang3-*.jar'
     exclude 'janino-*.jar'
     exclude 'joou-java-6-*.jar'
-    exclude 'memory-0*.jar'
-    exclude 'sketches-core-*.jar'
-    exclude 'commons-lang3-*.jar'
+    exclude 'json-path-*.jar'
+    exclude 'jackson-annotations-*.jar'
+    exclude 'jackson-databind-*.jar'
+    exclude 'httpcore5-5*.jar'
     exclude 'commons-text-*.jar'
+    // Calcite transitive deps now bundled in analytics-engine 3.7 — exclude from sql to avoid jar hell.
     exclude 'commons-math3-*.jar'
     exclude 'commons-dbcp2-*.jar'
-    exclude 'commons-io-*.jar'
     exclude 'commons-pool2-*.jar'
     exclude 'uzaygezen-core-*.jar'
-    exclude 'icu4j-*.jar'
-    exclude 'error_prone_annotations-*.jar'
+    exclude 'sketches-core-*.jar'
+    exclude 'memory-0*.jar'
     exclude 'jts-io-common-*.jar'
     exclude 'proj4j-*.jar'
-    exclude 'json-path-*.jar'
     exclude 'json-smart-*.jar'
     exclude 'accessors-smart-*.jar'
     exclude 'asm-9*.jar'
-    exclude 'httpclient5-*.jar'
-    exclude 'httpcore5-5*.jar'
-    exclude 'httpcore5-h2-*.jar'
-    exclude 'httpcore5-reactive-*.jar'
-    exclude 'antlr4-runtime-4.13.2.jar'
-    exclude 'jackson-annotations-*.jar'
-    exclude 'jackson-databind-*.jar'
 }
 
 publishing {
@@ -201,8 +197,8 @@ dependencies {
 
     api project(":ppl")
     api project(':api')
-    compileOnly files("${rootDir}/libs/analytics-framework-3.6.0-SNAPSHOT.jar")
-    compileOnly files("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.jar")
+    compileOnly files("${rootDir}/libs/analytics-framework-3.7.0-SNAPSHOT.jar")
+    compileOnly files("${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.jar")
     api project(':legacy')
     api project(':opensearch')
     api project(':prometheus')
@@ -348,7 +344,7 @@ def getJobSchedulerPlugin() {
 
 testClusters.integTest {
     plugin(getJobSchedulerPlugin())
-    plugin provider { (RegularFile) (() -> file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip")) }
+    plugin provider { (RegularFile) (() -> file("${analyticsEngineZip}")) }
     plugin(project.tasks.bundlePlugin.archiveFile)
     testDistribution = "ARCHIVE"
 
