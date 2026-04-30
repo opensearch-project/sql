@@ -14,6 +14,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -70,25 +71,35 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
   @Override
   public void execute(
       RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
-    try {
-      // Record EXECUTE metric before calling listener, because the listener's onResponse
-      // triggers SimpleJsonResponseFormatter which calls QueryProfiling.finish() to snapshot
-      // all metrics. The metric must be written before that snapshot.
-      ProfileMetric execMetric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
-      long execStart = System.nanoTime();
+    // QueryPlanExecutor became asynchronous in analytics-framework 3.7 — execution is dispatched
+    // to a worker pool and results arrive on the listener. Record the execute metric in the
+    // listener callback, before delegating to the user-supplied listener, so the metric snapshot
+    // taken by SimpleJsonResponseFormatter sees the correct value.
+    ProfileMetric execMetric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
+    long execStart = System.nanoTime();
 
-      Iterable<Object[]> rows = planExecutor.execute(plan, null);
+    planExecutor.execute(
+        plan,
+        null,
+        new ActionListener<>() {
+          @Override
+          public void onResponse(Iterable<Object[]> rows) {
+            try {
+              List<RelDataTypeField> fields = plan.getRowType().getFieldList();
+              List<ExprValue> results = convertRows(rows, fields);
+              Schema schema = buildSchema(fields);
+              execMetric.set(System.nanoTime() - execStart);
+              listener.onResponse(new QueryResponse(schema, results, Cursor.None));
+            } catch (Exception e) {
+              listener.onFailure(e);
+            }
+          }
 
-      List<RelDataTypeField> fields = plan.getRowType().getFieldList();
-      List<ExprValue> results = convertRows(rows, fields);
-      Schema schema = buildSchema(fields);
-
-      execMetric.set(System.nanoTime() - execStart);
-
-      listener.onResponse(new QueryResponse(schema, results, Cursor.None));
-    } catch (Exception e) {
-      listener.onFailure(e);
-    }
+          @Override
+          public void onFailure(Exception e) {
+            listener.onFailure(e);
+          }
+        });
   }
 
   @Override

@@ -8,6 +8,9 @@ package org.opensearch.sql.executor.analytics;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +28,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -57,11 +61,34 @@ class AnalyticsExecutionEngineTest {
     field.set(context, sysLimit);
   }
 
+  /** QueryPlanExecutor became async in analytics-framework 3.7 — stub the listener callback. */
+  @SuppressWarnings("unchecked")
+  private void stubExecutorWith(RelNode relNode, Iterable<Object[]> rows) {
+    doAnswer(
+            inv -> {
+              ((ActionListener<Iterable<Object[]>>) inv.getArgument(2)).onResponse(rows);
+              return null;
+            })
+        .when(mockExecutor)
+        .execute(eq(relNode), any(), any(ActionListener.class));
+  }
+
+  @SuppressWarnings("unchecked")
+  private void stubExecutorWithError(RelNode relNode, Exception error) {
+    doAnswer(
+            inv -> {
+              ((ActionListener<Iterable<Object[]>>) inv.getArgument(2)).onFailure(error);
+              return null;
+            })
+        .when(mockExecutor)
+        .execute(eq(relNode), any(), any(ActionListener.class));
+  }
+
   @Test
   void executeRelNode_basicTypesAndRows() {
     RelNode relNode = mockRelNode("name", SqlTypeName.VARCHAR, "age", SqlTypeName.INTEGER);
     Iterable<Object[]> rows = Arrays.asList(new Object[] {"Alice", 30}, new Object[] {"Bob", 25});
-    when(mockExecutor.execute(relNode, null)).thenReturn(rows);
+    stubExecutorWith(relNode, rows);
 
     QueryResponse response = executeAndCapture(relNode);
     String dump = dumpResponse(response);
@@ -101,7 +128,7 @@ class AnalyticsExecutionEngineTest {
             "d", SqlTypeName.DOUBLE);
     Iterable<Object[]> rows =
         Collections.singletonList(new Object[] {(byte) 1, (short) 2, 3, 4L, 5.0f, 6.0});
-    when(mockExecutor.execute(relNode, null)).thenReturn(rows);
+    stubExecutorWith(relNode, rows);
 
     QueryResponse response = executeAndCapture(relNode);
     String dump = dumpResponse(response);
@@ -138,7 +165,7 @@ class AnalyticsExecutionEngineTest {
     RelNode relNode =
         mockRelNode("dt", SqlTypeName.DATE, "tm", SqlTypeName.TIME, "ts", SqlTypeName.TIMESTAMP);
     Iterable<Object[]> emptyRows = Collections.emptyList();
-    when(mockExecutor.execute(relNode, null)).thenReturn(emptyRows);
+    stubExecutorWith(relNode, emptyRows);
 
     QueryResponse response = executeAndCapture(relNode);
     String dump = dumpResponse(response);
@@ -157,7 +184,7 @@ class AnalyticsExecutionEngineTest {
   void executeRelNode_emptyResults() {
     RelNode relNode = mockRelNode("name", SqlTypeName.VARCHAR);
     Iterable<Object[]> emptyRows = Collections.emptyList();
-    when(mockExecutor.execute(relNode, null)).thenReturn(emptyRows);
+    stubExecutorWith(relNode, emptyRows);
 
     QueryResponse response = executeAndCapture(relNode);
     String dump = dumpResponse(response);
@@ -170,7 +197,7 @@ class AnalyticsExecutionEngineTest {
   void executeRelNode_nullValues() {
     RelNode relNode = mockRelNode("name", SqlTypeName.VARCHAR, "age", SqlTypeName.INTEGER);
     Iterable<Object[]> rows = Collections.singletonList(new Object[] {null, null});
-    when(mockExecutor.execute(relNode, null)).thenReturn(rows);
+    stubExecutorWith(relNode, rows);
 
     QueryResponse response = executeAndCapture(relNode);
     String dump = dumpResponse(response);
@@ -187,7 +214,7 @@ class AnalyticsExecutionEngineTest {
   @Test
   void executeRelNode_errorPropagation() {
     RelNode relNode = mockRelNode("id", SqlTypeName.INTEGER);
-    when(mockExecutor.execute(relNode, null)).thenThrow(new RuntimeException("Engine failure"));
+    stubExecutorWithError(relNode, new RuntimeException("Engine failure"));
 
     Exception error = executeAndCaptureError(relNode);
     System.out.println(dumpError("executeRelNode_errorPropagation", error));

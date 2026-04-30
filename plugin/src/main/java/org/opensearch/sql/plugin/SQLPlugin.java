@@ -103,12 +103,12 @@ import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
+import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
 import org.opensearch.sql.plugin.rest.RestPPLGrammarAction;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
-import org.opensearch.sql.plugin.rest.analytics.stub.StubQueryPlanExecutor;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
@@ -192,12 +192,30 @@ public class SQLPlugin extends Plugin
   /**
    * Creates a routing function for SQL queries targeting analytics engine indices. Returns {@code
    * true} if the query was handled (analytics index), {@code false} to fall through to normal SQL.
+   *
+   * <p>The {@link RestUnifiedQueryAction} is built lazily on the first request because the
+   * analytics-engine {@code QueryPlanExecutor} is published into {@link AnalyticsExecutorHolder} by
+   * {@code TransportPPLQueryAction}'s {@code @Inject} constructor — which fires after the Node
+   * Guice injector is built, i.e. after {@code getRestHandlers}. If the executor is still
+   * unavailable when a SQL request arrives, the router falls through to the legacy SQL path.
    */
   private BiFunction<SQLQueryRequest, RestChannel, Boolean> createSqlAnalyticsRouter() {
-    RestUnifiedQueryAction unifiedQueryHandler =
-        new RestUnifiedQueryAction(client, clusterService, new StubQueryPlanExecutor());
+    final RestUnifiedQueryAction[] cached = new RestUnifiedQueryAction[1];
+    java.util.function.Supplier<RestUnifiedQueryAction> handlerSupplier =
+        () -> {
+          if (cached[0] == null) {
+            var executor = AnalyticsExecutorHolder.get();
+            if (executor == null) {
+              return null;
+            }
+            cached[0] = new RestUnifiedQueryAction(client, clusterService, executor);
+          }
+          return cached[0];
+        };
     return (sqlRequest, channel) -> {
-      if (!unifiedQueryHandler.isAnalyticsIndex(sqlRequest.getQuery(), QueryType.SQL)) {
+      RestUnifiedQueryAction unifiedQueryHandler = handlerSupplier.get();
+      if (unifiedQueryHandler == null
+          || !unifiedQueryHandler.isAnalyticsIndex(sqlRequest.getQuery(), QueryType.SQL)) {
         return false;
       }
       if (sqlRequest.isExplainRequest()) {
