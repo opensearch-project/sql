@@ -136,8 +136,7 @@ Explain::
 	    "includes" : [
 	      "firstname",
 	      "lastname"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
@@ -181,8 +180,7 @@ Explain::
 	      "_routing",
 	      "_sort",
 	      "lastname"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
@@ -220,8 +218,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "account_number"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
@@ -260,8 +257,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "age"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  },
 	  "stored_fields" : "age",
 	  "aggregations" : {
@@ -422,8 +418,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "account_number"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
@@ -493,8 +488,7 @@ Explain::
 	    "includes" : [
 	      "account_number",
 	      "employer"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
@@ -539,8 +533,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "age"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  },
 	  "stored_fields" : "age",
 	  "aggregations" : {
@@ -603,8 +596,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "account_number"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  },
 	  "stored_fields" : "account_number",
 	  "aggregations" : {
@@ -667,8 +659,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "age"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  },
 	  "stored_fields" : "age",
 	  "aggregations" : {
@@ -731,8 +722,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "script"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  },
 	  "stored_fields" : "abs(age)",
 	  "script_fields" : {
@@ -815,8 +805,7 @@ Explain::
 	    "includes" : [
 	      "age",
 	      "MAX"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  },
 	  "stored_fields" : "age",
 	  "aggregations" : {
@@ -904,8 +893,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "account_number"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  },
 	  "sort" : [
 	    {
@@ -955,8 +943,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "employer"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  },
 	  "sort" : [
 	    {
@@ -1075,8 +1062,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "account_number"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  },
 	  "sort" : [
 	    {
@@ -1120,8 +1106,7 @@ Explain::
 	  "_source" : {
 	    "includes" : [
 	      "account_number"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  },
 	  "sort" : [
 	    {

@@ -9,4 +9,4 @@ calcite:
     EnumerableLimit(fetch=[10000])
       EnumerableAggregate(group=[{0, 1}], age=[ARRAY_AGG($2) FILTER $3])
         EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], proj#0..3=[{exprs}])
-          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[state, city, age]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["state","city","age"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[state, city, age]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["state","city","age"]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

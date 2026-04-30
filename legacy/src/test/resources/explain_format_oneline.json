@@ -1,1 +1,1 @@
-{"from" : 0, "size" : 200, "_source" : {"includes" : ["firstname"], "excludes" : [ ]}}
+{"from" : 0, "size" : 200, "_source" : {"includes" : ["firstname"]}}

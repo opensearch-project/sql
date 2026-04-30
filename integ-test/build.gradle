@@ -271,7 +271,7 @@ def getGeoSpatialPlugin() {
 }
 
 def getAnalyticsEnginePlugin() {
-    provider { (RegularFile) (() -> file("${rootDir}/libs/analytics-engine-3.6.0-SNAPSHOT.zip")) }
+    provider { (RegularFile) (() -> file("${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.zip")) }
 }
 
 testClusters {

@@ -4,8 +4,7 @@
     "_source" : {
         "includes" : [
             "account_number"
-        ],
-        "excludes" : [ ]
+        ]
     },
     "script_fields" : {
         "test" : {

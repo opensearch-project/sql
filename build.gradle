@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.6.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.7.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -126,6 +126,11 @@ allprojects {
     if (isSnapshot) {
         version += "-SNAPSHOT"
     }
+
+    // Path to the analytics-engine plugin ZIP. Override with
+    // `-PanalyticsEngineZip=/path/to/zip` if needed.
+    ext.analyticsEngineZip = project.findProperty('analyticsEngineZip') ?:
+            "${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.zip"
 
     plugins.withId('java') {
         java {

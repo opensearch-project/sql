@@ -46,7 +46,7 @@ root:
           ,\"IsMobile\",\"Age\",\"SocialSourceNetworkID\",\"OpenerName\",\"OS\",\"\
           IsNotBounce\",\"Referer\",\"NetMinor\",\"Title\",\"NetMajor\",\"IPNetworkID\"\
           ,\"FetchTiming\",\"SocialNetwork\",\"SocialSourcePage\",\"CounterID\",\"\
-          WindowClientWidth\"],\"excludes\":[]},\"sort\":[{\"EventTime\":{\"order\"\
+          WindowClientWidth\"]},\"sort\":[{\"EventTime\":{\"order\"\
           :\"asc\",\"missing\":\"_first\"}}]}, needClean=true, searchDone=false, pitId=*,\
           \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
       children: []

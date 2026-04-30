@@ -9,11 +9,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
+import org.apache.calcite.rel.RelNode;
 import org.junit.Before;
 import org.junit.Test;
+import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.sql.executor.QueryType;
-import org.opensearch.sql.plugin.rest.analytics.stub.StubQueryPlanExecutor;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
@@ -26,9 +27,10 @@ public class RestUnifiedQueryActionTest {
 
   @Before
   public void setUp() {
+    @SuppressWarnings("unchecked")
+    QueryPlanExecutor<RelNode, Iterable<Object[]>> executor = mock(QueryPlanExecutor.class);
     action =
-        new RestUnifiedQueryAction(
-            mock(NodeClient.class), mock(ClusterService.class), new StubQueryPlanExecutor());
+        new RestUnifiedQueryAction(mock(NodeClient.class), mock(ClusterService.class), executor);
   }
 
   @Test
