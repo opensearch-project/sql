@@ -237,6 +237,9 @@ public class UnifiedQueryPlannerSqlTest extends UnifiedQueryTestBase {
             MERGE INTO catalog.employees AS t
             USING (SELECT 99 AS id) AS s ON t.id = s.id
             WHEN MATCHED THEN UPDATE SET name = 'hacked'\
+            """,
+            """
+            SHOW TABLES\
             """)
         .forEach(
             sql ->
@@ -245,17 +248,13 @@ public class UnifiedQueryPlannerSqlTest extends UnifiedQueryTestBase {
 
   @Test
   public void testNonQueryStatementsBlockedByParser() {
-    List.of(
+    givenInvalidQuery(
             """
             CREATE MATERIALIZED VIEW mv AS
             SELECT department, count(*)
             FROM catalog.employees
             GROUP BY department\
-            """,
-            """
-            SHOW TABLES\
             """)
-        .forEach(
-            sql -> givenInvalidQuery(sql).assertErrorMessage("Incorrect syntax near the keyword"));
+        .assertErrorMessage("Encountered");
   }
 }

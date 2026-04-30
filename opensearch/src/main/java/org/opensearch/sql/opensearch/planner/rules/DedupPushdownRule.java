@@ -11,7 +11,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
+import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.SubstitutionRule;
@@ -112,6 +116,21 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
 
     // add bucket_nullable = false hint
     PPLHintUtils.addIgnoreNullBucketHintToAggregate(relBuilder);
+    // add dedup sort hint if input collation is available.
+    //
+    // The collation's field indices refer to the dedup's input row type (i.e. `project`'s output).
+    // Before handing the hint off to AggregateAnalyzer — which resolves indices against the SCAN's
+    // row type (`project.getInput()`) — permute each collation index through `project`'s source
+    // mapping. If any sort key is a computed column (not a bare `RexInputRef`) we can't push it as
+    // an OS `top_hits` sort, so drop the hint entirely and let Calcite restore order post-dedup.
+    if (dedup.getInputCollation() != null
+        && !dedup.getInputCollation().getFieldCollations().isEmpty()) {
+      RelCollation scanCollation = resolveCollationToScanSchema(dedup, project);
+      if (scanCollation != null) {
+        PPLHintUtils.addDedupSortHintToAggregate(
+            relBuilder, scanCollation, project.getInput().getRowType().getFieldNames());
+      }
+    }
     // peek the aggregate after hint being added
     LogicalAggregate aggregate = (LogicalAggregate) relBuilder.build();
     assert aggregate.getGroupSet().asList().equals(newGroupByList)
@@ -124,6 +143,64 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
       call.transformTo(newScan.copyWithNewSchema(dedup.getRowType()));
       PlanUtils.tryPruneRelNodes(call);
     }
+  }
+
+  /**
+   * Rewrite {@code dedup.inputCollation} into scan-schema indices. The collation was captured in
+   * {@link org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule} against a specific row type;
+   * by the time we reach this rule Calcite may have swapped in a different input, so the
+   * collation's indices may be stale. Strategy:
+   *
+   * <ol>
+   *   <li>If the collation's indices are all valid in {@code project}'s output, permute them
+   *       through {@code project.getProjects()} into scan indices (mirrors {@code
+   *       Project.getMapping} + {@code RelCollations.permute}).
+   *   <li>Otherwise, resolve each collation position by name: look up {@code
+   *       dedup.inputCollationFieldNames[idx]} in the scan's row type.
+   * </ol>
+   *
+   * A computed-column sort key (non-{@code RexInputRef}) is not pushable as an OS field sort, so
+   * returns {@code null} in that case. Returns {@code null} also if any sort key cannot be resolved
+   * by either path.
+   */
+  private static @Nullable RelCollation resolveCollationToScanSchema(
+      LogicalDedup dedup, LogicalProject project) {
+    RelCollation collation = dedup.getInputCollation();
+    int projectOutputSize = project.getRowType().getFieldCount();
+    int maxIdx = -1;
+    for (RelFieldCollation fc : collation.getFieldCollations()) {
+      maxIdx = Math.max(maxIdx, fc.getFieldIndex());
+    }
+    if (maxIdx < projectOutputSize) {
+      List<RexNode> projections = project.getProjects();
+      List<RelFieldCollation> remapped = new ArrayList<>();
+      for (RelFieldCollation fc : collation.getFieldCollations()) {
+        RexNode expr = projections.get(fc.getFieldIndex());
+        if (!(expr instanceof RexInputRef ref)) {
+          return null;
+        }
+        remapped.add(fc.withFieldIndex(ref.getIndex()));
+      }
+      return RelCollations.of(remapped);
+    }
+    List<String> originalNames = dedup.getInputCollationFieldNames();
+    if (originalNames == null) {
+      return null;
+    }
+    List<String> scanNames = project.getInput().getRowType().getFieldNames();
+    List<RelFieldCollation> remapped = new ArrayList<>();
+    for (RelFieldCollation fc : collation.getFieldCollations()) {
+      int oldIdx = fc.getFieldIndex();
+      if (oldIdx < 0 || oldIdx >= originalNames.size()) {
+        return null;
+      }
+      int scanIdx = scanNames.indexOf(originalNames.get(oldIdx));
+      if (scanIdx < 0) {
+        return null;
+      }
+      remapped.add(fc.withFieldIndex(scanIdx));
+    }
+    return RelCollations.of(remapped);
   }
 
   @Value.Immutable

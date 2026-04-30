@@ -13,6 +13,7 @@ plugins {
 
 dependencies {
     api project(':ppl')
+    api group: 'org.apache.calcite', name: 'calcite-babel', version: '1.41.0'
 
     testImplementation testFixtures(project(':api'))
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'

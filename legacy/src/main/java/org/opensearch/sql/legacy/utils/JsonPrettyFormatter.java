@@ -5,11 +5,10 @@
 
 package org.opensearch.sql.legacy.utils;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -26,10 +25,8 @@ public class JsonPrettyFormatter {
     // turn _explain response into pretty formatted Json
     XContentBuilder contentBuilder = XContentFactory.jsonBuilder().prettyPrint();
     try (XContentParser contentParser =
-        new JsonXContentParser(
-            NamedXContentRegistry.EMPTY,
-            LoggingDeprecationHandler.INSTANCE,
-            new JsonFactory().createParser(jsonString))) {
+        JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, jsonString)) {
       contentBuilder.copyCurrentStructure(contentParser);
     }
     return contentBuilder.toString();

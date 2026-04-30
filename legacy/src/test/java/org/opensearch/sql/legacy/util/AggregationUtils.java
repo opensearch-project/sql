@@ -5,13 +5,12 @@
 
 package org.opensearch.sql.legacy.util;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.ParseField;
 import org.opensearch.core.xcontent.ContextParser;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -78,10 +77,8 @@ public class AggregationUtils {
   public static Aggregations fromJson(String json) {
     try {
       XContentParser xContentParser =
-          new JsonXContentParser(
-              namedXContentRegistry,
-              LoggingDeprecationHandler.INSTANCE,
-              new JsonFactory().createParser(json));
+          JsonXContent.jsonXContent.createParser(
+              namedXContentRegistry, LoggingDeprecationHandler.INSTANCE, json);
       xContentParser.nextToken();
       return Aggregations.fromXContent(xContentParser);
     } catch (IOException e) {

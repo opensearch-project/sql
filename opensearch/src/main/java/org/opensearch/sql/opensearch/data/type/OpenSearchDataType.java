@@ -43,7 +43,8 @@ public class OpenSearchDataType implements ExprType, Serializable {
     ScaledFloat("scaled_float", ExprCoreType.DOUBLE),
     Double("double", ExprCoreType.DOUBLE),
     Boolean("boolean", ExprCoreType.BOOLEAN),
-    Alias("alias", ExprCoreType.UNKNOWN);
+    Alias("alias", ExprCoreType.UNKNOWN),
+    KnnVector("knn_vector", ExprCoreType.ARRAY);
     // TODO: ranges, geo shape, point, shape
 
     private final String name;

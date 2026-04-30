@@ -22,6 +22,7 @@ import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_S
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_SUBSEARCH;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRexCall;
+import static org.opensearch.sql.calcite.utils.PlanUtils.stripInputSort;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
@@ -35,6 +36,7 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,16 +49,12 @@ import lombok.AllArgsConstructor;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
-import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.core.Uncollect;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
@@ -103,6 +101,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -190,6 +189,18 @@ import org.opensearch.sql.utils.ParseUtils;
 import org.opensearch.sql.utils.WildcardRenameUtils;
 
 public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalcitePlanContext> {
+
+  /**
+   * Prefix/suffix applied to right-side fields in the streamstats self-join plan to avoid name
+   * collisions with the left side and to make the renaming reversible.
+   */
+  private static final String RIGHT_SIDE_FIELD_PREFIX = "__r_";
+
+  private static final String RIGHT_SIDE_FIELD_SUFFIX = "__";
+
+  /** Name of the right-side sequence column in the streamstats self-join plan. */
+  private static final String RIGHT_SIDE_SEQ_COLUMN =
+      RIGHT_SIDE_FIELD_PREFIX + "seq" + RIGHT_SIDE_FIELD_SUFFIX;
 
   private final CalciteRexNodeVisitor rexVisitor;
   private final CalciteAggCallVisitor aggVisitor;
@@ -753,57 +764,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /**
-   * Backtrack through the RelNode tree to find the first Sort node with non-empty collation. Stops
-   * at blocking operators that break ordering:
-   *
-   * <ul>
-   *   <li>Aggregate - aggregation destroys input ordering
-   *   <li>BiRel - covers Join, Correlate, and other binary relations
-   *   <li>SetOp - covers Union, Intersect, Except
-   *   <li>Uncollect - unnesting operation that may change ordering
-   *   <li>Project with window functions (RexOver) - ordering determined by window's ORDER BY
-   * </ul>
-   *
-   * @param node the starting RelNode to backtrack from
-   * @return the collation found, or null if no sort or blocking operator encountered
-   */
-  private RelCollation backtrackForCollation(RelNode node) {
-    while (node != null) {
-      // Check for blocking operators that destroy collation
-      // BiRel covers Join, Correlate, and other binary relations
-      // SetOp covers Union, Intersect, Except
-      // Uncollect unnests arrays/multisets which may change ordering
-      if (node instanceof Aggregate
-          || node instanceof BiRel
-          || node instanceof SetOp
-          || node instanceof Uncollect) {
-        return null;
-      }
-
-      // Project with window functions has ordering determined by the window's ORDER BY clause
-      // We should not destroy its output order by inserting a reversed sort
-      if (node instanceof LogicalProject && ((LogicalProject) node).containsOver()) {
-        return null;
-      }
-
-      // Check for Sort node with collation
-      if (node instanceof Sort) {
-        Sort sort = (Sort) node;
-        if (sort.getCollation() != null && !sort.getCollation().getFieldCollations().isEmpty()) {
-          return sort.getCollation();
-        }
-      }
-
-      // Continue to child node
-      if (node.getInputs().isEmpty()) {
-        break;
-      }
-      node = node.getInput(0);
-    }
-    return null;
-  }
-
-  /**
    * Insert a reversed sort node after finding the original sort in the tree. This rebuilds the tree
    * with the reversed sort inserted right after the original sort.
    *
@@ -885,7 +845,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else {
       // Collation not found on current node - try backtracking
       RelNode currentNode = context.relBuilder.peek();
-      RelCollation backtrackCollation = backtrackForCollation(currentNode);
+      RelCollation backtrackCollation = PlanUtils.findInputCollation(currentNode);
 
       if (backtrackCollation != null && !backtrackCollation.getFieldCollations().isEmpty()) {
         // Found collation through backtracking - rebuild tree with reversed sort
@@ -991,8 +951,58 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     String alias = node.getAlias() != null ? node.getAlias() : fieldName;
     projectPlusOverriding(List.of(binExpression), List.of(alias), context);
+    dropStructParentsFor(alias, context);
 
     return context.relBuilder.peek();
+  }
+
+  /**
+   * If {@code dottedName} addresses a nested leaf inside a struct that OpenSearch has exposed
+   * through both its struct-parent columns and its flattened leaf columns (e.g. the telemetry
+   * mapping exposes {@code resource}, {@code resource.attributes}, ..., {@code
+   * resource.attributes.telemetry.sdk.version} side-by-side), drop the struct-parent prefixes from
+   * the current row. This keeps a subsequent {@link #tryToRemoveNestedFields(CalcitePlanContext)}
+   * pass from collapsing the flattened leaves back into the parents when the final implicit {@code
+   * fields *} projection runs.
+   *
+   * <p>This preserves the behaviour that issue #4482 originally required for {@code bin} on a
+   * nested field without an explicit {@code fields} projection. It is invoked from two places:
+   *
+   * <ul>
+   *   <li>{@link #projectPlusOverriding(List, List, CalcitePlanContext)} — for every override whose
+   *       new name exactly matched a pre-existing column. This catches {@code eval} (and every
+   *       other command that funnels through {@code projectPlusOverriding}) assigning to an
+   *       existing flattened nested leaf.
+   *   <li>{@link #visitBin(Bin, CalcitePlanContext)} — defensively, so that {@code bin} keeps
+   *       dropping struct parents even when the alias happens not to match an existing field name
+   *       (e.g. when the user supplied a custom alias). This is also what the regression test in
+   *       {@code CalciteBinCommandIT#testBinWithNestedFieldWithoutExplicitProjection} exercises.
+   * </ul>
+   *
+   * Using this narrowly-scoped pruning instead of a global prefix-override in {@link
+   * #shouldOverrideField} is what keeps issue #5185 and the reviewer's {@code eval agent.name =
+   * ...} case safe.
+   *
+   * <p>No-op when no such struct-parent columns exist (e.g. flat columns or MAP roots from {@code
+   * spath}).
+   */
+  private void dropStructParentsFor(String dottedName, CalcitePlanContext context) {
+    if (dottedName == null || dottedName.indexOf('.') < 0) {
+      return;
+    }
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> parentsToDrop = new ArrayList<>();
+    int dotIdx = dottedName.indexOf('.');
+    while (dotIdx >= 0) {
+      String prefix = dottedName.substring(0, dotIdx);
+      if (fieldNames.contains(prefix)) {
+        parentsToDrop.add(context.relBuilder.field(prefix));
+      }
+      dotIdx = dottedName.indexOf('.', dotIdx + 1);
+    }
+    if (!parentsToDrop.isEmpty()) {
+      context.relBuilder.projectExcept(parentsToDrop);
+    }
   }
 
   @Override
@@ -1310,12 +1320,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private void projectPlusOverriding(
       List<RexNode> newFields, List<String> newNames, CalcitePlanContext context) {
-    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    Set<String> originalFieldNameSet =
+        new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
+    List<String> overriddenNames =
+        newNames.stream().filter(originalFieldNameSet::contains).toList();
     List<RexNode> toOverrideList =
-        originalFieldNames.stream()
-            .filter(originalName -> shouldOverrideField(originalName, newNames))
-            .map(a -> (RexNode) context.relBuilder.field(a))
-            .toList();
+        overriddenNames.stream().map(a -> (RexNode) context.relBuilder.field(a)).toList();
     // 1. add the new fields, For example "age0, country0"
     context.relBuilder.projectPlus(newFields);
     // 2. drop the overriding field list, it's duplicated now. For example "age, country"
@@ -1331,17 +1341,49 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     expectedRenameFields.addAll(newNames);
     // 5. rename
     context.relBuilder.rename(expectedRenameFields);
+    // 6. For each overridden dotted-path name that matched an existing flattened nested leaf,
+    // prune the struct-parent columns that OpenSearch exposed side-by-side with that leaf. Without
+    // this, a downstream implicit `fields *` invokes `tryToRemoveNestedFields`, which would drop
+    // the freshly-assigned dotted leaf back out again because its struct-parent prefix is still in
+    // the row schema (see issue #4482 and the scratch coverage in CalciteEvalCommandIT).
+    //
+    // Gating on "the override actually fired" is what keeps the reviewer's PR #5351 case safe:
+    // `source=idx | fields agent | eval agent.name = "test"` has no pre-existing `agent.name`
+    // column, so overriddenNames is empty and the struct-parent `agent` survives untouched.
+    // It also keeps issue #5185 safe — spath introduces a MAP root and subsequent eval assigns
+    // to brand-new dotted paths that were not already in the row schema.
+    for (String overridden : overriddenNames) {
+      dropStructParentsFor(overridden, context);
+    }
   }
 
+  /**
+   * Determine whether the column {@code originalName} should be replaced when a batch of new
+   * columns named {@code newNames} is being added. Only exact-name matches count as overrides —
+   * {@code eval foo.bar = ...} creates a brand new field literally named {@code foo.bar} and must
+   * never drop sibling or parent fields. This mirrors SPL1 semantics, where assigning a dotted name
+   * introduces a literal column of that name without touching any other field.
+   *
+   * <p>Earlier revisions (see PR #4606 / #5351) attempted to broaden this to a {@code
+   * newName.startsWith(originalName + ".")} prefix match. That prefix branch silently dropped any
+   * column that happened to be a prefix of an eval target, which caused two regressions:
+   *
+   * <ul>
+   *   <li>Issue #5185 — a MAP-typed root column produced by {@code spath} got dropped when eval
+   *       introduced multiple dotted-path fields under it.
+   *   <li>The reviewer's case on PR #5351 — {@code source=big5 | fields agent | eval agent.name =
+   *       "test"} dropped the {@code agent} column entirely.
+   * </ul>
+   *
+   * Struct-parent pruning for the "override on a real flattened nested leaf" case is handled
+   * uniformly in {@link #projectPlusOverriding(List, List, CalcitePlanContext)}, which invokes
+   * {@link #dropStructParentsFor(String, CalcitePlanContext)} only for overrides that actually
+   * replaced an existing column. This keeps issue #4482 fixed across every command that funnels
+   * through {@code projectPlusOverriding} (bin, eval, rex/sed, trendline, expand, flatten,
+   * patterns) without reintroducing the #5185 / reviewer regressions here.
+   */
   private boolean shouldOverrideField(String originalName, List<String> newNames) {
-    return newNames.stream()
-        .anyMatch(
-            newName ->
-                // Match exact field names (e.g., "age" == "age") for flat fields
-                newName.equals(originalName)
-                    // OR match nested paths (e.g., "resource.attributes..." starts with
-                    // "resource.")
-                    || newName.startsWith(originalName + "."));
+    return newNames.contains(originalName);
   }
 
   private List<List<RexInputRef>> extractInputRefList(List<RelBuilder.AggCall> aggCalls) {
@@ -1751,7 +1793,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 : duplicatedFieldNames.stream()
                     .map(a -> (RexNode) context.relBuilder.field(a))
                     .toList();
-        buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication);
+        buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication, null);
       }
       // add LogicalSystemLimit after dedup
       addSysLimitForJoinSubsearch(context);
@@ -1809,7 +1851,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         List<RexNode> dedupeFields =
             getRightColumnsInJoinCriteria(context.relBuilder, joinCondition);
 
-        buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication);
+        buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication, null);
       }
       // add LogicalSystemLimit after dedup
       addSysLimitForJoinSubsearch(context);
@@ -1985,10 +2027,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Columns to deduplicate
     List<RexNode> dedupeFields =
         node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
+    RelCollation inputCollation = stripInputSort(context.relBuilder);
     if (keepEmpty) {
-      buildDedupOrNull(context.relBuilder, dedupeFields, allowedDuplication);
+      buildDedupOrNull(context.relBuilder, dedupeFields, allowedDuplication, inputCollation);
     } else {
-      buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication);
+      buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication, inputCollation);
     }
     return context.relBuilder.peek();
   }
@@ -2097,14 +2140,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.projectPlus(streamSeq);
       RelNode left = context.relBuilder.build();
 
-      // 2. Run correlate + aggregate
-      return buildStreamWindowJoinPlan(
+      // 2. Use self-join approach to avoid nested correlates (which cause NPE
+      //    in Calcite's RelDecorrelator when chaining multiple streamstats)
+      return buildStreamWindowSelfJoinPlan(
           context,
           left,
           node,
           groupList,
           ROW_NUMBER_COLUMN_FOR_STREAMSTATS,
-          null,
           new String[] {ROW_NUMBER_COLUMN_FOR_STREAMSTATS});
     }
 
@@ -2233,6 +2276,229 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     context.relBuilder.projectExcept(cleanup);
     return context.relBuilder.peek();
+  }
+
+  /**
+   * Builds a self-join based plan for streamstats with global=true + window + group. This avoids
+   * using LogicalCorrelate which causes NPE in Calcite's RelDecorrelator when chaining multiple
+   * streamstats commands.
+   *
+   * <p>Plan structure:
+   *
+   * <ol>
+   *   <li>left = input + __stream_seq__
+   *   <li>right = trim to only aggregate input + __stream_seq__
+   *   <li>Join left and right on window frame + group conditions
+   *   <li>Group by all left field indices, compute AGG(right.X)
+   *   <li>Sort by __stream_seq__, then remove it
+   * </ol>
+   */
+  private RelNode buildStreamWindowSelfJoinPlan(
+      CalcitePlanContext context,
+      RelNode leftWithHelpers,
+      StreamWindow node,
+      List<UnresolvedExpression> groupList,
+      String seqCol,
+      String[] helperColsToCleanup) {
+
+    int leftFieldCount = leftWithHelpers.getRowType().getFieldCount();
+
+    // Build right side: project only the fields needed for aggregation + seq + group columns
+    // This avoids field name collisions and keeps the right side minimal
+    context.relBuilder.push(leftWithHelpers);
+
+    // Collect fields needed on right side: seq col + group cols + aggregate input fields
+    List<RexNode> rightFields = new ArrayList<>();
+    List<String> rightFieldNames = new ArrayList<>();
+
+    // Always include seq col
+    rightFields.add(context.relBuilder.field(seqCol));
+    rightFieldNames.add(RIGHT_SIDE_SEQ_COLUMN);
+
+    // Include group columns
+    for (UnresolvedExpression groupExpr : groupList) {
+      String groupName = extractGroupFieldName(groupExpr);
+      rightFields.add(context.relBuilder.field(groupName));
+      rightFieldNames.add(toRightSideFieldName(groupName));
+    }
+
+    // Include aggregate input fields (extract field names from window functions)
+    Set<String> aggInputFields = new LinkedHashSet<>();
+    for (UnresolvedExpression wfExpr : node.getWindowFunctionList()) {
+      collectFieldNames(wfExpr, aggInputFields);
+    }
+    // Remove already-included fields
+    aggInputFields.remove(seqCol);
+    for (UnresolvedExpression groupExpr : groupList) {
+      aggInputFields.remove(extractGroupFieldName(groupExpr));
+    }
+    for (String aggField : aggInputFields) {
+      rightFields.add(context.relBuilder.field(aggField));
+      rightFieldNames.add(toRightSideFieldName(aggField));
+    }
+
+    context.relBuilder.project(rightFields, rightFieldNames);
+    RelNode rightProjected = context.relBuilder.build();
+
+    // Push left and right
+    context.relBuilder.push(leftWithHelpers);
+    context.relBuilder.push(rightProjected);
+
+    // Build join condition using 2-input references
+    RexNode leftSeq = context.relBuilder.field(2, 0, seqCol);
+    RexNode rightSeq = context.relBuilder.field(2, 1, RIGHT_SIDE_SEQ_COLUMN);
+
+    // Frame filter
+    RexNode frameFilter;
+    if (node.isCurrent()) {
+      RexNode lower =
+          context.relBuilder.call(
+              SqlStdOperatorTable.MINUS, leftSeq, context.relBuilder.literal(node.getWindow() - 1));
+      frameFilter = context.relBuilder.between(rightSeq, lower, leftSeq);
+    } else {
+      RexNode lower =
+          context.relBuilder.call(
+              SqlStdOperatorTable.MINUS, leftSeq, context.relBuilder.literal(node.getWindow()));
+      RexNode upper =
+          context.relBuilder.call(
+              SqlStdOperatorTable.MINUS, leftSeq, context.relBuilder.literal(1));
+      frameFilter = context.relBuilder.between(rightSeq, lower, upper);
+    }
+
+    // Group filter
+    List<RexNode> groupFilters = new ArrayList<>();
+    for (UnresolvedExpression groupExpr : groupList) {
+      String groupName = extractGroupFieldName(groupExpr);
+      RexNode leftGroup = context.relBuilder.field(2, 0, groupName);
+      RexNode rightGroup = context.relBuilder.field(2, 1, toRightSideFieldName(groupName));
+      RexNode equalCondition = context.relBuilder.equals(leftGroup, rightGroup);
+      if (node.isBucketNullable()) {
+        RexNode bothNull =
+            context.relBuilder.and(
+                context.relBuilder.isNull(leftGroup), context.relBuilder.isNull(rightGroup));
+        groupFilters.add(context.relBuilder.or(equalCondition, bothNull));
+      } else {
+        groupFilters.add(equalCondition);
+      }
+    }
+
+    RexNode joinCondition =
+        groupFilters.isEmpty()
+            ? frameFilter
+            : context.relBuilder.and(frameFilter, context.relBuilder.and(groupFilters));
+    context.relBuilder.join(JoinRelType.LEFT, joinCondition);
+
+    // After join: [left_fields(0..leftFieldCount-1), right_fields(leftFieldCount..)]
+    // Aggregate: group by all left fields, compute AGG on right fields
+    // The aggregate functions need to reference the right-side fields in the joined row
+
+    // Build aggregate calls using the right-side field references
+    List<AggCall> aggCalls = buildAggCallsFromJoinedRight(node.getWindowFunctionList(), context);
+
+    RelBuilder.GroupKey groupKey =
+        context.relBuilder.groupKey(
+            IntStream.range(0, leftFieldCount).mapToObj(context.relBuilder::field).toList());
+
+    context.relBuilder.aggregate(groupKey, aggCalls);
+
+    // Resort by the sequence column
+    context.relBuilder.sort(context.relBuilder.field(seqCol));
+
+    // Cleanup helper columns
+    List<RexNode> cleanup = new ArrayList<>();
+    for (String c : helperColsToCleanup) {
+      cleanup.add(context.relBuilder.field(c));
+    }
+    context.relBuilder.projectExcept(cleanup);
+    return context.relBuilder.peek();
+  }
+
+  /** Collect field names referenced by an expression tree. */
+  private void collectFieldNames(UnresolvedExpression expr, Set<String> fieldNames) {
+    if (expr instanceof Field f) {
+      fieldNames.add(f.getField().toString());
+    } else if (expr instanceof Alias a) {
+      collectFieldNames(a.getDelegated(), fieldNames);
+    } else if (expr instanceof WindowFunction wf) {
+      collectFieldNames(wf.getFunction(), fieldNames);
+    } else if (expr instanceof Function func) {
+      for (UnresolvedExpression arg : func.getFuncArgs()) {
+        collectFieldNames(arg, fieldNames);
+      }
+    }
+  }
+
+  /**
+   * Build AggCall list for the self-join plan. The aggregate functions reference fields from the
+   * right side of the join, which carry the {@code __r_<name>__} prefix applied during right-side
+   * projection. This method rewrites the window function's field references to those prefixed
+   * names, unwraps the {@link WindowFunction} to its inner {@link Function}, and then delegates to
+   * the shared {@link #aggVisitor} so the self-join path reuses the same aggregate-resolution logic
+   * as regular {@code stats}/{@code eventstats} aggregations.
+   */
+  private List<AggCall> buildAggCallsFromJoinedRight(
+      List<UnresolvedExpression> windowFunctionList, CalcitePlanContext context) {
+    List<AggCall> aggCalls = new ArrayList<>();
+    for (UnresolvedExpression wfExpr : windowFunctionList) {
+      UnresolvedExpression rewritten = rewriteWindowFunctionForSelfJoin(wfExpr);
+      aggCalls.add(aggVisitor.analyze(rewritten, context));
+    }
+    return aggCalls;
+  }
+
+  /**
+   * Rewrites a streamstats window function expression so that {@link #aggVisitor} can resolve it
+   * against the joined row type, where right-side fields carry the {@code __r_<name>__} prefix:
+   *
+   * <ul>
+   *   <li>Unwraps {@link WindowFunction} to expose its inner {@link Function} (the aggregate).
+   *   <li>Preserves the outer {@link Alias} so the aggregate output keeps its user-visible name.
+   *   <li>Renames every {@link QualifiedName} / {@link Field} reference inside the function body to
+   *       the prefixed right-side column name.
+   * </ul>
+   */
+  private UnresolvedExpression rewriteWindowFunctionForSelfJoin(UnresolvedExpression expr) {
+    if (expr instanceof Alias a) {
+      return new Alias(a.getName(), rewriteWindowFunctionForSelfJoin(a.getDelegated()));
+    }
+    if (expr instanceof WindowFunction wf) {
+      return rewriteWindowFunctionForSelfJoin(wf.getFunction());
+    }
+    if (expr instanceof Function func) {
+      List<UnresolvedExpression> rewrittenArgs =
+          func.getFuncArgs().stream().map(this::rewriteFieldNamesToRightSide).toList();
+      return new Function(func.getFuncName(), rewrittenArgs);
+    }
+    return expr;
+  }
+
+  /**
+   * Recursively renames field references within an aggregate argument to their right-side alias.
+   */
+  private UnresolvedExpression rewriteFieldNamesToRightSide(UnresolvedExpression expr) {
+    if (expr instanceof Field f && f.getField() instanceof QualifiedName qn) {
+      return new Field(toRightSideQualifiedName(qn), f.getFieldArgs());
+    }
+    if (expr instanceof QualifiedName qn) {
+      return toRightSideQualifiedName(qn);
+    }
+    if (expr instanceof Alias a) {
+      return new Alias(a.getName(), rewriteFieldNamesToRightSide(a.getDelegated()));
+    }
+    if (expr instanceof Function func) {
+      List<UnresolvedExpression> rewrittenArgs =
+          func.getFuncArgs().stream().map(this::rewriteFieldNamesToRightSide).toList();
+      return new Function(func.getFuncName(), rewrittenArgs);
+    }
+    return expr;
+  }
+
+  private static QualifiedName toRightSideQualifiedName(QualifiedName original) {
+    return new QualifiedName(toRightSideFieldName(original.toString()));
+  }
+
+  private static String toRightSideFieldName(String originalName) {
+    return RIGHT_SIDE_FIELD_PREFIX + originalName + RIGHT_SIDE_FIELD_SUFFIX;
   }
 
   private RelNode buildResetHelperColumns(CalcitePlanContext context, StreamWindow node) {

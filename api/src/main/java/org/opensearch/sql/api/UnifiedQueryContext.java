@@ -17,22 +17,20 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.opensearch.sql.api.parser.CalciteSqlQueryParser;
 import org.opensearch.sql.api.parser.PPLQueryParser;
 import org.opensearch.sql.api.parser.UnifiedQueryParser;
-import org.opensearch.sql.api.spec.UnifiedFunctionSpec;
+import org.opensearch.sql.api.spec.LanguageSpec;
+import org.opensearch.sql.api.spec.UnifiedPplSpec;
+import org.opensearch.sql.api.spec.UnifiedSqlSpec;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.common.setting.Settings;
@@ -59,6 +57,9 @@ public class UnifiedQueryContext implements AutoCloseable {
 
   /** Query parser created eagerly from this context's configuration. */
   private final UnifiedQueryParser<?> parser;
+
+  /** Language spec for the query's frontend (SQL or PPL). */
+  private final LanguageSpec langSpec;
 
   /**
    * Returns the profiling result. Call after query execution to retrieve collected metrics. Returns
@@ -208,12 +209,18 @@ public class UnifiedQueryContext implements AutoCloseable {
     public UnifiedQueryContext build() {
       Objects.requireNonNull(queryType, "Must specify language before build");
 
+      LanguageSpec langSpec =
+          switch (queryType) {
+            case SQL -> UnifiedSqlSpec.extended();
+            case PPL -> UnifiedPplSpec.create();
+          };
       Settings settings = buildSettings();
       CalcitePlanContext planContext =
           CalcitePlanContext.create(
-              buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+              buildFrameworkConfig(langSpec), SysLimit.fromSettings(settings), queryType);
       QueryProfiling.activate(profiling);
-      return new UnifiedQueryContext(planContext, settings, createParser(planContext, settings));
+      return new UnifiedQueryContext(
+          planContext, settings, createParser(planContext, settings), langSpec);
     }
 
     private UnifiedQueryParser<?> createParser(CalcitePlanContext planContext, Settings settings) {
@@ -239,25 +246,22 @@ public class UnifiedQueryContext implements AutoCloseable {
     }
 
     @SuppressWarnings({"rawtypes"})
-    private FrameworkConfig buildFrameworkConfig() {
+    private FrameworkConfig buildFrameworkConfig(LanguageSpec langSpec) {
       SchemaPlus rootSchema = CalciteSchema.createRootSchema(true, cacheMetadata).plus();
       catalogs.forEach(rootSchema::add);
 
       SchemaPlus defaultSchema = findSchemaByPath(rootSchema, defaultNamespace);
-      return Frameworks.newConfigBuilder()
-          .parserConfig(buildParserConfig())
-          .operatorTable(
-              SqlOperatorTables.chain(
-                  SqlStdOperatorTable.instance(), UnifiedFunctionSpec.RELEVANCE.operatorTable()))
-          .defaultSchema(defaultSchema)
-          .traitDefs((List<RelTraitDef>) null)
-          .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
-          .build();
-    }
+      Frameworks.ConfigBuilder builder =
+          Frameworks.newConfigBuilder()
+              .defaultSchema(defaultSchema)
+              .traitDefs((List<RelTraitDef>) null)
+              .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE));
 
-    private SqlParser.Config buildParserConfig() {
-      // Preserve identifier case for lowercase OpenSearch index names
-      return SqlParser.Config.DEFAULT.withUnquotedCasing(Casing.UNCHANGED);
+      return builder
+          .parserConfig(langSpec.parserConfig())
+          .sqlValidatorConfig(langSpec.validatorConfig())
+          .operatorTable(langSpec.operatorTable())
+          .build();
     }
 
     private SchemaPlus findSchemaByPath(SchemaPlus rootSchema, String defaultPath) {

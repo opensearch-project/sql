@@ -16,9 +16,9 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
-import org.opensearch.sql.api.parser.NamedArgRewriter;
 import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
@@ -87,7 +87,12 @@ public class UnifiedQueryPlanner {
               "Only query statements are supported. Got: " + parsed.getKind());
         }
 
-        SqlNode rewritten = parsed.accept(NamedArgRewriter.INSTANCE);
+        // TODO: move post-parse rewriting into CalciteSqlQueryParser
+        SqlNode rewritten = parsed;
+        for (SqlVisitor<SqlNode> visitor : context.getLangSpec().postParseRules()) {
+          rewritten = rewritten.accept(visitor);
+        }
+
         SqlNode validated = planner.validate(rewritten);
         RelRoot relRoot = planner.rel(validated);
         return relRoot.project();
