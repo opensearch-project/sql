@@ -81,6 +81,9 @@ bundlePlugin {
     exclude 'jackson-annotations-*.jar'
     exclude 'jackson-databind-*.jar'
     exclude 'httpcore5-5*.jar'
+    exclude 'httpcore5-h2-*.jar'
+    exclude 'httpcore5-reactive-*.jar'
+    exclude 'httpclient5-*.jar'
     exclude 'commons-text-*.jar'
     // Calcite transitive deps now bundled in analytics-engine 3.7 — exclude from sql to avoid jar hell.
     exclude 'commons-math3-*.jar'
