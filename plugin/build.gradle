@@ -55,53 +55,21 @@ opensearchplugin {
     name 'opensearch-sql'
     description 'OpenSearch SQL'
     classname 'org.opensearch.sql.plugin.SQLPlugin'
-    extendedPlugins = ['opensearch-job-scheduler', 'analytics-engine']
+    extendedPlugins = ['opensearch-job-scheduler', 'analytics-engine;optional=true']
     licenseFile rootProject.file("LICENSE.txt")
     noticeFile rootProject.file("NOTICE")
 }
 
-// Exclude jars provided by the analytics-engine plugin (shared via extendedPlugins classloader).
-// MUST match what's actually in the analytics-engine ZIP to avoid both jar hell (when analytics-engine
-// ships it) and ClassNotFoundException at runtime (when it doesn't). Last verified against
-// analytics-engine-3.7.0-SNAPSHOT — keep this list aligned when bumping versions.
-bundlePlugin {
-    exclude 'calcite-core-*.jar'
-    exclude 'calcite-linq4j-*.jar'
-    exclude 'avatica-core-*.jar'
-    exclude 'guava-*.jar'
-    exclude 'failureaccess-*.jar'
-    exclude 'slf4j-api-*.jar'
-    exclude 'commons-codec-*.jar'
-    exclude 'commons-compiler-*.jar'
-    exclude 'commons-io-*.jar'
-    exclude 'commons-lang3-*.jar'
-    exclude 'janino-*.jar'
-    exclude 'joou-java-6-*.jar'
-    exclude 'json-path-*.jar'
-    exclude 'jackson-annotations-*.jar'
-    exclude 'jackson-databind-*.jar'
-    exclude 'httpcore5-5*.jar'
-    // TODO: Remove the three httpcore5/httpclient5 exclusions below — and ideally this entire
-    // bundlePlugin exclusion block — once analytics-engine becomes an optional dependency via the
-    // AnalyticsFrontEndExtension SPI (opensearch-project/OpenSearch#21449). The shared-classloader
-    // jar deduplication that requires this hand-maintained list goes away with the SPI.
-    exclude 'httpcore5-h2-*.jar'
-    exclude 'httpcore5-reactive-*.jar'
-    exclude 'httpclient5-*.jar'
-    exclude 'commons-text-*.jar'
-    // Calcite transitive deps now bundled in analytics-engine 3.7 — exclude from sql to avoid jar hell.
-    exclude 'commons-math3-*.jar'
-    exclude 'commons-dbcp2-*.jar'
-    exclude 'commons-pool2-*.jar'
-    exclude 'uzaygezen-core-*.jar'
-    exclude 'sketches-core-*.jar'
-    exclude 'memory-0*.jar'
-    exclude 'jts-io-common-*.jar'
-    exclude 'proj4j-*.jar'
-    exclude 'json-smart-*.jar'
-    exclude 'accessors-smart-*.jar'
-    exclude 'asm-9*.jar'
-}
+// SQL bundles its own copies of all transitive deps (Calcite, Guava, etc.) so the plugin can
+// boot and serve queries when analytics-engine is not installed. With ';optional=true',
+// PluginsService.checkBundleJarHell skips both URL-overlap and class-level checks against
+// analytics-engine (server/.../PluginsService.java:763-765), so duplicate bundling is safe.
+//
+// At runtime: when analytics-engine IS installed, parent-first classloader delegation gives
+// SQL analytics-engine's patched Calcite (CALCITE-3745) and shared deps; SQL's own bundled
+// copies are shadowed. When analytics-engine is absent, SQL falls back to its own bundled
+// copies — Janino's classloader story works because everything lives in SQL's classloader,
+// no parent visibility gap to bridge.
 
 publishing {
     publications {

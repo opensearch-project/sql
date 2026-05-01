@@ -23,7 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
-import org.opensearch.analytics.schema.OpenSearchSchemaBuilder;
+import org.opensearch.analytics.schema.SchemaProvider;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
@@ -59,14 +59,33 @@ public class RestUnifiedQueryAction {
   private final AnalyticsExecutionEngine analyticsEngine;
   private final NodeClient client;
   private final ClusterService clusterService;
+  private final SchemaProvider schemaProvider;
 
   public RestUnifiedQueryAction(
       NodeClient client,
       ClusterService clusterService,
-      QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor) {
+      QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor,
+      SchemaProvider schemaProvider) {
     this.client = client;
     this.clusterService = clusterService;
     this.analyticsEngine = new AnalyticsExecutionEngine(planExecutor);
+    this.schemaProvider = schemaProvider;
+  }
+
+  /**
+   * Construct from holder-stashed services typed as {@link Object} so callers don't take a
+   * compile-time reference on analytics-framework. The cast is confined to this method — invoking
+   * it loads the analytics-framework types for the first time, and the caller must gate on a
+   * non-null executor (i.e. analytics-engine is installed).
+   */
+  @SuppressWarnings("unchecked")
+  public static RestUnifiedQueryAction fromUnknownExecutor(
+      NodeClient client, ClusterService clusterService, Object executor, Object schemaProvider) {
+    return new RestUnifiedQueryAction(
+        client,
+        clusterService,
+        (QueryPlanExecutor<RelNode, Iterable<Object[]>>) executor,
+        (SchemaProvider) schemaProvider);
   }
 
   /**
@@ -161,7 +180,7 @@ public class RestUnifiedQueryAction {
   private UnifiedQueryContext buildContext(QueryType queryType, boolean profiling) {
     return UnifiedQueryContext.builder()
         .language(queryType)
-        .catalog(SCHEMA_NAME, OpenSearchSchemaBuilder.buildSchema(clusterService.state()))
+        .catalog(SCHEMA_NAME, schemaProvider.buildSchema(clusterService.state()))
         .defaultNamespace(SCHEMA_NAME)
         .profiling(profiling)
         .build();

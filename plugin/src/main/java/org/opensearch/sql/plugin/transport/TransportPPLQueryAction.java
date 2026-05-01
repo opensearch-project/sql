@@ -13,11 +13,9 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.apache.calcite.rel.RelNode;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
-import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Inject;
@@ -62,7 +60,16 @@ public class TransportPPLQueryAction
 
   private final Supplier<Boolean> pplEnabled;
 
-  private final RestUnifiedQueryAction unifiedQueryHandler;
+  private final NodeClient client;
+
+  private final ClusterService clusterService;
+
+  /**
+   * Lazily-resolved analytics handler. {@code null} until the first analytics-routed request, and
+   * remains {@code null} forever if analytics-engine is not installed (the SPI never fires, so
+   * {@link AnalyticsExecutorHolder#getQueryPlanExecutor()} stays null).
+   */
+  private volatile RestUnifiedQueryAction unifiedQueryHandler;
 
   /** Constructor of TransportPPLQueryAction. */
   @Inject
@@ -72,9 +79,11 @@ public class TransportPPLQueryAction
       NodeClient client,
       ClusterService clusterService,
       DataSourceServiceImpl dataSourceService,
-      org.opensearch.common.settings.Settings clusterSettings,
-      QueryPlanExecutor<RelNode, Iterable<Object[]>> queryPlanExecutor) {
+      org.opensearch.common.settings.Settings clusterSettings) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
+
+    this.client = client;
+    this.clusterService = clusterService;
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule());
@@ -86,9 +95,6 @@ public class TransportPPLQueryAction
           b.bind(DataSourceService.class).toInstance(dataSourceService);
         });
     this.injector = Guice.createInjector(modules);
-    AnalyticsExecutorHolder.set(queryPlanExecutor);
-    this.unifiedQueryHandler =
-        new RestUnifiedQueryAction(client, clusterService, queryPlanExecutor);
     this.pplEnabled =
         () ->
             MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)
@@ -96,6 +102,31 @@ public class TransportPPLQueryAction
                     injector
                         .getInstance(org.opensearch.sql.common.setting.Settings.class)
                         .getSettingValue(Settings.Key.PPL_ENABLED);
+  }
+
+  /**
+   * Resolves the analytics-engine-backed handler lazily. Returns {@code null} when analytics-engine
+   * is not installed; callers fall through to the legacy PPL pipeline. Synchronized double-checked
+   * cache so we only build the handler once on the first analytics request.
+   */
+  private RestUnifiedQueryAction analyticsHandler() {
+    RestUnifiedQueryAction cached = unifiedQueryHandler;
+    if (cached != null) {
+      return cached;
+    }
+    Object executor = AnalyticsExecutorHolder.getQueryPlanExecutor();
+    Object schemaProvider = AnalyticsExecutorHolder.getSchemaProvider();
+    if (executor == null || schemaProvider == null) {
+      return null;
+    }
+    synchronized (this) {
+      if (unifiedQueryHandler == null) {
+        unifiedQueryHandler =
+            RestUnifiedQueryAction.fromUnknownExecutor(
+                client, clusterService, executor, schemaProvider);
+      }
+      return unifiedQueryHandler;
+    }
   }
 
   /**
@@ -134,16 +165,20 @@ public class TransportPPLQueryAction
     QueryContext.setProfile(transformedRequest.profile());
     ActionListener<TransportPPLQueryResponse> clearingListener = wrapWithProfilingClear(listener);
 
-    // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices
-    if (unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
+    // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
+    // analyticsHandler() returns null when analytics-engine isn't installed — we fall through
+    // to the regular Lucene PPL path so non-analytics queries still work.
+    RestUnifiedQueryAction analytics = analyticsHandler();
+    if (analytics != null
+        && analytics.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
       if (transformedRequest.isExplainRequest()) {
-        unifiedQueryHandler.explain(
+        analytics.explain(
             transformedRequest.getRequest(),
             QueryType.PPL,
             transformedRequest.mode(),
             createExplainResponseListener(transformedRequest, clearingListener));
       } else {
-        unifiedQueryHandler.execute(
+        analytics.execute(
             transformedRequest.getRequest(),
             QueryType.PPL,
             transformedRequest.profile(),

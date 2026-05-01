@@ -5,32 +5,48 @@
 
 package org.opensearch.sql.plugin.rest;
 
-import org.apache.calcite.rel.RelNode;
-import org.opensearch.analytics.exec.QueryPlanExecutor;
-
 /**
- * Bridge for sharing the analytics-engine {@link QueryPlanExecutor} between the PPL transport
- * action (where Guice resolves the binding via {@code @Inject}) and the REST-only SQL router (where
- * Guice cannot, because {@code SQLPlugin#getRestHandlers} runs before the Node-level injector
- * satisfies {@code @Inject} parameters).
+ * Static bridge that lets {@code SQLAnalyticsFrontEndExtension} (the SPI consumer) hand off the
+ * analytics-engine services to the SQL request paths that need them.
  *
- * <p>Why a static holder: cross-plugin Guice injection needs a class registered in the Node
- * injector, and {@link org.opensearch.sql.plugin.SQLPlugin}'s SQL routing path is built in {@code
- * getRestHandlers} — outside any Guice-managed lifecycle. Persisting the executor in this holder
- * once {@link org.opensearch.sql.plugin.transport.TransportPPLQueryAction} is constructed lets the
- * SQL router read the same instance without going back through the injector.
+ * <p>Stored as {@link Object} on purpose. Callers cast at use sites that are already gated on a
+ * non-null value, ensuring no analytics-framework class is referenced from any signature loaded at
+ * SQL plugin startup. When analytics-engine is not installed, the SPI never fires, the holder stays
+ * null, and {@code TransportPPLQueryAction} / {@code SQLPlugin#createSqlAnalyticsRouter} fall
+ * through to the legacy paths without ever touching analytics-framework types.
  */
 public final class AnalyticsExecutorHolder {
 
-  private static volatile QueryPlanExecutor<RelNode, Iterable<Object[]>> executor;
+  private static volatile Object queryPlanExecutor;
+  private static volatile Object schemaProvider;
 
   private AnalyticsExecutorHolder() {}
 
-  public static void set(QueryPlanExecutor<RelNode, Iterable<Object[]>> instance) {
-    executor = instance;
+  /**
+   * Set both services in one call. Invoked by {@code SQLAnalyticsFrontEndExtension} from the SPI
+   * push lifecycle. Either argument may be {@code null} (not expected today, but tolerated).
+   */
+  public static void set(Object queryPlanExecutor, Object schemaProvider) {
+    AnalyticsExecutorHolder.queryPlanExecutor = queryPlanExecutor;
+    AnalyticsExecutorHolder.schemaProvider = schemaProvider;
   }
 
-  public static QueryPlanExecutor<RelNode, Iterable<Object[]>> get() {
-    return executor;
+  /**
+   * Returns the analytics-engine query plan executor as {@link Object}. Returns {@code null} when
+   * analytics-engine is not installed (SPI never fired). Callers cast to {@code
+   * QueryPlanExecutor<RelNode, Iterable<Object[]>>} only inside code paths that are gated on a
+   * non-null return value — see {@code RestUnifiedQueryAction#fromUnknownExecutor}.
+   */
+  public static Object getQueryPlanExecutor() {
+    return queryPlanExecutor;
+  }
+
+  /**
+   * Returns the analytics-engine schema provider as {@link Object}. Returns {@code null} when
+   * analytics-engine is not installed. Callers cast to {@code SchemaProvider} only inside code
+   * paths that are gated on a non-null return value.
+   */
+  public static Object getSchemaProvider() {
+    return schemaProvider;
   }
 }

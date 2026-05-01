@@ -204,11 +204,14 @@ public class SQLPlugin extends Plugin
     java.util.function.Supplier<RestUnifiedQueryAction> handlerSupplier =
         () -> {
           if (cached[0] == null) {
-            var executor = AnalyticsExecutorHolder.get();
-            if (executor == null) {
+            Object executor = AnalyticsExecutorHolder.getQueryPlanExecutor();
+            Object schemaProvider = AnalyticsExecutorHolder.getSchemaProvider();
+            if (executor == null || schemaProvider == null) {
               return null;
             }
-            cached[0] = new RestUnifiedQueryAction(client, clusterService, executor);
+            cached[0] =
+                RestUnifiedQueryAction.fromUnknownExecutor(
+                    client, clusterService, executor, schemaProvider);
           }
           return cached[0];
         };
