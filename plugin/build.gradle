@@ -81,6 +81,10 @@ bundlePlugin {
     exclude 'jackson-annotations-*.jar'
     exclude 'jackson-databind-*.jar'
     exclude 'httpcore5-5*.jar'
+    // TODO: Remove the three httpcore5/httpclient5 exclusions below — and ideally this entire
+    // bundlePlugin exclusion block — once analytics-engine becomes an optional dependency via the
+    // AnalyticsFrontEndExtension SPI (opensearch-project/OpenSearch#21449). The shared-classloader
+    // jar deduplication that requires this hand-maintained list goes away with the SPI.
     exclude 'httpcore5-h2-*.jar'
     exclude 'httpcore5-reactive-*.jar'
     exclude 'httpclient5-*.jar'
