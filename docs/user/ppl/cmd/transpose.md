@@ -6,6 +6,7 @@ The `transpose` command outputs the requested number of rows as columns, convert
 
 The `transpose` command has the following syntax:
 
+```
 transpose [int] [column_name=<string>]
 
 ## Parameters
