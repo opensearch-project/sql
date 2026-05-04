@@ -41,11 +41,11 @@ fetched rows / total rows = 5/5
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
-| DEBUG        | cart                             |
-| ERROR        | payment                          |
-| WARN         | product-catalog                  |
-| INFO         | cart                             |
 | INFO         | frontend                         |
+| INFO         | cart                             |
+| WARN         | product-catalog                  |
+| ERROR        | payment                          |
+| DEBUG        | cart                             |
 +--------------+----------------------------------+
 ```
 
@@ -144,12 +144,12 @@ fetched rows / total rows = 7/7
 +--------------+----------------------------------+
 | severityText | resource.attributes.service.name |
 |--------------+----------------------------------|
+| ERROR        | payment                          |
 | ERROR        | checkout                         |
-| ERROR        | product-catalog                  |
-| ERROR        | recommendation                   |
+| ERROR        | payment                          |
 | ERROR        | frontend-proxy                   |
-| ERROR        | payment                          |
+| ERROR        | recommendation                   |
+| ERROR        | product-catalog                  |
 | ERROR        | checkout                         |
-| ERROR        | payment                          |
 +--------------+----------------------------------+
 ```
