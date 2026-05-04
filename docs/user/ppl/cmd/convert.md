@@ -82,19 +82,22 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
-+---------+
-| price   |
-|---------|
-| 1234.0  |
-+---------+
+fetched rows / total rows = 4/4
++--------+
+| price  |
+|--------|
+| 1234.0 |
+| 1234.0 |
+| 1234.0 |
+| 1234.0 |
++--------+
 ```
 
 ## Example 3: Converting a field containing memory units
 
 The following query converts memory size strings to kilobytes:
 
-```ppl
+```ppl ignore
 source=system_metrics
 | eval memory='100m'
 | convert memk(memory)
@@ -269,10 +272,13 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
+fetched rows / total rows = 4/4
 +---------------------+
 | timestamp           |
 |---------------------|
+| 10/18/2003 20:07:13 |
+| 10/18/2003 20:07:13 |
+| 10/18/2003 20:07:13 |
 | 10/18/2003 20:07:13 |
 +---------------------+
 ```
@@ -291,11 +297,14 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
+fetched rows / total rows = 4/4
 +--------------+
 | date_str     |
 |--------------|
-| 1.066507633E9|
+| 1066507633.0 |
+| 1066507633.0 |
+| 1066507633.0 |
+| 1066507633.0 |
 +--------------+
 ```
 
@@ -313,10 +322,13 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
+fetched rows / total rows = 4/4
 +---------------------+
 | timestamp           |
 |---------------------|
+| 2003-10-18 20:07:13 |
+| 2003-10-18 20:07:13 |
+| 2003-10-18 20:07:13 |
 | 2003-10-18 20:07:13 |
 +---------------------+
 ```
@@ -333,12 +345,15 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
-+------------+
-| date_str   |
-|------------|
-| 9.466848E8 |
-+------------+
+fetched rows / total rows = 4/4
++-------------+
+| date_str    |
+|-------------|
+| 946684800.0 |
+| 946684800.0 |
+| 946684800.0 |
+| 946684800.0 |
++-------------+
 ```
 
 ## Example 12: Converting duration to seconds with dur2sec()
@@ -355,10 +370,13 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
+fetched rows / total rows = 4/4
 +----------+
 | duration |
 |----------|
+| 5025.0   |
+| 5025.0   |
+| 5025.0   |
 | 5025.0   |
 +----------+
 ```
@@ -377,10 +395,13 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
+fetched rows / total rows = 4/4
 +----------+
 | time_str |
 |----------|
+| 225.5    |
+| 225.5    |
+| 225.5    |
 | 225.5    |
 +----------+
 ```
