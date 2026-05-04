@@ -62,9 +62,12 @@ public class TransportPPLQueryAction
 
   private final Supplier<Boolean> pplEnabled;
 
-  private final RestUnifiedQueryAction unifiedQueryHandler;
+  /** Null when analytics-engine plugin is absent; set via {@link #setQueryPlanExecutor}. */
+  private volatile RestUnifiedQueryAction unifiedQueryHandler;
 
-  /** Constructor of TransportPPLQueryAction. */
+  private final NodeClient clientRef;
+  private final ClusterService clusterServiceRef;
+
   @Inject
   public TransportPPLQueryAction(
       TransportService transportService,
@@ -72,9 +75,10 @@ public class TransportPPLQueryAction
       NodeClient client,
       ClusterService clusterService,
       DataSourceServiceImpl dataSourceService,
-      org.opensearch.common.settings.Settings clusterSettings,
-      QueryPlanExecutor<RelNode, Iterable<Object[]>> queryPlanExecutor) {
+      org.opensearch.common.settings.Settings clusterSettings) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
+    this.clientRef = client;
+    this.clusterServiceRef = clusterService;
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule());
@@ -86,9 +90,6 @@ public class TransportPPLQueryAction
           b.bind(DataSourceService.class).toInstance(dataSourceService);
         });
     this.injector = Guice.createInjector(modules);
-    AnalyticsExecutorHolder.set(queryPlanExecutor);
-    this.unifiedQueryHandler =
-        new RestUnifiedQueryAction(client, clusterService, queryPlanExecutor);
     this.pplEnabled =
         () ->
             MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)
@@ -96,6 +97,15 @@ public class TransportPPLQueryAction
                     injector
                         .getInstance(org.opensearch.sql.common.setting.Settings.class)
                         .getSettingValue(Settings.Key.PPL_ENABLED);
+  }
+
+  /** Invoked by Guice iff analytics-engine bound {@code QueryPlanExecutor}. */
+  @Inject(optional = true)
+  public void setQueryPlanExecutor(
+      QueryPlanExecutor<RelNode, Iterable<Object[]>> queryPlanExecutor) {
+    AnalyticsExecutorHolder.set(queryPlanExecutor);
+    this.unifiedQueryHandler =
+        new RestUnifiedQueryAction(clientRef, clusterServiceRef, queryPlanExecutor);
   }
 
   /**
@@ -134,8 +144,9 @@ public class TransportPPLQueryAction
     QueryContext.setProfile(transformedRequest.profile());
     ActionListener<TransportPPLQueryResponse> clearingListener = wrapWithProfilingClear(listener);
 
-    // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices
-    if (unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
+    // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
+    if (unifiedQueryHandler != null
+        && unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
       if (transformedRequest.isExplainRequest()) {
         unifiedQueryHandler.explain(
             transformedRequest.getRequest(),
