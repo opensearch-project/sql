@@ -16,17 +16,23 @@ public class SelectStarSuggestionProvider implements SyntaxErrorSuggestionProvid
       return List.of();
     }
 
+    // Only suggest PPL syntax when the error originated from the PPL parser.
+    if (context.getRecognizer() == null
+        || !context.getRecognizer().getGrammarFileName().contains("PPL")) {
+      return List.of();
+    }
+
     // Check if this looks like SQL syntax in PPL context
     String remaining = context.getRemainingQuery();
     if (remaining.matches("(?i)^\\s*\\*\\s+from\\s+.*")) {
-      return List.of(
-          "PPL uses 'source=index | fields *' instead of 'SELECT * FROM index'");
+      return List.of("PPL uses 'source=index | fields *' instead of 'SELECT * FROM index'");
     }
 
     // Also catch other SELECT patterns
     if (remaining.matches("(?i)^\\s+.*\\s+from\\s+.*")) {
       return List.of(
-          "PPL uses 'source=index | fields field1, field2' instead of 'SELECT field1, field2 FROM index'");
+          "PPL uses 'source=index | fields field1, field2' instead of 'SELECT field1, field2 FROM"
+              + " index'");
     }
 
     return List.of();

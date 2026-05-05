@@ -79,19 +79,6 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     if (!customSuggestions.isEmpty()) {
       // Use the first suggestion from the registry
       reportBuilder.suggestion(customSuggestions.get(0));
-    } else if (e != null) {
-      // Fall back to expected tokens as suggestion if no pattern matches
-      IntervalSet possibleContinuations = e.getExpectedTokens();
-      List<String> suggestions = topSuggestions(recognizer, possibleContinuations);
-      if (!suggestions.isEmpty()) {
-        String suggestionText =
-            possibleContinuations.size() > SUGGESTION_TRUNCATION_THRESHOLD
-                ? String.format(
-                    "Expected one of %d possible tokens. Examples: %s",
-                    possibleContinuations.size(), String.join(", ", suggestions))
-                : "Expected tokens: " + String.join(", ", suggestions);
-        reportBuilder.suggestion(suggestionText);
-      }
     }
 
     throw reportBuilder.build();
