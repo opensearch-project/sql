@@ -15,6 +15,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteEvalCommandIT extends PPLIntegTestCase {
@@ -26,23 +27,46 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
 
     loadIndex(Index.BANK);
 
-    // Create test data for string concatenation
-    Request request1 = new Request("PUT", "/test_eval/_doc/1?refresh=true");
-    request1.setJsonEntity("{\"name\": \"Alice\", \"age\": 25, \"title\": \"Engineer\"}");
-    client().performRequest(request1);
+    // Pre-create test_eval through the helper so the analytics-engine compatibility run
+    // (tests.analytics.parquet_indices=true) provisions it as a parquet-backed composite
+    // index. Plain auto-mapping via the doc PUTs would create a Lucene-backed index, which
+    // the analytics-engine planner cannot scan ("No backend can scan all requested fields").
+    // Explicit mapping pins types so both v2 (verifySchema "string"/"bigint") and analytics
+    // paths see the same shape regardless of dynamic-mapping behavior on the parquet engine.
+    // Guarded by isIndexExist for idempotency — init() runs before each @Test method.
+    if (!TestUtils.isIndexExist(client(), "test_eval")) {
+      String testEvalMapping =
+          "{\"mappings\":{\"properties\":{"
+              + "\"name\":{\"type\":\"keyword\"},"
+              + "\"age\":{\"type\":\"long\"},"
+              + "\"title\":{\"type\":\"keyword\"}}}}";
+      TestUtils.createIndexByRestClient(client(), "test_eval", testEvalMapping);
 
-    Request request2 = new Request("PUT", "/test_eval/_doc/2?refresh=true");
-    request2.setJsonEntity("{\"name\": \"Bob\", \"age\": 30, \"title\": \"Manager\"}");
-    client().performRequest(request2);
+      // Create test data for string concatenation
+      Request request1 = new Request("PUT", "/test_eval/_doc/1?refresh=true");
+      request1.setJsonEntity("{\"name\": \"Alice\", \"age\": 25, \"title\": \"Engineer\"}");
+      client().performRequest(request1);
 
-    Request request3 = new Request("PUT", "/test_eval/_doc/3?refresh=true");
-    request3.setJsonEntity("{\"name\": \"Charlie\", \"age\": null, \"title\": \"Analyst\"}");
-    client().performRequest(request3);
+      Request request2 = new Request("PUT", "/test_eval/_doc/2?refresh=true");
+      request2.setJsonEntity("{\"name\": \"Bob\", \"age\": 30, \"title\": \"Manager\"}");
+      client().performRequest(request2);
+
+      Request request3 = new Request("PUT", "/test_eval/_doc/3?refresh=true");
+      request3.setJsonEntity("{\"name\": \"Charlie\", \"age\": null, \"title\": \"Analyst\"}");
+      client().performRequest(request3);
+    }
   }
 
   @Test
   public void testEvalStringConcatenation() throws IOException {
-    JSONObject result = executeQuery("source=test_eval | eval greeting = 'Hello ' + name");
+    // Pin the projection so column order is deterministic across execution paths — the
+    // analytics-engine route reads parquet schema in storage order, which can differ from the
+    // v2 / Lucene path's _source-iteration order. Adding an explicit | fields makes the test
+    // a strict assertion on the eval expression rather than a coincidence of projection order.
+    JSONObject result =
+        executeQuery(
+            "source=test_eval | eval greeting = 'Hello ' + name | fields name, title, age,"
+                + " greeting");
     verifySchema(
         result,
         schema("name", "string"),
