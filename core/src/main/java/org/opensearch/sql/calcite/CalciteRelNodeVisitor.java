@@ -495,7 +495,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     AllFields allFields = (AllFields) node.getProjectList().getFirst();
 
     if (allFields instanceof AllFieldsExcludeMeta) {
-      // Do NOT remove nested fields for AllFieldsExcludeMeta
+      // For AllFieldsExcludeMeta (include_metadata=false), remove nested fields and force exclude
+      // metadata
+      tryToRemoveNestedFields(context);
       tryToRemoveMetaFields(context, true); // Force exclude metadata fields
     } else {
       // For AllFields (include_metadata=true), include metadata fields

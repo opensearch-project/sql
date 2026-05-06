@@ -325,3 +325,138 @@ Expected output (trimmed):
   "rulesToVisit": [200, 201, "..."]
 }
 ```
+
+## Include Metadata
+
+### Description
+
+You can add an `include_metadata` parameter to the PPL request URL to control whether metadata fields (such as `_id`, `_index`, `_score`, etc.) are included in wildcard field selections. This parameter only affects implicit field selections using `fields *` and does not impact explicit field selections.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `include_metadata` | boolean | `false` | When `true`, metadata fields are included in wildcard field selections (`fields *`). When `false` (default), metadata fields are excluded from wildcard selections. |
+
+### Behavior
+
+- **Default behavior (`include_metadata=false`)**: Wildcard field selections (`fields *`) exclude metadata fields like `_id`, `_index`, `_score`, etc.
+- **With `include_metadata=true`**: Wildcard field selections include both regular data fields and metadata fields.
+- **Explicit field selection**: The parameter does not affect explicit field selections. If you explicitly specify `fields _id, firstname`, the `_id` field will be included regardless of the `include_metadata` setting.
+- **Aggregations**: The parameter does not affect aggregation results, which never include metadata fields.
+
+### Example 1: Default behavior (exclude metadata)
+
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+-X POST localhost:9200/_plugins/_ppl \
+-d '{"query" : "source=accounts | fields * | head 1"}'
+```
+
+Expected output (metadata fields excluded):
+
+```json
+{
+  "schema": [
+    {"name": "account_number", "type": "long"},
+    {"name": "firstname", "type": "string"},
+    {"name": "lastname", "type": "string"},
+    {"name": "age", "type": "long"},
+    {"name": "gender", "type": "string"},
+    {"name": "address", "type": "string"},
+    {"name": "employer", "type": "string"},
+    {"name": "email", "type": "string"},
+    {"name": "city", "type": "string"},
+    {"name": "state", "type": "string"}
+  ],
+  "datarows": [
+    [1, "Amber", "Duke", 32, "M", "880 Holmes Lane", "Pyrami", "amberduke@pyrami.com", "Brogan", "IL"]
+  ]
+}
+```
+
+### Example 2: Include metadata fields
+
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+-X POST localhost:9200/_plugins/_ppl?include_metadata=true \
+-d '{"query" : "source=accounts | fields * | head 1"}'
+```
+
+Expected output (metadata fields included):
+
+```json
+{
+  "schema": [
+    {"name": "account_number", "type": "long"},
+    {"name": "firstname", "type": "string"},
+    {"name": "lastname", "type": "string"},
+    {"name": "age", "type": "long"},
+    {"name": "gender", "type": "string"},
+    {"name": "address", "type": "string"},
+    {"name": "employer", "type": "string"},
+    {"name": "email", "type": "string"},
+    {"name": "city", "type": "string"},
+    {"name": "state", "type": "string"},
+    {"name": "_id", "type": "string"},
+    {"name": "_index", "type": "string"},
+    {"name": "_score", "type": "float"}
+  ],
+  "datarows": [
+    [1, "Amber", "Duke", 32, "M", "880 Holmes Lane", "Pyrami", "amberduke@pyrami.com", "Brogan", "IL", "1", "accounts", 1.0]
+  ]
+}
+```
+
+### Example 3: Explicit field selection (unaffected by include_metadata)
+
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+-X POST localhost:9200/_plugins/_ppl?include_metadata=true \
+-d '{"query" : "source=accounts | fields firstname, lastname | head 1"}'
+```
+
+Expected output (only explicitly selected fields):
+
+```json
+{
+  "schema": [
+    {"name": "firstname", "type": "string"},
+    {"name": "lastname", "type": "string"}
+  ],
+  "datarows": [
+    ["Amber", "Duke"]
+  ]
+}
+```
+
+### Example 4: Explicit metadata field selection
+
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+-X POST localhost:9200/_plugins/_ppl?include_metadata=false \
+-d '{"query" : "source=accounts | fields firstname, _id | head 1"}'
+```
+
+Expected output (explicitly selected metadata field included):
+
+```json
+{
+  "schema": [
+    {"name": "firstname", "type": "string"},
+    {"name": "_id", "type": "string"}
+  ],
+  "datarows": [
+    ["Amber", "1"]
+  ]
+}
+```
+
+### Notes
+
+- The `include_metadata` parameter only affects wildcard field selections (`fields *`). It does not impact explicit field selections.
+- Metadata fields include system fields like `_id`, `_index`, `_score`, `_type`, `_source`, etc.
+- When using search queries with scoring (e.g., `source=accounts "Holmes"`), the `_score` field becomes available and will be included when `include_metadata=true`.
+- Aggregation queries are not affected by this parameter, as they never include metadata fields in their results.
+- The parameter can be specified as a URL parameter (`?include_metadata=true`) or in the request body JSON.
+

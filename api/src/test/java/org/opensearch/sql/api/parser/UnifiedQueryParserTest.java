@@ -11,7 +11,6 @@ import static org.junit.Assert.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
-import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
@@ -27,6 +26,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 
 import org.junit.Test;
 import org.opensearch.sql.api.UnifiedQueryTestBase;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 

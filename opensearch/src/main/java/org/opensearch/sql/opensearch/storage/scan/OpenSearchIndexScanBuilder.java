@@ -45,8 +45,8 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
     this.scanFactory = scanFactory;
   }
 
-  /** Constructor used for unit tests. */
-  protected OpenSearchIndexScanBuilder(
+  /** Constructor that accepts a custom PushDownQueryBuilder delegate. */
+  public OpenSearchIndexScanBuilder(
       PushDownQueryBuilder translator,
       Function<OpenSearchRequestBuilder, OpenSearchIndexScan> scanFactory) {
     this.delegate = translator;

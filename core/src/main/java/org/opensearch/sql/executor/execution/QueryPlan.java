@@ -105,7 +105,12 @@ public class QueryPlan extends AbstractPlan {
   @Override
   public void execute() {
     if (pageSize.isPresent()) {
-      queryService.execute(new Paginate(pageSize.get(), plan), getQueryType(), highlightConfig, includeMetadata, listener);
+      queryService.execute(
+          new Paginate(pageSize.get(), plan),
+          getQueryType(),
+          highlightConfig,
+          includeMetadata,
+          listener);
     } else {
       queryService.execute(plan, getQueryType(), highlightConfig, includeMetadata, listener);
     }
