@@ -867,4 +867,110 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     verifySchema(actual, schema("result", "array"));
     verifyDataRows(actual, rows(List.of(10, 20, 30)));
   }
+
+  @Test
+  public void testArrayToCsvBasic() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('apple', 'banana', 'cherry'), result = array_to_csv(arr) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("apple,banana,cherry"));
+  }
+
+  @Test
+  public void testArrayToCsvWithCustomDelimiter() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('apple', 'banana', 'cherry'), result = array_to_csv(arr, '|') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("apple|banana|cherry"));
+  }
+
+  @Test
+  public void testArrayToCsvWithNumbers() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3, 4), result = array_to_csv(arr) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("1,2,3,4"));
+  }
+
+  @Test
+  public void testArrayToCsvWithMixedTypes() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('text', 123, 45.67), result = array_to_csv(arr, ';') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("text;123;45.67"));
+  }
+
+  @Test
+  public void testArrayToCsvWithEmptyArray() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(), result = array_to_csv(arr) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows(""));
+  }
+
+  @Test
+  public void testArrayToCsvWithSingleElement() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('single'), result = array_to_csv(arr) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("single"));
+  }
+
+  @Test
+  public void testArrayToCsvWithSpecialDelimiters() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('a', 'b', 'c'), result = array_to_csv(arr, ' -> ') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("a -> b -> c"));
+  }
+
+  @Test
+  public void testArrayToCsvWithRealFields() throws IOException {
+    // Test array_to_csv with arrays created from real fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval names_array = array(firstname, lastname), result = array_to_csv(names_array, ' ') | fields firstname, lastname, result | head 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(
+        actual,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("result", "string"));
+    // Verify that array_to_csv correctly joins the firstname and lastname fields
+    JSONArray dataRows = actual.getJSONArray("datarows");
+    assertTrue(dataRows.length() > 0);
+    JSONArray firstRow = dataRows.getJSONArray(0);
+    assertEquals(firstRow.getString(0) + " " + firstRow.getString(1), firstRow.getString(2));
+  }
+
 }

@@ -60,6 +60,7 @@ public class DefaultCursor implements Cursor {
   private static final String PIT_ID = "p";
   private static final String SEARCH_REQUEST = "r";
   private static final String SORT_FIELDS = "h";
+  private static final String INDICES = "x";
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   /**
@@ -68,6 +69,13 @@ public class DefaultCursor implements Cursor {
    * @see org.opensearch.sql.legacy.executor.format.DateFieldFormatter
    */
   @NonNull private String indexPattern;
+
+  /**
+   * Concrete index names from the original query's FROM clause. Used to scope continuation
+   * SearchRequests so Security FGAC authorizes against the same indices as page 1 instead of a
+   * wildcard.
+   */
+  private String[] indices;
 
   /**
    * List of Schema.Column for maintaining field order and generating null values of missing fields
@@ -137,6 +145,7 @@ public class DefaultCursor implements Cursor {
       throw new RuntimeException("Failed to serialize sort fields to JSON string.", e);
     }
     json.put(SORT_FIELDS, sortFieldValue);
+    json.put(INDICES, new JSONArray(indices == null ? new String[0] : indices));
     setSearchRequestString(json, searchSourceBuilder);
 
     return String.format("%s:%s", type.getId(), encodeCursor(json));
@@ -173,8 +182,21 @@ public class DefaultCursor implements Cursor {
     populateCursorForPit(json, cursor);
     cursor.setColumns(getColumnsFromSchema(json.getJSONArray(SCHEMA_COLUMNS)));
     cursor.setFieldAliasMap(fieldAliasMap(json.getJSONObject(FIELD_ALIAS_MAP)));
+    cursor.setIndices(getIndicesFromJson(json));
 
     return cursor;
+  }
+
+  private static String[] getIndicesFromJson(JSONObject json) {
+    JSONArray arr = json.optJSONArray(INDICES);
+    if (arr == null) {
+      return new String[0];
+    }
+    String[] result = new String[arr.length()];
+    for (int i = 0; i < arr.length(); i++) {
+      result[i] = arr.getString(i);
+    }
+    return result;
   }
 
   private static void populateCursorForPit(JSONObject json, DefaultCursor cursor) {

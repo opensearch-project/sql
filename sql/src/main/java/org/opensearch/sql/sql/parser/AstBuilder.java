@@ -13,6 +13,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectClau
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectElementContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SubqueryAsRelationContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TableAsRelationContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TableFunctionRelationContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.WhereClauseContext;
 import static org.opensearch.sql.sql.parser.ParserUtils.getTextInQuery;
 import static org.opensearch.sql.utils.SystemIndexUtils.TABLE_INFO;
@@ -20,12 +21,14 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Filter;
@@ -34,10 +37,12 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QuerySpecificationContext;
@@ -187,6 +192,57 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitSubqueryAsRelation(SubqueryAsRelationContext ctx) {
     String subqueryAlias = StringUtils.unquoteIdentifier(ctx.alias().getText());
     return new RelationSubquery(visit(ctx.subquery), subqueryAlias);
+  }
+
+  @Override
+  public UnresolvedPlan visitTableFunctionRelation(TableFunctionRelationContext ctx) {
+    // The grammar accepts both `ident = value` and bare `value` forms for each table function
+    // argument so that the real positional shape (e.g. `vectorSearch('idx', field='f', ...)`)
+    // reaches this V2 builder instead of failing to parse and silently falling back to the
+    // legacy SQL engine. Reject the positional shape here with a SemanticCheckException so the
+    // user receives a clean 400 rather than an opaque legacy parser error.
+    ctx.tableFunctionArgs()
+        .tableFunctionArg()
+        .forEach(
+            arg -> {
+              if (arg.ident() == null) {
+                String functionName = ctx.qualifiedName().getText();
+                throw new SemanticCheckException(
+                    String.format(
+                        Locale.ROOT,
+                        "Table function '%s' requires named arguments (e.g. name='value'),"
+                            + " but received a positional argument: %s",
+                        functionName,
+                        arg.functionArg().getText()));
+              }
+            });
+    ImmutableList.Builder<UnresolvedExpression> args = ImmutableList.builder();
+    ctx.tableFunctionArgs()
+        .tableFunctionArg()
+        .forEach(
+            arg -> {
+              String argName =
+                  StringUtils.unquoteIdentifier(arg.ident().getText()).toLowerCase(Locale.ROOT);
+              UnresolvedExpression argValue = visitAstExpression(arg.functionArg());
+              args.add(new UnresolvedArgument(argName, argValue));
+            });
+    TableFunction tableFunction =
+        new TableFunction(visitAstExpression(ctx.qualifiedName()), args.build());
+    if (ctx.alias() == null) {
+      String functionName = ctx.qualifiedName().getText();
+      // Use SemanticCheckException (not SyntaxCheckException) so the request does not fall back
+      // to the legacy SQL engine, whose opaque parser error would mask this message.
+      throw new SemanticCheckException(
+          String.format(
+              Locale.ROOT,
+              "Table function '%s' requires a table alias."
+                  + " Add an alias after the closing parenthesis, for example:"
+                  + " FROM %s(...) AS v",
+              functionName,
+              functionName));
+    }
+    String alias = StringUtils.unquoteIdentifier(ctx.alias().getText());
+    return new SubqueryAlias(alias, tableFunction);
   }
 
   @Override
