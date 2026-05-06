@@ -225,6 +225,14 @@ public class UnifiedQueryContext implements AutoCloseable {
         @Override
         @SuppressWarnings("unchecked")
         public <T> T getSettingValue(Key key) {
+          // The unified query path is always Calcite-based — every query reaching this context
+          // goes through Calcite's planner, never the v2 engine. Default
+          // {@code plugins.calcite.enabled} to true so AstBuilder gates (e.g. visitTableCommand)
+          // that protect v2-only code paths don't block valid analytics-engine queries when the
+          // underlying setting hasn't been propagated through Builder#setting.
+          if (key == Key.CALCITE_ENGINE_ENABLED && !settings.containsKey(key)) {
+            return (T) Boolean.TRUE;
+          }
           return (T) settings.get(key);
         }
 
