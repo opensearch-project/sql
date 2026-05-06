@@ -101,6 +101,9 @@ bundlePlugin {
     exclude 'json-smart-*.jar'
     exclude 'accessors-smart-*.jar'
     exclude 'asm-9*.jar'
+    // jsr305 is also bundled by arrow-flight-rpc (an extendedPlugins parent of analytics-engine,
+    // which we extend); both shipping it caused jar hell at plugin install time.
+    exclude 'jsr305-*.jar'
 }
 
 publishing {
