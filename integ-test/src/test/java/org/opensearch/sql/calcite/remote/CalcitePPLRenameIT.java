@@ -14,6 +14,10 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.hamcrest.Matcher;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -40,7 +44,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyStandardDataRows(result);
+    verifyStandardDataRows(result, "name", "country", "state", "month", "year", "renamed_age");
   }
 
   @Test
@@ -77,7 +81,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyStandardDataRows(result);
+    verifyStandardDataRows(result, "name", "country", "state", "month", "year", "_ID");
   }
 
   @Test
@@ -156,7 +160,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyStandardDataRows(result);
+    verifyStandardDataRows(result, "nAME", "country", "state", "month", "year", "age");
   }
 
   @Test
@@ -171,7 +175,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("couNTry", "string"),
         schema("year", "int"),
         schema("moNTh", "int"));
-    verifyStandardDataRows(result);
+    verifyStandardDataRows(result, "name", "couNTry", "state", "moNTh", "year", "age");
   }
 
   @Test
@@ -186,7 +190,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyStandardDataRows(result);
+    verifyStandardDataRows(result, "new_na", "country", "state", "month", "year", "age");
   }
 
   @Test
@@ -212,7 +216,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("MoNtH", "int"));
-    verifyStandardDataRows(result);
+    verifyStandardDataRows(result, "name", "country", "state", "MoNtH", "year", "age");
   }
 
   @Test
@@ -261,12 +265,14 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyDataRows(
+    // After `rename name as age`, the original name column overwrites the original age column;
+    // the (number) age values are gone and only the (string) name values remain under "age".
+    verifyDataRowsByColumn(
         result,
-        rows("Jake", "USA", "California", 4, 2023),
-        rows("Hello", "USA", "New York", 4, 2023),
-        rows("John", "Canada", "Ontario", 4, 2023),
-        rows("Jane", "Canada", "Quebec", 4, 2023));
+        rowOf("age", "Jake", "country", "USA", "state", "California", "month", 4, "year", 2023),
+        rowOf("age", "Hello", "country", "USA", "state", "New York", "month", 4, "year", 2023),
+        rowOf("age", "John", "country", "Canada", "state", "Ontario", "month", 4, "year", 2023),
+        rowOf("age", "Jane", "country", "Canada", "state", "Quebec", "month", 4, "year", 2023));
   }
 
   @Test
@@ -296,12 +302,12 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyDataRows(
+    verifyDataRowsByColumn(
         result,
-        rows("Jake", "USA", "California", 4, 2023),
-        rows("Hello", "USA", "New York", 4, 2023),
-        rows("John", "Canada", "Ontario", 4, 2023),
-        rows("Jane", "Canada", "Quebec", 4, 2023));
+        rowOf("name", "Jake", "country", "USA", "state", "California", "month", 4, "year", 2023),
+        rowOf("name", "Hello", "country", "USA", "state", "New York", "month", 4, "year", 2023),
+        rowOf("name", "John", "country", "Canada", "state", "Ontario", "month", 4, "year", 2023),
+        rowOf("name", "Jane", "country", "Canada", "state", "Quebec", "month", 4, "year", 2023));
   }
 
   @Test
@@ -345,7 +351,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("location", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyStandardDataRows(result);
+    verifyStandardDataRows(result, "user_name", "location", "state", "month", "year", "user_age");
   }
 
   @Test
@@ -363,15 +369,103 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("location", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyStandardDataRows(result);
+    verifyStandardDataRows(result, "user_name", "location", "state", "month", "year", "user_age");
+  }
+
+  /**
+   * Build a {@code column -> value} map from interleaved varargs ({@code key1, val1, key2, val2,
+   * ...}). Preserves insertion order so the expected-row mapping reads naturally at the call site.
+   */
+  private static Map<String, Object> rowOf(Object... pairs) {
+    if (pairs.length % 2 != 0) {
+      throw new IllegalArgumentException("rowOf expects an even number of args (key, value, ...)");
+    }
+    Map<String, Object> row = new LinkedHashMap<>();
+    for (int i = 0; i < pairs.length; i += 2) {
+      row.put((String) pairs[i], pairs[i + 1]);
+    }
+    return row;
   }
 
   private void verifyStandardDataRows(JSONObject result) {
-    verifyDataRows(
-        result,
-        rows("Jake", "USA", "California", 4, 2023, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
+    verifyStandardDataRows(result, "name", "country", "state", "month", "year", "age");
+  }
+
+  /**
+   * Verify the four canonical state_country rows independently of column order.
+   *
+   * <p>The schema check above ({@code verifySchema}) is set-equality on column names; the data row
+   * check {@code verifyDataRows} is positional. The two paths the analytics-engine route can take
+   * return columns in different orders (parquet preserves storage order, the v2 / Lucene path
+   * preserves {@code _source} iteration order), and either is valid given the contract {@code
+   * verifySchema} declares. To avoid baking either order into the test, this helper takes the
+   * canonical-position column names as varargs and reorders the canonical row values to match
+   * whatever column order the response actually returned.
+   *
+   * @param result the response JSON
+   * @param canonicalColumns the column names of the four canonical rows in {@code (name-or-renamed,
+   *     country-or-renamed, state, month, year, age-or-renamed)} order. Pass the rename target
+   *     where applicable.
+   */
+  private void verifyStandardDataRows(JSONObject result, String... canonicalColumns) {
+    if (canonicalColumns.length != 6) {
+      throw new IllegalArgumentException(
+          "verifyStandardDataRows expects 6 canonical column names; got "
+              + canonicalColumns.length);
+    }
+    Object[][] canonicalValues =
+        new Object[][] {
+          {"Jake", "USA", "California", 4, 2023, 70},
+          {"Hello", "USA", "New York", 4, 2023, 30},
+          {"John", "Canada", "Ontario", 4, 2023, 25},
+          {"Jane", "Canada", "Quebec", 4, 2023, 20}
+        };
+    Map<String, Object>[] expectedRows = new LinkedHashMap[canonicalValues.length];
+    for (int i = 0; i < canonicalValues.length; i++) {
+      Map<String, Object> row = new LinkedHashMap<>();
+      for (int c = 0; c < canonicalColumns.length; c++) {
+        row.put(canonicalColumns[c], canonicalValues[i][c]);
+      }
+      expectedRows[i] = row;
+    }
+    verifyDataRowsByColumn(result, expectedRows);
+  }
+
+  /**
+   * Match expected rows against the response by column name, ignoring the response's column
+   * emission order. For each expected row (a {@code column-name -> value} map), the value at each
+   * schema position is looked up by name. Tests using this helper become engine-order agnostic: a
+   * parquet-backed response and a Lucene-backed response yield the same assertion outcome as long
+   * as the column-name-to-value mapping agrees.
+   */
+  @SafeVarargs
+  @SuppressWarnings("varargs")
+  private final void verifyDataRowsByColumn(
+      JSONObject result, Map<String, Object>... expectedRows) {
+    JSONArray schema = result.getJSONArray("schema");
+    int n = schema.length();
+    String[] columnOrder = new String[n];
+    for (int i = 0; i < n; i++) {
+      columnOrder[i] = schema.getJSONObject(i).getString("name");
+    }
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    Matcher<JSONArray>[] rowMatchers = new Matcher[expectedRows.length];
+    for (int r = 0; r < expectedRows.length; r++) {
+      Object[] reordered = new Object[n];
+      for (int c = 0; c < n; c++) {
+        if (!expectedRows[r].containsKey(columnOrder[c])) {
+          throw new IllegalArgumentException(
+              "Expected row at index "
+                  + r
+                  + " is missing canonical value for response column ["
+                  + columnOrder[c]
+                  + "]; provided keys: "
+                  + expectedRows[r].keySet());
+        }
+        reordered[c] = expectedRows[r].get(columnOrder[c]);
+      }
+      rowMatchers[r] = rows(reordered);
+    }
+    verifyDataRows(result, rowMatchers);
   }
 }

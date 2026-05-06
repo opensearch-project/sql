@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.api;
 
+import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
 import static org.opensearch.sql.common.setting.Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT;
 import static org.opensearch.sql.common.setting.Settings.Key.PPL_SUBSEARCH_MAXOUT;
 import static org.opensearch.sql.common.setting.Settings.Key.QUERY_SIZE_LIMIT;
@@ -115,13 +116,21 @@ public class UnifiedQueryContext implements AutoCloseable {
     /**
      * Setting values with defaults from SysLimit.DEFAULT. Only includes planning-required settings
      * to avoid coupling with OpenSearchSettings.
+     *
+     * <p>{@link Settings.Key#CALCITE_ENGINE_ENABLED} defaults to {@code true} here because the
+     * unified query path is by definition Calcite-based — every query reaching this context flows
+     * through Calcite's planner, never the v2 engine. The PPL {@link
+     * org.opensearch.sql.api.parser.PPLQueryParser} reuses the v2 {@code AstBuilder}, which gates
+     * Calcite-only commands (e.g. {@code visitTableCommand}) on this setting; without the default,
+     * those commands fail at parse time even when the cluster setting is true.
      */
     private final Map<Settings.Key, Object> settings =
         new HashMap<Settings.Key, Object>(
             Map.of(
                 QUERY_SIZE_LIMIT, SysLimit.DEFAULT.querySizeLimit(),
                 PPL_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.subsearchLimit(),
-                PPL_JOIN_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.joinSubsearchLimit()));
+                PPL_JOIN_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.joinSubsearchLimit(),
+                CALCITE_ENGINE_ENABLED, true));
 
     /**
      * Sets the query language frontend to be used.
