@@ -1,0 +1,69 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: issue5185
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              doc:
+                type: text
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5185", "_id": "1"}}'
+          - '{"doc": "{\"user\":{\"name\":\"John\",\"age\":30}}"}'
+          - '{"index": {"_index": "issue5185", "_id": "2"}}'
+          - '{"doc": "{\"user\":{\"name\":\"Alice\",\"age\":25}}"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5185
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5185: eval with multiple dotted-path assignments from MAP column":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5185 | spath input=doc | eval doc.user.name=doc.user.name, doc.user.age=doc.user.age | fields doc.user.name, doc.user.age"
+
+  - match: { total: 2 }
+  - length: { datarows: 2 }
+
+---
+"Issue 5185: separate eval commands with dotted-path from MAP column":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5185 | spath input=doc | eval doc.user.name=doc.user.name | eval doc.user.age=doc.user.age | fields doc.user.name, doc.user.age"
+
+  - match: { total: 2 }
+  - length: { datarows: 2 }

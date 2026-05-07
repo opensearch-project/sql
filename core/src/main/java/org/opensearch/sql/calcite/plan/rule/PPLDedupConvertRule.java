@@ -7,10 +7,15 @@ package org.opensearch.sql.calcite.plan.rule;
 
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -47,28 +52,85 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
     final LogicalDedup dedup = call.rel(0);
     RelBuilder relBuilder = call.builder();
     relBuilder.push(dedup.getInput());
+    RelCollation inputCollation =
+        resolveCollationToCurrentInput(
+            dedup.getInputCollation(),
+            dedup.getInputCollationFieldNames(),
+            dedup.getInput().getRowType().getFieldNames());
     if (dedup.getKeepEmpty()) {
-      buildDedupOrNull(relBuilder, dedup.getDedupeFields(), dedup.getAllowedDuplication());
+      buildDedupOrNull(
+          relBuilder, dedup.getDedupeFields(), dedup.getAllowedDuplication(), inputCollation);
     } else {
-      buildDedupNotNull(relBuilder, dedup.getDedupeFields(), dedup.getAllowedDuplication());
+      buildDedupNotNull(
+          relBuilder, dedup.getDedupeFields(), dedup.getAllowedDuplication(), inputCollation);
     }
     call.transformTo(relBuilder.build());
   }
 
+  /**
+   * Resolve {@code collation}'s indices against {@code currentNames} (dedup's current input row
+   * type). If the indices are still valid against {@code currentNames}, return {@code collation}
+   * unchanged. Otherwise, look each collation field up by name in {@code originalNames} (the row
+   * type captured at LogicalDedup creation time) and find its position in {@code currentNames}; if
+   * any field is no longer present, drop that key.
+   */
+  private static @Nullable RelCollation resolveCollationToCurrentInput(
+      @Nullable RelCollation collation,
+      @Nullable List<String> originalNames,
+      List<String> currentNames) {
+    if (collation == null || collation.getFieldCollations().isEmpty()) {
+      return collation;
+    }
+    int currentSize = currentNames.size();
+    int maxIdx = -1;
+    for (RelFieldCollation fc : collation.getFieldCollations()) {
+      maxIdx = Math.max(maxIdx, fc.getFieldIndex());
+    }
+    if (maxIdx < currentSize) {
+      // Collation is already in the current input's index space — nothing to do.
+      return collation;
+    }
+    if (originalNames == null) {
+      return null;
+    }
+    List<RelFieldCollation> remapped = new ArrayList<>();
+    for (RelFieldCollation fc : collation.getFieldCollations()) {
+      int oldIdx = fc.getFieldIndex();
+      if (oldIdx < 0 || oldIdx >= originalNames.size()) {
+        continue;
+      }
+      int newIdx = currentNames.indexOf(originalNames.get(oldIdx));
+      if (newIdx < 0) {
+        continue;
+      }
+      remapped.add(fc.withFieldIndex(newIdx));
+    }
+    if (remapped.isEmpty()) {
+      return null;
+    }
+    return RelCollations.of(remapped);
+  }
+
   public static void buildDedupOrNull(
-      RelBuilder relBuilder, List<RexNode> dedupeFields, Integer allowedDuplication) {
+      RelBuilder relBuilder,
+      List<RexNode> dedupeFields,
+      Integer allowedDuplication,
+      RelCollation inputCollation) {
     /*
      * | dedup 2 a, b keepempty=true
-     * LogicalProject(...)
-     * +- LogicalFilter(condition=[OR(IS NULL(a), IS NULL(b), <=(_row_number_dedup_, 1))])
-     *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
-     *        +- ...
+     * LogicalSort(...)  -- re-sort to restore input order
+     * +- LogicalProject(...)
+     *    +- LogicalFilter(condition=[OR(IS NULL(a), IS NULL(b), <=(_row_number_dedup_, 1))])
+     *       +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b)])
+     *           +- ... (input with Sort stripped)
      */
+    List<RexNode> orderKeys = collationToOrderKeys(relBuilder, inputCollation);
     RexNode rowNumber =
         relBuilder
             .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
             .over()
             .partitionBy(dedupeFields)
+            .orderBy(orderKeys)
             .rowsTo(RexWindowBounds.CURRENT_ROW)
             .as(ROW_NUMBER_COLUMN_FOR_DEDUP);
     relBuilder.projectPlus(rowNumber);
@@ -82,31 +144,36 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
                 _row_number_dedup_, relBuilder.literal(allowedDuplication))));
     // DropColumns('_row_number_dedup_)
     relBuilder.projectExcept(_row_number_dedup_);
+    // Re-sort to restore the input order that was stripped before the window
+    restoreInputOrder(relBuilder, inputCollation);
   }
 
   public static void buildDedupNotNull(
-      RelBuilder relBuilder, List<RexNode> dedupeFields, Integer allowedDuplication) {
+      RelBuilder relBuilder,
+      List<RexNode> dedupeFields,
+      Integer allowedDuplication,
+      RelCollation inputCollation) {
     /*
      * | dedup 2 a, b keepempty=false
-     * LogicalProject(...)
-     * +- LogicalFilter(condition=[<=(_row_number_dedup_, n)]))
-     *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
-     *        +- LogicalFilter(condition=[AND(IS NOT NULL(a), IS NOT NULL(b))])
-     *           +- ...
+     * LogicalSort(...)  -- re-sort to restore input order
+     * +- LogicalProject(...)
+     *    +- LogicalFilter(condition=[<=(_row_number_dedup_, n)]))
+     *       +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b)])
+     *           +- LogicalFilter(condition=[AND(IS NOT NULL(a), IS NOT NULL(b))])
+     *              +- ... (input with Sort stripped)
      */
+    List<RexNode> orderKeys = collationToOrderKeys(relBuilder, inputCollation);
     // Filter (isnotnull('a) AND isnotnull('b))
     String rowNumberAlias = ROW_NUMBER_COLUMN_FOR_DEDUP;
     relBuilder.filter(
         relBuilder.and(
             dedupeFields.stream().map(relBuilder::isNotNull).collect(Collectors.toList())));
-    // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
-    // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC
-    // NULLS FIRST, 'b ASC NULLS FIRST]
     RexNode rowNumber =
         relBuilder
             .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
             .over()
             .partitionBy(dedupeFields)
+            .orderBy(orderKeys)
             .rowsTo(RexWindowBounds.CURRENT_ROW)
             .as(rowNumberAlias);
     relBuilder.projectPlus(rowNumber);
@@ -116,6 +183,44 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
         relBuilder.lessThanOrEqual(rowNumberField, relBuilder.literal(allowedDuplication)));
     // DropColumns('_row_number_dedup_)
     relBuilder.projectExcept(rowNumberField);
+    // Re-sort to restore the input order that was stripped before the window
+    restoreInputOrder(relBuilder, inputCollation);
+  }
+
+  /**
+   * Convert a RelCollation to a list of RexNode order keys using the RelBuilder's field references.
+   */
+  private static List<RexNode> collationToOrderKeys(RelBuilder relBuilder, RelCollation collation) {
+    if (collation == null || collation.getFieldCollations().isEmpty()) {
+      return List.of();
+    }
+    List<RexNode> orderKeys = new ArrayList<>();
+    for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+      RexNode fieldRef = relBuilder.field(fieldCollation.getFieldIndex());
+      if (fieldCollation.direction.isDescending()) {
+        fieldRef = relBuilder.desc(fieldRef);
+      }
+      if (fieldCollation.nullDirection == RelFieldCollation.NullDirection.LAST) {
+        fieldRef = relBuilder.nullsLast(fieldRef);
+      } else if (fieldCollation.nullDirection == RelFieldCollation.NullDirection.FIRST) {
+        fieldRef = relBuilder.nullsFirst(fieldRef);
+      }
+      orderKeys.add(fieldRef);
+    }
+    return orderKeys;
+  }
+
+  /**
+   * Re-apply a sort after dedup to restore the input order that may have been disrupted by the
+   * window operator. EnumerableWindow can re-partition data by the PARTITION BY key, destroying any
+   * upstream sort order. This explicit re-sort ensures the final output preserves the original
+   * order.
+   */
+  private static void restoreInputOrder(RelBuilder relBuilder, RelCollation inputCollation) {
+    if (inputCollation != null && !inputCollation.getFieldCollations().isEmpty()) {
+      List<RexNode> sortKeys = collationToOrderKeys(relBuilder, inputCollation);
+      relBuilder.sort(sortKeys);
+    }
   }
 
   /** Rule configuration. */

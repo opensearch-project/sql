@@ -546,6 +546,35 @@ integTest {
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
 
+    // Workaround for Gradle 9.4.1 bug: TestEventReporterAsListener crashes with ClassCastException
+    // when encountering class-level @Ignore annotations. These classes were already skipped by JUnit;
+    // this moves the skip to the Gradle layer to avoid the buggy bridge.
+    // Remove once Gradle ships a fix (not fixed as of 9.5.0).
+    exclude 'org/opensearch/sql/calcite/remote/CalciteInformationSchemaCommandIT.class'
+    exclude 'org/opensearch/sql/calcite/remote/CalciteJsonFunctionsIT.class'
+    exclude 'org/opensearch/sql/calcite/remote/CalcitePrometheusDataSourceCommandsIT.class'
+    exclude 'org/opensearch/sql/calcite/remote/CalciteShowDataSourcesCommandIT.class'
+    exclude 'org/opensearch/sql/legacy/AggregationIT.class'
+    exclude 'org/opensearch/sql/legacy/DateFormatIT.class'
+    exclude 'org/opensearch/sql/legacy/DateFunctionsIT.class'
+    exclude 'org/opensearch/sql/legacy/HashJoinIT.class'
+    exclude 'org/opensearch/sql/legacy/HavingIT.class'
+    exclude 'org/opensearch/sql/legacy/JoinIT.class'
+    exclude 'org/opensearch/sql/legacy/JSONRequestIT.class'
+    exclude 'org/opensearch/sql/legacy/MathFunctionsIT.class'
+    exclude 'org/opensearch/sql/legacy/MetricsIT.class'
+    exclude 'org/opensearch/sql/legacy/MultiQueryIT.class'
+    exclude 'org/opensearch/sql/legacy/NestedFieldQueryIT.class'
+    exclude 'org/opensearch/sql/legacy/PreparedStatementIT.class'
+    exclude 'org/opensearch/sql/legacy/QueryFunctionsIT.class'
+    exclude 'org/opensearch/sql/legacy/QueryIT.class'
+    exclude 'org/opensearch/sql/legacy/ShowIT.class'
+    exclude 'org/opensearch/sql/legacy/SourceFieldIT.class'
+    exclude 'org/opensearch/sql/legacy/SQLFunctionsIT.class'
+    exclude 'org/opensearch/sql/legacy/SubqueryIT.class'
+    exclude 'org/opensearch/sql/ppl/JsonFunctionsIT.class'
+    exclude 'org/opensearch/sql/sql/ExpressionIT.class'
+
     finalizedBy 'printIntegTestPaths'
 }
 

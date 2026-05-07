@@ -61,8 +61,16 @@ public class UnifiedQueryPlanner {
    */
   public RelNode plan(String query) {
     try {
-      return context.measure(ANALYZE, () -> strategy.plan(query));
-    } catch (SyntaxCheckException | UnsupportedOperationException | ErrorReport e) {
+      return context.measure(
+          ANALYZE,
+          () -> {
+            RelNode plan = strategy.plan(query);
+            for (var shuttle : context.getLangSpec().postAnalysisRules()) {
+              plan = plan.accept(shuttle);
+            }
+            return plan;
+          });
+    } catch (SyntaxCheckException | UnsupportedOperationException e | ErrorReport e) {
       throw e;
     } catch (Exception e) {
       throw new IllegalStateException("Failed to plan query", e);

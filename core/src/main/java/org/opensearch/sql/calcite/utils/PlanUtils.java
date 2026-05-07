@@ -28,6 +28,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -37,11 +38,14 @@ import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -595,6 +599,113 @@ public interface PlanUtils {
     } catch (Exception e) {
       return true;
     }
+  }
+
+  /**
+   * Walk down the plan tree to find the first Sort node with non-empty collation. Stops at blocking
+   * operators that destroy ordering:
+   *
+   * <ul>
+   *   <li>Aggregate - aggregation destroys input ordering
+   *   <li>BiRel - covers Join, Correlate, and other binary relations
+   *   <li>SetOp - covers Union, Intersect, Except
+   *   <li>Uncollect - unnesting operation that may change ordering
+   *   <li>Project with window functions (RexOver) - ordering determined by window's ORDER BY
+   * </ul>
+   *
+   * @param node the starting RelNode to backtrack from
+   * @return the collation found, or null if no sort or blocking operator encountered
+   */
+  public static @Nullable RelCollation findInputCollation(RelNode node) {
+    while (node != null) {
+      if (node instanceof Aggregate
+          || node instanceof BiRel
+          || node instanceof SetOp
+          || node instanceof Uncollect) {
+        return null;
+      }
+      if (node instanceof LogicalProject && ((LogicalProject) node).containsOver()) {
+        return null;
+      }
+      if (node instanceof Sort sort) {
+        if (sort.getCollation() != null && !sort.getCollation().getFieldCollations().isEmpty()) {
+          return sort.getCollation();
+        }
+      }
+      if (node.getInputs().isEmpty()) {
+        break;
+      }
+      node = node.getInput(0);
+    }
+    return null;
+  }
+
+  /**
+   * Strip the Sort node from the input on the RelBuilder stack, returning its collation (remapped
+   * through any intermediate Projects). This is necessary because EnumerableWindow re-partitions
+   * data by PARTITION BY key, which can destroy input sort order. Calcite's metadata system
+   * (RelMdCollation) incorrectly propagates the input's collation through the Window, causing the
+   * optimizer to eliminate a post-dedup Sort as "redundant". By stripping the Sort before the
+   * window and re-adding it after, we break this incorrect metadata chain.
+   *
+   * @return the remapped collation of the stripped Sort, or null if no Sort was found or the sort
+   *     field was projected away
+   */
+  public static @Nullable RelCollation stripInputSort(RelBuilder relBuilder) {
+    RelNode input = relBuilder.peek();
+    // First check whether a Sort exists in the (single-input) prefix of the subtree. If there is
+    // no Sort, there is nothing to strip and the index-space remapping below would be pointless.
+    if (findInputCollation(input) == null) {
+      return null;
+    }
+    // Ask Calcite's RelMdCollation for the subtree's output collation. This already accounts for
+    // intermediate Projects (they rewrite collation via a `Mappings.TargetMapping`), so we don't
+    // need to hand-roll an index remapper.
+    RelMetadataQuery mq = input.getCluster().getMetadataQuery();
+    List<RelCollation> collations = mq.collations(input);
+    RelCollation outputCollation = null;
+    if (collations != null) {
+      for (RelCollation c : collations) {
+        if (c != null && !c.getFieldCollations().isEmpty()) {
+          outputCollation = c;
+          break;
+        }
+      }
+    }
+    if (outputCollation == null) {
+      // Any collation field was projected away (or RelMdCollation couldn't propagate through the
+      // subtree). Leave the tree untouched and report no collation.
+      return null;
+    }
+    RelNode stripped = removeSortFromTree(input);
+    if (stripped != input) {
+      relBuilder.clear();
+      relBuilder.push(stripped);
+    }
+    return outputCollation;
+  }
+
+  /**
+   * Remove the first Sort node found in the tree, replacing it with its input. Only traverses
+   * through single-input operators (Filter, Project) that preserve order.
+   */
+  private static RelNode removeSortFromTree(RelNode node) {
+    if (node instanceof Sort sort) {
+      if (sort.getCollation() != null
+          && !sort.getCollation().getFieldCollations().isEmpty()
+          && sort.fetch == null
+          && sort.offset == null) {
+        return sort.getInput();
+      }
+    }
+    if (node.getInputs().size() == 1) {
+      RelNode child = node.getInput(0);
+      RelNode newChild = removeSortFromTree(child);
+      if (newChild != child) {
+        return node.copy(node.getTraitSet(), List.of(newChild));
+      }
+    }
+    return node;
   }
 
   /**
