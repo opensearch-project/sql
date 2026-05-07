@@ -50,7 +50,7 @@ public class UnifiedSqlSpec implements LanguageSpec {
         Lex.BIG_QUERY,
         SqlBabelParserImpl.FACTORY,
         SqlConformanceEnum.BABEL,
-        List.of(new SearchExtension()));
+        List.of(new CoreExtension(), new SearchExtension()));
   }
 
   @Override
