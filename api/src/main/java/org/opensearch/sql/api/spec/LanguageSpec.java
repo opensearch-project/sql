@@ -57,6 +57,15 @@ public interface LanguageSpec {
     default List<RelShuttle> postAnalysisRules() {
       return List.of();
     }
+
+    /**
+     * Pre-compilation rules applied only before in-memory execution. Each rule transforms the
+     * logical plan (e.g., binding function implementations). Not applied when the plan is consumed
+     * by external engines.
+     */
+    default List<RelShuttle> preCompilationRules() {
+      return List.of();
+    }
   }
 
   /**
@@ -103,5 +112,13 @@ public interface LanguageSpec {
    */
   default List<RelShuttle> postAnalysisRules() {
     return extensions().stream().flatMap(ext -> ext.postAnalysisRules().stream()).toList();
+  }
+
+  /**
+   * All pre-compilation rules from registered extensions, flattened in registration order. Applied
+   * only before in-memory execution.
+   */
+  default List<RelShuttle> preCompilationRules() {
+    return extensions().stream().flatMap(ext -> ext.preCompilationRules().stream()).toList();
   }
 }
