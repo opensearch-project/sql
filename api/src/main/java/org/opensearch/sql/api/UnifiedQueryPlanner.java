@@ -70,7 +70,7 @@ public class UnifiedQueryPlanner {
             }
             return plan;
           });
-    } catch (SyntaxCheckException | UnsupportedOperationException e e) {
+    } catch (SyntaxCheckException | UnsupportedOperationException e) {
       throw e;
     } catch (ErrorReport e) {
       if (e.getCause() instanceof SyntaxCheckException) throw e;
