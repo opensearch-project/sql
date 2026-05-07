@@ -7,6 +7,7 @@ package org.opensearch.sql.api;
 
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
 import static org.opensearch.sql.common.setting.Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT;
+import static org.opensearch.sql.common.setting.Settings.Key.PPL_REX_MAX_MATCH_LIMIT;
 import static org.opensearch.sql.common.setting.Settings.Key.PPL_SUBSEARCH_MAXOUT;
 import static org.opensearch.sql.common.setting.Settings.Key.QUERY_SIZE_LIMIT;
 
@@ -127,6 +128,13 @@ public class UnifiedQueryContext implements AutoCloseable {
      * org.opensearch.sql.api.parser.PPLQueryParser} reuses the v2 {@code AstBuilder}, which gates
      * Calcite-only commands (e.g. {@code visitTableCommand}) on this setting; without the default,
      * those commands fail at parse time even when the cluster setting is true.
+     *
+     * <p>{@link Settings.Key#PPL_REX_MAX_MATCH_LIMIT} defaults to {@code 10} here because {@code
+     * AstBuilder.visitRexCommand} reads it unconditionally and unboxes to {@code int} — a {@code
+     * null} return from {@code getSettingValue} NPEs the planner before any operator- level
+     * capability check runs. The value mirrors the cluster-side default of {@code 10} registered by
+     * {@code OpenSearchSettings.PPL_REX_MAX_MATCH_LIMIT_SETTING}, so unified-path behavior matches
+     * v2-path behavior when neither has an explicit cluster override.
      */
     private final Map<Settings.Key, Object> settings =
         new HashMap<Settings.Key, Object>(
@@ -134,7 +142,8 @@ public class UnifiedQueryContext implements AutoCloseable {
                 QUERY_SIZE_LIMIT, SysLimit.DEFAULT.querySizeLimit(),
                 PPL_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.subsearchLimit(),
                 PPL_JOIN_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.joinSubsearchLimit(),
-                CALCITE_ENGINE_ENABLED, true));
+                CALCITE_ENGINE_ENABLED, true,
+                PPL_REX_MAX_MATCH_LIMIT, 10));
 
     /**
      * Sets the query language frontend to be used.
