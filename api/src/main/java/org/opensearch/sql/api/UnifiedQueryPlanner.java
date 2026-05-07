@@ -70,8 +70,11 @@ public class UnifiedQueryPlanner {
             }
             return plan;
           });
-    } catch (SyntaxCheckException | UnsupportedOperationException e | ErrorReport e) {
+    } catch (SyntaxCheckException | UnsupportedOperationException e e) {
       throw e;
+    } catch (ErrorReport e) {
+      if (e.getCause() instanceof SyntaxCheckException) throw e;
+      throw new IllegalStateException("Failed to plan query", e);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to plan query", e);
     }

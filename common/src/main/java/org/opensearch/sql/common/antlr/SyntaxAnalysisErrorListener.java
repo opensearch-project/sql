@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
@@ -74,11 +75,10 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     // Use the suggestion registry to find pattern-based suggestions
     SyntaxErrorContext context =
         new SyntaxErrorContext(recognizer, offendingToken, tokens, query, e);
-    List<String> customSuggestions = SyntaxErrorSuggestionRegistry.findSuggestions(context);
+    Optional<String> customSuggestion = SyntaxErrorSuggestionRegistry.findSuggestion(context);
 
-    if (!customSuggestions.isEmpty()) {
-      // Use the first suggestion from the registry
-      reportBuilder.suggestion(customSuggestions.get(0));
+    if (customSuggestion.isPresent()) {
+      reportBuilder.suggestion(customSuggestion.get());
     }
 
     throw reportBuilder.build();

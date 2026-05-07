@@ -5,14 +5,14 @@
 
 package org.opensearch.sql.common.antlr.suggestion;
 
-import java.util.List;
+import java.util.Optional;
 import org.antlr.v4.runtime.Token;
 
 /** Detects unmatched parentheses in queries and suggests balancing them. */
 public class UnmatchedParenthesesSuggestionProvider implements SyntaxErrorSuggestionProvider {
   @Override
-  public List<String> getSuggestions(SyntaxErrorContext ctx) {
-    if (ctx.getQuery() == null || ctx.getQuery().isEmpty()) return List.of();
+  public Optional<String> getSuggestion(SyntaxErrorContext ctx) {
+    if (ctx.getQuery() == null || ctx.getQuery().isEmpty()) return Optional.empty();
 
     // Count paren tokens on the default channel, which skips string literals, comments,
     // and whitespace so we don't get false positives from e.g. `where msg = "ignore )"`.
@@ -32,9 +32,10 @@ public class UnmatchedParenthesesSuggestionProvider implements SyntaxErrorSugges
     if (openParens > closeParens) {
       int missing = openParens - closeParens;
       if (missing == 1) {
-        return List.of("Missing closing parenthesis ')'. Check that all parentheses are balanced");
+        return Optional.of(
+            "Missing closing parenthesis ')'. Check that all parentheses are balanced");
       } else {
-        return List.of(
+        return Optional.of(
             String.format(
                 "Missing %d closing parentheses ')'. Check that all parentheses are balanced",
                 missing));
@@ -45,16 +46,17 @@ public class UnmatchedParenthesesSuggestionProvider implements SyntaxErrorSugges
     if (closeParens > openParens) {
       int extra = closeParens - openParens;
       if (extra == 1) {
-        return List.of("Extra closing parenthesis ')'. Check that all parentheses are balanced");
+        return Optional.of(
+            "Extra closing parenthesis ')'. Check that all parentheses are balanced");
       } else {
-        return List.of(
+        return Optional.of(
             String.format(
                 "Extra %d closing parentheses ')'. Check that all parentheses are balanced",
                 extra));
       }
     }
 
-    return List.of();
+    return Optional.empty();
   }
 
   @Override

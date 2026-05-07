@@ -7,6 +7,7 @@ package org.opensearch.sql.common.antlr.suggestion;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Vocabulary;
 import org.antlr.v4.runtime.misc.IntervalSet;
@@ -16,13 +17,13 @@ public class ExpectedTokensSuggestionProvider implements SyntaxErrorSuggestionPr
   private static final int MAX = 5;
 
   @Override
-  public List<String> getSuggestions(SyntaxErrorContext ctx) {
+  public Optional<String> getSuggestion(SyntaxErrorContext ctx) {
     RecognitionException e = ctx.getException();
-    if (e == null) return List.of();
+    if (e == null) return Optional.empty();
     IntervalSet expected = e.getExpectedTokens();
-    if (expected == null || expected.size() == 0) return List.of();
+    if (expected == null || expected.size() == 0) return Optional.empty();
     List<Integer> types = expected.toList();
-    if (types.isEmpty()) return List.of();
+    if (types.isEmpty()) return Optional.empty();
     Vocabulary vocab = ctx.getRecognizer().getVocabulary();
     List<String> names = new ArrayList<>(MAX);
     for (int type : types.subList(0, Math.min(types.size(), MAX))) {
@@ -34,7 +35,7 @@ public class ExpectedTokensSuggestionProvider implements SyntaxErrorSuggestionPr
                 "Expected one of %d possible tokens. Examples: %s",
                 types.size(), String.join(", ", names))
             : "Expected tokens: " + String.join(", ", names);
-    return List.of(msg);
+    return Optional.of(msg);
   }
 
   @Override

@@ -8,6 +8,7 @@ package org.opensearch.sql.sql.antlr;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
@@ -838,5 +839,14 @@ class SQLSyntaxParserTest {
 
     var it = new QueryGenerator();
     return Streams.stream(it);
+  }
+
+  @Test
+  public void testUnmatchedParenthesesProvidesSuggestion() {
+    ErrorReport error = assertThrows(ErrorReport.class, () -> parser.parse("SELECT (1 + 2"));
+
+    assertNotNull(error.getSuggestion());
+    assertTrue(error.getSuggestion().contains("Missing closing parenthesis ')'"));
+    assertTrue(error.getSuggestion().contains("Check that all parentheses are balanced"));
   }
 }

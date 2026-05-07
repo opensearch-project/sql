@@ -7,7 +7,7 @@ package org.opensearch.sql.common.antlr.suggestion;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /** Registry of syntax-error suggestion providers, evaluated in priority order. */
@@ -20,7 +20,6 @@ public final class SyntaxErrorSuggestionRegistry {
     register(
         new SelectStarSuggestionProvider(),
         new UnmatchedParenthesesSuggestionProvider(),
-        new UnquotedTableNameSuggestionProvider(),
         new ExpectedTokensSuggestionProvider());
   }
 
@@ -31,14 +30,14 @@ public final class SyntaxErrorSuggestionRegistry {
     PROVIDERS.sort(Comparator.comparingInt(SyntaxErrorSuggestionProvider::getPriority));
   }
 
-  /** Returns suggestions from the first matching provider (by priority); empty list otherwise. */
-  public static List<String> findSuggestions(SyntaxErrorContext context) {
+  /** Returns suggestion from the first matching provider (by priority); empty otherwise. */
+  public static Optional<String> findSuggestion(SyntaxErrorContext context) {
     for (SyntaxErrorSuggestionProvider provider : PROVIDERS) {
-      List<String> suggestions = provider.getSuggestions(context);
-      if (suggestions != null && !suggestions.isEmpty()) {
-        return suggestions;
+      Optional<String> suggestion = provider.getSuggestion(context);
+      if (suggestion.isPresent()) {
+        return suggestion;
       }
     }
-    return List.of();
+    return Optional.empty();
   }
 }

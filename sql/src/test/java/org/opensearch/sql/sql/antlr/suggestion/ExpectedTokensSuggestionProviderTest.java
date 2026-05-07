@@ -5,10 +5,9 @@
 
 package org.opensearch.sql.sql.antlr.suggestion;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.antlr.suggestion.ExpectedTokensSuggestionProvider;
 
@@ -18,19 +17,22 @@ class ExpectedTokensSuggestionProviderTest {
   @Test
   void returnsFallbackSuggestionWithExpectedTokens() {
     // SELECT * FROM <EOF> has a RecognitionException with a populated expected set.
-    List<String> suggestions = provider.getSuggestions(ContextFactory.contextFor("SELECT * FROM"));
-    assertFalse(suggestions.isEmpty());
-    String suggestion = suggestions.get(0);
+    Optional<String> suggestion =
+        provider.getSuggestion(ContextFactory.contextFor("SELECT * FROM"));
+    assertTrue(suggestion.isPresent());
+    String suggestionText = suggestion.get();
     assertTrue(
-        suggestion.startsWith("Expected tokens:") || suggestion.startsWith("Expected one of "),
-        "got: " + suggestion);
+        suggestionText.startsWith("Expected tokens:")
+            || suggestionText.startsWith("Expected one of "),
+        "got: " + suggestionText);
   }
 
   @Test
   void returnsEmptyWhenNoRecognitionException() {
     // Parser-recovered errors have no RecognitionException: the provider must no-op, not crash.
-    List<String> suggestions = provider.getSuggestions(ContextFactory.contextFor("SELECT FROM t"));
+    Optional<String> suggestion =
+        provider.getSuggestion(ContextFactory.contextFor("SELECT FROM t"));
     // Either empty, or populated - neither should throw. We just assert it doesn't throw.
-    assertTrue(suggestions != null);
+    assertTrue(suggestion != null);
   }
 }

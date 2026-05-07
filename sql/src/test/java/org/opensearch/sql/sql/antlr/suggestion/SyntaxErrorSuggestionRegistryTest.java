@@ -6,8 +6,9 @@
 package org.opensearch.sql.sql.antlr.suggestion;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.antlr.suggestion.SyntaxErrorContext;
 import org.opensearch.sql.common.antlr.suggestion.SyntaxErrorSuggestionProvider;
@@ -24,9 +25,10 @@ class SyntaxErrorSuggestionRegistryTest {
 
     // Provide a context that both will match (both stubs ignore the context).
     SyntaxErrorContext ctx = ContextFactory.contextFor("SELECT FROM t");
-    List<String> suggestions = SyntaxErrorSuggestionRegistry.findSuggestions(ctx);
+    Optional<String> suggestion = SyntaxErrorSuggestionRegistry.findSuggestion(ctx);
 
-    assertEquals("low-wins", suggestions.get(0));
+    assertTrue(suggestion.isPresent());
+    assertEquals("low-wins", suggestion.get());
   }
 
   private static class StubProvider implements SyntaxErrorSuggestionProvider {
@@ -39,8 +41,8 @@ class SyntaxErrorSuggestionRegistryTest {
     }
 
     @Override
-    public List<String> getSuggestions(SyntaxErrorContext context) {
-      return List.of(suggestion);
+    public Optional<String> getSuggestion(SyntaxErrorContext context) {
+      return Optional.of(suggestion);
     }
 
     @Override
