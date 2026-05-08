@@ -50,6 +50,17 @@ public class ArrayFunctionImpl extends ImplementorUDF {
         RelDataType originalType =
             SqlLibraryOperators.ARRAY.getReturnTypeInference().inferReturnType(sqlOperatorBinding);
         RelDataType innerType = originalType.getComponentType();
+        // For empty `array()` Calcite infers element type as NULL, which downstream
+        // serializers (notably the analytics-engine route's substrait converter)
+        // reject with "Unable to convert the type UNKNOWN". Default to VARCHAR — the
+        // result is empty either way, so the chosen scalar element type doesn't
+        // affect any value computation, but it gives the call a substrait-serializable
+        // type. Existing v2-engine tests (which feed Object lists straight through to
+        // ExprCollectionValue) are unaffected because the empty list contains no
+        // elements that need to be cast.
+        if (innerType == null || isUnknownLikeType(innerType.getSqlTypeName())) {
+          innerType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+        }
         return createArrayType(
             typeFactory, typeFactory.createTypeWithNullability(innerType, true), true);
       } catch (Exception e) {
@@ -61,6 +72,17 @@ public class ArrayFunctionImpl extends ImplementorUDF {
   @Override
   public UDFOperandMetadata getOperandMetadata() {
     return null;
+  }
+
+  /**
+   * Calcite's {@link SqlLibraryOperators#ARRAY} infers a {@code NULL}-element array for an empty
+   * call list and an {@code UNKNOWN}-element array when type inference can't pick one (e.g. all
+   * operands are typeless nulls). Either of those bubbles up to the analytics-engine route's
+   * substrait converter as "Unable to convert the type UNKNOWN" — substrait has no encoding for
+   * either marker. Treat both as needing a concrete fallback.
+   */
+  private static boolean isUnknownLikeType(SqlTypeName sqlTypeName) {
+    return sqlTypeName == SqlTypeName.NULL || sqlTypeName == SqlTypeName.UNKNOWN;
   }
 
   public static class ArrayImplementor implements NotNullImplementor {
