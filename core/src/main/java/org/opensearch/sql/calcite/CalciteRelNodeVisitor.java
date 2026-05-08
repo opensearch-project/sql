@@ -1551,10 +1551,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return aggCallRefs.stream()
         .map(r -> rowType.getFieldNames().get(r.getIndex()))
         .map(name -> org.apache.commons.lang3.StringUtils.substringBefore(name, "."))
-        .anyMatch(root -> {
-          RelDataTypeField field = rowType.getField(root, /*caseSensitive=*/ true, /*elideRecord=*/ false);
-          return field != null && field.getType().getSqlTypeName() == SqlTypeName.ARRAY;
-        });
+        .anyMatch(
+            root -> {
+              RelDataTypeField field =
+                  rowType.getField(root, /* caseSensitive= */ true, /* elideRecord= */ false);
+              return field != null && field.getType().getSqlTypeName() == SqlTypeName.ARRAY;
+            });
   }
 
   /**
