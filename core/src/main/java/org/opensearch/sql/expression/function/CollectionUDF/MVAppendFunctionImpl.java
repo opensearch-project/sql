@@ -20,6 +20,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -78,18 +79,23 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
     if (current == null) {
       return candidate;
     }
-    // Widen via Calcite's leastRestrictive (the same routine SqlLibraryOperators.ARRAY uses
-    // for its return-type inference) instead of strict Object.equals. {@code Object.equals}
-    // returns false for type pairs that only differ in nullability tag — e.g. {@code array(1, 2)}
-    // synthesizes INTEGER NULLABLE for its component while a literal {@code 3} is INTEGER NOT
-    // NULL — which then fell into the {@code ANY} fallback. Calcite's {@code ANY} type isn't
-    // substrait-serializable, so any analytics-engine query passing through {@code mvappend}
-    // with mixed-nullability operands or with widenable numerics (INT + DOUBLE) would fail
-    // substrait conversion with "Unable to convert the type ANY". {@code leastRestrictive}
-    // returns null when no common type exists (genuinely incompatible types like INT + VARCHAR);
-    // fall back to ANY in that case to preserve the original behavior on those queries.
-    RelDataType least = typeFactory.leastRestrictive(java.util.List.of(current, candidate));
-    return least != null ? least : typeFactory.createSqlType(SqlTypeName.ANY);
+    if (current.equals(candidate)) {
+      return current;
+    }
+    // Tolerate a nullability-only mismatch by widening to the nullable form. {@code Object.equals}
+    // distinguishes INTEGER NULLABLE from INTEGER NOT NULL — e.g. {@code array(1, 2)} synthesizes
+    // an INTEGER NULLABLE component while a bare literal {@code 3} is INTEGER NOT NULL — which
+    // would otherwise fall into the {@code ANY} fallback. Calcite's {@code ANY} type isn't
+    // substrait-serializable, so any analytics-engine query passing through {@code mvappend} with
+    // mixed-nullability operands would fail substrait conversion with "Unable to convert the type
+    // ANY". For genuinely different types (INT + DOUBLE, INT + VARCHAR, …) keep the {@code ANY}
+    // fallback unchanged: the Calcite engine relies on {@code Object[]} runtime semantics to
+    // preserve heterogeneous values as-is, and widening to a single numeric type would corrupt
+    // values at codegen time (e.g. casting integer 1 to {@code DECIMAL(11,1)}).
+    if (SqlTypeUtil.equalSansNullability(typeFactory, current, candidate)) {
+      return typeFactory.createTypeWithNullability(current, true);
+    }
+    return typeFactory.createSqlType(SqlTypeName.ANY);
   }
 
   public static class MVAppendImplementor implements NotNullImplementor {
