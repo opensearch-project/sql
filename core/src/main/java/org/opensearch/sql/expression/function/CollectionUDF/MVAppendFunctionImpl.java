@@ -7,7 +7,10 @@ package org.opensearch.sql.expression.function.CollectionUDF;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -20,7 +23,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -82,33 +84,71 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
     if (current.equals(candidate)) {
       return current;
     }
-    // Tolerate a nullability-only mismatch by widening to the nullable form. {@code Object.equals}
-    // distinguishes INTEGER NULLABLE from INTEGER NOT NULL — e.g. {@code array(1, 2)} synthesizes
-    // an INTEGER NULLABLE component while a bare literal {@code 3} is INTEGER NOT NULL — which
-    // would otherwise fall into the {@code ANY} fallback. Calcite's {@code ANY} type isn't
-    // substrait-serializable, so any analytics-engine query passing through {@code mvappend} with
-    // mixed-nullability operands would fail substrait conversion with "Unable to convert the type
-    // ANY". For genuinely different types (INT + DOUBLE, INT + VARCHAR, …) keep the {@code ANY}
-    // fallback unchanged: the Calcite engine relies on {@code Object[]} runtime semantics to
-    // preserve heterogeneous values as-is, and widening to a single numeric type would corrupt
-    // values at codegen time (e.g. casting integer 1 to {@code DECIMAL(11,1)}).
-    if (SqlTypeUtil.equalSansNullability(typeFactory, current, candidate)) {
-      return typeFactory.createTypeWithNullability(current, true);
+    // Widen via Calcite's {@code leastRestrictive} — the same routine
+    // {@code SqlLibraryOperators.ARRAY} uses for its return-type inference. For genuinely
+    // incompatible operand types (INT + VARCHAR, …) it returns null; fall back to {@code ANY}
+    // there to preserve the in-process Calcite engine's {@code Object[]} runtime semantics
+    // that pre-existing tests rely on. Promote DECIMAL → DOUBLE on the way through: the row
+    // codec on the analytics-engine route maps DECIMAL cells to {@code FloatingPoint(DOUBLE)}
+    // anyway, and an explicit DECIMAL element type triggers Calcite's element coercion to
+    // BigDecimal, which downstream Avatica array accessors and the JSON formatter render
+    // inconsistently across paths.
+    RelDataType least = typeFactory.leastRestrictive(java.util.List.of(current, candidate));
+    if (least == null) {
+      return typeFactory.createSqlType(SqlTypeName.ANY);
     }
-    return typeFactory.createSqlType(SqlTypeName.ANY);
+    if (least.getSqlTypeName() == SqlTypeName.DECIMAL) {
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(SqlTypeName.DOUBLE), true);
+    }
+    return least;
   }
 
   public static class MVAppendImplementor implements NotNullImplementor {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
+      // Pre-cast each scalar operand to the call's element Java class so the result list is
+      // homogeneously typed. Avatica's {@code AbstractCursor.ArrayAccessor} dispatches the
+      // per-element accessor by the declared SQL type — e.g. {@code DoubleAccessor.getDouble}
+      // does {@code (Double) value} — and would throw a runtime ClassCastException on an
+      // {@code Integer} cell when the call's element type widens to DOUBLE. Array operands
+      // pass through; their element-type alignment is the planner's responsibility.
+      RelDataType elementType = call.getType().getComponentType();
+      Class<?> elementClass =
+          elementType == null ? Object.class : boxedJavaClass(elementType.getSqlTypeName());
+      List<Expression> coerced = new ArrayList<>(translatedOperands.size());
+      for (int i = 0; i < translatedOperands.size(); i++) {
+        Expression op = translatedOperands.get(i);
+        RelDataType opType = call.getOperands().get(i).getType();
+        if (opType.getComponentType() != null || elementClass == Object.class) {
+          coerced.add(op);
+        } else {
+          coerced.add(EnumUtils.convert(op, elementClass));
+        }
+      }
       return Expressions.call(
           Types.lookupMethod(MVAppendFunctionImpl.class, "mvappend", Object[].class),
-          Expressions.newArrayInit(Object.class, translatedOperands));
+          Expressions.newArrayInit(Object.class, coerced));
     }
   }
 
   public static Object mvappend(Object... args) {
     return MVAppendCore.collectElements(args);
+  }
+
+  private static Class<?> boxedJavaClass(SqlTypeName sqlType) {
+    return switch (sqlType) {
+      case BOOLEAN -> Boolean.class;
+      case TINYINT -> Byte.class;
+      case SMALLINT -> Short.class;
+      case INTEGER -> Integer.class;
+      case BIGINT -> Long.class;
+      case FLOAT, REAL -> Float.class;
+      case DOUBLE -> Double.class;
+      case DECIMAL -> BigDecimal.class;
+      case CHAR, VARCHAR -> String.class;
+      default -> Object.class;
+    };
   }
 }
