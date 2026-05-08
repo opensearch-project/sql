@@ -78,12 +78,18 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
     if (current == null) {
       return candidate;
     }
-
-    if (!current.equals(candidate)) {
-      return typeFactory.createSqlType(SqlTypeName.ANY);
-    } else {
-      return current;
-    }
+    // Widen via Calcite's leastRestrictive (the same routine SqlLibraryOperators.ARRAY uses
+    // for its return-type inference) instead of strict Object.equals. {@code Object.equals}
+    // returns false for type pairs that only differ in nullability tag — e.g. {@code array(1, 2)}
+    // synthesizes INTEGER NULLABLE for its component while a literal {@code 3} is INTEGER NOT
+    // NULL — which then fell into the {@code ANY} fallback. Calcite's {@code ANY} type isn't
+    // substrait-serializable, so any analytics-engine query passing through {@code mvappend}
+    // with mixed-nullability operands or with widenable numerics (INT + DOUBLE) would fail
+    // substrait conversion with "Unable to convert the type ANY". {@code leastRestrictive}
+    // returns null when no common type exists (genuinely incompatible types like INT + VARCHAR);
+    // fall back to ANY in that case to preserve the original behavior on those queries.
+    RelDataType least = typeFactory.leastRestrictive(java.util.List.of(current, candidate));
+    return least != null ? least : typeFactory.createSqlType(SqlTypeName.ANY);
   }
 
   public static class MVAppendImplementor implements NotNullImplementor {
