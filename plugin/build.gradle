@@ -1,5 +1,8 @@
 import java.util.concurrent.Callable
 import org.opensearch.gradle.dependencies.CompileOnlyResolvePlugin
+import org.opensearch.gradle.test.RestIntegTestTask
+import org.opensearch.gradle.testclusters.RunTask
+import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
 /*
  * Copyright OpenSearch Contributors
@@ -162,9 +165,15 @@ dependencies {
     api project(":ppl")
     api project(':api')
     // Bundled: analytics-framework interfaces must resolve even when the plugin is absent.
-    api files("${rootDir}/libs/analytics-framework-3.7.0-SNAPSHOT.jar")
+    // transitive = false: at runtime sql loads calcite via AE's classloader (extendedPlugins
+    // parent-first), so sql's classpath must not pull AF's patched-calcite transitive.
+    api('org.opensearch.sandbox:analytics-framework:3.7.0-SNAPSHOT') {
+        transitive = false
+    }
     // Not bundled: classes here (e.g. OpenSearchSchemaBuilder) only load when the plugin is installed.
-    compileOnly files("${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.jar")
+    compileOnly('org.opensearch.sandbox:analytics-engine:3.7.0-SNAPSHOT') {
+        transitive = false
+    }
     api project(':legacy')
     api project(':opensearch')
     api project(':prometheus')
@@ -310,6 +319,10 @@ def getJobSchedulerPlugin() {
 
 testClusters.integTest {
     plugin(getJobSchedulerPlugin())
+    // arrow-flight-rpc is declared as an extendedPlugins dependency by analytics-engine, so
+    // it must be installed first or analytics-engine fails the plugin install jar-hell check
+    // with `Missing plugin [arrow-flight-rpc], dependency of [analytics-engine]`.
+    plugin provider { (RegularFile) (() -> file("${arrowFlightRpcZip}")) }
     plugin provider { (RegularFile) (() -> file("${analyticsEngineZip}")) }
     plugin(project.tasks.bundlePlugin.archiveFile)
     testDistribution = "ARCHIVE"
@@ -325,5 +338,16 @@ testClusters.integTest {
 
 run {
     useCluster testClusters.integTest
+}
+
+// Ensure both plugin zips are downloaded before any task that boots a test cluster.
+tasks.withType(RunTask).configureEach {
+    dependsOn ':downloadAnalyticsEngineZip', ':downloadArrowFlightRpcZip'
+}
+tasks.withType(StandaloneRestIntegTestTask).configureEach {
+    dependsOn ':downloadAnalyticsEngineZip', ':downloadArrowFlightRpcZip'
+}
+tasks.withType(RestIntegTestTask).configureEach {
+    dependsOn ':downloadAnalyticsEngineZip', ':downloadArrowFlightRpcZip'
 }
 

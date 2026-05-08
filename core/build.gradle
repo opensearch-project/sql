@@ -64,11 +64,19 @@ dependencies {
     }
     api 'org.apache.calcite:calcite-linq4j:1.41.0'
     api project(':common')
-    compileOnly files("${rootDir}/libs/analytics-framework-3.7.0-SNAPSHOT.jar")
+    // transitive = false: at runtime, sql's classloader delegates to analytics-engine's via
+    // `extendedPlugins` parent-first, so the patched calcite (1.41.0-opensearch-1) it transitively
+    // pulls in must NOT enter sql's compile classpath — sql compiles & bundles vanilla calcite
+    // 1.41.0, and the AE-supplied patched copy wins at runtime via classloader delegation.
+    compileOnly('org.opensearch.sandbox:analytics-framework:3.7.0-SNAPSHOT') {
+        transitive = false
+    }
     // Needed because the analytics-framework's QueryPlanExecutor signature uses
     // org.opensearch.core.action.ActionListener; AnalyticsExecutionEngine references that type.
     compileOnly group: 'org.opensearch', name: 'opensearch-core', version: "${opensearch_version}"
-    testImplementation files("${rootDir}/libs/analytics-framework-3.7.0-SNAPSHOT.jar")
+    testImplementation('org.opensearch.sandbox:analytics-framework:3.7.0-SNAPSHOT') {
+        transitive = false
+    }
     testImplementation group: 'org.opensearch', name: 'opensearch-core', version: "${opensearch_version}"
     implementation "com.github.seancfoley:ipaddress:5.4.2"
     implementation "com.jayway.jsonpath:json-path:2.9.0"

@@ -271,7 +271,22 @@ def getGeoSpatialPlugin() {
 }
 
 def getAnalyticsEnginePlugin() {
-    provider { (RegularFile) (() -> file("${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.zip")) }
+    provider { (RegularFile) (() -> file("${analyticsEngineZip}")) }
+}
+
+// arrow-flight-rpc is declared as an extendedPlugins dependency by analytics-engine, so it must
+// be installed first or analytics-engine's plugin install fails with `Missing plugin
+// [arrow-flight-rpc], dependency of [analytics-engine]`.
+def getArrowFlightRpcPlugin() {
+    provider { (RegularFile) (() -> file("${arrowFlightRpcZip}")) }
+}
+
+// Ensure both plugin zips are downloaded before any task that boots a test cluster.
+tasks.withType(StandaloneRestIntegTestTask).configureEach {
+    dependsOn ':downloadAnalyticsEngineZip', ':downloadArrowFlightRpcZip'
+}
+tasks.withType(RestIntegTestTask).configureEach {
+    dependsOn ':downloadAnalyticsEngineZip', ':downloadArrowFlightRpcZip'
 }
 
 testClusters {
@@ -279,6 +294,7 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
+        plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
@@ -287,6 +303,7 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
+        plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
@@ -295,18 +312,21 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
+        plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
     }
     integTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
+        plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
     }
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
+        plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
     }
@@ -362,6 +382,7 @@ stopPrometheus.mustRunAfter startPrometheus
 
 task integJdbcTest(type: RestIntegTestTask) {
     testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().with {
+        plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
     }

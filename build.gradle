@@ -81,6 +81,7 @@ plugins {
     id "io.freefair.lombok" version "8.14"
     id 'jacoco'
     id 'com.diffplug.spotless' version '8.1.0'
+    id 'de.undercouch.download' version '5.3.0'
 }
 
 // import versions defined in https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java#L94
@@ -117,6 +118,38 @@ spotless {
     }
 }
 
+// Remote URLs for the analytics-engine + arrow-flight-rpc plugin ZIPs. The OpenSearch CI maven
+// snapshot repo only publishes jar/pom/sources/javadoc, not the plugin distribution zips — so we
+// fetch them from the feature-build artifact URLs directly. Versioned by the OpenSearch core
+// feature build, not by the maven snapshot timestamp.
+ext.analyticsEngineZipUrl = 'https://ci.opensearch.org/ci/dbc/feature-build-opensearch/feature-datafusion/latest/linux/x64/tar/builds/opensearch/plugins/1-analytics-engine-3.7.0.zip'
+ext.analyticsEngineZipFile = "${rootProject.layout.buildDirectory.get().asFile}/distributions/analytics-engine-3.7.0-SNAPSHOT.zip"
+ext.arrowFlightRpcZipUrl = 'https://ci.opensearch.org/ci/dbc/feature-build-opensearch/feature-datafusion/latest/linux/x64/tar/builds/opensearch/plugins/0-arrow-flight-rpc-3.7.0.zip'
+ext.arrowFlightRpcZipFile = "${rootProject.layout.buildDirectory.get().asFile}/distributions/arrow-flight-rpc-3.7.0-SNAPSHOT.zip"
+
+tasks.register('downloadAnalyticsEngineZip', de.undercouch.gradle.tasks.download.Download) {
+    src analyticsEngineZipUrl
+    dest analyticsEngineZipFile
+    overwrite false
+    onlyIfModified true
+    // Skip the network call when the user supplies a local zip via -PanalyticsEngineZip=/path.
+    // (We can't use `project.hasProperty` here because the ext property is always set in the
+    // allprojects block below.)
+    onlyIf {
+        !project.gradle.startParameter.projectProperties.containsKey('analyticsEngineZip')
+    }
+}
+
+tasks.register('downloadArrowFlightRpcZip', de.undercouch.gradle.tasks.download.Download) {
+    src arrowFlightRpcZipUrl
+    dest arrowFlightRpcZipFile
+    overwrite false
+    onlyIfModified true
+    onlyIf {
+        !project.gradle.startParameter.projectProperties.containsKey('arrowFlightRpcZip')
+    }
+}
+
 allprojects {
     version = opensearch_version.tokenize('-')[0] + '.0'
     if (buildVersionQualifier) {
@@ -127,10 +160,13 @@ allprojects {
         version += "-SNAPSHOT"
     }
 
-    // Path to the analytics-engine plugin ZIP. Override with
-    // `-PanalyticsEngineZip=/path/to/zip` if needed.
-    ext.analyticsEngineZip = project.findProperty('analyticsEngineZip') ?:
-            "${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.zip"
+    // Plugin ZIPs needed by integration test clusters. analytics-engine declares arrow-flight-rpc
+    // as an extendedPlugins parent, so both must be installed (arrow-flight-rpc first). Both
+    // default to files produced by the root :download* tasks; either can be overridden via
+    // `-PanalyticsEngineZip=/path` / `-ParrowFlightRpcZip=/path` for local development against an
+    // unpublished build.
+    ext.analyticsEngineZip = project.findProperty('analyticsEngineZip') ?: rootProject.analyticsEngineZipFile
+    ext.arrowFlightRpcZip = project.findProperty('arrowFlightRpcZip') ?: rootProject.arrowFlightRpcZipFile
 
     plugins.withId('java') {
         java {
@@ -173,7 +209,13 @@ allprojects {
 
 subprojects {
     repositories {
-        mavenLocal()
+        // Skip mavenLocal for org.opensearch.sandbox.* (analytics-framework, analytics-engine):
+        // a locally-published OpenSearch core build can install these with Gradle Module Metadata
+        // declaring different attributes than the published snapshot, which can shadow the remote
+        // and break resolution. Always pull these from the CI snapshot repo.
+        mavenLocal {
+            content { excludeGroup 'org.opensearch.sandbox' }
+        }
         mavenCentral()
         maven {
             url 'https://jitpack.io'
@@ -181,6 +223,33 @@ subprojects {
         }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
+    }
+
+    // Sandbox artifacts (analytics-framework, analytics-engine) publish Gradle Module Metadata
+    // declaring `org.gradle.jvm.version=25` because the sandbox uses the FFM API (finalized in
+    // JDK 22). sql targets JVM 21, which would make Gradle's variant matcher refuse them.
+    // Override the published attribute to 21 for these two modules only — safe because:
+    //   - sql code references only non-FFM interfaces of these jars (compile-time API surface).
+    //   - Production runtime targets JVM 25 nodes, where the actual JDK 25 bytecode runs fine.
+    //   - Rule is scoped to `org.opensearch.sandbox:{analytics-framework,analytics-engine}` —
+    //     no effect on any other dependency.
+    dependencies {
+        components {
+            withModule('org.opensearch.sandbox:analytics-framework') { details ->
+                details.allVariants {
+                    attributes {
+                        attribute(org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 21)
+                    }
+                }
+            }
+            withModule('org.opensearch.sandbox:analytics-engine') { details ->
+                details.allVariants {
+                    attributes {
+                        attribute(org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 21)
+                    }
+                }
+            }
+        }
     }
 
     // Publish internal modules as Maven artifacts for external use, such as by opensearch-spark and opensearch-cli.
