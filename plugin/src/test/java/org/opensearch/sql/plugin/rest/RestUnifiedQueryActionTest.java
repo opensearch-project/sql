@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -30,7 +31,8 @@ public class RestUnifiedQueryActionTest {
     @SuppressWarnings("unchecked")
     QueryPlanExecutor<RelNode, Iterable<Object[]>> executor = mock(QueryPlanExecutor.class);
     action =
-        new RestUnifiedQueryAction(mock(NodeClient.class), mock(ClusterService.class), executor);
+        new RestUnifiedQueryAction(
+            mock(NodeClient.class), mock(ClusterService.class), executor, mock(Settings.class));
   }
 
   @Test
