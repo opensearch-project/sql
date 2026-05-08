@@ -146,6 +146,42 @@ public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
   //  Multi-field relevance functions only accept a single column reference in the Calcite SQL path.
 
   @Test
+  public void testMultiMatchArraySyntax() {
+    givenQuery(
+            """
+            SELECT * FROM catalog.employees
+            WHERE multi_match(ARRAY['name', 'department'], 'John')\
+            """)
+        .assertPlanContains(
+            "multi_match(MAP('fields', MAP('name':VARCHAR, 1.0E0:DOUBLE,"
+                + " 'department':VARCHAR, 1.0E0:DOUBLE)), MAP('query', 'John'))");
+  }
+
+  @Test
+  public void testSimpleQueryStringArraySyntax() {
+    givenQuery(
+            """
+            SELECT * FROM catalog.employees
+            WHERE simple_query_string(ARRAY['name', 'department'], 'John')\
+            """)
+        .assertPlanContains(
+            "simple_query_string(MAP('fields', MAP('name':VARCHAR, 1.0E0:DOUBLE,"
+                + " 'department':VARCHAR, 1.0E0:DOUBLE)), MAP('query', 'John'))");
+  }
+
+  @Test
+  public void testQueryStringArraySyntax() {
+    givenQuery(
+            """
+            SELECT * FROM catalog.employees
+            WHERE query_string(ARRAY['name', 'department'], 'John')\
+            """)
+        .assertPlanContains(
+            "query_string(MAP('fields', MAP('name':VARCHAR, 1.0E0:DOUBLE,"
+                + " 'department':VARCHAR, 1.0E0:DOUBLE)), MAP('query', 'John'))");
+  }
+
+  @Test
   public void testMultiMatchBracketSyntaxNotSupported() {
     givenInvalidQuery(
             """
