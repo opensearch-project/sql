@@ -50,14 +50,7 @@ public class ArrayFunctionImpl extends ImplementorUDF {
         RelDataType originalType =
             SqlLibraryOperators.ARRAY.getReturnTypeInference().inferReturnType(sqlOperatorBinding);
         RelDataType innerType = originalType.getComponentType();
-        // For empty `array()` Calcite infers element type as NULL, which downstream
-        // serializers (notably the analytics-engine route's substrait converter)
-        // reject with "Unable to convert the type UNKNOWN". Default to VARCHAR — the
-        // result is empty either way, so the chosen scalar element type doesn't
-        // affect any value computation, but it gives the call a substrait-serializable
-        // type. Existing v2-engine tests (which feed Object lists straight through to
-        // ExprCollectionValue) are unaffected because the empty list contains no
-        // elements that need to be cast.
+        // Default empty/unknown element type to VARCHAR — see PR description for why.
         if (innerType == null || isUnknownLikeType(innerType.getSqlTypeName())) {
           innerType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
         }
