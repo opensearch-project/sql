@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -259,5 +260,119 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK));
     verifySchema(result, schema("memory", null, "double"));
     verifyDataRows(result, rows(2097152.0));
+  }
+
+  @Test
+  public void testConvertMktimeWithDefaultFormat() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval date_str = '10/18/2003 20:07:13' | convert"
+                    + " mktime(date_str) | fields date_str | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("date_str", null, "double"));
+    verifyDataRows(result, rows(1066507633.0));
+  }
+
+  @Test
+  public void testConvertMktimeWithCustomTimeformat() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "search source="
+                + TEST_INDEX_BANK
+                + " | eval date_str = '18/10/2003 20:07:13' | convert timeformat=\\\"%d/%m/%Y"
+                + " %H:%M:%S\\\" mktime(date_str) | fields date_str | head 1");
+    verifySchema(result, schema("date_str", null, "double"));
+    verifyDataRows(result, rows(1066507633.0));
+  }
+
+  @Test
+  public void testConvertCtimeWithDefaultFormat() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval timestamp = 1066507633 | convert ctime(timestamp) |"
+                    + " fields timestamp | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("timestamp", null, "string"));
+    verifyDataRows(result, rows("10/18/2003 20:07:13"));
+  }
+
+  @Test
+  public void testConvertCtimeWithCustomTimeformat() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "search source="
+                + TEST_INDEX_BANK
+                + " | eval timestamp = 1066507633 | convert timeformat=\\\"%Y-%m-%d %H:%M:%S\\\""
+                + " ctime(timestamp) | fields timestamp | head 1");
+    verifySchema(result, schema("timestamp", null, "string"));
+    verifyDataRows(result, rows("2003-10-18 20:07:13"));
+  }
+
+  @Test
+  public void testConvertDur2secFunction() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval duration = '01:23:45' | convert dur2sec(duration) |"
+                    + " fields duration | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("duration", null, "double"));
+    verifyDataRows(result, rows(5025.0));
+  }
+
+  @Test
+  public void testConvertMstimeFunction() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval time_str = '03:45' | convert mstime(time_str) |"
+                    + " fields time_str | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("time_str", null, "double"));
+    verifyDataRows(result, rows(225.0));
+  }
+
+  @Test
+  public void testConvertTimeformatWithMultipleFunctions() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "search source="
+                + TEST_INDEX_BANK
+                + " | eval date_str = '18/10/2003 20:07:13', timestamp = 1066507633 | convert"
+                + " timeformat=\\\"%d/%m/%Y %H:%M:%S\\\" mktime(date_str), ctime(timestamp) |"
+                + " fields date_str, timestamp | head 1");
+    verifySchema(result, schema("date_str", null, "double"), schema("timestamp", null, "string"));
+    verifyNumOfRows(result, 1);
+    assertEquals(1066507633.0, result.getJSONArray("datarows").getJSONArray(0).getDouble(0), 0.001);
+    assertEquals(
+        "18/10/2003 20:07:13", result.getJSONArray("datarows").getJSONArray(0).getString(1));
+  }
+
+  @Test
+  public void testConvertTimeformatWithWhere() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval date_str = '10/18/2003 20:07:13' |"
+                    + " convert mktime(date_str) | where date_str > 1000000000 |"
+                    + " fields date_str | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("date_str", null, "double"));
+    verifyDataRows(result, rows(1066507633.0));
+  }
+
+  @Test
+  public void testConvertTimeformatWithStats() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "search source="
+                + TEST_INDEX_BANK
+                + " | eval timestamp = 1066507633 |"
+                + " convert timeformat=\\\"%Y\\\" ctime(timestamp) |"
+                + " stats count() by timestamp");
+    verifySchema(result, schema("count()", null, "bigint"), schema("timestamp", "string"));
+    verifyDataRows(result, rows(7, "2003"));
   }
 }

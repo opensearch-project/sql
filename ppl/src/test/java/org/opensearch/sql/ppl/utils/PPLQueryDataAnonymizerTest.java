@@ -1147,6 +1147,26 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | convert (identifier) AS identifier",
         anonymize("source=t | convert none(empno) AS empno_same"));
+    assertEquals(
+        "source=table | convert dur2sec(identifier)",
+        anonymize("source=t | convert dur2sec(duration)"));
+    assertEquals(
+        "source=table | convert mstime(identifier)",
+        anonymize("source=t | convert mstime(elapsed)"));
+    assertEquals(
+        "source=table | convert memk(identifier) AS identifier",
+        anonymize("source=t | convert memk(virt) AS virt_kb"));
+  }
+
+  @Test
+  public void testConvertCommandWithTimeformat() {
+    assertEquals(
+        "source=table | convert timeformat=\"%Y-%m-%d\" mktime(identifier)",
+        anonymize("source=t | convert timeformat=\"%Y-%m-%d\" mktime(date_str)"));
+    assertEquals(
+        "source=table | convert timeformat=\"%m/%d/%Y %H:%M:%S\" ctime(identifier) AS identifier",
+        anonymize(
+            "source=t | convert timeformat=\"%m/%d/%Y %H:%M:%S\" ctime(ts) AS formatted_time"));
   }
 
   @Test
@@ -1159,5 +1179,29 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | mvexpand identifier limit=***",
         anonymize("source=t | mvexpand skills limit=5"));
+  }
+
+  @Test
+  public void testUnion() {
+    assertEquals(
+        "| union [search source=table | where identifier < ***] [search source=table |"
+            + " where identifier >= ***]",
+        anonymize(
+            "| union [search source=accounts | where age < 30] [search source=accounts"
+                + " | where age >= 30]"));
+
+    assertEquals(
+        "| union [search source=table | where identifier > ***] [search source=table |"
+            + " where identifier = ***]",
+        anonymize(
+            "| union [search source=accounts | where balance > 20000] [search"
+                + " source=accounts | where state = 'CA']"));
+
+    assertEquals(
+        "| union [search source=table | fields + identifier,identifier] [search"
+            + " source=table | where identifier = ***]",
+        anonymize(
+            "| union [search source=accounts | fields firstname, lastname] [search"
+                + " source=accounts | where age = 25]"));
   }
 }

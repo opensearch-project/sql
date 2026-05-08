@@ -249,6 +249,15 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return ctx.NOT() != null ? new Not(expr) : expr;
   }
 
+  @Override
+  public UnresolvedExpression visitIsNullPredicate(OpenSearchPPLParser.IsNullPredicateContext ctx) {
+    return new Function(
+        ctx.nullNotnull().NOT() == null
+            ? IS_NULL.getName().getFunctionName()
+            : IS_NOT_NULL.getName().getFunctionName(),
+        Arrays.asList(visit(ctx.expression())));
+  }
+
   /** Value Expression. */
   @Override
   public UnresolvedExpression visitBinaryArithmetic(BinaryArithmeticContext ctx) {
@@ -300,18 +309,20 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitPrefixSortField(OpenSearchPPLParser.PrefixSortFieldContext ctx) {
-    return buildSortField(ctx.sortFieldExpression(), ctx);
+    boolean ascending = ctx.MINUS() == null;
+    return buildSortField(ctx.sortFieldExpression(), ascending);
   }
 
   @Override
   public UnresolvedExpression visitSuffixSortField(OpenSearchPPLParser.SuffixSortFieldContext ctx) {
-    return buildSortField(ctx.sortFieldExpression(), ctx);
+    boolean ascending = (ctx.DESC() == null && ctx.D() == null);
+    return buildSortField(ctx.sortFieldExpression(), ascending);
   }
 
   @Override
   public UnresolvedExpression visitDefaultSortField(
       OpenSearchPPLParser.DefaultSortFieldContext ctx) {
-    return buildSortField(ctx.sortFieldExpression(), ctx);
+    return buildSortField(ctx.sortFieldExpression(), true);
   }
 
   @Override
@@ -334,8 +345,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   private Field buildSortField(
-      OpenSearchPPLParser.SortFieldExpressionContext sortFieldExpr,
-      OpenSearchPPLParser.SortFieldContext parentCtx) {
+      OpenSearchPPLParser.SortFieldExpressionContext sortFieldExpr, boolean ascending) {
     UnresolvedExpression fieldExpression = visit(sortFieldExpr.fieldExpression().qualifiedName());
 
     if (sortFieldExpr.IP() != null) {
@@ -346,7 +356,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       fieldExpression = new Cast(fieldExpression, AstDSL.stringLiteral("string"));
     }
     // AUTO() case uses the field expression as-is
-    return new Field(fieldExpression, ArgumentFactory.getArgumentList(parentCtx));
+
+    List<Argument> arguments =
+        Arrays.asList(
+            ArgumentFactory.createSortDirectionArgument(ascending),
+            ArgumentFactory.getTypeArgument(sortFieldExpr));
+    return new Field(fieldExpression, arguments);
   }
 
   @Override

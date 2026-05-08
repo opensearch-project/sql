@@ -39,6 +39,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.COSH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COUNT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CRC32;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_DATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIME;
@@ -61,6 +62,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDEFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DUR2SEC;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EARLIEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
@@ -144,12 +146,14 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINSPAN
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_HOUR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MKTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MOD;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUSFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTHNAME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MSTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
@@ -991,6 +995,10 @@ public class PPLFuncImpTable {
       registerOperator(RMCOMMA, PPLBuiltinOperators.RMCOMMA);
       registerOperator(RMUNIT, PPLBuiltinOperators.RMUNIT);
       registerOperator(MEMK, PPLBuiltinOperators.MEMK);
+      registerOperator(CTIME, PPLBuiltinOperators.CTIME);
+      registerOperator(MKTIME, PPLBuiltinOperators.MKTIME);
+      registerOperator(MSTIME, PPLBuiltinOperators.MSTIME);
+      registerOperator(DUR2SEC, PPLBuiltinOperators.DUR2SEC);
 
       register(
           TOSTRING,

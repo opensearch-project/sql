@@ -120,6 +120,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -1212,12 +1213,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             .map(this::buildConversion)
             .filter(conversion -> conversion != null)
             .collect(Collectors.toList());
-    return new Convert(conversions);
+
+    String timeFormat = null;
+    if (ctx.timeFormat != null) {
+      timeFormat = StringUtils.unquoteText(ctx.timeFormat.getText());
+    }
+
+    return new Convert(conversions, timeFormat);
   }
 
   /** Supported PPL convert function names (case-insensitive). */
   private static final Set<String> SUPPORTED_CONVERSION_FUNCTIONS =
-      Set.of("auto", "num", "rmcomma", "rmunit", "memk", "none");
+      Set.of(
+          "auto", "num", "rmcomma", "rmunit", "memk", "none", "ctime", "mktime", "dur2sec",
+          "mstime");
 
   private Let buildConversion(OpenSearchPPLParser.ConvertFunctionContext funcCtx) {
     if (funcCtx.fieldExpression().isEmpty()) {
@@ -1337,6 +1346,37 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     return new Multisearch(subsearches);
+  }
+
+  @Override
+  public UnresolvedPlan visitUnionCommand(OpenSearchPPLParser.UnionCommandContext ctx) {
+    List<UnresolvedPlan> datasets = new ArrayList<>();
+
+    Integer maxout = null;
+    if (ctx.subsearchOptions() != null) {
+      OpenSearchPPLParser.SubsearchOptionsContext opts = ctx.subsearchOptions();
+      if (opts.maxout != null) {
+        maxout = Integer.parseInt(opts.maxout.getText());
+      }
+    }
+
+    for (OpenSearchPPLParser.UnionDatasetContext datasetCtx : ctx.unionDataset()) {
+      if (datasetCtx.subSearch() != null) {
+        datasets.add(visitSubSearch(datasetCtx.subSearch()));
+      } else if (datasetCtx.tableSource() != null) {
+        datasets.add(
+            new Relation(
+                Collections.singletonList(internalVisitExpression(datasetCtx.tableSource()))));
+      }
+    }
+
+    // Allow 1+ here; total count (including implicit upstream) validated during planning
+    if (datasets.isEmpty()) {
+      throw new SyntaxCheckException(
+          "Union command requires at least one dataset. Provided: " + datasets.size());
+    }
+
+    return new Union(datasets, maxout);
   }
 
   @Override

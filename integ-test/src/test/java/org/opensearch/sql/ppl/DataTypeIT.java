@@ -146,6 +146,47 @@ public class DataTypeIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testBooleanFieldFromNumberAcrossWildcardIndices() throws Exception {
+    // Reproduce issue #5269: querying across indices where same field has conflicting types
+    // (boolean vs text) and the text-typed index stores a numeric value like 0.
+    String indexBool = "repro_bool_test_bb";
+    String indexText = "repro_bool_test_aa";
+
+    try {
+      // Create index with boolean mapping
+      Request createBool = new Request("PUT", "/" + indexBool);
+      createBool.setJsonEntity(
+          "{\"mappings\":{\"properties\":{\"flag\":{\"type\":\"boolean\"},"
+              + "\"startTime\":{\"type\":\"date_nanos\"}}}}");
+      client().performRequest(createBool);
+
+      // Create index with text mapping
+      Request createText = new Request("PUT", "/" + indexText);
+      createText.setJsonEntity(
+          "{\"mappings\":{\"properties\":{\"flag\":{\"type\":\"text\"},"
+              + "\"startTime\":{\"type\":\"date_nanos\"}}}}");
+      client().performRequest(createText);
+
+      // Insert boolean value into boolean-typed index
+      Request insertBool = new Request("PUT", "/" + indexBool + "/_doc/1?refresh=true");
+      insertBool.setJsonEntity("{\"startTime\":\"2026-03-25T20:25:00.000Z\",\"flag\":false}");
+      client().performRequest(insertBool);
+
+      // Insert numeric value into text-typed index
+      Request insertText = new Request("PUT", "/" + indexText + "/_doc/1?refresh=true");
+      insertText.setJsonEntity("{\"startTime\":\"2026-03-24T20:25:00.000Z\",\"flag\":0}");
+      client().performRequest(insertText);
+
+      // Query across both indices with wildcard — should not throw an error
+      JSONObject result = executeQuery("source=repro_bool_test_* | fields flag");
+      assertEquals(2, result.getJSONArray("datarows").length());
+    } finally {
+      client().performRequest(new Request("DELETE", "/" + indexBool));
+      client().performRequest(new Request("DELETE", "/" + indexText));
+    }
+  }
+
+  @Test
   public void testBooleanFieldFromString() throws Exception {
     final int docId = 2;
     Request insertRequest =

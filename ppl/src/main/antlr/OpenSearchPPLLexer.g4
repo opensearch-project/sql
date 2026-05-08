@@ -171,6 +171,8 @@ TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
 ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
 MULTISEARCH:                        'MULTISEARCH';
+UNION:                              'UNION';
+MAXOUT:                             'MAXOUT';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
 LIMIT:                              'LIMIT';
@@ -187,7 +189,9 @@ PATH:                               'PATH';
 CASE:                               'CASE';
 ELSE:                               'ELSE';
 IN:                                 'IN';
+IS:                                 'IS';
 EXISTS:                             'EXISTS';
+NULL:                               'NULL';
 
 // Geo IP eval function
 GEOIP:                              'GEOIP';

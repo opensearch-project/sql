@@ -14,7 +14,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.opensearch.sql.api.parser.UnifiedQueryParser;
@@ -58,9 +60,16 @@ public class UnifiedQueryPlanner {
    */
   public RelNode plan(String query) {
     try {
-      return context.measure(ANALYZE, () -> strategy.plan(query));
-    } catch (SyntaxCheckException e) {
-      // Re-throw syntax error without wrapping
+      return context.measure(
+          ANALYZE,
+          () -> {
+            RelNode plan = strategy.plan(query);
+            for (var shuttle : context.getLangSpec().postAnalysisRules()) {
+              plan = plan.accept(shuttle);
+            }
+            return plan;
+          });
+    } catch (SyntaxCheckException | UnsupportedOperationException e) {
       throw e;
     } catch (Exception e) {
       throw new IllegalStateException("Failed to plan query", e);
@@ -81,7 +90,18 @@ public class UnifiedQueryPlanner {
     public RelNode plan(String query) throws Exception {
       try (Planner planner = Frameworks.getPlanner(context.getPlanContext().config)) {
         SqlNode parsed = planner.parse(query);
-        SqlNode validated = planner.validate(parsed);
+        if (!parsed.isA(SqlKind.QUERY)) {
+          throw new UnsupportedOperationException(
+              "Only query statements are supported. Got: " + parsed.getKind());
+        }
+
+        // TODO: move post-parse rewriting into CalciteSqlQueryParser
+        SqlNode rewritten = parsed;
+        for (SqlVisitor<SqlNode> visitor : context.getLangSpec().postParseRules()) {
+          rewritten = rewritten.accept(visitor);
+        }
+
+        SqlNode validated = planner.validate(rewritten);
         RelRoot relRoot = planner.rel(validated);
         return relRoot.project();
       }

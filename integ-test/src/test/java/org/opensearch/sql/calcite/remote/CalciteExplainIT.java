@@ -2469,6 +2469,46 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testConvertCtimeExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_ctime.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | eval ts=1066507633 | convert ctime(ts) |"
+                + " fields ts"));
+  }
+
+  @Test
+  public void testConvertMktimeExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_mktime.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | eval d='10/18/2003 20:07:13' | convert"
+                + " mktime(d) | fields d"));
+  }
+
+  @Test
+  public void testConvertDur2secExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_dur2sec.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | eval d='01:23:45' | convert dur2sec(d) |"
+                + " fields d"));
+  }
+
+  @Test
+  public void testConvertMstimeExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_mstime.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | eval t='03:45.5' | convert mstime(t) |"
+                + " fields t"));
+  }
+
+  @Test
   public void testNotBetweenPushDownExplain() throws Exception {
     // test for issue https://github.com/opensearch-project/sql/issues/4903
     enabledOnlyWhenPushdownIsEnabled();
@@ -2904,5 +2944,30 @@ public class CalciteExplainIT extends ExplainIT {
     // OSD format includes pre_tags/post_tags in the highlight builder output
     String expected = loadExpectedPlan("explain_highlight_osd_format.yaml");
     assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainConsecutiveSortsAfterAggIssue5125() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_consecutive_sorts_issue_5125.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats count() as c by gender | sort gender | sort - gender",
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testExplainUnion() throws IOException {
+    String query =
+        "| union "
+            + "[search source=opensearch-sql_test_index_account | where age < 30] "
+            + "[search source=opensearch-sql_test_index_account | where age >= 30] "
+            + "| stats count() by gender";
+
+    String actual = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_union.yaml");
+    assertYamlEqualsIgnoreId(expected, actual);
   }
 }
