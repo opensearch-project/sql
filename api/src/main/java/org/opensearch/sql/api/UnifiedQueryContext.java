@@ -131,10 +131,12 @@ public class UnifiedQueryContext implements AutoCloseable {
      *
      * <p>{@link Settings.Key#PPL_REX_MAX_MATCH_LIMIT} defaults to {@code 10} here because {@code
      * AstBuilder.visitRexCommand} reads it unconditionally and unboxes to {@code int} — a {@code
-     * null} return from {@code getSettingValue} NPEs the planner before any operator- level
+     * null} return from {@code getSettingValue} NPEs the planner before any operator-level
      * capability check runs. The value mirrors the cluster-side default of {@code 10} registered by
-     * {@code OpenSearchSettings.PPL_REX_MAX_MATCH_LIMIT_SETTING}, so unified-path behavior matches
-     * v2-path behavior when neither has an explicit cluster override.
+     * {@code OpenSearchSettings.PPL_REX_MAX_MATCH_LIMIT_SETTING}. Cluster-side overrides reach this
+     * map via {@link #setting(String, Object)} — the REST handler reads the live value from {@code
+     * OpenSearchSettings} and routes it through that existing API, keeping {@link
+     * UnifiedQueryContext} decoupled from any specific {@link Settings} implementation.
      */
     private final Map<Settings.Key, Object> settings =
         new HashMap<Settings.Key, Object>(
@@ -232,6 +234,7 @@ public class UnifiedQueryContext implements AutoCloseable {
             case SQL -> UnifiedSqlSpec.extended();
             case PPL -> UnifiedPplSpec.create();
           };
+
       Settings settings = buildSettings();
       CalcitePlanContext planContext =
           CalcitePlanContext.create(

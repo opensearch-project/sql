@@ -59,14 +59,17 @@ public class RestUnifiedQueryAction {
   private final AnalyticsExecutionEngine analyticsEngine;
   private final NodeClient client;
   private final ClusterService clusterService;
+  private final org.opensearch.sql.common.setting.Settings pluginSettings;
 
   public RestUnifiedQueryAction(
       NodeClient client,
       ClusterService clusterService,
-      QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor) {
+      QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor,
+      org.opensearch.sql.common.setting.Settings pluginSettings) {
     this.client = client;
     this.clusterService = clusterService;
     this.analyticsEngine = new AnalyticsExecutionEngine(planExecutor);
+    this.pluginSettings = pluginSettings;
   }
 
   /**
@@ -154,17 +157,40 @@ public class RestUnifiedQueryAction {
    * Build a lightweight context for parsing only (index name extraction). Does not require cluster
    * state or catalog schema.
    */
-  private static UnifiedQueryContext buildParsingContext(QueryType queryType) {
-    return UnifiedQueryContext.builder().language(queryType).build();
+  private UnifiedQueryContext buildParsingContext(QueryType queryType) {
+    return applyClusterOverrides(UnifiedQueryContext.builder().language(queryType)).build();
   }
 
   private UnifiedQueryContext buildContext(QueryType queryType, boolean profiling) {
-    return UnifiedQueryContext.builder()
-        .language(queryType)
-        .catalog(SCHEMA_NAME, OpenSearchSchemaBuilder.buildSchema(clusterService.state()))
-        .defaultNamespace(SCHEMA_NAME)
-        .profiling(profiling)
+    return applyClusterOverrides(
+            UnifiedQueryContext.builder()
+                .language(queryType)
+                .catalog(SCHEMA_NAME, OpenSearchSchemaBuilder.buildSchema(clusterService.state()))
+                .defaultNamespace(SCHEMA_NAME)
+                .profiling(profiling))
         .build();
+  }
+
+  /**
+   * Routes operator-configured cluster overrides into the builder via the existing {@code
+   * setting(String, Object)} API, keeping {@link UnifiedQueryContext} decoupled from any specific
+   * {@link org.opensearch.sql.common.setting.Settings} implementation.
+   *
+   * <p>Currently scoped to {@code plugins.ppl.rex.max_match.limit} — required so the unified path
+   * honors {@code _cluster/settings} updates for {@code rex max_match} (CalciteRexCommandIT's
+   * testRexMaxMatchConfigurableLimit). Add keys here if a future PR / IT depends on cluster-side
+   * fidelity for one of the other planning settings.
+   */
+  private UnifiedQueryContext.Builder applyClusterOverrides(UnifiedQueryContext.Builder builder) {
+    Object rexLimit =
+        pluginSettings.getSettingValue(
+            org.opensearch.sql.common.setting.Settings.Key.PPL_REX_MAX_MATCH_LIMIT);
+    if (rexLimit != null) {
+      builder.setting(
+          org.opensearch.sql.common.setting.Settings.Key.PPL_REX_MAX_MATCH_LIMIT.getKeyValue(),
+          rexLimit);
+    }
+    return builder;
   }
 
   /**

@@ -67,6 +67,7 @@ public class TransportPPLQueryAction
 
   private final NodeClient clientRef;
   private final ClusterService clusterServiceRef;
+  private final org.opensearch.sql.common.setting.Settings pluginSettingsRef;
 
   @Inject
   public TransportPPLQueryAction(
@@ -82,11 +83,13 @@ public class TransportPPLQueryAction
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule());
+    org.opensearch.sql.common.setting.Settings pluginSettings =
+        new OpenSearchSettings(clusterService.getClusterSettings());
+    this.pluginSettingsRef = pluginSettings;
     modules.add(
         b -> {
           b.bind(NodeClient.class).toInstance(client);
-          b.bind(org.opensearch.sql.common.setting.Settings.class)
-              .toInstance(new OpenSearchSettings(clusterService.getClusterSettings()));
+          b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
         });
     this.injector = Guice.createInjector(modules);
@@ -105,7 +108,8 @@ public class TransportPPLQueryAction
       QueryPlanExecutor<RelNode, Iterable<Object[]>> queryPlanExecutor) {
     AnalyticsExecutorHolder.set(queryPlanExecutor);
     this.unifiedQueryHandler =
-        new RestUnifiedQueryAction(clientRef, clusterServiceRef, queryPlanExecutor);
+        new RestUnifiedQueryAction(
+            clientRef, clusterServiceRef, queryPlanExecutor, pluginSettingsRef);
   }
 
   /**

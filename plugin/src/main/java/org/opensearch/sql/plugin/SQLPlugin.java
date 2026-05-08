@@ -208,7 +208,8 @@ public class SQLPlugin extends Plugin
             if (executor == null) {
               return null;
             }
-            cached[0] = new RestUnifiedQueryAction(client, clusterService, executor);
+            cached[0] =
+                new RestUnifiedQueryAction(client, clusterService, executor, pluginSettings);
           }
           return cached[0];
         };
