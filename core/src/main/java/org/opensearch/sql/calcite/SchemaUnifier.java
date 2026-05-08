@@ -15,6 +15,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 
 /**
  * Utility class for unifying schemas across multiple RelNodes. Supports two strategies:
@@ -86,10 +88,17 @@ public class SchemaUnifier {
           seenFields.put(fieldName, fieldType);
         } else if (!areTypesCompatible(existingType, fieldType)) {
           // Same field name but different type - throw exception
-          throw new IllegalArgumentException(
-              String.format(
-                  "Unable to process column '%s' due to incompatible types: '%s' and '%s'",
-                  fieldName, existingType.getSqlTypeName(), fieldType.getSqlTypeName()));
+          String existingTypeName = String.valueOf(existingType.getSqlTypeName());
+          String newTypeName = String.valueOf(fieldType.getSqlTypeName());
+          throw ErrorReport.wrap(
+                  new IllegalArgumentException(
+                      String.format(
+                          "Unable to process column '%s' due to incompatible types: '%s' and '%s'",
+                          fieldName, existingTypeName, newTypeName)))
+              .code(ErrorCode.TYPE_ERROR)
+              .context("column", fieldName)
+              .context("types", List.of(existingTypeName, newTypeName))
+              .build();
         }
         // If we've seen this exact (name, type) combination, skip it
       }
