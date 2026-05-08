@@ -150,7 +150,7 @@ Description
 To query multiple indices, you could
 
 1. Include ``*`` in index name, this is an index pattern for wildcard match.
-2. Delimited multiple indices and seperated them by ``,``. Note: no space allowed between each index.
+2. Delimit multiple indices with ``,`` and enclose the entire comma-separated list in backticks. Note: no space allowed between each index.
 
 
 Examples

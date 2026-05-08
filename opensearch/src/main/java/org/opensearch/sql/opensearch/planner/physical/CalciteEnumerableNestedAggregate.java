@@ -79,7 +79,8 @@ public class CalciteEnumerableNestedAggregate extends EnumerableAggregateBase
     // TODO implement an enumerable nested aggregate
     throw new UnsupportedOperationException(
         String.format(
-            "Cannot execute nested aggregation on %s since pushdown cannot be applied.", aggCalls));
+            "Cannot execute nested aggregation on %s since plugins.calcite.pushdown is disabled.",
+            aggCalls));
   }
 
   @Override

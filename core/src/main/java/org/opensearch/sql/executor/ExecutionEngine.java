@@ -47,15 +47,32 @@ public interface ExecutionEngine {
    */
   void explain(PhysicalPlan plan, ResponseListener<ExplainResponse> listener);
 
+  /**
+   * Check if this engine supports vectorized execution of the given Calcite RelNode plan.
+   * Vectorized execution engines (e.g. Velox) override this to advertise support for specific plan
+   * shapes. The default returns {@code false}.
+   */
+  default boolean canVectorize(RelNode plan) {
+    return false;
+  }
+
   /** Execute calcite RelNode plan with {@link ExecutionContext} and call back response listener. */
   default void execute(
-      RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {}
+      RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
+    listener.onFailure(
+        new UnsupportedOperationException(
+            getClass().getSimpleName() + " does not support RelNode execution"));
+  }
 
   default void explain(
       RelNode plan,
       ExplainMode mode,
       CalcitePlanContext context,
-      ResponseListener<ExplainResponse> listener) {}
+      ResponseListener<ExplainResponse> listener) {
+    listener.onFailure(
+        new UnsupportedOperationException(
+            getClass().getSimpleName() + " does not support RelNode explain"));
+  }
 
   /** Data class that encapsulates ExprValue. */
   @Data

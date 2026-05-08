@@ -17,6 +17,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLNestedAggregationIT extends PPLIntegTestCase {
@@ -175,7 +176,7 @@ public class CalcitePPLNestedAggregationIT extends PPLIntegTestCase {
     enabledOnlyWhenPushdownIsEnabled();
     Throwable t =
         assertThrowsWithReplace(
-            UnsupportedOperationException.class,
+            ErrorReport.class,
             () ->
                 executeQuery(
                     String.format(

@@ -106,7 +106,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
     assertNotNull("Plan should be created with multiple catalogs", plan);
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test(expected = UnsupportedOperationException.class)
   public void testUnsupportedStatementType() {
     planner.plan("explain source = catalog.employees"); // explain statement
   }

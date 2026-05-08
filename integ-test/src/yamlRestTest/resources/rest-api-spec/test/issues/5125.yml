@@ -1,0 +1,66 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: issue5125
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              gender:
+                type: keyword
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5125", "_id": "1"}}'
+          - '{"gender": "F"}'
+          - '{"index": {"_index": "issue5125", "_id": "2"}}'
+          - '{"gender": "F"}'
+          - '{"index": {"_index": "issue5125", "_id": "3"}}'
+          - '{"gender": "F"}'
+          - '{"index": {"_index": "issue5125", "_id": "4"}}'
+          - '{"gender": "M"}'
+          - '{"index": {"_index": "issue5125", "_id": "5"}}'
+          - '{"gender": "M"}'
+          - '{"index": {"_index": "issue5125", "_id": "6"}}'
+          - '{"gender": "M"}'
+          - '{"index": {"_index": "issue5125", "_id": "7"}}'
+          - '{"gender": "M"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5125
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5125: consecutive sorts after agg should honor latest sort direction":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5125 | stats count() as c by gender | sort gender | sort - gender
+
+  - match: { total: 2 }
+  - match: { schema: [ { name: c, type: bigint }, { name: gender, type: string } ] }
+  - match: { datarows: [ [ 4, "M" ], [ 3, "F" ] ] }

@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 
 /**
  * Common utilities for regex operations. Provides pattern caching and consistent matching behavior.
@@ -69,11 +71,15 @@ public class RegexCommonUtils {
       String groupName = anyGroupMatcher.group(1);
 
       if (!isValidJavaRegexGroupName(groupName)) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Invalid capture group name '%s'. Java regex group names must start with a letter"
-                    + " and contain only letters and digits.",
-                groupName));
+        throw ErrorReport.wrap(
+                new IllegalArgumentException(
+                    String.format("Invalid capture group name '%s'.", groupName)))
+            .code(ErrorCode.SYNTAX_ERROR)
+            .location("while validating the capture groups for the pattern")
+            .suggestion(
+                "Java Regex capture groups must be alphanumeric and start with a letter. Update the"
+                    + " capture group to be alphanumeric.")
+            .build();
       }
     }
 

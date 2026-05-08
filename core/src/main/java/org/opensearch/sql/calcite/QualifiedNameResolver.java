@@ -16,6 +16,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
@@ -315,14 +317,20 @@ public class QualifiedNameResolver {
   private static Optional<RexNode> replaceWithNullLiteralInCoalesce(CalcitePlanContext context) {
     log.debug("replaceWithNullLiteralInCoalesce() called");
     if (context.isInCoalesceFunction()) {
+      // Use SqlTypeName.NULL so the resulting literal does not bias the least-restrictive
+      // common-type computation toward VARCHAR. See issue #5175: previously VARCHAR was used,
+      // which caused COALESCE(null, 42) to be inferred as VARCHAR and returned as "42".
       return Optional.of(
           context.rexBuilder.makeNullLiteral(
-              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR)));
+              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.NULL)));
     }
     return Optional.empty();
   }
 
-  private static RuntimeException getNotFoundException(QualifiedName node) {
-    return new IllegalArgumentException(String.format("Field [%s] not found.", node.toString()));
+  private static ErrorReport getNotFoundException(QualifiedName node) {
+    return ErrorReport.wrap(
+            new IllegalArgumentException(String.format("Field [%s] not found.", node.toString())))
+        .code(ErrorCode.FIELD_NOT_FOUND)
+        .build();
   }
 }

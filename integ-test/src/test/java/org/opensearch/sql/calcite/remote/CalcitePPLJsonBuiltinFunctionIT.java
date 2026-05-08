@@ -297,6 +297,38 @@ public class CalcitePPLJsonBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testJsonSetWithDollarPrefixedPath() throws IOException {
+    // Issue #5167: json_set with $.key path should not double-prefix
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a"
+                    + " =json_set('{\\\"name\\\":\\\"alice\\\",\\\"scores\\\":[90,85,92]}',"
+                    + " '$.name', 'modified_alice')| fields a | head 1",
+                TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "string"));
+
+    verifyDataRows(actual, rows("{\"name\":\"modified_alice\",\"scores\":[90,85,92]}"));
+  }
+
+  @Test
+  public void testJsonDeleteWithDollarPrefixedPath() throws IOException {
+    // Issue #5167: json_delete with $.key path should remove the key
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a"
+                    + " =json_delete('{\\\"name\\\":\\\"alice\\\",\\\"scores\\\":[90,85,92]}',"
+                    + " '$.name')| fields a | head 1",
+                TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "string"));
+
+    verifyDataRows(actual, rows("{\"scores\":[90,85,92]}"));
+  }
+
+  @Test
   public void testJsonDelete() throws IOException {
     JSONObject actual =
         executeQuery(

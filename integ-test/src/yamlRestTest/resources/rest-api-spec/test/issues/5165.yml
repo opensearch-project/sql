@@ -1,0 +1,62 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: issue5165
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              int_field:
+                type: integer
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5165", "_id": "1"}}'
+          - '{"int_field": 42}'
+          - '{"index": {"_index": "issue5165", "_id": "2"}}'
+          - '{"int_field": -1}'
+          - '{"index": {"_index": "issue5165", "_id": "3"}}'
+          - '{"int_field": 0}'
+          - '{"index": {"_index": "issue5165", "_id": "4"}}'
+          - '{"int_field": 2147483647}'
+          - '{"index": {"_index": "issue5165", "_id": "5"}}'
+          - '{"int_field": null}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5165
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5165: NOT IN should exclude null/missing rows":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5165 | where int_field NOT IN (42, -1, 0) | fields int_field
+
+  - match: { total: 1 }
+  - length: { datarows: 1 }
+  - match: { datarows: [ [ 2147483647 ] ] }

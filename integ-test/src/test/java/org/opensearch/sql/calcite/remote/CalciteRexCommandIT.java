@@ -14,6 +14,8 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteRexCommandIT extends PPLIntegTestCase {
+  private static final String SUGGESTION_MATCHING_CONTENT = "capture groups must be alphanumeric";
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -61,8 +63,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
       fail("Should have thrown an exception for underscore in named capture group");
     } catch (Exception e) {
       assertTrue(e.getMessage().contains("Invalid capture group name 'user_name'"));
-      assertTrue(
-          e.getMessage().contains("must start with a letter and contain only letters and digits"));
+      assertTrue(e.getMessage().contains(SUGGESTION_MATCHING_CONTENT));
     }
   }
 
@@ -77,8 +78,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
       fail("Should have thrown an exception for hyphen in named capture group");
     } catch (Exception e) {
       assertTrue(e.getMessage().contains("Invalid capture group name 'user-name'"));
-      assertTrue(
-          e.getMessage().contains("must start with a letter and contain only letters and digits"));
+      assertTrue(e.getMessage().contains(SUGGESTION_MATCHING_CONTENT));
     }
   }
 
@@ -93,8 +93,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
       fail("Should have thrown an exception for group name starting with digit");
     } catch (Exception e) {
       assertTrue(e.getMessage().contains("Invalid capture group name '1user'"));
-      assertTrue(
-          e.getMessage().contains("must start with a letter and contain only letters and digits"));
+      assertTrue(e.getMessage().contains(SUGGESTION_MATCHING_CONTENT));
     }
   }
 
@@ -109,8 +108,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
       fail("Should have thrown an exception for special character in named capture group");
     } catch (Exception e) {
       assertTrue(e.getMessage().contains("Invalid capture group name 'user@name'"));
-      assertTrue(
-          e.getMessage().contains("must start with a letter and contain only letters and digits"));
+      assertTrue(e.getMessage().contains(SUGGESTION_MATCHING_CONTENT));
     }
   }
 

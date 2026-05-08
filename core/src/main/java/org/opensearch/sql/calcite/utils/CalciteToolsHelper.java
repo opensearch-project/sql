@@ -63,6 +63,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptTable.ViewExpander;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
@@ -74,6 +75,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -104,6 +106,8 @@ import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
 import org.opensearch.sql.calcite.profile.PlanProfileBuilder;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.ProfileMetric;
@@ -367,6 +371,36 @@ public class CalciteToolsHelper {
       return new OpenSearchSqlToRelConverter(
           this, validator, catalogReader, this.cluster, convertletTable, config);
     }
+
+    @Override
+    protected RelRoot trimUnusedFields(RelRoot root) {
+      final SqlToRelConverter.Config config =
+          SqlToRelConverter.config()
+              .withTrimUnusedFields(shouldTrim(root.rel))
+              .withExpand(THREAD_EXPAND.get())
+              .withInSubQueryThreshold(requireNonNull(THREAD_INSUBQUERY_THRESHOLD.get()));
+      // PPL analyzes into a pre-built RelNode before prepareStatement(rel). Reuse the incoming
+      // RelNode's cluster here so prepare-time trimming does not create replacement nodes under a
+      // different planner than the rest of the tree.
+      final SqlToRelConverter converter =
+          new OpenSearchSqlToRelConverter(
+              this,
+              getSqlValidator(),
+              catalogReader,
+              root.rel.getCluster(),
+              convertletTable,
+              config);
+      final boolean ordered = !root.collation.getFieldCollations().isEmpty();
+      final boolean dml = SqlKind.DML.contains(root.kind);
+      return root.withRel(converter.trimUnusedFields(dml || ordered, root.rel));
+    }
+
+    private static boolean shouldTrim(RelNode rootRel) {
+      // For now, don't trim if there are more than 3 joins. The projects
+      // near the leaves created by trim migrate past joins and seem to
+      // prevent join-reordering.
+      return THREAD_TRIM.get() || RelOptUtil.countJoins(rootRel) < 2;
+    }
   }
 
   public static class OpenSearchSqlToRelConverter extends SqlToRelConverter {
@@ -379,25 +413,102 @@ public class CalciteToolsHelper {
         RelOptCluster cluster,
         SqlRexConvertletTable convertletTable,
         Config config) {
-      super(viewExpander, validator, catalogReader, cluster, convertletTable, config);
+      this(
+          viewExpander,
+          validator,
+          catalogReader,
+          cluster,
+          convertletTable,
+          preserveHintStrategies(cluster, config),
+          true);
+    }
+
+    private OpenSearchSqlToRelConverter(
+        ViewExpander viewExpander,
+        @Nullable SqlValidator validator,
+        CatalogReader catalogReader,
+        RelOptCluster cluster,
+        SqlRexConvertletTable convertletTable,
+        Config effectiveConfig,
+        boolean ignored) {
+      super(viewExpander, validator, catalogReader, cluster, convertletTable, effectiveConfig);
       this.relBuilder =
-          config
+          effectiveConfig
               .getRelBuilderFactory()
               .create(
                   cluster,
                   validator != null
                       ? validator.getCatalogReader().unwrap(RelOptSchema.class)
                       : null)
-              .transform(config.getRelBuilderConfigTransform());
+              .transform(effectiveConfig.getRelBuilderConfigTransform());
     }
 
     @Override
     protected RelFieldTrimmer newFieldTrimmer() {
       return new OpenSearchRelFieldTrimmer(validator, this.relBuilder);
     }
+
+    // SqlToRelConverter always installs the hint strategy table from its config onto the cluster.
+    // When prepare-time trimming reuses an incoming RelNode cluster, preserve any PPL-specific
+    // aggregate hint strategies that were already registered during analysis.
+    private static Config preserveHintStrategies(RelOptCluster cluster, Config config) {
+      if (config.getHintStrategyTable() == HintStrategyTable.EMPTY
+          && cluster.getHintStrategies() != HintStrategyTable.EMPTY) {
+        return config.withHintStrategyTable(cluster.getHintStrategies());
+      }
+      return config;
+    }
   }
 
   public static class OpenSearchRelRunners {
+    private static boolean isNonPushdownEnumerableAggregate(String message) {
+      return message.contains("Error while preparing plan")
+          && message.contains("CalciteEnumerableNestedAggregate");
+    }
+
+    // Detect if error is due to window functions in unsupported context (bins on time fields)
+    private static boolean isWindowBinOnTimeField(SQLException e) {
+      String errorMsg = e.getMessage();
+      return errorMsg != null
+          && errorMsg.contains("Error while preparing plan")
+          && errorMsg.contains("WIDTH_BUCKET");
+    }
+
+    // Traverse Calcite SQL exceptions in search of the root cause, since Calcite's outer error
+    // messages aren't really usable for users
+    private static String rootCauseMessage(Throwable e) {
+      String rc = null;
+      if (e.getCause() != null) {
+        rc = rootCauseMessage(e.getCause());
+      }
+      for (int i = 0; rc == null && i < e.getSuppressed().length; i++) {
+        rc = rootCauseMessage(e.getSuppressed()[i]);
+      }
+      return rc != null ? rc : e.getMessage();
+    }
+
+    private static void enrichErrorsForSpecialCases(ErrorReport.Builder report, SQLException e) {
+      if (e.getMessage().contains("Error while preparing plan [") && e.getCause() != null) {
+        // Generic 'something went wrong' planning error, try to get the cause
+        int planStart = e.getMessage().indexOf('[');
+        int planEnd = e.getMessage().lastIndexOf(']');
+        report
+            .context("plan", e.getMessage().substring(planStart + 1, planEnd))
+            .details(rootCauseMessage(e));
+      }
+      if (isWindowBinOnTimeField(e)) {
+        report
+            .details(
+                "The 'bins' parameter on timestamp fields requires: (1) pushdown to be enabled"
+                    + " (controlled by plugins.calcite.pushdown.enabled, enabled by default), and"
+                    + " (2) the timestamp field to be used as an aggregation bucket (e.g., 'stats"
+                    + " count() by @timestamp').")
+            .code(ErrorCode.UNSUPPORTED_OPERATION)
+            .context("is_window_bin_on_time_field", true)
+            .suggestion("check pushdown is enabled and review the aggregation");
+      }
+    }
+
     /**
      * Runs a relational expression by existing connection. This class copied from {@link
      * org.apache.calcite.tools.RelRunners#run(RelNode)}
@@ -430,17 +541,12 @@ public class CalciteToolsHelper {
         return preparedStatement;
       } catch (SQLException e) {
         // Detect if error is due to window functions in unsupported context (bins on time fields)
-        String errorMsg = e.getMessage();
-        if (errorMsg != null
-            && errorMsg.contains("Error while preparing plan")
-            && errorMsg.contains("WIDTH_BUCKET")) {
-          throw new UnsupportedOperationException(
-              "The 'bins' parameter on timestamp fields requires: (1) pushdown to be enabled"
-                  + " (controlled by plugins.calcite.pushdown.enabled, enabled by default), and"
-                  + " (2) the timestamp field to be used as an aggregation bucket (e.g., 'stats"
-                  + " count() by @timestamp').");
-        }
-        throw Util.throwAsRuntime(e);
+        ErrorReport.Builder report =
+            ErrorReport.wrap(e)
+                .location("while compiling the optimized query plan for physical execution")
+                .code(ErrorCode.PLANNING_ERROR);
+        enrichErrorsForSpecialCases(report, e);
+        throw report.build();
       }
     }
   }

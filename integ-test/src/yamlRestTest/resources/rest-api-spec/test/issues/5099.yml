@@ -1,0 +1,59 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: issue5099
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              name:
+                type: keyword
+              age:
+                type: integer
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5099", "_id": "1"}}'
+          - '{"name": "Alice", "age": 30}'
+          - '{"index": {"_index": "issue5099", "_id": "2"}}'
+          - '{"name": "Bob", "age": 25}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5099
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5099: rename with wildcard should not apply on hidden fields":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5099 | rename * as old_*
+
+  - match: { total: 2 }
+  - length: { schema: 2 }
+  - match: { schema: [ { name: "old_name", type: "string" }, { name: "old_age", type: "int" } ] }
+  - length: { datarows: 2 }

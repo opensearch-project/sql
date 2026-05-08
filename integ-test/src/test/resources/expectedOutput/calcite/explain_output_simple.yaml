@@ -2,13 +2,14 @@ calcite:
   logical: |
     LogicalSystemLimit
       LogicalProject
-        LogicalFilter
+        LogicalSort
           LogicalProject
             LogicalFilter
               LogicalProject
-                LogicalSort
+                LogicalFilter
                   LogicalProject
-                    LogicalAggregate
-                      LogicalProject
-                        LogicalFilter
-                          CalciteLogicalIndexScan
+                    LogicalProject
+                      LogicalAggregate
+                        LogicalProject
+                          LogicalFilter
+                            CalciteLogicalIndexScan
