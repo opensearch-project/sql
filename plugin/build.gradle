@@ -1,8 +1,4 @@
 import java.util.concurrent.Callable
-import org.opensearch.gradle.dependencies.CompileOnlyResolvePlugin
-import org.opensearch.gradle.test.RestIntegTestTask
-import org.opensearch.gradle.testclusters.RunTask
-import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
 /*
  * Copyright OpenSearch Contributors
@@ -164,10 +160,10 @@ dependencies {
 
     api project(":ppl")
     api project(':api')
-    // Bundled: analytics-framework interfaces must resolve even when the plugin is absent.
-    api 'org.opensearch.sandbox:analytics-framework:3.7.0-SNAPSHOT'
-    // Not bundled: classes here (e.g. OpenSearchSchemaBuilder) only load when the plugin is installed.
-    compileOnly 'org.opensearch.sandbox:analytics-engine:3.7.0-SNAPSHOT'
+    // analytics-api hosts the JDK-21-targeted interface surface
+    // compileOnly: the jar must not be bundled — at runtime analytics-engine's classloader
+    // provides these classes via extendedPlugins parent-first delegation.
+    compileOnly "org.opensearch.sandbox:analytics-api:${opensearch_version}"
     api project(':legacy')
     api project(':opensearch')
     api project(':prometheus')
@@ -313,7 +309,6 @@ def getJobSchedulerPlugin() {
 
 testClusters.integTest {
     plugin(getJobSchedulerPlugin())
-    plugin provider { (RegularFile) (() -> file("${analyticsEngineZip}")) }
     plugin(project.tasks.bundlePlugin.archiveFile)
     testDistribution = "ARCHIVE"
 
@@ -329,15 +324,3 @@ testClusters.integTest {
 run {
     useCluster testClusters.integTest
 }
-
-// Ensure the analytics-engine zip is downloaded before any task that boots a test cluster.
-tasks.withType(RunTask).configureEach {
-    dependsOn ':downloadAnalyticsEngineZip'
-}
-tasks.withType(StandaloneRestIntegTestTask).configureEach {
-    dependsOn ':downloadAnalyticsEngineZip'
-}
-tasks.withType(RestIntegTestTask).configureEach {
-    dependsOn ':downloadAnalyticsEngineZip'
-}
-
