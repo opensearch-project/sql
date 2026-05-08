@@ -1538,10 +1538,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    * count(a.b)] returns true.
    */
   private boolean containsNestedAggregator(RelBuilder relBuilder, List<RexInputRef> aggCallRefs) {
+    // For each aggregator argument, take the part of its column name before the first dot
+    // (e.g. "city" from "city.location.latitude") and check whether that's a top-level
+    // ARRAY column — the marker for an OpenSearch `nested` field.
+    //
+    // The classic path always exposes a top-level column for object/nested parents. The
+    // analytics-engine path emits only the flat leaves ("city.name", "city.location.latitude")
+    // because parent placeholder types (MAP<VARCHAR, ANY>) can't round-trip through Substrait.
+    // RelDataType.getField returns null when the column doesn't exist — for analytics-engine,
+    // that null just means "not nested," which is the right answer.
+    RelDataType rowType = relBuilder.peek().getRowType();
     return aggCallRefs.stream()
-        .map(r -> relBuilder.peek().getRowType().getFieldNames().get(r.getIndex()))
+        .map(r -> rowType.getFieldNames().get(r.getIndex()))
         .map(name -> org.apache.commons.lang3.StringUtils.substringBefore(name, "."))
-        .anyMatch(root -> relBuilder.field(root).getType().getSqlTypeName() == SqlTypeName.ARRAY);
+        .anyMatch(root -> {
+          RelDataTypeField field = rowType.getField(root, /*caseSensitive=*/ true, /*elideRecord=*/ false);
+          return field != null && field.getType().getSqlTypeName() == SqlTypeName.ARRAY;
+        });
   }
 
   /**
