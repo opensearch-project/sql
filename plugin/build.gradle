@@ -1,5 +1,8 @@
 import java.util.concurrent.Callable
 import org.opensearch.gradle.dependencies.CompileOnlyResolvePlugin
+import org.opensearch.gradle.test.RestIntegTestTask
+import org.opensearch.gradle.testclusters.RunTask
+import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
 /*
  * Copyright OpenSearch Contributors
@@ -162,9 +165,9 @@ dependencies {
     api project(":ppl")
     api project(':api')
     // Bundled: analytics-framework interfaces must resolve even when the plugin is absent.
-    api files("${rootDir}/libs/analytics-framework-3.7.0-SNAPSHOT.jar")
+    api 'org.opensearch.sandbox:analytics-framework:3.7.0-SNAPSHOT'
     // Not bundled: classes here (e.g. OpenSearchSchemaBuilder) only load when the plugin is installed.
-    compileOnly files("${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.jar")
+    compileOnly 'org.opensearch.sandbox:analytics-engine:3.7.0-SNAPSHOT'
     api project(':legacy')
     api project(':opensearch')
     api project(':prometheus')
@@ -325,5 +328,16 @@ testClusters.integTest {
 
 run {
     useCluster testClusters.integTest
+}
+
+// Ensure the analytics-engine zip is downloaded before any task that boots a test cluster.
+tasks.withType(RunTask).configureEach {
+    dependsOn ':downloadAnalyticsEngineZip'
+}
+tasks.withType(StandaloneRestIntegTestTask).configureEach {
+    dependsOn ':downloadAnalyticsEngineZip'
+}
+tasks.withType(RestIntegTestTask).configureEach {
+    dependsOn ':downloadAnalyticsEngineZip'
 }
 

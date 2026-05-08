@@ -271,7 +271,15 @@ def getGeoSpatialPlugin() {
 }
 
 def getAnalyticsEnginePlugin() {
-    provider { (RegularFile) (() -> file("${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.zip")) }
+    provider { (RegularFile) (() -> file("${analyticsEngineZip}")) }
+}
+
+// Ensure the analytics-engine zip is downloaded before any task that boots a test cluster.
+tasks.withType(StandaloneRestIntegTestTask).configureEach {
+    dependsOn ':downloadAnalyticsEngineZip'
+}
+tasks.withType(RestIntegTestTask).configureEach {
+    dependsOn ':downloadAnalyticsEngineZip'
 }
 
 testClusters {

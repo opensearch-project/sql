@@ -15,6 +15,11 @@ plugins {
 
 apply plugin: 'opensearch.testclusters'
 
+// Ensure the analytics-engine zip is downloaded before any task that boots a test cluster.
+tasks.withType(RunTask).configureEach {
+    dependsOn ':downloadAnalyticsEngineZip'
+}
+
 def path = project(':').projectDir
 // temporary fix, because currently we are under migration to new architecture. Need to run ./gradlew run from
 // plugin module, and will only build ppl in it.
@@ -195,7 +200,7 @@ testClusters {
         }))
         */
         plugin(getJobSchedulerPlugin(jsPlugin, bwcOpenSearchJSDownload))
-        plugin provider { (RegularFile) (() -> file("${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.zip")) }
+        plugin provider { (RegularFile) (() -> file("${analyticsEngineZip}")) }
         plugin ':opensearch-sql-plugin'
         testDistribution = 'archive'
     }

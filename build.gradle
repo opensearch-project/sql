@@ -81,6 +81,7 @@ plugins {
     id "io.freefair.lombok" version "8.14"
     id 'jacoco'
     id 'com.diffplug.spotless' version '8.1.0'
+    id 'de.undercouch.download' version '5.3.0'
 }
 
 // import versions defined in https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java#L94
@@ -117,6 +118,26 @@ spotless {
     }
 }
 
+// Remote URL for the analytics-engine plugin ZIP. The OpenSearch CI maven snapshot repo only
+// publishes the jar/pom/sources/javadoc, not the plugin distribution zip — so we fetch the zip
+// from the feature-build artifact URL directly. Versioned by the OpenSearch core feature build,
+// not by the maven snapshot timestamp.
+ext.analyticsEngineZipUrl = 'https://ci.opensearch.org/ci/dbc/feature-build-opensearch/feature-datafusion/latest/linux/x64/tar/builds/opensearch/plugins/1-analytics-engine-3.7.0.zip'
+ext.analyticsEngineZipFile = "${rootProject.layout.buildDirectory.get().asFile}/distributions/analytics-engine-3.7.0-SNAPSHOT.zip"
+
+tasks.register('downloadAnalyticsEngineZip', de.undercouch.gradle.tasks.download.Download) {
+    src analyticsEngineZipUrl
+    dest analyticsEngineZipFile
+    overwrite false
+    onlyIfModified true
+    // Skip the network call when the user supplies a local zip via -PanalyticsEngineZip=/path.
+    // (We can't use `project.hasProperty` here because the ext property is always set in the
+    // allprojects block below.)
+    onlyIf {
+        !project.gradle.startParameter.projectProperties.containsKey('analyticsEngineZip')
+    }
+}
+
 allprojects {
     version = opensearch_version.tokenize('-')[0] + '.0'
     if (buildVersionQualifier) {
@@ -127,10 +148,10 @@ allprojects {
         version += "-SNAPSHOT"
     }
 
-    // Path to the analytics-engine plugin ZIP. Override with
-    // `-PanalyticsEngineZip=/path/to/zip` if needed.
-    ext.analyticsEngineZip = project.findProperty('analyticsEngineZip') ?:
-            "${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.zip"
+    // Path to the analytics-engine plugin ZIP. Defaults to the file produced by
+    // `:downloadAnalyticsEngineZip`. Override with `-PanalyticsEngineZip=/path/to/zip`
+    // (e.g. for local development against an unpublished build).
+    ext.analyticsEngineZip = project.findProperty('analyticsEngineZip') ?: rootProject.analyticsEngineZipFile
 
     plugins.withId('java') {
         java {
@@ -173,7 +194,13 @@ allprojects {
 
 subprojects {
     repositories {
-        mavenLocal()
+        // Skip mavenLocal for org.opensearch.sandbox.* (analytics-framework, analytics-engine):
+        // a locally-published OpenSearch core build can install these with Gradle Module Metadata
+        // declaring JVM 25, which prevents resolution on a JVM 21 build. Always pull these from
+        // the CI snapshot repo where the published metadata correctly declares JVM 21.
+        mavenLocal {
+            content { excludeGroup 'org.opensearch.sandbox' }
+        }
         mavenCentral()
         maven {
             url 'https://jitpack.io'
