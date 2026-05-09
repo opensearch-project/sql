@@ -331,8 +331,7 @@ testClusters {
         plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
     }
-    // Smoke test: verify sql loads cleanly alongside arrow-flight-rpc and analytics-engine.
-    // A successful cluster start is the only assertion — plugin classloader wiring is correct.
+    // Smoke test: verify sql loads cleanly alongside analytics-engine.
     analyticsEngineCompat {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
@@ -392,11 +391,8 @@ stopPrometheus.mustRunAfter startPrometheus
 
 task analyticsEngineCompatIT(type: RestIntegTestTask) {
     useCluster testClusters.analyticsEngineCompat
-    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, ':prepareJavaAgent'
-    doFirst {
-        // opensearch.java-agent runs at root scope; point the test JVM at the root-level agent jar.
-        jvmArgs "-javaagent:${rootProject.buildDir}/agent/opensearch-agent-${opensearch_version}.jar"
-    }
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip
+    systemProperty 'tests.security.manager', 'false'
     filter {
         includeTestsMatching 'org.opensearch.sql.plugin.AnalyticsEngineCompatIT'
     }

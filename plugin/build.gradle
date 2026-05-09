@@ -160,10 +160,7 @@ dependencies {
 
     api project(":ppl")
     api project(':api')
-    // analytics-api hosts the JDK-21-targeted interface surface
-    // compileOnly: the jar must not be bundled — at runtime analytics-engine's classloader
-    // provides these classes via extendedPlugins parent-first delegation.
-    compileOnly "org.opensearch.sandbox:analytics-api:${opensearch_version}"
+    implementation("org.opensearch.sandbox:analytics-api:${opensearch_version}")
     api project(':legacy')
     api project(':opensearch')
     api project(':prometheus')
