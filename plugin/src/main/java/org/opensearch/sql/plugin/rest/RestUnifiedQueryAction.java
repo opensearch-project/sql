@@ -75,8 +75,9 @@ public class RestUnifiedQueryAction {
 
   /**
    * Returns true iff the target index has {@link
-   * IndexSettings#PLUGGABLE_DATAFORMAT_ENABLED_SETTING} set, routing it to DataFusion instead of
-   * the Calcite→DSL path.
+   * IndexSettings#PLUGGABLE_DATAFORMAT_ENABLED_SETTING} set and {@link
+   * IndexSettings#PLUGGABLE_DATAFORMAT_VALUE_SETTING} is {@code "parquet"}, routing it to
+   * DataFusion instead of the Calcite→DSL path.
    *
    * <p>Note: This creates a separate UnifiedQueryContext for parsing. The context cannot be shared
    * with doExecute/doExplain because UnifiedQueryContext holds a Calcite JDBC connection that fails
@@ -104,8 +105,12 @@ public class RestUnifiedQueryAction {
 
   private boolean isPluggableDataformatIndex(String indexName) {
     var indexMetadata = clusterService.state().metadata().index(indexName);
-    return indexMetadata != null
-        && IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.get(indexMetadata.getSettings());
+    if (indexMetadata == null) {
+      return false;
+    }
+    var settings = indexMetadata.getSettings();
+    return IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.get(settings)
+        && "parquet".equals(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(settings));
   }
 
   /** Execute a query through the unified query pipeline on the sql-worker thread pool. */

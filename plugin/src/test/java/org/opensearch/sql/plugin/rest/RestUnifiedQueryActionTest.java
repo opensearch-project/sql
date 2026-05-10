@@ -24,8 +24,8 @@ import org.opensearch.sql.executor.QueryType;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
- * Tests for analytics index routing in RestUnifiedQueryAction. Routing is driven by the {@code
- * index.pluggable.dataformat.enabled} index setting, read from cluster state.
+ * Tests for analytics index routing in RestUnifiedQueryAction. Routing requires both {@code
+ * index.pluggable.dataformat.enabled=true} and {@code index.pluggable.dataformat=parquet}.
  */
 public class RestUnifiedQueryActionTest {
 
@@ -57,11 +57,24 @@ public class RestUnifiedQueryActionTest {
         "parquet_logs",
         Settings.builder()
             .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "parquet")
             .build());
 
     assertTrue(action.isAnalyticsIndex("source = parquet_logs | fields ts", QueryType.PPL));
     assertTrue(
         action.isAnalyticsIndex("source = opensearch.parquet_logs | fields ts", QueryType.PPL));
+  }
+
+  @Test
+  public void pluggableEnabledButLuceneFormatRoutesToLucene() {
+    registerIndex(
+        "lucene_logs",
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "lucene")
+            .build());
+
+    assertFalse(action.isAnalyticsIndex("source = lucene_logs | fields ts", QueryType.PPL));
   }
 
   @Test
