@@ -15,7 +15,6 @@ plugins {
 
 apply plugin: 'opensearch.testclusters'
 
-
 def path = project(':').projectDir
 // temporary fix, because currently we are under migration to new architecture. Need to run ./gradlew run from
 // plugin module, and will only build ppl in it.
