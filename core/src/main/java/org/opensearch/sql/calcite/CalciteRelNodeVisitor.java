@@ -3041,6 +3041,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       countField = context.relBuilder.field(countFieldName);
     }
 
+    // Append the rare/top field columns as secondary order keys so ties in the count column
+    // resolve deterministically. Without this, ROW_NUMBER's tie-break is insertion-order
+    // dependent and varies between backends (e.g. analytics-engine vs in-process Calcite).
+    List<RexNode> tieBreakKeys = rexVisitor.analyze(fieldList, context);
+    List<RexNode> orderKeys = new ArrayList<>(tieBreakKeys.size() + 1);
+    orderKeys.add(countField);
+    orderKeys.addAll(tieBreakKeys);
+
     RexNode rowNumberWindowOver =
         PlanUtils.makeOver(
             context,
@@ -3048,7 +3056,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             null,
             List.of(),
             partitionKeys,
-            List.of(countField),
+            orderKeys,
             WindowFrame.toCurrentRow());
     context.relBuilder.projectPlus(
         context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_FOR_RARE_TOP));
