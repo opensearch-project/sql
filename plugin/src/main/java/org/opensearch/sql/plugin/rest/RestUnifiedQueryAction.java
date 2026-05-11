@@ -27,6 +27,7 @@ import org.opensearch.analytics.schema.OpenSearchSchemaBuilder;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryPlanner;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -73,8 +74,10 @@ public class RestUnifiedQueryAction {
   }
 
   /**
-   * Check if the query targets an analytics engine index (e.g., Parquet-backed). Uses the context's
-   * parser for index name extraction, supporting both PPL and SQL.
+   * Returns true iff the target index has {@link
+   * IndexSettings#PLUGGABLE_DATAFORMAT_ENABLED_SETTING} set and {@link
+   * IndexSettings#PLUGGABLE_DATAFORMAT_VALUE_SETTING} is {@code "parquet"}, routing it to
+   * DataFusion instead of the Calcite→DSL path.
    *
    * <p>Note: This creates a separate UnifiedQueryContext for parsing. The context cannot be shared
    * with doExecute/doExplain because UnifiedQueryContext holds a Calcite JDBC connection that fails
@@ -87,16 +90,27 @@ public class RestUnifiedQueryAction {
     }
     try (UnifiedQueryContext context = buildParsingContext(queryType)) {
       return extractIndexName(query, queryType, context)
-          .map(
-              indexName -> {
-                int lastDot = indexName.lastIndexOf('.');
-                return lastDot >= 0 ? indexName.substring(lastDot + 1) : indexName;
-              })
-          .map(tableName -> tableName.startsWith("parquet_"))
+          .map(this::stripSchemaPrefix)
+          .map(this::isPluggableDataformatIndex)
           .orElse(false);
     } catch (Exception e) {
       return false;
     }
+  }
+
+  private String stripSchemaPrefix(String indexName) {
+    int lastDot = indexName.lastIndexOf('.');
+    return lastDot >= 0 ? indexName.substring(lastDot + 1) : indexName;
+  }
+
+  private boolean isPluggableDataformatIndex(String indexName) {
+    var indexMetadata = clusterService.state().metadata().index(indexName);
+    if (indexMetadata == null) {
+      return false;
+    }
+    var settings = indexMetadata.getSettings();
+    return IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.get(settings)
+        && "parquet".equals(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(settings));
   }
 
   /** Execute a query through the unified query pipeline on the sql-worker thread pool. */
