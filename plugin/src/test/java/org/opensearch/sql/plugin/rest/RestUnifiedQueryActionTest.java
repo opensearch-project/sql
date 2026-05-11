@@ -25,7 +25,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 /**
  * Tests for analytics index routing in RestUnifiedQueryAction. Routing requires both {@code
- * index.pluggable.dataformat.enabled=true} and {@code index.pluggable.dataformat=parquet}.
+ * index.pluggable.dataformat.enabled=true} and {@code index.pluggable.dataformat=composite}.
  */
 public class RestUnifiedQueryActionTest {
 
@@ -57,7 +57,7 @@ public class RestUnifiedQueryActionTest {
         "parquet_logs",
         Settings.builder()
             .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
-            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "parquet")
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
             .build());
 
     assertTrue(action.isAnalyticsIndex("source = parquet_logs | fields ts", QueryType.PPL));

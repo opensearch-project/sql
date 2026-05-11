@@ -76,7 +76,7 @@ public class RestUnifiedQueryAction {
   /**
    * Returns true iff the target index has {@link
    * IndexSettings#PLUGGABLE_DATAFORMAT_ENABLED_SETTING} set and {@link
-   * IndexSettings#PLUGGABLE_DATAFORMAT_VALUE_SETTING} is {@code "parquet"}, routing it to
+   * IndexSettings#PLUGGABLE_DATAFORMAT_VALUE_SETTING} is {@code "composite"}, routing it to
    * DataFusion instead of the Calcite→DSL path.
    *
    * <p>Note: This creates a separate UnifiedQueryContext for parsing. The context cannot be shared
@@ -110,7 +110,7 @@ public class RestUnifiedQueryAction {
     }
     var settings = indexMetadata.getSettings();
     return IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.get(settings)
-        && "parquet".equals(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(settings));
+        && "composite".equals(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(settings));
   }
 
   /** Execute a query through the unified query pipeline on the sql-worker thread pool. */
