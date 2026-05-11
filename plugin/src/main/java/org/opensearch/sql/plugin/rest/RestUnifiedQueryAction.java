@@ -190,21 +190,23 @@ public class RestUnifiedQueryAction {
    * setting(String, Object)} API, keeping {@link UnifiedQueryContext} decoupled from any specific
    * {@link org.opensearch.sql.common.setting.Settings} implementation.
    *
-   * <p>Currently scoped to {@code plugins.ppl.rex.max_match.limit} — required so the unified path
-   * honors {@code _cluster/settings} updates for {@code rex max_match} (CalciteRexCommandIT's
-   * testRexMaxMatchConfigurableLimit). Add keys here if a future PR / IT depends on cluster-side
-   * fidelity for one of the other planning settings.
+   * <p>Add keys here if a future PR / IT depends on cluster-side fidelity for one of the other
+   * planning settings.
    */
   private UnifiedQueryContext.Builder applyClusterOverrides(UnifiedQueryContext.Builder builder) {
-    Object rexLimit =
-        pluginSettings.getSettingValue(
-            org.opensearch.sql.common.setting.Settings.Key.PPL_REX_MAX_MATCH_LIMIT);
-    if (rexLimit != null) {
-      builder.setting(
-          org.opensearch.sql.common.setting.Settings.Key.PPL_REX_MAX_MATCH_LIMIT.getKeyValue(),
-          rexLimit);
-    }
+    forwardClusterSetting(
+        builder, org.opensearch.sql.common.setting.Settings.Key.PPL_REX_MAX_MATCH_LIMIT);
+    forwardClusterSetting(
+        builder, org.opensearch.sql.common.setting.Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED);
     return builder;
+  }
+
+  private void forwardClusterSetting(
+      UnifiedQueryContext.Builder builder, org.opensearch.sql.common.setting.Settings.Key key) {
+    Object value = pluginSettings.getSettingValue(key);
+    if (value != null) {
+      builder.setting(key.getKeyValue(), value);
+    }
   }
 
   /**
