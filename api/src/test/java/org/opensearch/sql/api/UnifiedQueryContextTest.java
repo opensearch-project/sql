@@ -33,6 +33,10 @@ public class UnifiedQueryContextTest extends UnifiedQueryTestBase {
         "Settings should have default system limits",
         SysLimit.DEFAULT,
         SysLimit.fromSettings(context.getSettings()));
+    assertEquals(
+        "PPL_REX_MAX_MATCH_LIMIT default should be 10",
+        Integer.valueOf(10),
+        context.getSettings().getSettingValue(PPL_REX_MAX_MATCH_LIMIT));
   }
 
   @Test
@@ -43,10 +47,15 @@ public class UnifiedQueryContextTest extends UnifiedQueryTestBase {
             .catalog("opensearch", testSchema)
             .cacheMetadata(true)
             .setting("plugins.query.size_limit", 200)
+            .setting("plugins.ppl.rex.max_match.limit", 5)
             .build();
 
     Integer querySizeLimit = context.getSettings().getSettingValue(QUERY_SIZE_LIMIT);
     assertEquals("Custom setting should be applied", Integer.valueOf(200), querySizeLimit);
+    assertEquals(
+        "Cluster-side override for PPL_REX_MAX_MATCH_LIMIT should reach the unified path",
+        Integer.valueOf(5),
+        context.getSettings().getSettingValue(PPL_REX_MAX_MATCH_LIMIT));
   }
 
   @Test(expected = IllegalArgumentException.class)
