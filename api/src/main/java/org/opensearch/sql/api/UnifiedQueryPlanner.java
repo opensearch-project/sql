@@ -23,6 +23,7 @@ import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.executor.QueryType;
 
 /**
@@ -71,6 +72,9 @@ public class UnifiedQueryPlanner {
           });
     } catch (SyntaxCheckException | UnsupportedOperationException e) {
       throw e;
+    } catch (ErrorReport e) {
+      if (e.getCause() instanceof SyntaxCheckException) throw e;
+      throw new IllegalStateException("Failed to plan query", e);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to plan query", e);
     }

@@ -82,6 +82,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -409,7 +410,7 @@ public class AstBuilderTest {
             defaultStatsArgs()));
   }
 
-  @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
+  @Test(expected = org.opensearch.sql.common.error.ErrorReport.class)
   public void throwExceptionWithEmptyGroupByList() {
     plan("source=t | stats avg(price) by)");
   }
@@ -1649,10 +1650,9 @@ public class AstBuilderTest {
   @Test
   public void testMvmapWithWrongNumberOfArgsThrowsException() {
     // Grammar enforces exactly 2 arguments, so parser throws syntax error
-    assertThrows(SyntaxCheckException.class, () -> plan("source=t | eval result = mvmap(arr)"));
+    assertThrows(ErrorReport.class, () -> plan("source=t | eval result = mvmap(arr)"));
     assertThrows(
-        SyntaxCheckException.class,
-        () -> plan("source=t | eval result = mvmap(arr, arr * 10, extra)"));
+        ErrorReport.class, () -> plan("source=t | eval result = mvmap(arr, arr * 10, extra)"));
   }
 
   @Test
@@ -1714,20 +1714,20 @@ public class AstBuilderTest {
             .direction(GraphLookup.Direction.BI)
             .build());
 
-    // Error: missing edge - SyntaxCheckException from grammar
+    // Error: missing edge - ErrorReport from grammar
     assertThrows(
-        SyntaxCheckException.class,
+        ErrorReport.class,
         () -> plan("source=t | graphLookup employees start=id as" + " reportingHierarchy"));
 
-    // Error: missing lookup table - SyntaxCheckException from grammar
+    // Error: missing lookup table - ErrorReport from grammar
     assertThrows(
-        SyntaxCheckException.class,
+        ErrorReport.class,
         () ->
             plan("source=t | graphLookup start=id edge=manager-->name as" + " reportingHierarchy"));
 
-    // Error: missing start - SyntaxCheckException from grammar
+    // Error: missing start - ErrorReport from grammar
     assertThrows(
-        SyntaxCheckException.class,
+        ErrorReport.class,
         () -> plan("source=t | graphLookup employees edge=manager-->name as reportingHierarchy"));
 
     // graphLookup with hyphenated fromField (space before arrow)
@@ -1824,7 +1824,7 @@ public class AstBuilderTest {
    * Tests that the parser correctly rejects queries with invalid command tokens after a pipe,
    * ensuring proper error detection for malformed queries.
    */
-  @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
+  @Test(expected = org.opensearch.sql.common.error.ErrorReport.class)
   public void testMalformedPipeProducesSyntaxError() {
     plan("source=t | invalidCmd |");
   }

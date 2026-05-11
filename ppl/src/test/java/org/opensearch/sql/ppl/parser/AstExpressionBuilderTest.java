@@ -66,6 +66,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
@@ -1429,8 +1430,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testPercentileShortcutFunctionInvalidNegativeValue() {
-    assertThrows(
-        SyntaxCheckException.class, () -> assertEqual("source=t | stats perc-1(a)", (Node) null));
+    assertThrows(ErrorReport.class, () -> assertEqual("source=t | stats perc-1(a)", (Node) null));
   }
 
   @Test
@@ -1630,7 +1630,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testTimechartInvalidParameter() {
     assertThrows(
-        SyntaxCheckException.class,
+        ErrorReport.class,
         () -> assertEqual("source=t | timechart invalidparam=value count()", (Node) null));
   }
 
