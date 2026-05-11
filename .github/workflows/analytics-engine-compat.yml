@@ -1,0 +1,44 @@
+name: Analytics Engine Compatibility
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - 'backport/**'
+      - 'dependabot/**'
+    paths:
+      - '**/*.java'
+      - '**gradle*'
+      - 'integ-test/**'
+      - '.github/workflows/analytics-engine-compat.yml'
+  merge_group:
+
+jobs:
+  Get-CI-Image-Tag:
+    uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@main
+    with:
+      product: opensearch
+
+  analytics-engine-compat:
+    needs: Get-CI-Image-Tag
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
+
+    steps:
+      - name: Run start commands
+        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 25
+
+      - name: Run analytics-engine compatibility smoke test
+        run: |
+          chown -R 1000:1000 `pwd`
+          su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineCompatIT"

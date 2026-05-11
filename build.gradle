@@ -127,11 +127,6 @@ allprojects {
         version += "-SNAPSHOT"
     }
 
-    // Path to the analytics-engine plugin ZIP. Override with
-    // `-PanalyticsEngineZip=/path/to/zip` if needed.
-    ext.analyticsEngineZip = project.findProperty('analyticsEngineZip') ?:
-            "${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.zip"
-
     plugins.withId('java') {
         java {
             sourceCompatibility = JavaVersion.VERSION_21

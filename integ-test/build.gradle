@@ -270,8 +270,34 @@ def getGeoSpatialPlugin() {
     }
 }
 
+// fetch from the feature-build artifact for now (linux/x64 only; for local dev pass -PanalyticsEngineZip=/path instead).
+ext.pluginVersion = opensearch_version.tokenize('-')[0]
+ext.featureBuildBase = "https://ci.opensearch.org/ci/dbc/feature-build-opensearch/feature-datafusion/latest/linux/x64/tar/builds/opensearch/plugins"
+ext.analyticsEngineZipDest = "${buildDir}/distributions/analytics-engine-${pluginVersion}-SNAPSHOT.zip"
+ext.arrowFlightRpcZipDest = "${buildDir}/distributions/arrow-flight-rpc-${pluginVersion}-SNAPSHOT.zip"
+
+task downloadAnalyticsEngineZip(type: Download) {
+    src "${featureBuildBase}/1-analytics-engine-${pluginVersion}.zip"
+    dest analyticsEngineZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('analyticsEngineZip') }
+}
+
+task downloadArrowFlightRpcZip(type: Download) {
+    src "${featureBuildBase}/0-arrow-flight-rpc-${pluginVersion}.zip"
+    dest arrowFlightRpcZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('arrowFlightRpcZip') }
+}
+
 def getAnalyticsEnginePlugin() {
-    provider { (RegularFile) (() -> file("${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.zip")) }
+    provider { (RegularFile) (() -> file(project.findProperty('analyticsEngineZip') ?: analyticsEngineZipDest)) }
+}
+
+def getArrowFlightRpcPlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('arrowFlightRpcZip') ?: arrowFlightRpcZipDest)) }
 }
 
 testClusters {
@@ -279,7 +305,6 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
-        plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
@@ -287,7 +312,6 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
-        plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
@@ -295,18 +319,23 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
-        plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
     }
     integTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
-        plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
     }
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+    }
+    // Smoke test: verify sql loads cleanly alongside analytics-engine.
+    analyticsEngineCompat {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
     }
@@ -360,9 +389,17 @@ task stopPrometheus(type: KillProcessTask) {
 
 stopPrometheus.mustRunAfter startPrometheus
 
+task analyticsEngineCompatIT(type: RestIntegTestTask) {
+    useCluster testClusters.analyticsEngineCompat
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip
+    systemProperty 'tests.security.manager', 'false'
+    filter {
+        includeTestsMatching 'org.opensearch.sql.plugin.AnalyticsEngineCompatIT'
+    }
+}
+
 task integJdbcTest(type: RestIntegTestTask) {
     testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().with {
-        plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
     }
 

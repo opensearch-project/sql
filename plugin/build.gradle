@@ -1,5 +1,4 @@
 import java.util.concurrent.Callable
-import org.opensearch.gradle.dependencies.CompileOnlyResolvePlugin
 
 /*
  * Copyright OpenSearch Contributors
@@ -161,10 +160,7 @@ dependencies {
 
     api project(":ppl")
     api project(':api')
-    // Bundled: analytics-framework interfaces must resolve even when the plugin is absent.
-    api files("${rootDir}/libs/analytics-framework-3.7.0-SNAPSHOT.jar")
-    // Not bundled: classes here (e.g. OpenSearchSchemaBuilder) only load when the plugin is installed.
-    compileOnly files("${rootDir}/libs/analytics-engine-3.7.0-SNAPSHOT.jar")
+    implementation("org.opensearch.sandbox:analytics-api:${opensearch_version}")
     api project(':legacy')
     api project(':opensearch')
     api project(':prometheus')
@@ -310,7 +306,6 @@ def getJobSchedulerPlugin() {
 
 testClusters.integTest {
     plugin(getJobSchedulerPlugin())
-    plugin provider { (RegularFile) (() -> file("${analyticsEngineZip}")) }
     plugin(project.tasks.bundlePlugin.archiveFile)
     testDistribution = "ARCHIVE"
 
@@ -326,4 +321,3 @@ testClusters.integTest {
 run {
     useCluster testClusters.integTest
 }
-
