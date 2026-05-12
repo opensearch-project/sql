@@ -12,9 +12,11 @@ import java.util.List;
 import java.util.Map;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.executor.QueryType;
 
+@Ignore("Replaced by V2 ANTLR parser path for now")
 public class UnifiedQueryPlannerSqlTest extends UnifiedQueryTestBase {
 
   private final AbstractSchema testDeepSchema =

@@ -16,8 +16,7 @@ import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.opensearch.sql.api.spec.core.CoreExtension;
-import org.opensearch.sql.api.spec.search.SearchExtension;
+import org.opensearch.sql.api.spec.datetime.DatetimeExtension;
 
 /**
  * SQL language specification. Configures Calcite's parser, validator, and composable extensions for
@@ -51,7 +50,9 @@ public class UnifiedSqlSpec implements LanguageSpec {
         Lex.BIG_QUERY,
         SqlBabelParserImpl.FACTORY,
         SqlConformanceEnum.BABEL,
-        List.of(new CoreExtension(), new SearchExtension()));
+        // CoreExtension and SearchExtension were for Calcite standard SQL pipeline and are
+        // unused in the V2 ANTLR parser path (CalciteRelNodeVisitor resolves functions directly)
+        List.of(/* new CoreExtension(), new SearchExtension(), */ new DatetimeExtension()));
   }
 
   @Override

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.api;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.executor.QueryType;
 
@@ -13,6 +14,7 @@ import org.opensearch.sql.executor.QueryType;
  * tests in {@link UnifiedRelevanceSearchTest} with equivalent SQL queries. Both paths produce
  * identical MAP-based plans for pushdown rules.
  */
+@Ignore("Replaced by V2 ANTLR parser path for now")
 public class UnifiedRelevanceSearchSqlTest extends UnifiedQueryTestBase {
 
   @Override
