@@ -849,6 +849,14 @@ task integTestRemote(type: RestIntegTestTask) {
     systemProperty "user", System.getProperty("user")
     systemProperty "password", System.getProperty("password")
 
+    // Forward the analytics-engine parquet-indices toggle when set on the gradle command
+    // line. TestUtils.createIndexByRestClient reads this to back every test-created index
+    // with composite/parquet so RestUnifiedQueryAction.isAnalyticsIndex (post-#5432) routes
+    // to the analytics-engine planner via index settings.
+    if (System.getProperty("tests.analytics.parquet_indices") != null) {
+        systemProperty 'tests.analytics.parquet_indices', System.getProperty("tests.analytics.parquet_indices")
+    }
+
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
 
