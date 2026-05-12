@@ -3044,7 +3044,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Append the rare/top field columns as secondary order keys so ties in the count column
     // resolve deterministically. Without this, ROW_NUMBER's tie-break is insertion-order
     // dependent and varies between backends (e.g. analytics-engine vs in-process Calcite).
-    List<RexNode> tieBreakKeys = rexVisitor.analyze(fieldList, context);
+    // Skip collection / map / struct columns — Calcite's executor can't compare those at
+    // runtime (`ArrayList cannot be cast to Comparable`), and pushdown to the OpenSearch
+    // terms aggregation only supports scalar keys. RelDataType#getComparability would be
+    // the natural Calcite primitive but every concrete RelDataTypeImpl subclass (including
+    // ArraySqlType / MapSqlType / RelRecordType) returns ALL by default in calcite 1.41, so
+    // it doesn't actually discriminate the cases we need to reject here.
+    List<RexNode> tieBreakKeys =
+        rexVisitor.analyze(fieldList, context).stream()
+            .filter(CalciteRelNodeVisitor::isComparableOrderKey)
+            .toList();
     List<RexNode> orderKeys = new ArrayList<>(tieBreakKeys.size() + 1);
     orderKeys.add(countField);
     orderKeys.addAll(tieBreakKeys);
@@ -3078,6 +3087,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           context.relBuilder.field(countFieldName));
     }
     return context.relBuilder.peek();
+  }
+
+  private static boolean isComparableOrderKey(RexNode key) {
+    RelDataType type = key.getType();
+    // SqlTypeUtil#isCollection covers ARRAY + MULTISET; RelDataType#isStruct covers ROW +
+    // STRUCTURED. MAP has no dedicated predicate, so check it explicitly.
+    return !SqlTypeUtil.isCollection(type)
+        && !type.isStruct()
+        && type.getSqlTypeName() != SqlTypeName.MAP;
   }
 
   @Override
