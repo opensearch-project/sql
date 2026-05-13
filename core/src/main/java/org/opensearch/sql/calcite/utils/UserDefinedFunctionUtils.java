@@ -76,9 +76,24 @@ public class UserDefinedFunctionUtils {
           TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
           createArrayType(TYPE_FACTORY, TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), false));
   public static Set<String> SINGLE_FIELD_RELEVANCE_FUNCTION_SET =
-      ImmutableSet.of("match", "match_phrase", "match_bool_prefix", "match_phrase_prefix");
+      ImmutableSet.of(
+          "match",
+          "match_phrase",
+          "match_bool_prefix",
+          "match_phrase_prefix",
+          "query",
+          "wildcard_query",
+          "wildcardquery",
+          "score",
+          "scorequery",
+          "score_query",
+          "match_query",
+          "matchquery",
+          "matchphrase",
+          "matchphrasequery");
   public static Set<String> MULTI_FIELDS_RELEVANCE_FUNCTION_SET =
-      ImmutableSet.of("simple_query_string", "query_string", "multi_match");
+      ImmutableSet.of(
+          "simple_query_string", "query_string", "multi_match", "multimatch", "multimatchquery");
   public static String IP_FUNCTION_NAME = "IP";
 
   /**

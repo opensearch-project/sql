@@ -424,6 +424,28 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string", false);
   public static final SqlOperator MULTI_MATCH =
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
+  public static final SqlOperator QUERY = RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query");
+  public static final SqlOperator WILDCARD_QUERY =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("wildcard_query");
+  public static final SqlOperator WILDCARDQUERY =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("wildcardquery");
+  public static final SqlOperator SCORE = RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("score");
+  public static final SqlOperator SCOREQUERY =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("scorequery");
+  public static final SqlOperator SCORE_QUERY =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("score_query");
+  public static final SqlOperator MATCH_QUERY =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("match_query");
+  public static final SqlOperator MATCHQUERY =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("matchquery");
+  public static final SqlOperator MATCHPHRASE =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("matchphrase");
+  public static final SqlOperator MATCHPHRASEQUERY =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("matchphrasequery");
+  public static final SqlOperator MULTIMATCH =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multimatch", false);
+  public static final SqlOperator MULTIMATCHQUERY =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multimatchquery", false);
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
   public static final SqlOperator TONUMBER = new ToNumberFunction().toUDF("TONUMBER");
