@@ -811,37 +811,26 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsSortOnMeasure() throws IOException {
     try {
       setQueryBucketSize(5);
+      // count=25 is tied across multiple states (AL/ME/TN/WY); add `state` as an explicit
+      // tiebreaker so the top-K cutoff is deterministic. PPL spec doesn't define a
+      // tiebreaker for tied measure values, so without this the result varies by engine.
       JSONObject response =
           executeQuery(
               String.format(
-                  "source=%s | stats bucket_nullable=false count() by state | sort - `count()` |"
-                      + " head 5",
+                  "source=%s | stats bucket_nullable=false count() by state | sort - `count()`,"
+                      + " state | head 5",
                   TEST_INDEX_ACCOUNT));
       verifyDataRows(
-          response, rows(30, "TX"), rows(28, "MD"), rows(27, "ID"), rows(25, "ME"), rows(25, "AL"));
+          response, rows(30, "TX"), rows(28, "MD"), rows(27, "ID"), rows(25, "AL"), rows(25, "ME"));
+      // Ascending: count=13 (NV/SC) and count=14 (many states); state asc as tiebreaker.
       response =
           executeQuery(
               String.format(
-                  "source=%s | stats bucket_nullable=false count() by state | sort `count()` | head"
-                      + " 5",
+                  "source=%s | stats bucket_nullable=false count() by state | sort `count()`,"
+                      + " state | head 5",
                   TEST_INDEX_ACCOUNT));
-      if (!isPushdownDisabled()) {
-        verifyDataRows(
-            response,
-            rows(13, "NV"),
-            rows(13, "SC"),
-            rows(14, "CO"),
-            rows(14, "AZ"),
-            rows(14, "DE"));
-      } else {
-        verifyDataRows(
-            response,
-            rows(13, "NV"),
-            rows(13, "SC"),
-            rows(14, "DE"),
-            rows(14, "AZ"),
-            rows(14, "NM"));
-      }
+      verifyDataRows(
+          response, rows(13, "NV"), rows(13, "SC"), rows(14, "AZ"), rows(14, "CO"), rows(14, "DE"));
       response =
           executeQuery(
               String.format(
@@ -877,11 +866,14 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsSpanSortOnMeasure() throws IOException {
     try {
       setQueryBucketSize(5);
+      // Many month buckets tie at cnt=1; add the span column (referenced via its
+      // auto-generated column name) as an explicit tiebreaker so the top-K cutoff is
+      // deterministic.
       JSONObject response =
           executeQuery(
               String.format(
                   "source=%s | stats bucket_nullable=false count() as cnt by span(birthdate,"
-                      + " 1month) | sort - cnt | head 5",
+                      + " 1month) | sort - cnt, `span(birthdate,1month)` | head 5",
                   TEST_INDEX_BANK));
       verifyDataRows(
           response,
@@ -894,15 +886,15 @@ public class StatsCommandIT extends PPLIntegTestCase {
           executeQuery(
               String.format(
                   "source=%s | stats bucket_nullable=false count() as cnt by span(birthdate,"
-                      + " 1month) | sort cnt | head 5",
+                      + " 1month) | sort cnt, `span(birthdate,1month)` | head 5",
                   TEST_INDEX_BANK));
       verifyDataRows(
           response,
-          rows(1, "2018-11-01 00:00:00"),
-          rows(1, "2017-11-01 00:00:00"),
           rows(1, "2017-10-01 00:00:00"),
-          rows(2, "2018-08-01 00:00:00"),
-          rows(2, "2018-06-01 00:00:00"));
+          rows(1, "2017-11-01 00:00:00"),
+          rows(1, "2018-11-01 00:00:00"),
+          rows(2, "2018-06-01 00:00:00"),
+          rows(2, "2018-08-01 00:00:00"));
       response =
           executeQuery(
               String.format(
@@ -938,37 +930,24 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsSortOnMeasureWithScript() throws IOException {
     try {
       setQueryBucketSize(5);
+      // Script-derived `new_state` mirrors testStatsSortOnMeasure shape. Add new_state
+      // as the tiebreaker.
       JSONObject response =
           executeQuery(
               String.format(
                   "source=%s | eval new_state = lower(state) | stats bucket_nullable=false count()"
-                      + " by new_state | sort - `count()` | head 5",
+                      + " by new_state | sort - `count()`, new_state | head 5",
                   TEST_INDEX_ACCOUNT));
       verifyDataRows(
-          response, rows(30, "tx"), rows(28, "md"), rows(27, "id"), rows(25, "me"), rows(25, "al"));
+          response, rows(30, "tx"), rows(28, "md"), rows(27, "id"), rows(25, "al"), rows(25, "me"));
       response =
           executeQuery(
               String.format(
                   "source=%s | eval new_state = lower(state) | stats bucket_nullable=false count()"
-                      + " by new_state | sort `count()` | head 5",
+                      + " by new_state | sort `count()`, new_state | head 5",
                   TEST_INDEX_ACCOUNT));
-      if (!isPushdownDisabled()) {
-        verifyDataRows(
-            response,
-            rows(13, "nv"),
-            rows(13, "sc"),
-            rows(14, "co"),
-            rows(14, "az"),
-            rows(14, "de"));
-      } else {
-        verifyDataRows(
-            response,
-            rows(13, "nv"),
-            rows(13, "sc"),
-            rows(14, "de"),
-            rows(14, "az"),
-            rows(14, "nm"));
-      }
+      verifyDataRows(
+          response, rows(13, "nv"), rows(13, "sc"), rows(14, "az"), rows(14, "co"), rows(14, "de"));
     } finally {
       resetQueryBucketSize();
     }
@@ -1013,52 +992,34 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsSpanSortOnMeasureMultiTerms() throws IOException {
     try {
       setQueryBucketSize(5);
+      // count=17 ties between (M,ID) and (F,TX); count=5 ties across many (gender, state)
+      // pairs. Add gender, state as tiebreakers so the top-K cutoff is deterministic.
       JSONObject response =
           executeQuery(
               String.format(
                   "source=%s | stats bucket_nullable=false count() by gender, state | sort -"
-                      + " `count()` | head 5",
+                      + " `count()`, gender, state | head 5",
                   TEST_INDEX_ACCOUNT));
       verifyDataRows(
           response,
           rows(18, "M", "MD"),
-          rows(17, "M", "ID"),
           rows(17, "F", "TX"),
+          rows(17, "M", "ID"),
           rows(16, "M", "ME"),
           rows(15, "M", "OK"));
       response =
           executeQuery(
               String.format(
                   "source=%s | stats bucket_nullable=false count() by gender, state | sort"
-                      + " `count()` | head 5",
+                      + " `count()`, gender, state | head 5",
                   TEST_INDEX_ACCOUNT));
-      if (isCalciteEnabled()) {
-        if (!isPushdownDisabled()) {
-          verifyDataRows(
-              response,
-              rows(3, "F", "DE"),
-              rows(5, "F", "CT"),
-              rows(5, "F", "OR"),
-              rows(5, "F", "WI"),
-              rows(5, "M", "MI"));
-        } else {
-          verifyDataRows(
-              response,
-              rows(3, "F", "DE"),
-              rows(5, "F", "WI"),
-              rows(5, "F", "OR"),
-              rows(5, "M", "RI"),
-              rows(5, "F", "CT"));
-        }
-      } else {
-        verifyDataRows(
-            response,
-            rows(3, "F", "DE"),
-            rows(5, "M", "RI"),
-            rows(5, "M", "MI"),
-            rows(5, "F", "WI"),
-            rows(5, "M", "NE"));
-      }
+      verifyDataRows(
+          response,
+          rows(3, "F", "DE"),
+          rows(5, "F", "CT"),
+          rows(5, "F", "OR"),
+          rows(5, "F", "WI"),
+          rows(5, "M", "MI"));
       response =
           executeQuery(
               String.format(
@@ -1094,54 +1055,36 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsSpanSortOnMeasureMultiTermsWithScript() throws IOException {
     try {
       setQueryBucketSize(5);
+      // Same tie shapes as testStatsSpanSortOnMeasureMultiTerms but with script-derived
+      // group columns. Add new_gender, new_state as tiebreakers.
       JSONObject response =
           executeQuery(
               String.format(
                   "source=%s | eval new_gender = lower(gender), new_state = lower(state) | stats"
-                      + " bucket_nullable=false count() by new_gender, new_state | sort - `count()`"
-                      + " | head 5",
+                      + " bucket_nullable=false count() by new_gender, new_state | sort -"
+                      + " `count()`, new_gender, new_state | head 5",
                   TEST_INDEX_ACCOUNT));
       verifyDataRows(
           response,
           rows(18, "m", "md"),
-          rows(17, "m", "id"),
           rows(17, "f", "tx"),
+          rows(17, "m", "id"),
           rows(16, "m", "me"),
           rows(15, "m", "ok"));
       response =
           executeQuery(
               String.format(
                   "source=%s | eval new_gender = lower(gender), new_state = lower(state) | stats"
-                      + " bucket_nullable=false count() by new_gender, new_state | sort `count()` |"
-                      + " head 5",
+                      + " bucket_nullable=false count() by new_gender, new_state | sort `count()`,"
+                      + " new_gender, new_state | head 5",
                   TEST_INDEX_ACCOUNT));
-      if (isCalciteEnabled()) {
-        if (!isPushdownDisabled()) {
-          verifyDataRows(
-              response,
-              rows(3, "f", "de"),
-              rows(5, "f", "ct"),
-              rows(5, "f", "or"),
-              rows(5, "f", "wi"),
-              rows(5, "m", "mi"));
-        } else {
-          verifyDataRows(
-              response,
-              rows(3, "f", "de"),
-              rows(5, "m", "ri"),
-              rows(5, "f", "ct"),
-              rows(5, "m", "mi"),
-              rows(5, "m", "ne"));
-        }
-      } else {
-        verifyDataRows(
-            response,
-            rows(3, "f", "de"),
-            rows(5, "m", "ri"),
-            rows(5, "m", "mi"),
-            rows(5, "f", "wi"),
-            rows(5, "m", "ne"));
-      }
+      verifyDataRows(
+          response,
+          rows(3, "f", "de"),
+          rows(5, "f", "ct"),
+          rows(5, "f", "or"),
+          rows(5, "f", "wi"),
+          rows(5, "m", "mi"));
       response =
           executeQuery(
               String.format(
@@ -1179,11 +1122,13 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsSortOnMeasureComplex() throws IOException {
     try {
       setQueryBucketSize(5);
+      // c=25 ties across multiple states; add state as tiebreaker for a deterministic
+      // top-K cutoff.
       JSONObject response =
           executeQuery(
               String.format(
                   "source=%s | stats bucket_nullable=false sum(balance), count() as c, dc(employer)"
-                      + " as d by state | sort - c | head 5",
+                      + " as d by state | sort - c, state | head 5",
                   TEST_INDEX_ACCOUNT));
       verifySchema(
           response,
@@ -1197,14 +1142,15 @@ public class StatsCommandIT extends PPLIntegTestCase {
           rows(782199, 30, 30, "TX"),
           rows(732523, 28, 28, "MD"),
           rows(657957, 27, 27, "ID"),
-          rows(541575, 25, 25, "ME"),
-          rows(643489, 25, 25, "AL"));
+          rows(643489, 25, 25, "AL"),
+          rows(541575, 25, 25, "ME"));
+      // d=17 ties between (M, id) and (F, tx); add gender, new_state as tiebreakers.
       response =
           executeQuery(
               String.format(
                   "source=%s | eval new_state = lower(state) | stats bucket_nullable=false"
                       + " sum(balance), count() as c, dc(employer) as d by gender, new_state | sort"
-                      + " - d | head 5",
+                      + " - d, gender, new_state | head 5",
                   TEST_INDEX_ACCOUNT));
       verifySchema(
           response,
@@ -1217,8 +1163,8 @@ public class StatsCommandIT extends PPLIntegTestCase {
       verifyDataRows(
           response,
           rows(484567, 18, 18, "M", "md"),
-          rows(376394, 17, 17, "M", "id"),
           rows(505688, 17, 17, "F", "tx"),
+          rows(376394, 17, 17, "M", "id"),
           rows(375409, 16, 16, "M", "me"),
           rows(432776, 15, 15, "M", "ok"));
     } finally {
