@@ -838,7 +838,9 @@ public class PredicateAnalyzerTest {
             .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
             .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
             .build();
-    // PPL IS_EMPTY is translated to OR(IS_NULL(arg), IS_EMPTY(arg))
+    // PPL isempty(x) is translated to OR(IS_NULL(x), CHAR_LENGTH(x) = 0). Push-down
+    // falls back to script_query because CHAR_LENGTH has no DSL bool-query equivalent,
+    // so the OR is unanalyzable as a whole and lands in compounded_script.
     RexNode call = PPLFuncImpTable.INSTANCE.resolve(builder, BuiltinFunctionName.IS_EMPTY, field2);
     Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
     QueryExpression expression =
