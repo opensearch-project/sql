@@ -32,6 +32,7 @@ import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Relation;
@@ -139,6 +140,13 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
     UnresolvedPlan result = visit(ctx.relation());
 
+    // Dispatch each joinClause to visitJoinClause (throws in base, overridden in subclass)
+    for (var joinCtx : ctx.joinClause()) {
+      UnresolvedPlan joinPlan = visit(joinCtx);
+      ((Join) joinPlan).attach(result);
+      result = joinPlan;
+    }
+
     if (ctx.whereClause() != null) {
       result = visit(ctx.whereClause()).attach(result);
     }
@@ -161,6 +169,24 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
       result = sortBuilder.visit(ctx.orderByClause()).attach(result);
     }
     return result;
+  }
+
+  @Override
+  public UnresolvedPlan visitJoinClause(OpenSearchSQLParser.JoinClauseContext ctx) {
+    throw new SyntaxCheckException(
+        "JOIN is not supported in the V2 SQL engine. Falling back to legacy engine.");
+  }
+
+  @Override
+  public UnresolvedPlan visitUnionSelect(OpenSearchSQLParser.UnionSelectContext ctx) {
+    throw new SyntaxCheckException(
+        "UNION is not supported in the V2 SQL engine. Falling back to legacy engine.");
+  }
+
+  @Override
+  public UnresolvedPlan visitMinusSelect(OpenSearchSQLParser.MinusSelectContext ctx) {
+    throw new SyntaxCheckException(
+        "EXCEPT is not supported in the V2 SQL engine. Falling back to legacy engine.");
   }
 
   /**
@@ -261,7 +287,8 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
     return nextResult != null ? nextResult : aggregate;
   }
 
-  private UnresolvedExpression visitAstExpression(ParseTree tree) {
+  /** Visible to subclasses that need to parse expressions (e.g., JOIN ON condition). */
+  protected UnresolvedExpression visitAstExpression(ParseTree tree) {
     return expressionBuilder.visit(tree);
   }
 

@@ -729,4 +729,22 @@ class AstBuilderTest extends AstBuilderTestBase {
             alias("highlight(\"fieldA\")", highlight(AstDSL.stringLiteral("fieldA"), args))),
         buildAST("SELECT highlight(\"fieldA\") FROM test"));
   }
+
+  @Test
+  public void join_throws_syntax_check_exception_for_legacy_fallback() {
+    assertThrows(
+        SyntaxCheckException.class, () -> buildAST("SELECT * FROM t1 JOIN t2 ON t1.id = t2.id"));
+  }
+
+  @Test
+  public void union_throws_syntax_check_exception_for_legacy_fallback() {
+    assertThrows(
+        SyntaxCheckException.class, () -> buildAST("SELECT a FROM t1 UNION ALL SELECT b FROM t2"));
+  }
+
+  @Test
+  public void except_throws_syntax_check_exception_for_legacy_fallback() {
+    assertThrows(
+        SyntaxCheckException.class, () -> buildAST("SELECT a FROM t1 MINUS SELECT b FROM t2"));
+  }
 }

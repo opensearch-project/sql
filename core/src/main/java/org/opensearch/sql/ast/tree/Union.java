@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
-/** Logical plan node for Union operation. Combines results from multiple datasets (UNION ALL). */
+/** Logical plan node for Union operation. Combines results from multiple datasets. */
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)
@@ -22,14 +22,19 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @AllArgsConstructor
 public class Union extends UnresolvedPlan {
   private final List<UnresolvedPlan> datasets;
-
+  private boolean distinct;
   private Integer maxout;
+
+  /** UNION ALL with maxout limit (PPL subsearch). */
+  public Union(List<UnresolvedPlan> datasets, Integer maxout) {
+    this(datasets, false, maxout);
+  }
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
     List<UnresolvedPlan> newDatasets =
         ImmutableList.<UnresolvedPlan>builder().add(child).addAll(datasets).build();
-    return new Union(newDatasets, maxout);
+    return new Union(newDatasets, distinct, maxout);
   }
 
   @Override

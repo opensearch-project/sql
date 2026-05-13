@@ -135,6 +135,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Minus;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -534,6 +535,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             }
             expandedFields.add(resolved);
           }
+        }
+        case Alias alias -> {
+          expandedFields.add(rexVisitor.analyze(alias, context));
         }
         case AllFields ignored -> {
           currentFields.stream()
@@ -2947,7 +2951,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     for (RelNode input : unifiedInputs) {
       context.relBuilder.push(input);
     }
-    context.relBuilder.union(true, unifiedInputs.size()); // true = UNION ALL
+    context.relBuilder.union(!node.isDistinct(), unifiedInputs.size());
 
     if (node.getMaxout() != null) {
       context.relBuilder.push(
@@ -2956,6 +2960,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               context.relBuilder.build(),
               context.relBuilder.literal(node.getMaxout())));
     }
+
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitMinus(Minus node, CalcitePlanContext context) {
+    List<RelNode> inputNodes = new ArrayList<>();
+    for (UnresolvedPlan child : node.getChildren()) {
+      child.accept(this, context);
+      inputNodes.add(context.relBuilder.build());
+    }
+
+    List<RelNode> unifiedInputs =
+        SchemaUnifier.buildUnifiedSchemaWithTypeCoercion(inputNodes, context);
+
+    for (RelNode input : unifiedInputs) {
+      context.relBuilder.push(input);
+    }
+    context.relBuilder.minus(false, unifiedInputs.size());
 
     return context.relBuilder.peek();
   }

@@ -5,11 +5,21 @@
 
 package org.opensearch.sql.api.parser;
 
+import static org.opensearch.sql.ast.dsl.AstDSL.join;
+import static org.opensearch.sql.ast.dsl.AstDSL.minus;
+import static org.opensearch.sql.ast.dsl.AstDSL.union;
+
+import java.util.Optional;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.Join.JoinType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.JoinClauseContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MinusSelectContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.UnionSelectContext;
 import org.opensearch.sql.sql.parser.AstBuilder;
 import org.opensearch.sql.sql.parser.AstStatementBuilder;
 
@@ -24,7 +34,8 @@ public class SqlV2QueryParser implements UnifiedQueryParser<UnresolvedPlan> {
     ParseTree cst = syntaxParser.parse(query);
     AstStatementBuilder astStmtBuilder =
         new AstStatementBuilder(
-            new AstBuilder(query), AstStatementBuilder.StatementBuilderContext.builder().build());
+            new ExtendedAstBuilder(query),
+            AstStatementBuilder.StatementBuilderContext.builder().build());
     Statement statement = cst.accept(astStmtBuilder);
 
     if (statement instanceof Query) {
@@ -32,5 +43,49 @@ public class SqlV2QueryParser implements UnifiedQueryParser<UnresolvedPlan> {
     }
     throw new UnsupportedOperationException(
         "Only query statements are supported but got " + statement.getClass().getSimpleName());
+  }
+
+  /**
+   * Extends the V2 AstBuilder with legacy-only SQL features (JOIN, UNION, MINUS) that the base
+   * AstBuilder rejects with SyntaxCheckException to trigger legacy engine fallback.
+   */
+  private static class ExtendedAstBuilder extends AstBuilder {
+
+    ExtendedAstBuilder(String query) {
+      super(query);
+    }
+
+    @Override
+    public UnresolvedPlan visitJoinClause(JoinClauseContext ctx) {
+      JoinType joinType = toJoinType(ctx);
+      UnresolvedPlan right = visit(ctx.relation());
+      Optional<UnresolvedExpression> condition =
+          Optional.ofNullable(ctx.expression()).map(this::visitAstExpression);
+      return join(right, joinType, condition);
+    }
+
+    @Override
+    public UnresolvedPlan visitUnionSelect(UnionSelectContext ctx) {
+      boolean distinct = ctx.ALL().isEmpty();
+      return union(ctx.querySpecification().stream().map(this::visit).toList(), distinct);
+    }
+
+    @Override
+    public UnresolvedPlan visitMinusSelect(MinusSelectContext ctx) {
+      return minus(ctx.querySpecification().stream().map(this::visit).toList());
+    }
+
+    private JoinType toJoinType(JoinClauseContext ctx) {
+      if (ctx.LEFT() != null) {
+        return JoinType.LEFT;
+      }
+      if (ctx.RIGHT() != null) {
+        return JoinType.RIGHT;
+      }
+      if (ctx.CROSS() != null) {
+        return JoinType.CROSS;
+      }
+      return JoinType.INNER;
+    }
   }
 }
