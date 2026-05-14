@@ -17,6 +17,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.data.type.ExprCoreType;
 
 public class OpenSearchTypeFactoryTest {
 
@@ -125,5 +126,40 @@ public class OpenSearchTypeFactoryTest {
 
     assertNotNull(result);
     assertEquals(SqlTypeName.INTEGER, result.getSqlTypeName());
+  }
+
+  @Test
+  public void testConvertSqlTypeNameVarbinaryToBinaryExprType() {
+    assertEquals(
+        ExprCoreType.BINARY, OpenSearchTypeFactory.convertSqlTypeNameToExprType(SqlTypeName.VARBINARY));
+  }
+
+  @Test
+  public void testConvertSqlTypeNameBinaryToBinaryExprType() {
+    assertEquals(
+        ExprCoreType.BINARY, OpenSearchTypeFactory.convertSqlTypeNameToExprType(SqlTypeName.BINARY));
+  }
+
+  @Test
+  public void testConvertRelDataTypeVarbinaryToBinaryExprType() {
+    RelDataType varbinary = TYPE_FACTORY.createSqlType(SqlTypeName.VARBINARY);
+    assertEquals(
+        ExprCoreType.BINARY, OpenSearchTypeFactory.convertRelDataTypeToExprType(varbinary));
+  }
+
+  @Test
+  public void testConvertExprTypeBinaryToVarbinaryRelDataType() {
+    RelDataType result = OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.BINARY);
+    assertNotNull(result);
+    assertEquals(SqlTypeName.VARBINARY, result.getSqlTypeName());
+  }
+
+  @Test
+  public void testConvertExprTypeBinaryToNullableVarbinary() {
+    RelDataType result =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.BINARY, true);
+    assertNotNull(result);
+    assertEquals(SqlTypeName.VARBINARY, result.getSqlTypeName());
+    assertTrue(result.isNullable());
   }
 }

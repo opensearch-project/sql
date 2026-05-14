@@ -83,6 +83,7 @@ import org.opensearch.sql.expression.function.udf.ToStringFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
 import org.opensearch.sql.expression.function.udf.condition.EnhancedCoalesceFunction;
 import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
+import org.opensearch.sql.expression.function.udf.conversion.BinaryFunction;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DateAddSubFunction;
@@ -178,6 +179,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   // Condition function
   public static final SqlOperator EARLIEST = new EarliestFunction().toUDF("EARLIEST");
   public static final SqlOperator LATEST = new LatestFunction().toUDF("LATEST");
+
+  // VARBINARY conversion (placeholder for ip/binary fields rewritten by analytics backend adapter)
+  public static final SqlOperator BINARY = new BinaryFunction().toUDF("BINARY");
 
   // Datetime function
   public static final SqlOperator TIMESTAMP = new TimestampFunction().toUDF("TIMESTAMP");

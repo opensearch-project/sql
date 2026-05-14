@@ -174,6 +174,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, nullable);
         case TIMESTAMP:
           return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);
+        case BINARY:
+          return TYPE_FACTORY.createSqlType(SqlTypeName.VARBINARY, nullable);
         case ARRAY:
           return TYPE_FACTORY.createArrayType(
               TYPE_FACTORY.createSqlType(SqlTypeName.ANY, nullable), -1);
@@ -225,6 +227,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case FLOAT, REAL -> FLOAT;
       case DOUBLE, DECIMAL -> DOUBLE; // TODO the decimal is only used for literal
       case CHAR, VARCHAR, MULTISET -> STRING; // call toString() for MULTISET
+      case VARBINARY, BINARY -> BINARY;
       case BOOLEAN -> BOOLEAN;
       case DATE -> DATE;
       case TIME, TIME_TZ, TIME_WITH_LOCAL_TIME_ZONE -> TIME;
