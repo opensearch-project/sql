@@ -60,8 +60,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
    * Calcite-DSL paths.
    */
   public static boolean isAnalyticsParquetIndicesEnabled() {
-    return Boolean.parseBoolean(
-        System.getProperty(TestUtils.ANALYTICS_PARQUET_INDICES_PROP, "false"));
+    return TestUtils.AnalyticsIndexConfig.isEnabled();
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
