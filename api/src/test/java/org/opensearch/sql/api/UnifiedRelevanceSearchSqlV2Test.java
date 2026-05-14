@@ -132,4 +132,95 @@ public class UnifiedRelevanceSearchSqlV2Test extends UnifiedQueryTestBase {
               LogicalTableScan(table=[[catalog, employees]])
             """);
   }
+
+  @Test
+  public void matchQuery() {
+    givenQuery("SELECT * FROM catalog.employees WHERE match_query(name, 'John')")
+        .assertPlan(
+            """
+            LogicalFilter(condition=[match(MAP('field', $1), MAP('query', 'John':VARCHAR))])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void matchquery() {
+    givenQuery("SELECT * FROM catalog.employees WHERE matchquery(name, 'John')")
+        .assertPlan(
+            """
+            LogicalFilter(condition=[match(MAP('field', $1), MAP('query', 'John':VARCHAR))])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void matchphrase() {
+    givenQuery("SELECT * FROM catalog.employees WHERE matchphrase(name, 'John Doe')")
+        .assertPlan(
+            """
+            LogicalFilter(condition=[match_phrase(MAP('field', $1), MAP('query', 'John Doe':VARCHAR))])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void matchphrasequery() {
+    givenQuery("SELECT * FROM catalog.employees WHERE matchphrasequery(name, 'John Doe')")
+        .assertPlan(
+            """
+            LogicalFilter(condition=[match_phrase(MAP('field', $1), MAP('query', 'John Doe':VARCHAR))])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void multimatch() {
+    givenQuery("SELECT * FROM catalog.employees WHERE multimatch(['name', 'department'], 'John')")
+        .assertPlan(
+            """
+            LogicalFilter(condition=[multi_match(MAP('fields', MAP('name':VARCHAR, 1.0E0:DOUBLE, 'department':VARCHAR, 1.0E0:DOUBLE)), MAP('query', 'John':VARCHAR))])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void multimatchquery() {
+    givenQuery(
+            "SELECT * FROM catalog.employees WHERE multimatchquery(['name', 'department'], 'John')")
+        .assertPlan(
+            """
+            LogicalFilter(condition=[multi_match(MAP('fields', MAP('name':VARCHAR, 1.0E0:DOUBLE, 'department':VARCHAR, 1.0E0:DOUBLE)), MAP('query', 'John':VARCHAR))])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void query() {
+    givenQuery("SELECT * FROM catalog.employees WHERE query('name:John')")
+        .assertPlan(
+            """
+            LogicalFilter(condition=[query(MAP('query', 'name:John':VARCHAR))])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void wildcardQuery() {
+    givenQuery("SELECT * FROM catalog.employees WHERE wildcard_query(name, 'John*')")
+        .assertPlan(
+            """
+            LogicalFilter(condition=[wildcard_query(MAP('field', $1), MAP('query', 'John*':VARCHAR))])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void wildcardquery() {
+    givenQuery("SELECT * FROM catalog.employees WHERE wildcardquery(name, 'John*')")
+        .assertPlan(
+            """
+            LogicalFilter(condition=[wildcard_query(MAP('field', $1), MAP('query', 'John*':VARCHAR))])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
 }
