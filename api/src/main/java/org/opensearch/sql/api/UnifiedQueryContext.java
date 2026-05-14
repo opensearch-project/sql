@@ -27,8 +27,8 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
-import org.opensearch.sql.api.parser.CalciteSqlQueryParser;
 import org.opensearch.sql.api.parser.PPLQueryParser;
+import org.opensearch.sql.api.parser.SqlV2QueryParser;
 import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.api.spec.LanguageSpec;
 import org.opensearch.sql.api.spec.UnifiedPplSpec;
@@ -246,7 +246,7 @@ public class UnifiedQueryContext implements AutoCloseable {
     private UnifiedQueryParser<?> createParser(CalcitePlanContext planContext, Settings settings) {
       return switch (queryType) {
         case PPL -> new PPLQueryParser(settings);
-        case SQL -> new CalciteSqlQueryParser(planContext);
+        case SQL -> new SqlV2QueryParser();
       };
     }
 

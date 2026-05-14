@@ -23,7 +23,6 @@ import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.executor.QueryType;
 
 /**
  * {@code UnifiedQueryPlanner} provides a high-level API for parsing and analyzing queries using the
@@ -45,10 +44,7 @@ public class UnifiedQueryPlanner {
    */
   public UnifiedQueryPlanner(UnifiedQueryContext context) {
     this.context = context;
-    this.strategy =
-        context.getPlanContext().queryType == QueryType.SQL
-            ? new CalciteNativeStrategy(context)
-            : new CustomVisitorStrategy(context);
+    this.strategy = new CustomVisitorStrategy(context);
   }
 
   /**

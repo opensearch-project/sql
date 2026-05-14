@@ -11,21 +11,13 @@ import static org.apache.calcite.sql.type.SqlTypeName.INTEGER;
 import static org.apache.calcite.sql.type.SqlTypeName.TIME;
 import static org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP;
 import static org.apache.calcite.sql.type.SqlTypeName.VARCHAR;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.sql.api.ResultSetAssertion;
@@ -72,83 +64,73 @@ public class DatetimeExtensionTest extends UnifiedQueryTestBase implements Resul
 
   @Test
   public void testUdfResultNormalizedAndCastToVarchar() {
-    var plan =
-        givenQuery(
-                """
-                source = catalog.events \
-                | eval d = DATE(name), t = TIME(name), ts = TIMESTAMP(name) \
-                | fields d, t, ts\
-                """)
-            .assertPlan(
-                """
-                LogicalProject(d=[CAST($0):VARCHAR], t=[CAST($1):VARCHAR], ts=[CAST($2):VARCHAR])
-                  LogicalProject(d=[DATE($1)], t=[TIME($1)], ts=[TIMESTAMP($1)])
-                    LogicalTableScan(table=[[catalog, events]])
-                """)
-            .plan();
-    assertCallType(plan, "DATE", DATE);
-    assertCallType(plan, "TIME", TIME, 9);
-    assertCallType(plan, "TIMESTAMP", TIMESTAMP, 9);
+    givenQuery(
+            """
+            source = catalog.events \
+            | eval d = DATE(name), t = TIME(name), ts = TIMESTAMP(name) \
+            | fields d, t, ts\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(d=[CAST($0):VARCHAR], t=[CAST($1):VARCHAR], ts=[CAST($2):VARCHAR])
+              LogicalProject(d=[DATE($1)], t=[TIME($1)], ts=[TIMESTAMP($1)])
+                LogicalTableScan(table=[[catalog, events]])
+            """)
+        .assertReturnType("DATE", DATE)
+        .assertReturnType("TIME", TIME, 9)
+        .assertReturnType("TIMESTAMP", TIMESTAMP, 9);
   }
 
   @Test
   public void testNestedUdfCallsNormalized() {
-    var plan =
-        givenQuery("source = catalog.events | eval d = DATEDIFF(DATE(name), DATE(name)) | fields d")
-            .assertPlan(
-                """
-                LogicalProject(d=[DATEDIFF(DATE($1), DATE($1))])
-                  LogicalTableScan(table=[[catalog, events]])
-                """)
-            .plan();
-    assertCallType(plan, "DATE", DATE);
-    assertCallType(plan, "DATEDIFF", BIGINT);
+    givenQuery("source = catalog.events | eval d = DATEDIFF(DATE(name), DATE(name)) | fields d")
+        .assertPlan(
+            """
+            LogicalProject(d=[DATEDIFF(DATE($1), DATE($1))])
+              LogicalTableScan(table=[[catalog, events]])
+            """)
+        .assertReturnType("DATE", DATE)
+        .assertReturnType("DATEDIFF", BIGINT);
   }
 
   @Test
   public void testDateLiteralCastToVarchar() {
-    var plan =
-        givenQuery("source = catalog.events | eval d = DATE('2024-01-01') | fields d")
-            .assertPlan(
-                """
-                LogicalProject(d=[CAST($0):VARCHAR])
-                  LogicalProject(d=[DATE('2024-01-01':VARCHAR)])
-                    LogicalTableScan(table=[[catalog, events]])
-                """)
-            .plan();
-    assertCallType(plan, "DATE", DATE);
+    givenQuery("source = catalog.events | eval d = DATE('2024-01-01') | fields d")
+        .assertPlan(
+            """
+            LogicalProject(d=[CAST($0):VARCHAR])
+              LogicalProject(d=[DATE('2024-01-01':VARCHAR)])
+                LogicalTableScan(table=[[catalog, events]])
+            """)
+        .assertReturnType("DATE", DATE);
   }
 
   @Test
   public void testFilterWithTimestampLiteral() {
-    var plan =
-        givenQuery(
-                """
-                source = catalog.events | where created_at > "2024-01-01T00:00:00Z" | fields id\
-                """)
-            .assertPlan(
-                """
-                LogicalProject(id=[$0])
-                  LogicalFilter(condition=[>($4, TIMESTAMP('2024-01-01T00:00:00Z':VARCHAR))])
-                    LogicalTableScan(table=[[catalog, events]])
-                """)
-            .plan();
-    assertCallType(plan, "TIMESTAMP", TIMESTAMP, 9);
+    givenQuery(
+            """
+            source = catalog.events | where created_at > "2024-01-01T00:00:00Z" | fields id\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(id=[$0])
+              LogicalFilter(condition=[>($4, TIMESTAMP('2024-01-01T00:00:00Z':VARCHAR))])
+                LogicalTableScan(table=[[catalog, events]])
+            """)
+        .assertReturnType("TIMESTAMP", TIMESTAMP, 9);
   }
 
   @Test
   public void testComparisonWithDatetimeUdf() {
-    var plan =
-        givenQuery("source = catalog.events | where created_at < DATE(name) | fields id")
-            .assertPlan(
-                """
-                LogicalProject(id=[$0])
-                  LogicalFilter(condition=[<($4, TIMESTAMP(DATE($1)))])
-                    LogicalTableScan(table=[[catalog, events]])
-                """)
-            .plan();
-    assertCallType(plan, "DATE", DATE);
-    assertCallType(plan, "TIMESTAMP", TIMESTAMP, 9);
+    givenQuery("source = catalog.events | where created_at < DATE(name) | fields id")
+        .assertPlan(
+            """
+            LogicalProject(id=[$0])
+              LogicalFilter(condition=[<($4, TIMESTAMP(DATE($1)))])
+                LogicalTableScan(table=[[catalog, events]])
+            """)
+        .assertReturnType("DATE", DATE)
+        .assertReturnType("TIMESTAMP", TIMESTAMP, 9);
   }
 
   @Test
@@ -186,40 +168,6 @@ public class DatetimeExtensionTest extends UnifiedQueryTestBase implements Resul
           .expectData(
               row("2024-01-16", "12:00:00", "2024-01-15 08:00:00"),
               row("2024-06-20", "14:00:00", "2024-06-20 00:00:00"));
-    }
-  }
-
-  private static void assertCallType(RelNode plan, String operatorName, SqlTypeName expectedType) {
-    assertCallType(plan, operatorName, expectedType, -1);
-  }
-
-  private static void assertCallType(
-      RelNode plan, String operatorName, SqlTypeName expectedType, int expectedPrecision) {
-    AtomicReference<RexCall> ref = new AtomicReference<>();
-    plan.accept(
-        new RelHomogeneousShuttle() {
-          @Override
-          public RelNode visit(RelNode other) {
-            RelNode visited = super.visit(other);
-            visited.accept(
-                new RexShuttle() {
-                  @Override
-                  public RexNode visitCall(RexCall call) {
-                    if (ref.get() == null
-                        && call.getOperator().getName().equalsIgnoreCase(operatorName)) {
-                      ref.set(call);
-                    }
-                    return super.visitCall(call);
-                  }
-                });
-            return visited;
-          }
-        });
-    assertNotNull("No RexCall found for: " + operatorName, ref.get());
-    assertEquals(operatorName + " type", expectedType, ref.get().getType().getSqlTypeName());
-    if (expectedPrecision >= 0) {
-      assertEquals(
-          operatorName + " precision", expectedPrecision, ref.get().getType().getPrecision());
     }
   }
 }

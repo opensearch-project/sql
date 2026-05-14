@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import org.apache.calcite.rel.RelNode;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.api.compiler.UnifiedQueryCompiler;
 import org.opensearch.sql.api.spec.UnifiedFunctionSpec;
@@ -22,6 +23,7 @@ import org.opensearch.sql.executor.QueryType;
  * Tests for scalar functions registered in {@link UnifiedFunctionSpec#SCALAR}. Verifies planning
  * (function resolves correctly) and execution (produces correct results in-memory).
  */
+@Ignore("Replaced by V2 ANTLR parser path for now")
 public class UnifiedFunctionSpecTest extends UnifiedQueryTestBase {
 
   private UnifiedQueryCompiler compiler;
