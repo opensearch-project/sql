@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
 
 import com.google.common.collect.ImmutableList;
@@ -829,7 +830,8 @@ public class PredicateAnalyzerTest {
   }
 
   @Test
-  void isNullOr_ScriptPushDown() throws ExpressionNotAnalyzableException {
+  void isEmpty_pushesIsNullArmAsExistsAndCharLengthArmAsScript()
+      throws ExpressionNotAnalyzableException {
     final RelDataType rowType =
         builder
             .getTypeFactory()
@@ -838,17 +840,55 @@ public class PredicateAnalyzerTest {
             .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
             .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
             .build();
-    // PPL isempty(x) is translated to OR(IS_NULL(x), CHAR_LENGTH(x) = 0). Push-down
-    // falls back to script_query because CHAR_LENGTH has no DSL bool-query equivalent,
-    // so the OR is unanalyzable as a whole and lands in compounded_script.
+    // PPL isempty(x) lowers to OR(IS_NULL(x), CHAR_LENGTH(x) = 0) (see PPLFuncImpTable).
+    // The IS_NULL arm has a native DSL form (bool.must_not.exists); the CHAR_LENGTH arm
+    // has no DSL equivalent and falls back to opensearch_compounded_script. The analyzer
+    // emits a bool.should that mixes the two — not a single fully-script_query, which is
+    // strictly better for matching null docs since the IS_NULL arm avoids the script
+    // engine entirely.
+    //
+    // This shape is also why no special-case detector is needed in PredicateAnalyzer.andOr:
+    // CHAR_LENGTH(null) returns null (Calcite NullPolicy.STRICT) rather than NPE, so DSL's
+    // non-short-circuiting `should` evaluation is safe even when the field is null. Prior
+    // to the OR(IS_NULL, CHAR_LENGTH=0) lowering the right arm was IS_EMPTY which compiled
+    // to `name.isEmpty()` and would NPE on null operands — that is what containIsEmptyFunction
+    // used to guard against, and is no longer needed.
     RexNode call = PPLFuncImpTable.INSTANCE.resolve(builder, BuiltinFunctionName.IS_EMPTY, field2);
     Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
     QueryExpression expression =
         PredicateAnalyzer.analyzeExpression(call, schema, fieldTypes, rowType, cluster);
-    assert (expression
-        .builder()
-        .toString()
-        .contains("\"lang\" : \"opensearch_compounded_script\""));
+
+    QueryBuilder builderResult = expression.builder();
+    assertInstanceOf(BoolQueryBuilder.class, builderResult);
+    BoolQueryBuilder bool = (BoolQueryBuilder) builderResult;
+    assertEquals(
+        2,
+        bool.should().size(),
+        "isempty pushes down as a bool.should mixing native IS_NULL and a script for CHAR_LENGTH=0");
+    assertTrue(bool.must().isEmpty(), "must clauses are not used by isempty pushdown");
+    assertTrue(
+        bool.mustNot().isEmpty(),
+        "must_not clauses at the top level are not used by isempty pushdown");
+
+    // Arm 1: IS_NULL($field) → bool.must_not.exists
+    QueryBuilder isNullArm = bool.should().get(0);
+    assertInstanceOf(BoolQueryBuilder.class, isNullArm);
+    BoolQueryBuilder isNullBool = (BoolQueryBuilder) isNullArm;
+    assertEquals(1, isNullBool.mustNot().size());
+    assertInstanceOf(
+        ExistsQueryBuilder.class,
+        isNullBool.mustNot().get(0),
+        "IS_NULL arm must lower to bool.must_not.exists, not to a script");
+
+    // Arm 2: CHAR_LENGTH($field) = 0 → script (CHAR_LENGTH has no native DSL form)
+    QueryBuilder charLengthArm = bool.should().get(1);
+    assertInstanceOf(
+        ScriptQueryBuilder.class,
+        charLengthArm,
+        "CHAR_LENGTH=0 arm must lower to a script_query (no native DSL equivalent)");
+    assertTrue(
+        charLengthArm.toString().contains("\"lang\" : \"opensearch_compounded_script\""),
+        "script arm uses the Calcite-RexNode-based opensearch_compounded_script lang");
   }
 
   @Test
