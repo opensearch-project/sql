@@ -864,7 +864,8 @@ public class PredicateAnalyzerTest {
     assertEquals(
         2,
         bool.should().size(),
-        "isempty pushes down as a bool.should mixing native IS_NULL and a script for CHAR_LENGTH=0");
+        "isempty pushes down as a bool.should mixing native IS_NULL and a script for"
+            + " CHAR_LENGTH=0");
     assertTrue(bool.must().isEmpty(), "must clauses are not used by isempty pushdown");
     assertTrue(
         bool.mustNot().isEmpty(),
