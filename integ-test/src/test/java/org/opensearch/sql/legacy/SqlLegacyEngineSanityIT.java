@@ -45,4 +45,13 @@ public class SqlLegacyEngineSanityIT extends SQLIntegTestCase {
                 .formatted(TEST_INDEX_PEOPLE, TEST_INDEX_DOG));
     verifyDataRows(result, rows("Daenerys", "rex"));
   }
+
+  @Test
+  public void testInSubqueryFallback() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "SELECT a.firstname FROM %s a WHERE a.firstname IN (SELECT holdersName FROM %s)"
+                .formatted(TEST_INDEX_PEOPLE, TEST_INDEX_DOG));
+    verifyDataRows(result, rows("Daenerys"), rows("Hattie"));
+  }
 }

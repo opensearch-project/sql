@@ -322,6 +322,7 @@ predicate
    | left = predicate NOT? LIKE right = predicate           # likePredicate
    | left = predicate REGEXP right = predicate              # regexpPredicate
    | predicate NOT? IN '(' expressions ')'                  # inPredicate
+   | predicate NOT? IN '(' querySpecification ')'           # inSubqueryPredicate
    ;
 
 expressions
@@ -333,6 +334,7 @@ expressionAtom
    | columnName                                                                             # fullColumnNameExpressionAtom
    | functionCall                                                                           # functionCallExpressionAtom
    | LR_BRACKET expression RR_BRACKET                                                       # nestedExpressionAtom
+   | EXISTS LR_BRACKET querySpecification RR_BRACKET                                        # existsSubqueryExpressionAtom
    | left = expressionAtom mathOperator = (STAR | SLASH | MODULE) right = expressionAtom    # mathExpressionAtom
    | left = expressionAtom mathOperator = (PLUS | MINUS) right = expressionAtom             # mathExpressionAtom
    ;
