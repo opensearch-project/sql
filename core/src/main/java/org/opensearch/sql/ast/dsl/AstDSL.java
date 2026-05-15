@@ -48,6 +48,8 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
@@ -775,10 +777,18 @@ public class AstDSL {
   }
 
   public static UnresolvedPlan union(List<UnresolvedPlan> children, boolean distinct) {
-    return new Union(children, distinct, null);
+    return new Union(children, distinct);
   }
 
   public static UnresolvedPlan minus(List<UnresolvedPlan> children) {
     return new Minus(children);
+  }
+
+  public static InSubquery inSubquery(List<UnresolvedExpression> value, UnresolvedPlan query) {
+    return new InSubquery(value, query);
+  }
+
+  public static ExistsSubquery existsSubquery(UnresolvedPlan query) {
+    return new ExistsSubquery(query);
   }
 }

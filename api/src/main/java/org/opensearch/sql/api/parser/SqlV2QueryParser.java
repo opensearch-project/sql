@@ -20,6 +20,7 @@ import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Join.JoinType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ExistsSubqueryExpressionAtomContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.InSubqueryPredicateContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.JoinClauseContext;
@@ -87,16 +88,12 @@ public class SqlV2QueryParser implements UnifiedQueryParser<UnresolvedPlan> {
     }
 
     private JoinType toJoinType(JoinClauseContext ctx) {
-      if (ctx.LEFT() != null) {
-        return JoinType.LEFT;
-      }
-      if (ctx.RIGHT() != null) {
-        return JoinType.RIGHT;
-      }
-      if (ctx.CROSS() != null) {
-        return JoinType.CROSS;
-      }
-      return JoinType.INNER;
+      return switch (ctx.getStart().getType()) {
+        case OpenSearchSQLParser.LEFT -> JoinType.LEFT;
+        case OpenSearchSQLParser.RIGHT -> JoinType.RIGHT;
+        case OpenSearchSQLParser.CROSS -> JoinType.CROSS;
+        default -> JoinType.INNER;
+      };
     }
 
     /** Expression builder with IN/EXISTS subquery support. */

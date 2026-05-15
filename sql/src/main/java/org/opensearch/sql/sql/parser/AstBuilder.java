@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
@@ -51,10 +50,9 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import org.opensearch.sql.sql.parser.context.ParsingContext;
 
 /** Abstract syntax tree (AST) builder. */
-@RequiredArgsConstructor
 public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
-  private final AstExpressionBuilder expressionBuilder = createExpressionBuilder();
+  private final AstExpressionBuilder expressionBuilder;
 
   /** Parsing context stack that contains context for current query parsing. */
   private final ParsingContext context = new ParsingContext();
@@ -64,6 +62,11 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
    * without whitespaces or other characters discarded by lexer.
    */
   private final String query;
+
+  public AstBuilder(String query) {
+    this.query = query;
+    this.expressionBuilder = createExpressionBuilder();
+  }
 
   @Override
   public UnresolvedPlan visitShowStatement(OpenSearchSQLParser.ShowStatementContext ctx) {

@@ -10,7 +10,6 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
@@ -18,23 +17,35 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)
-@RequiredArgsConstructor
 @AllArgsConstructor
 public class Union extends UnresolvedPlan {
+  /** Input datasets to union. */
   private final List<UnresolvedPlan> datasets;
-  private boolean distinct;
-  private Integer maxout;
 
-  /** UNION ALL with maxout limit (PPL subsearch). */
+  /** True for UNION (distinct), false for UNION ALL. */
+  private final boolean distinct;
+
+  /** True to merge different schemas (PPL append), false for positional union (SQL). */
+  private final boolean unifySchema;
+
+  /** Maximum rows from subsearch (PPL only, null if unlimited). */
+  private final Integer maxout;
+
+  /** SQL: UNION ALL or UNION DISTINCT (no schema unification). */
+  public Union(List<UnresolvedPlan> datasets, boolean distinct) {
+    this(datasets, distinct, false, null);
+  }
+
+  /** PPL: UNION ALL with maxout limit and schema unification. */
   public Union(List<UnresolvedPlan> datasets, Integer maxout) {
-    this(datasets, false, maxout);
+    this(datasets, false, true, maxout);
   }
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
     List<UnresolvedPlan> newDatasets =
         ImmutableList.<UnresolvedPlan>builder().add(child).addAll(datasets).build();
-    return new Union(newDatasets, distinct, maxout);
+    return new Union(newDatasets, distinct, unifySchema, maxout);
   }
 
   @Override

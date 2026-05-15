@@ -2946,7 +2946,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     List<RelNode> unifiedInputs =
-        SchemaUnifier.buildUnifiedSchemaWithTypeCoercion(inputNodes, context);
+        node.isUnifySchema()
+            ? SchemaUnifier.buildUnifiedSchemaWithTypeCoercion(inputNodes, context)
+            : inputNodes;
 
     for (RelNode input : unifiedInputs) {
       context.relBuilder.push(input);
@@ -2972,13 +2974,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       inputNodes.add(context.relBuilder.build());
     }
 
-    List<RelNode> unifiedInputs =
-        SchemaUnifier.buildUnifiedSchemaWithTypeCoercion(inputNodes, context);
-
-    for (RelNode input : unifiedInputs) {
+    for (RelNode input : inputNodes) {
       context.relBuilder.push(input);
     }
-    context.relBuilder.minus(false, unifiedInputs.size());
+    context.relBuilder.minus(false, inputNodes.size());
 
     return context.relBuilder.peek();
   }

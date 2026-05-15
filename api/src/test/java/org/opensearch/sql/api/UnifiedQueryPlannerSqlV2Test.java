@@ -150,7 +150,14 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
             SELECT name, age FROM catalog.employees
               UNION ALL SELECT dept_name, dept_id FROM catalog.departments
             """)
-        .assertPlanContains("LogicalUnion(all=[true])");
+        .assertPlan(
+            """
+            LogicalUnion(all=[true])
+              LogicalProject(name=[$1], age=[$2])
+                LogicalTableScan(table=[[catalog, employees]])
+              LogicalProject(dept_name=[$1], dept_id=[$0])
+                LogicalTableScan(table=[[catalog, departments]])
+            """);
   }
 
   @Test
@@ -160,7 +167,14 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
             SELECT name, age FROM catalog.employees
               UNION SELECT dept_name, dept_id FROM catalog.departments
             """)
-        .assertPlanContains("LogicalUnion(all=[false])");
+        .assertPlan(
+            """
+            LogicalUnion(all=[false])
+              LogicalProject(name=[$1], age=[$2])
+                LogicalTableScan(table=[[catalog, employees]])
+              LogicalProject(dept_name=[$1], dept_id=[$0])
+                LogicalTableScan(table=[[catalog, departments]])
+            """);
   }
 
   @Test
@@ -171,7 +185,16 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
               UNION ALL SELECT dept_name, dept_id FROM catalog.departments
               UNION ALL SELECT name, age FROM catalog.employees
             """)
-        .assertPlanContains("LogicalUnion(all=[true])");
+        .assertPlan(
+            """
+            LogicalUnion(all=[true])
+              LogicalProject(name=[$1], age=[$2])
+                LogicalTableScan(table=[[catalog, employees]])
+              LogicalProject(dept_name=[$1], dept_id=[$0])
+                LogicalTableScan(table=[[catalog, departments]])
+              LogicalProject(name=[$1], age=[$2])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
   }
 
   @Test
@@ -181,7 +204,14 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
             SELECT name, age FROM catalog.employees
               MINUS SELECT dept_name, dept_id FROM catalog.departments
             """)
-        .assertPlanContains("LogicalMinus(all=[false])");
+        .assertPlan(
+            """
+            LogicalMinus(all=[false])
+              LogicalProject(name=[$1], age=[$2])
+                LogicalTableScan(table=[[catalog, employees]])
+              LogicalProject(dept_name=[$1], dept_id=[$0])
+                LogicalTableScan(table=[[catalog, departments]])
+            """);
   }
 
   @Test
