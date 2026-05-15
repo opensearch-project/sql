@@ -9,18 +9,24 @@ import static org.opensearch.sql.ast.dsl.AstDSL.join;
 import static org.opensearch.sql.ast.dsl.AstDSL.minus;
 import static org.opensearch.sql.ast.dsl.AstDSL.union;
 
+import java.util.List;
 import java.util.Optional;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Join.JoinType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ExistsSubqueryExpressionAtomContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.InSubqueryPredicateContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.JoinClauseContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MinusSelectContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.UnionSelectContext;
 import org.opensearch.sql.sql.parser.AstBuilder;
+import org.opensearch.sql.sql.parser.AstExpressionBuilder;
 import org.opensearch.sql.sql.parser.AstStatementBuilder;
 
 /** SQL query parser that produces {@link UnresolvedPlan} using the V2 ANTLR grammar. */
@@ -56,6 +62,11 @@ public class SqlV2QueryParser implements UnifiedQueryParser<UnresolvedPlan> {
     }
 
     @Override
+    protected AstExpressionBuilder createExpressionBuilder() {
+      return new ExtendedAstExpressionBuilder();
+    }
+
+    @Override
     public UnresolvedPlan visitJoinClause(JoinClauseContext ctx) {
       JoinType joinType = toJoinType(ctx);
       UnresolvedPlan right = visit(ctx.relation());
@@ -86,6 +97,23 @@ public class SqlV2QueryParser implements UnifiedQueryParser<UnresolvedPlan> {
         return JoinType.CROSS;
       }
       return JoinType.INNER;
+    }
+
+    /** Expression builder with IN/EXISTS subquery support. */
+    private class ExtendedAstExpressionBuilder extends AstExpressionBuilder {
+
+      @Override
+      public UnresolvedExpression visitInSubqueryPredicate(InSubqueryPredicateContext ctx) {
+        UnresolvedPlan subquery = ExtendedAstBuilder.this.visit(ctx.querySpecification());
+        return new InSubquery(List.of(visit(ctx.predicate())), subquery);
+      }
+
+      @Override
+      public UnresolvedExpression visitExistsSubqueryExpressionAtom(
+          ExistsSubqueryExpressionAtomContext ctx) {
+        UnresolvedPlan subquery = ExtendedAstBuilder.this.visit(ctx.querySpecification());
+        return new ExistsSubquery(subquery);
+      }
     }
   }
 }

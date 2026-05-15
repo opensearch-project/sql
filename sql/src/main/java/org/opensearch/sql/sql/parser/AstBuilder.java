@@ -54,7 +54,7 @@ import org.opensearch.sql.sql.parser.context.ParsingContext;
 @RequiredArgsConstructor
 public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
-  private final AstExpressionBuilder expressionBuilder = new AstExpressionBuilder();
+  private final AstExpressionBuilder expressionBuilder = createExpressionBuilder();
 
   /** Parsing context stack that contains context for current query parsing. */
   private final ParsingContext context = new ParsingContext();
@@ -290,6 +290,11 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   /** Visible to subclasses that need to parse expressions (e.g., JOIN ON condition). */
   protected UnresolvedExpression visitAstExpression(ParseTree tree) {
     return expressionBuilder.visit(tree);
+  }
+
+  /** Override to provide a custom expression builder (e.g., with subquery support). */
+  protected AstExpressionBuilder createExpressionBuilder() {
+    return new AstExpressionBuilder();
   }
 
   private UnresolvedExpression visitSelectItem(SelectElementContext ctx) {

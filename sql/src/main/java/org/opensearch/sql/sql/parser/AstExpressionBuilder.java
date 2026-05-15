@@ -82,6 +82,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
@@ -667,5 +668,19 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
             new Literal(ctx.extractFunction().datetimePart().getText(), DataType.STRING),
             visitFunctionArg(ctx.extractFunction().functionArg()));
     return args;
+  }
+
+  @Override
+  public UnresolvedExpression visitInSubqueryPredicate(
+      OpenSearchSQLParser.InSubqueryPredicateContext ctx) {
+    throw new SyntaxCheckException(
+        "IN subquery is not supported in this engine. Use the unified query path.");
+  }
+
+  @Override
+  public UnresolvedExpression visitExistsSubqueryExpressionAtom(
+      OpenSearchSQLParser.ExistsSubqueryExpressionAtomContext ctx) {
+    throw new SyntaxCheckException(
+        "EXISTS subquery is not supported in this engine. Use the unified query path.");
   }
 }
