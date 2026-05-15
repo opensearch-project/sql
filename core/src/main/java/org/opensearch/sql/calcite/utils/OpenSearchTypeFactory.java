@@ -414,8 +414,32 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         }
         return first;
       }
+      // When the list has a VARBINARY column plus VARCHAR literals, treat VARBINARY
+      // as the common type so IN / BETWEEN can insert casts.
+      RelDataType varbinaryResult = leastRestrictiveVarbinaryVarchar(types);
+      if (varbinaryResult != null) {
+        return varbinaryResult;
+      }
     }
     return super.leastRestrictive(types);
+  }
+
+  private @Nullable RelDataType leastRestrictiveVarbinaryVarchar(List<RelDataType> types) {
+    boolean hasVarbinary = false;
+    boolean anyNullable = false;
+    for (RelDataType t : types) {
+      SqlTypeName name = t.getSqlTypeName();
+      if (name == SqlTypeName.VARBINARY) {
+        hasVarbinary = true;
+      } else if (name != SqlTypeName.VARCHAR && name != SqlTypeName.CHAR) {
+        return null;
+      }
+      anyNullable |= t.isNullable();
+    }
+    if (!hasVarbinary) {
+      return null;
+    }
+    return createTypeWithNullability(createSqlType(SqlTypeName.VARBINARY), anyNullable);
   }
 
   /**
