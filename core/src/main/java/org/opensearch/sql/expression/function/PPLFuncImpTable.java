@@ -1278,6 +1278,19 @@ public class PPLFuncImpTable {
                       builder.makeNullLiteral(arg1.getType()),
                       arg1),
           PPLTypeChecker.wrapComparable((SameOperandTypeChecker) OperandTypes.SAME_SAME));
+      // PPL isempty(x) — TRUE iff x is NULL or an empty string. We express this as
+      //   OR(IS_NULL(x), CHAR_LENGTH(x) = 0)
+      // rather than reusing SqlStdOperatorTable.IS_EMPTY: the latter is the SQL:2003
+      // multiset/collection IS EMPTY predicate (its OperandTypeChecker is
+      // OperandTypes.COLLECTION_OR_MAP and its enumerable runtime calls
+      // java.util.Collection.isEmpty() reflectively). Passing a string operand only
+      // worked by coincidence — RexBuilder.makeCall bypasses the operand checker, and
+      // Calcite's enumerable codegen emits a bare `target.isEmpty()` call that happens
+      // to bind to String.isEmpty() at Janino compile time. The CHAR_LENGTH form makes
+      // the string semantics explicit, lets every backend translate the predicate
+      // through their normal length / equality bindings, and works on any code path
+      // that doesn't go through Calcite's enumerable runtime (e.g. Substrait emission
+      // for analytics-engine, which has no IS EMPTY mapping).
       register(
           IS_EMPTY,
           (FunctionImp1)
@@ -1285,7 +1298,10 @@ public class PPLFuncImpTable {
                   builder.makeCall(
                       SqlStdOperatorTable.OR,
                       builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
-                      builder.makeCall(SqlStdOperatorTable.IS_EMPTY, arg)),
+                      builder.makeCall(
+                          SqlStdOperatorTable.EQUALS,
+                          builder.makeCall(SqlStdOperatorTable.CHAR_LENGTH, arg),
+                          builder.makeExactLiteral(BigDecimal.ZERO))),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
       register(
           IS_BLANK,
@@ -1295,12 +1311,15 @@ public class PPLFuncImpTable {
                       SqlStdOperatorTable.OR,
                       builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
                       builder.makeCall(
-                          SqlStdOperatorTable.IS_EMPTY,
+                          SqlStdOperatorTable.EQUALS,
                           builder.makeCall(
-                              SqlStdOperatorTable.TRIM,
-                              builder.makeFlag(Flag.BOTH),
-                              builder.makeLiteral(" "),
-                              arg))),
+                              SqlStdOperatorTable.CHAR_LENGTH,
+                              builder.makeCall(
+                                  SqlStdOperatorTable.TRIM,
+                                  builder.makeFlag(Flag.BOTH),
+                                  builder.makeLiteral(" "),
+                                  arg)),
+                          builder.makeExactLiteral(BigDecimal.ZERO))),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
       register(
           ILIKE,
