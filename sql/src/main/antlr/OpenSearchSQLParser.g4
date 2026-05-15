@@ -32,6 +32,20 @@ parser grammar OpenSearchSQLParser;
 
 
 options { tokenVocab = OpenSearchSQLLexer; }
+
+@members {
+  /**
+   * Returns true if the next token is a join keyword that should not be consumed as a table alias.
+   * LEFT/RIGHT are valid identifiers (text function names), so without this predicate ANTLR4
+   * greedily consumes them as implicit table aliases (e.g., FROM t1 LEFT becomes alias='LEFT'
+   * instead of starting a LEFT JOIN clause).
+   */
+  private boolean isJoinKeyword() {
+    int t = _input.LT(1).getType();
+    return t == LEFT || t == RIGHT || t == INNER || t == CROSS || t == JOIN;
+  }
+}
+
 // Top Level Description
 
 //    Root rule
@@ -104,12 +118,18 @@ selectElement
    ;
 
 fromClause
-   : FROM relation (whereClause)? (groupByClause)? (havingClause)? (orderByClause)? // Place it under FROM for now but actually not necessary ex. A UNION B ORDER BY
+   : FROM relation joinClause* (whereClause)? (groupByClause)? (havingClause)? (orderByClause)? // Place it under FROM for now but actually not necessary ex. A UNION B ORDER BY
    
    ;
 
+joinClause
+   : (INNER | CROSS)? JOIN relation (ON expression)?
+   | (LEFT | RIGHT) OUTER? JOIN relation (ON expression)?
+   ;
+
 relation
-   : tableName (AS? alias)?                                            # tableAsRelation
+   // The predicate guarantees only match implicit alias if next token is NOT a join keyword
+   : tableName (AS alias | {!isJoinKeyword()}? alias)?                 # tableAsRelation
    | LR_BRACKET subquery = querySpecification RR_BRACKET AS? alias     # subqueryAsRelation
    | qualifiedName LR_BRACKET tableFunctionArgs RR_BRACKET (AS? alias)? # tableFunctionRelation
    ;
