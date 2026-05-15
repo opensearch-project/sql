@@ -54,15 +54,18 @@ public class SearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchCommandWithSpecialIndexName() throws IOException {
-    // Route through TestUtils so the analytics-engine parquet-indices toggle
-    // (tests.analytics.parquet_indices=true) applies the composite/parquet
-    // settings; without them the analytics-engine planner can't find a backend
-    // for the scan and the query 500s.
-    org.opensearch.sql.legacy.TestUtils.createIndexByRestClient(client(), "logs-2021.01.11", null);
+    // A minimal `{"properties":{}}` mapping is required so the analytics-engine
+    // catalog (OpenSearchSchemaBuilder.buildSchema) actually surfaces the index —
+    // mapping-less indices are skipped and the parser then fails with
+    // "Table 'logs-2021.01.11' not found". Routing through TestUtils also
+    // honors the tests.analytics.parquet_indices toggle.
+    String minimalMapping = "{\"mappings\":{\"properties\":{}}}";
+    org.opensearch.sql.legacy.TestUtils.createIndexByRestClient(
+        client(), "logs-2021.01.11", minimalMapping);
     verifyDataRows(executeQuery("search source=logs-2021.01.11"));
 
     org.opensearch.sql.legacy.TestUtils.createIndexByRestClient(
-        client(), "logs-7.10.0-2021.01.11", null);
+        client(), "logs-7.10.0-2021.01.11", minimalMapping);
     verifyDataRows(executeQuery("search source=logs-7.10.0-2021.01.11"));
   }
 
