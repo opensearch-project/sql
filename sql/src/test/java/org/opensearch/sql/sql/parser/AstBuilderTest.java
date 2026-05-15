@@ -9,6 +9,7 @@ import static java.util.Collections.emptyList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
@@ -22,6 +23,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.highlight;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.join;
 import static org.opensearch.sql.ast.dsl.AstDSL.limit;
 import static org.opensearch.sql.ast.dsl.AstDSL.project;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
@@ -36,6 +38,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
@@ -43,10 +46,14 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.NestedAllTupleFields;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 
 class AstBuilderTest extends AstBuilderTestBase {
 
@@ -728,5 +735,25 @@ class AstBuilderTest extends AstBuilderTestBase {
             relation("test"),
             alias("highlight(\"fieldA\")", highlight(AstDSL.stringLiteral("fieldA"), args))),
         buildAST("SELECT highlight(\"fieldA\") FROM test"));
+  }
+
+  @Test
+  public void join_throws_syntax_check_exception() {
+    assertThrows(
+        SyntaxCheckException.class, () -> buildAST("SELECT * FROM t1 JOIN t2 ON t1.id = t2.id"));
+  }
+
+  @Test
+  public void join_iteration_in_from_clause_dispatches_to_visit_join_clause() {
+    // Covers the join iteration loop body in visitFromClause for test coverage
+    String query = "SELECT * FROM t1 JOIN t2 ON t1.id = t2.id";
+    AstBuilder builder =
+        new AstBuilder(query) {
+          @Override
+          public UnresolvedPlan visitJoinClause(OpenSearchSQLParser.JoinClauseContext ctx) {
+            return join(visit(ctx.relation()), Join.JoinType.INNER, Optional.empty());
+          }
+        };
+    assertNotNull(new SQLSyntaxParser().parse(query).accept(builder));
   }
 }

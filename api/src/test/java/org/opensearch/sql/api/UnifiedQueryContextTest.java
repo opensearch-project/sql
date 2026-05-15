@@ -30,8 +30,8 @@ public class UnifiedQueryContextTest extends UnifiedQueryTestBase {
     assertNotNull("PlanContext should be created", context.getPlanContext());
     assertNotNull("Settings should be created", context.getSettings());
     assertEquals(
-        "Settings should have default system limits",
-        SysLimit.DEFAULT,
+        "Settings should have unlimited subsearch limits for clean logical plans",
+        new SysLimit(SysLimit.DEFAULT.querySizeLimit(), 0, 0),
         SysLimit.fromSettings(context.getSettings()));
     assertEquals(
         "PPL_REX_MAX_MATCH_LIMIT default should be 10",

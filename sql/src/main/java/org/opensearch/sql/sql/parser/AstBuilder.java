@@ -139,6 +139,10 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
     UnresolvedPlan result = visit(ctx.relation());
 
+    for (var joinCtx : ctx.joinClause()) {
+      result = visit(joinCtx).attach(result);
+    }
+
     if (ctx.whereClause() != null) {
       result = visit(ctx.whereClause()).attach(result);
     }
@@ -251,6 +255,12 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
+  public UnresolvedPlan visitJoinClause(OpenSearchSQLParser.JoinClauseContext ctx) {
+    throw new SyntaxCheckException(
+        "JOIN is not supported in the V2 SQL engine. Falling back to legacy engine.");
+  }
+
+  @Override
   public UnresolvedPlan visitHavingClause(HavingClauseContext ctx) {
     AstHavingFilterBuilder builder = new AstHavingFilterBuilder(context.peek());
     return new Filter(builder.visit(ctx.expression()));
@@ -261,7 +271,11 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
     return nextResult != null ? nextResult : aggregate;
   }
 
-  private UnresolvedExpression visitAstExpression(ParseTree tree) {
+  /**
+   * Visit expression tree node and convert to UnresolvedExpression. Protected to allow subclass
+   * access (e.g., ExtendedAstBuilder for join conditions).
+   */
+  protected UnresolvedExpression visitAstExpression(ParseTree tree) {
     return expressionBuilder.visit(tree);
   }
 

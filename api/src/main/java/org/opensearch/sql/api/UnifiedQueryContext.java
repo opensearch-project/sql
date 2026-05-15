@@ -122,6 +122,11 @@ public class UnifiedQueryContext implements AutoCloseable {
      * Setting values with defaults from SysLimit.DEFAULT. Only includes planning-required settings
      * to avoid coupling with OpenSearchSettings.
      *
+     * <p>{@link Settings.Key#PPL_JOIN_SUBSEARCH_MAXOUT} defaults to {@code 0} to avoid injecting
+     * {@code LogicalSystemLimit} into the logical plan, which is an OpenSearch-specific operational
+     * concern irrelevant to external consumers of the unified query API. {@link
+     * Settings.Key#PPL_SUBSEARCH_MAXOUT} is set to {@code 0} for the same reason.
+     *
      * <p>{@link Settings.Key#CALCITE_ENGINE_ENABLED} defaults to {@code true} here because the
      * unified query path is by definition Calcite-based — every query reaching this context flows
      * through Calcite's planner, never the v2 engine. The PPL {@link
@@ -142,8 +147,8 @@ public class UnifiedQueryContext implements AutoCloseable {
         new HashMap<Settings.Key, Object>(
             Map.of(
                 QUERY_SIZE_LIMIT, SysLimit.DEFAULT.querySizeLimit(),
-                PPL_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.subsearchLimit(),
-                PPL_JOIN_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.joinSubsearchLimit(),
+                PPL_SUBSEARCH_MAXOUT, SysLimit.UNLIMITED_SUBSEARCH.subsearchLimit(),
+                PPL_JOIN_SUBSEARCH_MAXOUT, SysLimit.UNLIMITED_SUBSEARCH.joinSubsearchLimit(),
                 CALCITE_ENGINE_ENABLED, true,
                 PPL_REX_MAX_MATCH_LIMIT, 10));
 
