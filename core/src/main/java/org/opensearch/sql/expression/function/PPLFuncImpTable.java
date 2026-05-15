@@ -314,9 +314,9 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
-import org.opensearch.sql.utils.IPUtils;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.CollectionUDF.MVIndexFunctionImp;
+import org.opensearch.sql.utils.IPUtils;
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
@@ -914,10 +914,7 @@ public class PPLFuncImpTable {
       registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);
       // (VARBINARY, VARCHAR) overload for ip / binary columns. The lambda parses the cidr
       // literal at plan time and emits AND(col >= low, col <= high) directly.
-      // Only literal cidrs are expanded. A non-literal cidr (e.g. column-on-right) falls
-      // through to PPLBuiltinOperators.CIDRMATCH; that UDF only accepts (IP, STRING) /
-      // (STRING, STRING), so it will fail downstream for VARBINARY columns. Supporting
-      // non-literal cidrs would require a separate runtime function and is out of scope.
+      // Only literal cidrs are expanded.
       register(
           CIDRMATCH,
           (FunctionImp2)
@@ -927,10 +924,8 @@ public class PPLFuncImpTable {
                   byte[][] range = parseCidrToIpv6Range(lit.getValueAs(String.class));
                   RelDataType varbinary =
                       builder.getTypeFactory().createSqlType(SqlTypeName.VARBINARY);
-                  RexNode low =
-                      builder.makeLiteral(new ByteString(range[0]), varbinary, false);
-                  RexNode high =
-                      builder.makeLiteral(new ByteString(range[1]), varbinary, false);
+                  RexNode low = builder.makeLiteral(new ByteString(range[0]), varbinary, false);
+                  RexNode high = builder.makeLiteral(new ByteString(range[1]), varbinary, false);
                   // makeCall(AND, ...) auto-flattens at construction, so no Filter.isFlat issue.
                   return builder.makeCall(
                       SqlStdOperatorTable.AND,
@@ -1623,12 +1618,12 @@ public class PPLFuncImpTable {
   }
 
   /**
-   * Parses a CIDR string and returns its lower and upper bounds in canonical 16-byte
-   * IPv6-mapped form. Used by the (BINARY, STRING) {@code cidrmatch} overload to expand into
-   * a byte-range conjunction at plan time.
+   * Parses a CIDR string and returns its lower and upper bounds in canonical 16-byte IPv6-mapped
+   * form. Used by the (BINARY, STRING) {@code cidrmatch} overload to expand into a byte-range
+   * conjunction at plan time.
    *
-   * <p>Delegates to {@link IPUtils#toRange(String)} for parsing; converts both bounds to
-   * IPv6 to guarantee 16-byte output regardless of whether the input cidr is IPv4 or IPv6.
+   * <p>Delegates to {@link IPUtils#toRange(String)} for parsing; converts both bounds to IPv6 to
+   * guarantee 16-byte output regardless of whether the input cidr is IPv4 or IPv6.
    */
   private static byte[][] parseCidrToIpv6Range(String cidr) {
     if (cidr == null) {

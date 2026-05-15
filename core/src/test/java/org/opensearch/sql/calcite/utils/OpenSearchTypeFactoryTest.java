@@ -131,13 +131,15 @@ public class OpenSearchTypeFactoryTest {
   @Test
   public void testConvertSqlTypeNameVarbinaryToBinaryExprType() {
     assertEquals(
-        ExprCoreType.BINARY, OpenSearchTypeFactory.convertSqlTypeNameToExprType(SqlTypeName.VARBINARY));
+        ExprCoreType.BINARY,
+        OpenSearchTypeFactory.convertSqlTypeNameToExprType(SqlTypeName.VARBINARY));
   }
 
   @Test
   public void testConvertSqlTypeNameBinaryToBinaryExprType() {
     assertEquals(
-        ExprCoreType.BINARY, OpenSearchTypeFactory.convertSqlTypeNameToExprType(SqlTypeName.BINARY));
+        ExprCoreType.BINARY,
+        OpenSearchTypeFactory.convertSqlTypeNameToExprType(SqlTypeName.BINARY));
   }
 
   @Test

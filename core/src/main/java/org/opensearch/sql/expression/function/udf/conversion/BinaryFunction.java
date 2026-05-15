@@ -21,9 +21,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-/**
- * Placeholder UDF that wraps a VARCHAR literal cast to VARBINARY for ip/binary fields.
- */
+/** Placeholder UDF that wraps a VARCHAR literal cast to VARBINARY for ip/binary fields. */
 public class BinaryFunction extends ImplementorUDF {
 
   private static final SqlReturnTypeInference VARBINARY_FORCE_NULLABLE =
