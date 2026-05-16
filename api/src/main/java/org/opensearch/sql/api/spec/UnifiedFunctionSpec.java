@@ -5,34 +5,36 @@
 
 package org.opensearch.sql.api.spec;
 
+import static org.apache.calcite.sql.SqlFunctionCategory.TIMEDATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LENGTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_3;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.type.ReturnTypes.ARG1_NULLABLE;
 import static org.apache.calcite.sql.type.ReturnTypes.BOOLEAN;
+import static org.apache.calcite.sql.type.SqlTypeFamily.CHARACTER;
+import static org.apache.calcite.sql.type.SqlTypeFamily.DATETIME;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.InferTypes;
-import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
-import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.util.SqlOperatorTables;
-import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 
 /**
  * Declarative registry of language-level functions for the unified query engine. Functions defined
@@ -43,7 +45,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 @Getter
 @ToString(of = "funcName")
 @EqualsAndHashCode(of = "funcName")
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 public final class UnifiedFunctionSpec {
 
   /** Function name as registered in the operator table (e.g., "match", "multi_match"). */
@@ -51,6 +53,31 @@ public final class UnifiedFunctionSpec {
 
   /** Calcite operator for chaining into the framework config's operator table. */
   private final SqlOperator operator;
+
+  /** Optional late-binding implementation applied only at compilation time. */
+  private final @Nullable BiFunction<RexBuilder, RexCall, RexNode> impl;
+
+  /** Common scalar functions beyond standard. */
+  public static final Category SCALAR =
+      new Category(
+          List.of(
+              function("length").delegateTo(LENGTH).build(),
+              function("regexp_replace").delegateTo(REGEXP_REPLACE_3).build(),
+              function("date_trunc")
+                  .operands(CHARACTER, DATETIME)
+                  .returns(ARG1_NULLABLE)
+                  .category(TIMEDATE)
+                  .impl(
+                      (rexBuilder, call) -> {
+                        RexLiteral unitLiteral = (RexLiteral) call.operands.get(0);
+                        String unit = unitLiteral.getValueAs(String.class);
+                        RexNode datetime = call.operands.get(1);
+                        return rexBuilder.makeCall(
+                            FLOOR,
+                            datetime,
+                            rexBuilder.makeFlag(TimeUnitRange.valueOf(unit.toUpperCase())));
+                      })
+                  .build()));
 
   /** Full-text search functions. */
   public static final Category RELEVANCE =
@@ -65,8 +92,8 @@ public final class UnifiedFunctionSpec {
               function("query_string").vararg("fields", "query").returnType(BOOLEAN).build()));
 
   /** All registered function specs, keyed by function name. */
-  private static final Map<String, UnifiedFunctionSpec> ALL_SPECS =
-      Stream.of(RELEVANCE)
+  public static final Map<String, UnifiedFunctionSpec> ALL_SPECS =
+      Stream.of(SCALAR, RELEVANCE)
           .flatMap(c -> c.specs().stream())
           .collect(Collectors.toMap(UnifiedFunctionSpec::getFuncName, s -> s));
 
@@ -101,71 +128,8 @@ public final class UnifiedFunctionSpec {
     }
   }
 
-  public static Builder function(String name) {
-    return new Builder(name);
-  }
-
-  /** Fluent builder for function specs. */
-  @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-  public static class Builder {
-    private final String funcName;
-    private List<String> paramNames = List.of();
-    private SqlReturnTypeInference returnType;
-
-    public Builder vararg(String... names) {
-      this.paramNames = List.of(names);
-      return this;
-    }
-
-    public Builder returnType(SqlReturnTypeInference type) {
-      this.returnType = type;
-      return this;
-    }
-
-    public UnifiedFunctionSpec build() {
-      Objects.requireNonNull(returnType, "returnType is required");
-      return new UnifiedFunctionSpec(
-          funcName,
-          new SqlUserDefinedFunction(
-              new SqlIdentifier(funcName, SqlParserPos.ZERO),
-              SqlKind.OTHER_FUNCTION,
-              returnType,
-              InferTypes.ANY_NULLABLE,
-              new VariadicOperandMetadata(paramNames),
-              List::of)); // Pushdown-only: no local implementation
-    }
-  }
-
-  /**
-   * Custom operand metadata that bypasses Calcite's built-in type checking. Calcite's {@code
-   * FamilyOperandTypeChecker} rejects variadic calls (CALCITE-5366), so this implementation accepts
-   * any operand types and delegates validation to pushdown.
-   */
-  private record VariadicOperandMetadata(List<String> paramNames) implements SqlOperandMetadata {
-
-    @Override
-    public List<String> paramNames() {
-      return paramNames;
-    }
-
-    @Override
-    public List<RelDataType> paramTypes(RelDataTypeFactory tf) {
-      return List.of();
-    }
-
-    @Override
-    public boolean checkOperandTypes(SqlCallBinding binding, boolean throwOnFailure) {
-      return true; // Bypass: CALCITE-5366 breaks optional argument type checking
-    }
-
-    @Override
-    public SqlOperandCountRange getOperandCountRange() {
-      return SqlOperandCountRanges.from(paramNames.size());
-    }
-
-    @Override
-    public String getAllowedSignatures(SqlOperator op, String opName) {
-      return opName + "(" + String.join(", ", paramNames) + "[, option=value ...])";
-    }
+  /** Entry point for the function spec builder DSL. */
+  private static FunctionSpecBuilder function(String name) {
+    return new FunctionSpecBuilder(name);
   }
 }

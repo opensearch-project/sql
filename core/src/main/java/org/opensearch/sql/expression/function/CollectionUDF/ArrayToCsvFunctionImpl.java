@@ -22,9 +22,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-/**
- * ARRAY_TO_CSV function implementation that converts an array to a CSV string.
- */
+/** ARRAY_TO_CSV function implementation that converts an array to a CSV string. */
 public class ArrayToCsvFunctionImpl extends ImplementorUDF {
 
   public ArrayToCsvFunctionImpl() {

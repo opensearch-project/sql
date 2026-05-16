@@ -16,6 +16,7 @@ import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.opensearch.sql.api.spec.core.CoreExtension;
 import org.opensearch.sql.api.spec.search.SearchExtension;
 
 /**
@@ -50,7 +51,7 @@ public class UnifiedSqlSpec implements LanguageSpec {
         Lex.BIG_QUERY,
         SqlBabelParserImpl.FACTORY,
         SqlConformanceEnum.BABEL,
-        List.of(new SearchExtension()));
+        List.of(new CoreExtension(), new SearchExtension()));
   }
 
   @Override

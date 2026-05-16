@@ -873,7 +873,8 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval arr = array('apple', 'banana', 'cherry'), result = array_to_csv(arr) | head 1 | fields result",
+                "source=%s | eval arr = array('apple', 'banana', 'cherry'), result ="
+                    + " array_to_csv(arr) | head 1 | fields result",
                 TEST_INDEX_BANK));
 
     verifySchema(actual, schema("result", "string"));
@@ -885,7 +886,8 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval arr = array('apple', 'banana', 'cherry'), result = array_to_csv(arr, '|') | head 1 | fields result",
+                "source=%s | eval arr = array('apple', 'banana', 'cherry'), result ="
+                    + " array_to_csv(arr, '|') | head 1 | fields result",
                 TEST_INDEX_BANK));
 
     verifySchema(actual, schema("result", "string"));
@@ -897,7 +899,8 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval arr = array(1, 2, 3, 4), result = array_to_csv(arr) | head 1 | fields result",
+                "source=%s | eval arr = array(1, 2, 3, 4), result = array_to_csv(arr) | head 1 |"
+                    + " fields result",
                 TEST_INDEX_BANK));
 
     verifySchema(actual, schema("result", "string"));
@@ -909,7 +912,8 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval arr = array('text', 123, 45.67), result = array_to_csv(arr, ';') | head 1 | fields result",
+                "source=%s | eval arr = array('text', 123, 45.67), result = array_to_csv(arr, ';')"
+                    + " | head 1 | fields result",
                 TEST_INDEX_BANK));
 
     verifySchema(actual, schema("result", "string"));
@@ -921,7 +925,8 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval arr = array(), result = array_to_csv(arr) | head 1 | fields result",
+                "source=%s | eval arr = array(), result = array_to_csv(arr) | head 1 | fields"
+                    + " result",
                 TEST_INDEX_BANK));
 
     verifySchema(actual, schema("result", "string"));
@@ -933,7 +938,8 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval arr = array('single'), result = array_to_csv(arr) | head 1 | fields result",
+                "source=%s | eval arr = array('single'), result = array_to_csv(arr) | head 1 |"
+                    + " fields result",
                 TEST_INDEX_BANK));
 
     verifySchema(actual, schema("result", "string"));
@@ -945,7 +951,8 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval arr = array('a', 'b', 'c'), result = array_to_csv(arr, ' -> ') | head 1 | fields result",
+                "source=%s | eval arr = array('a', 'b', 'c'), result = array_to_csv(arr, ' -> ') |"
+                    + " head 1 | fields result",
                 TEST_INDEX_BANK));
 
     verifySchema(actual, schema("result", "string"));
@@ -958,7 +965,9 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval names_array = array(firstname, lastname), result = array_to_csv(names_array, ' ') | fields firstname, lastname, result | head 1",
+                "source=%s | eval names_array = array(firstname, lastname), result ="
+                    + " array_to_csv(names_array, ' ') | fields firstname, lastname, result | head"
+                    + " 1",
                 TEST_INDEX_BANK));
 
     verifySchema(
@@ -972,5 +981,4 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONArray firstRow = dataRows.getJSONArray(0);
     assertEquals(firstRow.getString(0) + " " + firstRow.getString(1), firstRow.getString(2));
   }
-
 }
