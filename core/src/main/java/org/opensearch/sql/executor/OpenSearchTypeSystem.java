@@ -22,11 +22,28 @@ public class OpenSearchTypeSystem extends RelDataTypeSystemImpl {
   // same with Spark DecimalType.MAX_SCALE
   public static int MAX_SCALE = 38;
 
+  /** Maximum fractional seconds precision for TIME and TIMESTAMP types (nanosecond). */
+  public static final int MAX_DATETIME_PRECISION = 9;
+
   private OpenSearchTypeSystem() {}
 
   @Override
   public int getMaxNumericPrecision() {
     return MAX_PRECISION;
+  }
+
+  @Override
+  public int getMaxPrecision(SqlTypeName typeName) {
+    return switch (typeName) {
+      case TIME,
+          TIME_WITH_LOCAL_TIME_ZONE,
+          TIME_TZ,
+          TIMESTAMP,
+          TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+          TIMESTAMP_TZ ->
+          MAX_DATETIME_PRECISION;
+      default -> super.getMaxPrecision(typeName);
+    };
   }
 
   @Override

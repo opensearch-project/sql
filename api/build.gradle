@@ -13,6 +13,7 @@ plugins {
 
 dependencies {
     api project(':ppl')
+    api project(':sql')
     api group: 'org.apache.calcite', name: 'calcite-babel', version: '1.41.0'
 
     testImplementation testFixtures(project(':api'))
@@ -69,13 +70,17 @@ jacocoTestCoverageVerification {
             limit {
                 minimum = 0.9
             }
-
         }
     }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it,
-                    exclude: ['**/antlr/parser/**'])
+                    // Calcite native SQL parser path replaced by SQL V2 ANTLR parser for now
+                    exclude: ['**/antlr/parser/**',
+                              '**/CalciteSqlQueryParser.class',
+                              '**/UnifiedQueryPlanner$CalciteNativeStrategy.class',
+                              '**/LateBindingFunctionRule.class',
+                              '**/LateBindingFunctionRule$*.class'])
         }))
     }
 }

@@ -8,9 +8,11 @@ package org.opensearch.sql.api;
 import java.util.Map;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.executor.QueryType;
 
+@Ignore("Replaced by V2 ANTLR parser path for now")
 public class UnifiedSqlSpecTest extends UnifiedQueryTestBase {
 
   @Override

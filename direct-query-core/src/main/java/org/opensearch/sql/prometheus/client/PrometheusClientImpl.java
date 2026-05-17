@@ -115,6 +115,9 @@ public class PrometheusClientImpl implements PrometheusClient {
     logger.debug("Received Prometheus response for query_range: code={}", response);
 
     JSONObject jsonObject = readResponse(response);
+    if (!jsonObject.has("data")) {
+      return new JSONObject();
+    }
     return jsonObject.getJSONObject("data");
   }
 
@@ -149,6 +152,9 @@ public class PrometheusClientImpl implements PrometheusClient {
 
     logger.info("Received Prometheus response for instant query: code={}", response);
     JSONObject jsonObject = readResponse(response);
+    if (!jsonObject.has("data")) {
+      return new JSONObject();
+    }
     return jsonObject.getJSONObject("data");
   }
 
@@ -167,6 +173,9 @@ public class PrometheusClientImpl implements PrometheusClient {
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
+    if (!jsonObject.has("data")) {
+      return new ArrayList<>();
+    }
     return toListOfLabels(jsonObject.getJSONArray("data"));
   }
 
@@ -182,6 +191,9 @@ public class PrometheusClientImpl implements PrometheusClient {
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
+    if (!jsonObject.has("data")) {
+      return new ArrayList<>();
+    }
     return toListOfLabels(jsonObject.getJSONArray("data"));
   }
 
@@ -196,6 +208,9 @@ public class PrometheusClientImpl implements PrometheusClient {
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
+    if (!jsonObject.has("data")) {
+      return new HashMap<>();
+    }
     TypeReference<HashMap<String, List<MetricMetadata>>> typeRef = new TypeReference<>() {};
     return new ObjectMapper().readValue(jsonObject.getJSONObject("data").toString(), typeRef);
   }
@@ -215,6 +230,9 @@ public class PrometheusClientImpl implements PrometheusClient {
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
+    if (!jsonObject.has("data")) {
+      return new ArrayList<>();
+    }
     JSONArray dataArray = jsonObject.getJSONArray("data");
     return toListOfSeries(dataArray);
   }
@@ -232,6 +250,9 @@ public class PrometheusClientImpl implements PrometheusClient {
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
+    if (!jsonObject.has("data")) {
+      return new JSONArray();
+    }
     return jsonObject.getJSONArray("data");
   }
 
@@ -243,6 +264,9 @@ public class PrometheusClientImpl implements PrometheusClient {
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
+    if (!jsonObject.has("data")) {
+      return new JSONObject();
+    }
     return jsonObject.getJSONObject("data");
   }
 

@@ -174,6 +174,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, nullable);
         case TIMESTAMP:
           return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);
+        case BINARY:
+          return TYPE_FACTORY.createSqlType(SqlTypeName.VARBINARY, nullable);
         case ARRAY:
           return TYPE_FACTORY.createArrayType(
               TYPE_FACTORY.createSqlType(SqlTypeName.ANY, nullable), -1);
@@ -225,6 +227,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case FLOAT, REAL -> FLOAT;
       case DOUBLE, DECIMAL -> DOUBLE; // TODO the decimal is only used for literal
       case CHAR, VARCHAR, MULTISET -> STRING; // call toString() for MULTISET
+      case VARBINARY, BINARY -> BINARY;
       case BOOLEAN -> BOOLEAN;
       case DATE -> DATE;
       case TIME, TIME_TZ, TIME_WITH_LOCAL_TIME_ZONE -> TIME;
@@ -411,8 +414,32 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         }
         return first;
       }
+      // When the list has a VARBINARY column plus VARCHAR literals, treat VARBINARY
+      // as the common type so IN / BETWEEN can insert casts.
+      RelDataType varbinaryResult = leastRestrictiveVarbinaryVarchar(types);
+      if (varbinaryResult != null) {
+        return varbinaryResult;
+      }
     }
     return super.leastRestrictive(types);
+  }
+
+  private @Nullable RelDataType leastRestrictiveVarbinaryVarchar(List<RelDataType> types) {
+    boolean hasVarbinary = false;
+    boolean anyNullable = false;
+    for (RelDataType t : types) {
+      SqlTypeName name = t.getSqlTypeName();
+      if (name == SqlTypeName.VARBINARY) {
+        hasVarbinary = true;
+      } else if (name != SqlTypeName.VARCHAR && name != SqlTypeName.CHAR) {
+        return null;
+      }
+      anyNullable |= t.isNullable();
+    }
+    if (!hasVarbinary) {
+      return null;
+    }
+    return createTypeWithNullability(createSqlType(SqlTypeName.VARBINARY), anyNullable);
   }
 
   /**

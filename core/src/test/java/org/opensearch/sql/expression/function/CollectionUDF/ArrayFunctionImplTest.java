@@ -14,6 +14,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.ExplicitOperatorBinding;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.Test;
 
@@ -301,5 +307,80 @@ public class ArrayFunctionImplTest {
     assertEquals("x", list.get(0));
     assertNull(list.get(1), "Null should be preserved during CHAR type conversion");
     assertEquals("y", list.get(2));
+  }
+
+  // ==================== RETURN-TYPE INFERENCE TESTS ====================
+  // These tests cover the return-type fallback the analytics-engine route depends on:
+  // when Calcite can't infer a concrete element type (no operands, or all-null operands),
+  // we substitute VARCHAR so the call's return type is substrait-serializable. Without the
+  // fallback Calcite emits ARRAY<NULL> / ARRAY<UNKNOWN>, which fails substrait conversion
+  // with "Unable to convert the type UNKNOWN" downstream.
+
+  /** array() — empty operand list — returns ARRAY<VARCHAR>. */
+  @Test
+  public void testReturnTypeForEmptyCallIsVarcharArray() {
+    RelDataType returnType = inferReturnType();
+    assertEquals(SqlTypeName.ARRAY, returnType.getSqlTypeName());
+    RelDataType element = returnType.getComponentType();
+    assertNotNull(element);
+    assertEquals(SqlTypeName.VARCHAR, element.getSqlTypeName());
+    assertTrue(element.isNullable(), "Element type should be nullable per existing semantics");
+  }
+
+  /** array(NULL) — single typeless-null operand — also falls back to ARRAY<VARCHAR>. */
+  @Test
+  public void testReturnTypeForAllNullOperandsIsVarcharArray() {
+    RelDataTypeFactory typeFactory = newTypeFactory();
+    RelDataType nullType = typeFactory.createSqlType(SqlTypeName.NULL);
+    RelDataType returnType = inferReturnType(nullType);
+    assertEquals(SqlTypeName.ARRAY, returnType.getSqlTypeName());
+    RelDataType element = returnType.getComponentType();
+    assertNotNull(element);
+    assertEquals(SqlTypeName.VARCHAR, element.getSqlTypeName());
+  }
+
+  /** array(1) — INTEGER operand — preserves the inferred element type (no fallback). */
+  @Test
+  public void testReturnTypeForIntegerOperandPreservesType() {
+    RelDataTypeFactory typeFactory = newTypeFactory();
+    RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType returnType = inferReturnType(intType);
+    assertEquals(SqlTypeName.ARRAY, returnType.getSqlTypeName());
+    RelDataType element = returnType.getComponentType();
+    assertNotNull(element);
+    assertEquals(
+        SqlTypeName.INTEGER,
+        element.getSqlTypeName(),
+        "Concrete element types must not be affected by the VARCHAR fallback");
+  }
+
+  /** array('a', 'b') — VARCHAR operands — already VARCHAR, fallback path doesn't fire. */
+  @Test
+  public void testReturnTypeForVarcharOperandPreservesType() {
+    RelDataTypeFactory typeFactory = newTypeFactory();
+    RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    RelDataType returnType = inferReturnType(varcharType, varcharType);
+    assertEquals(SqlTypeName.ARRAY, returnType.getSqlTypeName());
+    assertEquals(SqlTypeName.VARCHAR, returnType.getComponentType().getSqlTypeName());
+  }
+
+  /**
+   * Helper — invokes {@code new ArrayFunctionImpl().getReturnTypeInference().inferReturnType(...)}
+   * via Calcite's {@link ExplicitOperatorBinding}, which is the public test harness for exercising
+   * a return-type inference against a specific operand-type list. We bind it to {@link
+   * SqlLibraryOperators#ARRAY} so the inference's internal call to {@code
+   * SqlLibraryOperators.ARRAY.getReturnTypeInference().inferReturnType(...)} resolves the same
+   * operator the lambda delegates to.
+   */
+  private static RelDataType inferReturnType(RelDataType... operandTypes) {
+    RelDataTypeFactory typeFactory = newTypeFactory();
+    ExplicitOperatorBinding binding =
+        new ExplicitOperatorBinding(
+            typeFactory, SqlLibraryOperators.ARRAY, Arrays.asList(operandTypes));
+    return new ArrayFunctionImpl().getReturnTypeInference().inferReturnType(binding);
+  }
+
+  private static RelDataTypeFactory newTypeFactory() {
+    return new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   }
 }

@@ -60,6 +60,7 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.MvCombine;
@@ -756,5 +757,18 @@ public class AstDSL {
   /** Get a reference to the implicit timestamp field {@code @timestamp} */
   public static Field implicitTimestampField() {
     return AstDSL.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
+  }
+
+  public static UnresolvedPlan join(
+      UnresolvedPlan right, Join.JoinType joinType, Optional<UnresolvedExpression> condition) {
+    return new Join(
+        right,
+        Optional.empty(),
+        Optional.empty(),
+        joinType,
+        condition,
+        new Join.JoinHint(),
+        Optional.empty(),
+        Argument.ArgumentMap.empty());
   }
 }

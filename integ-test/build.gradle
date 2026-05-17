@@ -270,6 +270,36 @@ def getGeoSpatialPlugin() {
     }
 }
 
+// fetch from the feature-build artifact for now (linux/x64 only; for local dev pass -PanalyticsEngineZip=/path instead).
+ext.pluginVersion = opensearch_version.tokenize('-')[0]
+ext.featureBuildBase = "https://ci.opensearch.org/ci/dbc/feature-build-opensearch/feature-datafusion/latest/linux/x64/tar/builds/opensearch/plugins"
+ext.analyticsEngineZipDest = "${buildDir}/distributions/analytics-engine-${pluginVersion}-SNAPSHOT.zip"
+ext.arrowFlightRpcZipDest = "${buildDir}/distributions/arrow-flight-rpc-${pluginVersion}-SNAPSHOT.zip"
+
+task downloadAnalyticsEngineZip(type: Download) {
+    src "${featureBuildBase}/1-analytics-engine-${pluginVersion}.zip"
+    dest analyticsEngineZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('analyticsEngineZip') }
+}
+
+task downloadArrowFlightRpcZip(type: Download) {
+    src "${featureBuildBase}/0-arrow-flight-rpc-${pluginVersion}.zip"
+    dest arrowFlightRpcZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('arrowFlightRpcZip') }
+}
+
+def getAnalyticsEnginePlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('analyticsEngineZip') ?: analyticsEngineZipDest)) }
+}
+
+def getArrowFlightRpcPlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('arrowFlightRpcZip') ?: arrowFlightRpcZipDest)) }
+}
+
 testClusters {
     integTest {
         testDistribution = 'archive'
@@ -299,6 +329,14 @@ testClusters {
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+    }
+    // Smoke test: verify sql loads cleanly alongside analytics-engine.
+    analyticsEngineCompat {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getArrowFlightRpcPlugin())
+        plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
     }
 }
@@ -351,9 +389,19 @@ task stopPrometheus(type: KillProcessTask) {
 
 stopPrometheus.mustRunAfter startPrometheus
 
+task analyticsEngineCompatIT(type: RestIntegTestTask) {
+    useCluster testClusters.analyticsEngineCompat
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip
+    systemProperty 'tests.security.manager', 'false'
+    filter {
+        includeTestsMatching 'org.opensearch.sql.plugin.AnalyticsEngineCompatIT'
+    }
+}
+
 task integJdbcTest(type: RestIntegTestTask) {
-    testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().
+    testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().with {
         plugin ":opensearch-sql-plugin"
+    }
 
     useJUnitPlatform()
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
@@ -545,6 +593,40 @@ integTest {
 
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
+
+    // Workaround for Gradle 9.4.1 ClassCastException in TestEventReporterAsListener.started
+    // (line 58) — the bridge casts a parent test descriptor's reporter to
+    // GroupTestEventReporterInternal but a class-level @Ignore produces a non-composite parent
+    // descriptor with a leaf reporter, so the cast fails and aborts the entire integTest task
+    // even though the tests would have been skipped anyway. The bridge is registered by Gradle's
+    // own AbstractTestTask (we can't bypass it from user code), so the only available remedy is
+    // to keep these classes off the test runner's input set. Net behaviour for CI: still
+    // skipped, just at the build layer instead of inside JUnit. Remove once Gradle ships a fix
+    // (not fixed as of 9.5.0). OrderIT is already excluded above.
+    exclude 'org/opensearch/sql/calcite/remote/CalciteInformationSchemaCommandIT.class'
+    exclude 'org/opensearch/sql/calcite/remote/CalciteJsonFunctionsIT.class'
+    exclude 'org/opensearch/sql/calcite/remote/CalcitePrometheusDataSourceCommandsIT.class'
+    exclude 'org/opensearch/sql/calcite/remote/CalciteShowDataSourcesCommandIT.class'
+    exclude 'org/opensearch/sql/legacy/AggregationIT.class'
+    exclude 'org/opensearch/sql/legacy/DateFormatIT.class'
+    exclude 'org/opensearch/sql/legacy/DateFunctionsIT.class'
+    exclude 'org/opensearch/sql/legacy/HashJoinIT.class'
+    exclude 'org/opensearch/sql/legacy/HavingIT.class'
+    exclude 'org/opensearch/sql/legacy/JSONRequestIT.class'
+    exclude 'org/opensearch/sql/legacy/JoinIT.class'
+    exclude 'org/opensearch/sql/legacy/MathFunctionsIT.class'
+    exclude 'org/opensearch/sql/legacy/MetricsIT.class'
+    exclude 'org/opensearch/sql/legacy/MultiQueryIT.class'
+    exclude 'org/opensearch/sql/legacy/NestedFieldQueryIT.class'
+    exclude 'org/opensearch/sql/legacy/PreparedStatementIT.class'
+    exclude 'org/opensearch/sql/legacy/QueryFunctionsIT.class'
+    exclude 'org/opensearch/sql/legacy/QueryIT.class'
+    exclude 'org/opensearch/sql/legacy/SQLFunctionsIT.class'
+    exclude 'org/opensearch/sql/legacy/ShowIT.class'
+    exclude 'org/opensearch/sql/legacy/SourceFieldIT.class'
+    exclude 'org/opensearch/sql/legacy/SubqueryIT.class'
+    exclude 'org/opensearch/sql/ppl/JsonFunctionsIT.class'
+    exclude 'org/opensearch/sql/sql/ExpressionIT.class'
 
     finalizedBy 'printIntegTestPaths'
 }
@@ -766,6 +848,14 @@ task integTestRemote(type: RestIntegTestTask) {
     systemProperty "https", System.getProperty("https")
     systemProperty "user", System.getProperty("user")
     systemProperty "password", System.getProperty("password")
+
+    // Forward the analytics-engine parquet-indices toggle when set on the gradle command
+    // line. TestUtils.createIndexByRestClient reads this to back every test-created index
+    // with composite/parquet so RestUnifiedQueryAction.isAnalyticsIndex (post-#5432) routes
+    // to the analytics-engine planner via index settings.
+    if (System.getProperty("tests.analytics.parquet_indices") != null) {
+        systemProperty 'tests.analytics.parquet_indices', System.getProperty("tests.analytics.parquet_indices")
+    }
 
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'

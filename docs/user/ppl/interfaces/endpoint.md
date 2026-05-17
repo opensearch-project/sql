@@ -330,13 +330,13 @@ Expected output (trimmed):
 
 ### Description
 
-You can add an `include_metadata` parameter to the PPL request URL to control whether metadata fields (such as `_id`, `_index`, `_score`, etc.) are included in wildcard field selections. This parameter only affects implicit field selections using `fields *` and does not impact explicit field selections.
+You can add an `include_metadata` parameter to control whether metadata fields (such as `_id`, `_index`, `_score`, etc.) are included in wildcard field selections. This parameter can be specified either as a URL parameter or in the request body JSON. It only affects implicit field selections using `fields *` and does not impact explicit field selections.
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `include_metadata` | boolean | `false` | When `true`, metadata fields are included in wildcard field selections (`fields *`). When `false` (default), metadata fields are excluded from wildcard selections. |
+| `include_metadata` | boolean | `false` | When `true`, metadata fields are included in wildcard field selections (`fields *`). When `false` (default), metadata fields are excluded from wildcard selections. Can be specified as a URL parameter or in the request body JSON. |
 
 ### Behavior
 
@@ -345,42 +345,20 @@ You can add an `include_metadata` parameter to the PPL request URL to control wh
 - **Explicit field selection**: The parameter does not affect explicit field selections. If you explicitly specify `fields _id, firstname`, the `_id` field will be included regardless of the `include_metadata` setting.
 - **Aggregations**: The parameter does not affect aggregation results, which never include metadata fields.
 
-### Example 1: Default behavior (exclude metadata)
+### Example 1: Include metadata fields (URL parameter)
 
-```bash ppl
+```bash ppl ignore
+curl -sS -H 'Content-Type: application/json' \
+-X POST "localhost:9200/_plugins/_ppl?include_metadata=true" \
+-d '{"query" : "source=accounts | fields * | head 1"}'
+```
+
+### Example 2: Include metadata fields (request body)
+
+```bash ppl ignore
 curl -sS -H 'Content-Type: application/json' \
 -X POST localhost:9200/_plugins/_ppl \
--d '{"query" : "source=accounts | fields * | head 1"}'
-```
-
-Expected output (metadata fields excluded):
-
-```json
-{
-  "schema": [
-    {"name": "account_number", "type": "long"},
-    {"name": "firstname", "type": "string"},
-    {"name": "lastname", "type": "string"},
-    {"name": "age", "type": "long"},
-    {"name": "gender", "type": "string"},
-    {"name": "address", "type": "string"},
-    {"name": "employer", "type": "string"},
-    {"name": "email", "type": "string"},
-    {"name": "city", "type": "string"},
-    {"name": "state", "type": "string"}
-  ],
-  "datarows": [
-    [1, "Amber", "Duke", 32, "M", "880 Holmes Lane", "Pyrami", "amberduke@pyrami.com", "Brogan", "IL"]
-  ]
-}
-```
-
-### Example 2: Include metadata fields
-
-```bash ppl
-curl -sS -H 'Content-Type: application/json' \
--X POST localhost:9200/_plugins/_ppl?include_metadata=true \
--d '{"query" : "source=accounts | fields * | head 1"}'
+-d '{"query" : "source=accounts | fields * | head 1", "include_metadata": true}'
 ```
 
 Expected output (metadata fields included):
@@ -388,29 +366,104 @@ Expected output (metadata fields included):
 ```json
 {
   "schema": [
-    {"name": "account_number", "type": "long"},
-    {"name": "firstname", "type": "string"},
-    {"name": "lastname", "type": "string"},
-    {"name": "age", "type": "long"},
-    {"name": "gender", "type": "string"},
-    {"name": "address", "type": "string"},
-    {"name": "employer", "type": "string"},
-    {"name": "email", "type": "string"},
-    {"name": "city", "type": "string"},
-    {"name": "state", "type": "string"},
-    {"name": "_id", "type": "string"},
-    {"name": "_index", "type": "string"},
-    {"name": "_score", "type": "float"}
+    {
+      "name": "account_number",
+      "type": "bigint"
+    },
+    {
+      "name": "firstname",
+      "type": "string"
+    },
+    {
+      "name": "address",
+      "type": "string"
+    },
+    {
+      "name": "balance",
+      "type": "bigint"
+    },
+    {
+      "name": "gender",
+      "type": "string"
+    },
+    {
+      "name": "city",
+      "type": "string"
+    },
+    {
+      "name": "employer",
+      "type": "string"
+    },
+    {
+      "name": "state",
+      "type": "string"
+    },
+    {
+      "name": "age",
+      "type": "bigint"
+    },
+    {
+      "name": "email",
+      "type": "string"
+    },
+    {
+      "name": "lastname",
+      "type": "string"
+    },
+    {
+      "name": "_id",
+      "type": "string"
+    },
+    {
+      "name": "_index",
+      "type": "string"
+    },
+    {
+      "name": "_score",
+      "type": "float"
+    },
+    {
+      "name": "_maxscore",
+      "type": "float"
+    },
+    {
+      "name": "_sort",
+      "type": "bigint"
+    },
+    {
+      "name": "_routing",
+      "type": "string"
+    }
   ],
   "datarows": [
-    [1, "Amber", "Duke", 32, "M", "880 Holmes Lane", "Pyrami", "amberduke@pyrami.com", "Brogan", "IL", "1", "accounts", 1.0]
-  ]
+    [
+      1,
+      "Amber",
+      "880 Holmes Lane",
+      39225,
+      "M",
+      "Brogan",
+      "Pyrami",
+      "IL",
+      32,
+      "amberduke@pyrami.com",
+      "Duke",
+      "pf4NQp4BHgpoAGEqpZkR",
+      "accounts",
+      1.0,
+      1.0,
+      -2,
+      "[zgCLGDnFRDe3VQL4L9lNVw][accounts][0]"
+    ]
+  ],
+  "total": 1,
+  "size": 1
 }
 ```
 
 ### Example 3: Explicit field selection (unaffected by include_metadata)
 
-```bash ppl
+```bash ppl ignore
 curl -sS -H 'Content-Type: application/json' \
 -X POST localhost:9200/_plugins/_ppl?include_metadata=true \
 -d '{"query" : "source=accounts | fields firstname, lastname | head 1"}'
@@ -421,20 +474,31 @@ Expected output (only explicitly selected fields):
 ```json
 {
   "schema": [
-    {"name": "firstname", "type": "string"},
-    {"name": "lastname", "type": "string"}
+    {
+      "name": "firstname",
+      "type": "string"
+    },
+    {
+      "name": "lastname",
+      "type": "string"
+    }
   ],
   "datarows": [
-    ["Amber", "Duke"]
-  ]
+    [
+      "Amber",
+      "Duke"
+    ]
+  ],
+  "total": 1,
+  "size": 1
 }
 ```
 
 ### Example 4: Explicit metadata field selection
 
-```bash ppl
+```bash ppl ignore
 curl -sS -H 'Content-Type: application/json' \
--X POST localhost:9200/_plugins/_ppl?include_metadata=false \
+-X POST "localhost:9200/_plugins/_ppl?include_metadata=true" \
 -d '{"query" : "source=accounts | fields firstname, _id | head 1"}'
 ```
 
@@ -443,20 +507,32 @@ Expected output (explicitly selected metadata field included):
 ```json
 {
   "schema": [
-    {"name": "firstname", "type": "string"},
-    {"name": "_id", "type": "string"}
+    {
+      "name": "firstname",
+      "type": "string"
+    },
+    {
+      "name": "_id",
+      "type": "string"
+    }
   ],
   "datarows": [
-    ["Amber", "1"]
-  ]
+    [
+      "Amber",
+      "pf4NQp4BHgpoAGEqpZkR"
+    ]
+  ],
+  "total": 1,
+  "size": 1
 }
 ```
 
 ### Notes
 
-- The `include_metadata` parameter only affects wildcard field selections (`fields *`). It does not impact explicit field selections.
-- Metadata fields include system fields like `_id`, `_index`, `_score`, `_type`, `_source`, etc.
+- The `include_metadata` parameter only affects wildcard field selections (`fields *`).
+- **Current limitation**: Explicit metadata field selection (e.g., `fields firstname, _id`) currently requires `include_metadata=true` to work properly.
+- Metadata fields include system fields like `_id`, `_index`, `_score`, `_maxscore`, `_sort`, `_routing`, etc.
 - When using search queries with scoring (e.g., `source=accounts "Holmes"`), the `_score` field becomes available and will be included when `include_metadata=true`.
 - Aggregation queries are not affected by this parameter, as they never include metadata fields in their results.
-- The parameter can be specified as a URL parameter (`?include_metadata=true`) or in the request body JSON.
-
+- The parameter can be specified as a URL parameter (`?include_metadata=true`) or in the request body JSON (`{"include_metadata": true}`).
+- When both URL parameter and request body specify the parameter, the request body takes precedence.
