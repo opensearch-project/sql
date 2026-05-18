@@ -76,103 +76,88 @@ The `eventstats` command supports the following aggregation functions:
 
 For detailed documentation of each function, see [Functions](../functions/aggregations.md).  
 
-## Example 1: Calculate the average, sum, and count of a field by group  
+## Example 1: Enriching logs with per-service counts
 
-The following query calculates the average age, sum of age, and count of events for all accounts grouped by gender:
+The following query adds the total log count for each service to every log entry, letting you see how active each service is alongside individual log details:
   
 ```ppl
-source=accounts
-| fields account_number, gender, age
-| eventstats avg(age), sum(age), count() by gender
-| sort account_number
+source=otellogs
+| eventstats count() as service_total by `resource.attributes.service.name`
+| where severityText = 'ERROR'
+| sort `resource.attributes.service.name`
+| fields severityText, `resource.attributes.service.name`, service_total, body
+| head 3
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------------+--------+-----+--------------------+----------+---------+
-| account_number | gender | age | avg(age)           | sum(age) | count() |
-|----------------+--------+-----+--------------------+----------+---------|
-| 1              | M      | 32  | 33.666666666666664 | 101      | 3       |
-| 6              | M      | 36  | 33.666666666666664 | 101      | 3       |
-| 13             | F      | 28  | 28.0               | 28       | 1       |
-| 18             | M      | 33  | 33.666666666666664 | 101      | 3       |
-+----------------+--------+-----+--------------------+----------+---------+
+fetched rows / total rows = 3/3
++--------------+----------------------------------+---------------+----------------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | service_total | body                                                                                         |
+|--------------+----------------------------------+---------------+----------------------------------------------------------------------------------------------|
+| ERROR        | checkout                         | 3             | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| ERROR        | checkout                         | 3             | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | frontend-proxy                   | 3             | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 |
++--------------+----------------------------------+---------------+----------------------------------------------------------------------------------------------+
 ```
   
 
-## Example 2: Calculate the count by a gender and span  
+## Example 2: Calculating severity statistics by group
 
-The following query counts events by age intervals of 5 years, grouped by gender:
+The following query adds the average severity and error count per service to each log entry:
   
 ```ppl
-source=accounts
-| fields account_number, gender, age
-| eventstats count() as cnt by span(age, 5) as age_span, gender
-| sort account_number
+source=otellogs
+| where severityText = 'ERROR'
+| eventstats avg(severityNumber) as avg_sev, count() as error_count by `resource.attributes.service.name`
+| sort `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, severityNumber, avg_sev, error_count
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------------+--------+-----+-----+
-| account_number | gender | age | cnt |
-|----------------+--------+-----+-----|
-| 1              | M      | 32  | 2   |
-| 6              | M      | 36  | 1   |
-| 13             | F      | 28  | 1   |
-| 18             | M      | 33  | 2   |
-+----------------+--------+-----+-----+
+fetched rows / total rows = 7/7
++----------------------------------+----------------+---------+-------------+
+| resource.attributes.service.name | severityNumber | avg_sev | error_count |
+|----------------------------------+----------------+---------+-------------|
+| checkout                         | 17             | 17.0    | 2           |
+| checkout                         | 17             | 17.0    | 2           |
+| frontend-proxy                   | 17             | 17.0    | 1           |
+| payment                          | 17             | 17.0    | 2           |
+| payment                          | 17             | 17.0    | 2           |
+| product-catalog                  | 17             | 17.0    | 1           |
+| recommendation                   | 17             | 17.0    | 1           |
++----------------------------------+----------------+---------+-------------+
 ```
   
 
 ## Example 3: Null bucket handling
 
-The following query uses the `eventstats` command with `bucket_nullable=false` to exclude null values from the group-by aggregation:
+The following query uses `bucket_nullable=false` to exclude null values from the group-by aggregation:
 
 ```ppl
-source=accounts
-| eventstats bucket_nullable=false count() as cnt by employer
-| fields account_number, firstname, employer, cnt
-| sort account_number
+source=otellogs
+| eventstats bucket_nullable=false count() as scope_count by instrumentationScope.name
+| where severityText = 'ERROR'
+| sort `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, `instrumentationScope.name`, scope_count
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------------+-----------+----------+------+
-| account_number | firstname | employer | cnt  |
-|----------------+-----------+----------+------|
-| 1              | Amber     | Pyrami   | 1    |
-| 6              | Hattie    | Netagy   | 1    |
-| 13             | Nanette   | Quility  | 1    |
-| 18             | Dale      | null     | null |
-+----------------+-----------+----------+------+
+fetched rows / total rows = 7/7
++----------------------------------+-------------------------------------+-------------+
+| resource.attributes.service.name | instrumentationScope.name           | scope_count |
+|----------------------------------+-------------------------------------+-------------|
+| checkout                         | null                                | null        |
+| checkout                         | null                                | null        |
+| frontend-proxy                   | null                                | null        |
+| payment                          | null                                | null        |
+| payment                          | @opentelemetry/instrumentation-http | 2           |
+| product-catalog                  | null                                | null        |
+| recommendation                   | null                                | null        |
++----------------------------------+-------------------------------------+-------------+
 ```
-
-The following query uses the `eventstats` command with `bucket_nullable=true` to include null values in the group-by aggregation:
-
-```ppl
-source=accounts
-| eventstats bucket_nullable=true count() as cnt by employer
-| fields account_number, firstname, employer, cnt
-| sort account_number
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+----------------+-----------+----------+-----+
-| account_number | firstname | employer | cnt |
-|----------------+-----------+----------+-----|
-| 1              | Amber     | Pyrami   | 1   |
-| 6              | Hattie    | Netagy   | 1   |
-| 13             | Nanette   | Quility  | 1   |
-| 18             | Dale      | null     | 1   |
-+----------------+-----------+----------+-----+
-```
-  

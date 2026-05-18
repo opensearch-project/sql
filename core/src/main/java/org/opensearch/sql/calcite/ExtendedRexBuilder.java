@@ -183,6 +183,12 @@ public class ExtendedRexBuilder extends RexBuilder {
       // NUMBER_TO_STRING uses java's built-in method to get the string representation of a number
       return makeCall(type, PPLBuiltinOperators.NUMBER_TO_STRING, List.of(exp));
     }
+    // VARCHAR → VARBINARY for ip/binary fields. Emit BINARY(varchar) as a placeholder
+    // RexCall the analytics backend adapter rewrites into a VARBINARY literal.
+    else if (sqlType == SqlTypeName.VARBINARY
+        && sourceType.getSqlTypeName() == SqlTypeName.VARCHAR) {
+      return makeCall(type, PPLBuiltinOperators.BINARY, List.of(exp));
+    }
     return super.makeCast(pos, type, exp, matchNullability, safe, format);
   }
 }

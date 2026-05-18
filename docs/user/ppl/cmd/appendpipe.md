@@ -22,64 +22,63 @@ The `appendpipe` command supports the following parameters.
 | `<subpipeline>` | Required | A list of commands applied to the search results produced by the commands that precede the `appendpipe` command. |
   
 
-## Example 1: Append rows from a total count to existing search results  
+## Example 1: Appending a total row to aggregated results
 
-This example appends rows from `total by gender` to `sum by gender, state`, merging columns that have the same field name and type:
+The following query counts logs by severity level, then appends a total row. This is useful for building summary reports that include both breakdowns and totals:
   
 ```ppl
-source=accounts
-| stats sum(age) as part by gender, state
-| sort -part
-| head 5
-| appendpipe [ stats sum(part) as total by gender ]
+source=otellogs
+| stats count() as log_count by severityText
+| sort - log_count
+| appendpipe [ stats sum(log_count) as total ]
+| fields severityText, log_count, total
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 5/5
++--------------+-----------+-------+
+| severityText | log_count | total |
+|--------------+-----------+-------|
+| ERROR        | 7         | null  |
+| INFO         | 6         | null  |
+| WARN         | 4         | null  |
+| DEBUG        | 3         | null  |
+| null         | null      | 20    |
++--------------+-----------+-------+
+```
+  
+
+## Example 2: Appending summary statistics to detail rows
+
+The following query shows error counts per service, then appends the overall average error count across all services:
+  
+```ppl
+source=otellogs
+| where severityText = 'ERROR'
+| stats count() as error_count by `resource.attributes.service.name`
+| sort - error_count
+| appendpipe [ stats avg(error_count) as avg_errors ]
+| fields `resource.attributes.service.name`, error_count, avg_errors
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 6/6
-+------+--------+-------+-------+
-| part | gender | state | total |
-|------+--------+-------+-------|
-| 36   | M      | TN    | null  |
-| 33   | M      | MD    | null  |
-| 32   | M      | IL    | null  |
-| 28   | F      | VA    | null  |
-| null | F      | null  | 28    |
-| null | M      | null  | 101   |
-+------+--------+-------+-------+
++----------------------------------+-------------+------------+
+| resource.attributes.service.name | error_count | avg_errors |
+|----------------------------------+-------------+------------|
+| checkout                         | 2           | null       |
+| payment                          | 2           | null       |
+| frontend-proxy                   | 1           | null       |
+| product-catalog                  | 1           | null       |
+| recommendation                   | 1           | null       |
+| null                             | null        | 1.4        |
++----------------------------------+-------------+------------+
 ```
   
-
-## Example 2: Append rows with merged column names  
-
-This example appends rows from `count by gender` to `sum by gender, state`:
-  
-```ppl
-source=accounts
-| stats sum(age) as total by gender, state
-| sort -total
-| head 5
-| appendpipe [ stats sum(total) as total by gender ]
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 6/6
-+----------+--------+-------+
-| total    | gender | state |
-|----------+--------+-------|
-| 36       | M      | TN    |
-| 33       | M      | MD    |
-| 32       | M      | IL    |
-| 28       | F      | VA    |
-| 28       | F      | null  |
-| 101      | M      | null  |
-+----------+--------+-------+
-```
-  
-
 ## Limitations
 
 The `appendpipe` command has the following limitations:

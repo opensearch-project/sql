@@ -30,6 +30,7 @@ import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.util.RetryProcessor;
 
@@ -47,6 +48,19 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     super.init();
     updatePushdownSettings();
     disableCalcite(); // calcite is enabled by default from 3.3.0
+  }
+
+  /**
+   * Returns {@code true} when the suite was started with {@code
+   * -Dtests.analytics.parquet_indices=true}. Use this to branch test assertions that depend on the
+   * execution backend — when this flag is on, every test-created index is composite/parquet, which
+   * makes {@code RestUnifiedQueryAction.isAnalyticsIndex} (post-#5432) route every query to the
+   * analytics-engine backend (DataFusion) instead of the Calcite enumerable / DSL-pushdown backend.
+   * DataFusion follows different ordering and null-bucket semantics than the legacy V2 and
+   * Calcite-DSL paths.
+   */
+  public static boolean isAnalyticsParquetIndicesEnabled() {
+    return TestUtils.AnalyticsIndexConfig.isEnabled();
   }
 
   protected JSONObject executeQuery(String query) throws IOException {

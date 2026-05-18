@@ -83,6 +83,7 @@ import org.opensearch.sql.expression.function.udf.ToStringFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
 import org.opensearch.sql.expression.function.udf.condition.EnhancedCoalesceFunction;
 import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
+import org.opensearch.sql.expression.function.udf.conversion.BinaryFunction;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DateAddSubFunction;
@@ -178,6 +179,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   // Condition function
   public static final SqlOperator EARLIEST = new EarliestFunction().toUDF("EARLIEST");
   public static final SqlOperator LATEST = new LatestFunction().toUDF("LATEST");
+
+  // VARBINARY conversion (placeholder for ip/binary fields rewritten by analytics backend adapter)
+  public static final SqlOperator BINARY = new BinaryFunction().toUDF("BINARY");
 
   // Datetime function
   public static final SqlOperator TIMESTAMP = new TimestampFunction().toUDF("TIMESTAMP");
@@ -424,6 +428,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string", false);
   public static final SqlOperator MULTI_MATCH =
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
+  public static final SqlOperator QUERY = RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query");
+  public static final SqlOperator WILDCARD_QUERY =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("wildcard_query");
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
   public static final SqlOperator TONUMBER = new ToNumberFunction().toUDF("TONUMBER");

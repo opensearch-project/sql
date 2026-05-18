@@ -66,41 +66,76 @@ An ellipsis (`...`) indicates that the preceding element can be repeated multipl
 
 ## Examples
 
-**Example 1: Search through accounts index**
+**Example 1: Search through an index**
 
-In the following query, the `search` command refers to an `accounts` index as the source and uses the `fields` and `where` commands for the conditions:
+In the following query, the `search` command refers to the `otellogs` index as the source and uses the `fields` and `where` commands for the conditions:
 
-```ppl ignore
-search source=accounts
-| where age > 18
-| fields firstname, lastname
+```ppl
+search source=otellogs
+| where severityText = 'ERROR'
+| fields severityText, `resource.attributes.service.name`
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 7/7
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| ERROR        | payment                          |
+| ERROR        | checkout                         |
+| ERROR        | payment                          |
+| ERROR        | frontend-proxy                   |
+| ERROR        | recommendation                   |
+| ERROR        | product-catalog                  |
+| ERROR        | checkout                         |
++--------------+----------------------------------+
 ```
 
 **Example 2: Get all documents**
 
-To get all documents from the `accounts` index, specify it as the `source`:
+To get all documents from the `otellogs` index, specify it as the `source`. The following example limits the output to 5 rows using `head`:
 
-```ppl ignore
-search source=accounts;
+```ppl
+source=otellogs
+| head 5
+| fields severityText, `resource.attributes.service.name`, body
 ```
 
+The query returns the following results:
 
-| account_number | firstname | address | balance | gender | city | employer | state | age | email | lastname |
-:--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---
-| 1  | Amber  | 880 Holmes Lane | 39225 | M | Brogan | Pyrami | IL | 32 | amberduke@pyrami.com  | Duke
-| 6  | Hattie | 671 Bristol Street | 5686 | M | Dante | Netagy | TN | 36  | hattiebond@netagy.com | Bond
-| 13 | Nanette | 789 Madison Street | 32838 | F | Nogal | Quility | VA | 28 | null | Bates
-| 18 | Dale  | 467 Hutchinson Court | 4180 | M | Orick | null | MD | 33 | daleadams@boink.com | Adams
+```text
+fetched rows / total rows = 5/5
++--------------+----------------------------------+-----------------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                          |
+|--------------+----------------------------------+-----------------------------------------------------------------------------------------------|
+| INFO         | frontend                         | [2024-02-01T09:10:00.123Z] "GET /api/products HTTP/1.1" 200 - 1024 45 frontend-6b7b4c9f-x2kl9 |
+| INFO         | cart                             | Order #1234 placed successfully by user U100                                                  |
+| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms        |
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                           |
+| DEBUG        | cart                             | Cache miss for key user:session:U200 in Valkey cluster                                        |
++--------------+----------------------------------+-----------------------------------------------------------------------------------------------+
+```
 
 **Example 3: Get documents that match a condition**
 
-To get all documents from the `accounts` index that either have `account_number` equal to 1 or have `gender` as `F`, use the following query:
+To get all documents from the `otellogs` index that have `severityText` equal to `ERROR` and `resource.attributes.service.name` equal to `payment`, use the following query:
 
-```ppl ignore
-search source=accounts account_number=1 or gender=\"F\";
+```ppl
+source=otellogs severityText = 'ERROR' AND `resource.attributes.service.name` = 'payment'
+| fields severityText, `resource.attributes.service.name`, body
 ```
 
-| account_number | firstname | address | balance | gender | city | employer | state | age | email | lastname |
-:--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---
-| 1 | Amber | 880 Holmes Lane | 39225 | M | Brogan | Pyrami | IL | 32 | amberduke@pyrami.com | Duke |
-| 13 | Nanette | 789 Madison Street | 32838 | F | Nogal | Quility | VA | 28 | null | Bates |
+The query returns the following results:
+
+```text
+fetched rows / total rows = 2/2
++--------------+----------------------------------+-------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                    |
+|--------------+----------------------------------+-------------------------------------------------------------------------|
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms     |
+| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
++--------------+----------------------------------+-------------------------------------------------------------------------+
+```
+
