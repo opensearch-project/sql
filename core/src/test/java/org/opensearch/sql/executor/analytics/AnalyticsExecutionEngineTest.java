@@ -15,14 +15,26 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.BeforeEach;
@@ -276,7 +288,140 @@ class AnalyticsExecutionEngineTest {
             + errorRef.get().getMessage());
   }
 
+  // --- schema recovery: structural detection of CAST(<datetime> AS VARCHAR) projects ---
+
+  @Test
+  void buildSchema_recoversDatetimeLabelsFromOutputCastProject() {
+    RelNode plan =
+        buildOutputCastPlan(
+            new String[] {"ts", "d", "t"},
+            new SqlTypeName[] {SqlTypeName.TIMESTAMP, SqlTypeName.DATE, SqlTypeName.TIME});
+    Iterable<Object[]> rows =
+        Collections.singletonList(new Object[] {"2024-01-15 10:30:00", "2024-01-15", "10:30:00"});
+    stubExecutorWith(plan, rows);
+
+    QueryResponse response = executeAndCapture(plan);
+    String dump = dumpResponse(response);
+
+    assertEquals(
+        ExprCoreType.TIMESTAMP, response.getSchema().getColumns().get(0).getExprType(), dump);
+    assertEquals(ExprCoreType.DATE, response.getSchema().getColumns().get(1).getExprType(), dump);
+    assertEquals(ExprCoreType.TIME, response.getSchema().getColumns().get(2).getExprType(), dump);
+  }
+
+  @Test
+  void buildSchema_walksThroughLogicalSortWrapper() {
+    RelNode castProject =
+        buildOutputCastPlan(new String[] {"ts"}, new SqlTypeName[] {SqlTypeName.TIMESTAMP});
+    // Mimic the LogicalSystemLimit wrapper that wraps the rule-emitted Project at the root.
+    RexBuilder rexBuilder = castProject.getCluster().getRexBuilder();
+    RexNode fetch =
+        rexBuilder.makeLiteral(
+            10000, castProject.getCluster().getTypeFactory().createSqlType(SqlTypeName.INTEGER));
+    RelNode wrapped = LogicalSort.create(castProject, RelCollations.EMPTY, null, fetch);
+    stubExecutorWith(wrapped, Collections.emptyList());
+
+    QueryResponse response = executeAndCapture(wrapped);
+    String dump = dumpResponse(response);
+
+    assertEquals(
+        ExprCoreType.TIMESTAMP, response.getSchema().getColumns().get(0).getExprType(), dump);
+  }
+
+  @Test
+  void buildSchema_projectWithUserExpressionDoesNotRecover() {
+    // A Project that mixes a CAST(<datetime> AS VARCHAR) slot with a user-authored
+    // expression slot (here: ts + INTERVAL — an unrelated function call) is NOT the
+    // rule's emit shape. Recovery must NOT happen; the wire schema reflects the
+    // Project's row type as-is (the cast slot stays VARCHAR/STRING).
+    RelNode plan =
+        buildMixedProject(
+            new String[] {"ts_str", "calc"},
+            new SqlTypeName[] {SqlTypeName.TIMESTAMP, SqlTypeName.INTEGER});
+    stubExecutorWith(plan, Collections.emptyList());
+
+    QueryResponse response = executeAndCapture(plan);
+    String dump = dumpResponse(response);
+
+    // ts_str slot is CAST(<TIMESTAMP> AS VARCHAR) but sits next to a user expression,
+    // so the structural shape doesn't match — schema stays STRING (VARCHAR).
+    assertEquals(ExprCoreType.STRING, response.getSchema().getColumns().get(0).getExprType(), dump);
+  }
+
+  @Test
+  void buildSchema_nonProjectRootKeepsFieldType() {
+    // When the rule didn't fire (no datetime fields), the root is whatever the
+    // planner produced — the recovery path must fall back to the field type.
+    RelNode plan = mockRelNode("name", SqlTypeName.VARCHAR, "age", SqlTypeName.INTEGER);
+    stubExecutorWith(plan, Collections.emptyList());
+
+    QueryResponse response = executeAndCapture(plan);
+    String dump = dumpResponse(response);
+
+    assertEquals(ExprCoreType.STRING, response.getSchema().getColumns().get(0).getExprType(), dump);
+    assertEquals(
+        ExprCoreType.INTEGER, response.getSchema().getColumns().get(1).getExprType(), dump);
+  }
+
   // --- helpers ---
+
+  /**
+   * Builds a {@code LogicalProject(CAST(<typed> AS VARCHAR))} over a {@link LogicalValues} input —
+   * mirrors what {@code DatetimeOutputCastRule} emits at the root.
+   */
+  private RelNode buildOutputCastPlan(String[] names, SqlTypeName[] types) {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    HepPlanner planner = new HepPlanner(new HepProgramBuilder().build());
+    RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
+
+    RelDataTypeFactory.Builder rowBuilder = typeFactory.builder();
+    for (int i = 0; i < names.length; i++) {
+      rowBuilder.add(names[i], types[i]).nullable(true);
+    }
+    RelDataType rowType = rowBuilder.build();
+    LogicalValues input = LogicalValues.createEmpty(cluster, rowType);
+
+    RelDataType varchar =
+        typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+    List<RexNode> projects = new ArrayList<>(names.length);
+    List<String> projectNames = new ArrayList<>(names.length);
+    for (int i = 0; i < names.length; i++) {
+      RexNode ref = rexBuilder.makeInputRef(input, i);
+      projects.add(rexBuilder.makeCast(varchar, ref));
+      projectNames.add(names[i]);
+    }
+    return LogicalProject.create(input, List.of(), projects, projectNames);
+  }
+
+  /**
+   * Builds a {@code LogicalProject} where the first slot is {@code CAST(<datetime> AS VARCHAR)} and
+   * the second slot is a user-authored expression ({@code col + 1}) — i.e. NOT the shape that the
+   * rule emits.
+   */
+  private RelNode buildMixedProject(String[] names, SqlTypeName[] types) {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    HepPlanner planner = new HepPlanner(new HepProgramBuilder().build());
+    RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
+
+    RelDataTypeFactory.Builder rowBuilder = typeFactory.builder();
+    for (int i = 0; i < names.length; i++) {
+      rowBuilder.add(names[i], types[i]).nullable(true);
+    }
+    LogicalValues input = LogicalValues.createEmpty(cluster, rowBuilder.build());
+
+    RelDataType varchar =
+        typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+    RexNode castSlot = rexBuilder.makeCast(varchar, rexBuilder.makeInputRef(input, 0));
+    RexNode plusSlot =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(input, 1),
+            rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER)));
+    return LogicalProject.create(
+        input, List.of(), List.of(castSlot, plusSlot), List.of(names[0], names[1]));
+  }
 
   private QueryResponse executeAndCapture(RelNode relNode) {
     AtomicReference<QueryResponse> ref = new AtomicReference<>();

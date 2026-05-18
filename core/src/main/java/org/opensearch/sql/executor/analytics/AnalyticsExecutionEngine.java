@@ -11,8 +11,15 @@ import java.util.List;
 import java.util.Map;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.ast.statement.ExplainMode;
@@ -71,10 +78,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
   @Override
   public void execute(
       RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
-    // QueryPlanExecutor became asynchronous in analytics-framework 3.7 — execution is dispatched
-    // to a worker pool and results arrive on the listener. Record the execute metric in the
-    // listener callback, before delegating to the user-supplied listener, so the metric snapshot
-    // taken by SimpleJsonResponseFormatter sees the correct value.
+    // Record EXECUTE inside the callback so the formatter's metric snapshot sees the final value.
     ProfileMetric execMetric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
     long execStart = System.nanoTime();
 
@@ -87,7 +91,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
             try {
               List<RelDataTypeField> fields = plan.getRowType().getFieldList();
               List<ExprValue> results = convertRows(rows, fields);
-              Schema schema = buildSchema(fields);
+              Schema schema = buildSchema(plan);
               execMetric.set(System.nanoTime() - execStart);
               listener.onResponse(new QueryResponse(schema, results, Cursor.None));
             } catch (Exception e) {
@@ -132,13 +136,89 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     return results;
   }
 
-  private Schema buildSchema(List<RelDataTypeField> fields) {
+  /**
+   * Recovers pre-cast datetime types stripped by {@code DatetimeOutputCastRule}. The wire format
+   * keeps {@code timestamp}/{@code date}/{@code time} labels even though values render as VARCHAR.
+   *
+   * <p>Detection is structural: the rule's output Project has only identity {@link RexInputRef}
+   * slots and {@code CAST(<datetime InputRef> AS VARCHAR)} slots — no user-authored expressions.
+   * That shape uniquely identifies the rule's emit and avoids unwrapping user CASTs (which can
+   * legitimately VARCHAR-wrap a datetime expression and should round-trip as VARCHAR).
+   */
+  private Schema buildSchema(RelNode plan) {
+    List<RelDataTypeField> fields = plan.getRowType().getFieldList();
+    Project castProject = findOutputCastProject(plan);
+    List<RexNode> projects = castProject == null ? null : castProject.getProjects();
     List<Schema.Column> columns = new ArrayList<>();
-    for (RelDataTypeField field : fields) {
-      ExprType exprType = convertType(field.getType());
-      columns.add(new Schema.Column(field.getName(), null, exprType));
+    for (int i = 0; i < fields.size(); i++) {
+      RelDataTypeField field = fields.get(i);
+      RelDataType labelType = field.getType();
+      if (projects != null && i < projects.size()) {
+        labelType = unwrapDatetimeCast(projects.get(i), labelType);
+      }
+      columns.add(new Schema.Column(field.getName(), null, convertType(labelType)));
     }
     return new Schema(columns);
+  }
+
+  /**
+   * Returns the Project emitted by {@code DatetimeOutputCastRule} — root, or sitting under a single
+   * {@code Sort} (system query-size limit). Detection is by structural shape: every slot is either
+   * an identity {@link RexInputRef} or {@code CAST(<datetime InputRef> AS VARCHAR)}, and at least
+   * one slot is the cast form. Anything else (user-authored expression, function call) means this
+   * is not the rule's emit.
+   */
+  private static Project findOutputCastProject(RelNode plan) {
+    RelNode current = plan;
+    while (current instanceof Sort) {
+      current = current.getInput(0);
+    }
+    if (!(current instanceof Project project)) {
+      return null;
+    }
+    boolean sawDatetimeCast = false;
+    for (RexNode slot : project.getProjects()) {
+      if (slot instanceof RexInputRef) {
+        continue;
+      }
+      if (isDatetimeToVarcharCast(slot)) {
+        sawDatetimeCast = true;
+        continue;
+      }
+      return null;
+    }
+    return sawDatetimeCast ? project : null;
+  }
+
+  private static boolean isDatetimeToVarcharCast(RexNode expr) {
+    if (!(expr instanceof RexCall call) || call.getKind() != SqlKind.CAST) {
+      return false;
+    }
+    if (call.getOperands().size() != 1) {
+      return false;
+    }
+    RexNode source = call.getOperands().get(0);
+    if (!(source instanceof RexInputRef)) {
+      return false;
+    }
+    if (call.getType().getSqlTypeName() != SqlTypeName.VARCHAR) {
+      return false;
+    }
+    return isDatetime(source.getType().getSqlTypeName());
+  }
+
+  private static boolean isDatetime(SqlTypeName type) {
+    return type == SqlTypeName.DATE
+        || type == SqlTypeName.TIME
+        || type == SqlTypeName.TIMESTAMP
+        || type == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
+  }
+
+  private static RelDataType unwrapDatetimeCast(RexNode projection, RelDataType fallback) {
+    if (!isDatetimeToVarcharCast(projection)) {
+      return fallback;
+    }
+    return ((RexCall) projection).getOperands().get(0).getType();
   }
 
   private ExprType convertType(RelDataType type) {
