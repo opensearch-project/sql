@@ -259,4 +259,96 @@ public class UnifiedQueryPlannerSqlTest extends UnifiedQueryTestBase {
             """)
         .assertErrorMessage("Encountered");
   }
+
+  @Test
+  public void testSqlLimitOffset() {
+    givenQuery(
+            """
+            SELECT name
+            FROM catalog.employees
+            LIMIT 10 OFFSET 5\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1])
+              LogicalSort(offset=[5], fetch=[10])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlAggregateWithAlias() {
+    givenQuery(
+            """
+            SELECT department, COUNT(*) AS cnt
+            FROM catalog.employees
+            GROUP BY department\
+            """)
+        .assertPlan(
+            """
+            LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+              LogicalProject(department=[$3])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlGroupByWithoutBucketNullable() {
+    givenQuery(
+            """
+            SELECT age, COUNT(*) AS cnt
+            FROM catalog.employees
+            GROUP BY age\
+            """)
+        .assertPlan(
+            """
+            LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+              LogicalProject(age=[$2])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlSelectWithAlias() {
+    givenQuery(
+            """
+            SELECT age AS employee_age, name AS employee_name
+            FROM catalog.employees\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(employee_age=[$2], employee_name=[$1])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlDerivedTableInFromClause() {
+    // SELECT ... FROM (SELECT ...) AS t — exercises visitRelationSubquery override.
+    givenQuery(
+            """
+            SELECT t.id
+            FROM (SELECT id, name FROM catalog.employees WHERE age > 30) AS t\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(t.id=[$0])
+              LogicalFilter(condition=[>($2, 30)])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlSelectWithoutFromClause() {
+    // SELECT 1 — exercises visitValues dual-table case (single empty row).
+    givenQuery(
+            """
+            SELECT 1\
+            """)
+        .assertPlan(
+            """
+            LogicalSort(sort0=[$0], dir0=[ASC])
+              LogicalValues(tuples=[[]])
+            """);
+  }
 }

@@ -132,6 +132,7 @@ import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
@@ -146,6 +147,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
+import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.ReplacePair;
@@ -542,7 +544,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
         }
         case Alias alias -> {
-          expandedFields.add(rexVisitor.analyze(alias, context));
+          // SQL aggregate aliases (e.g., COUNT(*) AS cnt): reference the already-computed field
+          // and rebind under the user's alias, since re-analyzing the alias returns null.
+          if (alias.getDelegated() instanceof AggregateFunction
+              && alias.getName() != null
+              && currentFields.contains(alias.getName())) {
+            String displayName =
+                Strings.isNullOrEmpty(alias.getAlias()) ? alias.getName() : alias.getAlias();
+            expandedFields.add(
+                context.relBuilder.alias(context.relBuilder.field(alias.getName()), displayName));
+          } else {
+            expandedFields.add(rexVisitor.analyze(alias, context));
+          }
         }
         default ->
             throw new IllegalStateException(
@@ -763,6 +776,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitHead(Head node, CalcitePlanContext context) {
     visitChildren(node, context);
     context.relBuilder.limit(node.getFrom(), node.getSize());
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitLimit(Limit node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    context.relBuilder.limit(node.getOffset(), node.getLimit());
     return context.relBuilder.peek();
   }
 
@@ -1624,7 +1644,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
     Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
-    Boolean bucketNullable = (Boolean) statsArgs.get(Argument.BUCKET_NULLABLE).getValue();
+    // SQL aggregations don't carry the PPL-only BUCKET_NULLABLE argument; default to true.
+    boolean bucketNullable =
+        (Boolean) statsArgs.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
     int nGroup = node.getGroupExprList().size() + (Objects.nonNull(node.getSpan()) ? 1 : 0);
     BitSet nonNullGroupMask = new BitSet(nGroup);
     if (!bucketNullable) {
@@ -1928,6 +1950,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitSubqueryAlias(SubqueryAlias node, CalcitePlanContext context) {
     visitChildren(node, context);
     context.relBuilder.as(node.getAlias());
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitRelationSubquery(RelationSubquery node, CalcitePlanContext context) {
+    // Handle SQL derived tables in FROM clause: SELECT ... FROM (SELECT ...) AS t.
+    visitChildren(node, context);
+    context.relBuilder.as(node.getAliasAsTableName());
     return context.relBuilder.peek();
   }
 
@@ -4125,12 +4155,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitValues(Values values, CalcitePlanContext context) {
-    if (values.getValues() == null || values.getValues().isEmpty()) {
+    // Accept SQL SELECT without FROM (dual table), encoded as Values([[]]) — one row, zero columns.
+    List<List<Literal>> rows = values.getValues();
+    if (rows == null || rows.isEmpty() || (rows.size() == 1 && rows.get(0).isEmpty())) {
       context.relBuilder.values(context.relBuilder.getTypeFactory().builder().build());
       return context.relBuilder.peek();
-    } else {
-      throw new CalciteUnsupportedException("Explicit values node is unsupported in Calcite");
     }
+    throw new CalciteUnsupportedException("Inline VALUES with literal rows is unsupported");
   }
 
   @Override
