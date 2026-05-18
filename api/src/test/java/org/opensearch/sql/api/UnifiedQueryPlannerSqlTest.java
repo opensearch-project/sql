@@ -261,6 +261,64 @@ public class UnifiedQueryPlannerSqlTest extends UnifiedQueryTestBase {
   }
 
   @Test
+  public void testSqlWindowFunctionWithOrderBy() {
+    givenQuery(
+            """
+            SELECT name, SUM(age) OVER (PARTITION BY department ORDER BY id) AS running_sum
+            FROM catalog.employees\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], running_sum=[SUM($2) OVER (PARTITION BY $3 ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlWindowRowNumber() {
+    givenQuery(
+            """
+            SELECT name, ROW_NUMBER() OVER (ORDER BY id) AS rn
+            FROM catalog.employees\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], rn=[ROW_NUMBER() OVER (ORDER BY $0)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlWindowDistinctAggregate() {
+    givenQuery(
+            """
+            SELECT name, COUNT(DISTINCT department) OVER (PARTITION BY department) AS dist_cnt
+            FROM catalog.employees\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], dist_cnt=[COUNT(DISTINCT $3) OVER (PARTITION BY $3)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlIsNullFunction() {
+    // ISNULL(field) — exercises the ISNULL alias registration in PPLFuncImpTable.
+    // Calcite constant-folds to false since test schema columns are NOT NULL.
+    givenQuery(
+            """
+            SELECT ISNULL(department) AS is_null
+            FROM catalog.employees\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(is_null=[false])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
   public void testSqlLimitOffset() {
     givenQuery(
             """
