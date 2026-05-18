@@ -96,7 +96,7 @@ PUT /_plugins/_query/settings
 }
 ```
 
-## Example 1: Join two indexes  
+## Example 1: Joining two indexes
 
 The following query uses the basic `join` syntax to join two indexes:
   
@@ -122,7 +122,7 @@ fetched rows / total rows = 5/5
 ```
   
 
-## Example 2: Join with a subsearch  
+## Example 2: Joining with a subsearch
 
 The following query combines a dataset with a subsearch using the basic `join` syntax:
   
@@ -151,7 +151,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 3: Join using a field list  
+## Example 3: Joining using a field list
 
 The following query uses the extended syntax and specifies a list of fields for the join criteria:
   
@@ -180,7 +180,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 4: Join with additional options  
+## Example 4: Joining with additional options
 
 The following query uses the extended syntax and optional parameters for more control over the join operation:
   
