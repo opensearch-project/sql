@@ -28,6 +28,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CountStarF
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DataTypeFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DateLiteralContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DistinctCountFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ExistsSubqueryExpressionAtomContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ExtractFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilterClauseContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilteredAggregationFunctionCallContext;
@@ -35,6 +36,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FunctionAr
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.GetFormatFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.HighlightFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.InPredicateContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.InSubqueryPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IsNullPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.LikePredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MathExpressionAtomContext;
@@ -82,6 +84,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
@@ -667,5 +670,18 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
             new Literal(ctx.extractFunction().datetimePart().getText(), DataType.STRING),
             visitFunctionArg(ctx.extractFunction().functionArg()));
     return args;
+  }
+
+  @Override
+  public UnresolvedExpression visitInSubqueryPredicate(InSubqueryPredicateContext ctx) {
+    throw new SyntaxCheckException(
+        "IN subquery is not supported in the V2 SQL engine. Falling back to legacy engine.");
+  }
+
+  @Override
+  public UnresolvedExpression visitExistsSubqueryExpressionAtom(
+      ExistsSubqueryExpressionAtomContext ctx) {
+    throw new SyntaxCheckException(
+        "EXISTS subquery is not supported in the V2 SQL engine. Falling back to legacy engine.");
   }
 }

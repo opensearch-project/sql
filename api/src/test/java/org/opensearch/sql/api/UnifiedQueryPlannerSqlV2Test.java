@@ -142,4 +142,80 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
                   LogicalTableScan(table=[[catalog, departments]])
             """);
   }
+
+  @Test
+  public void testInSubquery() {
+    givenQuery(
+            """
+            SELECT name FROM catalog.employees
+              WHERE age IN (SELECT age FROM catalog.departments WHERE dept_name = 'Engineering')
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1])
+              LogicalFilter(condition=[IN($2, {
+            LogicalProject(age=[$cor0.age])
+              LogicalFilter(condition=[=($1, 'Engineering')])
+                LogicalTableScan(table=[[catalog, departments]])
+            })], variablesSet=[[$cor0]])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testExistsSubquery() {
+    givenQuery(
+            """
+            SELECT name FROM catalog.employees
+              WHERE EXISTS (SELECT 1 FROM catalog.departments WHERE dept_id = age)
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1])
+              LogicalFilter(condition=[EXISTS({
+            LogicalProject(1=[1])
+              LogicalFilter(condition=[=($0, $cor0.age)])
+                LogicalTableScan(table=[[catalog, departments]])
+            })], variablesSet=[[$cor0]])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testNotInSubquery() {
+    givenQuery(
+            """
+            SELECT name FROM catalog.employees
+              WHERE age NOT IN (SELECT age FROM catalog.departments WHERE dept_name = 'Engineering')
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1])
+              LogicalFilter(condition=[NOT(IN($2, {
+            LogicalProject(age=[$cor0.age])
+              LogicalFilter(condition=[=($1, 'Engineering')])
+                LogicalTableScan(table=[[catalog, departments]])
+            }))], variablesSet=[[$cor0]])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testNotExistsSubquery() {
+    givenQuery(
+            """
+            SELECT name FROM catalog.employees
+              WHERE NOT EXISTS (SELECT 1 FROM catalog.departments WHERE dept_id = age)
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1])
+              LogicalFilter(condition=[NOT(EXISTS({
+            LogicalProject(1=[1])
+              LogicalFilter(condition=[=($0, $cor0.age)])
+                LogicalTableScan(table=[[catalog, departments]])
+            }))], variablesSet=[[$cor0]])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
 }

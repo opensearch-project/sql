@@ -756,4 +756,18 @@ class AstBuilderTest extends AstBuilderTestBase {
         };
     assertNotNull(new SQLSyntaxParser().parse(query).accept(builder));
   }
+
+  @Test
+  public void in_subquery_throws_syntax_check_exception() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildAST("SELECT * FROM t WHERE age IN (SELECT age FROM t2)"));
+  }
+
+  @Test
+  public void exists_subquery_throws_syntax_check_exception() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildAST("SELECT * FROM t WHERE EXISTS (SELECT 1 FROM t2)"));
+  }
 }

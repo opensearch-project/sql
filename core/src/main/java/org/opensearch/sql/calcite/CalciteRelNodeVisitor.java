@@ -541,6 +541,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .filter(addedFields::add)
               .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
         }
+        case Alias alias -> {
+          expandedFields.add(rexVisitor.analyze(alias, context));
+        }
         default ->
             throw new IllegalStateException(
                 "Unexpected expression type in project list: " + expr.getClass().getSimpleName());
