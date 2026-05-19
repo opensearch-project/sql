@@ -10,6 +10,7 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.calcite.rel.RelNode;
@@ -17,7 +18,9 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -214,13 +217,14 @@ public class RestUnifiedQueryAction {
    * node. Uses the context's parser which supports both PPL and SQL.
    */
   private static Optional<String> extractIndexName(
-      String query, QueryType queryType, UnifiedQueryContext context) {
+      String query, QueryType queryType, UnifiedQueryContext context) throws Exception {
     if (queryType == QueryType.PPL) {
       UnresolvedPlan unresolvedPlan = (UnresolvedPlan) context.getParser().parse(query);
       return Optional.ofNullable(unresolvedPlan.accept(new IndexNameExtractor(), null));
     }
-    SqlNode sqlNode = (SqlNode) context.getParser().parse(query);
-    return Optional.ofNullable(extractTableNameFromSqlNode(sqlNode));
+    SqlNode sqlNode = SqlParser.create(query).parseQuery();
+    String tableName = extractTableNameFromSqlNode(sqlNode);
+    return Optional.ofNullable(tableName != null ? tableName.toLowerCase(Locale.ROOT) : null);
   }
 
   /** AST visitor that extracts the source index name from a Relation node (PPL path). */
@@ -235,6 +239,9 @@ public class RestUnifiedQueryAction {
   private static class SqlTableNameExtractor extends SqlBasicVisitor<String> {
     @Override
     public String visit(SqlCall call) {
+      if (call instanceof SqlOrderBy orderBy) {
+        return orderBy.query.accept(this);
+      }
       if (call instanceof SqlSelect select) {
         return select.getFrom().accept(this);
       }

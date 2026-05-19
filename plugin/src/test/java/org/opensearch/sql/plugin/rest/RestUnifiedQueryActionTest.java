@@ -66,6 +66,29 @@ public class RestUnifiedQueryActionTest {
   }
 
   @Test
+  public void sqlQueryRoutesToAnalyticsForCompositeIndex() {
+    registerIndex(
+        "parquet_logs",
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+            .build());
+
+    assertTrue(action.isAnalyticsIndex("SELECT ts, msg FROM parquet_logs", QueryType.SQL));
+    assertTrue(action.isAnalyticsIndex("SELECT ts FROM parquet_logs LIMIT 10", QueryType.SQL));
+    assertTrue(
+        action.isAnalyticsIndex(
+            "SELECT score, name FROM parquet_logs WHERE score > 90", QueryType.SQL));
+  }
+
+  @Test
+  public void sqlQueryRoutesToLuceneForNonCompositeIndex() {
+    registerIndex("plain_logs", Settings.EMPTY);
+
+    assertFalse(action.isAnalyticsIndex("SELECT ts FROM plain_logs", QueryType.SQL));
+  }
+
+  @Test
   public void pluggableEnabledButLuceneFormatRoutesToLucene() {
     registerIndex(
         "lucene_logs",
