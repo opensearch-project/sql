@@ -17,13 +17,13 @@ import org.opensearch.sql.api.spec.LanguageSpec.LanguageExtension;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 
-/** Datetime language extension that normalizes UDT types and casts output for wire-format. */
+/** Datetime language extension that normalizes datetime UDT types to standard Calcite types. */
 public class DatetimeExtension implements LanguageExtension {
 
   @Override
   public List<RelShuttle> postAnalysisRules() {
-    // Fresh instances per plan() because RelHomogeneousShuttle inherits a stateful stack.
-    return List.of(new DatetimeUdtNormalizeRule(), new DatetimeOutputCastRule());
+    // Fresh instance per plan() because RelHomogeneousShuttle inherits a stateful stack.
+    return List.of(new DatetimeUdtNormalizeRule());
   }
 
   /** Maps datetime UDT types to their standard Calcite equivalents. */
@@ -44,11 +44,6 @@ public class DatetimeExtension implements LanguageExtension {
       }
       ExprUDT udt = e.getUdt();
       return Arrays.stream(values()).filter(u -> u.udtType == udt).findFirst();
-    }
-
-    /** Returns true if the given SqlTypeName is a standard datetime type. */
-    static boolean isDatetimeType(SqlTypeName typeName) {
-      return Arrays.stream(values()).anyMatch(u -> u.stdType == typeName);
     }
   }
 }

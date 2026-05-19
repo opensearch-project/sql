@@ -31,10 +31,9 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  *
  * <p>The test methods here fire many queries through a thread pool to exercise concurrent {@code
  * plan()} invocations. New planner-level concurrency / state-isolation regressions belong in this
- * class. The current cases cover {@code DatetimeExtension}'s {@code RelHomogeneousShuttle}
- * subclasses ({@code DatetimeUdtNormalizeRule}, {@code DatetimeOutputCastRule}) which were
- * previously returned as static {@code INSTANCE}s and caused the production failure that motivated
- * this suite.
+ * class. The current cases cover {@code DatetimeExtension}'s {@code RelHomogeneousShuttle} subclass
+ * {@code DatetimeUdtNormalizeRule}, which was previously returned as a static {@code INSTANCE} and
+ * caused the production failure that motivated this suite.
  *
  * <p>Run via:
  *
