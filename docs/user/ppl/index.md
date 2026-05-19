@@ -55,6 +55,7 @@ source=accounts
 | [bin command](cmd/bin.md) | 3.3 | experimental (since 3.3) | Group numeric values into buckets of equal intervals. |
 | [timechart command](cmd/timechart.md) | 3.3 | experimental (since 3.3) | Create time-based charts and visualizations. |
 | [chart command](cmd/chart.md) | 3.4 | experimental (since 3.4) | Apply statistical aggregations to search results and group the data for visualizations. |
+| [cluster command](cmd/cluster.md) | 3.7 | experimental (since 3.7) | Group documents into clusters based on text similarity using various clustering algorithms. |
 | [trendline command](cmd/trendline.md) | 3.0 | experimental (since 3.0) | Calculate moving averages of fields. |
 | [sort command](cmd/sort.md) | 1.0 | stable (since 1.0) | Sort all the search results by the specified fields. |
 | [reverse command](cmd/reverse.md) | 3.2 | experimental (since 3.2) | Reverse the display order of search results. |

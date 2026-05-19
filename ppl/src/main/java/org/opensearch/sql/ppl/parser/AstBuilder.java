@@ -1131,6 +1131,41 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Kmeans(builder.build());
   }
 
+  /** Cluster command. */
+  @Override
+  public UnresolvedPlan visitClusterCommand(OpenSearchPPLParser.ClusterCommandContext ctx) {
+    UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
+
+    double threshold = 0.8;
+    String matchMode = "termlist";
+    String labelField = "cluster_label";
+    String countField = "cluster_count";
+    boolean labelOnly = false;
+    boolean showCount = false;
+    String delims = "non-alphanumeric";
+
+    for (OpenSearchPPLParser.ClusterParameterContext param : ctx.clusterParameter()) {
+      if (param.match != null) {
+        matchMode = param.match.getText().toLowerCase(java.util.Locale.ROOT);
+      } else if (param.labelfield != null) {
+        labelField = StringUtils.unquoteText(param.labelfield.getText());
+      } else if (param.countfield != null) {
+        countField = StringUtils.unquoteText(param.countfield.getText());
+      } else if (param.labelonly != null) {
+        labelOnly = Boolean.parseBoolean(param.labelonly.getText());
+      } else if (param.showcount != null) {
+        showCount = Boolean.parseBoolean(param.showcount.getText());
+      } else if (param.delims != null) {
+        delims = StringUtils.unquoteText(param.delims.getText());
+      } else if (param.t != null) {
+        threshold = Double.parseDouble(param.t.getText());
+      }
+    }
+
+    return new org.opensearch.sql.ast.tree.Cluster(
+        sourceField, threshold, matchMode, labelField, countField, labelOnly, showCount, delims);
+  }
+
   /** AD command. */
   @Override
   public UnresolvedPlan visitAdCommand(AdCommandContext ctx) {
