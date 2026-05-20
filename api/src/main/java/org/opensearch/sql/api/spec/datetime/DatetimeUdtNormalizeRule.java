@@ -6,8 +6,6 @@
 package org.opensearch.sql.api.spec.datetime;
 
 import java.util.Optional;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -22,11 +20,11 @@ import org.opensearch.sql.api.spec.datetime.DatetimeExtension.UdtMapping;
 /**
  * Temporary patch that rewrites datetime UDT return types on RexCall nodes to standard Calcite
  * types.
+ *
+ * <p>Not a singleton: {@link RelHomogeneousShuttle} inherits a stateful {@code stack} field from
+ * {@link org.apache.calcite.rel.RelShuttleImpl}, so a fresh instance must be used per plan().
  */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
 class DatetimeUdtNormalizeRule extends RelHomogeneousShuttle {
-
-  static final DatetimeUdtNormalizeRule INSTANCE = new DatetimeUdtNormalizeRule();
 
   @Override
   public RelNode visit(RelNode other) {

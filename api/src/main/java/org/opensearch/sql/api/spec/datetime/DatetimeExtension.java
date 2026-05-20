@@ -22,7 +22,8 @@ public class DatetimeExtension implements LanguageExtension {
 
   @Override
   public List<RelShuttle> postAnalysisRules() {
-    return List.of(DatetimeUdtNormalizeRule.INSTANCE, DatetimeOutputCastRule.INSTANCE);
+    // Fresh instances per plan() because RelHomogeneousShuttle inherits a stateful stack.
+    return List.of(new DatetimeUdtNormalizeRule(), new DatetimeOutputCastRule());
   }
 
   /** Maps datetime UDT types to their standard Calcite equivalents. */
