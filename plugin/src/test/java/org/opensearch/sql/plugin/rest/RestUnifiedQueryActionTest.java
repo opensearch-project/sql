@@ -90,9 +90,74 @@ public class RestUnifiedQueryActionTest {
   }
 
   @Test
+  public void sqlQueryRoutesToAnalyticsForPluggableIndex() {
+    registerIndex(
+        "parquet_logs",
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+            .build());
+
+    assertTrue(action.isAnalyticsIndex("SELECT * FROM parquet_logs", QueryType.SQL));
+    assertTrue(
+        action.isAnalyticsIndex(
+            "SELECT ts, level FROM parquet_logs WHERE level = 'ERROR'", QueryType.SQL));
+  }
+
+  @Test
+  public void sqlQueryWithSchemaRoutesToAnalytics() {
+    registerIndex(
+        "parquet_logs",
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+            .build());
+
+    assertTrue(action.isAnalyticsIndex("SELECT * FROM opensearch.parquet_logs", QueryType.SQL));
+  }
+
+  @Test
+  public void sqlQueryRoutesToLuceneForNonPluggableIndex() {
+    registerIndex("plain_logs", Settings.EMPTY);
+
+    assertFalse(action.isAnalyticsIndex("SELECT * FROM plain_logs", QueryType.SQL));
+  }
+
+  @Test
+  public void sqlQueryRoutesToLuceneForMissingIndex() {
+    assertFalse(action.isAnalyticsIndex("SELECT * FROM does_not_exist", QueryType.SQL));
+  }
+
+  @Test
   public void nullAndEmptyQueriesRouteToLucene() {
     assertFalse(action.isAnalyticsIndex(null, QueryType.PPL));
     assertFalse(action.isAnalyticsIndex("", QueryType.PPL));
+    assertFalse(action.isAnalyticsIndex(null, QueryType.SQL));
+    assertFalse(action.isAnalyticsIndex("", QueryType.SQL));
+  }
+
+  @Test
+  public void showStatementRoutesToLucene() {
+    registerIndex(
+        "parquet_logs",
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+            .build());
+
+    assertFalse(action.isAnalyticsIndex("SHOW TABLES LIKE 'parquet_logs'", QueryType.SQL));
+  }
+
+  @Test
+  public void describeStatementRoutesToLucene() {
+    registerIndex(
+        "parquet_logs",
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+            .build());
+
+    assertFalse(action.isAnalyticsIndex("DESCRIBE TABLES LIKE 'parquet_logs'", QueryType.SQL));
   }
 
   private void registerIndex(String name, Settings settings) {
