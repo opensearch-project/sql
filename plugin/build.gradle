@@ -160,7 +160,7 @@ dependencies {
 
     api project(":ppl")
     api project(':api')
-    implementation 'org.opensearch.sandbox:analytics-api:3.7.0-SNAPSHOT'
+    implementation "org.opensearch.sandbox:analytics-api:${opensearch_version.tokenize('-')[0]}-SNAPSHOT"
     api project(':legacy')
     api project(':opensearch')
     api project(':prometheus')
