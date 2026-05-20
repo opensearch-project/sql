@@ -13,12 +13,6 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 import java.util.Map;
 import java.util.Optional;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlJoin;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -215,12 +209,8 @@ public class RestUnifiedQueryAction {
    */
   private static Optional<String> extractIndexName(
       String query, QueryType queryType, UnifiedQueryContext context) {
-    if (queryType == QueryType.PPL) {
-      UnresolvedPlan unresolvedPlan = (UnresolvedPlan) context.getParser().parse(query);
-      return Optional.ofNullable(unresolvedPlan.accept(new IndexNameExtractor(), null));
-    }
-    SqlNode sqlNode = (SqlNode) context.getParser().parse(query);
-    return Optional.ofNullable(extractTableNameFromSqlNode(sqlNode));
+    UnresolvedPlan unresolvedPlan = (UnresolvedPlan) context.getParser().parse(query);
+    return Optional.ofNullable(unresolvedPlan.accept(new IndexNameExtractor(), null));
   }
 
   /** AST visitor that extracts the source index name from a Relation node (PPL path). */
@@ -229,29 +219,6 @@ public class RestUnifiedQueryAction {
     public String visitRelation(Relation node, Void context) {
       return node.getTableQualifiedName().toString();
     }
-  }
-
-  /** SqlNode visitor that extracts the source table name from a SQL parse tree. */
-  private static class SqlTableNameExtractor extends SqlBasicVisitor<String> {
-    @Override
-    public String visit(SqlCall call) {
-      if (call instanceof SqlSelect select) {
-        return select.getFrom().accept(this);
-      }
-      if (call instanceof SqlJoin join) {
-        return join.getLeft().accept(this);
-      }
-      return null;
-    }
-
-    @Override
-    public String visit(SqlIdentifier id) {
-      return id.toString();
-    }
-  }
-
-  private static String extractTableNameFromSqlNode(SqlNode sqlNode) {
-    return sqlNode.accept(new SqlTableNameExtractor());
   }
 
   private static RelNode addQuerySizeLimit(RelNode plan, CalcitePlanContext context) {
