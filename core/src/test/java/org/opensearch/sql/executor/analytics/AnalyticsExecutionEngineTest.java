@@ -6,6 +6,7 @@
 package org.opensearch.sql.executor.analytics;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,9 +21,12 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.BeforeEach;
@@ -274,6 +278,55 @@ class AnalyticsExecutionEngineTest {
             + errorRef.get().getClass().getSimpleName()
             + " - "
             + errorRef.get().getMessage());
+  }
+
+  // --- Subquery-removal discriminator (see {@link AnalyticsExecutionEngine#containsSubQuery}) ---
+  //
+  // {@code containsSubQuery} gates the SubQueryRemoveRule + RelDecorrelator chain we run inside
+  // {@code execute()} / {@code explain()}. The chain is Calcite-tested, but the *discriminator*
+  // is plugin code; if it falsely returns true for a vanilla mock RelNode the existing
+  // execute-path tests in this class break with "NullPointerException: cluster" inside HepPlanner.
+  // If it falsely returns false on a plan that does contain a RexSubQuery, the EXISTS-subquery
+  // regression we shipped this fix for would silently reappear.
+
+  @Test
+  void containsSubQuery_falseForPlanWithoutSubQuery() {
+    // A plain mocked RelNode has no RexNodes — Mockito default returns null from accept(...),
+    // which keeps the shuttle from ever reaching visitSubQuery.
+    RelNode plan = mock(RelNode.class);
+
+    assertFalse(
+        AnalyticsExecutionEngine.containsSubQuery(plan),
+        "containsSubQuery should report false on a plan with no RexSubQuery — otherwise the"
+            + " HepPlanner / RelDecorrelator path would fire on plans that have no subqueries to"
+            + " remove (and on tests that pass mocked RelNodes without a real cluster).");
+  }
+
+  @Test
+  void containsSubQuery_trueWhenRelNodeExposesRexSubQueryDuringTraversal() {
+    // Stub the RelNode.accept(RexShuttle) call to feed a RexSubQuery into the shuttle, mirroring
+    // what a real LogicalFilter(condition=[EXISTS(subq)]) would do during traversal.
+    RelNode plan = mock(RelNode.class);
+    RexSubQuery subQuery = mock(RexSubQuery.class);
+    when(plan.accept(any(RelShuttle.class)))
+        .thenAnswer(
+            inv -> {
+              RelShuttle shuttle = inv.getArgument(0);
+              return shuttle.visit(plan);
+            });
+    when(plan.accept(any(RexShuttle.class)))
+        .thenAnswer(
+            inv -> {
+              RexShuttle rex = inv.getArgument(0);
+              rex.visitSubQuery(subQuery);
+              return null;
+            });
+
+    assertTrue(
+        AnalyticsExecutionEngine.containsSubQuery(plan),
+        "containsSubQuery should detect a RexSubQuery surfaced through the node's"
+            + " accept(RexShuttle) — the discriminator is what gates the EXISTS/IN/SOME/ANY"
+            + " removal pass.");
   }
 
   // --- helpers ---

@@ -13,10 +13,13 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.core.action.ActionListener;
@@ -177,9 +180,38 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
           .build();
 
   private static RelNode removeSubQueries(RelNode plan, CalcitePlanContext context) {
+    // Fast-path: skip HEP + decorrelation entirely if the plan has no RexSubQuery. Avoids HEP
+    // overhead for the typical query and keeps the rewrite a no-op for callers (incl. unit tests)
+    // whose RelNodes don't have a real RelOptCluster wired up.
+    if (!containsSubQuery(plan)) {
+      return plan;
+    }
     HepPlanner planner = new HepPlanner(SUBQUERY_REMOVE_PROGRAM);
     planner.setRoot(plan);
     RelNode withCorrelates = planner.findBestExp();
     return RelDecorrelator.decorrelateQuery(withCorrelates, context.relBuilder);
+  }
+
+  /** Walks {@code plan} and returns {@code true} as soon as any {@link RexSubQuery} is found. */
+  static boolean containsSubQuery(RelNode plan) {
+    boolean[] found = {false};
+    RexShuttle rexFinder =
+        new RexShuttle() {
+          @Override
+          public org.apache.calcite.rex.RexNode visitSubQuery(RexSubQuery sub) {
+            found[0] = true;
+            return sub;
+          }
+        };
+    plan.accept(
+        new RelHomogeneousShuttle() {
+          @Override
+          public RelNode visit(RelNode node) {
+            if (found[0]) return node;
+            node.accept(rexFinder);
+            return found[0] ? node : super.visit(node);
+          }
+        });
+    return found[0];
   }
 }
