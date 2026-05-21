@@ -18,21 +18,23 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
- * Regression IT for the {@code DatetimeUdtNormalizeRule} / {@code DatetimeOutputCastRule}
- * singleton-stack-corruption bug.
+ * Integration tests for {@code UnifiedQueryPlanner} state isolation under concurrent load.
  *
- * <p>Both rules extend Calcite's {@code RelHomogeneousShuttle}, which inherits a stateful
- * non-thread-safe {@code ArrayDeque<RelNode>} stack from {@code RelShuttleImpl}. Earlier code
- * returned the same {@code INSTANCE} of each rule from {@code
- * DatetimeExtension.postAnalysisRules()} on every {@code UnifiedQueryPlanner.plan()} call. Under
- * parallel query load — exactly what a dashboard "field statistics" panel issues when it probes
- * every field in an index concurrently — multiple cluster threads call {@code plan()}
- * simultaneously and their push/pop on the shared stack interleave, leaving residual entries that
- * surface on a subsequent traversal as {@code NoSuchElementException} at {@code
- * RelShuttleImpl.visitChild} line 67 (the {@code stack.pop()} in the {@code finally} block).
+ * <p>The planner's post-analysis pipeline (extensions registered via {@code
+ * LanguageSpec.postAnalysisRules}) uses Calcite {@code RelShuttle} subclasses. {@code
+ * RelShuttleImpl} inherits a non-thread-safe {@code ArrayDeque<RelNode>} stack used by {@code
+ * visitChild}'s push/pop. Any extension that returns the same shuttle instance across {@code
+ * plan()} calls is unsafe under concurrent load: cluster threads call {@code plan()} simultaneously
+ * and their push/pop on the shared stack interleave, leaving residual entries that surface on a
+ * subsequent traversal as {@code NoSuchElementException} at {@code RelShuttleImpl.visitChild} line
+ * 67 (the {@code stack.pop()} in the {@code finally} block).
  *
- * <p>This IT reproduces the production failure by firing many {@code distinct_count} queries over
- * datetime fields concurrently against a parquet-backed (composite) index.
+ * <p>The test methods here fire many queries through a thread pool to exercise concurrent {@code
+ * plan()} invocations. New planner-level concurrency / state-isolation regressions belong in this
+ * class. The current cases cover {@code DatetimeExtension}'s {@code RelHomogeneousShuttle}
+ * subclasses ({@code DatetimeUdtNormalizeRule}, {@code DatetimeOutputCastRule}) which were
+ * previously returned as static {@code INSTANCE}s and caused the production failure that motivated
+ * this suite.
  *
  * <p>Run via:
  *
@@ -42,10 +44,10 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  *   -Dtests.clustername=runTask \
  *   -Dtests.analytics.force_routing=true \
  *   -Dtests.analytics.parquet_indices=true \
- *   --tests org.opensearch.sql.calcite.remote.CalciteDatetimeUdtNormalizeRegressionIT
+ *   --tests org.opensearch.sql.calcite.remote.CalcitePlannerConcurrencyIT
  * }</pre>
  */
-public class CalciteDatetimeUdtNormalizeRegressionIT extends PPLIntegTestCase {
+public class CalcitePlannerConcurrencyIT extends PPLIntegTestCase {
 
   /** Concurrency level — matches the rough parallelism of a dashboard field-stats panel. */
   private static final int PARALLELISM = 8;
@@ -83,8 +85,8 @@ public class CalciteDatetimeUdtNormalizeRegressionIT extends PPLIntegTestCase {
   @Test
   public void testConcurrentMixedDatetimePlans() throws Exception {
     // Mix three plan shapes: stats+distinct_count, plain field projection (datetime cast), and
-    // stats by a different field. Different plan shapes push the singleton shuttle through
-    // different visitChild call counts — making cross-query stack pollution more likely.
+    // stats by a different field. Different plan shapes push the planner's post-analysis shuttles
+    // through different visitChild call counts — amplifying any cross-query stack pollution.
     List<String> shapes =
         List.of(
             "source=%s | stats count() as field_count, distinct_count(epoch_millis) as"
@@ -101,8 +103,8 @@ public class CalciteDatetimeUdtNormalizeRegressionIT extends PPLIntegTestCase {
 
   /**
    * Fire all queries through a fixed-size thread pool. Asserts every query completes without
-   * exception. With the singleton bug present this triggers {@code NoSuchElementException} on at
-   * least one task once the stack interleaving corrupts state.
+   * exception. With a shuttle-state-leak bug present this triggers {@code NoSuchElementException}
+   * on at least one task once the stack interleaving corrupts state.
    */
   private void executeConcurrent(List<String> queries) throws Exception {
     var executor = Executors.newFixedThreadPool(PARALLELISM);
