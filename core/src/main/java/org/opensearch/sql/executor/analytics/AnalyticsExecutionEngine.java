@@ -10,9 +10,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.ast.statement.ExplainMode;
@@ -77,15 +82,16 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     // taken by SimpleJsonResponseFormatter sees the correct value.
     ProfileMetric execMetric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
     long execStart = System.nanoTime();
+    final RelNode executablePlan = removeSubQueries(plan, context);
 
     planExecutor.execute(
-        plan,
+        executablePlan,
         null,
         new ActionListener<>() {
           @Override
           public void onResponse(Iterable<Object[]> rows) {
             try {
-              List<RelDataTypeField> fields = plan.getRowType().getFieldList();
+              List<RelDataTypeField> fields = executablePlan.getRowType().getFieldList();
               List<ExprValue> results = convertRows(rows, fields);
               Schema schema = buildSchema(fields);
               execMetric.set(System.nanoTime() - execStart);
@@ -109,6 +115,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
       CalcitePlanContext context,
       ResponseListener<ExplainResponse> listener) {
     try {
+      plan = removeSubQueries(plan, context);
       String logical = RelOptUtil.toString(plan, mode.toExplainLevel());
       ExplainResponse response =
           new ExplainResponse(new ExplainResponseNodeV2(logical, null, null));
@@ -147,5 +154,32 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     } catch (IllegalArgumentException e) {
       return org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
     }
+  }
+
+  /**
+   * Converts every {@link org.apache.calcite.rex.RexSubQuery} in the plan to a {@code
+   * LogicalCorrelate}, then decorrelates back to standard join shapes (LEFT_SEMI / LEFT_ANTI /
+   * INNER). The analytics-engine planner has no RexSubQuery handler — it routes filter / project
+   * expressions through a {@code ScalarFunction} table that doesn't include EXISTS / IN / SOME /
+   * ANY operators, so an un-removed subquery surfaces as {@code "Unrecognized filter operator
+   * [EXISTS / EXISTS]"} at the filter rule. The legacy engine path picks this up implicitly inside
+   * Calcite's {@code RelRunner.prepareStatement}, which is skipped on the analytics route.
+   *
+   * <p>Scoped to the analytics path only — placing this on {@link AnalyticsExecutionEngine} (rather
+   * than on the central {@code UnifiedQueryPlanner}) keeps the legacy path's RelNode pipeline
+   * untouched.
+   */
+  private static final HepProgram SUBQUERY_REMOVE_PROGRAM =
+      new HepProgramBuilder()
+          .addRuleInstance(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+          .addRuleInstance(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
+          .addRuleInstance(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
+          .build();
+
+  private static RelNode removeSubQueries(RelNode plan, CalcitePlanContext context) {
+    HepPlanner planner = new HepPlanner(SUBQUERY_REMOVE_PROGRAM);
+    planner.setRoot(plan);
+    RelNode withCorrelates = planner.findBestExp();
+    return RelDecorrelator.decorrelateQuery(withCorrelates, context.relBuilder);
   }
 }
