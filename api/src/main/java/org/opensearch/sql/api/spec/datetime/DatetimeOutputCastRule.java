@@ -9,8 +9,6 @@ import static org.opensearch.sql.api.spec.datetime.DatetimeExtension.UdtMapping.
 
 import java.util.ArrayList;
 import java.util.List;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -21,11 +19,13 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-/** Wraps the root output with CAST(datetime → VARCHAR) for PPL wire-format compatibility. */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+/**
+ * Wraps the root output with CAST(datetime → VARCHAR) for PPL wire-format compatibility.
+ *
+ * <p>Not a singleton: {@link RelHomogeneousShuttle} inherits a stateful {@code stack} field from
+ * {@link org.apache.calcite.rel.RelShuttleImpl}, so a fresh instance must be used per plan().
+ */
 class DatetimeOutputCastRule extends RelHomogeneousShuttle {
-
-  static final DatetimeOutputCastRule INSTANCE = new DatetimeOutputCastRule();
 
   @Override
   public RelNode visit(RelNode other) {

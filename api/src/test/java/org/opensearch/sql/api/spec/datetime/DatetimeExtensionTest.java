@@ -155,6 +155,27 @@ public class DatetimeExtensionTest extends UnifiedQueryTestBase implements Resul
   }
 
   @Test
+  public void testSequentialPlanCallsDoNotCorruptShuttleStack() {
+    // Regression test: DatetimeUdtNormalizeRule extends RelHomogeneousShuttle which inherits a
+    // stateful Deque<RelNode> stack field. Earlier implementations used a static INSTANCE shared
+    // across all plan() calls; under workloads with aggregations (especially count + distinct_count
+    // over datetime columns), the shared stack would desynchronize and visitChild's pop would throw
+    // NoSuchElementException on subsequent plan calls. Running several distinct plans through the
+    // same context confirms each invocation gets a fresh shuttle.
+    for (int i = 0; i < 5; i++) {
+      planner.plan(
+          "source = catalog.events"
+              + " | stats count() as field_count, distinct_count(created_at) as distinct_count");
+      planner.plan(
+          "source = catalog.events"
+              + " | eval ts = TIMESTAMP(name)"
+              + " | stats count() as field_count, distinct_count(ts) as distinct_count");
+      planner.plan(
+          "source = catalog.events | where created_at > \"2024-01-01\" | fields hire_date");
+    }
+  }
+
+  @Test
   public void testOutputCastCanCompileAndExecute() throws Exception {
     RelNode plan =
         planner.plan("source = catalog.events | fields hire_date, start_time, created_at");
