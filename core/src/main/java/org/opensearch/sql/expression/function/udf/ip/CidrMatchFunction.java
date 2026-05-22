@@ -30,6 +30,9 @@ import org.opensearch.sql.expression.ip.IPFunctions;
  * <ul>
  *   <li>(STRING, STRING) -> BOOLEAN
  *   <li>(IP, STRING) -> BOOLEAN
+ *   <li>(BINARY, STRING) -> BOOLEAN — accepts VARBINARY-backed ip columns in the
+ *       analytics-engine schema; the backend's CidrMatchFunctionAdapter rewrites
+ *       these before they reach DataFusion.
  * </ul>
  */
 public class CidrMatchFunction extends ImplementorUDF {
@@ -50,7 +53,8 @@ public class CidrMatchFunction extends ImplementorUDF {
     return UDFOperandMetadata.wrapUDT(
         List.of(
             List.of(ExprCoreType.IP, ExprCoreType.STRING),
-            List.of(ExprCoreType.STRING, ExprCoreType.STRING)));
+            List.of(ExprCoreType.STRING, ExprCoreType.STRING),
+            List.of(ExprCoreType.BINARY, ExprCoreType.STRING)));
   }
 
   public static class CidrMatchImplementor implements NotNullImplementor {

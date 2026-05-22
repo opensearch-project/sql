@@ -909,19 +909,7 @@ public class PPLFuncImpTable {
       registerDivideFunction(DIVIDE);
       registerDivideFunction(DIVIDEFUNCTION);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
-      // CIDRMATCH typecheck-only registration. The runtime UDF (CidrMatchFunction)
-      // accepts (IP, STRING) and (STRING, STRING); the second register(...) below
-      // adds (BINARY, STRING) so calls against ip/binary columns (VARBINARY in the
-      // analytics-engine schema) typecheck and survive. The actual dispatch — literal
-      // const-fold and byte-range rewrite — happens downstream in
-      // analytics-backend-datafusion's CidrMatchFunctionAdapter, which runs in the
-      // analytics-engine plan walk and intercepts the call before Substrait conversion.
       registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);
-      register(
-          CIDRMATCH,
-          (FunctionImp2)
-              (builder, col, cidr) -> builder.makeCall(PPLBuiltinOperators.CIDRMATCH, col, cidr),
-          PPLTypeChecker.family(SqlTypeFamily.BINARY, SqlTypeFamily.STRING));
       registerOperator(INTERNAL_GROK, PPLBuiltinOperators.GROK);
       registerOperator(INTERNAL_PARSE, PPLBuiltinOperators.PARSE);
       registerOperator(MATCH, PPLBuiltinOperators.MATCH);

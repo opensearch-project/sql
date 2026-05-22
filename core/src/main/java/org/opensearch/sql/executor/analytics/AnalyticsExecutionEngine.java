@@ -160,9 +160,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
           return ExprValueUtils.stringValue(
               InetAddresses.toAddrString(InetAddress.getByAddress(bytes)));
         } catch (UnknownHostException e) {
-          // Defensive: backend gave us a buffer that isn't 4 or 16 bytes. Fall through to
-          // the default handling so the user sees a clear error rather than a malformed
-          // address string.
+          throw new IllegalStateException("invalid IP buffer length: " + bytes.length, e);
         }
       } else if (type instanceof BinaryType) {
         return ExprValueUtils.stringValue(Base64.getEncoder().encodeToString(bytes));
@@ -182,10 +180,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
 
   private ExprType convertType(RelDataType type) {
     try {
-      // Use the result-column variant so the response schema reports `ip` / `binary` for
-      // analytics-engine UDTs, while the planner's coercion path keeps using the basic
-      // {@link OpenSearchTypeFactory#convertRelDataTypeToExprType} that maps VARBINARY → BINARY.
-      return OpenSearchTypeFactory.convertResultColumnRelDataTypeToExprType(type);
+      return OpenSearchTypeFactory.convertAnalyticsEngineRelDataTypeToExprType(type);
     } catch (IllegalArgumentException e) {
       return org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
     }

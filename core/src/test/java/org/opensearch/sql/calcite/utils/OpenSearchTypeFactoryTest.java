@@ -286,45 +286,35 @@ public class OpenSearchTypeFactoryTest {
     assertTrue(result.isNullable());
   }
 
-  // ---------- convertResultColumnRelDataTypeToExprType ----------
-  //
-  // The result-column variant is the one called from
-  // {@code AnalyticsExecutionEngine.buildSchema} so the response reports
-  // {@code "type": "ip"} / {@code "binary"} for projected analytics-engine UDTs.
-  // It must add UDT recognition without disturbing the planner-internal
-  // {@link OpenSearchTypeFactory#convertRelDataTypeToExprType} path that
-  // Calcite's coercion machinery uses (a previous attempt to merge them broke
-  // {@code where host = '1.2.3.4'} with synthetic {@code IP(string)} casts).
+  // ---------- convertAnalyticsEngineRelDataTypeToExprType ----------
+  // UDT-aware variant for the response-schema path. Must agree with the
+  // planner-internal convertRelDataTypeToExprType on every non-UDT input.
 
   @Test
-  public void testConvertResultColumnIpTypeReturnsIpExprType() {
+  public void testConvertAnalyticsEngineIpTypeReturnsIpExprType() {
     ExprType result =
-        OpenSearchTypeFactory.convertResultColumnRelDataTypeToExprType(new IpType(true));
+        OpenSearchTypeFactory.convertAnalyticsEngineRelDataTypeToExprType(new IpType(true));
     assertEquals(ExprCoreType.IP, result);
   }
 
   @Test
-  public void testConvertResultColumnBinaryTypeReturnsBinaryExprType() {
+  public void testConvertAnalyticsEngineBinaryTypeReturnsBinaryExprType() {
     ExprType result =
-        OpenSearchTypeFactory.convertResultColumnRelDataTypeToExprType(new BinaryType(true));
+        OpenSearchTypeFactory.convertAnalyticsEngineRelDataTypeToExprType(new BinaryType(true));
     assertEquals(ExprCoreType.BINARY, result);
   }
 
   @Test
-  public void testConvertResultColumnPlainVarbinaryFallsBackToBinary() {
-    // Plain VARBINARY (no UDT marker) must keep returning BINARY ExprType — verifies
-    // the new function delegates to the original convertRelDataTypeToExprType for
-    // non-UDT inputs rather than diverging.
+  public void testConvertAnalyticsEnginePlainVarbinaryFallsBackToBinary() {
+    // Plain VARBINARY (no UDT) must still resolve to BINARY via the delegated path.
     RelDataType varbinary = TYPE_FACTORY.createSqlType(SqlTypeName.VARBINARY);
-    ExprType result = OpenSearchTypeFactory.convertResultColumnRelDataTypeToExprType(varbinary);
+    ExprType result = OpenSearchTypeFactory.convertAnalyticsEngineRelDataTypeToExprType(varbinary);
     assertEquals(ExprCoreType.BINARY, result);
   }
 
   @Test
-  public void testConvertResultColumnDelegatesParityForNonUdtTypes() {
-    // For every non-UDT RelDataType the result-column variant must produce the
-    // same ExprType as the planner-internal variant. Drift here would mean the
-    // response schema labels diverge from what Calcite's coercion sees.
+  public void testConvertAnalyticsEngineDelegatesParityForNonUdtTypes() {
+    // Parity check: drift would mean response-schema labels diverge from Calcite's view.
     RelDataType[] samples =
         new RelDataType[] {
           TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT),
@@ -336,8 +326,8 @@ public class OpenSearchTypeFactoryTest {
     for (RelDataType t : samples) {
       assertEquals(
           OpenSearchTypeFactory.convertRelDataTypeToExprType(t),
-          OpenSearchTypeFactory.convertResultColumnRelDataTypeToExprType(t),
-          "Result-column variant must agree with the general variant for " + t.getSqlTypeName());
+          OpenSearchTypeFactory.convertAnalyticsEngineRelDataTypeToExprType(t),
+          "Analytics-engine variant must agree with the general variant for " + t.getSqlTypeName());
     }
   }
 }

@@ -278,19 +278,15 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   }
 
   /**
-   * Same as {@link #convertRelDataTypeToExprType(RelDataType)} but additionally recognizes the
-   * analytics-engine {@link IpType} / {@link BinaryType} markers and returns {@link
-   * ExprCoreType#IP} / {@link ExprCoreType#BINARY} for them.
+   * Result-schema-only variant of {@link #convertRelDataTypeToExprType} that recognizes the
+   * analytics-engine {@link IpType} / {@link BinaryType} markers as {@link ExprCoreType#IP} /
+   * {@link ExprCoreType#BINARY}.
    *
-   * <p>This is intentionally <em>not</em> done in the general {@link #convertRelDataTypeToExprType}
-   * path: that function is consulted by Calcite's planner- internal type coercion, which would then
-   * call {@link #convertExprTypeToRelDataType} to generate {@code CAST(... AS ExprIPType)} casts
-   * that the analytics-engine substrait converter can't handle. Restrict the UDT recognition to the
-   * result-schema build site (currently {@code AnalyticsExecutionEngine.buildSchema}) so the
-   * planner sees plain {@code BINARY} the way it did before, while the response schema still
-   * reports {@code "type":"ip"} / {@code "type":"binary"}.
+   * <p>Kept off the general path because Calcite's planner-internal coercion would round-trip
+   * through {@link #convertExprTypeToRelDataType} and synthesize {@code CAST(... AS ExprIPType)}
+   * casts the substrait converter can't handle.
    */
-  public static ExprType convertResultColumnRelDataTypeToExprType(RelDataType type) {
+  public static ExprType convertAnalyticsEngineRelDataTypeToExprType(RelDataType type) {
     if (type instanceof IpType) {
       return IP;
     }

@@ -182,12 +182,7 @@ class AnalyticsExecutionEngineTest {
   // Query size limit is now enforced in the RelNode plan (LogicalSystemLimit) before it reaches
   // AnalyticsExecutionEngine. The engine trusts the executor to honor the limit.
 
-  /**
-   * IP columns ship from the analytics-engine backend as raw 16-byte ipv6-mapped buffers. {@code
-   * AnalyticsExecutionEngine.toExprValue} must format them as canonical IP strings (matching {@code
-   * InetAddresses.toAddrString}) and the schema must report {@code "type": "ip"} via the {@code
-   * IpType} UDT recognition path.
-   */
+  /** Raw 16-byte ipv6-mapped buffer + IpType → canonical IP string + schema reports "ip". */
   @Test
   void executeRelNode_ipColumnRendersAsAddressString() {
     RelNode relNode = mockRelNodeWithType("host", new IpType(true));
@@ -221,11 +216,7 @@ class AnalyticsExecutionEngineTest {
         "pure IPv6 buffer should render as RFC 5952 compressed form. " + dump);
   }
 
-  /**
-   * Binary columns ship from the analytics-engine backend as raw byte buffers. The dispatch must
-   * base64-encode them (matching the OpenSearch {@code binary} field wire contract) and the schema
-   * must report {@code "type": "binary"} via the {@code BinaryType} UDT recognition path.
-   */
+  /** Raw byte buffer + BinaryType → base64 string + schema reports "binary". */
   @Test
   void executeRelNode_binaryColumnRendersAsBase64() {
     RelNode relNode = mockRelNodeWithType("blob", new BinaryType(true));
@@ -443,11 +434,7 @@ class AnalyticsExecutionEngineTest {
     return relNode;
   }
 
-  /**
-   * Same shape as {@link #mockRelNode} but accepts a fully-built {@link RelDataType} per column, so
-   * callers can pass analytics-engine UDTs ({@link IpType}, {@link BinaryType}) — those don't have
-   * a matching {@link SqlTypeName} the type factory can construct.
-   */
+  /** Variant of {@link #mockRelNode} that accepts a pre-built RelDataType (e.g. UDTs). */
   private RelNode mockRelNodeWithType(String name, RelDataType type) {
     SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RelDataType rowType = typeFactory.builder().add(name, type).build();
