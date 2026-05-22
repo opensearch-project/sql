@@ -118,5 +118,40 @@ public interface QueryPlanAssertion {
           "Expected error to contain: " + expected + "\nActual: " + msg, msg.contains(expected));
       return this;
     }
+
+    /** Assert the outer error type matches the expected class. */
+    public QueryErrorAssert assertErrorType(Class<? extends Throwable> expected) {
+      assertTrue(
+          "Expected " + expected.getSimpleName() + " but got " + error.getClass().getSimpleName(),
+          expected.isInstance(error));
+      return this;
+    }
+
+    /** Assert the outer error message exactly matches expected. */
+    public QueryErrorAssert assertErrorMessageEquals(String expected) {
+      assertEquals(expected, error.getMessage());
+      return this;
+    }
+
+    /** Assert the outer error message contains the expected substring. */
+    public QueryErrorAssert assertErrorMessageContains(String substring) {
+      String msg = error.getMessage();
+      assertTrue(
+          "Expected message to contain '" + substring + "' but was: " + msg,
+          msg != null && msg.contains(substring));
+      return this;
+    }
+
+    /** Assert the immediate cause is of the expected type. */
+    public QueryErrorAssert assertCauseType(Class<? extends Throwable> expected) {
+      assertNotNull("Expected a cause but was null", error.getCause());
+      assertTrue(
+          "Expected cause "
+              + expected.getSimpleName()
+              + " but got "
+              + error.getCause().getClass().getSimpleName(),
+          expected.isInstance(error.getCause()));
+      return this;
+    }
   }
 }

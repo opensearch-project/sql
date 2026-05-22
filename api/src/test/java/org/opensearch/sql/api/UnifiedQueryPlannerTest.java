@@ -14,6 +14,7 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 
 public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
@@ -114,5 +115,33 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
   @Test(expected = SyntaxCheckException.class)
   public void testPlanPropagatingSyntaxCheckException() {
     planner.plan("source = catalog.employees | eval"); // Trigger syntax error from parser
+  }
+
+  @Test
+  public void syntaxErrorIsRethrownAsSyntaxCheckException() {
+    givenInvalidQuery("INVALID +++")
+        .assertErrorType(SyntaxCheckException.class)
+        .assertErrorMessageContains("is not a valid term");
+  }
+
+  @Test
+  public void semanticErrorIsRethrownAsSemanticCheckException() {
+    givenInvalidQuery("source = catalog.employees | rename id* as x*y*")
+        .assertErrorType(SemanticCheckException.class)
+        .assertErrorMessageEquals("Source and target patterns have different wildcard counts");
+  }
+
+  @Test
+  public void assertionErrorIsWrappedAsSemanticCheckException() {
+    // Remove when the underlying Calcite assertion is fixed.
+    givenInvalidQuery(
+            """
+            source = catalog.employees
+            | eval ts = timestamp('2024-01-01')
+            | stats max(ts)
+            """)
+        .assertErrorType(SemanticCheckException.class)
+        .assertErrorMessageEquals("Failed to plan query: invalid plan structure")
+        .assertCauseType(AssertionError.class);
   }
 }
