@@ -46,6 +46,8 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.analytics.schema.BinaryType;
+import org.opensearch.analytics.schema.IpType;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
@@ -273,6 +275,29 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           "Unsupported conversion for Relational Data type: " + type.getSqlTypeName());
     }
     return exprType;
+  }
+
+  /**
+   * Same as {@link #convertRelDataTypeToExprType(RelDataType)} but additionally recognizes the
+   * analytics-engine {@link IpType} / {@link BinaryType} markers and returns {@link
+   * ExprCoreType#IP} / {@link ExprCoreType#BINARY} for them.
+   *
+   * <p>This is intentionally <em>not</em> done in the general {@link #convertRelDataTypeToExprType}
+   * path: that function is consulted by Calcite's planner- internal type coercion, which would then
+   * call {@link #convertExprTypeToRelDataType} to generate {@code CAST(... AS ExprIPType)} casts
+   * that the analytics-engine substrait converter can't handle. Restrict the UDT recognition to the
+   * result-schema build site (currently {@code AnalyticsExecutionEngine.buildSchema}) so the
+   * planner sees plain {@code BINARY} the way it did before, while the response schema still
+   * reports {@code "type":"ip"} / {@code "type":"binary"}.
+   */
+  public static ExprType convertResultColumnRelDataTypeToExprType(RelDataType type) {
+    if (type instanceof IpType) {
+      return IP;
+    }
+    if (type instanceof BinaryType) {
+      return BINARY;
+    }
+    return convertRelDataTypeToExprType(type);
   }
 
   public static ExprValue getExprValueByExprType(ExprType type, Object value) {

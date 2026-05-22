@@ -270,7 +270,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
 
 import com.google.common.collect.ImmutableMap;
-import inet.ipaddr.IPAddress;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -285,7 +284,6 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLambda;
@@ -315,10 +313,8 @@ import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.CollectionUDF.MVIndexFunctionImp;
-import org.opensearch.sql.utils.IPUtils;
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
@@ -913,29 +909,18 @@ public class PPLFuncImpTable {
       registerDivideFunction(DIVIDE);
       registerDivideFunction(DIVIDEFUNCTION);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
+      // CIDRMATCH typecheck-only registration. The runtime UDF (CidrMatchFunction)
+      // accepts (IP, STRING) and (STRING, STRING); the second register(...) below
+      // adds (BINARY, STRING) so calls against ip/binary columns (VARBINARY in the
+      // analytics-engine schema) typecheck and survive. The actual dispatch — literal
+      // const-fold and byte-range rewrite — happens downstream in
+      // analytics-backend-datafusion's CidrMatchFunctionAdapter, which runs in the
+      // analytics-engine plan walk and intercepts the call before Substrait conversion.
       registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);
-      // (VARBINARY, VARCHAR) overload for ip / binary columns. The lambda parses the cidr
-      // literal at plan time and emits AND(col >= low, col <= high) directly.
-      // Only literal cidrs are expanded.
       register(
           CIDRMATCH,
           (FunctionImp2)
-              (builder, col, cidr) -> {
-                if (cidr instanceof RexLiteral lit
-                    && col.getType().getSqlTypeName() == SqlTypeName.VARBINARY) {
-                  byte[][] range = parseCidrToIpv6Range(lit.getValueAs(String.class));
-                  RelDataType varbinary =
-                      builder.getTypeFactory().createSqlType(SqlTypeName.VARBINARY);
-                  RexNode low = builder.makeLiteral(new ByteString(range[0]), varbinary, false);
-                  RexNode high = builder.makeLiteral(new ByteString(range[1]), varbinary, false);
-                  // makeCall(AND, ...) auto-flattens at construction, so no Filter.isFlat issue.
-                  return builder.makeCall(
-                      SqlStdOperatorTable.AND,
-                      builder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, col, low),
-                      builder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, col, high));
-                }
-                return builder.makeCall(PPLBuiltinOperators.CIDRMATCH, col, cidr);
-              },
+              (builder, col, cidr) -> builder.makeCall(PPLBuiltinOperators.CIDRMATCH, col, cidr),
           PPLTypeChecker.family(SqlTypeFamily.BINARY, SqlTypeFamily.STRING));
       registerOperator(INTERNAL_GROK, PPLBuiltinOperators.GROK);
       registerOperator(INTERNAL_PARSE, PPLBuiltinOperators.PARSE);
@@ -1626,23 +1611,5 @@ public class PPLFuncImpTable {
       return udfOperandMetadata.getInnerTypeChecker();
     }
     return typeChecker;
-  }
-
-  /**
-   * Parses a CIDR string and returns its lower and upper bounds in canonical 16-byte IPv6-mapped
-   * form. Used by the (BINARY, STRING) {@code cidrmatch} overload to expand into a byte-range
-   * conjunction at plan time.
-   *
-   * <p>Delegates to {@link IPUtils#toRange(String)} for parsing; converts both bounds to IPv6 to
-   * guarantee 16-byte output regardless of whether the input cidr is IPv4 or IPv6.
-   */
-  private static byte[][] parseCidrToIpv6Range(String cidr) {
-    if (cidr == null) {
-      throw new SemanticCheckException("cidrmatch range argument is null");
-    }
-    IPAddress range = IPUtils.toRange(cidr);
-    byte[] low = range.getLower().toIPv6().getBytes();
-    byte[] high = range.getUpper().toIPv6().getBytes();
-    return new byte[][] {low, high};
   }
 }

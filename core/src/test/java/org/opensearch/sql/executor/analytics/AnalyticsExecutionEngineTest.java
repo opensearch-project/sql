@@ -28,6 +28,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
+import org.opensearch.analytics.schema.BinaryType;
+import org.opensearch.analytics.schema.IpType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
@@ -179,6 +181,67 @@ class AnalyticsExecutionEngineTest {
 
   // Query size limit is now enforced in the RelNode plan (LogicalSystemLimit) before it reaches
   // AnalyticsExecutionEngine. The engine trusts the executor to honor the limit.
+
+  /**
+   * IP columns ship from the analytics-engine backend as raw 16-byte ipv6-mapped buffers. {@code
+   * AnalyticsExecutionEngine.toExprValue} must format them as canonical IP strings (matching {@code
+   * InetAddresses.toAddrString}) and the schema must report {@code "type": "ip"} via the {@code
+   * IpType} UDT recognition path.
+   */
+  @Test
+  void executeRelNode_ipColumnRendersAsAddressString() {
+    RelNode relNode = mockRelNodeWithType("host", new IpType(true));
+    // 1.2.3.4 in ipv4-mapped-ipv6 form: 10 zero bytes + ff ff + 4 IPv4 bytes.
+    byte[] ipv4 = new byte[16];
+    ipv4[10] = (byte) 0xff;
+    ipv4[11] = (byte) 0xff;
+    ipv4[12] = 1;
+    ipv4[13] = 2;
+    ipv4[14] = 3;
+    ipv4[15] = 4;
+    // ::1 in pure ipv6 form.
+    byte[] ipv6 = new byte[16];
+    ipv6[15] = 1;
+    Iterable<Object[]> rows = Arrays.asList(new Object[] {ipv4}, new Object[] {ipv6});
+    stubExecutorWith(relNode, rows);
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    // Schema: column reports "ip", not "binary".
+    assertEquals(ExprCoreType.IP, response.getSchema().getColumns().get(0).getExprType(), dump);
+    // Cells: byte[] → formatted address string.
+    assertEquals(
+        "1.2.3.4",
+        response.getResults().get(0).tupleValue().get("host").value(),
+        "ipv4-mapped IPv6 buffer should render as dotted quad. " + dump);
+    assertEquals(
+        "::1",
+        response.getResults().get(1).tupleValue().get("host").value(),
+        "pure IPv6 buffer should render as RFC 5952 compressed form. " + dump);
+  }
+
+  /**
+   * Binary columns ship from the analytics-engine backend as raw byte buffers. The dispatch must
+   * base64-encode them (matching the OpenSearch {@code binary} field wire contract) and the schema
+   * must report {@code "type": "binary"} via the {@code BinaryType} UDT recognition path.
+   */
+  @Test
+  void executeRelNode_binaryColumnRendersAsBase64() {
+    RelNode relNode = mockRelNodeWithType("blob", new BinaryType(true));
+    Iterable<Object[]> rows =
+        Collections.singletonList(new Object[] {"Some binary blob".getBytes()});
+    stubExecutorWith(relNode, rows);
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    assertEquals(ExprCoreType.BINARY, response.getSchema().getColumns().get(0).getExprType(), dump);
+    assertEquals(
+        "U29tZSBiaW5hcnkgYmxvYg==",
+        response.getResults().get(0).tupleValue().get("blob").value(),
+        "byte[] should base64-encode to match OpenSearch binary wire format. " + dump);
+  }
 
   @Test
   void executeRelNode_emptyResults() {
@@ -374,6 +437,20 @@ class AnalyticsExecutionEngineTest {
       builder.add(name, typeName);
     }
     RelDataType rowType = builder.build();
+
+    RelNode relNode = mock(RelNode.class);
+    when(relNode.getRowType()).thenReturn(rowType);
+    return relNode;
+  }
+
+  /**
+   * Same shape as {@link #mockRelNode} but accepts a fully-built {@link RelDataType} per column, so
+   * callers can pass analytics-engine UDTs ({@link IpType}, {@link BinaryType}) — those don't have
+   * a matching {@link SqlTypeName} the type factory can construct.
+   */
+  private RelNode mockRelNodeWithType(String name, RelDataType type) {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType rowType = typeFactory.builder().add(name, type).build();
 
     RelNode relNode = mock(RelNode.class);
     when(relNode.getRowType()).thenReturn(rowType);
