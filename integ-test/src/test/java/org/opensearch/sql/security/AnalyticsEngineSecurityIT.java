@@ -16,8 +16,8 @@ import org.opensearch.client.ResponseException;
 
 /**
  * Integration tests for analytics engine index-level authorization via the production SQL plugin
- * PPL endpoint. Verifies that queries on composite (analytics-engine-backed) indices are subject
- * to the {@code indices:data/read/analytics/query} permission check.
+ * PPL endpoint. Verifies that queries on composite (analytics-engine-backed) indices are subject to
+ * the {@code indices:data/read/analytics/query} permission check.
  */
 public class AnalyticsEngineSecurityIT extends SecurityTestBase {
 
@@ -55,8 +55,9 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
       try {
         Request req = new Request("GET", "/_plugins/_security/api/roles");
         RequestOptions.Builder opts = RequestOptions.DEFAULT.toBuilder();
-        opts.addHeader("Authorization", "Basic " +
-            java.util.Base64.getEncoder().encodeToString("admin:admin".getBytes()));
+        opts.addHeader(
+            "Authorization",
+            "Basic " + java.util.Base64.getEncoder().encodeToString("admin:admin".getBytes()));
         req.setOptions(opts);
         Response resp = client().performRequest(req);
         if (resp.getStatusLine().getStatusCode() == 200) return;
@@ -74,10 +75,13 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     createCompositeIndex(TEST_INDEX);
     Request bulk = new Request("POST", "/_bulk");
     bulk.addParameter("refresh", "true");
-    bulk.setJsonEntity(String.format(Locale.ROOT,
-        "{\"index\": {\"_index\": \"%s\"}}\n{\"name\": \"alice\", \"age\": 30}\n"
-        + "{\"index\": {\"_index\": \"%s\"}}\n{\"name\": \"bob\", \"age\": 25}\n",
-        TEST_INDEX, TEST_INDEX));
+    bulk.setJsonEntity(
+        String.format(
+            Locale.ROOT,
+            "{\"index\": {\"_index\": \"%s\"}}\n{\"name\": \"alice\", \"age\": 30}\n"
+                + "{\"index\": {\"_index\": \"%s\"}}\n{\"name\": \"bob\", \"age\": 25}\n",
+            TEST_INDEX,
+            TEST_INDEX));
     RequestOptions.Builder opts = RequestOptions.DEFAULT.toBuilder();
     opts.addHeader("Content-Type", "application/x-ndjson");
     bulk.setOptions(opts);
@@ -86,9 +90,11 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     createCompositeIndex(FORBIDDEN_INDEX);
     Request bulkF = new Request("POST", "/_bulk");
     bulkF.addParameter("refresh", "true");
-    bulkF.setJsonEntity(String.format(Locale.ROOT,
-        "{\"index\": {\"_index\": \"%s\"}}\n{\"name\": \"secret\", \"age\": 99}\n",
-        FORBIDDEN_INDEX));
+    bulkF.setJsonEntity(
+        String.format(
+            Locale.ROOT,
+            "{\"index\": {\"_index\": \"%s\"}}\n{\"name\": \"secret\", \"age\": 99}\n",
+            FORBIDDEN_INDEX));
     bulkF.setOptions(opts);
     client().performRequest(bulkF);
   }
@@ -96,7 +102,8 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
   private void createCompositeIndex(String index) throws IOException {
     try {
       Request req = new Request("PUT", "/" + index);
-      req.setJsonEntity("""
+      req.setJsonEntity(
+          """
           {
             "settings": {
               "number_of_shards": 1,
@@ -121,9 +128,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
         TEST_INDEX,
         new String[] {"cluster:admin/opensearch/ppl", "cluster:admin/opensearch/sql"},
         new String[] {
-          "indices:data/read*",
-          "indices:admin/mappings/get",
-          "indices:monitor/settings/get"
+          "indices:data/read*", "indices:admin/mappings/get", "indices:monitor/settings/get"
         });
     createUser(ALLOWED_USER, ALLOWED_ROLE);
 
@@ -133,9 +138,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
         "some_other_index",
         new String[] {"cluster:admin/opensearch/ppl", "cluster:admin/opensearch/sql"},
         new String[] {
-          "indices:data/read*",
-          "indices:admin/mappings/get",
-          "indices:monitor/settings/get"
+          "indices:data/read*", "indices:admin/mappings/get", "indices:monitor/settings/get"
         });
     createUser(DENIED_USER, DENIED_ROLE);
 
@@ -160,9 +163,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
         "analytics_security*",
         new String[] {"cluster:admin/opensearch/ppl", "cluster:admin/opensearch/sql"},
         new String[] {
-          "indices:data/read*",
-          "indices:admin/mappings/get",
-          "indices:monitor/settings/get"
+          "indices:data/read*", "indices:admin/mappings/get", "indices:monitor/settings/get"
         });
     createUser(WILDCARD_USER, WILDCARD_ROLE);
   }
@@ -172,27 +173,34 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     // Verify the request passes SecurityFilter (not 403). The query may fail post-auth
     // if the backend can't execute, but the FGAC check itself succeeded.
     try {
-      JSONObject result = executePPLAsUser(
-          "source = " + TEST_INDEX + " | fields name, age", ALLOWED_USER);
+      JSONObject result =
+          executePPLAsUser("source = " + TEST_INDEX + " | fields name, age", ALLOWED_USER);
       assertTrue("Expected datarows in response", result.has("datarows"));
     } catch (ResponseException e) {
       assertNotEquals(
           "Expected auth to pass (not 403) for authorized user",
-          403, e.getResponse().getStatusLine().getStatusCode());
+          403,
+          e.getResponse().getStatusLine().getStatusCode());
     }
   }
 
   @Test
   public void testPPLQueryDeniedForUnauthorizedUser() throws IOException {
-    ResponseException e = assertThrows(ResponseException.class, () ->
-        executePPLAsUser("source = " + TEST_INDEX + " | fields name, age", DENIED_USER));
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () -> executePPLAsUser("source = " + TEST_INDEX + " | fields name, age", DENIED_USER));
     assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
   }
 
   @Test
   public void testPPLQueryDeniedForForbiddenIndex() throws IOException {
-    ResponseException e = assertThrows(ResponseException.class, () ->
-        executePPLAsUser("source = " + FORBIDDEN_INDEX + " | fields name, age", ALLOWED_USER));
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executePPLAsUser(
+                    "source = " + FORBIDDEN_INDEX + " | fields name, age", ALLOWED_USER));
     assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
   }
 
@@ -201,8 +209,12 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     // User has indices:data/read/search* but NOT indices:data/read/analytics/query.
     // The analytics engine dispatches through AnalyticsQueryAction which requires the
     // specific analytics/query permission — search permission alone is insufficient.
-    ResponseException e = assertThrows(ResponseException.class, () ->
-        executePPLAsUser("source = " + TEST_INDEX + " | fields name, age", SEARCH_ONLY_USER));
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executePPLAsUser(
+                    "source = " + TEST_INDEX + " | fields name, age", SEARCH_ONLY_USER));
     assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
   }
 
@@ -211,13 +223,14 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     // User's role has index_patterns: ["analytics_security*"] which should match
     // "analytics_security_test" via wildcard expansion in the security plugin.
     try {
-      JSONObject result = executePPLAsUser(
-          "source = " + TEST_INDEX + " | fields name, age", WILDCARD_USER);
+      JSONObject result =
+          executePPLAsUser("source = " + TEST_INDEX + " | fields name, age", WILDCARD_USER);
       assertTrue("Expected datarows in response", result.has("datarows"));
     } catch (ResponseException e) {
       assertNotEquals(
           "Expected auth to pass (not 403) for wildcard-permitted user",
-          403, e.getResponse().getStatusLine().getStatusCode());
+          403,
+          e.getResponse().getStatusLine().getStatusCode());
     }
   }
 
@@ -225,22 +238,28 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
   public void testPPLQueryDeniedWithWildcardPermissionOnNonMatchingIndex() throws IOException {
     // User's role has index_patterns: ["analytics_security*"] which should NOT match
     // "analytics_forbidden_test".
-    ResponseException e = assertThrows(ResponseException.class, () ->
-        executePPLAsUser("source = " + FORBIDDEN_INDEX + " | fields name, age", WILDCARD_USER));
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executePPLAsUser(
+                    "source = " + FORBIDDEN_INDEX + " | fields name, age", WILDCARD_USER));
     assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
   }
 
   @Test
   public void testSQLQueryAllowedForAuthorizedUser() throws IOException {
     try {
-      JSONObject result = executeSQLAsUser(
-          "SELECT name, age FROM " + TEST_INDEX + " LIMIT 3", ALLOWED_USER);
-      assertTrue("Expected datarows or schema in response",
+      JSONObject result =
+          executeSQLAsUser("SELECT name, age FROM " + TEST_INDEX + " LIMIT 3", ALLOWED_USER);
+      assertTrue(
+          "Expected datarows or schema in response",
           result.has("datarows") || result.has("schema"));
     } catch (ResponseException e) {
       assertNotEquals(
           "Expected auth to pass (not 403) for authorized user",
-          403, e.getResponse().getStatusLine().getStatusCode());
+          403,
+          e.getResponse().getStatusLine().getStatusCode());
     }
   }
 
@@ -252,34 +271,49 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
 
   @Test
   public void testSQLQueryDeniedForUnauthorizedUser() throws IOException {
-    ResponseException e = assertThrows(ResponseException.class, () ->
-        executeSQLAsUser("SELECT name, age FROM " + TEST_INDEX + " LIMIT 3", DENIED_USER));
-    assertTrue("Expected 403 or 500 with security exception, got " + e.getResponse().getStatusLine().getStatusCode(),
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeSQLAsUser("SELECT name, age FROM " + TEST_INDEX + " LIMIT 3", DENIED_USER));
+    assertTrue(
+        "Expected 403 or 500 with security exception, got "
+            + e.getResponse().getStatusLine().getStatusCode(),
         e.getResponse().getStatusLine().getStatusCode() == 403
-        || e.getResponse().getStatusLine().getStatusCode() == 500);
+            || e.getResponse().getStatusLine().getStatusCode() == 500);
   }
 
   @Test
   public void testSQLQueryDeniedForForbiddenIndex() throws IOException {
-    ResponseException e = assertThrows(ResponseException.class, () ->
-        executeSQLAsUser("SELECT name, age FROM " + FORBIDDEN_INDEX + " LIMIT 3", ALLOWED_USER));
-    assertTrue("Expected 403 or 500 with security exception, got " + e.getResponse().getStatusLine().getStatusCode(),
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeSQLAsUser(
+                    "SELECT name, age FROM " + FORBIDDEN_INDEX + " LIMIT 3", ALLOWED_USER));
+    assertTrue(
+        "Expected 403 or 500 with security exception, got "
+            + e.getResponse().getStatusLine().getStatusCode(),
         e.getResponse().getStatusLine().getStatusCode() == 403
-        || e.getResponse().getStatusLine().getStatusCode() == 500);
+            || e.getResponse().getStatusLine().getStatusCode() == 500);
   }
 
   @Test
   public void testSQLQueryDeniedWithSearchPermissionOnly() throws IOException {
-    ResponseException e = assertThrows(ResponseException.class, () ->
-        executeSQLAsUser("SELECT name, age FROM " + TEST_INDEX + " LIMIT 3", SEARCH_ONLY_USER));
-    assertTrue("Expected 403 or 500 with security exception, got " + e.getResponse().getStatusLine().getStatusCode(),
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeSQLAsUser(
+                    "SELECT name, age FROM " + TEST_INDEX + " LIMIT 3", SEARCH_ONLY_USER));
+    assertTrue(
+        "Expected 403 or 500 with security exception, got "
+            + e.getResponse().getStatusLine().getStatusCode(),
         e.getResponse().getStatusLine().getStatusCode() == 403
-        || e.getResponse().getStatusLine().getStatusCode() == 500);
+            || e.getResponse().getStatusLine().getStatusCode() == 500);
   }
 
-  /**
-   * Executes a PPL query via the production SQL plugin endpoint (/_plugins/_ppl).
-   */
+  /** Executes a PPL query via the production SQL plugin endpoint (/_plugins/_ppl). */
   private JSONObject executePPLAsUser(String query, String username) throws IOException {
     Request request = new Request("POST", "/_plugins/_ppl");
     request.setJsonEntity(String.format(Locale.ROOT, "{\"query\": \"%s\"}", query));
@@ -295,9 +329,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     return new JSONObject(body);
   }
 
-  /**
-   * Executes a SQL query via the production SQL plugin endpoint (/_plugins/_sql).
-   */
+  /** Executes a SQL query via the production SQL plugin endpoint (/_plugins/_sql). */
   private JSONObject executeSQLAsUser(String query, String username) throws IOException {
     Request request = new Request("POST", "/_plugins/_sql");
     request.setJsonEntity(String.format(Locale.ROOT, "{\"query\": \"%s\"}", query));

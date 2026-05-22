@@ -414,6 +414,7 @@ testClusters {
     analyticsEngineCompat {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
+        plugin(getArrowBasePlugin())
         plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
@@ -470,7 +471,7 @@ stopPrometheus.mustRunAfter startPrometheus
 
 task analyticsEngineCompatIT(type: RestIntegTestTask) {
     useCluster testClusters.analyticsEngineCompat
-    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip
     systemProperty 'tests.security.manager', 'false'
     filter {
         includeTestsMatching 'org.opensearch.sql.plugin.AnalyticsEngineCompatIT'
