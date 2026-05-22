@@ -23,7 +23,7 @@ on:
 jobs:
   detect:
     if: (github.event_name == 'issues' && github.event.issue.user.type != 'Bot') || (github.event_name == 'workflow_dispatch' && inputs.job == 'detect')
-    uses: opensearch-project/opensearch-build/.github/workflows/issue-dedupe-detect.yml@main
+    uses: opensearch-project/opensearch-build/.github/workflows/issue-dedupe-detect.yml@c2498b758c08fb7bc48476509a5fc1b8dd5f7493 # main
     permissions:
       contents: read
       issues: write
@@ -36,7 +36,7 @@ jobs:
 
   auto-close:
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.job == 'auto-close')
-    uses: opensearch-project/opensearch-build/.github/workflows/issue-dedupe-autoclose.yml@main
+    uses: opensearch-project/opensearch-build/.github/workflows/issue-dedupe-autoclose.yml@c2498b758c08fb7bc48476509a5fc1b8dd5f7493 # main
     permissions:
       issues: write
     with:
