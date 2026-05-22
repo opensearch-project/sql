@@ -276,6 +276,12 @@ ext.pluginVersion = opensearch_version.tokenize('-')[0]
 ext.featureBuildBase = "https://ci.opensearch.org/ci/dbc/feature-build-opensearch/feature-datafusion/latest/linux/x64/tar/builds/opensearch/plugins"
 ext.analyticsEngineZipDest = "${buildDir}/distributions/analytics-engine-${pluginVersion}-SNAPSHOT.zip"
 ext.arrowFlightRpcZipDest = "${buildDir}/distributions/arrow-flight-rpc-${pluginVersion}-SNAPSHOT.zip"
+ext.arrowBaseZipDest = "${buildDir}/distributions/arrow-base-${pluginVersion}-SNAPSHOT.zip"
+ext.testPplFrontendZipDest = "${buildDir}/distributions/test-ppl-frontend-${pluginVersion}-SNAPSHOT.zip"
+ext.analyticsBackendLuceneZipDest = "${buildDir}/distributions/analytics-backend-lucene-${pluginVersion}-SNAPSHOT.zip"
+ext.parquetDataFormatZipDest = "${buildDir}/distributions/parquet-data-format-${pluginVersion}-SNAPSHOT.zip"
+ext.compositeEngineZipDest = "${buildDir}/distributions/composite-engine-${pluginVersion}-SNAPSHOT.zip"
+ext.analyticsBackendDatafusionZipDest = "${buildDir}/distributions/analytics-backend-datafusion-${pluginVersion}-SNAPSHOT.zip"
 
 task downloadAnalyticsEngineZip(type: Download) {
     src "${featureBuildBase}/1-analytics-engine-${pluginVersion}.zip"
@@ -286,11 +292,59 @@ task downloadAnalyticsEngineZip(type: Download) {
 }
 
 task downloadArrowFlightRpcZip(type: Download) {
-    src "${featureBuildBase}/0-arrow-flight-rpc-${pluginVersion}.zip"
+    src "${featureBuildBase}/0-2-arrow-flight-rpc-${pluginVersion}.zip"
     dest arrowFlightRpcZipDest
     overwrite false
     onlyIfModified true
     onlyIf { !project.findProperty('arrowFlightRpcZip') }
+}
+
+task downloadArrowBaseZip(type: Download) {
+    src "${featureBuildBase}/0-1-arrow-base-${pluginVersion}.zip"
+    dest arrowBaseZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('arrowBaseZip') }
+}
+
+task downloadTestPplFrontendZip(type: Download) {
+    src "${featureBuildBase}/1-test-ppl-frontend-${pluginVersion}.zip"
+    dest testPplFrontendZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('testPplFrontendZip') }
+}
+
+task downloadAnalyticsBackendLuceneZip(type: Download) {
+    src "${featureBuildBase}/1-analytics-backend-lucene-${pluginVersion}.zip"
+    dest analyticsBackendLuceneZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('analyticsBackendLuceneZip') }
+}
+
+task downloadParquetDataFormatZip(type: Download) {
+    src "${featureBuildBase}/1-parquet-data-format-${pluginVersion}.zip"
+    dest parquetDataFormatZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('parquetDataFormatZip') }
+}
+
+task downloadCompositeEngineZip(type: Download) {
+    src "${featureBuildBase}/1-composite-engine-${pluginVersion}.zip"
+    dest compositeEngineZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('compositeEngineZip') }
+}
+
+task downloadAnalyticsBackendDatafusionZip(type: Download) {
+    src "${featureBuildBase}/1-analytics-backend-datafusion-${pluginVersion}.zip"
+    dest analyticsBackendDatafusionZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('analyticsBackendDatafusionZip') }
 }
 
 def getAnalyticsEnginePlugin() {
@@ -299,6 +353,30 @@ def getAnalyticsEnginePlugin() {
 
 def getArrowFlightRpcPlugin() {
     provider { (RegularFile) (() -> file(project.findProperty('arrowFlightRpcZip') ?: arrowFlightRpcZipDest)) }
+}
+
+def getArrowBasePlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('arrowBaseZip') ?: arrowBaseZipDest)) }
+}
+
+def getTestPplFrontendPlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('testPplFrontendZip') ?: testPplFrontendZipDest)) }
+}
+
+def getAnalyticsBackendLucenePlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('analyticsBackendLuceneZip') ?: analyticsBackendLuceneZipDest)) }
+}
+
+def getParquetDataFormatPlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('parquetDataFormatZip') ?: parquetDataFormatZipDest)) }
+}
+
+def getCompositeEnginePlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('compositeEngineZip') ?: compositeEngineZipDest)) }
+}
+
+def getAnalyticsBackendDatafusionPlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('analyticsBackendDatafusionZip') ?: analyticsBackendDatafusionZipDest)) }
 }
 
 testClusters {
@@ -336,6 +414,7 @@ testClusters {
     analyticsEngineCompat {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
+        plugin(getArrowBasePlugin())
         plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
@@ -392,12 +471,58 @@ stopPrometheus.mustRunAfter startPrometheus
 
 task analyticsEngineCompatIT(type: RestIntegTestTask) {
     useCluster testClusters.analyticsEngineCompat
-    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip
     systemProperty 'tests.security.manager', 'false'
     filter {
         includeTestsMatching 'org.opensearch.sql.plugin.AnalyticsEngineCompatIT'
     }
 }
+
+task analyticsEngineSecurityIT(type: RestIntegTestTask) {
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip, downloadAnalyticsBackendLuceneZip, downloadParquetDataFormatZip, downloadCompositeEngineZip, downloadAnalyticsBackendDatafusionZip
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+
+    doFirst {
+        systemProperty "https", "false"
+        systemProperty "user", "admin"
+        systemProperty "password", "admin"
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
+    }
+}
+
+testClusters.analyticsEngineSecurityIT {
+    testDistribution = 'archive'
+    plugin(getJobSchedulerPlugin())
+    plugin(getArrowBasePlugin())
+    plugin(getArrowFlightRpcPlugin())
+    plugin(getAnalyticsEnginePlugin())
+    plugin(getAnalyticsBackendLucenePlugin())
+    plugin(getAnalyticsBackendDatafusionPlugin())
+    plugin(getParquetDataFormatPlugin())
+    plugin(getCompositeEnginePlugin())
+    plugin ":opensearch-sql-plugin"
+    // Arrow Flight / streaming transport requirements
+    jvmArgs '--add-opens=java.base/java.nio=ALL-UNNAMED'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    systemProperty 'io.netty.allocator.numDirectArenas', '1'
+    systemProperty 'io.netty.noUnsafe', 'false'
+    systemProperty 'io.netty.tryUnsafe', 'true'
+    systemProperty 'io.netty.tryReflectionSetAccessible', 'true'
+    systemProperty 'opensearch.experimental.feature.pluggable.dataformat.enabled', 'true'
+    systemProperty 'opensearch.experimental.feature.transport.stream.enabled', 'true'
+    // Native library path for DataFusion/parquet — pass via -PnativeLibPath=/path/to/release/
+    if (project.findProperty('nativeLibPath')) {
+        systemProperty 'java.library.path', project.findProperty('nativeLibPath')
+    }
+}
+
+configureSecurityPlugin(testClusters.analyticsEngineSecurityIT)
 
 task integJdbcTest(type: RestIntegTestTask) {
     testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().with {
@@ -461,6 +586,11 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     }
     afterTest { desc, result ->
         logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
+    }
+
+    // Exclude tests that require the analytics engine plugin stack (run separately via analyticsEngineSecurityIT)
+    filter {
+        excludeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
     }
 
     systemProperty 'tests.security.manager', 'false'
