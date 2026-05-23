@@ -29,6 +29,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.udaf.DistinctCountApproxLogicalAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.FirstAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LastAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.ListAggFunction;
@@ -507,6 +508,22 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           "VALUES",
           PPLReturnTypes.STRING_ARRAY,
           PPLOperandTypes.ANY_SCALAR_OPTIONAL_INTEGER);
+
+  /**
+   * Logical marker for {@code DISTINCT_COUNT_APPROX} (also exposed as {@code dc} and {@code
+   * distinct_count} aliases). PPL parser uses this to produce a RelNode; backends override or
+   * rewrite it before execution. {@code OpenSearchExecutionEngine} registers a real HyperLogLog++
+   * implementation in the external registry of {@code PPLFuncImpTable}, which has lookup precedence
+   * and serves the OpenSearch V3 path. Other backends (DataFusion / analytics-engine) rewrite the
+   * operator on their own. Operand metadata is {@code null} to match the existing external
+   * registration's permissive policy and avoid introducing new type rejections.
+   */
+  public static final SqlAggFunction DISTINCT_COUNT_APPROX =
+      createUserDefinedAggFunction(
+          DistinctCountApproxLogicalAggFunction.class,
+          "DISTINCT_COUNT_APPROX",
+          ReturnTypes.BIGINT_FORCE_NULLABLE,
+          null);
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");
