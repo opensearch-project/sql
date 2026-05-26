@@ -4314,8 +4314,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 "g", context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
         innerRex =
             context.rexBuilder.makeCall(
-                SqlLibraryOperators.REGEXP_REPLACE_PG_4,
-                ArrayUtils.add(rexNodeList, globalFlag));
+                SqlLibraryOperators.REGEXP_REPLACE_PG_4, ArrayUtils.add(rexNodeList, globalFlag));
       } else {
         innerRex =
             PPLFuncImpTable.INSTANCE.resolve(
