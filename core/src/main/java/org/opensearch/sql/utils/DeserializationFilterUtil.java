@@ -44,7 +44,7 @@ public class DeserializationFilterUtil {
           + "java.math.BigDecimal;"
           + "java.math.BigInteger;"
           + "java.time.**;"
-          + "shaded.com.google.common.collect.**;";
+          + "com.google.common.collect.**;";
 
   /**
    * Creates a logging filter that wraps the provided filter and logs rejected classes.
