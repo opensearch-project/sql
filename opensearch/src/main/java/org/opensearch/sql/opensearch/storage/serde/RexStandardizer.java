@@ -74,16 +74,10 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
         // We can downgrade to still use `Sarg` literal instead of replacing it with parameter.
       }
     }
-    // PPL's `patterns` lowering emits 4-arg `REGEXP_REPLACE_PG_4(field, pattern, replacement,
-    // 'g')` so the analytics-engine/DataFusion path gets global replacement (DataFusion's
-    // `regexp_replace` defaults to first-match-only without an explicit flag). Calcite's
-    // 3-arg `REGEXP_REPLACE_3` is already replace-all in its enumerable runtime, but the PG_4
-    // form has no matching `SqlFunctions.regexpReplace(String, String, String, String)` impl
-    // — Calcite's runtime only ships the `(String, String, String, int[, ...])` shapes (the
-    // 4-arg variant treats the 4th arg as start-position, not a flags string). The script
-    // pushdown path codegen would fail with `No applicable constructor/method found`. Collapse
-    // the 4-arg call to the 3-arg form whenever the flags literal is exactly `"g"`, which
-    // preserves replace-all semantics on the V2 / Calcite-pushdown side.
+    // Calcite's enumerable runtime has no regexpReplace(String, String, String, String) impl,
+    // so 4-arg REGEXP_REPLACE_PG_4 fails Janino codegen on the script-pushdown path. Collapse
+    // to 3-arg REGEXP_REPLACE_3 when the flags literal is "g" — the 3-arg form is already
+    // replace-all, so semantics are preserved.
     if (call.op == SqlLibraryOperators.REGEXP_REPLACE_PG_4
         && call.operands.size() == 4
         && call.operands.get(3) instanceof RexLiteral flagsLit

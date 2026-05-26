@@ -4303,12 +4303,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     for (String groupCandidate : groupCandidates) {
       RexNode innerRex;
       if (ParseMethod.PATTERNS.equals(parseMethod)) {
-        // Emit `regexp_replace(field, pattern, replacement, "g")` directly so the replacement
-        // is global (every match replaced). DataFusion's `regexp_replace` defaults to FIRST
-        // match only without the "g" flag — using the 3-arg form via the REPLACE handler
-        // produces `<*>@pyrami.com` instead of `<*>@<*>.<*>` on the analytics-engine route.
-        // Calcite's REGEXP_REPLACE_PG_4 with "g" matches what `replaceAll` does, so V2 /
-        // Calcite-path semantics are preserved.
+        // Emit 4-arg REGEXP_REPLACE_PG_4 with "g" so DataFusion's regexp_replace
+        // (first-match-only by default) replaces every match.
         RexNode globalFlag =
             context.rexBuilder.makeLiteral(
                 "g", context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);

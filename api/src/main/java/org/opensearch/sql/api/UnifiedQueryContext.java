@@ -157,12 +157,6 @@ public class UnifiedQueryContext implements AutoCloseable {
                     PPL_JOIN_SUBSEARCH_MAXOUT, SysLimit.UNLIMITED_SUBSEARCH.joinSubsearchLimit()),
                 Map.entry(CALCITE_ENGINE_ENABLED, true),
                 Map.entry(PPL_REX_MAX_MATCH_LIMIT, 10),
-                // PPL `patterns` command defaults — mirror the cluster-side defaults registered in
-                // OpenSearchSettings (DEFAULT_PATTERN_METHOD_SETTING etc.). Without these the
-                // analytics-engine path's AstBuilder.visitPatternsCommand reads null from
-                // `settings.getSettingValue(Key.PATTERN_METHOD)`, fails with
-                // `PatternMethod.valueOf("NULL")` IllegalArgumentException, and every query that
-                // omits an explicit `method=` / `mode=` argument is rejected.
                 Map.entry(PATTERN_METHOD, "SIMPLE_PATTERN"),
                 Map.entry(PATTERN_MODE, "LABEL"),
                 Map.entry(PATTERN_MAX_SAMPLE_COUNT, 10),
