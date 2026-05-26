@@ -10,7 +10,7 @@ The `top` command finds the most common combination of values across all fields 
 The `top` command has the following syntax:
 
 ```syntax
-top [N] [top-options] <field-list> [by-clause]
+top [limit=][N] [top-options] <field-list> [by-clause]
 ```
 
 ## Parameters

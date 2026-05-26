@@ -10,7 +10,7 @@ The `head` command returns the first N lines from a search result.
 The `head` command has the following syntax:
 
 ```syntax
-head [<size>] [from <offset>]
+head [limit=][<size>] [from <offset>]
 ```
 
 ## Parameters
