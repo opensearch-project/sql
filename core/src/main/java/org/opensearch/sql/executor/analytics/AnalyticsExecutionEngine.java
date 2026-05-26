@@ -5,7 +5,10 @@
 
 package org.opensearch.sql.executor.analytics;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +17,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
+import org.opensearch.analytics.schema.BinaryType;
+import org.opensearch.analytics.schema.IpType;
+import org.opensearch.common.network.InetAddresses;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -123,13 +129,44 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     for (Object[] row : rows) {
       Map<String, ExprValue> valueMap = new LinkedHashMap<>();
       for (int i = 0; i < fields.size(); i++) {
-        String columnName = fields.get(i).getName();
+        RelDataTypeField field = fields.get(i);
         Object value = (i < row.length) ? row[i] : null;
-        valueMap.put(columnName, ExprValueUtils.fromObjectValue(value));
+        valueMap.put(field.getName(), toExprValue(value, field.getType()));
       }
       results.add(ExprTupleValue.fromExprValueMap(valueMap));
     }
     return results;
+  }
+
+  /**
+   * Converts a single result cell to an {@link ExprValue}, dispatching on the column's UDT when
+   * present so {@code byte[]} payloads are rendered correctly:
+   *
+   * <ul>
+   *   <li>{@link IpType} + {@code byte[]} &rarr; canonical address string (matches {@code
+   *       IpFieldMapper}'s {@code valueFetcher} output).
+   *   <li>{@link BinaryType} + {@code byte[]} &rarr; base64-encoded string (matches the OpenSearch
+   *       {@code binary} field wire format).
+   *   <li>Anything else &rarr; existing {@link ExprValueUtils#fromObjectValue} path.
+   * </ul>
+   *
+   * <p>Without this dispatch, {@code fromObjectValue} throws {@code unsupported object class [B} on
+   * byte[] cells, and IP buffers leak through as raw 16-byte ipv4-mapped-ipv6 garbage.
+   */
+  private static ExprValue toExprValue(Object value, RelDataType type) {
+    if (value instanceof byte[] bytes) {
+      if (type instanceof IpType) {
+        try {
+          return ExprValueUtils.stringValue(
+              InetAddresses.toAddrString(InetAddress.getByAddress(bytes)));
+        } catch (UnknownHostException e) {
+          throw new IllegalStateException("invalid IP buffer length: " + bytes.length, e);
+        }
+      } else if (type instanceof BinaryType) {
+        return ExprValueUtils.stringValue(Base64.getEncoder().encodeToString(bytes));
+      }
+    }
+    return ExprValueUtils.fromObjectValue(value);
   }
 
   private Schema buildSchema(List<RelDataTypeField> fields) {
@@ -143,7 +180,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
 
   private ExprType convertType(RelDataType type) {
     try {
-      return OpenSearchTypeFactory.convertRelDataTypeToExprType(type);
+      return OpenSearchTypeFactory.convertAnalyticsEngineRelDataTypeToExprType(type);
     } catch (IllegalArgumentException e) {
       return org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
     }

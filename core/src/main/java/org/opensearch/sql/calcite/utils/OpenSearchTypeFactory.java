@@ -46,6 +46,8 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.analytics.schema.BinaryType;
+import org.opensearch.analytics.schema.IpType;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
@@ -273,6 +275,25 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           "Unsupported conversion for Relational Data type: " + type.getSqlTypeName());
     }
     return exprType;
+  }
+
+  /**
+   * Result-schema-only variant of {@link #convertRelDataTypeToExprType} that recognizes the
+   * analytics-engine {@link IpType} / {@link BinaryType} markers as {@link ExprCoreType#IP} /
+   * {@link ExprCoreType#BINARY}.
+   *
+   * <p>Kept off the general path because Calcite's planner-internal coercion would round-trip
+   * through {@link #convertExprTypeToRelDataType} and synthesize {@code CAST(... AS ExprIPType)}
+   * casts the substrait converter can't handle.
+   */
+  public static ExprType convertAnalyticsEngineRelDataTypeToExprType(RelDataType type) {
+    if (type instanceof IpType) {
+      return IP;
+    }
+    if (type instanceof BinaryType) {
+      return BINARY;
+    }
+    return convertRelDataTypeToExprType(type);
   }
 
   public static ExprValue getExprValueByExprType(ExprType type, Object value) {
