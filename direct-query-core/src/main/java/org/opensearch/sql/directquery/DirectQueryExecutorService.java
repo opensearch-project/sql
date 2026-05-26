@@ -35,11 +35,11 @@ public interface DirectQueryExecutorService {
       GetDirectQueryResourcesRequest request);
 
   /**
-   * Write resources to a data source.
+   * Write resources to a data source. Supports create, update, and delete operations.
    *
    * @param request The resources request
-   * @return A response containing the resources to create
+   * @return A response containing the result
    */
   WriteDirectQueryResourcesResponse<?> writeDirectQueryResources(
-          WriteDirectQueryResourcesRequest request);
+      WriteDirectQueryResourcesRequest request);
 }

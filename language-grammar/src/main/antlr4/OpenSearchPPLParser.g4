@@ -160,7 +160,7 @@ fieldsCommand
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA renameClasue)*
+   : RENAME renameClause (COMMA renameClause)*
    ;
 
 statsCommand
@@ -365,7 +365,7 @@ hintPair
    | rightHintKey = RIGHT_HINT DOT ID EQUAL rightHintValue = ident          #rightHint
    ;
 
-renameClasue
+renameClause
    : orignalField = wcFieldExpression AS renamedField = wcFieldExpression
    ;
 
@@ -945,6 +945,7 @@ geoIpProperty
    | GREATER
    | NOT_GREATER
    | REGEXP
+   | CONTAINS
    ;
 
 singleFieldRelevanceFunctionName

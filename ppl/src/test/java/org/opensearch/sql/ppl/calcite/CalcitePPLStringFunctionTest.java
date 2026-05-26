@@ -281,7 +281,28 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testLike() {
-    String ppl = "source=EMP | where like(JOB, 'SALE%') | stats count() as cnt";
+    String ppl = "source=EMP | where like(JOB, 'SALE%', true) | stats count() as cnt";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalAggregate(group=[{}], cnt=[COUNT()])\n"
+            + "  LogicalFilter(condition=[LIKE($2, 'SALE%', '\\')])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult = "cnt=4\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT COUNT(*) `cnt`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `JOB` LIKE 'SALE%' ESCAPE '\\'";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testILike() {
+    String ppl = "source=EMP | where ilike(JOB, 'SALE%') | stats count() as cnt";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""

@@ -38,6 +38,74 @@ public class TestUtils {
   private static final String MAPPING_FILE_PATH = "src/test/resources/indexDefinitions/";
 
   /**
+   * Forwarding alias for {@link AnalyticsIndexConfig#ENABLED_PROP}. Kept for any external callers
+   * that referenced the old constant location.
+   */
+  public static final String ANALYTICS_PARQUET_INDICES_PROP = AnalyticsIndexConfig.ENABLED_PROP;
+
+  /**
+   * Centralizes every analytics-engine-only test-index knob in one place so the parquet-backed
+   * settings, the bulk-load refresh strategy, and any future analytics-specific config don't drift
+   * across separate helpers (the spread-out-conditional pattern called out in review, borrowed from
+   * the OS-Spark repo's AOSS-conditional configs that ended up scattered across its codebase).
+   *
+   * <p>When {@link #ENABLED_PROP} is unset (default), every method here is a no-op or returns the
+   * standard non-parquet value, so normal CI sees zero behavior change.
+   */
+  public static final class AnalyticsIndexConfig {
+
+    /**
+     * System property that makes every test-created index parquet-backed (composite primary data
+     * format = parquet) with a single shard. When set, {@link
+     * RestUnifiedQueryAction#isAnalyticsIndex} (which routes based on {@code
+     * index.pluggable.dataformat.enabled} / {@code index.pluggable.dataformat=composite}, see
+     * #5432) returns {@code true} for every test-created index — exercising the analytics-engine
+     * route end-to-end without per-test rewiring.
+     */
+    public static final String ENABLED_PROP = "tests.analytics.parquet_indices";
+
+    public static boolean isEnabled() {
+      return Boolean.parseBoolean(System.getProperty(ENABLED_PROP, "false"));
+    }
+
+    /**
+     * Inject the parquet-backed composite-store index settings into {@code jsonObject}. No-op when
+     * the config is disabled; idempotent — safe on any index-creation JSON shape.
+     */
+    static void applyIndexCreationSettings(JSONObject jsonObject) {
+      if (!isEnabled()) {
+        return;
+      }
+      JSONObject settings =
+          jsonObject.has("settings") ? jsonObject.getJSONObject("settings") : new JSONObject();
+      JSONObject indexSettings =
+          settings.has("index") ? settings.getJSONObject("index") : new JSONObject();
+      indexSettings.put("number_of_shards", 1);
+      indexSettings.put("pluggable.dataformat.enabled", true);
+      indexSettings.put("pluggable.dataformat", "composite");
+      indexSettings.put("composite.primary_data_format", "parquet");
+      indexSettings.put("composite.secondary_data_formats", new org.json.JSONArray());
+      settings.put("index", indexSettings);
+      jsonObject.put("settings", settings);
+    }
+
+    /**
+     * Returns the {@code _bulk} refresh query string for the current index type. Parquet-backed
+     * indices in the analytics-backend-lucene composite engine don't yet implement {@code
+     * LuceneCommitter.getSafeCommitInfo} (UnsupportedOperationException "TODO:: with index
+     * deleter"), which hangs {@code refresh=wait_for} until the test framework request timeout
+     * (~60s). Force-refresh sidesteps the safe-commit-info path while still making the bulk-loaded
+     * docs immediately searchable. Drop this branch once {@code LuceneCommitter.getSafeCommitInfo}
+     * is implemented.
+     */
+    static String bulkLoadRefreshParam() {
+      return isEnabled() ? "refresh=true" : "refresh=wait_for&wait_for_active_shards=all";
+    }
+
+    private AnalyticsIndexConfig() {}
+  }
+
+  /**
    * Create test index by REST client.
    *
    * @param client client connection
@@ -46,10 +114,28 @@ public class TestUtils {
    */
   public static void createIndexByRestClient(RestClient client, String indexName, String mapping) {
     Request request = new Request("PUT", "/" + indexName);
-    if (!isNullOrEmpty(mapping)) {
-      request.setJsonEntity(mapping);
-    }
+    JSONObject jsonObject = isNullOrEmpty(mapping) ? new JSONObject() : new JSONObject(mapping);
+    setZeroReplicas(jsonObject);
+    AnalyticsIndexConfig.applyIndexCreationSettings(jsonObject);
+    request.setJsonEntity(jsonObject.toString());
     performRequest(client, request);
+  }
+
+  /**
+   * Sets number_of_replicas to 0 in the index settings. This makes multi-node behavior consistent
+   * (<a href="https://github.com/opensearch-project/sql/issues/4261">4261</a>) and prevents tests
+   * from hanging on single-node clusters when using wait_for_active_shards=all.
+   *
+   * @param jsonObject the index creation JSON object to modify
+   */
+  private static void setZeroReplicas(JSONObject jsonObject) {
+    JSONObject settings =
+        jsonObject.has("settings") ? jsonObject.getJSONObject("settings") : new JSONObject();
+    JSONObject indexSettings =
+        settings.has("index") ? settings.getJSONObject("index") : new JSONObject();
+    indexSettings.put("number_of_replicas", 0);
+    settings.put("index", indexSettings);
+    jsonObject.put("settings", settings);
   }
 
   /**
@@ -99,9 +185,26 @@ public class TestUtils {
   public static void loadDataByRestClient(
       RestClient client, String indexName, String dataSetFilePath) throws IOException {
     Path path = Paths.get(getResourceFilePath(dataSetFilePath));
-    Request request = new Request("POST", "/" + indexName + "/_bulk?refresh=true");
+    Request request =
+        new Request(
+            "POST", "/" + indexName + "/_bulk?" + AnalyticsIndexConfig.bulkLoadRefreshParam());
     request.setJsonEntity(new String(Files.readAllBytes(path)));
     performRequest(client, request);
+  }
+
+  /**
+   * Return how many docs in the index
+   *
+   * @param client client connection
+   * @param indexName index name
+   * @return doc count of the index
+   * @throws IOException
+   */
+  public static int getDocCount(RestClient client, String indexName) throws IOException {
+    Request request = new Request("GET", "/" + indexName + "/_count");
+    Response response = performRequest(client, request);
+    JSONObject jsonObject = new JSONObject(getResponseBody(response));
+    return jsonObject.getInt("count");
   }
 
   /**
@@ -302,6 +405,21 @@ public class TestUtils {
 
   public static String getWorkInformationIndexMapping() {
     String mappingFile = "work_information_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getGraphEmployeesIndexMapping() {
+    String mappingFile = "graph_employees_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getGraphTravelersIndexMapping() {
+    String mappingFile = "graph_travelers_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getGraphAirportsIndexMapping() {
+    String mappingFile = "graph_airports_index_mapping.json";
     return getMappingFile(mappingFile);
   }
 

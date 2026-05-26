@@ -20,11 +20,11 @@ pplStatement
    ;
 
 subPipeline
-   : PIPE? commands (PIPE commands)*
+   : PIPE? commands (PIPE commands?)*
    ;
 
 queryStatement
-   : (PIPE)? pplCommands (PIPE commands)*
+   : (PIPE)? pplCommands (PIPE commands?)*
    ;
 
 explainStatement
@@ -39,7 +39,7 @@ explainMode
     ;
 
 subSearch
-   : searchCommand (PIPE commands)*
+   : searchCommand (PIPE commands?)*
    ;
 
 // commands
@@ -48,6 +48,8 @@ pplCommands
    | showDataSourcesCommand
    | searchCommand
    | multisearchCommand
+   | graphLookupCommand
+   | unionCommand
    ;
 
 commands
@@ -74,18 +76,28 @@ commands
    | adCommand
    | mlCommand
    | fillnullCommand
+   | convertCommand
    | trendlineCommand
    | appendcolCommand
+   | addtotalsCommand
+   | addcoltotalsCommand
    | appendCommand
    | expandCommand
+    | mvexpandCommand
    | flattenCommand
    | reverseCommand
    | regexCommand
    | chartCommand
    | timechartCommand
+   | transposeCommand
    | rexCommand
    | appendPipeCommand
    | replaceCommand
+   | mvcombineCommand
+   | fieldformatCommand
+   | nomvCommand
+   | graphLookupCommand
+   | unionCommand
    ;
 
 commandName
@@ -103,6 +115,7 @@ commandName
    | DEDUP
    | SORT
    | EVAL
+   | FIELDFORMAT
    | HEAD
    | BIN
    | TOP
@@ -115,18 +128,27 @@ commandName
    | AD
    | ML
    | FILLNULL
+   | CONVERT
    | EXPAND
+    | MVEXPAND
    | FLATTEN
    | TRENDLINE
    | TIMECHART
    | EXPLAIN
    | REVERSE
    | REGEX
+   | ADDTOTALS
+   | ADDCOLTOTALS
    | APPEND
    | MULTISEARCH
+   | UNION
    | REX
    | APPENDPIPE
    | REPLACE
+   | MVCOMBINE
+   | NOMV
+   | TRANSPOSE
+   | GRAPHLOOKUP
    ;
 
 searchCommand
@@ -211,7 +233,7 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA? renameClasue)*
+   : RENAME renameClause (COMMA? renameClause)*
    ;
 
 replaceCommand
@@ -255,7 +277,7 @@ dedupSplitArg
    ;
 
 eventstatsCommand
-   : EVENTSTATS eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
+   : EVENTSTATS (bucketNullableArg)? eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
    ;
 
 streamstatsCommand
@@ -263,7 +285,7 @@ streamstatsCommand
    ;
 
 streamstatsArgs
-   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg)*
+   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg | bucketNullableArg)*
    ;
 
 currentArg
@@ -324,10 +346,21 @@ timechartCommand
    : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)? timechartParameter*
    ;
 
+transposeCommand
+   : TRANSPOSE transposeParameter*
+   ;
+
+transposeParameter
+   : (number = integerLiteral)
+   | (COLUMN_NAME EQUAL stringLiteral)
+   ;
+
+
 timechartParameter
    : LIMIT EQUAL integerLiteral
    | SPAN EQUAL spanLiteral
    | USEOTHER EQUAL (booleanLiteral | ident)
+   | TIMEFIELD EQUAL (ident | stringLiteral)
    ;
 
 spanLiteral
@@ -340,6 +373,10 @@ spanLiteral
 
 evalCommand
    : EVAL evalClause (COMMA evalClause)*
+   ;
+
+fieldformatCommand
+   : FIELDFORMAT fieldFormatEvalClause (COMMA fieldFormatEvalClause)*
    ;
 
 headCommand
@@ -404,6 +441,7 @@ spathParameter
 
 indexablePath
    : pathElement (DOT pathElement)*
+   | stringLiteral
    ;
 
 pathElement
@@ -470,7 +508,7 @@ patternMode
 
 // lookup
 lookupCommand
-   : LOOKUP tableSource lookupMappingList ((APPEND | REPLACE) outputCandidateList)?
+   : LOOKUP tableSource lookupMappingList ((APPEND | REPLACE | OUTPUT) outputCandidateList)?
    ;
 
 lookupMappingList
@@ -508,6 +546,14 @@ replacementPair
    : fieldExpression EQUAL replacement = valueExpression
    ;
 
+convertCommand
+   : CONVERT (TIMEFORMAT EQUAL timeFormat=stringLiteral)? convertFunction (COMMA? convertFunction)*
+   ;
+
+convertFunction
+   : functionName = ident LT_PRTHS fieldExpression RT_PRTHS (AS alias = fieldExpression)?
+   ;
+
 trendlineCommand
    : TRENDLINE (SORT sortField)? trendlineClause (trendlineClause)*
    ;
@@ -525,6 +571,18 @@ expandCommand
     : EXPAND fieldExpression (AS alias = qualifiedName)?
     ;
 
+mvcombineCommand
+  : MVCOMBINE fieldExpression (DELIM EQUAL stringLiteral)?
+  ;
+
+nomvCommand
+  : NOMV fieldExpression
+  ;
+
+mvexpandCommand
+    : MVEXPAND fieldExpression (LIMIT EQUAL INTEGER_LITERAL)?
+    ;
+
 flattenCommand
    : FLATTEN fieldExpression (AS aliases = identifierSeq)?
    ;
@@ -539,6 +597,19 @@ appendCommand
 
 multisearchCommand
    : MULTISEARCH (LT_SQR_PRTHS subSearch RT_SQR_PRTHS)+
+   ;
+
+unionCommand
+   : UNION subsearchOptions? unionDataset (COMMA? unionDataset)*
+   ;
+
+subsearchOptions
+   : (MAXOUT EQUAL maxout=integerLiteral)?
+   ;
+
+unionDataset
+   : LT_SQR_PRTHS subSearch RT_SQR_PRTHS
+   | tableSource
    ;
 
 kmeansCommand
@@ -578,6 +649,52 @@ mlArg
    : (argName = ident EQUAL argValue = literalValue)
    ;
 
+addtotalsCommand
+   : ADDTOTALS (fieldList)? addtotalsOption*
+   | ADDTOTALS addtotalsOption* (fieldList)?
+   ;
+
+addtotalsOption
+   : (LABEL EQUAL stringLiteral)
+   | (LABELFIELD EQUAL stringLiteral)
+   | (FIELDNAME EQUAL stringLiteral)
+   | (ROW EQUAL booleanLiteral)
+   | (COL EQUAL booleanLiteral)
+   ;
+
+addcoltotalsCommand
+   : ADDCOLTOTALS (fieldList)? addcoltotalsOption*
+   | ADDCOLTOTALS addcoltotalsOption* (fieldList)?
+   ;
+
+addcoltotalsOption
+   : (LABEL EQUAL stringLiteral)
+   | (LABELFIELD EQUAL stringLiteral)
+   ;
+
+graphLookupCommand
+   : GRAPHLOOKUP lookupTable = tableSourceClause startClause edgeClause graphLookupArgs* AS outputField = fieldExpression
+   ;
+
+startClause
+   : START EQUAL valueList
+   | START EQUAL startField = fieldExpression
+   | START EQUAL startValue = literalValue
+   ;
+
+edgeClause
+   : edgeClauseToken = EDGE_CLAUSE
+   ;
+
+graphLookupArgs
+   : (MAX_DEPTH EQUAL integerLiteral)
+   | (DEPTH_FIELD EQUAL fieldExpression)
+   | (SUPPORT_ARRAY EQUAL booleanLiteral)
+   | (BATCH_MODE EQUAL booleanLiteral)
+   | (USE_PIT EQUAL booleanLiteral)
+   | (FILTER EQUAL LT_PRTHS logicalExpression RT_PRTHS)
+   ;
+
 // clauses
 fromClause
    : SOURCE EQUAL tableOrSubqueryClause
@@ -607,7 +724,7 @@ sourceReference
 
 sourceFilterArg
    : ident EQUAL literalValue
-   | ident IN valueList
+   | ident IN LT_PRTHS valueList RT_PRTHS
    ;
 
 // join
@@ -660,7 +777,7 @@ joinOption
    | MAX EQUAL integerLiteral                           # maxOption
    ;
 
-renameClasue
+renameClause
    : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
@@ -689,6 +806,10 @@ sortbyClause
 
 evalClause
    : fieldExpression EQUAL logicalExpression
+   ;
+
+fieldFormatEvalClause
+   : fieldExpression EQUAL ffLogicalExpression
    ;
 
 eventstatsAggTerm
@@ -784,6 +905,13 @@ numericLiteral
     | floatLiteral
     ;
 
+ffLogicalExpression
+   : stringLiteral DOT logicalExpression   # stringDotlogicalExpression
+   | stringLiteral DOT logicalExpression  DOT stringLiteral # stringDotlogicalExpressionDotString
+   | logicalExpression DOT stringLiteral   # logicalExpressionDotString
+   | logicalExpression                     # ffStandardLogicalExpression
+   ;
+
 // predicates
 logicalExpression
    : NOT logicalExpression                                      # logicalNot
@@ -797,9 +925,15 @@ expression
    : valueExpression                                            # valueExpr
    | relevanceExpression                                        # relevanceExpr
    | left = expression comparisonOperator right = expression    # compareExpr
-   | expression NOT? IN valueList                               # inExpr
+   | expression NOT? IN LT_PRTHS valueList RT_PRTHS             # inExpr
    | expression NOT? BETWEEN expression AND expression          # between
+   | expression IS nullNotnull                                  # isNullPredicate
    ;
+
+nullNotnull
+   : NOT? NULL
+   ;
+
 
 valueExpression
    : left = valueExpression binaryOperator = (STAR | DIVIDE | MODULE) right = valueExpression                   # binaryArithmetic
@@ -820,13 +954,18 @@ evalExpression
     ;
 
 functionCall
-   : evalFunctionCall
+   : mvmapFunctionCall
+   | evalFunctionCall
    | dataTypeFunctionCall
    | positionFunctionCall
    | caseFunctionCall
    | timestampFunctionCall
    | extractFunctionCall
    | getFormatFunctionCall
+   ;
+
+mvmapFunctionCall
+   : MVMAP LT_PRTHS functionArg COMMA functionArg RT_PRTHS
    ;
 
 positionFunctionCall
@@ -1095,6 +1234,10 @@ collectionFunctionName
     | MVAPPEND
     | MVJOIN
     | MVINDEX
+    | MVFIND
+    | MVDEDUP
+    | MVZIP
+    | SPLIT
     | FORALL
     | EXISTS
     | FILTER
@@ -1265,6 +1408,7 @@ timestampFunctionName
 // condition function return boolean value
 conditionFunctionName
    : LIKE
+   | ILIKE
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
@@ -1308,6 +1452,7 @@ textFunctionName
    | LOCATE
    | REPLACE
    | REVERSE
+   | TONUMBER
    | REGEXP_REPLACE
    ;
 
@@ -1326,6 +1471,8 @@ positionFunctionName
    | NOT_GREATER
    | REGEXP
    | LIKE
+   | ILIKE
+   | CONTAINS
    ;
 
 singleFieldRelevanceFunctionName
@@ -1427,7 +1574,7 @@ intervalUnit
    ;
 
 valueList
-   : LT_PRTHS literalValue (COMMA literalValue)* RT_PRTHS
+   : literalValue (COMMA literalValue)*
    ;
 
 qualifiedName
@@ -1468,6 +1615,8 @@ wildcard
 keywordsCanBeId
    : searchableKeyWord
    | IN
+   | IS
+   | NULL
    ;
 
 searchableKeyWord
@@ -1491,6 +1640,7 @@ searchableKeyWord
    | ELSE
    | ARROW
    | BETWEEN
+   | CONTAINS
    | EXISTS
    | SOURCE
    | INDEX
@@ -1514,6 +1664,7 @@ searchableKeyWord
    | USING
    | VALUE
    | CAST
+   | TONUMBER
    | TOSTRING
    | GET_FORMAT
    | EXTRACT
@@ -1556,6 +1707,7 @@ searchableKeyWord
    | ANOMALY_SCORE_THRESHOLD
    | COUNTFIELD
    | SHOWCOUNT
+   | MAXOUT
    | PATH
    | INPUT
    | OUTPUT
@@ -1567,6 +1719,7 @@ searchableKeyWord
    | SED
    | MAX_MATCH
    | OFFSET_FIELD
+   | TIMEFIELD
    | patternMethod
    | patternMode
    // AGGREGATIONS AND WINDOW
@@ -1608,4 +1761,15 @@ searchableKeyWord
    | LEFT_HINT
    | RIGHT_HINT
    | PERCENTILE_SHORTCUT
+   | ADDTOTALS
+   | ADDCOLTOTALS
+   | LABEL
+   | LABELFIELD
+   | FIELDNAME
+   | ROW
+   | COL
+   | COLUMN_NAME
+   | MAX_DEPTH
+   | DEPTH_FIELD
+   | EDGE
    ;

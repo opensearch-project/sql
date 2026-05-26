@@ -66,6 +66,7 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -244,7 +245,12 @@ class OpenSearchNodeClientTest {
   @Test
   void get_index_mappings_with_index_patterns() {
     mockNodeClientIndicesMappings("", null);
-    assertThrows(IndexNotFoundException.class, () -> client.getIndexMappings("test*"));
+    ErrorReport report = assertThrows(ErrorReport.class, () -> client.getIndexMappings("test*"));
+    assertTrue(
+        report.getMessage().contains("test*") && report.getMessage().contains("no such index"),
+        "expected index-not-found error message \""
+            + report.getMessage()
+            + "\" to resemble \"no such index [index]\"");
   }
 
   @Test
@@ -252,7 +258,7 @@ class OpenSearchNodeClientTest {
     when(nodeClient.admin().indices().prepareGetMappings(any()).setLocal(anyBoolean()).get())
         .thenThrow(IndexNotFoundException.class);
 
-    assertThrows(IndexNotFoundException.class, () -> client.getIndexMappings("non_exist_index"));
+    assertThrows(ErrorReport.class, () -> client.getIndexMappings("non_exist_index"));
   }
 
   @Test
@@ -409,7 +415,7 @@ class OpenSearchNodeClientTest {
   @SneakyThrows
   void cleanup_pit_request() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder(),
             factory,
@@ -491,6 +497,66 @@ class OpenSearchNodeClientTest {
   @Test
   void ml() {
     assertNotNull(client.getNodeClient());
+  }
+
+  @Test
+  void get_index_mappings_error_message_includes_single_index() {
+    String underlyingError = "Connection timeout";
+    when(nodeClient.admin().indices()).thenThrow(new RuntimeException(underlyingError));
+
+    IllegalStateException exception =
+        assertThrows(IllegalStateException.class, () -> client.getIndexMappings("test_index"));
+
+    assertAll(
+        () -> assertTrue(exception.getMessage().contains("test_index")),
+        () -> assertTrue(exception.getMessage().contains(underlyingError)));
+  }
+
+  @Test
+  void get_index_mappings_error_message_includes_multiple_indices() {
+    String underlyingError = "Access denied";
+    when(nodeClient.admin().indices()).thenThrow(new RuntimeException(underlyingError));
+
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class,
+            () -> client.getIndexMappings("index1", "index2", "index3"));
+
+    assertAll(
+        () -> assertTrue(exception.getMessage().contains("index1")),
+        () -> assertTrue(exception.getMessage().contains("index2")),
+        () -> assertTrue(exception.getMessage().contains("index3")),
+        () -> assertTrue(exception.getMessage().contains(underlyingError)));
+  }
+
+  @Test
+  void get_index_max_result_windows_error_message_includes_single_index() {
+    String underlyingError = "Network error";
+    when(nodeClient.admin().indices()).thenThrow(new RuntimeException(underlyingError));
+
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class, () -> client.getIndexMaxResultWindows("test_index"));
+
+    assertAll(
+        () -> assertTrue(exception.getMessage().contains("test_index")),
+        () -> assertTrue(exception.getMessage().contains(underlyingError)));
+  }
+
+  @Test
+  void get_index_max_result_windows_error_message_includes_multiple_indices() {
+    String underlyingError = "Permission denied";
+    when(nodeClient.admin().indices()).thenThrow(new RuntimeException(underlyingError));
+
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class,
+            () -> client.getIndexMaxResultWindows("logs-2024", "metrics-2024"));
+
+    assertAll(
+        () -> assertTrue(exception.getMessage().contains("logs-2024")),
+        () -> assertTrue(exception.getMessage().contains("metrics-2024")),
+        () -> assertTrue(exception.getMessage().contains(underlyingError)));
   }
 
   public void mockNodeClientIndicesMappings(String indexName, String mappings) {

@@ -26,23 +26,24 @@ plugins {
     id 'java-library'
     id "io.freefair.lombok"
     id 'jacoco'
-    id 'info.solidsoft.pitest' version '1.9.0'
+    id 'info.solidsoft.pitest' version '1.19.0-rc.2'
     id 'java-test-fixtures'
     id 'com.diffplug.spotless'
 
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
 pitest {
     targetClasses = ['org.opensearch.sql.*']
-    pitestVersion = '1.9.0'
+    pitestVersion = '1.22.1'
     threads = 4
     outputFormats = ['HTML', 'XML']
     timestampedReports = false
-    junit5PluginVersion = '1.0.0'
+    junit5PluginVersion = '1.2.1'
 }
 
 dependencies {
@@ -53,7 +54,7 @@ dependencies {
     api group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
     api "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
     api "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
-    api "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
+    api "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
     api "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
     api group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
     api group: 'com.tdunning', name: 't-digest', version: '3.3'
@@ -63,6 +64,12 @@ dependencies {
     }
     api 'org.apache.calcite:calcite-linq4j:1.41.0'
     api project(':common')
+    compileOnly 'org.opensearch.sandbox:analytics-api:3.7.0-SNAPSHOT'
+    // Needed because analytics-api's QueryPlanExecutor signature uses
+    // org.opensearch.core.action.ActionListener; AnalyticsExecutionEngine references that type.
+    compileOnly group: 'org.opensearch', name: 'opensearch-core', version: "${opensearch_version}"
+    testImplementation 'org.opensearch.sandbox:analytics-api:3.7.0-SNAPSHOT'
+    testImplementation group: 'org.opensearch', name: 'opensearch-core', version: "${opensearch_version}"
     implementation "com.github.seancfoley:ipaddress:5.4.2"
     implementation "com.jayway.jsonpath:json-path:2.9.0"
 
@@ -91,7 +98,7 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
-        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+        googleJavaFormat('1.32.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 

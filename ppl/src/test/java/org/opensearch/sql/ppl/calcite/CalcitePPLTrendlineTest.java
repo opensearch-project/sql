@@ -76,9 +76,8 @@ public class CalcitePPLTrendlineTest extends CalcitePPLAbstractTest {
             + " DEPTNO_trendline=[CASE(>(COUNT() OVER (ROWS 1 PRECEDING), 1), /(SUM($7) OVER (ROWS"
             + " 1 PRECEDING), CAST(COUNT($7) OVER (ROWS 1 PRECEDING)):DOUBLE NOT NULL),"
             + " null:NULL)])\n"
-            + "  LogicalFilter(condition=[IS NOT NULL($7)])\n"
-            + "    LogicalFilter(condition=[IS NOT NULL($5)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalFilter(condition=[AND(IS NOT NULL($5), IS NOT NULL($7))])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
@@ -89,10 +88,8 @@ public class CalcitePPLTrendlineTest extends CalcitePPLAbstractTest {
             + " BETWEEN 1 PRECEDING AND CURRENT ROW)) > 1 THEN (SUM(`DEPTNO`) OVER (ROWS BETWEEN 1"
             + " PRECEDING AND CURRENT ROW)) / CAST(COUNT(`DEPTNO`) OVER (ROWS BETWEEN 1 PRECEDING"
             + " AND CURRENT ROW) AS DOUBLE) ELSE NULL END `DEPTNO_trendline`\n"
-            + "FROM (SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE `SAL` IS NOT NULL) `t`\n"
-            + "WHERE `DEPTNO` IS NOT NULL";
+            + "WHERE `SAL` IS NOT NULL AND `DEPTNO` IS NOT NULL";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

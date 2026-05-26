@@ -10,32 +10,50 @@ import static org.apache.calcite.rex.RexWindowBounds.UNBOUNDED_FOLLOWING;
 import static org.apache.calcite.rex.RexWindowBounds.UNBOUNDED_PRECEDING;
 import static org.apache.calcite.rex.RexWindowBounds.following;
 import static org.apache.calcite.rex.RexWindowBounds.preceding;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.isTimeBasedType;
 
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.BiRel;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
@@ -45,6 +63,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.Mappings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.IntervalUnit;
@@ -67,9 +87,8 @@ public interface PlanUtils {
   String ROW_NUMBER_COLUMN_FOR_SUBSEARCH = "_row_number_subsearch_";
   String ROW_NUMBER_COLUMN_FOR_STREAMSTATS = "__stream_seq__";
   String ROW_NUMBER_COLUMN_FOR_CHART = "_row_number_chart_";
-
-  String DIRECTION = "DIRECTION";
-  String NULL_DIRECTION = "NULL_DIRECTION";
+  String ROW_NUMBER_COLUMN_FOR_TRANSPOSE = "_row_number_transpose_";
+  String VALUE_COLUMN_FOR_TRANSPOSE = "_value_transpose_";
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
@@ -152,6 +171,19 @@ public interface PlanUtils {
       List<RexNode> partitions,
       List<RexNode> orderKeys,
       @Nullable WindowFrame windowFrame) {
+    return makeOver(
+        context, functionName, false, field, argList, partitions, orderKeys, windowFrame);
+  }
+
+  static RexNode makeOver(
+      CalcitePlanContext context,
+      BuiltinFunctionName functionName,
+      boolean distinct,
+      RexNode field,
+      List<RexNode> argList,
+      List<RexNode> partitions,
+      List<RexNode> orderKeys,
+      @Nullable WindowFrame windowFrame) {
     if (windowFrame == null) {
       windowFrame = WindowFrame.rowsUnbounded();
     }
@@ -159,8 +191,8 @@ public interface PlanUtils {
     RexWindowBound lowerBound = convert(context, windowFrame.getLower());
     RexWindowBound upperBound = convert(context, windowFrame.getUpper());
     switch (functionName) {
-        // There is no "avg" AggImplementor in Calcite, we have to change avg window
-        // function to `sum over(...).toRex / count over(...).toRex`
+      // There is no "avg" AggImplementor in Calcite, we have to change avg window
+      // function to `sum over(...).toRex / count over(...).toRex`
       case AVG:
         // avg(x) ==>
         //     sum(x) / count(x)
@@ -170,17 +202,17 @@ public interface PlanUtils {
             context.relBuilder.cast(
                 countOver(context, field, partitions, rows, lowerBound, upperBound),
                 SqlTypeName.DOUBLE));
-        // stddev_pop(x) ==>
-        //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / count(x), 0.5)
-        //
-        // stddev_samp(x) ==>
-        //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1), 0.5)
-        //
-        // var_pop(x) ==>
-        //     (sum(x * x) - sum(x) * sum(x) / count(x)) / count(x)
-        //
-        // var_samp(x) ==>
-        //     (sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1)
+      // stddev_pop(x) ==>
+      //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / count(x), 0.5)
+      //
+      // stddev_samp(x) ==>
+      //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1), 0.5)
+      //
+      // var_pop(x) ==>
+      //     (sum(x * x) - sum(x) * sum(x) / count(x)) / count(x)
+      //
+      // var_samp(x) ==>
+      //     (sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1)
       case STDDEV_POP:
         return variance(context, field, partitions, rows, lowerBound, upperBound, true, true);
       case STDDEV_SAMP:
@@ -207,7 +239,7 @@ public interface PlanUtils {
             upperBound);
       default:
         return withOver(
-            makeAggCall(context, functionName, false, field, argList),
+            makeAggCall(context, functionName, distinct, field, argList),
             partitions,
             orderKeys,
             rows,
@@ -452,18 +484,16 @@ public interface PlanUtils {
     return rexNode;
   }
 
-  /** Check if contains RexOver introduced by dedup */
-  static boolean containsRowNumberDedup(LogicalProject project) {
-    return project.getProjects().stream()
-            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
-        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_DEDUP);
+  /** Check if contains dedup, it should be put in the last position */
+  static boolean containsRowNumberDedup(RelNode node) {
+    List<String> fieldNames = node.getRowType().getFieldNames();
+    return fieldNames.get(fieldNames.size() - 1).equals(ROW_NUMBER_COLUMN_FOR_DEDUP);
   }
 
-  /** Check if contains RexOver introduced by dedup top/rare */
-  static boolean containsRowNumberRareTop(LogicalProject project) {
-    return project.getProjects().stream()
-            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
-        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_RARE_TOP);
+  /** Check if contains dedup for top/rare */
+  static boolean containsRowNumberRareTop(RelNode node) {
+    return node.getRowType().getFieldNames().stream()
+        .anyMatch(ROW_NUMBER_COLUMN_FOR_RARE_TOP::equals);
   }
 
   /** Get all RexWindow list from LogicalProject */
@@ -511,10 +541,6 @@ public interface PlanUtils {
     return project.getNamedProjects().stream().allMatch(rexSet::add);
   }
 
-  static boolean containsRexOver(LogicalProject project) {
-    return project.getProjects().stream().anyMatch(RexOver::containsOver);
-  }
-
   /**
    * The LogicalSort is a LIMIT that should be pushed down when its fetch field is not null and its
    * collation is empty. For example: <code>sort name | head 5</code> should not be pushed down
@@ -527,7 +553,7 @@ public interface PlanUtils {
     return sort.fetch != null;
   }
 
-  static boolean projectContainsExpr(Project project) {
+  static boolean containsRexCall(Project project) {
     return project.getProjects().stream().anyMatch(p -> p instanceof RexCall);
   }
 
@@ -588,6 +614,144 @@ public interface PlanUtils {
     }
   }
 
+  /**
+   * Walk down the plan tree to find the first Sort node with non-empty collation. Stops at blocking
+   * operators that destroy ordering:
+   *
+   * <ul>
+   *   <li>Aggregate - aggregation destroys input ordering
+   *   <li>BiRel - covers Join, Correlate, and other binary relations
+   *   <li>SetOp - covers Union, Intersect, Except
+   *   <li>Uncollect - unnesting operation that may change ordering
+   *   <li>Project with window functions (RexOver) - ordering determined by window's ORDER BY
+   * </ul>
+   *
+   * @param node the starting RelNode to backtrack from
+   * @return the collation found, or null if no sort or blocking operator encountered
+   */
+  public static @Nullable RelCollation findInputCollation(RelNode node) {
+    while (node != null) {
+      if (node instanceof Aggregate
+          || node instanceof BiRel
+          || node instanceof SetOp
+          || node instanceof Uncollect) {
+        return null;
+      }
+      if (node instanceof LogicalProject && ((LogicalProject) node).containsOver()) {
+        return null;
+      }
+      if (node instanceof Sort sort) {
+        if (sort.getCollation() != null && !sort.getCollation().getFieldCollations().isEmpty()) {
+          return sort.getCollation();
+        }
+      }
+      if (node.getInputs().isEmpty()) {
+        break;
+      }
+      node = node.getInput(0);
+    }
+    return null;
+  }
+
+  /**
+   * Strip the Sort node from the input on the RelBuilder stack, returning its collation (remapped
+   * through any intermediate Projects). This is necessary because EnumerableWindow re-partitions
+   * data by PARTITION BY key, which can destroy input sort order. Calcite's metadata system
+   * (RelMdCollation) incorrectly propagates the input's collation through the Window, causing the
+   * optimizer to eliminate a post-dedup Sort as "redundant". By stripping the Sort before the
+   * window and re-adding it after, we break this incorrect metadata chain.
+   *
+   * @return the remapped collation of the stripped Sort, or null if no Sort was found or the sort
+   *     field was projected away
+   */
+  public static @Nullable RelCollation stripInputSort(RelBuilder relBuilder) {
+    RelNode input = relBuilder.peek();
+    // First check whether a Sort exists in the (single-input) prefix of the subtree. If there is
+    // no Sort, there is nothing to strip and the index-space remapping below would be pointless.
+    if (findInputCollation(input) == null) {
+      return null;
+    }
+    // Ask Calcite's RelMdCollation for the subtree's output collation. This already accounts for
+    // intermediate Projects (they rewrite collation via a `Mappings.TargetMapping`), so we don't
+    // need to hand-roll an index remapper.
+    RelMetadataQuery mq = input.getCluster().getMetadataQuery();
+    List<RelCollation> collations = mq.collations(input);
+    RelCollation outputCollation = null;
+    if (collations != null) {
+      for (RelCollation c : collations) {
+        if (c != null && !c.getFieldCollations().isEmpty()) {
+          outputCollation = c;
+          break;
+        }
+      }
+    }
+    if (outputCollation == null) {
+      // Any collation field was projected away (or RelMdCollation couldn't propagate through the
+      // subtree). Leave the tree untouched and report no collation.
+      return null;
+    }
+    RelNode stripped = removeSortFromTree(input);
+    if (stripped != input) {
+      relBuilder.clear();
+      relBuilder.push(stripped);
+    }
+    return outputCollation;
+  }
+
+  /**
+   * Remove the first Sort node found in the tree, replacing it with its input. Only traverses
+   * through single-input operators (Filter, Project) that preserve order.
+   */
+  private static RelNode removeSortFromTree(RelNode node) {
+    if (node instanceof Sort sort) {
+      if (sort.getCollation() != null
+          && !sort.getCollation().getFieldCollations().isEmpty()
+          && sort.fetch == null
+          && sort.offset == null) {
+        return sort.getInput();
+      }
+    }
+    if (node.getInputs().size() == 1) {
+      RelNode child = node.getInput(0);
+      RelNode newChild = removeSortFromTree(child);
+      if (newChild != child) {
+        return node.copy(node.getTraitSet(), List.of(newChild));
+      }
+    }
+    return node;
+  }
+
+  /**
+   * Reverses the direction of a RelCollation.
+   *
+   * @param original The original collation to reverse
+   * @return A new RelCollation with reversed directions
+   */
+  public static RelCollation reverseCollation(RelCollation original) {
+    if (original == null || original.getFieldCollations().isEmpty()) {
+      return original;
+    }
+
+    List<RelFieldCollation> reversedFields = new ArrayList<>();
+    for (RelFieldCollation field : original.getFieldCollations()) {
+      RelFieldCollation.Direction reversedDirection = field.direction.reverse();
+
+      // Handle null direction properly - reverse it as well
+      RelFieldCollation.NullDirection reversedNullDirection =
+          field.nullDirection == RelFieldCollation.NullDirection.FIRST
+              ? RelFieldCollation.NullDirection.LAST
+              : field.nullDirection == RelFieldCollation.NullDirection.LAST
+                  ? RelFieldCollation.NullDirection.FIRST
+                  : field.nullDirection;
+
+      RelFieldCollation reversedField =
+          new RelFieldCollation(field.getFieldIndex(), reversedDirection, reversedNullDirection);
+      reversedFields.add(reversedField);
+    }
+
+    return RelCollations.of(reversedFields);
+  }
+
   /** Adds a rel node to the top of the stack while preserving the field names and aliases. */
   static void replaceTop(RelBuilder relBuilder, RelNode relNode) {
     try {
@@ -596,6 +760,129 @@ public interface PlanUtils {
       method.invoke(relBuilder, relNode);
     } catch (Exception e) {
       throw new IllegalStateException("Unable to invoke RelBuilder.replaceTop", e);
+    }
+  }
+
+  /** Extract the RexLiteral from the aggregate call if the aggregate call is a LITERAL_AGG. */
+  static @Nullable RexLiteral getObjectFromLiteralAgg(AggregateCall aggCall) {
+    if (aggCall.getAggregation().kind == SqlKind.LITERAL_AGG) {
+      return (RexLiteral)
+          aggCall.rexList.stream().filter(rex -> rex instanceof RexLiteral).findAny().orElse(null);
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * This is a helper method to create a target mapping easily for replacing calling {@link
+   * Mappings#target(List, int)}
+   *
+   * @param rexNodes the rex list in schema
+   * @param schema the schema which contains the rex list
+   * @return the target mapping
+   */
+  static Mapping mapping(List<RexNode> rexNodes, RelDataType schema) {
+    return Mappings.target(getSelectColumns(rexNodes), schema.getFieldCount());
+  }
+
+  static boolean mayBeFilterFromBucketNonNull(LogicalFilter filter) {
+    RexNode condition = filter.getCondition();
+    return isNotNullOnRef(condition)
+        || (condition instanceof RexCall rexCall
+            && rexCall.getOperator().equals(SqlStdOperatorTable.AND)
+            && rexCall.getOperands().stream().allMatch(PlanUtils::isNotNullOnRef));
+  }
+
+  private static boolean isNotNullOnRef(RexNode rex) {
+    return rex instanceof RexCall rexCall
+        && rexCall.isA(SqlKind.IS_NOT_NULL)
+        && rexCall.getOperands().get(0) instanceof RexInputRef;
+  }
+
+  Predicate<Aggregate> aggIgnoreNullBucket = PPLHintUtils::ignoreNullBucket;
+
+  Predicate<Aggregate> maybeTimeSpanAgg =
+      agg ->
+          agg.getGroupSet().stream()
+              .allMatch(
+                  group ->
+                      isTimeBasedType(
+                          agg.getInput().getRowType().getFieldList().get(group).getType()));
+
+  static boolean isTimeSpan(RexNode rex) {
+    return rex instanceof RexCall rexCall
+        && rexCall.getKind() == SqlKind.OTHER_FUNCTION
+        && rexCall.getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())
+        && rexCall.getOperands().size() == 3
+        && rexCall.getOperands().get(2) instanceof RexLiteral unitLiteral
+        && unitLiteral.getTypeName() != SqlTypeName.NULL;
+  }
+
+  /**
+   * Check if the condition is NOT NULL derived from an aggregate.
+   *
+   * @param condition the condition to check, composite of single or multiple NOT NULL conditions
+   * @param aggregate the aggregate where the condition is derived from
+   * @param project the project between the aggregate and the filter
+   * @param otherMapping the other mapping generated from ProjectIndexScanRule when applied on the
+   *     above project with non-ref expressions.
+   * @return true if the condition is single or multiple NOT NULL derived from an aggregate, false
+   *     otherwise
+   */
+  static boolean isNotNullDerivedFromAgg(
+      RexNode condition,
+      Aggregate aggregate,
+      @Nullable Project project,
+      @Nullable List<Integer> otherMapping) {
+    boolean ignoreNullBucket = aggIgnoreNullBucket.test(aggregate);
+    if (!ignoreNullBucket && project == null) return false;
+    List<Integer> groupRefList = aggregate.getGroupSet().asList();
+    if (project != null) {
+      groupRefList =
+          groupRefList.stream()
+              .map(project.getProjects()::get)
+              .filter(rex -> ignoreNullBucket || isTimeSpan(rex))
+              .flatMap(expr -> PlanUtils.getInputRefs(expr).stream())
+              .map(RexSlot::getIndex)
+              .toList();
+    }
+    if (otherMapping != null) {
+      groupRefList = groupRefList.stream().map(otherMapping::get).toList();
+    }
+    List<Integer> finalGroupRefList = groupRefList;
+    Function<RexNode, Boolean> isNotNullFromAgg =
+        rex ->
+            rex instanceof RexCall rexCall
+                && rexCall.isA(SqlKind.IS_NOT_NULL)
+                && rexCall.getOperands().get(0) instanceof RexInputRef ref
+                && finalGroupRefList.contains(ref.getIndex());
+    return isNotNullFromAgg.apply(condition)
+        || (condition instanceof RexCall rexCall
+            && rexCall.getOperator() == SqlStdOperatorTable.AND
+            && rexCall.getOperands().stream().allMatch(isNotNullFromAgg::apply));
+  }
+
+  /**
+   * Try to prune all RelNodes in the RuleCall from top to down. We can prune a RelNode if:
+   *
+   * <p>1. It's the root RelNode of the current RuleCall. Or,
+   *
+   * <p>2. It's logical RelNode and it only has one parent which is pruned. TODO: To be more
+   * precisely, we can prun a RelNode whose parents are all pruned, but `prunedNodes` in
+   * VolcanoPlanner is not available.
+   *
+   * @param call the RuleCall to prune
+   */
+  static void tryPruneRelNodes(RelOptRuleCall call) {
+    if (call.getPlanner() instanceof VolcanoPlanner volcanoPlanner) {
+      Arrays.stream(call.rels)
+          .takeWhile(
+              rel ->
+                  // Don't prune the physical RelNode as it may prevent sort expr push down
+                  rel.getConvention() == Convention.NONE
+                      && (rel == call.rels[0]
+                          || volcanoPlanner.getSubsetNonNull(rel).getParentRels().size() == 1))
+          .forEach(volcanoPlanner::prune);
     }
   }
 }

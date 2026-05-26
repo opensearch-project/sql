@@ -33,6 +33,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.storage.serde.DefaultExpressionSerializer;
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper;
 
 @Warmup(iterations = 1)
 @Measurement(iterations = 10)
@@ -74,7 +75,10 @@ public class ExpressionScriptSerdeBenchmark {
             SqlStdOperatorTable.NOT_EQUALS, rexUpper, rexBuilder.makeLiteral("ABOUT"));
     Map<String, ExprType> fieldTypes = Map.of("Referer", ExprCoreType.STRING);
 
-    String serializedStr = relJsonSerializer.serialize(rexNotEquals, rowType, fieldTypes);
+    String serializedStr =
+        relJsonSerializer.serialize(
+            rexNotEquals,
+            new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder));
     relJsonSerializer.deserialize(serializedStr);
   }
 }

@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.executor;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -28,19 +26,29 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
-import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.calcite.SysLimit;
-import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
-import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
+import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.calcite.utils.CalciteClassLoaderHelper;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.QueryProcessingStage;
+import org.opensearch.sql.common.error.StageErrorHandler;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
+import org.opensearch.sql.monitor.profile.MetricName;
+import org.opensearch.sql.monitor.profile.ProfileContext;
+import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
@@ -61,13 +69,40 @@ public class QueryService {
   @Getter(lazy = true)
   private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor(dataSourceService);
 
+  /** Helper: depending on the type of error, either re-raise or propagate to the listener. */
+  private void propagateCalciteError(Throwable t, ResponseListener<?> listener)
+      throws VirtualMachineError {
+    if (t instanceof VirtualMachineError) {
+      // throw and fast fail the VM errors such as OOM (same with v2).
+      throw (VirtualMachineError) t;
+    }
+    if (t instanceof Exception) {
+      listener.onFailure((Exception) t);
+    } else if (t instanceof ExceptionInInitializerError
+        && ((ExceptionInInitializerError) t).getException() instanceof Exception) {
+      listener.onFailure((Exception) ((ExceptionInInitializerError) t).getException());
+    } else {
+      // Calcite may throw AssertError during query execution.
+      listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
+    }
+  }
+
   /** Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.<br> */
   public void execute(
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    execute(plan, queryType, null, listener);
+  }
+
+  /** Execute with optional highlight config. */
+  public void execute(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
     if (shouldUseCalcite(queryType)) {
-      executeWithCalcite(plan, queryType, listener);
+      executeWithCalcite(plan, queryType, highlightConfig, listener);
     } else {
       executeWithLegacy(plan, queryType, listener, Optional.empty());
     }
@@ -78,50 +113,73 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
-      Explain.ExplainFormat format) {
+      ExplainMode mode) {
+    explain(plan, queryType, null, listener, mode);
+  }
+
+  /** Explain with optional highlight config. */
+  public void explain(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      ResponseListener<ExecutionEngine.ExplainResponse> listener,
+      ExplainMode mode) {
     if (shouldUseCalcite(queryType)) {
-      explainWithCalcite(plan, queryType, listener, format);
+      explainWithCalcite(plan, queryType, highlightConfig, listener, mode);
     } else {
-      explainWithLegacy(plan, queryType, listener, format, Optional.empty());
+      explainWithLegacy(plan, queryType, listener, mode, Optional.empty());
     }
   }
 
   public void executeWithCalcite(
       UnresolvedPlan plan,
       QueryType queryType,
+      HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
     CalcitePlanContext.run(
         () -> {
           try {
-            AccessController.doPrivileged(
-                (PrivilegedAction<Void>)
-                    () -> {
-                      CalcitePlanContext context =
-                          CalcitePlanContext.create(
-                              buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-                      RelNode relNode = analyze(plan, context);
-                      RelNode optimized = optimize(relNode, context);
-                      RelNode calcitePlan = convertToCalcitePlan(optimized);
-                      executionEngine.execute(calcitePlan, context, listener);
-                      return null;
-                    });
+            ProfileContext profileContext =
+                QueryProfiling.activate(QueryContext.isProfileEnabled());
+            ProfileMetric analyzeMetric = profileContext.getOrCreateMetric(MetricName.ANALYZE);
+            long analyzeStart = System.nanoTime();
+            CalciteClassLoaderHelper.withCalciteClassLoader(
+                () -> {
+                  CalcitePlanContext context =
+                      CalcitePlanContext.create(
+                          buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+
+                  context.setHighlightConfig(highlightConfig);
+
+                  // Wrap analyze with ANALYZING stage tracking
+                  RelNode relNode =
+                      StageErrorHandler.executeStage(
+                          QueryProcessingStage.ANALYZING,
+                          () -> analyze(plan, context),
+                          "while preparing and validating the query plan");
+
+                  // Wrap plan conversion with PLAN_CONVERSION stage tracking
+                  RelNode calcitePlan =
+                      StageErrorHandler.executeStage(
+                          QueryProcessingStage.PLAN_CONVERSION,
+                          () -> convertToCalcitePlan(relNode, context),
+                          "while converting the query to an executable plan");
+
+                  analyzeMetric.set(System.nanoTime() - analyzeStart);
+
+                  // Wrap execution with EXECUTING stage tracking
+                  StageErrorHandler.executeStageVoid(
+                      QueryProcessingStage.EXECUTING,
+                      () -> executionEngine.execute(calcitePlan, context, listener),
+                      "while running the query");
+                },
+                QueryService.class);
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
               executeWithLegacy(plan, queryType, listener, Optional.of(t));
             } else {
-              if (t instanceof Exception) {
-                listener.onFailure((Exception) t);
-              } else if (t instanceof ExceptionInInitializerError
-                  && ((ExceptionInInitializerError) t).getException() instanceof Exception) {
-                listener.onFailure((Exception) ((ExceptionInInitializerError) t).getException());
-              } else if (t instanceof VirtualMachineError) {
-                // throw and fast fail the VM errors such as OOM (same with v2).
-                throw t;
-              } else {
-                // Calcite may throw AssertError during query execution.
-                listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
-              }
+              propagateCalciteError(t, listener);
             }
           }
         },
@@ -131,38 +189,34 @@ public class QueryService {
   public void explainWithCalcite(
       UnresolvedPlan plan,
       QueryType queryType,
+      HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
-      Explain.ExplainFormat format) {
+      ExplainMode mode) {
     CalcitePlanContext.run(
         () -> {
           try {
-            AccessController.doPrivileged(
-                (PrivilegedAction<Void>)
-                    () -> {
-                      CalcitePlanContext context =
-                          CalcitePlanContext.create(
-                              buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-                      context.run(
-                          () -> {
-                            RelNode relNode = analyze(plan, context);
-                            RelNode optimized = optimize(relNode, context);
-                            RelNode calcitePlan = convertToCalcitePlan(optimized);
-                            executionEngine.explain(calcitePlan, format, context, listener);
-                          },
-                          settings);
-                      return null;
-                    });
+            QueryProfiling.noop();
+            CalciteClassLoaderHelper.withCalciteClassLoader(
+                () -> {
+                  CalcitePlanContext context =
+                      CalcitePlanContext.create(
+                          buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+                  context.setHighlightConfig(highlightConfig);
+                  context.run(
+                      () -> {
+                        RelNode relNode = analyze(plan, context);
+                        RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+                        executionEngine.explain(calcitePlan, mode, context, listener);
+                      },
+                      settings);
+                },
+                QueryService.class);
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t)) {
               log.warn("Fallback to V2 query engine since got exception", t);
-              explainWithLegacy(plan, queryType, listener, format, Optional.of(t));
+              explainWithLegacy(plan, queryType, listener, mode, Optional.of(t));
             } else {
-              if (t instanceof Error) {
-                // Calcite may throw AssertError during query execution.
-                listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
-              } else {
-                listener.onFailure((Exception) t);
-              }
+              propagateCalciteError(t, listener);
             }
           }
         },
@@ -177,11 +231,11 @@ public class QueryService {
     try {
       executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);
     } catch (Exception e) {
-      if (shouldUseCalcite(queryType) && isCalciteFallbackAllowed(null)) {
-        // if there is a failure thrown from Calcite and execution after fallback V2
-        // keeps failure, we should throw the failure from Calcite.
-        calciteFailure.ifPresentOrElse(
-            t -> listener.onFailure(new RuntimeException(t)), () -> listener.onFailure(e));
+      if (calciteFailure.isPresent()) {
+        // This happens if Calcite fell back to V2 due to some issue, and then V2 also failed.
+        // Prefer the Calcite error.
+        // https://github.com/opensearch-project/sql/issues/5060
+        propagateCalciteError(calciteFailure.get(), listener);
       } else {
         listener.onFailure(e);
       }
@@ -201,21 +255,20 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
-      Explain.ExplainFormat format,
+      ExplainMode mode,
       Optional<Throwable> calciteFailure) {
     try {
-      if (format != null
-          && (format != Explain.ExplainFormat.STANDARD && format != Explain.ExplainFormat.YAML)) {
+      if (mode != null && (mode != ExplainMode.STANDARD)) {
         throw new UnsupportedOperationException(
-            "Explain mode " + format.name() + " is not supported in v2 engine");
+            "Explain mode " + mode.name() + " is not supported in v2 engine");
       }
       executionEngine.explain(plan(analyze(plan, queryType)), listener);
     } catch (Exception e) {
-      if (shouldUseCalcite(queryType) && isCalciteFallbackAllowed(null)) {
-        // if there is a failure thrown from Calcite and execution after fallback V2
-        // keeps failure, we should throw the failure from Calcite.
-        calciteFailure.ifPresentOrElse(
-            t -> listener.onFailure(new RuntimeException(t)), () -> listener.onFailure(e));
+      if (calciteFailure.isPresent()) {
+        // This happens if Calcite fell back to V2 due to some issue, and then V2 also failed.
+        // Prefer the Calcite error.
+        // https://github.com/opensearch-project/sql/issues/5060
+        propagateCalciteError(calciteFailure.get(), listener);
       } else {
         listener.onFailure(e);
       }
@@ -269,33 +322,31 @@ public class QueryService {
     return planner.plan(plan);
   }
 
-  /**
-   * Try to optimize the plan by appending a limit operator for QUERY_SIZE_LIMIT Don't add for
-   * `EXPLAIN` to avoid changing its output plan.
-   */
-  public RelNode optimize(RelNode plan, CalcitePlanContext context) {
-    return LogicalSystemLimit.create(
-        SystemLimitType.QUERY_SIZE_LIMIT,
-        plan,
-        context.relBuilder.literal(context.sysLimit.querySizeLimit()));
+  private boolean isCalciteUnsupportedError(@Nullable Throwable t) {
+    return switch (t) {
+      case null -> false;
+      case CalciteUnsupportedException calciteUnsupportedException -> true;
+      case ErrorReport errorReport when t.getCause() instanceof CalciteUnsupportedException -> true;
+      default -> false;
+    };
   }
 
   private boolean isCalciteFallbackAllowed(@Nullable Throwable t) {
     // We always allow fallback the query failed with CalciteUnsupportedException.
     // This is for avoiding breaking changes when enable Calcite by default.
-    if (t instanceof CalciteUnsupportedException) {
+    if (isCalciteUnsupportedError(t)) {
       return true;
-    } else {
-      if (settings != null) {
-        Boolean fallback_allowed = settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
-        if (fallback_allowed == null) {
-          return false;
-        }
-        return fallback_allowed;
-      } else {
-        return true;
-      }
     }
+
+    if (settings != null) {
+      Boolean fallback_allowed = settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
+      if (fallback_allowed == null) {
+        return false;
+      }
+      return fallback_allowed;
+    }
+
+    return true;
   }
 
   private boolean isCalciteEnabled(Settings settings) {
@@ -333,9 +384,15 @@ public class QueryService {
    * are some differences in the topological structures or semantics between them.
    *
    * @param osPlan Logical Plan derived from OpenSearch PPL
+   * @param context Calcite context
    */
-  private static RelNode convertToCalcitePlan(RelNode osPlan) {
-    RelNode calcitePlan = osPlan;
+  private static RelNode convertToCalcitePlan(RelNode osPlan, CalcitePlanContext context) {
+    // Explicitly add a limit operator to enforce query size limit
+    RelNode calcitePlan =
+        LogicalSystemLimit.create(
+            SystemLimitType.QUERY_SIZE_LIMIT,
+            osPlan,
+            context.relBuilder.literal(context.sysLimit.querySizeLimit()));
     /* Calcite only ensures collation of the final result produced from the root sort operator.
      * While we expect that the collation can be preserved through the pipes over PPL, we need to
      * explicitly add a sort operator on top of the original plan
@@ -343,9 +400,9 @@ public class QueryService {
      * See logic in ${@link CalcitePrepareImpl}
      * For the redundant sort, we rely on Calcite optimizer to eliminate
      */
-    RelCollation collation = osPlan.getTraitSet().getCollation();
-    if (!(osPlan instanceof Sort) && collation != RelCollations.EMPTY) {
-      calcitePlan = LogicalSort.create(osPlan, collation, null, null);
+    RelCollation collation = calcitePlan.getTraitSet().getCollation();
+    if (!(calcitePlan instanceof Sort) && collation != RelCollations.EMPTY) {
+      calcitePlan = LogicalSort.create(calcitePlan, collation, null, null);
     }
     return calcitePlan;
   }

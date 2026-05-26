@@ -6,8 +6,6 @@
 package org.opensearch.sql.prometheus.storage;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Iterator;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -53,25 +51,20 @@ public class PrometheusMetricScan extends TableScanOperator {
   @Override
   public void open() {
     super.open();
-    this.iterator =
-        AccessController.doPrivileged(
-            (PrivilegedAction<Iterator<ExprValue>>)
-                () -> {
-                  try {
-                    JSONObject responseObject =
-                        prometheusClient.queryRange(
-                            request.getPromQl(),
-                            request.getStartTime(),
-                            request.getEndTime(),
-                            request.getStep());
-                    return new PrometheusResponse(responseObject, prometheusResponseFieldNames)
-                        .iterator();
-                  } catch (IOException e) {
-                    LOG.error(e.getMessage());
-                    throw new RuntimeException(
-                        "Error fetching data from prometheus server. " + e.getMessage());
-                  }
-                });
+    try {
+      JSONObject responseObject =
+          prometheusClient.queryRange(
+              request.getPromQl(),
+              request.getStartTime(),
+              request.getEndTime(),
+              request.getStep());
+      this.iterator = new PrometheusResponse(responseObject, prometheusResponseFieldNames)
+          .iterator();
+    } catch (IOException e) {
+      LOG.error(e.getMessage());
+      throw new RuntimeException(
+          "Error fetching data from prometheus server. " + e.getMessage());
+    }
   }
 
   @Override

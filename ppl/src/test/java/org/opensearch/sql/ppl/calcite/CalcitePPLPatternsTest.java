@@ -327,6 +327,39 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testPatternsAggregationMode_SpecifyAllParameters_ForBrainMethod() {
+    String ppl =
+        "source=EMP | patterns ENAME method=BRAIN mode=aggregation max_sample_count=2"
+            + " buffer_limit=1000 show_numbered_token=false variable_count_threshold=3"
+            + " frequency_threshold_percentage=0.1";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(patterns_field=[SAFE_CAST(ITEM($1, 'pattern'))],"
+            + " pattern_count=[SAFE_CAST(ITEM($1, 'pattern_count'))],"
+            + " sample_logs=[SAFE_CAST(ITEM($1, 'sample_logs'))])\n"
+            + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+            + "    LogicalAggregate(group=[{}], patterns_field=[pattern($0, $1, $2, $3, $4, $5)])\n"
+            + "      LogicalProject(ENAME=[$1], $f8=[2], $f9=[1000], $f10=[false],"
+            + " $f11=[0.1:DECIMAL(2, 1)], $f12=[3])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    Uncollect\n"
+            + "      LogicalProject(patterns_field=[$cor0.patterns_field])\n"
+            + "        LogicalValues(tuples=[[{ 0 }]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT TRY_CAST(`t20`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
+            + " TRY_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
+            + " TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING >) `sample_logs`\n"
+            + "FROM (SELECT `pattern`(`ENAME`, 2, 1000, FALSE, 0.1, 3) `patterns_field`\n"
+            + "FROM `scott`.`EMP`) `$cor0`,\n"
+            + "LATERAL UNNEST((SELECT `$cor0`.`patterns_field`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t20` (`patterns_field`)";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testPatternsAggregationMode_NotShowNumberedToken_ForBrainMethod() {
     String ppl = "source=EMP | patterns ENAME method=BRAIN mode=aggregation";
     RelNode root = getRelNode(ppl);

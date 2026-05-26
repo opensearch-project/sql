@@ -365,4 +365,5 @@ public class DirectQueryExecutorServiceImplTest {
     assertTrue(exception.getCause() instanceof IOException);
     assertEquals("Failed to write resources", exception.getCause().getMessage());
   }
+
 }

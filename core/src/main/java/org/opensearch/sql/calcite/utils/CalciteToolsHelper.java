@@ -28,6 +28,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.util.Objects.requireNonNull;
+import static org.opensearch.sql.monitor.profile.MetricName.OPTIMIZE;
 
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Type;
@@ -35,6 +36,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.List;
 import java.util.Properties;
 import java.util.function.Consumer;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
@@ -52,22 +54,30 @@ import org.apache.calcite.jdbc.CalciteJdbc41Factory;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptTable.ViewExpander;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.prepare.Prepare.CatalogReader;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -79,7 +89,10 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
@@ -87,24 +100,31 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.Scannable;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
+import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
+import org.opensearch.sql.calcite.profile.PlanProfileBuilder;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.monitor.profile.ProfileContext;
+import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 
 /**
  * Calcite Tools Helper. This class is used to create customized: 1. Connection 2. JavaTypeFactory
  * 3. RelBuilder 4. RelRunner 5. CalcitePreparingStmt. TODO delete it in future if possible.
  */
 public class CalciteToolsHelper {
-
   /** Create a RelBuilder with testing */
   public static RelBuilder create(FrameworkConfig config) {
     return RelBuilder.create(config);
   }
 
   /** Create a RelBuilder with typeFactory */
-  public static RelBuilder create(
+  public static OpenSearchRelBuilder create(
       FrameworkConfig config, JavaTypeFactory typeFactory, Connection connection) {
     return withPrepare(
         config,
@@ -175,8 +195,11 @@ public class CalciteToolsHelper {
     }
 
     @Override
-    protected Function0<CalcitePrepare> createPrepareFactory() {
-      return OpenSearchPrepareImpl::new;
+    public CalcitePrepare createPrepare() {
+      if (prepareFactory != null) {
+        return prepareFactory.get();
+      }
+      return new OpenSearchPrepareImpl();
     }
   }
 
@@ -274,6 +297,8 @@ public class CalciteToolsHelper {
   public static class OpenSearchCalcitePreparingStmt
       extends CalcitePrepareImpl.CalcitePreparingStmt {
 
+    protected final RelOptCluster cluster;
+
     public OpenSearchCalcitePreparingStmt(
         CalcitePrepareImpl prepare,
         CalcitePrepare.Context context,
@@ -294,14 +319,21 @@ public class CalciteToolsHelper {
           cluster,
           resultConvention,
           convertletTable);
+      this.cluster = cluster;
     }
 
     @Override
     protected PreparedResult implement(RelRoot root) {
-      Hook.PLAN_BEFORE_IMPLEMENTATION.run(root);
-      RelDataType resultType = root.rel.getRowType();
-      boolean isDml = root.kind.belongsTo(SqlKind.DML);
+      ProfileContext profileContext = QueryProfiling.current();
+      if (profileContext.isEnabled()) {
+        PlanProfileBuilder.ProfilePlan plan = PlanProfileBuilder.profile(root.rel);
+        profileContext.setPlanRoot(plan.planRoot());
+        root = root.withRel(plan.rel());
+      }
       if (root.rel instanceof Scannable scannable) {
+        Hook.PLAN_BEFORE_IMPLEMENTATION.run(root);
+        RelDataType resultType = root.rel.getRowType();
+        boolean isDml = root.kind.belongsTo(SqlKind.DML);
         final Bindable bindable = dataContext -> scannable.scan();
 
         return new PreparedResultImpl(
@@ -332,14 +364,160 @@ public class CalciteToolsHelper {
       }
       return super.implement(root);
     }
+
+    @Override
+    protected SqlToRelConverter getSqlToRelConverter(
+        SqlValidator validator, CatalogReader catalogReader, SqlToRelConverter.Config config) {
+      return new OpenSearchSqlToRelConverter(
+          this, validator, catalogReader, this.cluster, convertletTable, config);
+    }
+
+    @Override
+    protected RelRoot trimUnusedFields(RelRoot root) {
+      final SqlToRelConverter.Config config =
+          SqlToRelConverter.config()
+              .withTrimUnusedFields(shouldTrim(root.rel))
+              .withExpand(THREAD_EXPAND.get())
+              .withInSubQueryThreshold(requireNonNull(THREAD_INSUBQUERY_THRESHOLD.get()));
+      // PPL analyzes into a pre-built RelNode before prepareStatement(rel). Reuse the incoming
+      // RelNode's cluster here so prepare-time trimming does not create replacement nodes under a
+      // different planner than the rest of the tree.
+      final SqlToRelConverter converter =
+          new OpenSearchSqlToRelConverter(
+              this,
+              getSqlValidator(),
+              catalogReader,
+              root.rel.getCluster(),
+              convertletTable,
+              config);
+      final boolean ordered = !root.collation.getFieldCollations().isEmpty();
+      final boolean dml = SqlKind.DML.contains(root.kind);
+      return root.withRel(converter.trimUnusedFields(dml || ordered, root.rel));
+    }
+
+    private static boolean shouldTrim(RelNode rootRel) {
+      // For now, don't trim if there are more than 3 joins. The projects
+      // near the leaves created by trim migrate past joins and seem to
+      // prevent join-reordering.
+      return THREAD_TRIM.get() || RelOptUtil.countJoins(rootRel) < 2;
+    }
+  }
+
+  public static class OpenSearchSqlToRelConverter extends SqlToRelConverter {
+    protected final RelBuilder relBuilder;
+
+    public OpenSearchSqlToRelConverter(
+        ViewExpander viewExpander,
+        @Nullable SqlValidator validator,
+        CatalogReader catalogReader,
+        RelOptCluster cluster,
+        SqlRexConvertletTable convertletTable,
+        Config config) {
+      this(
+          viewExpander,
+          validator,
+          catalogReader,
+          cluster,
+          convertletTable,
+          preserveHintStrategies(cluster, config),
+          true);
+    }
+
+    private OpenSearchSqlToRelConverter(
+        ViewExpander viewExpander,
+        @Nullable SqlValidator validator,
+        CatalogReader catalogReader,
+        RelOptCluster cluster,
+        SqlRexConvertletTable convertletTable,
+        Config effectiveConfig,
+        boolean ignored) {
+      super(viewExpander, validator, catalogReader, cluster, convertletTable, effectiveConfig);
+      this.relBuilder =
+          effectiveConfig
+              .getRelBuilderFactory()
+              .create(
+                  cluster,
+                  validator != null
+                      ? validator.getCatalogReader().unwrap(RelOptSchema.class)
+                      : null)
+              .transform(effectiveConfig.getRelBuilderConfigTransform());
+    }
+
+    @Override
+    protected RelFieldTrimmer newFieldTrimmer() {
+      return new OpenSearchRelFieldTrimmer(validator, this.relBuilder);
+    }
+
+    // SqlToRelConverter always installs the hint strategy table from its config onto the cluster.
+    // When prepare-time trimming reuses an incoming RelNode cluster, preserve any PPL-specific
+    // aggregate hint strategies that were already registered during analysis.
+    private static Config preserveHintStrategies(RelOptCluster cluster, Config config) {
+      if (config.getHintStrategyTable() == HintStrategyTable.EMPTY
+          && cluster.getHintStrategies() != HintStrategyTable.EMPTY) {
+        return config.withHintStrategyTable(cluster.getHintStrategies());
+      }
+      return config;
+    }
   }
 
   public static class OpenSearchRelRunners {
+    private static boolean isNonPushdownEnumerableAggregate(String message) {
+      return message.contains("Error while preparing plan")
+          && message.contains("CalciteEnumerableNestedAggregate");
+    }
+
+    // Detect if error is due to window functions in unsupported context (bins on time fields)
+    private static boolean isWindowBinOnTimeField(SQLException e) {
+      String errorMsg = e.getMessage();
+      return errorMsg != null
+          && errorMsg.contains("Error while preparing plan")
+          && errorMsg.contains("WIDTH_BUCKET");
+    }
+
+    // Traverse Calcite SQL exceptions in search of the root cause, since Calcite's outer error
+    // messages aren't really usable for users
+    private static String rootCauseMessage(Throwable e) {
+      String rc = null;
+      if (e.getCause() != null) {
+        rc = rootCauseMessage(e.getCause());
+      }
+      for (int i = 0; rc == null && i < e.getSuppressed().length; i++) {
+        rc = rootCauseMessage(e.getSuppressed()[i]);
+      }
+      return rc != null ? rc : e.getMessage();
+    }
+
+    private static void enrichErrorsForSpecialCases(ErrorReport.Builder report, SQLException e) {
+      if (e.getMessage().contains("Error while preparing plan [") && e.getCause() != null) {
+        // Generic 'something went wrong' planning error, try to get the cause
+        int planStart = e.getMessage().indexOf('[');
+        int planEnd = e.getMessage().lastIndexOf(']');
+        report
+            .context("plan", e.getMessage().substring(planStart + 1, planEnd))
+            .details(rootCauseMessage(e));
+      }
+      if (isWindowBinOnTimeField(e)) {
+        report
+            .details(
+                "The 'bins' parameter on timestamp fields requires: (1) pushdown to be enabled"
+                    + " (controlled by plugins.calcite.pushdown.enabled, enabled by default), and"
+                    + " (2) the timestamp field to be used as an aggregation bucket (e.g., 'stats"
+                    + " count() by @timestamp').")
+            .code(ErrorCode.UNSUPPORTED_OPERATION)
+            .context("is_window_bin_on_time_field", true)
+            .suggestion("check pushdown is enabled and review the aggregation");
+      }
+    }
+
     /**
      * Runs a relational expression by existing connection. This class copied from {@link
      * org.apache.calcite.tools.RelRunners#run(RelNode)}
      */
     public static PreparedStatement run(CalcitePlanContext context, RelNode rel) {
+      ProfileMetric optimizeTime = QueryProfiling.current().getOrCreateMetric(OPTIMIZE);
+      long startTime = System.nanoTime();
+      // Optimize the plan by Calcite's HepPlanner before using VolcanoPlanner in prepareStatement.
+      rel = CalciteToolsHelper.optimize(rel, context);
       final RelShuttle shuttle =
           new RelHomogeneousShuttle() {
             @Override
@@ -358,10 +536,32 @@ public class CalciteToolsHelper {
       // the line we changed here
       try (Connection connection = context.connection) {
         final RelRunner runner = connection.unwrap(RelRunner.class);
-        return runner.prepareStatement(rel);
+        PreparedStatement preparedStatement = runner.prepareStatement(rel);
+        optimizeTime.set(System.nanoTime() - startTime);
+        return preparedStatement;
       } catch (SQLException e) {
-        throw Util.throwAsRuntime(e);
+        // Detect if error is due to window functions in unsupported context (bins on time fields)
+        ErrorReport.Builder report =
+            ErrorReport.wrap(e)
+                .location("while compiling the optimized query plan for physical execution")
+                .code(ErrorCode.PLANNING_ERROR);
+        enrichErrorsForSpecialCases(report, e);
+        throw report.build();
       }
     }
+  }
+
+  /** Try to optimize the plan by using HepPlanner */
+  private static final List<RelOptRule> hepRuleList =
+      List.of(FilterMergeRule.Config.DEFAULT.toRule(), PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE);
+
+  private static final HepProgram HEP_PROGRAM =
+      new HepProgramBuilder().addRuleCollection(hepRuleList).build();
+
+  public static RelNode optimize(RelNode plan, CalcitePlanContext context) {
+    Util.discard(context);
+    HepPlanner planner = new HepPlanner(HEP_PROGRAM);
+    planner.setRoot(plan);
+    return planner.findBestExp();
   }
 }

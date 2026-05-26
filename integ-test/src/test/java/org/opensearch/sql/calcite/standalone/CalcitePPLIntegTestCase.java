@@ -30,6 +30,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -53,7 +54,6 @@ import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
-import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import org.opensearch.sql.planner.Planner;
@@ -99,7 +99,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
             getSettings(),
             dataSourceService));
     Injector injector = modules.createInjector();
-    pplService = SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
+    pplService = injector.getInstance(PPLService.class);
   }
 
   protected Settings getSettings() {
@@ -113,6 +113,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
               .put(Key.QUERY_BUCKET_SIZE, 1000)
+              .put(Key.SEARCH_MAX_BUCKETS, 65535)
               .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)
@@ -187,21 +188,19 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
 
           @Override
           public void onFailure(Exception e) {
-            if (e instanceof SyntaxCheckException) {
-              throw (SyntaxCheckException) e;
-            } else if (e instanceof QueryEngineException) {
-              throw (QueryEngineException) e;
-            } else if (e instanceof UnsupportedCursorRequestException) {
-              throw (UnsupportedCursorRequestException) e;
-            } else if (e instanceof NoCursorException) {
-              throw (NoCursorException) e;
-            } else if (e instanceof UnsupportedOperationException) {
-              throw (UnsupportedOperationException) e;
-            } else if (e instanceof IllegalArgumentException) {
-              // most exceptions thrown by Calcite when resolve a plan.
-              throw (IllegalArgumentException) e;
-            } else {
-              throw new IllegalStateException("Exception happened during execution", e);
+            switch (e) {
+              case ErrorReport errorReport -> throw errorReport;
+              case SyntaxCheckException syntaxCheckException -> throw syntaxCheckException;
+              case QueryEngineException queryEngineException -> throw queryEngineException;
+              case UnsupportedCursorRequestException unsupportedCursorRequestException ->
+                  throw unsupportedCursorRequestException;
+              case NoCursorException noCursorException -> throw noCursorException;
+              case UnsupportedOperationException unsupportedOperationException ->
+                  throw unsupportedOperationException;
+              case IllegalArgumentException illegalArgumentException ->
+                  // most exceptions thrown by Calcite when resolve a plan.
+                  throw illegalArgumentException;
+              default -> throw new IllegalStateException("Exception happened during execution", e);
             }
           }
         },

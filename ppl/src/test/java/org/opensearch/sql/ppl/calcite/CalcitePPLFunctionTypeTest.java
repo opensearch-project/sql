@@ -298,6 +298,6 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
   public void testMvjoinRejectsNonStringValues() {
     verifyQueryThrowsException(
         "source=EMP | eval result = mvjoin(42, ',') | fields result | head 1",
-        "MVJOIN function expects {[ARRAY,STRING]}, but got [INTEGER,STRING]");
+        "MVJOIN function expects {[ARRAY,STRING]|[ARRAY,STRING,STRING]}, but got [INTEGER,STRING]");
   }
 }

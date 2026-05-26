@@ -68,7 +68,7 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
-        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+        googleJavaFormat('1.32.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 
@@ -120,8 +120,8 @@ dependencies {
     api project(':opensearch')
 
     // ANTLR gradle plugin and runtime dependency
-    antlr "org.antlr:antlr4:4.7.1"
-    implementation "org.antlr:antlr4-runtime:4.7.1"
+    antlr "org.antlr:antlr4:4.13.2"
+    implementation "org.antlr:antlr4-runtime:4.13.2"
     compileOnly group: 'javax.servlet', name: 'servlet-api', version:'2.5'
 
     testImplementation group: 'org.hamcrest', name: 'hamcrest-core', version:'2.2'

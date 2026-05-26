@@ -97,16 +97,14 @@ public class Chart extends UnresolvedPlan {
 
     PerFunction perFunc = perFuncOpt.get();
     // For chart, the rowSplit should contain the span information
-    UnresolvedExpression spanExpr = rowSplit;
-    if (rowSplit instanceof Alias) {
-      spanExpr = ((Alias) rowSplit).getDelegated();
-    }
+    UnresolvedExpression spanExpr =
+        rowSplit instanceof Alias ? ((Alias) rowSplit).getDelegated() : rowSplit;
     if (!(spanExpr instanceof Span)) {
       return this; // Cannot transform without span information
     }
 
     Span span = (Span) spanExpr;
-    Field spanStartTime = AstDSL.implicitTimestampField();
+    Field spanStartTime = (Field) span.getField();
     Function spanEndTime = timestampadd(span.getUnit(), span.getValue(), spanStartTime);
     Function spanMillis = timestampdiff(MILLISECOND, spanStartTime, spanEndTime);
     final int SECOND_IN_MILLISECOND = 1000;

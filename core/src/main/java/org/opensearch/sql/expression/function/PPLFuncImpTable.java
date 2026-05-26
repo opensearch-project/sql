@@ -16,12 +16,14 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDFUNC
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.AND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_COMPACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_LENGTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_SLICE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.AUTO;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.AVG;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CBRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEIL;
@@ -37,6 +39,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.COSH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COUNT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CRC32;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_DATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIME;
@@ -59,6 +62,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDEFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DUR2SEC;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EARLIEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
@@ -79,6 +83,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR_OF_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ILIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_GROK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PARSE;
@@ -87,6 +92,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_TRANSLATE3;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ISNULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_BLANK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_EMPTY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
@@ -128,34 +134,48 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_APP
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_CONCAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_REMOVE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCHPHRASE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCHPHRASEQUERY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCHQUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_BOOL_PREFIX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE_PREFIX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_QUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEMK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINSPAN_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_HOUR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MKTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MOD;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUSFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTHNAME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MSTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIMATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIMATCHQUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVAPPEND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVDEDUP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVFIND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVINDEX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVMAP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVZIP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NULLIF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NUM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.OR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERCENTILE_APPROX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_ADD;
@@ -165,6 +185,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITIO
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POW;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POWER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUARTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUERY_STRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
@@ -179,8 +200,12 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXT
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_OFFSET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RINT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RMCOMMA;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RMUNIT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SCALAR_MAX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SCALAR_MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND_OF_MINUTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SEC_TO_TIME;
@@ -193,6 +218,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SINH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN_BUCKET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPLIT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
@@ -215,6 +241,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FORMAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_TO_SEC;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TONUMBER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TOSTRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_SECONDS;
@@ -235,11 +262,14 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKDAY
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKOFYEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK_OF_YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WIDTH_BUCKET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WILDCARDQUERY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WILDCARD_QUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
 
 import com.google.common.collect.ImmutableMap;
+import inet.ipaddr.IPAddress;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -254,6 +284,7 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLambda;
@@ -283,8 +314,10 @@ import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.CollectionUDF.MVIndexFunctionImp;
+import org.opensearch.sql.utils.IPUtils;
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
@@ -323,6 +356,18 @@ public class PPLFuncImpTable {
         throw new IllegalArgumentException("This function requires exactly 2 arguments");
       }
       return resolve(builder, args[0], args[1]);
+    }
+  }
+
+  public interface FunctionImp3 extends FunctionImp {
+    RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2, RexNode arg3);
+
+    @Override
+    default RexNode resolve(RexBuilder builder, RexNode... args) {
+      if (args.length != 3) {
+        throw new IllegalArgumentException("This function requires exactly 3 arguments");
+      }
+      return resolve(builder, args[0], args[1], args[2]);
     }
   }
 
@@ -396,14 +441,10 @@ public class PPLFuncImpTable {
             functionName.name(),
             operator instanceof SqlUserDefinedFunction);
     CalciteFuncSignature signature = new CalciteFuncSignature(functionName.getName(), typeChecker);
-    externalFunctionRegistry.compute(
+    externalFunctionRegistry.put(
         functionName,
-        (name, existingList) -> {
-          List<Pair<CalciteFuncSignature, FunctionImp>> list =
-              existingList == null ? new ArrayList<>() : new ArrayList<>(existingList);
-          list.add(Pair.of(signature, (builder, args) -> builder.makeCall(operator, args)));
-          return list;
-        });
+        List.of(
+            Pair.of(signature, (FunctionImp) (builder, args) -> builder.makeCall(operator, args))));
   }
 
   /**
@@ -849,9 +890,9 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
 
-      // Register eval functions for PPL max() and min() calls
-      registerOperator(MAX, PPLBuiltinOperators.SCALAR_MAX);
-      registerOperator(MIN, PPLBuiltinOperators.SCALAR_MIN);
+      // Register eval functions for PPL scalar max() and min() calls
+      registerOperator(SCALAR_MAX, PPLBuiltinOperators.SCALAR_MAX);
+      registerOperator(SCALAR_MIN, PPLBuiltinOperators.SCALAR_MIN);
 
       // Register PPL UDF operator
       registerOperator(COSH, PPLBuiltinOperators.COSH);
@@ -872,6 +913,29 @@ public class PPLFuncImpTable {
       registerDivideFunction(DIVIDEFUNCTION);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
       registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);
+      // (VARBINARY, VARCHAR) overload for ip / binary columns. The lambda parses the cidr
+      // literal at plan time and emits AND(col >= low, col <= high) directly.
+      // Only literal cidrs are expanded.
+      register(
+          CIDRMATCH,
+          (FunctionImp2)
+              (builder, col, cidr) -> {
+                if (cidr instanceof RexLiteral lit
+                    && col.getType().getSqlTypeName() == SqlTypeName.VARBINARY) {
+                  byte[][] range = parseCidrToIpv6Range(lit.getValueAs(String.class));
+                  RelDataType varbinary =
+                      builder.getTypeFactory().createSqlType(SqlTypeName.VARBINARY);
+                  RexNode low = builder.makeLiteral(new ByteString(range[0]), varbinary, false);
+                  RexNode high = builder.makeLiteral(new ByteString(range[1]), varbinary, false);
+                  // makeCall(AND, ...) auto-flattens at construction, so no Filter.isFlat issue.
+                  return builder.makeCall(
+                      SqlStdOperatorTable.AND,
+                      builder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, col, low),
+                      builder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, col, high));
+                }
+                return builder.makeCall(PPLBuiltinOperators.CIDRMATCH, col, cidr);
+              },
+          PPLTypeChecker.family(SqlTypeFamily.BINARY, SqlTypeFamily.STRING));
       registerOperator(INTERNAL_GROK, PPLBuiltinOperators.GROK);
       registerOperator(INTERNAL_PARSE, PPLBuiltinOperators.PARSE);
       registerOperator(MATCH, PPLBuiltinOperators.MATCH);
@@ -881,6 +945,15 @@ public class PPLFuncImpTable {
       registerOperator(SIMPLE_QUERY_STRING, PPLBuiltinOperators.SIMPLE_QUERY_STRING);
       registerOperator(QUERY_STRING, PPLBuiltinOperators.QUERY_STRING);
       registerOperator(MULTI_MATCH, PPLBuiltinOperators.MULTI_MATCH);
+      registerOperator(QUERY, PPLBuiltinOperators.QUERY);
+      registerOperator(WILDCARD_QUERY, PPLBuiltinOperators.WILDCARD_QUERY);
+      registerOperator(WILDCARDQUERY, PPLBuiltinOperators.WILDCARD_QUERY);
+      registerOperator(MATCH_QUERY, PPLBuiltinOperators.MATCH);
+      registerOperator(MATCHQUERY, PPLBuiltinOperators.MATCH);
+      registerOperator(MATCHPHRASE, PPLBuiltinOperators.MATCH_PHRASE);
+      registerOperator(MATCHPHRASEQUERY, PPLBuiltinOperators.MATCH_PHRASE);
+      registerOperator(MULTIMATCH, PPLBuiltinOperators.MULTI_MATCH);
+      registerOperator(MULTIMATCHQUERY, PPLBuiltinOperators.MULTI_MATCH);
       registerOperator(REX_EXTRACT, PPLBuiltinOperators.REX_EXTRACT);
       registerOperator(REX_EXTRACT_MULTI, PPLBuiltinOperators.REX_EXTRACT_MULTI);
       registerOperator(REX_OFFSET, PPLBuiltinOperators.REX_OFFSET);
@@ -959,7 +1032,20 @@ public class PPLFuncImpTable {
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
+      registerOperator(TONUMBER, PPLBuiltinOperators.TONUMBER);
       registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
+
+      // Register PPL Convert command functions
+      registerOperator(AUTO, PPLBuiltinOperators.AUTO);
+      registerOperator(NUM, PPLBuiltinOperators.NUM);
+      registerOperator(RMCOMMA, PPLBuiltinOperators.RMCOMMA);
+      registerOperator(RMUNIT, PPLBuiltinOperators.RMUNIT);
+      registerOperator(MEMK, PPLBuiltinOperators.MEMK);
+      registerOperator(CTIME, PPLBuiltinOperators.CTIME);
+      registerOperator(MKTIME, PPLBuiltinOperators.MKTIME);
+      registerOperator(MSTIME, PPLBuiltinOperators.MSTIME);
+      registerOperator(DUR2SEC, PPLBuiltinOperators.DUR2SEC);
+
       register(
           TOSTRING,
           (FunctionImp1)
@@ -968,12 +1054,35 @@ public class PPLFuncImpTable {
           PPLTypeChecker.family(SqlTypeFamily.ANY));
 
       // Register MVJOIN to use Calcite's ARRAY_JOIN
+      registerOperator(MVJOIN, SqlLibraryOperators.ARRAY_JOIN);
+
+      // Register SPLIT with custom logic for empty delimiter
+      // Case 1: Delimiter is not empty string, use SPLIT
+      // Case 2: Delimiter is empty string, use REGEXP_EXTRACT_ALL with '.' pattern
       register(
-          MVJOIN,
+          SPLIT,
           (FunctionImp2)
-              (builder, array, delimiter) ->
-                  builder.makeCall(SqlLibraryOperators.ARRAY_JOIN, array, delimiter),
-          PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
+              (builder, str, delimiter) -> {
+                // Create condition: delimiter = ''
+                RexNode emptyString = builder.makeLiteral("");
+                RexNode isEmptyDelimiter =
+                    builder.makeCall(SqlStdOperatorTable.EQUALS, delimiter, emptyString);
+
+                // For empty delimiter: split into characters using REGEXP_EXTRACT_ALL with '.'
+                // pattern This matches each individual character
+                RexNode dotPattern = builder.makeLiteral(".");
+                RexNode splitChars =
+                    builder.makeCall(SqlLibraryOperators.REGEXP_EXTRACT_ALL, str, dotPattern);
+
+                // For non-empty delimiter: use standard SPLIT
+                RexNode normalSplit = builder.makeCall(SqlLibraryOperators.SPLIT, str, delimiter);
+
+                // Use CASE to choose between the two approaches
+                // CASE WHEN isEmptyDelimiter THEN splitChars ELSE normalSplit END
+                return builder.makeCall(
+                    SqlStdOperatorTable.CASE, isEmptyDelimiter, splitChars, normalSplit);
+              },
+          PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
 
       // Register MVINDEX to use Calcite's ITEM/ARRAY_SLICE with index normalization
       register(
@@ -989,11 +1098,16 @@ public class PPLFuncImpTable {
 
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
+      registerOperator(MVDEDUP, SqlLibraryOperators.ARRAY_DISTINCT);
+      registerOperator(MVFIND, PPLBuiltinOperators.MVFIND);
+      registerOperator(MVZIP, PPLBuiltinOperators.MVZIP);
+      registerOperator(MVMAP, PPLBuiltinOperators.TRANSFORM);
       registerOperator(MAP_APPEND, PPLBuiltinOperators.MAP_APPEND);
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
       registerOperator(ARRAY_SLICE, SqlLibraryOperators.ARRAY_SLICE);
+      registerOperator(ARRAY_COMPACT, SqlLibraryOperators.ARRAY_COMPACT);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
       registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
       registerOperator(FILTER, PPLBuiltinOperators.FILTER);
@@ -1055,6 +1169,10 @@ public class PPLFuncImpTable {
                       .or(OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.ANY)),
               false));
       registerOperator(
+          INTERNAL_ITEM,
+          SqlStdOperatorTable.ITEM,
+          PPLTypeChecker.family(SqlTypeFamily.IGNORE, SqlTypeFamily.CHARACTER));
+      registerOperator(
           XOR,
           SqlStdOperatorTable.NOT_EQUALS,
           PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.BOOLEAN));
@@ -1075,6 +1193,8 @@ public class PPLFuncImpTable {
           IS_PRESENT, SqlStdOperatorTable.IS_NOT_NULL, PPLTypeChecker.family(SqlTypeFamily.IGNORE));
       registerOperator(
           IS_NULL, SqlStdOperatorTable.IS_NULL, PPLTypeChecker.family(SqlTypeFamily.IGNORE));
+      registerOperator(
+          ISNULL, SqlStdOperatorTable.IS_NULL, PPLTypeChecker.family(SqlTypeFamily.IGNORE));
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
@@ -1147,7 +1267,6 @@ public class PPLFuncImpTable {
                               SqlTypeFamily.INTEGER,
                               SqlTypeFamily.INTEGER)),
               false));
-
       register(
           LOG,
           (FunctionImp2)
@@ -1189,6 +1308,19 @@ public class PPLFuncImpTable {
                       builder.makeNullLiteral(arg1.getType()),
                       arg1),
           PPLTypeChecker.wrapComparable((SameOperandTypeChecker) OperandTypes.SAME_SAME));
+      // PPL isempty(x) — TRUE iff x is NULL or an empty string. We express this as
+      //   OR(IS_NULL(x), CHAR_LENGTH(x) = 0)
+      // rather than reusing SqlStdOperatorTable.IS_EMPTY: the latter is the SQL:2003
+      // multiset/collection IS EMPTY predicate (its OperandTypeChecker is
+      // OperandTypes.COLLECTION_OR_MAP and its enumerable runtime calls
+      // java.util.Collection.isEmpty() reflectively). Passing a string operand only
+      // worked by coincidence — RexBuilder.makeCall bypasses the operand checker, and
+      // Calcite's enumerable codegen emits a bare `target.isEmpty()` call that happens
+      // to bind to String.isEmpty() at Janino compile time. The CHAR_LENGTH form makes
+      // the string semantics explicit, lets every backend translate the predicate
+      // through their normal length / equality bindings, and works on any code path
+      // that doesn't go through Calcite's enumerable runtime (e.g. Substrait emission
+      // for analytics-engine, which has no IS EMPTY mapping).
       register(
           IS_EMPTY,
           (FunctionImp1)
@@ -1196,7 +1328,10 @@ public class PPLFuncImpTable {
                   builder.makeCall(
                       SqlStdOperatorTable.OR,
                       builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
-                      builder.makeCall(SqlStdOperatorTable.IS_EMPTY, arg)),
+                      builder.makeCall(
+                          SqlStdOperatorTable.EQUALS,
+                          builder.makeCall(SqlStdOperatorTable.CHAR_LENGTH, arg),
+                          builder.makeExactLiteral(BigDecimal.ZERO))),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
       register(
           IS_BLANK,
@@ -1206,25 +1341,33 @@ public class PPLFuncImpTable {
                       SqlStdOperatorTable.OR,
                       builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
                       builder.makeCall(
-                          SqlStdOperatorTable.IS_EMPTY,
+                          SqlStdOperatorTable.EQUALS,
                           builder.makeCall(
-                              SqlStdOperatorTable.TRIM,
-                              builder.makeFlag(Flag.BOTH),
-                              builder.makeLiteral(" "),
-                              arg))),
+                              SqlStdOperatorTable.CHAR_LENGTH,
+                              builder.makeCall(
+                                  SqlStdOperatorTable.TRIM,
+                                  builder.makeFlag(Flag.BOTH),
+                                  builder.makeLiteral(" "),
+                                  arg)),
+                          builder.makeExactLiteral(BigDecimal.ZERO))),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
       register(
-          LIKE,
+          ILIKE,
           (FunctionImp2)
               (builder, arg1, arg2) ->
                   builder.makeCall(
-                      SqlLibraryOperators.ILIKE,
-                      arg1,
-                      arg2,
-                      // TODO: Figure out escaping solution. '\\' is used for JSON input but is not
-                      // necessary for SQL function input
-                      builder.makeLiteral("\\")),
+                      SqlLibraryOperators.ILIKE, arg1, arg2, builder.makeLiteral("\\")),
           PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING));
+      register(
+          LIKE,
+          (FunctionImp3)
+              (builder, arg1, arg2, arg3) ->
+                  ((RexLiteral) arg3).getValueAs(Boolean.class)
+                      ? builder.makeCall(
+                          SqlStdOperatorTable.LIKE, arg1, arg2, builder.makeLiteral("\\"))
+                      : builder.makeCall(
+                          SqlLibraryOperators.ILIKE, arg1, arg2, builder.makeLiteral("\\")),
+          PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.BOOLEAN));
     }
   }
 
@@ -1475,5 +1618,23 @@ public class PPLFuncImpTable {
       return udfOperandMetadata.getInnerTypeChecker();
     }
     return typeChecker;
+  }
+
+  /**
+   * Parses a CIDR string and returns its lower and upper bounds in canonical 16-byte IPv6-mapped
+   * form. Used by the (BINARY, STRING) {@code cidrmatch} overload to expand into a byte-range
+   * conjunction at plan time.
+   *
+   * <p>Delegates to {@link IPUtils#toRange(String)} for parsing; converts both bounds to IPv6 to
+   * guarantee 16-byte output regardless of whether the input cidr is IPv4 or IPv6.
+   */
+  private static byte[][] parseCidrToIpv6Range(String cidr) {
+    if (cidr == null) {
+      throw new SemanticCheckException("cidrmatch range argument is null");
+    }
+    IPAddress range = IPUtils.toRange(cidr);
+    byte[] low = range.getLower().toIPv6().getBytes();
+    byte[] high = range.getUpper().toIPv6().getBytes();
+    return new byte[][] {low, high};
   }
 }

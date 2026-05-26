@@ -36,7 +36,7 @@ public class OpenSearchRelInputTranslator implements RelJson.InputTranslator {
 
     if (input < rowType.getFieldCount()) {
       final RelDataTypeField field = rowType.getFieldList().get(input);
-      return rexBuilder.makeInputRef(field.getType(), input);
+      return rexBuilder.makeLocalRef(field.getType(), input);
     }
     throw new RuntimeException("input field " + input + " is out of range");
   }

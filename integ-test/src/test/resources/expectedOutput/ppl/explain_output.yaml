@@ -30,7 +30,6 @@ root:
                       :true,\"missing_order\":\"first\",\"order\":\"asc\"}}},{\"city\"\
                       :{\"terms\":{\"field\":\"city.keyword\",\"missing_bucket\":true,\"\
                       missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\"\
-                      :{\"avg_age\":{\"avg\":{\"field\":\"age\"}}}}}}, needClean=true,\
-                      \ searchDone=false, pitId=*, cursorKeepAlive=null, searchAfter=null,\
-                      \ searchResponse=null)"
+                      :{\"avg_age\":{\"avg\":{\"field\":\"age\"}}}}}}, pitId=*,\
+                      \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
                   children: []

@@ -103,16 +103,16 @@ public class RestDirectQueryManagementActionTest {
         "{\"query\":\"up\",\"language\":\"promql\",\"options\":{\"queryType\":\"instant\",\"time\":\"1609459200\"}}";
     when(request.contentParser())
         .thenReturn(
-            new org.opensearch.common.xcontent.json.JsonXContentParser(
+            org.opensearch.common.xcontent.json.JsonXContent.jsonXContent.createParser(
                 org.opensearch.core.xcontent.NamedXContentRegistry.EMPTY,
                 org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                new com.fasterxml.jackson.core.JsonFactory().createParser(requestContent)));
+                requestContent));
     when(request.contentParser())
         .thenReturn(
-            new org.opensearch.common.xcontent.json.JsonXContentParser(
+            org.opensearch.common.xcontent.json.JsonXContent.jsonXContent.createParser(
                 org.opensearch.core.xcontent.NamedXContentRegistry.EMPTY,
                 org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                new com.fasterxml.jackson.core.JsonFactory().createParser(requestContent)));
+                requestContent));
 
     unit.handleRequest(request, channel, nodeClient);
     verify(threadPool, Mockito.times(1))
@@ -389,10 +389,10 @@ public class RestDirectQueryManagementActionTest {
     Mockito.when(request.param("dataSources")).thenReturn("testDataSource");
     Mockito.when(request.contentParser())
         .thenReturn(
-            new org.opensearch.common.xcontent.json.JsonXContentParser(
+            org.opensearch.common.xcontent.json.JsonXContent.jsonXContent.createParser(
                 org.opensearch.core.xcontent.NamedXContentRegistry.EMPTY,
                 org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                new com.fasterxml.jackson.core.JsonFactory().createParser(requestContent)));
+                requestContent));
     Mockito.when(request.consumedParams()).thenReturn(java.util.Collections.emptyList());
     Mockito.when(request.params()).thenReturn(java.util.Collections.emptyMap());
 

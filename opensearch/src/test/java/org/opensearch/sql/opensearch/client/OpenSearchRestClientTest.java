@@ -29,6 +29,7 @@ import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -434,7 +435,7 @@ class OpenSearchRestClientTest {
   @SneakyThrows
   void cleanup_pit_request() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder(),
             factory,
@@ -452,7 +453,7 @@ class OpenSearchRestClientTest {
   void cleanup_pit_request_throw_exception() {
     when(restClient.deletePit(any(), any())).thenThrow(new IOException());
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder(),
             factory,
@@ -527,7 +528,71 @@ class OpenSearchRestClientTest {
 
   @Test
   void ml_with_exception() {
-    assertThrows(UnsupportedOperationException.class, () -> client.getNodeClient());
+    assertEquals(Optional.empty(), client.getNodeClient());
+  }
+
+  @Test
+  void get_index_mappings_error_message_includes_single_index() throws IOException {
+    String underlyingError = "Network timeout";
+    when(restClient.indices().getMapping(any(GetMappingsRequest.class), any()))
+        .thenThrow(new IOException(underlyingError));
+
+    IllegalStateException exception =
+        assertThrows(IllegalStateException.class, () -> client.getIndexMappings("test_index"));
+
+    assertAll(
+        () -> assertTrue(exception.getMessage().contains("test_index")),
+        () -> assertTrue(exception.getMessage().contains(underlyingError)));
+  }
+
+  @Test
+  void get_index_mappings_error_message_includes_multiple_indices() throws IOException {
+    String underlyingError = "Connection refused";
+    when(restClient.indices().getMapping(any(GetMappingsRequest.class), any()))
+        .thenThrow(new IOException(underlyingError));
+
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class,
+            () -> client.getIndexMappings("index1", "index2", "index3"));
+
+    assertAll(
+        () -> assertTrue(exception.getMessage().contains("index1")),
+        () -> assertTrue(exception.getMessage().contains("index2")),
+        () -> assertTrue(exception.getMessage().contains("index3")),
+        () -> assertTrue(exception.getMessage().contains(underlyingError)));
+  }
+
+  @Test
+  void get_index_max_result_windows_error_message_includes_single_index() throws IOException {
+    String underlyingError = "Authentication failed";
+    when(restClient.indices().getSettings(any(GetSettingsRequest.class), any()))
+        .thenThrow(new IOException(underlyingError));
+
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class, () -> client.getIndexMaxResultWindows("test_index"));
+
+    assertAll(
+        () -> assertTrue(exception.getMessage().contains("test_index")),
+        () -> assertTrue(exception.getMessage().contains(underlyingError)));
+  }
+
+  @Test
+  void get_index_max_result_windows_error_message_includes_multiple_indices() throws IOException {
+    String underlyingError = "Timeout";
+    when(restClient.indices().getSettings(any(GetSettingsRequest.class), any()))
+        .thenThrow(new IOException(underlyingError));
+
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class,
+            () -> client.getIndexMaxResultWindows("logs-2024", "metrics-2024"));
+
+    assertAll(
+        () -> assertTrue(exception.getMessage().contains("logs-2024")),
+        () -> assertTrue(exception.getMessage().contains("metrics-2024")),
+        () -> assertTrue(exception.getMessage().contains(underlyingError)));
   }
 
   private Map<String, MappingMetadata> mockFieldMappings(String indexName, String mappings)

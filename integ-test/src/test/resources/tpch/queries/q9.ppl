@@ -40,7 +40,7 @@ source = [
     | join ON ps_partkey = l_partkey and ps_suppkey = l_suppkey partsupp
     | join ON o_orderkey = l_orderkey orders
     | join ON s_nationkey = n_nationkey nation
-    | where like(p_name, '%green%')
+    | where like(p_name, '%green%', true)
     | eval nation = n_name
     | eval o_year = year(o_orderdate)
     | eval amount = l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity

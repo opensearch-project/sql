@@ -1,0 +1,39 @@
+/* Filter messages containing 'sshd', sort by timestamp, and return top 10 results */
+/*
+{
+  "name": "script_engine_like_pattern_with_sort",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "query": {
+      "script": {
+        "script": {
+          "source": "{\"langType\":\"calcite\",\"script\":\"...\"}",
+          "lang": "opensearch_compounded_script",
+          "params": {
+            "utcTimestamp": "{{current_timestamp}}"
+          }
+        },
+        "boost": 1.0
+      }
+    },
+    "size": 10,
+    "_source": {
+      "includes": ["agent", "process", "log", "message", "tags", "cloud", "input", "@timestamp", "ecs", "data_stream", "meta", "host", "metrics", "aws", "event"],
+      "excludes": []
+    },
+    "sort": [
+      {
+        "@timestamp": {
+          "order": "desc",
+          "missing": "_last"
+        }
+      }
+    ]
+  }
+}
+*/
+source = big5
+| where like(`message`, '%sshd%')
+| sort - @timestamp
+| head 10

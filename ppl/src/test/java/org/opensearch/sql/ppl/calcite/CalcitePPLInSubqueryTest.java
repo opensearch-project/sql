@@ -245,16 +245,16 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   public void failWhenNumOfColumnsNotMatchOutputOfSubquery() {
     String less =
         """
-            source=EMP | where (DEPTNO) in [ source=DEPT | fields DEPTNO, DNAME ]
-            | sort - EMPNO | fields EMPNO, ENAME
-            """;
+        source=EMP | where (DEPTNO) in [ source=DEPT | fields DEPTNO, DNAME ]
+        | sort - EMPNO | fields EMPNO, ENAME
+        """;
     assertThrows(SemanticCheckException.class, () -> getRelNode(less));
 
     String more =
         """
-            source=EMP | where (DEPTNO, ENAME) in [ source=DEPT | fields DEPTNO, DNAME, LOC ]
-            | sort - EMPNO | fields EMPNO, ENAME
-            """;
+        source=EMP | where (DEPTNO, ENAME) in [ source=DEPT | fields DEPTNO, DNAME, LOC ]
+        | sort - EMPNO | fields EMPNO, ENAME
+        """;
     assertThrows(SemanticCheckException.class, () -> getRelNode(more));
   }
 

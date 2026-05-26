@@ -38,19 +38,18 @@ public class CalcitePPLRegexTest extends CalcitePPLAbstractTest {
   public void testRegexChainedFilters() {
     String ppl = "source=EMP | regex ENAME='A.*' | regex JOB='.*CLERK' | fields ENAME, JOB";
     RelNode root = getRelNode(ppl);
+    // Filter accumulation combines multiple regex conditions into a single Filter with AND
     String expectedLogical =
         "LogicalProject(ENAME=[$1], JOB=[$2])\n"
-            + "  LogicalFilter(condition=[REGEXP_CONTAINS($2, '.*CLERK':VARCHAR)])\n"
-            + "    LogicalFilter(condition=[REGEXP_CONTAINS($1, 'A.*':VARCHAR)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalFilter(condition=[AND(REGEXP_CONTAINS($1, 'A.*':VARCHAR),"
+            + " REGEXP_CONTAINS($2, '.*CLERK':VARCHAR))])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT `ENAME`, `JOB`\n"
-            + "FROM (SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE REGEXP_CONTAINS(`ENAME`, 'A.*')) `t`\n"
-            + "WHERE REGEXP_CONTAINS(`JOB`, '.*CLERK')";
+            + "WHERE REGEXP_CONTAINS(`ENAME`, 'A.*') AND REGEXP_CONTAINS(`JOB`, '.*CLERK')";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

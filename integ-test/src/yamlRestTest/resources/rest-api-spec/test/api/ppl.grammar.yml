@@ -1,0 +1,18 @@
+---
+"PPL grammar endpoint returns expected response shape":
+  - do:
+      ppl.grammar: {}
+  - is_true: bundleVersion
+  - is_true: antlrVersion
+  - is_true: grammarHash
+  - match: {startRuleIndex: 0}
+  - gt: {lexerSerializedATN.0: 0}
+  - is_true: lexerRuleNames.0
+  - is_true: channelNames.0
+  - is_true: modeNames.0
+  - gt: {parserSerializedATN.0: 0}
+  - is_true: parserRuleNames.0
+  - is_true: symbolicNames.1
+  - is_true: tokenDictionary.PIPE
+  - gt: {ignoredTokens.0: 0}
+  - gt: {rulesToVisit.0: 0}

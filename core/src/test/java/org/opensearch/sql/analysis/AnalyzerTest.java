@@ -72,7 +72,6 @@ import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
@@ -898,9 +897,6 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.field("double_value")));
   }
 
-  @Disabled(
-      "the project/remove command should shrink the type env. Should be enabled once "
-          + "https://github.com/opensearch-project/sql/issues/917 is resolved")
   @Test
   public void project_source_change_type_env() {
     SemanticCheckException exception =

@@ -21,11 +21,29 @@ public class OperatorUtils {
    * @param pattern string pattern to match.
    * @return if text matches pattern returns true; else return false.
    */
-  public static ExprBooleanValue matches(ExprValue text, ExprValue pattern) {
+  public static ExprBooleanValue matches2(ExprValue text, ExprValue pattern) {
     return ExprBooleanValue.of(
         Pattern.compile(patternToRegex(pattern.stringValue()), Pattern.CASE_INSENSITIVE)
             .matcher(text.stringValue())
             .matches());
+  }
+
+  /**
+   * Wildcard pattern matcher util.<br>
+   * Percent (%) character for wildcard,<br>
+   * Underscore (_) character for a single character match.
+   *
+   * @param pattern string pattern to match.
+   * @param caseSensitive indicate the case sensitivity of the pattern.
+   * @return if text matches pattern returns true; else return false.
+   */
+  public static ExprBooleanValue matches3(
+      ExprValue text, ExprValue pattern, ExprValue caseSensitive) {
+    Pattern p =
+        caseSensitive.booleanValue()
+            ? Pattern.compile(patternToRegex(pattern.stringValue()))
+            : Pattern.compile(patternToRegex(pattern.stringValue()), Pattern.CASE_INSENSITIVE);
+    return ExprBooleanValue.of(p.matcher(text.stringValue()).matches());
   }
 
   /**

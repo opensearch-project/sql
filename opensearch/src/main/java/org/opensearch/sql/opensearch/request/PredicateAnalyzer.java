@@ -34,6 +34,7 @@ import static java.util.Objects.requireNonNull;
 import static org.opensearch.index.query.QueryBuilders.boolQuery;
 import static org.opensearch.index.query.QueryBuilders.existsQuery;
 import static org.opensearch.index.query.QueryBuilders.matchQuery;
+import static org.opensearch.index.query.QueryBuilders.nestedQuery;
 import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.index.query.QueryBuilders.regexpQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
@@ -44,6 +45,7 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FI
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import java.math.BigDecimal;
@@ -52,14 +54,17 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import lombok.Getter;
-import org.apache.calcite.DataContext.Variable;
+import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -69,10 +74,10 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -80,21 +85,26 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
+import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.index.mapper.DateFieldMapper;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.ScriptQueryBuilder;
 import org.opensearch.script.Script;
+import org.opensearch.search.sort.ScriptSortBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchAliasType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
@@ -108,7 +118,9 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Mult
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper;
 import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
+import org.opensearch.sql.utils.Utils;
 
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression and convert it to
@@ -216,7 +228,13 @@ public class PredicateAnalyzer {
     requireNonNull(expression, "expression");
     try {
       // visits expression tree
-      QueryExpression queryExpression = (QueryExpression) expression.accept(visitor);
+      Expression result = expression.accept(visitor);
+      // When a boolean field is used directly as a filter condition (e.g., `where male` after
+      // Calcite simplifies `where male = true`), convert NamedFieldExpression to a term query.
+      if (result instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+        return QueryExpression.create(namedField).isTrue();
+      }
+      QueryExpression queryExpression = (QueryExpression) result;
       return queryExpression;
     } catch (Throwable e) {
       if (e instanceof UnsupportedScriptException) {
@@ -297,6 +315,9 @@ public class PredicateAnalyzer {
         case POSTFIX:
           switch (call.getKind()) {
             case IS_TRUE:
+            case IS_FALSE:
+            case IS_NOT_TRUE:
+            case IS_NOT_FALSE:
             case IS_NOT_NULL:
             case IS_NULL:
               return true;
@@ -344,7 +365,6 @@ public class PredicateAnalyzer {
 
     @Override
     public Expression visitCall(RexCall call) {
-
       SqlSyntax syntax = call.getOperator().getSyntax();
       if (!supportedRexCall(call)) {
         String message = format(Locale.ROOT, "Unsupported call: [%s]", call);
@@ -376,7 +396,7 @@ public class PredicateAnalyzer {
               || MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(functionName)) {
             return visitRelevanceFunc(call);
           }
-          // fall through
+        // fall through
         default:
           String message =
               format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]", syntax, call);
@@ -557,13 +577,52 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
 
-      QueryExpression expr = (QueryExpression) call.getOperands().get(0).accept(this);
+      RexNode innerOperand = call.getOperands().get(0);
+      Expression operandExpr = innerOperand.accept(this);
+      // Handle NOT(boolean_field) - Calcite simplifies "field = false" to NOT($field).
+      // In PPL semantics, "field = false" should only match documents where the field is
+      // explicitly false (not null or missing). This is achieved via term query {value: false}.
+      // Note: This differs from SQL semantics where NOT(field) would match null/missing values.
+      if (operandExpr instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+        return QueryExpression.create(namedField).isFalse();
+      }
+      QueryExpression expr = (QueryExpression) operandExpr;
+      // For null-intolerant predicates (LIKE, comparisons, equality, etc.),
+      // negation must also exclude documents where the field is NULL/missing.
+      // Truth-test operators (IS_TRUE, IS_NULL, etc.) already encode null
+      // semantics and must NOT get an additional exists filter.
+      if (isNullIntolerantPredicate(innerOperand) && expr instanceof SimpleQueryExpression sqe) {
+        return sqe.notWithExistsFilter();
+      }
       return expr.not();
+    }
+
+    /** Returns true if the given RexNode is a null-intolerant predicate (value comparison). */
+    private static boolean isNullIntolerantPredicate(RexNode node) {
+      if (!(node instanceof RexCall innerCall)) {
+        return false;
+      }
+      return switch (innerCall.getKind()) {
+        case LIKE,
+            EQUALS,
+            NOT_EQUALS,
+            GREATER_THAN,
+            GREATER_THAN_OR_EQUAL,
+            LESS_THAN,
+            LESS_THAN_OR_EQUAL,
+            BETWEEN,
+            SEARCH ->
+            true;
+        default -> false;
+      };
     }
 
     private QueryExpression postfix(RexCall call) {
       checkArgument(
           call.getKind() == SqlKind.IS_TRUE
+              || call.getKind() == SqlKind.IS_FALSE
+              || call.getKind() == SqlKind.IS_NOT_TRUE
+              || call.getKind() == SqlKind.IS_NOT_FALSE
               || call.getKind() == SqlKind.IS_NULL
               || call.getKind() == SqlKind.IS_NOT_NULL);
       if (call.getOperands().size() != 1) {
@@ -571,11 +630,32 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
 
-      if (call.getKind() == SqlKind.IS_TRUE) {
-        Expression qe = call.getOperands().get(0).accept(this);
-        return ((QueryExpression) qe).isTrue();
+      // Handle boolean field operators: IS_TRUE, IS_FALSE, IS_NOT_TRUE, IS_NOT_FALSE
+      // These generate term queries for exact boolean value matching or mustNot queries
+      // for negated matching (which includes null/missing documents).
+      Function<QueryExpression, QueryExpression> booleanOp =
+          switch (call.getKind()) {
+            case IS_TRUE -> QueryExpression::isTrue;
+            case IS_FALSE -> QueryExpression::isFalse;
+            case IS_NOT_TRUE -> QueryExpression::isNotTrue;
+            case IS_NOT_FALSE -> QueryExpression::isNotFalse;
+            default -> null;
+          };
+
+      if (booleanOp != null) {
+        Expression operand = call.getOperands().get(0).accept(this);
+        if (operand instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+          return booleanOp.apply(QueryExpression.create(namedField));
+        }
+        // Boolean operators on a predicate (already evaluated QueryExpression) are allowed
+        if (operand instanceof QueryExpression qe) {
+          return booleanOp.apply(qe);
+        }
+        throw new PredicateAnalyzerException(
+            call.getKind() + " can only be applied to boolean fields or predicates");
       }
 
+      // Handle IS_NULL / IS_NOT_NULL
       // OpenSearch DSL does not handle IS_NULL / IS_NOT_NULL on nested fields correctly
       checkForNestedFieldOperands(call);
 
@@ -659,15 +739,28 @@ public class PredicateAnalyzer {
           RexUnknownAs nullAs = getNullAsForSearch(call);
           QueryExpression finalExpression =
               switch (nullAs) {
-                  // e.g. where isNotNull(a) and (a = 1 or a = 2)
-                  // TODO: For this case, seems return `expression` should be equivalent
-                case FALSE -> CompoundQueryExpression.and(
-                    false, expression, QueryExpression.create(pair.getKey()).exists());
-                  // e.g. where isNull(a) or a = 1 or a = 2
-                case TRUE -> CompoundQueryExpression.or(
-                    expression, QueryExpression.create(pair.getKey()).notExists());
-                  // e.g. where a = 1 or a = 2
-                case UNKNOWN -> expression;
+                // e.g. where isNotNull(a) and ( a = 1 or a = 2)
+                // For positive matches (IN), the expression naturally excludes nulls.
+                // For negations (NOT IN, ranges), we must add an exists check
+                // to ensure null values are filtered out.
+                case FALSE ->
+                    isSearchWithPoints(call)
+                        ? expression
+                        : CompoundQueryExpression.and(
+                            false, expression, QueryExpression.create(pair.getKey()).exists());
+                // e.g. where isNull(a) or a = 1 or a = 2
+                case TRUE ->
+                    CompoundQueryExpression.or(
+                        expression, QueryExpression.create(pair.getKey()).notExists());
+                // e.g. where a = 1 or a = 2
+                // For NOT IN (complemented points), SQL three-valued logic dictates
+                // NULL NOT IN (...) evaluates to UNKNOWN (not TRUE), so null rows
+                // must be excluded via an exists filter.
+                case UNKNOWN ->
+                    isSearchWithComplementedPoints(call)
+                        ? CompoundQueryExpression.and(
+                            false, expression, QueryExpression.create(pair.getKey()).exists())
+                        : expression;
               };
           finalExpression.updateAnalyzedNodes(call);
           return finalExpression;
@@ -685,7 +778,8 @@ public class PredicateAnalyzer {
       final Expression a = call.getOperands().get(0).accept(this);
       final Expression b = call.getOperands().get(1).accept(this);
       final SwapResult pair = swap(a, b);
-      return QueryExpression.create(pair.getKey()).like(pair.getValue());
+      final boolean caseSensitive = ((SqlLikeOperator) call.getOperator()).isCaseSensitive();
+      return QueryExpression.create(pair.getKey()).like(pair.getValue(), caseSensitive);
     }
 
     private static QueryExpression constructQueryExpressionForSearch(
@@ -717,24 +811,7 @@ public class PredicateAnalyzer {
       }
     }
 
-    private boolean containIsEmptyFunction(RexCall call) {
-      return call.getKind() == SqlKind.OR
-          && call.getOperands().stream().anyMatch(o -> o.getKind() == SqlKind.IS_NULL)
-          && call.getOperands().stream()
-              .anyMatch(
-                  o ->
-                      o.getKind() == SqlKind.OTHER
-                          && ((RexCall) o).getOperator().equals(SqlStdOperatorTable.IS_EMPTY));
-    }
-
     private QueryExpression andOr(RexCall call) {
-      // For function isEmpty and isBlank, we implement them via expression `isNull or {@function}`,
-      // Unlike `OR` in Java, `SHOULD` in DSL will evaluate both branches and lead to NPE.
-      if (containIsEmptyFunction(call)) {
-        throw new PredicateAnalyzerException(
-            "DSL will evaluate both branches of OR with isNUll, prevent push-down to avoid NPE");
-      }
-
       QueryExpression[] expressions = new QueryExpression[call.getOperands().size()];
       PredicateAnalyzerException firstError = null;
       boolean partial = false;
@@ -786,8 +863,12 @@ public class PredicateAnalyzer {
     public Expression tryAnalyzeOperand(RexNode node) {
       try {
         Expression expr = node.accept(this);
-        if (expr instanceof NamedFieldExpression) {
-          return expr;
+        // When a boolean field is used directly as a filter condition (e.g., `where male` after
+        // Calcite simplifies `where male = true`), convert NamedFieldExpression to a term query.
+        if (expr instanceof NamedFieldExpression namedField && namedField.isBooleanType()) {
+          QueryExpression qe = QueryExpression.create(namedField).isTrue();
+          qe.updateAnalyzedNodes(node);
+          return qe;
         }
         QueryExpression qe = (QueryExpression) expr;
         if (!qe.isPartial()) {
@@ -961,7 +1042,7 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException("between cannot be applied to " + this.getClass());
     }
 
-    QueryExpression like(LiteralExpression literal) {
+    QueryExpression like(LiteralExpression literal, boolean caseSensitive) {
       throw new PredicateAnalyzerException(
           "SqlOperatorImpl ['like'] " + "cannot be applied to " + this.getClass());
     }
@@ -1046,6 +1127,18 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException("isTrue cannot be applied to " + this.getClass());
     }
 
+    QueryExpression isFalse() {
+      throw new PredicateAnalyzerException("isFalse cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression isNotFalse() {
+      throw new PredicateAnalyzerException("isNotFalse cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression isNotTrue() {
+      throw new PredicateAnalyzerException("isNotTrue cannot be applied to " + this.getClass());
+    }
+
     QueryExpression in(LiteralExpression literal) {
       throw new PredicateAnalyzerException("in cannot be applied to " + this.getClass());
     }
@@ -1054,7 +1147,7 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException("notIn cannot be applied to " + this.getClass());
     }
 
-    static QueryExpression create(TerminalExpression expression) {
+    public static QueryExpression create(TerminalExpression expression) {
       if (expression instanceof CastExpression) {
         expression = CastExpression.unpack(expression);
       }
@@ -1200,6 +1293,9 @@ public class PredicateAnalyzer {
       if (builder == null) {
         throw new IllegalStateException("Builder was not initialized");
       }
+      if (rel != null && !Strings.isNullOrEmpty(rel.nestedPath)) {
+        return nestedQuery(rel.nestedPath, builder, ScoreMode.None);
+      }
       return builder;
     }
 
@@ -1224,6 +1320,12 @@ public class PredicateAnalyzer {
       return this;
     }
 
+    /** Negate with an exists filter to exclude null/missing documents. */
+    QueryExpression notWithExistsFilter() {
+      builder = boolQuery().must(existsQuery(getFieldReference())).mustNot(builder());
+      return this;
+    }
+
     @Override
     public QueryExpression exists() {
       builder = existsQuery(getFieldReference());
@@ -1244,7 +1346,7 @@ public class PredicateAnalyzer {
      * matching one by one, which is not same behavior with regular like function without pushdown.
      */
     @Override
-    public QueryExpression like(LiteralExpression literal) {
+    public QueryExpression like(LiteralExpression literal, boolean caseSensitive) {
       String fieldName = getFieldReference();
       String keywordField = OpenSearchTextType.toKeywordSubField(fieldName, this.rel.getExprType());
       boolean isKeywordField = keywordField != null;
@@ -1252,7 +1354,7 @@ public class PredicateAnalyzer {
         builder =
             wildcardQuery(
                     keywordField, StringUtils.convertSqlWildcardToLuceneSafe(literal.stringValue()))
-                .caseInsensitive(true);
+                .caseInsensitive(!caseSensitive);
         return this;
       }
       throw new UnsupportedOperationException("Like query is not supported for text field");
@@ -1379,8 +1481,52 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression isTrue() {
-      // Ignore istrue if ISTRUE(predicate) and will support ISTRUE(field) later.
-      // builder = termQuery(getFieldReferenceForTermQuery(), true);
+      // When IS_TRUE is called on a boolean field directly (e.g., IS_TRUE(field)),
+      // generate a term query with value true.
+      if (builder == null) {
+        builder = termQuery(getFieldReferenceForTermQuery(), true);
+      }
+      return this;
+    }
+
+    @Override
+    public QueryExpression isFalse() {
+      if (builder != null) {
+        throw new PredicateAnalyzerException("isFalse cannot be applied to predicate expression.");
+      }
+      // Generate a term query with value false. This only matches documents where
+      // the field is explicitly false (not null or missing).
+      builder = termQuery(getFieldReferenceForTermQuery(), false);
+      return this;
+    }
+
+    @Override
+    public QueryExpression isNotFalse() {
+      if (builder != null) {
+        throw new PredicateAnalyzerException(
+            "isNotFalse cannot be applied to predicate expression.");
+      }
+      // Generate mustNot(term query {value: false}). This matches documents where
+      // the field is true, null, or missing. Used for NOT(field = false) semantics.
+      builder = boolQuery().mustNot(termQuery(getFieldReferenceForTermQuery(), false));
+      return this;
+    }
+
+    @Override
+    public QueryExpression isNotTrue() {
+      if (builder == null) {
+        // Generate mustNot(term query {value: true}). This matches documents where
+        // the field is false, null, or missing. Used for NOT(field = true) semantics.
+        builder = boolQuery().mustNot(termQuery(getFieldReferenceForTermQuery(), true));
+      } else {
+        /*
+         * IS_NOT_TRUE(expr) means expr != TRUE, i.e., (FALSE OR UNKNOWN). In DSL, `trueQuery(expr)`
+         * matches only docs where expr is TRUE; FALSE/UNKNOWN simply don’t match. Therefore,
+         * `must_not(trueQuery(expr))` returns exactly the complement: FALSE + missing/null (UNKNOWN).
+         * Other truth-tests like IS_FALSE / IS_NOT_FALSE need explicit UNKNOWN handling, so don’t use this shortcut.
+         */
+        builder = boolQuery().mustNot(builder);
+      }
       return this;
     }
 
@@ -1416,14 +1562,18 @@ public class PredicateAnalyzer {
       Object upperBound =
           range.hasUpperBound() ? convertEndpointValue(range.upperEndpoint(), isTimeStamp) : null;
       RangeQueryBuilder rangeQueryBuilder = rangeQuery(getFieldReference());
-      rangeQueryBuilder =
-          range.lowerBoundType() == BoundType.CLOSED
-              ? rangeQueryBuilder.gte(lowerBound)
-              : rangeQueryBuilder.gt(lowerBound);
-      rangeQueryBuilder =
-          range.upperBoundType() == BoundType.CLOSED
-              ? rangeQueryBuilder.lte(upperBound)
-              : rangeQueryBuilder.lt(upperBound);
+      if (lowerBound != null) {
+        rangeQueryBuilder =
+            range.lowerBoundType() == BoundType.CLOSED
+                ? rangeQueryBuilder.gte(lowerBound)
+                : rangeQueryBuilder.gt(lowerBound);
+      }
+      if (upperBound != null) {
+        rangeQueryBuilder =
+            range.upperBoundType() == BoundType.CLOSED
+                ? rangeQueryBuilder.lte(upperBound)
+                : rangeQueryBuilder.lt(upperBound);
+      }
       if (isTimeStamp) rangeQueryBuilder.format("date_time");
       builder = rangeQueryBuilder;
       return this;
@@ -1449,9 +1599,11 @@ public class PredicateAnalyzer {
 
   public static class ScriptQueryExpression extends QueryExpression {
     private RexNode analyzedNode;
-    // use lambda to generate code lazily to avoid store generated code
     private final Supplier<String> codeGenerator;
-    private final Map<String, Object> params;
+    private String generatedCode;
+    private final ScriptParameterHelper parameterHelper;
+    private final Map<String, ExprType> fieldTypes;
+    private final List<String> referredFields;
 
     public ScriptQueryExpression(
         RexNode rexNode,
@@ -1468,32 +1620,61 @@ public class PredicateAnalyzer {
       }
       accumulateScriptCount(1);
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
+      this.parameterHelper =
+          new ScriptParameterHelper(
+              rowType.getFieldList(), fieldTypes, params, cluster.getRexBuilder());
       this.codeGenerator =
           () ->
               SerializationWrapper.wrapWithLangType(
-                  ScriptEngineType.CALCITE, serializer.serialize(rexNode, rowType, fieldTypes));
-      this.params = params;
+                  ScriptEngineType.CALCITE, serializer.serialize(rexNode, parameterHelper));
+      this.referredFields =
+          PlanUtils.getInputRefs(rexNode).stream()
+              .map(RexInputRef::getIndex)
+              .map(rowType.getFieldNames()::get)
+              .toList();
+      this.fieldTypes = fieldTypes;
+    }
+
+    // For filter script, this method will be called after planning phase;
+    // For the agg-script, this will be called in planning phase to generate agg builder.
+    // TODO: make agg-script lazy as well
+    private String getOrCreateGeneratedCode() {
+      if (generatedCode == null) {
+        generatedCode = codeGenerator.get();
+      }
+      return generatedCode;
     }
 
     @Override
     public QueryBuilder builder() {
-      return new ScriptQueryBuilder(getScript());
+      ScriptQueryBuilder scriptQuery = QueryBuilders.scriptQuery(getScript());
+      List<String> nestedPaths =
+          referredFields.stream()
+              .map(p -> Utils.resolveNestedPath(p, fieldTypes))
+              .filter(Predicate.not(Strings::isNullOrEmpty))
+              .distinct()
+              .collect(Collectors.toUnmodifiableList());
+      if (nestedPaths.size() > 1) {
+        throw new UnsupportedScriptException(
+            String.format(
+                Locale.ROOT,
+                "Accessing multiple nested fields under different hierarchies in script is not"
+                    + " supported: %s",
+                nestedPaths));
+      }
+      if (!nestedPaths.isEmpty()) {
+        return nestedQuery(nestedPaths.get(0), scriptQuery, ScoreMode.None);
+      }
+      return scriptQuery;
     }
 
     public Script getScript() {
-      long currentTime = Hook.CURRENT_TIME.get(-1L);
-      if (currentTime < 0) {
-        throw new UnsupportedScriptException(
-            "ScriptQueryExpression requires a valid current time from hook, but it is not set");
-      }
-      Map<String, Object> mergedParams = new LinkedHashMap<>(params);
-      mergedParams.put(Variable.UTC_TIMESTAMP.camelName, currentTime);
       return new Script(
           DEFAULT_SCRIPT_TYPE,
           COMPOUNDED_LANG_NAME,
-          codeGenerator.get(),
+          getOrCreateGeneratedCode(),
           Collections.emptyMap(),
-          mergedParams);
+          this.parameterHelper.getParameters());
     }
 
     @Override
@@ -1509,6 +1690,24 @@ public class PredicateAnalyzer {
     @Override
     public List<RexNode> getUnAnalyzableNodes() {
       return List.of();
+    }
+
+    /**
+     * Determine the appropriate ScriptSortType based on the expression's return type.
+     *
+     * @param relDataType the return type of the expression
+     * @return the appropriate ScriptSortType
+     */
+    public static ScriptSortBuilder.ScriptSortType getScriptSortType(RelDataType relDataType) {
+      if (SqlTypeName.CHAR_TYPES.contains(relDataType.getSqlTypeName())) {
+        return ScriptSortBuilder.ScriptSortType.STRING;
+      } else if (SqlTypeName.INT_TYPES.contains(relDataType.getSqlTypeName())
+          || SqlTypeName.APPROX_TYPES.contains(relDataType.getSqlTypeName())) {
+        return ScriptSortBuilder.ScriptSortType.NUMBER;
+      } else {
+        throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+            "Unsupported type for sort expression pushdown: " + relDataType);
+      }
     }
   }
 
@@ -1560,25 +1759,22 @@ public class PredicateAnalyzer {
   }
 
   /** Used for bind variables. */
+  @RequiredArgsConstructor
   public static final class NamedFieldExpression implements TerminalExpression {
 
     private final String name;
     private final ExprType type;
+    @Getter @Nullable private final String nestedPath;
 
     public NamedFieldExpression(
         int refIndex, List<String> schema, Map<String, ExprType> filedTypes) {
       this.name = refIndex >= schema.size() ? null : schema.get(refIndex);
       this.type = filedTypes.get(name);
-    }
-
-    public NamedFieldExpression(String name, ExprType type) {
-      this.name = name;
-      this.type = type;
+      this.nestedPath = Utils.resolveNestedPath(name, filedTypes);
     }
 
     private NamedFieldExpression() {
-      this.name = null;
-      this.type = null;
+      this(null, null, (String) null);
     }
 
     private NamedFieldExpression(
@@ -1586,11 +1782,11 @@ public class PredicateAnalyzer {
       this.name =
           (ref == null || ref.getIndex() >= schema.size()) ? null : schema.get(ref.getIndex());
       this.type = filedTypes.get(name);
+      this.nestedPath = Utils.resolveNestedPath(name, filedTypes);
     }
 
     private NamedFieldExpression(RexLiteral literal) {
-      this.name = literal == null ? null : RexLiteral.stringValue(literal);
-      this.type = null;
+      this(literal == null ? null : RexLiteral.stringValue(literal), null, null);
     }
 
     public String getRootName() {
@@ -1613,8 +1809,27 @@ public class PredicateAnalyzer {
       return type != null && type.getOriginalExprType() instanceof OpenSearchTextType;
     }
 
+    boolean isBooleanType() {
+      if (type == null) {
+        return false;
+      }
+      // Check if the type is a boolean type. For OpenSearchDataType, check exprCoreType.
+      if (type instanceof OpenSearchDataType osType) {
+        return ExprCoreType.BOOLEAN.equals(osType.getExprCoreType());
+      }
+      return ExprCoreType.BOOLEAN.equals(type);
+    }
+
     boolean isMetaField() {
       return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(getRootName());
+    }
+
+    boolean isStructField() {
+      return type != null && type.getOriginalExprType() == ExprCoreType.STRUCT;
+    }
+
+    boolean isAliasField() {
+      return type != null && type instanceof OpenSearchAliasType;
     }
 
     String getReference() {
@@ -1627,11 +1842,11 @@ public class PredicateAnalyzer {
   }
 
   /** Literal like {@code 'foo' or 42 or true} etc. */
-  static final class LiteralExpression implements TerminalExpression {
+  public static final class LiteralExpression implements TerminalExpression {
 
     final RexLiteral literal;
 
-    LiteralExpression(RexLiteral literal) {
+    public LiteralExpression(RexLiteral literal) {
       this.literal = literal;
     }
 

@@ -36,7 +36,7 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
 
   @Override
   public Object result(LogParserAccumulator acc) {
-    if (acc.size() == 0) {
+    if (acc.size() == 0 && acc.logSize() == 0) {
       return null;
     }
 
@@ -89,7 +89,7 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
     this.variableCountThreshold = variableCountThreshold;
     this.thresholdPercentage = thresholdPercentage;
     acc.evaluate(field);
-    if (bufferLimit > 0 && acc.size() == bufferLimit) {
+    if (bufferLimit > 0 && acc.logSize() == bufferLimit) {
       acc.partialMerge(
           maxSampleCount, variableCountThreshold, thresholdPercentage, showNumberedToken);
       acc.clearBuffer();
@@ -152,6 +152,10 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
     public Map<String, Map<String, Object>> patternGroupMap = new HashMap<>();
 
     public int size() {
+      return patternGroupMap.size();
+    }
+
+    public int logSize() {
       return logMessages.size();
     }
 

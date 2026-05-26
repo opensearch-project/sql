@@ -21,6 +21,8 @@ public class WriteDirectQueryResourcesRequest {
   private String resourceName;
   private String request;
   private Map<String, String> RequestOptions;
+  private String groupName;
+  private boolean delete;
 
   /**
    * Sets the resource type from a string value.

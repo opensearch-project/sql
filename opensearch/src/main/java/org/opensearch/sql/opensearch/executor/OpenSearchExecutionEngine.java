@@ -6,19 +6,21 @@
 package org.opensearch.sql.opensearch.executor;
 
 import com.google.common.base.Suppliers;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import org.apache.calcite.avatica.util.StructImpl;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -35,7 +37,8 @@ import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
+import org.locationtech.jts.geom.Point;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -43,6 +46,7 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionContext;
@@ -52,14 +56,17 @@ import org.opensearch.sql.executor.Explain;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.monitor.profile.MetricName;
+import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
-import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
-import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
+import org.opensearch.transport.client.node.NodeClient;
 
 /** OpenSearch execution engine implementation. */
 public class OpenSearchExecutionEngine implements ExecutionEngine {
@@ -138,6 +145,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             listener.onResponse(openSearchExplain.apply(plan));
           } catch (Exception e) {
             listener.onFailure(e);
+          } finally {
+            plan.close();
           }
         });
   }
@@ -161,33 +170,31 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   @Override
   public void explain(
       RelNode rel,
-      ExplainFormat format,
+      ExplainMode mode,
       CalcitePlanContext context,
       ResponseListener<ExplainResponse> listener) {
     client.schedule(
         () -> {
           try {
-            if (format == ExplainFormat.SIMPLE) {
+            if (mode == ExplainMode.SIMPLE) {
               String logical = RelOptUtil.toString(rel, SqlExplainLevel.NO_ATTRIBUTES);
               listener.onResponse(
                   new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
             } else {
               SqlExplainLevel level =
-                  format == ExplainFormat.COST
+                  mode == ExplainMode.COST
                       ? SqlExplainLevel.ALL_ATTRIBUTES
                       : SqlExplainLevel.EXPPLAN_ATTRIBUTES;
               String logical = RelOptUtil.toString(rel, level);
               AtomicReference<String> physical = new AtomicReference<>();
               AtomicReference<String> javaCode = new AtomicReference<>();
               try (Hook.Closeable closeable = getPhysicalPlanInHook(physical, level)) {
-                if (format == ExplainFormat.EXTENDED) {
+                if (mode == ExplainMode.EXTENDED) {
                   getCodegenInHook(javaCode);
                   CalcitePlanContext.skipEncoding.set(true);
                 }
                 // triggers the hook
-                AccessController.doPrivileged(
-                    (PrivilegedAction<PreparedStatement>)
-                        () -> OpenSearchRelRunners.run(context, rel));
+                OpenSearchRelRunners.run(context, rel);
               }
               listener.onResponse(
                   new ExplainResponse(
@@ -205,27 +212,74 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   public void execute(
       RelNode rel, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
     client.schedule(
-        () ->
-            AccessController.doPrivileged(
-                (PrivilegedAction<Void>)
-                    () -> {
-                      try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
-                        ResultSet result = statement.executeQuery();
-                        buildResultSet(
-                            result, rel.getRowType(), context.sysLimit.querySizeLimit(), listener);
-                      } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                      }
-                      return null;
-                    }));
+        () -> {
+          try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
+            ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
+            long execTime = System.nanoTime();
+            ResultSet result = statement.executeQuery();
+            QueryResponse response =
+                buildResultSet(result, rel.getRowType(), context.sysLimit.querySizeLimit());
+            metric.add(System.nanoTime() - execTime);
+            listener.onResponse(response);
+
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
-  private void buildResultSet(
-      ResultSet resultSet,
-      RelDataType rowTypes,
-      Integer querySizeLimit,
-      ResponseListener<QueryResponse> listener)
-      throws SQLException {
+  /**
+   * Process values recursively, handling geo points, nested maps, structs and arrays. When a {@link
+   * RelDataType} is provided, struct values (StructImpl) are converted to Maps keyed by field
+   * names, preserving field-name information in the JSON output.
+   *
+   * @param value The raw value from the JDBC result set
+   * @param type The Calcite type metadata for this value, or null if unavailable
+   */
+  @SuppressWarnings("unchecked")
+  private static Object processValue(Object value, RelDataType type) throws SQLException {
+    if (value == null) {
+      return null;
+    }
+    if (value instanceof Point point) {
+      return new OpenSearchExprGeoPointValue(point.getY(), point.getX());
+    }
+    if (value instanceof Map) {
+      Map<String, Object> map = (Map<String, Object>) value;
+      Map<String, Object> convertedMap = new HashMap<>();
+      for (Map.Entry<String, Object> entry : map.entrySet()) {
+        convertedMap.put(entry.getKey(), processValue(entry.getValue(), null));
+      }
+      return convertedMap;
+    }
+    if (value instanceof StructImpl structImpl) {
+      Object[] attrs = structImpl.getAttributes();
+      if (type != null && type.getSqlTypeName() == SqlTypeName.ROW) {
+        List<RelDataTypeField> fields = type.getFieldList();
+        Map<String, Object> map = new LinkedHashMap<>();
+        for (int i = 0; i < fields.size() && i < attrs.length; i++) {
+          map.put(fields.get(i).getName(), processValue(attrs[i], fields.get(i).getType()));
+        }
+        return map;
+      }
+      return Arrays.asList(attrs);
+    }
+    if (value instanceof List) {
+      List<Object> list = (List<Object>) value;
+      RelDataType componentType =
+          (type != null && type.getComponentType() != null) ? type.getComponentType() : null;
+      List<Object> convertedList = new ArrayList<>();
+      for (Object item : list) {
+        convertedList.add(processValue(item, componentType));
+      }
+      return convertedList;
+    }
+    // For other types, return as-is
+    return value;
+  }
+
+  private QueryResponse buildResultSet(
+      ResultSet resultSet, RelDataType rowTypes, Integer querySizeLimit) throws SQLException {
     // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
@@ -238,11 +292,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
         String columnName = metaData.getColumnName(i);
-        int sqlType = metaData.getColumnType(i);
-        RelDataType fieldType = fieldTypes.get(i - 1);
-        ExprValue exprValue =
-            JdbcOpenSearchDataTypeConvertor.getExprValueFromSqlType(
-                resultSet, i, sqlType, fieldType, columnName);
+        Object value = resultSet.getObject(columnName);
+        Object converted = processValue(value, fieldTypes.get(i - 1));
+        ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
         row.put(columnName, exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));
@@ -270,14 +322,15 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     }
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
-    listener.onResponse(response);
+    return response;
   }
 
   /** Registers opensearch-dependent functions */
   private void registerOpenSearchFunctions() {
-    if (client instanceof OpenSearchNodeClient) {
+    Optional<NodeClient> nodeClient = client.getNodeClient();
+    if (nodeClient.isPresent()) {
       SqlUserDefinedFunction geoIpFunction =
-          new GeoIpFunction(client.getNodeClient()).toUDF(BuiltinFunctionName.GEOIP.name());
+          new GeoIpFunction(nodeClient.get()).toUDF(BuiltinFunctionName.GEOIP.name());
       PPLFuncImpTable.INSTANCE.registerExternalOperator(BuiltinFunctionName.GEOIP, geoIpFunction);
       OperatorTable.addOperator(BuiltinFunctionName.GEOIP.name(), geoIpFunction);
     } else {
@@ -296,6 +349,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
     OperatorTable.addOperator(
         BuiltinFunctionName.DISTINCT_COUNT_APPROX.name(), approxDistinctCountFunction);
+
+    // Note: GraphLookup is now implemented as a custom RelNode (LogicalGraphLookup)
+    // instead of a UDF, so no registration is needed here.
   }
 
   /**

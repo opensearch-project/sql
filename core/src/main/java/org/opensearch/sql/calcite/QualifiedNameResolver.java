@@ -16,6 +16,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
@@ -64,12 +66,30 @@ public class QualifiedNameResolver {
       QualifiedName nameNode, CalcitePlanContext context) {
     log.debug("resolveInNonJoinCondition() called with nameNode={}", nameNode);
 
-    return resolveLambdaVariable(nameNode, context)
-        .or(() -> resolveFieldDirectly(nameNode, context, 1))
-        .or(() -> resolveFieldWithAlias(nameNode, context, 1))
-        .or(() -> resolveFieldWithoutAlias(nameNode, context, 1))
-        .or(() -> resolveRenamedField(nameNode, context))
-        .or(() -> resolveCorrelationField(nameNode, context))
+    // First try to resolve as lambda variable
+    Optional<RexNode> lambdaVar = resolveLambdaVariable(nameNode, context);
+    if (lambdaVar.isPresent()) {
+      return lambdaVar.get();
+    }
+
+    // Try to resolve as regular field
+    Optional<RexNode> fieldRef =
+        resolveFieldDirectly(nameNode, context, 1)
+            .or(() -> resolveFieldWithAlias(nameNode, context, 1))
+            .or(() -> resolveFieldWithoutAlias(nameNode, context, 1))
+            .or(() -> resolveRenamedField(nameNode, context));
+
+    if (fieldRef.isPresent()) {
+      // If we're in a lambda context and this is not a lambda variable,
+      // we need to capture it as an external variable
+      if (context.isInLambdaContext()) {
+        log.debug("Capturing external field {} in lambda context", nameNode);
+        return context.captureVariable(fieldRef.get(), nameNode.toString());
+      }
+      return fieldRef.get();
+    }
+
+    return resolveCorrelationField(nameNode, context)
         .or(() -> replaceWithNullLiteralInCoalesce(context))
         .orElseThrow(() -> getNotFoundException(nameNode));
   }
@@ -77,7 +97,7 @@ public class QualifiedNameResolver {
   private static String joinParts(List<String> parts, int start, int length) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < length; i++) {
-      if (start < i) {
+      if (i > 0) {
         sb.append(".");
       }
       sb.append(parts.get(start + i));
@@ -270,10 +290,10 @@ public class QualifiedNameResolver {
     if (length == parts.size() - start) {
       return field;
     } else {
-      String itemName = joinParts(parts, length + start, parts.size() - length);
-      return context.relBuilder.alias(
-          createItemAccess(field, itemName, context),
-          String.join(QualifiedName.DELIMITER, parts.subList(start, parts.size())));
+      int remainingStart = length + start;
+      int remainingLength = parts.size() - remainingStart;
+      String itemName = joinParts(parts, remainingStart, remainingLength);
+      return createItemAccess(field, itemName, context);
     }
   }
 
@@ -297,14 +317,20 @@ public class QualifiedNameResolver {
   private static Optional<RexNode> replaceWithNullLiteralInCoalesce(CalcitePlanContext context) {
     log.debug("replaceWithNullLiteralInCoalesce() called");
     if (context.isInCoalesceFunction()) {
+      // Use SqlTypeName.NULL so the resulting literal does not bias the least-restrictive
+      // common-type computation toward VARCHAR. See issue #5175: previously VARCHAR was used,
+      // which caused COALESCE(null, 42) to be inferred as VARCHAR and returned as "42".
       return Optional.of(
           context.rexBuilder.makeNullLiteral(
-              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR)));
+              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.NULL)));
     }
     return Optional.empty();
   }
 
-  private static RuntimeException getNotFoundException(QualifiedName node) {
-    return new IllegalArgumentException(String.format("Field [%s] not found.", node.toString()));
+  private static ErrorReport getNotFoundException(QualifiedName node) {
+    return ErrorReport.wrap(
+            new IllegalArgumentException(String.format("Field [%s] not found.", node.toString())))
+        .code(ErrorCode.FIELD_NOT_FOUND)
+        .build();
   }
 }

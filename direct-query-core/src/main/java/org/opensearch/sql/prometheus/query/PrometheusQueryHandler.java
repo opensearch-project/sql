@@ -6,8 +6,6 @@
 package org.opensearch.sql.prometheus.query;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
@@ -52,64 +50,60 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
   @Override
   public String executeQuery(PrometheusClient client, ExecuteDirectQueryRequest request)
       throws IOException {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<String>)
-            () -> {
-              try {
-                PrometheusOptions options = request.getPrometheusOptions();
-                PrometheusQueryType queryType = options.getQueryType();
-                if (queryType == null) {
-                  return createErrorJson("Query type is required for Prometheus queries");
-                }
+    try {
+      PrometheusOptions options = request.getPrometheusOptions();
+      PrometheusQueryType queryType = options.getQueryType();
+      if (queryType == null) {
+        return createErrorJson("Query type is required for Prometheus queries");
+      }
 
-                String startTimeStr = options.getStart();
-                String endTimeStr = options.getEnd();
-                Integer limit = request.getMaxResults();
-                Integer timeout = request.getTimeout();
+      String startTimeStr = options.getStart();
+      String endTimeStr = options.getEnd();
+      Integer limit = request.getMaxResults();
+      Integer timeout = request.getTimeout();
 
-                if (queryType == PrometheusQueryType.RANGE
-                    && (startTimeStr == null || endTimeStr == null)) {
-                  return createErrorJson("Start and end times are required for Prometheus queries");
-                } else if (queryType == PrometheusQueryType.INSTANT && options.getTime() == null) {
-                  return createErrorJson("Time is required for instant Prometheus queries");
-                }
+      if (queryType == PrometheusQueryType.RANGE
+          && (startTimeStr == null || endTimeStr == null)) {
+        return createErrorJson("Start and end times are required for Prometheus queries");
+      } else if (queryType == PrometheusQueryType.INSTANT && options.getTime() == null) {
+        return createErrorJson("Time is required for instant Prometheus queries");
+      }
 
-                switch (queryType) {
-                  case RANGE:
-                    {
-                      JSONObject metricData =
-                          client.queryRange(
-                              request.getQuery(),
-                              Long.parseLong(startTimeStr),
-                              Long.parseLong(endTimeStr),
-                              options.getStep(),
-                              limit,
-                              timeout);
-                      return metricData.toString();
-                    }
+      switch (queryType) {
+        case RANGE:
+          {
+            JSONObject metricData =
+                client.queryRange(
+                    request.getQuery(),
+                    Long.parseLong(startTimeStr),
+                    Long.parseLong(endTimeStr),
+                    options.getStep(),
+                    limit,
+                    timeout);
+            return metricData.toString();
+          }
 
-                  case INSTANT:
-                  default:
-                    {
-                      JSONObject metricData =
-                          client.query(
-                              request.getQuery(),
-                              Long.parseLong(options.getTime()),
-                              limit,
-                              timeout);
-                      return metricData.toString();
-                    }
-                }
-              } catch (NumberFormatException e) {
-                return createErrorJson("Invalid time format: " + e.getMessage());
-              } catch (PrometheusClientException e) {
-                LOG.error("Prometheus client error executing query", e);
-                return createErrorJson(e.getMessage());
-              } catch (IOException e) {
-                LOG.error("Error executing query", e);
-                return createErrorJson(e.getMessage());
-              }
-            });
+        case INSTANT:
+        default:
+          {
+            JSONObject metricData =
+                client.query(
+                    request.getQuery(),
+                    Long.parseLong(options.getTime()),
+                    limit,
+                    timeout);
+            return metricData.toString();
+          }
+      }
+    } catch (NumberFormatException e) {
+      return createErrorJson("Invalid time format: " + e.getMessage());
+    } catch (PrometheusClientException e) {
+      LOG.error("Prometheus client error executing query", e);
+      return createErrorJson(e.getMessage());
+    } catch (IOException e) {
+      LOG.error("Error executing query", e);
+      return createErrorJson(e.getMessage());
+    }
   }
 
   private String createErrorJson(String message) {
@@ -119,109 +113,146 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
   @Override
   public GetDirectQueryResourcesResponse<?> getResources(
       PrometheusClient client, GetDirectQueryResourcesRequest request) {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<GetDirectQueryResourcesResponse<?>>)
-            () -> {
-              try {
-                if (request.getResourceType() == null) {
-                  throw new IllegalArgumentException("Resource type cannot be null");
-                }
+    try {
+      if (request.getResourceType() == null) {
+        throw new IllegalArgumentException("Resource type cannot be null");
+      }
 
-                switch (request.getResourceType()) {
-                  case LABELS:
-                    {
-                      List<String> labels = client.getLabels(request.getQueryParams());
-                      return GetDirectQueryResourcesResponse.withStringList(labels);
-                    }
-                  case LABEL:
-                    {
-                      List<String> labelValues =
-                          client.getLabel(request.getResourceName(), request.getQueryParams());
-                      return GetDirectQueryResourcesResponse.withStringList(labelValues);
-                    }
-                  case METADATA:
-                    {
-                      Map<String, List<MetricMetadata>> metadata =
-                          client.getAllMetrics(request.getQueryParams());
-                      return GetDirectQueryResourcesResponse.withMap(metadata);
-                    }
-                  case SERIES:
-                    {
-                      List<Map<String, String>> series = client.getSeries(request.getQueryParams());
-                      return GetDirectQueryResourcesResponse.withList(series);
-                    }
-                  case ALERTS:
-                    {
-                      JSONObject alerts = client.getAlerts();
-                      return GetDirectQueryResourcesResponse.withMap(alerts.toMap());
-                    }
-                  case RULES:
-                    {
-                      JSONObject rules = client.getRules(request.getQueryParams());
-                      return GetDirectQueryResourcesResponse.withMap(rules.toMap());
-                    }
-                  case ALERTMANAGER_ALERTS:
-                    {
-                      JSONArray alerts = client.getAlertmanagerAlerts(request.getQueryParams());
-                      return GetDirectQueryResourcesResponse.withList(alerts.toList());
-                    }
-                  case ALERTMANAGER_ALERT_GROUPS:
-                    {
-                      JSONArray alertGroups =
-                          client.getAlertmanagerAlertGroups(request.getQueryParams());
-                      return GetDirectQueryResourcesResponse.withList(alertGroups.toList());
-                    }
-                  case ALERTMANAGER_RECEIVERS:
-                    {
-                      JSONArray receivers = client.getAlertmanagerReceivers();
-                      return GetDirectQueryResourcesResponse.withList(receivers.toList());
-                    }
-                  case ALERTMANAGER_SILENCES:
-                    {
-                      JSONArray silences = client.getAlertmanagerSilences();
-                      return GetDirectQueryResourcesResponse.withList(silences.toList());
-                    }
-                  default:
-                    throw new IllegalArgumentException(
-                        "Invalid prometheus resource type: " + request.getResourceType());
-                }
-              } catch (IOException e) {
-                LOG.error("Error getting resources", e);
-                throw new PrometheusClientException(
-                    String.format(
-                        "Error while getting resources for %s: %s",
-                        request.getResourceType(), e.getMessage()));
-              }
-            });
+      switch (request.getResourceType()) {
+        case LABELS:
+          {
+            List<String> labels = client.getLabels(request.getQueryParams());
+            return GetDirectQueryResourcesResponse.withStringList(labels);
+          }
+        case LABEL:
+          {
+            List<String> labelValues =
+                client.getLabel(request.getResourceName(), request.getQueryParams());
+            return GetDirectQueryResourcesResponse.withStringList(labelValues);
+          }
+        case METADATA:
+          {
+            Map<String, List<MetricMetadata>> metadata =
+                client.getAllMetrics(request.getQueryParams());
+            return GetDirectQueryResourcesResponse.withMap(metadata);
+          }
+        case SERIES:
+          {
+            List<Map<String, String>> series = client.getSeries(request.getQueryParams());
+            return GetDirectQueryResourcesResponse.withList(series);
+          }
+        case ALERTS:
+          {
+            JSONObject alerts = client.getAlerts();
+            return GetDirectQueryResourcesResponse.withMap(alerts.toMap());
+          }
+        case RULES:
+          {
+            JSONObject rules;
+            if (request.getResourceName() != null && !request.getResourceName().isEmpty()) {
+              rules =
+                  client.getRulesByNamespace(
+                      request.getResourceName(), request.getQueryParams());
+            } else {
+              rules = client.getRules(request.getQueryParams());
+            }
+            return GetDirectQueryResourcesResponse.withMap(rules.toMap());
+          }
+        case ALERTMANAGER_ALERTS:
+          {
+            JSONArray alerts = client.getAlertmanagerAlerts(request.getQueryParams());
+            return GetDirectQueryResourcesResponse.withList(alerts.toList());
+          }
+        case ALERTMANAGER_ALERT_GROUPS:
+          {
+            JSONArray alertGroups =
+                client.getAlertmanagerAlertGroups(request.getQueryParams());
+            return GetDirectQueryResourcesResponse.withList(alertGroups.toList());
+          }
+        case ALERTMANAGER_RECEIVERS:
+          {
+            JSONArray receivers = client.getAlertmanagerReceivers();
+            return GetDirectQueryResourcesResponse.withList(receivers.toList());
+          }
+        case ALERTMANAGER_SILENCES:
+          {
+            JSONArray silences = client.getAlertmanagerSilences();
+            return GetDirectQueryResourcesResponse.withList(silences.toList());
+          }
+        case ALERTMANAGER_STATUS:
+          {
+            JSONObject status = client.getAlertmanagerStatus();
+            return GetDirectQueryResourcesResponse.withMap(status.toMap());
+          }
+        default:
+          throw new IllegalArgumentException(
+              "Invalid prometheus resource type: " + request.getResourceType());
+      }
+    } catch (IOException e) {
+      LOG.error("Error getting resources", e);
+      throw new PrometheusClientException(
+          String.format(
+              "Error while getting resources for %s: %s",
+              request.getResourceType(), e.getMessage()));
+    }
   }
+
   @Override
   public WriteDirectQueryResourcesResponse<?> writeResources(
-          PrometheusClient client, WriteDirectQueryResourcesRequest request) {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<WriteDirectQueryResourcesResponse<?>>)
-                () -> {
-                  try {
-                    if (request.getResourceType() == null) {
-                      throw new IllegalArgumentException("Resource type cannot be null");
-                    }
+      PrometheusClient client, WriteDirectQueryResourcesRequest request) {
+    try {
+      if (request.getResourceType() == null) {
+        throw new IllegalArgumentException("Resource type cannot be null");
+      }
 
-                    switch (request.getResourceType()) {
-                      case ALERTMANAGER_SILENCES:
-                      {
-                        String createdSilence = client.createAlertmanagerSilences(request.getRequest());
-                        return WriteDirectQueryResourcesResponse.withList(List.of(createdSilence));
-                      }
-                      default:
-                        throw new IllegalArgumentException(
-                                "Invalid prometheus resource type: " + request.getResourceType());
-                    }
-                  } catch (IOException e) {
-                    LOG.error("Error getting resources", e);
-                    throw new PrometheusClientException(
-                            String.format(
-                                    "Error while getting resources for %s: %s",
-                                    request.getResourceType(), e.getMessage()));
-                  }
-                });
+      switch (request.getResourceType()) {
+        case ALERTMANAGER_SILENCES:
+          {
+            if (request.isDelete()) {
+              if (request.getResourceName() == null || request.getResourceName().isEmpty()) {
+                throw new IllegalArgumentException("Silence ID is required for deleting a silence");
+              }
+              String result = client.deleteAlertmanagerSilence(request.getResourceName());
+              return WriteDirectQueryResourcesResponse.withStringList(List.of(result));
+            }
+            String createdSilence = client.createAlertmanagerSilences(request.getRequest());
+            return WriteDirectQueryResourcesResponse.withList(List.of(createdSilence));
+          }
+        case RULES:
+          {
+            if (request.getResourceName() == null || request.getResourceName().isEmpty()) {
+              throw new IllegalArgumentException(
+                  "Namespace is required for rule group operations");
+            }
+            if (request.isDelete()) {
+              return deleteRules(client, request);
+            }
+            String result =
+                client.createOrUpdateRuleGroup(
+                    request.getResourceName(), request.getRequest());
+            return WriteDirectQueryResourcesResponse.withStringList(List.of(result));
+          }
+        default:
+          throw new IllegalArgumentException(
+              "Invalid prometheus resource type: " + request.getResourceType());
+      }
+    } catch (IOException e) {
+      LOG.error("Error writing resources", e);
+      throw new PrometheusClientException(
+          String.format(
+              "Error while writing resources for %s: %s",
+              request.getResourceType(), e.getMessage()));
+    }
+  }
+
+  private WriteDirectQueryResourcesResponse<?> deleteRules(
+      PrometheusClient client, WriteDirectQueryResourcesRequest request) throws IOException {
+    String result;
+    if (request.getGroupName() != null && !request.getGroupName().isEmpty()) {
+      result = client.deleteRuleGroup(request.getResourceName(), request.getGroupName());
+    } else {
+      result = client.deleteRuleNamespace(request.getResourceName());
+    }
+    return WriteDirectQueryResourcesResponse.withStringList(List.of(result));
   }
 }

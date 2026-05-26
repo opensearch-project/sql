@@ -9,6 +9,8 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
+import org.apache.calcite.rel.RelFieldCollation.NullDirection;
 import org.apache.calcite.rex.RexNode;
 import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
@@ -101,5 +103,9 @@ public class SortExprDigest {
     String sortTarget = isSimpleFieldReference() ? fieldName : expression.toString();
     return String.format(
         "%s %s NULLS_%s", sortTarget, direction.toString(), nullDirection.toString());
+  }
+
+  public boolean isMissingMax() {
+    return (direction == Direction.ASCENDING) ^ (nullDirection == NullDirection.FIRST);
   }
 }

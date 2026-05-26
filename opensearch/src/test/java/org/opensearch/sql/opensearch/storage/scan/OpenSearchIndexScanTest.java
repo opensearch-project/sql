@@ -119,11 +119,11 @@ class OpenSearchIndexScanTest {
             .map(i -> "column" + i)
             .collect(Collectors.toList());
     var request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             INDEX_NAME, searchSourceBuilder, factory, includes, CURSOR_KEEP_ALIVE, "samplePitId");
     // make a response, so OpenSearchResponse::isEmpty would return true and unset needClean
     var response = mock(SearchResponse.class);
-    when(response.getAggregations()).thenReturn(mock());
+    when(response.getAggregations()).thenReturn(null);
     var hits = mock(SearchHits.class);
     when(response.getHits()).thenReturn(hits);
     SearchHit hit = mock(SearchHit.class);
@@ -174,7 +174,7 @@ class OpenSearchIndexScanTest {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
   }
 
   @Test
@@ -200,7 +200,7 @@ class OpenSearchIndexScanTest {
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
           () -> assertFalse(indexScan.hasNext()));
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
   }
 
   static final OpenSearchRequest.IndexName EMPLOYEES_INDEX =
@@ -228,7 +228,7 @@ class OpenSearchIndexScanTest {
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
           () -> assertFalse(indexScan.hasNext()));
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
   }
 
   @Test
@@ -255,7 +255,7 @@ class OpenSearchIndexScanTest {
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
           () -> assertFalse(indexScan.hasNext()));
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
   }
 
   @Test
@@ -278,7 +278,50 @@ class OpenSearchIndexScanTest {
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
           () -> assertFalse(indexScan.hasNext()));
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
+  }
+
+  /**
+   * When close() is called mid-pagination without cursor serialization (e.g., query failed or
+   * aborted), the PIT should be force-deleted to prevent leaking.
+   */
+  @Test
+  void close_mid_pagination_without_cursor_serialized_should_force_cleanup() {
+    var request = mock(OpenSearchRequest.class);
+    when(request.hasAnotherBatch()).thenReturn(true);
+    var indexScan = new OpenSearchIndexScan(client, request);
+    indexScan.close();
+    verify(client).forceCleanup(request);
+    verify(client, never()).cleanup(any());
+  }
+
+  /**
+   * When close() is called after cursor has been serialized (normal pagination), the PIT should be
+   * preserved via cleanup() (in-memory only, no PIT deletion).
+   */
+  @Test
+  @SneakyThrows
+  void close_mid_pagination_with_cursor_serialized_should_cleanup() {
+    var request = mock(OpenSearchRequest.class);
+    when(request.hasAnotherBatch()).thenReturn(true);
+    var indexScan = new OpenSearchIndexScan(client, request);
+
+    // Simulate successful cursor serialization by calling writeExternal
+    var out = mock(ObjectOutput.class);
+    indexScan.writeExternal(out);
+
+    indexScan.close();
+    verify(client).cleanup(request);
+    verify(client, never()).forceCleanup(any());
+  }
+
+  /** forceClose() should always force-delete the PIT regardless of pagination state. */
+  @Test
+  void forceClose_should_always_force_cleanup() {
+    var request = mock(OpenSearchRequest.class);
+    var indexScan = new OpenSearchIndexScan(client, request);
+    indexScan.forceClose();
+    verify(client).forceCleanup(request);
   }
 
   static void mockTwoPageResponse(OpenSearchClient client) {
@@ -311,7 +354,7 @@ class OpenSearchIndexScanTest {
           () -> assertEquals(employee(2, "Smith", "HR"), indexScan.next()),
           () -> assertFalse(indexScan.hasNext()));
     }
-    verify(client).cleanup(any());
+    verify(client).forceCleanup(any());
   }
 
   @Test
@@ -396,7 +439,7 @@ class OpenSearchIndexScanTest {
               .size(MAX_RESULT_WINDOW)
               .highlighter(highlight);
       OpenSearchRequest request =
-          new OpenSearchQueryRequest(
+          OpenSearchQueryRequest.pitOf(
               EMPLOYEES_INDEX, sourceBuilder, factory, List.of(), CURSOR_KEEP_ALIVE, null);
 
       when(client.search(request)).thenReturn(response);
@@ -415,7 +458,7 @@ class OpenSearchIndexScanTest {
               .size(MAX_RESULT_WINDOW)
               .timeout(CURSOR_KEEP_ALIVE);
       OpenSearchRequest request =
-          new OpenSearchQueryRequest(
+          OpenSearchQueryRequest.pitOf(
               EMPLOYEES_INDEX, builder, factory, List.of(), CURSOR_KEEP_ALIVE, null);
       when(client.search(request)).thenReturn(response);
       var indexScan =

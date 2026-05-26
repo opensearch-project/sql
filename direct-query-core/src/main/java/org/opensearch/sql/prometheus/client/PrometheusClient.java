@@ -58,10 +58,12 @@ public interface PrometheusClient extends DataSourceClient {
   JSONObject getAlerts() throws IOException;
 
   /**
-   * Get all recording and alerting rules.
+   * Get all recording and alerting rules, normalized to a consistent JSON format. Handles
+   * Prometheus JSON, Cortex/Thanos YAML, and AMP JSON responses, returning them all as a
+   * {"groups":[...]} structure.
    *
    * @param queryParams Map of query parameters to include in the request
-   * @return JSONObject containing all rules
+   * @return JSONObject with {"groups":[...]} structure
    * @throws IOException If there is an issue with the request
    */
   JSONObject getRules(Map<String, String> queryParams) throws IOException;
@@ -107,4 +109,62 @@ public interface PrometheusClient extends DataSourceClient {
    * @throws IOException If there is an issue with the request
    */
   String createAlertmanagerSilences(String silenceJson) throws IOException;
+
+  /**
+   * Expire (delete) a silence in Alertmanager.
+   *
+   * @param silenceId The ID of the silence to expire
+   * @return String containing the response
+   * @throws IOException If there is an issue with the request
+   */
+  String deleteAlertmanagerSilence(String silenceId) throws IOException;
+
+  /**
+   * Get Alertmanager status including configuration, version, and cluster info.
+   *
+   * @return JSONObject containing the Alertmanager status
+   * @throws IOException If there is an issue with the request
+   */
+  JSONObject getAlertmanagerStatus() throws IOException;
+
+  /**
+   * Get rules for a specific namespace, normalized to a consistent JSON format. Handles
+   * Cortex/Thanos YAML and AMP JSON responses, returning them all as a {"groups":[...]} structure.
+   *
+   * @param namespace The rules namespace
+   * @param queryParams Map of query parameters to include in the request
+   * @return JSONObject with {"groups":[...]} structure
+   * @throws IOException If there is an issue with the request
+   */
+  JSONObject getRulesByNamespace(String namespace, Map<String, String> queryParams)
+      throws IOException;
+
+  /**
+   * Create or update a rule group in a namespace via the Cortex/Thanos Ruler API.
+   *
+   * @param namespace The rules namespace
+   * @param yamlBody The rule group definition in YAML format
+   * @return String containing the response
+   * @throws IOException If there is an issue with the request
+   */
+  String createOrUpdateRuleGroup(String namespace, String yamlBody) throws IOException;
+
+  /**
+   * Delete all rules in a namespace via the Cortex/Thanos Ruler API.
+   *
+   * @param namespace The rules namespace to delete
+   * @return String containing the response
+   * @throws IOException If there is an issue with the request
+   */
+  String deleteRuleNamespace(String namespace) throws IOException;
+
+  /**
+   * Delete a specific rule group in a namespace via the Cortex/Thanos Ruler API.
+   *
+   * @param namespace The rules namespace
+   * @param groupName The specific rule group name to delete
+   * @return String containing the response
+   * @throws IOException If there is an issue with the request
+   */
+  String deleteRuleGroup(String namespace, String groupName) throws IOException;
 }

@@ -105,7 +105,7 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
       @Parameter(name = "field") String field,
       @Parameter(name = "aggObject") Object aggObject,
       @Parameter(name = "showNumberedToken") Boolean showNumberedToken) {
-    if (Strings.isBlank(field)) {
+    if (Strings.isBlank(field) || aggObject == null) {
       return EMPTY_RESULT;
     }
     List<Map<String, Object>> aggResult = (List<Map<String, Object>>) aggObject;

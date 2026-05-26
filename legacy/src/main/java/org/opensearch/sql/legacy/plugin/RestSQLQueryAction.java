@@ -26,7 +26,6 @@ import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
-import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CommandResponseFormatter;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
@@ -92,8 +91,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
       return channel -> fallbackHandler.accept(channel, new IllegalStateException("not supported"));
     }
 
-    SQLService sqlService =
-        SecurityAccess.doPrivileged(() -> injector.getInstance(SQLService.class));
+    SQLService sqlService = injector.getInstance(SQLService.class);
 
     if (request.isExplainRequest()) {
       return channel ->

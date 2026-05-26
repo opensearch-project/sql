@@ -70,8 +70,7 @@ public class QueryResult implements Iterable<Object[]> {
    */
   public Map<String, String> columnNameTypes() {
     Map<String, String> colNameTypes = new LinkedHashMap<>();
-    schema
-        .getColumns()
+    schema.getColumns().stream()
         .forEach(
             column ->
                 colNameTypes.put(
@@ -82,19 +81,15 @@ public class QueryResult implements Iterable<Object[]> {
 
   @Override
   public Iterator<Object[]> iterator() {
-    // Any chance to avoid copy for json response generation?
     return exprValues.stream()
         .map(ExprValueUtils::getTupleValue)
-        .map(Map::values)
-        .map(this::convertExprValuesToValues)
+        .map(
+            tuple ->
+                tuple.entrySet().stream().map(e -> e.getValue().value()).toArray(Object[]::new))
         .iterator();
   }
 
   private String getColumnName(Column column) {
     return (column.getAlias() != null) ? column.getAlias() : column.getName();
-  }
-
-  private Object[] convertExprValuesToValues(Collection<ExprValue> exprValues) {
-    return exprValues.stream().map(ExprValue::value).toArray(Object[]::new);
   }
 }

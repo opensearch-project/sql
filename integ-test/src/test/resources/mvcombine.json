@@ -1,0 +1,42 @@
+{ "index": { "_index": "test_index_mvcombine", "_id": "1" } }
+{ "ip": "10.0.0.1", "bytes": 100, "tags": "t1", "packets_str": "10" }
+{ "index": { "_index": "test_index_mvcombine", "_id": "2" } }
+{ "ip": "10.0.0.1", "bytes": 100, "tags": "t1", "packets_str": "20" }
+{ "index": { "_index": "test_index_mvcombine", "_id": "3" } }
+{ "ip": "10.0.0.1", "bytes": 100, "tags": "t1", "packets_str": "30" }
+
+{ "index": { "_index": "test_index_mvcombine", "_id": "4" } }
+{ "ip": "10.0.0.2", "bytes": 200, "tags": "t2", "packets_str": "7" }
+
+{ "index": { "_index": "test_index_mvcombine", "_id": "5" } }
+{ "ip": "10.0.0.3", "bytes": 300, "tags": "t3", "packets_str": "5" }
+{ "index": { "_index": "test_index_mvcombine", "_id": "6" } }
+{ "ip": "10.0.0.3", "bytes": 300, "tags": "t3" }
+{ "index": { "_index": "test_index_mvcombine", "_id": "7" } }
+{ "ip": "10.0.0.3", "bytes": 300, "tags": "t3", "letters": "a" }
+
+{ "index": { "_index": "test_index_mvcombine", "_id": "16" } }
+{ "ip": "10.0.0.7", "bytes": 700, "tags": "t7", "packets_str": "1" }
+{ "index": { "_index": "test_index_mvcombine", "_id": "17" } }
+{ "ip": "10.0.0.7", "bytes": 700, "tags": "t7", "packets_str": "2" }
+{ "index": { "_index": "test_index_mvcombine", "_id": "18" } }
+{ "ip": "10.0.0.8", "bytes": 700, "tags": "t7", "packets_str": "9" }
+
+{ "index": { "_index": "test_index_mvcombine", "_id": "19" } }
+{ "ip": "10.0.0.9", "bytes": 900, "tags": "t9", "packets_str": "1" }
+{ "index": { "_index": "test_index_mvcombine", "_id": "20" } }
+{ "ip": "10.0.0.9", "bytes": 900, "tags": "t9", "packets_str": "2" }
+{ "index": { "_index": "test_index_mvcombine", "_id": "21" } }
+{ "ip": "10.0.0.9", "bytes": 900, "tags": "t9", "packets_str": "3" }
+
+{ "index": { "_index": "test_index_mvcombine", "_id": "11" } }
+{ "ip": "10.0.0.5", "bytes": 500, "tags": "t5", "packets_str": "dup" }
+{ "index": { "_index": "test_index_mvcombine", "_id": "12" } }
+{ "ip": "10.0.0.5", "bytes": 500, "tags": "t5", "packets_str": "dup" }
+{ "index": { "_index": "test_index_mvcombine", "_id": "13" } }
+{ "ip": "10.0.0.5", "bytes": 500, "tags": "t5", "packets_str": "x" }
+
+{ "index": { "_index": "test_index_mvcombine", "_id": "14" } }
+{ "ip": "10.0.0.6", "bytes": 600, "tags": "t6", "packets_str": "" }
+{ "index": { "_index": "test_index_mvcombine", "_id": "15" } }
+{ "ip": "10.0.0.6", "bytes": 600, "tags": "t6", "packets_str": "z" }

@@ -8,7 +8,9 @@ package org.opensearch.sql.ppl.utils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
@@ -25,13 +27,11 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralCon
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ChartCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DefaultSortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EventstatsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PrefixSortFieldContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StreamstatsCommandContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SuffixSortFieldContext;
+import org.opensearch.sql.ppl.parser.AstExpressionBuilder;
 
 /** Util class to get all arguments as a list from the PPL command. */
 public class ArgumentFactory {
@@ -77,7 +77,9 @@ public class ArgumentFactory {
                         getArgumentValue(ctx1.bucketNullableArg(0).bucket_nullable))
                     : new Argument(
                         Argument.BUCKET_NULLABLE,
-                        legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE)));
+                        UnresolvedPlanHelper.legacyPreferred(settings)
+                            ? Literal.TRUE
+                            : Literal.FALSE)));
     if (ctx2 != null) {
       list.add(new Argument("dedupsplit", getArgumentValue(ctx2.dedupsplit)));
     } else {
@@ -86,19 +88,13 @@ public class ArgumentFactory {
     return list;
   }
 
-  private static boolean legacyPreferred(Settings settings) {
-    return settings == null
-        || settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED) == null
-        || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED));
-  }
-
   /**
    * Get list of {@link Argument}.
    *
    * @param ctx StreamstatsCommandContext instance
    * @return the list of arguments fetched from the streamstats command
    */
-  public static List<Argument> getArgumentList(StreamstatsCommandContext ctx) {
+  public static List<Argument> getArgumentList(StreamstatsCommandContext ctx, Settings settings) {
     return Arrays.asList(
         ctx.streamstatsArgs().currentArg() != null && !ctx.streamstatsArgs().currentArg().isEmpty()
             ? new Argument("current", getArgumentValue(ctx.streamstatsArgs().currentArg(0).current))
@@ -108,7 +104,31 @@ public class ArgumentFactory {
             : new Argument("window", new Literal(0, DataType.INTEGER)),
         ctx.streamstatsArgs().globalArg() != null && !ctx.streamstatsArgs().globalArg().isEmpty()
             ? new Argument("global", getArgumentValue(ctx.streamstatsArgs().globalArg(0).global))
-            : new Argument("global", new Literal(true, DataType.BOOLEAN)));
+            : new Argument("global", new Literal(true, DataType.BOOLEAN)),
+        ctx.streamstatsArgs().bucketNullableArg() != null
+                && !ctx.streamstatsArgs().bucketNullableArg().isEmpty()
+            ? new Argument(
+                Argument.BUCKET_NULLABLE,
+                getArgumentValue(ctx.streamstatsArgs().bucketNullableArg(0).bucket_nullable))
+            : new Argument(
+                Argument.BUCKET_NULLABLE,
+                UnresolvedPlanHelper.legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx EventstatsCommandContext instance
+   * @return the list of arguments fetched from the eventstats command
+   */
+  public static List<Argument> getArgumentList(EventstatsCommandContext ctx, Settings settings) {
+    return Collections.singletonList(
+        ctx.bucketNullableArg() != null && !ctx.bucketNullableArg().isEmpty()
+            ? new Argument(
+                Argument.BUCKET_NULLABLE, getArgumentValue(ctx.bucketNullableArg().bucket_nullable))
+            : new Argument(
+                Argument.BUCKET_NULLABLE,
+                UnresolvedPlanHelper.legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
   }
 
   /**
@@ -131,63 +151,17 @@ public class ArgumentFactory {
   }
 
   /**
-   * Get list of {@link Argument}.
+   * Creates an "asc" argument for sort field direction.
    *
-   * @param ctx SortFieldContext instance
-   * @return the list of arguments fetched from the sort field in sort command
+   * @param ascending true for ascending sort, false for descending
+   * @return Argument representing the sort direction
    */
-  public static List<Argument> getArgumentList(SortFieldContext ctx) {
-    if (ctx instanceof PrefixSortFieldContext) {
-      return getArgumentList((PrefixSortFieldContext) ctx);
-    } else if (ctx instanceof SuffixSortFieldContext) {
-      return getArgumentList((SuffixSortFieldContext) ctx);
-    } else {
-      return getArgumentList((DefaultSortFieldContext) ctx);
-    }
-  }
-
-  /**
-   * Get list of {@link Argument} for prefix sort field (+/- syntax).
-   *
-   * @param ctx PrefixSortFieldContext instance
-   * @return the list of arguments fetched from the prefix sort field
-   */
-  public static List<Argument> getArgumentList(PrefixSortFieldContext ctx) {
-    return Arrays.asList(
-        ctx.MINUS() != null
-            ? new Argument("asc", new Literal(false, DataType.BOOLEAN))
-            : new Argument("asc", new Literal(true, DataType.BOOLEAN)),
-        getTypeArgument(ctx.sortFieldExpression()));
-  }
-
-  /**
-   * Get list of {@link Argument} for suffix sort field (asc/desc syntax).
-   *
-   * @param ctx SuffixSortFieldContext instance
-   * @return the list of arguments fetched from the suffix sort field
-   */
-  public static List<Argument> getArgumentList(SuffixSortFieldContext ctx) {
-    return Arrays.asList(
-        (ctx.DESC() != null || ctx.D() != null)
-            ? new Argument("asc", new Literal(false, DataType.BOOLEAN))
-            : new Argument("asc", new Literal(true, DataType.BOOLEAN)),
-        getTypeArgument(ctx.sortFieldExpression()));
-  }
-
-  /**
-   * Get list of {@link Argument} for default sort field (no direction specified).
-   *
-   * @param ctx DefaultSortFieldContext instance
-   * @return the list of arguments fetched from the default sort field
-   */
-  public static List<Argument> getArgumentList(DefaultSortFieldContext ctx) {
-    return Arrays.asList(
-        new Argument("asc", new Literal(true, DataType.BOOLEAN)),
-        getTypeArgument(ctx.sortFieldExpression()));
+  public static Argument createSortDirectionArgument(boolean ascending) {
+    return new Argument("asc", new Literal(ascending, DataType.BOOLEAN));
   }
 
   /** Helper method to get type argument from sortFieldExpression. */
-  private static Argument getTypeArgument(OpenSearchPPLParser.SortFieldExpressionContext ctx) {
+  public static Argument getTypeArgument(OpenSearchPPLParser.SortFieldExpressionContext ctx) {
     if (ctx.AUTO() != null) {
       return new Argument("type", new Literal("auto", DataType.STRING));
     } else if (ctx.IP() != null) {
@@ -232,6 +206,84 @@ public class ArgumentFactory {
     return arguments;
   }
 
+  public static List<Argument> getArgumentList(
+      OpenSearchPPLParser.TimechartCommandContext timechartCtx,
+      AstExpressionBuilder expressionBuilder) {
+    List<Argument> arguments = new ArrayList<>();
+    for (OpenSearchPPLParser.TimechartParameterContext ctx : timechartCtx.timechartParameter()) {
+      if (ctx.SPAN() != null) {
+        arguments.add(
+            new Argument("spanliteral", (Literal) expressionBuilder.visit(ctx.spanLiteral())));
+      } else if (ctx.LIMIT() != null) {
+        Literal limit = getArgumentValue(ctx.integerLiteral());
+        if ((Integer) limit.getValue() < 0) {
+          throw new IllegalArgumentException("Limit must be a non-negative number");
+        }
+        arguments.add(new Argument("limit", limit));
+      } else if (ctx.USEOTHER() != null) {
+        Literal useOther;
+        if (ctx.booleanLiteral() != null) {
+          useOther = getArgumentValue(ctx.booleanLiteral());
+        } else if (ctx.ident() != null) {
+          String identLiteral = expressionBuilder.visitIdentifiers(List.of(ctx.ident())).toString();
+          if ("true".equalsIgnoreCase(identLiteral) || "t".equalsIgnoreCase(identLiteral)) {
+            useOther = AstDSL.booleanLiteral(true);
+          } else if ("false".equalsIgnoreCase(identLiteral) || "f".equalsIgnoreCase(identLiteral)) {
+            useOther = AstDSL.booleanLiteral(false);
+          } else {
+            throw new IllegalArgumentException(
+                "Invalid useOther value: "
+                    + ctx.ident().getText()
+                    + ". Expected true/false or t/f");
+          }
+        } else {
+          throw new IllegalArgumentException("value for useOther must be a boolean or identifier");
+        }
+        arguments.add(new Argument("useother", useOther));
+      } else if (ctx.TIMEFIELD() != null) {
+        Literal timeField;
+        if (ctx.ident() != null) {
+          timeField =
+              AstDSL.stringLiteral(
+                  expressionBuilder.visitIdentifiers(List.of(ctx.ident())).toString());
+        } else {
+          timeField = getArgumentValue(ctx.stringLiteral());
+        }
+        arguments.add(new Argument("timefield", timeField));
+      } else {
+        throw new IllegalArgumentException(
+            String.format(
+                "A parameter of timechart must be a span, limit, useother, or timefield, got %s",
+                ctx));
+      }
+    }
+    return arguments;
+  }
+
+  public static Map<String, Argument> getArgumentList(
+      OpenSearchPPLParser.TransposeCommandContext transposeCommandContext) {
+    Map<String, Argument> arguments = new HashMap<>();
+    for (OpenSearchPPLParser.TransposeParameterContext ctx :
+        transposeCommandContext.transposeParameter()) {
+
+      if (ctx.COLUMN_NAME() != null) {
+        if (ctx.stringLiteral() == null) {
+          throw new IllegalArgumentException("COLUMN_NAME requires a string literal value");
+        }
+        Literal columnName = getArgumentValue(ctx.stringLiteral());
+        arguments.put("columnName", new Argument("columnName", columnName));
+      } else if (ctx.number != null) {
+
+        arguments.put("number", new Argument("number", getArgumentValue(ctx.number)));
+      } else {
+        throw new IllegalArgumentException(
+            String.format(
+                "A parameter of transpose must be a int limit, column_name , got %s", ctx));
+      }
+    }
+    return arguments;
+  }
+
   /**
    * Get list of {@link Argument}.
    *
@@ -261,7 +313,7 @@ public class ArgumentFactory {
             RareTopN.Option.useNull.name(),
             opt.isPresent()
                 ? getArgumentValue(opt.get().useNull)
-                : legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
+                : UnresolvedPlanHelper.legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
     return list;
   }
 

@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
@@ -78,7 +79,12 @@ public class OpenSearchRestClient implements OpenSearchClient {
       return response.mappings().entrySet().stream()
           .collect(Collectors.toMap(Map.Entry::getKey, e -> new IndexMapping(e.getValue())));
     } catch (IOException e) {
-      throw new IllegalStateException("Failed to get index mappings for " + indexExpression, e);
+      throw new IllegalStateException(
+          "Failed to get index mappings for "
+              + String.join(",", indexExpression)
+              + ": "
+              + e.getMessage(),
+          e);
     }
   }
 
@@ -110,7 +116,12 @@ public class OpenSearchRestClient implements OpenSearchClient {
 
       return result;
     } catch (IOException e) {
-      throw new IllegalStateException("Failed to get max result window for " + indexExpression, e);
+      throw new IllegalStateException(
+          "Failed to get max result window for "
+              + String.join(",", indexExpression)
+              + ": "
+              + e.getMessage(),
+          e);
     }
   }
 
@@ -236,8 +247,8 @@ public class OpenSearchRestClient implements OpenSearchClient {
   }
 
   @Override
-  public NodeClient getNodeClient() {
-    throw new UnsupportedOperationException("Unsupported method.");
+  public Optional<NodeClient> getNodeClient() {
+    return Optional.empty();
   }
 
   @Override

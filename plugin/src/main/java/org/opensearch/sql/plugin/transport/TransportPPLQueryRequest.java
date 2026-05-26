@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import org.opensearch.core.common.io.stream.InputStreamStreamInput;
 import org.opensearch.core.common.io.stream.OutputStreamStreamOutput;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.tasks.TaskId;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
@@ -34,6 +36,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
   @Getter private final String path;
 
   @Getter private String format = "";
+  @Getter private String explainMode;
 
   @Setter
   @Getter
@@ -45,6 +48,16 @@ public class TransportPPLQueryRequest extends ActionRequest {
   @Accessors(fluent = true)
   private JsonResponseFormatter.Style style = JsonResponseFormatter.Style.COMPACT;
 
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private boolean profile = false;
+
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private String queryId = null;
+
   /** Constructor of TransportPPLQueryRequest from PPLQueryRequest. */
   public TransportPPLQueryRequest(PPLQueryRequest pplQueryRequest) {
     pplQuery = pplQueryRequest.getRequest();
@@ -53,6 +66,9 @@ public class TransportPPLQueryRequest extends ActionRequest {
     format = pplQueryRequest.getFormat();
     sanitize = pplQueryRequest.sanitize();
     style = pplQueryRequest.style();
+    profile = pplQueryRequest.profile();
+    explainMode = pplQueryRequest.mode().getModeName();
+    queryId = pplQueryRequest.queryId();
   }
 
   /** Constructor of TransportPPLQueryRequest from StreamInput. */
@@ -60,11 +76,14 @@ public class TransportPPLQueryRequest extends ActionRequest {
     super(in);
     pplQuery = in.readOptionalString();
     format = in.readOptionalString();
+    explainMode = in.readOptionalString();
     String jsonContentString = in.readOptionalString();
     jsonContent = jsonContentString != null ? new JSONObject(jsonContentString) : null;
     path = in.readOptionalString();
     sanitize = in.readBoolean();
     style = in.readEnum(JsonResponseFormatter.Style.class);
+    profile = in.readBoolean();
+    queryId = in.readOptionalString();
   }
 
   /** Re-create the object from the actionRequest. */
@@ -91,10 +110,13 @@ public class TransportPPLQueryRequest extends ActionRequest {
     super.writeTo(out);
     out.writeOptionalString(pplQuery);
     out.writeOptionalString(format);
+    out.writeOptionalString(explainMode);
     out.writeOptionalString(jsonContent != null ? jsonContent.toString() : null);
     out.writeOptionalString(path);
     out.writeBoolean(sanitize);
     out.writeEnum(style);
+    out.writeBoolean(profile);
+    out.writeOptionalString(queryId);
   }
 
   public String getRequest() {
@@ -107,7 +129,16 @@ public class TransportPPLQueryRequest extends ActionRequest {
    * @return true if it is an explain request
    */
   public boolean isExplainRequest() {
-    return path.endsWith("/_explain");
+    return path != null && path.endsWith("/_explain");
+  }
+
+  /**
+   * Check if request is for grammar metadata endpoint.
+   *
+   * @return true if it is a grammar metadata request
+   */
+  public boolean isGrammarRequest() {
+    return path != null && path.endsWith("/_grammar");
   }
 
   /** Decide on the formatter by the requested format. */
@@ -126,11 +157,25 @@ public class TransportPPLQueryRequest extends ActionRequest {
     return null;
   }
 
+  @Override
+  public PPLQueryTask createTask(
+      long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
+    return new PPLQueryTask(id, type, action, getDescription(), parentTaskId, headers);
+  }
+
+  @Override
+  public String getDescription() {
+    String prefix = (queryId != null) ? "PPL [queryId=" + queryId + "]: " : "PPL: ";
+    return prefix + pplQuery;
+  }
+
   /** Convert to PPLQueryRequest. */
   public PPLQueryRequest toPPLQueryRequest() {
-    PPLQueryRequest pplQueryRequest = new PPLQueryRequest(pplQuery, jsonContent, path, format);
+    PPLQueryRequest pplQueryRequest =
+        new PPLQueryRequest(pplQuery, jsonContent, path, format, explainMode, profile);
     pplQueryRequest.sanitize(sanitize);
     pplQueryRequest.style(style);
+    pplQueryRequest.queryId(queryId);
     return pplQueryRequest;
   }
 }

@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -21,13 +20,14 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 import org.immutables.value.Value;
-import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /** Planner rule that push a {@link LogicalProject} down to {@link CalciteLogicalIndexScan} */
 @Value.Enclosing
-public class ProjectIndexScanRule extends RelRule<ProjectIndexScanRule.Config> {
+public class ProjectIndexScanRule extends InterruptibleRelRule<ProjectIndexScanRule.Config> {
 
   /** Creates a ProjectIndexScanRule. */
   protected ProjectIndexScanRule(Config config) {
@@ -35,7 +35,7 @@ public class ProjectIndexScanRule extends RelRule<ProjectIndexScanRule.Config> {
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     if (call.rels.length == 2) {
       // the ordinary variant
       final LogicalProject project = call.rel(0);
@@ -78,8 +78,13 @@ public class ProjectIndexScanRule extends RelRule<ProjectIndexScanRule.Config> {
         if (RexUtil.isIdentity(newProjectRexNodes, newScan.getRowType())) {
           call.transformTo(newScan);
         } else {
-          call.transformTo(call.builder().push(newScan).project(newProjectRexNodes).build());
+          call.transformTo(
+              call.builder()
+                  .push(newScan)
+                  .project(newProjectRexNodes, project.getRowType().getFieldNames())
+                  .build());
         }
+        PlanUtils.tryPruneRelNodes(call);
       }
     }
   }

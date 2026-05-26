@@ -10,8 +10,6 @@ import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_ENG
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.emrserverless.AWSEMRServerless;
 import com.amazonaws.services.emrserverless.AWSEMRServerlessClientBuilder;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
@@ -56,15 +54,11 @@ public class EMRServerlessClientFactoryImpl implements EMRServerlessClientFactor
 
   private EMRServerlessClient createEMRServerlessClient(String awsRegion) {
     // TODO: It does not handle accountId for now. (it creates client for same account)
-    return AccessController.doPrivileged(
-        (PrivilegedAction<EMRServerlessClient>)
-            () -> {
-              AWSEMRServerless awsemrServerless =
-                  AWSEMRServerlessClientBuilder.standard()
-                      .withRegion(awsRegion)
-                      .withCredentials(new DefaultAWSCredentialsProviderChain())
-                      .build();
-              return new EmrServerlessClientImpl(awsemrServerless, metricsService);
-            });
+    AWSEMRServerless awsemrServerless =
+        AWSEMRServerlessClientBuilder.standard()
+            .withRegion(awsRegion)
+            .withCredentials(new DefaultAWSCredentialsProviderChain())
+            .build();
+    return new EmrServerlessClientImpl(awsemrServerless, metricsService);
   }
 }

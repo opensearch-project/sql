@@ -2060,23 +2060,23 @@ public class DateTimeFunctions {
 
     // Check below from YYYYMMDD - MMDD which format should be used
     switch (length) {
-        // Check if dateAsInt is at least 8 digits long
+      // Check if dateAsInt is at least 8 digits long
       case FULL_DATE_LENGTH:
         return DATE_FORMATTER_LONG_YEAR;
 
-        // Check if dateAsInt is at least 6 digits long
+      // Check if dateAsInt is at least 6 digits long
       case SHORT_DATE_LENGTH:
         return DATE_FORMATTER_SHORT_YEAR;
 
-        // Check if dateAsInt is at least 5 digits long
+      // Check if dateAsInt is at least 5 digits long
       case SINGLE_DIGIT_YEAR_DATE_LENGTH:
         return DATE_FORMATTER_SINGLE_DIGIT_YEAR;
 
-        // Check if dateAsInt is at least 4 digits long
+      // Check if dateAsInt is at least 4 digits long
       case NO_YEAR_DATE_LENGTH:
         return DATE_FORMATTER_NO_YEAR;
 
-        // Check if dateAsInt is at least 3 digits long
+      // Check if dateAsInt is at least 3 digits long
       case SINGLE_DIGIT_MONTH_DATE_LENGTH:
         return DATE_FORMATTER_SINGLE_DIGIT_MONTH;
 

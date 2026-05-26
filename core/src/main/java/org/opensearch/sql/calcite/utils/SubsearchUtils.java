@@ -22,7 +22,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
+import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 
 @UtilityClass
 public class SubsearchUtils {

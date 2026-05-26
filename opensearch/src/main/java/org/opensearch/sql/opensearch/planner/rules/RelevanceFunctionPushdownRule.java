@@ -9,16 +9,17 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FI
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
 
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlOperator;
 import org.immutables.value.Value;
-import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /**
@@ -27,7 +28,8 @@ import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
  * relevance functions are always executed by OpenSearch for optimal performance and functionality.
  */
 @Value.Enclosing
-public class RelevanceFunctionPushdownRule extends RelRule<RelevanceFunctionPushdownRule.Config> {
+public class RelevanceFunctionPushdownRule
+    extends InterruptibleRelRule<RelevanceFunctionPushdownRule.Config> implements SubstitutionRule {
 
   /** Creates an RelevanceFunctionPushdownRule. */
   protected RelevanceFunctionPushdownRule(Config config) {
@@ -35,7 +37,7 @@ public class RelevanceFunctionPushdownRule extends RelRule<RelevanceFunctionPush
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     if (call.rels.length == 2) {
       final LogicalFilter filter = call.rel(0);
       final CalciteLogicalIndexScan scan = call.rel(1);
@@ -55,6 +57,7 @@ public class RelevanceFunctionPushdownRule extends RelRule<RelevanceFunctionPush
     AbstractRelNode newRel = scan.pushDownFilter(filter);
     if (newRel != null) {
       call.transformTo(newRel);
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 

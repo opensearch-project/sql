@@ -30,6 +30,7 @@ dependencies {
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
 }
 
 test {

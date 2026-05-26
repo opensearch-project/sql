@@ -29,6 +29,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
 import org.opensearch.sql.opensearch.storage.script.core.ExpressionScript;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.ExistsQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.LikeQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.NestedQuery;
@@ -68,6 +69,7 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
           .put(BuiltinFunctionName.LTE.getName(), new RangeQuery(Comparison.LTE))
           .put(BuiltinFunctionName.GTE.getName(), new RangeQuery(Comparison.GTE))
           .put(BuiltinFunctionName.LIKE.getName(), new LikeQuery())
+          .put(BuiltinFunctionName.ILIKE.getName(), new LikeQuery())
           .put(BuiltinFunctionName.MATCH.getName(), new MatchQuery())
           .put(BuiltinFunctionName.MATCH_PHRASE.getName(), new MatchPhraseQuery())
           .put(BuiltinFunctionName.MATCHPHRASE.getName(), new MatchPhraseQuery())
@@ -85,6 +87,8 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
           .put(BuiltinFunctionName.WILDCARD_QUERY.getName(), new WildcardQuery())
           .put(BuiltinFunctionName.WILDCARDQUERY.getName(), new WildcardQuery())
           .put(BuiltinFunctionName.NESTED.getName(), new NestedQuery())
+          .put(BuiltinFunctionName.IS_NULL.getName(), new ExistsQuery(true /* negated */))
+          .put(BuiltinFunctionName.IS_NOT_NULL.getName(), new ExistsQuery(false))
           .build();
 
   /**

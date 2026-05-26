@@ -43,9 +43,9 @@ configurations {
 }
 
 dependencies {
-    antlr "org.antlr:antlr4:4.7.1"
+    antlr "org.antlr:antlr4:4.13.2"
 
-    implementation "org.antlr:antlr4-runtime:4.7.1"
+    implementation "org.antlr:antlr4-runtime:4.13.2"
     implementation group: 'com.google.guava', name: 'guava', version: "${guava_version}"
     implementation group: 'org.json', name: 'json', version:'20231013'
     implementation project(':common')
@@ -57,6 +57,7 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
     testImplementation(testFixtures(project(":core")))
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
 }
 
 spotless {
@@ -73,7 +74,7 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
-        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+        googleJavaFormat('1.32.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 

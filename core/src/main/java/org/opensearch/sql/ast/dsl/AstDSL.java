@@ -48,6 +48,8 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
@@ -60,8 +62,11 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -113,7 +118,7 @@ public class AstDSL {
   }
 
   public static UnresolvedPlan search(UnresolvedPlan input, String queryString) {
-    return new Search(input, queryString);
+    return new Search(input, queryString, null);
   }
 
   public UnresolvedPlan subqueryAlias(UnresolvedPlan child, String alias) {
@@ -468,6 +473,24 @@ public class AstDSL {
         argument("consecutive", booleanLiteral(false)));
   }
 
+  public static MvCombine mvcombine(Field field) {
+    return new MvCombine(field, null);
+  }
+
+  public static MvCombine mvcombine(Field field, String delim) {
+    return new MvCombine(field, delim);
+  }
+
+  /**
+   * Build an MVEXPAND plan node and attach it to the input plan.
+   *
+   * <p>`@param` input input plan `@param` field field to expand `@param` limit optional
+   * per-document limit `@return` MvExpand plan attached to the input
+   */
+  public static UnresolvedPlan mvexpand(UnresolvedPlan input, Field field, Integer limit) {
+    return new MvExpand(field, limit).attach(input);
+  }
+
   public static List<Argument> sortOptions() {
     return exprList(argument("desc", booleanLiteral(false)));
   }
@@ -736,5 +759,26 @@ public class AstDSL {
   /** Get a reference to the implicit timestamp field {@code @timestamp} */
   public static Field implicitTimestampField() {
     return AstDSL.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
+  }
+
+  public static UnresolvedPlan join(
+      UnresolvedPlan right, Join.JoinType joinType, Optional<UnresolvedExpression> condition) {
+    return new Join(
+        right,
+        Optional.empty(),
+        Optional.empty(),
+        joinType,
+        condition,
+        new Join.JoinHint(),
+        Optional.empty(),
+        Argument.ArgumentMap.empty());
+  }
+
+  public static InSubquery inSubquery(UnresolvedPlan query, UnresolvedExpression... values) {
+    return new InSubquery(List.of(values), query);
+  }
+
+  public static ExistsSubquery existsSubquery(UnresolvedPlan query) {
+    return new ExistsSubquery(query);
   }
 }

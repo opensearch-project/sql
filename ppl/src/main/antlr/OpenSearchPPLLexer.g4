@@ -26,6 +26,7 @@ STREAMSTATS:                        'STREAMSTATS';
 DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
+FIELDFORMAT:                        'FIELDFORMAT';
 HEAD:                               'HEAD';
 BIN:                                'BIN';
 TOP:                                'TOP';
@@ -45,11 +46,25 @@ AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 FLATTEN:                            'FLATTEN';
+CONVERT:                            'CONVERT';
 TRENDLINE:                          'TRENDLINE';
+TRANSPOSE:                          'TRANSPOSE';
 CHART:                              'CHART';
 TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
+ADDTOTALS:                          'ADDTOTALS';
+ADDCOLTOTALS:                       'ADDCOLTOTALS';
+GRAPHLOOKUP:                        'GRAPHLOOKUP';
+EDGE:                               'EDGE';
+MAX_DEPTH:                          'MAXDEPTH';
+DEPTH_FIELD:                        'DEPTHFIELD';
+SUPPORT_ARRAY:                      'SUPPORTARRAY';
+BATCH_MODE:                         'BATCHMODE';
+USE_PIT:                            'USEPIT';
+ROW:                                'ROW';
+COL:                                'COL';
 EXPAND:                             'EXPAND';
+MVEXPAND:                           'MVEXPAND';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
 BRAIN:                              'BRAIN';
 VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
@@ -59,10 +74,27 @@ MAX_SAMPLE_COUNT:                   'MAX_SAMPLE_COUNT';
 MAX_MATCH:                          'MAX_MATCH';
 OFFSET_FIELD:                       'OFFSET_FIELD';
 BUFFER_LIMIT:                       'BUFFER_LIMIT';
+FIELDLIST:                          'FIELDLIST';
+LABELFIELD:                         'LABELFIELD';
+FIELDNAME:                          'FIELDNAME';
 LABEL:                              'LABEL';
 SHOW_NUMBERED_TOKEN:                'SHOW_NUMBERED_TOKEN';
 AGGREGATION:                        'AGGREGATION';
 APPENDPIPE:                         'APPENDPIPE';
+COLUMN_NAME:                        'COLUMN_NAME';
+MVCOMBINE:                          'MVCOMBINE';
+NOMV:                               'NOMV';
+
+// EDGE_CLAUSE matches the entire edge clause pattern in graphLookup command.
+// This allows EDGE to be used as a field name elsewhere (e.g., eval edge=1).
+// Pattern: edge=fromField-->toField or edge=fromField<->toField
+// Field names can contain hyphens in the middle (e.g., field-name) but trailing hyphens
+// before arrow require a space (e.g., edge=field- --> name).
+EDGE_CLAUSE:                        'EDGE' OWS '=' OWS EDGE_FIELD TRAIL_HYPHENS? EDGE_ARROW OWS EDGE_FIELD;
+fragment OWS:                       [ \t]*;  // Optional whitespace
+fragment EDGE_FIELD:                [A-Z_@*] [A-Z_0-9]* ('-' [A-Z_0-9]+)*;  // Field with optional mid-hyphens
+fragment TRAIL_HYPHENS:             '-'+ [ \t]+;  // Trailing hyphens require space before arrow
+fragment EDGE_ARROW:                '-->' | '<->'; // The direction arrow (--> or <->)
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';
@@ -139,12 +171,16 @@ TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
 ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
 MULTISEARCH:                        'MULTISEARCH';
+UNION:                              'UNION';
+MAXOUT:                             'MAXOUT';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
 LIMIT:                              'LIMIT';
 USEOTHER:                           'USEOTHER';
 OTHERSTR:                           'OTHERSTR';
 NULLSTR:                            'NULLSTR';
+TIMEFIELD:                          'TIMEFIELD';
+TIMEFORMAT:                         'TIMEFORMAT';
 INPUT:                              'INPUT';
 OUTPUT:                             'OUTPUT';
 PATH:                               'PATH';
@@ -153,7 +189,9 @@ PATH:                               'PATH';
 CASE:                               'CASE';
 ELSE:                               'ELSE';
 IN:                                 'IN';
+IS:                                 'IS';
 EXISTS:                             'EXISTS';
+NULL:                               'NULL';
 
 // Geo IP eval function
 GEOIP:                              'GEOIP';
@@ -408,6 +446,7 @@ STRFTIME:                           'STRFTIME';
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';
 SUBSTRING:                          'SUBSTRING';
+TONUMBER:                           'TONUMBER';
 TOSTRING:                           'TOSTRING';
 LTRIM:                              'LTRIM';
 RTRIM:                              'RTRIM';
@@ -428,6 +467,8 @@ CAST:                               'CAST';
 
 // BOOL FUNCTIONS
 LIKE:                               'LIKE';
+ILIKE:                              'ILIKE';
+CONTAINS:                           'CONTAINS';
 ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
@@ -442,6 +483,11 @@ ARRAY_LENGTH:                       'ARRAY_LENGTH';
 MVAPPEND:                           'MVAPPEND';
 MVJOIN:                             'MVJOIN';
 MVINDEX:                            'MVINDEX';
+MVFIND:                             'MVFIND';
+MVZIP:                              'MVZIP';
+MVDEDUP:                            'MVDEDUP';
+SPLIT:                              'SPLIT';
+MVMAP:                              'MVMAP';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';
 TRANSFORM:                          'TRANSFORM';

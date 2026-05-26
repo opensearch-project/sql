@@ -11,13 +11,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
+import org.apache.calcite.adapter.enumerable.EnumerableLimitSort;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -27,6 +26,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
@@ -39,17 +39,27 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
  * the OpenSearch level for better performance.
  */
 @Value.Enclosing
-public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config> {
+public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexScanRule.Config> {
 
   protected SortExprIndexScanRule(SortExprIndexScanRule.Config config) {
     super(config);
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
-    final LogicalSort sort = call.rel(0);
-    final LogicalProject project = call.rel(1);
-    final CalciteLogicalIndexScan scan = call.rel(2);
+  protected void onMatchImpl(RelOptRuleCall call) {
+    final Sort sort = call.rel(0);
+    // EnumerableLimitSort carries fetch semantics; this rule doesn't preserve it on physical
+    // scans because limit pushdown path is logical-only.
+    if (sort instanceof EnumerableLimitSort) {
+      return;
+    }
+    final Project project = call.rel(1);
+    final AbstractCalciteIndexScan scan = call.rel(2);
+
+    if (sort.getConvention() != project.getConvention()
+        || project.getConvention() != scan.getConvention()) {
+      return;
+    }
 
     // Only match sort - project - scan when any sort key references an expression
     if (!PlanUtils.sortReferencesExpr(sort, project)) {
@@ -89,7 +99,7 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
       return;
     }
 
-    CalciteLogicalIndexScan newScan;
+    AbstractCalciteIndexScan newScan;
     // If the scan's sort info already satisfies new sort, just pushdown limit if there is
     if (scan.isTopKPushed() && scanProvidesRequiredCollation) {
       newScan = scan.copy();
@@ -98,16 +108,21 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
       newScan = scan.pushdownSortExpr(sortExprDigests);
     }
 
+    // EnumerableSort won't have limit or offset
     Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
     Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
-    if (newScan != null && limitValue != null && offsetValue != null) {
-      newScan = (CalciteLogicalIndexScan) newScan.pushDownLimit(sort, limitValue, offsetValue);
+    if (newScan instanceof CalciteLogicalIndexScan && limitValue != null && offsetValue != null) {
+      newScan =
+          (CalciteLogicalIndexScan)
+              ((CalciteLogicalIndexScan) newScan)
+                  .pushDownLimit((LogicalSort) sort, limitValue, offsetValue);
     }
 
     if (newScan != null) {
       Project newProject =
           project.copy(sort.getTraitSet(), newScan, project.getProjects(), project.getRowType());
       call.transformTo(newProject);
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 
@@ -125,7 +140,7 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
   private List<SortExprDigest> extractSortExpressionInfos(
       Sort sort,
       Project project,
-      CalciteLogicalIndexScan scan,
+      AbstractCalciteIndexScan scan,
       Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap) {
     List<SortExprDigest> sortExprDigests = new ArrayList<>();
 
@@ -161,7 +176,7 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
   private SortExprDigest mapThroughProject(
       RexNode sortKey,
       Project project,
-      CalciteLogicalIndexScan scan,
+      AbstractCalciteIndexScan scan,
       RelFieldCollation collation,
       Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap) {
     assert sortKey instanceof RexInputRef : "sort key should be always RexInputRef";
@@ -232,23 +247,23 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
 
   /** Rule configuration. */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     SortExprIndexScanRule.Config DEFAULT =
         ImmutableSortExprIndexScanRule.Config.builder()
             .build()
             .withOperandSupplier(
                 b0 ->
-                    b0.operand(LogicalSort.class)
+                    b0.operand(Sort.class)
                         // Pure limit pushdown should be covered by SortProjectTransposeRule and
                         // OpenSearchLimitIndexScanRule
                         .predicate(sort -> !sort.collation.getFieldCollations().isEmpty())
                         .oneInput(
                             b1 ->
-                                b1.operand(LogicalProject.class)
+                                b1.operand(Project.class)
                                     .predicate(Predicate.not(Project::containsOver))
                                     .oneInput(
                                         b2 ->
-                                            b2.operand(CalciteLogicalIndexScan.class)
+                                            b2.operand(AbstractCalciteIndexScan.class)
                                                 .predicate(
                                                     AbstractCalciteIndexScan::noAggregatePushed)
                                                 .noInputs())));

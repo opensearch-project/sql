@@ -57,6 +57,8 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.AddColTotals;
+import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
@@ -64,6 +66,7 @@ import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -71,6 +74,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -78,6 +82,9 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
+import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -97,7 +104,9 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
@@ -414,7 +423,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     child = processNestedAnalysis(node.getProjectList(), namedExpressions, child, context);
 
-    context.push();
+    context.pushIsolated();
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(
         expr ->
@@ -519,6 +528,47 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       typeEnvironment.define(ref);
     }
     return new LogicalEval(child, expressionsBuilder.build());
+  }
+
+  /** Build {@link LogicalEval}. */
+  @Override
+  public LogicalPlan visitFieldFormat(Eval node, AnalysisContext context) {
+    throw getOnlyForCalciteException("fieldformat");
+  }
+
+  @Override
+  public LogicalPlan visitConvert(Convert node, AnalysisContext context) {
+    throw getOnlyForCalciteException("convert");
+  }
+
+  @Override
+  public LogicalPlan visitAddTotals(AddTotals node, AnalysisContext context) {
+    throw getOnlyForCalciteException("addtotals");
+  }
+
+  @Override
+  public LogicalPlan visitAddColTotals(AddColTotals node, AnalysisContext context) {
+    throw getOnlyForCalciteException("addcoltotals");
+  }
+
+  @Override
+  public LogicalPlan visitMvCombine(MvCombine node, AnalysisContext context) {
+    throw getOnlyForCalciteException("mvcombine");
+  }
+
+  @Override
+  public LogicalPlan visitNoMv(NoMv node, AnalysisContext context) {
+    throw getOnlyForCalciteException("nomv");
+  }
+
+  @Override
+  public LogicalPlan visitMvExpand(MvExpand node, AnalysisContext context) {
+    throw getOnlyForCalciteException("mvexpand");
+  }
+
+  @Override
+  public LogicalPlan visitGraphLookup(GraphLookup node, AnalysisContext context) {
+    throw getOnlyForCalciteException("graphlookup");
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */
@@ -692,6 +742,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitTranspose(Transpose node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Transpose");
+  }
+
+  @Override
   public LogicalPlan visitBin(Bin node, AnalysisContext context) {
     throw getOnlyForCalciteException("Bin");
   }
@@ -841,6 +896,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitMultisearch(Multisearch node, AnalysisContext context) {
     throw getOnlyForCalciteException("Multisearch");
+  }
+
+  @Override
+  public LogicalPlan visitUnion(Union node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Union");
   }
 
   private LogicalSort buildSort(

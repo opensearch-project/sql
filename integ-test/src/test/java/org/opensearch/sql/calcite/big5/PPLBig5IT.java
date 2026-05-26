@@ -53,7 +53,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void asc_sort_timestamp() throws IOException {
     String ppl = sanitize(loadExpectedQuery("asc_sort_timestamp.ppl"));
     timing(summary, "asc_sort_timestamp", ppl);
-    String expected = loadExpectedPlan("asc_sort_timestamp.yaml");
+    String expected = loadExpectedPlan("big5/asc_sort_timestamp.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -61,7 +61,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void asc_sort_timestamp_can_match_shortcut() throws IOException {
     String ppl = sanitize(loadExpectedQuery("asc_sort_timestamp_can_match_shortcut.ppl"));
     timing(summary, "asc_sort_timestamp_can_match_shortcut", ppl);
-    String expected = loadExpectedPlan("asc_sort_timestamp_can_match_shortcut.yaml");
+    String expected = loadExpectedPlan("big5/asc_sort_timestamp_can_match_shortcut.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -69,7 +69,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void asc_sort_timestamp_no_can_match_shortcut() throws IOException {
     String ppl = sanitize(loadExpectedQuery("asc_sort_timestamp_no_can_match_shortcut.ppl"));
     timing(summary, "asc_sort_timestamp_no_can_match_shortcut", ppl);
-    String expected = loadExpectedPlan("asc_sort_timestamp_no_can_match_shortcut.yaml");
+    String expected = loadExpectedPlan("big5/asc_sort_timestamp_no_can_match_shortcut.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -77,7 +77,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void asc_sort_with_after_timestamp() throws IOException {
     String ppl = sanitize(loadExpectedQuery("asc_sort_with_after_timestamp.ppl"));
     timing(summary, "asc_sort_with_after_timestamp", ppl);
-    String expected = loadExpectedPlan("asc_sort_with_after_timestamp.yaml");
+    String expected = loadExpectedPlan("big5/asc_sort_with_after_timestamp.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -85,7 +85,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void composite_date_histogram_daily() throws IOException {
     String ppl = sanitize(loadExpectedQuery("composite_date_histogram_daily.ppl"));
     timing(summary, "composite_date_histogram_daily", ppl);
-    String expected = loadExpectedPlan("composite_date_histogram_daily.yaml");
+    String expected = loadExpectedPlan("big5/composite_date_histogram_daily.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -93,7 +93,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void composite_terms_keyword() throws IOException {
     String ppl = sanitize(loadExpectedQuery("composite_terms_keyword.ppl"));
     timing(summary, "composite_terms_keyword", ppl);
-    String expected = loadExpectedPlan("composite_terms_keyword.yaml");
+    String expected = loadExpectedPlan("big5/composite_terms_keyword.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -101,7 +101,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void composite_terms() throws IOException {
     String ppl = sanitize(loadExpectedQuery("composite_terms.ppl"));
     timing(summary, "composite_terms", ppl);
-    String expected = loadExpectedPlan("composite_terms.yaml");
+    String expected = loadExpectedPlan("big5/composite_terms.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -109,7 +109,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void date_histogram_hourly_agg() throws IOException {
     String ppl = sanitize(loadExpectedQuery("date_histogram_hourly_agg.ppl"));
     timing(summary, "date_histogram_hourly_agg", ppl);
-    String expected = loadExpectedPlan("date_histogram_hourly_agg.yaml");
+    String expected = loadExpectedPlan("big5/date_histogram_hourly_agg.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -117,7 +117,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void date_histogram_minute_agg() throws IOException {
     String ppl = sanitize(loadExpectedQuery("date_histogram_minute_agg.ppl"));
     timing(summary, "date_histogram_minute_agg", ppl);
-    String expected = loadExpectedPlan("date_histogram_minute_agg.yaml");
+    String expected = loadExpectedPlan("big5/date_histogram_minute_agg.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -125,7 +125,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void test_default() throws IOException {
     String ppl = sanitize(loadExpectedQuery("default.ppl"));
     timing(summary, "default", ppl);
-    String expected = loadExpectedPlan("default.yaml");
+    String expected = loadExpectedPlan("big5/default.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -133,7 +133,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void desc_sort_timestamp() throws IOException {
     String ppl = sanitize(loadExpectedQuery("desc_sort_timestamp.ppl"));
     timing(summary, "desc_sort_timestamp", ppl);
-    String expected = loadExpectedPlan("desc_sort_timestamp.yaml");
+    String expected = loadExpectedPlan("big5/desc_sort_timestamp.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -141,7 +141,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void desc_sort_timestamp_can_match_shortcut() throws IOException {
     String ppl = sanitize(loadExpectedQuery("desc_sort_timestamp_can_match_shortcut.ppl"));
     timing(summary, "desc_sort_timestamp_can_match_shortcut", ppl);
-    String expected = loadExpectedPlan("desc_sort_timestamp_can_match_shortcut.yaml");
+    String expected = loadExpectedPlan("big5/desc_sort_timestamp_can_match_shortcut.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -149,7 +149,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void desc_sort_timestamp_no_can_match_shortcut() throws IOException {
     String ppl = sanitize(loadExpectedQuery("desc_sort_timestamp_no_can_match_shortcut.ppl"));
     timing(summary, "desc_sort_timestamp_no_can_match_shortcut", ppl);
-    String expected = loadExpectedPlan("desc_sort_timestamp_no_can_match_shortcut.yaml");
+    String expected = loadExpectedPlan("big5/desc_sort_timestamp_no_can_match_shortcut.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -157,7 +157,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void desc_sort_with_after_timestamp() throws IOException {
     String ppl = sanitize(loadExpectedQuery("desc_sort_with_after_timestamp.ppl"));
     timing(summary, "desc_sort_with_after_timestamp", ppl);
-    String expected = loadExpectedPlan("desc_sort_with_after_timestamp.yaml");
+    String expected = loadExpectedPlan("big5/desc_sort_with_after_timestamp.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -165,7 +165,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void keyword_in_range() throws IOException {
     String ppl = sanitize(loadExpectedQuery("keyword_in_range.ppl"));
     timing(summary, "keyword_in_range", ppl);
-    String expected = loadExpectedPlan("keyword_in_range.yaml");
+    String expected = loadExpectedPlan("big5/keyword_in_range.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -173,7 +173,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void keyword_terms() throws IOException {
     String ppl = sanitize(loadExpectedQuery("keyword_terms.ppl"));
     timing(summary, "keyword_terms", ppl);
-    String expected = loadExpectedPlan("keyword_terms.yaml");
+    String expected = loadExpectedPlan("big5/keyword_terms.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -181,7 +181,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void keyword_terms_low_cardinality() throws IOException {
     String ppl = sanitize(loadExpectedQuery("keyword_terms_low_cardinality.ppl"));
     timing(summary, "keyword_terms_low_cardinality", ppl);
-    String expected = loadExpectedPlan("keyword_terms_low_cardinality.yaml");
+    String expected = loadExpectedPlan("big5/keyword_terms_low_cardinality.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -189,7 +189,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void multi_terms_keyword() throws IOException {
     String ppl = sanitize(loadExpectedQuery("multi_terms_keyword.ppl"));
     timing(summary, "multi_terms_keyword", ppl);
-    String expected = loadExpectedPlan("multi_terms_keyword.yaml");
+    String expected = loadExpectedPlan("big5/multi_terms_keyword.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -197,7 +197,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void query_string_on_message() throws IOException {
     String ppl = sanitize(loadExpectedQuery("query_string_on_message.ppl"));
     timing(summary, "query_string_on_message", ppl);
-    String expected = loadExpectedPlan("query_string_on_message.yaml");
+    String expected = loadExpectedPlan("big5/query_string_on_message.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -205,7 +205,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void query_string_on_message_filtered() throws IOException {
     String ppl = sanitize(loadExpectedQuery("query_string_on_message_filtered.ppl"));
     timing(summary, "query_string_on_message_filtered", ppl);
-    String expected = loadExpectedPlan("query_string_on_message_filtered.yaml");
+    String expected = loadExpectedPlan("big5/query_string_on_message_filtered.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -213,7 +213,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void query_string_on_message_filtered_sorted_num() throws IOException {
     String ppl = sanitize(loadExpectedQuery("query_string_on_message_filtered_sorted_num.ppl"));
     timing(summary, "query_string_on_message_filtered_sorted_num", ppl);
-    String expected = loadExpectedPlan("query_string_on_message_filtered_sorted_num.yaml");
+    String expected = loadExpectedPlan("big5/query_string_on_message_filtered_sorted_num.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -221,7 +221,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void range() throws IOException {
     String ppl = sanitize(loadExpectedQuery("range.ppl"));
     timing(summary, "range", ppl);
-    String expected = loadExpectedPlan("range.yaml");
+    String expected = loadExpectedPlan("big5/range.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -229,7 +229,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void range_auto_date_histo() throws IOException {
     String ppl = sanitize(loadExpectedQuery("range_auto_date_histo.ppl"));
     timing(summary, "range_auto_date_histo", ppl);
-    String expected = loadExpectedPlan("range_auto_date_histo.yaml");
+    String expected = loadExpectedPlan("big5/range_auto_date_histo.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -237,7 +237,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void range_auto_date_histo_with_metrics() throws IOException {
     String ppl = sanitize(loadExpectedQuery("range_auto_date_histo_with_metrics.ppl"));
     timing(summary, "range_auto_date_histo_with_metrics", ppl);
-    String expected = loadExpectedPlan("range_auto_date_histo_with_metrics.yaml");
+    String expected = loadExpectedPlan("big5/range_auto_date_histo_with_metrics.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -245,7 +245,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void range_numeric() throws IOException {
     String ppl = sanitize(loadExpectedQuery("range_numeric.ppl"));
     timing(summary, "range_numeric", ppl);
-    String expected = loadExpectedPlan("range_numeric.yaml");
+    String expected = loadExpectedPlan("big5/range_numeric.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -254,7 +254,8 @@ public class PPLBig5IT extends PPLIntegTestCase {
     String ppl =
         sanitize(loadExpectedQuery("range_field_conjunction_big_range_big_term_query.ppl"));
     timing(summary, "range_field_conjunction_big_range_big_term_query", ppl);
-    String expected = loadExpectedPlan("range_field_conjunction_big_range_big_term_query.yaml");
+    String expected =
+        loadExpectedPlan("big5/range_field_conjunction_big_range_big_term_query.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -263,7 +264,8 @@ public class PPLBig5IT extends PPLIntegTestCase {
     String ppl =
         sanitize(loadExpectedQuery("range_field_conjunction_small_range_big_term_query.ppl"));
     timing(summary, "range_field_conjunction_small_range_big_term_query", ppl);
-    String expected = loadExpectedPlan("range_field_conjunction_small_range_big_term_query.yaml");
+    String expected =
+        loadExpectedPlan("big5/range_field_conjunction_small_range_big_term_query.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -272,7 +274,8 @@ public class PPLBig5IT extends PPLIntegTestCase {
     String ppl =
         sanitize(loadExpectedQuery("range_field_conjunction_small_range_small_term_query.ppl"));
     timing(summary, "range_field_conjunction_small_range_small_term_query", ppl);
-    String expected = loadExpectedPlan("range_field_conjunction_small_range_small_term_query.yaml");
+    String expected =
+        loadExpectedPlan("big5/range_field_conjunction_small_range_small_term_query.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -281,7 +284,8 @@ public class PPLBig5IT extends PPLIntegTestCase {
     String ppl =
         sanitize(loadExpectedQuery("range_field_disjunction_big_range_small_term_query.ppl"));
     timing(summary, "range_field_disjunction_big_range_small_term_query", ppl);
-    String expected = loadExpectedPlan("range_field_disjunction_big_range_small_term_query.yaml");
+    String expected =
+        loadExpectedPlan("big5/range_field_disjunction_big_range_small_term_query.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -289,7 +293,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void range_with_asc_sort() throws IOException {
     String ppl = sanitize(loadExpectedQuery("range_with_asc_sort.ppl"));
     timing(summary, "range_with_asc_sort", ppl);
-    String expected = loadExpectedPlan("range_with_asc_sort.yaml");
+    String expected = loadExpectedPlan("big5/range_with_asc_sort.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -297,7 +301,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void range_with_desc_sort() throws IOException {
     String ppl = sanitize(loadExpectedQuery("range_with_desc_sort.ppl"));
     timing(summary, "range_with_desc_sort", ppl);
-    String expected = loadExpectedPlan("range_with_desc_sort.yaml");
+    String expected = loadExpectedPlan("big5/range_with_desc_sort.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -305,7 +309,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void scroll() throws IOException {
     String ppl = sanitize(loadExpectedQuery("scroll.ppl"));
     timing(summary, "scroll", ppl);
-    String expected = loadExpectedPlan("scroll.yaml");
+    String expected = loadExpectedPlan("big5/scroll.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -313,7 +317,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void sort_keyword_can_match_shortcut() throws IOException {
     String ppl = sanitize(loadExpectedQuery("sort_keyword_can_match_shortcut.ppl"));
     timing(summary, "sort_keyword_can_match_shortcut", ppl);
-    String expected = loadExpectedPlan("sort_keyword_can_match_shortcut.yaml");
+    String expected = loadExpectedPlan("big5/sort_keyword_can_match_shortcut.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -321,7 +325,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void sort_keyword_no_can_match_shortcut() throws IOException {
     String ppl = sanitize(loadExpectedQuery("sort_keyword_no_can_match_shortcut.ppl"));
     timing(summary, "sort_keyword_no_can_match_shortcut", ppl);
-    String expected = loadExpectedPlan("sort_keyword_no_can_match_shortcut.yaml");
+    String expected = loadExpectedPlan("big5/sort_keyword_no_can_match_shortcut.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -329,7 +333,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void sort_numeric_asc() throws IOException {
     String ppl = sanitize(loadExpectedQuery("sort_numeric_asc.ppl"));
     timing(summary, "sort_numeric_asc", ppl);
-    String expected = loadExpectedPlan("sort_numeric_asc.yaml");
+    String expected = loadExpectedPlan("big5/sort_numeric_asc.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -337,7 +341,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void sort_numeric_asc_with_match() throws IOException {
     String ppl = sanitize(loadExpectedQuery("sort_numeric_asc_with_match.ppl"));
     timing(summary, "sort_numeric_asc_with_match", ppl);
-    String expected = loadExpectedPlan("sort_numeric_asc_with_match.yaml");
+    String expected = loadExpectedPlan("big5/sort_numeric_asc_with_match.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -345,7 +349,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void sort_numeric_desc() throws IOException {
     String ppl = sanitize(loadExpectedQuery("sort_numeric_desc.ppl"));
     timing(summary, "sort_numeric_desc", ppl);
-    String expected = loadExpectedPlan("sort_numeric_desc.yaml");
+    String expected = loadExpectedPlan("big5/sort_numeric_desc.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -353,7 +357,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void sort_numeric_desc_with_match() throws IOException {
     String ppl = sanitize(loadExpectedQuery("sort_numeric_desc_with_match.ppl"));
     timing(summary, "sort_numeric_desc_with_match", ppl);
-    String expected = loadExpectedPlan("sort_numeric_desc_with_match.yaml");
+    String expected = loadExpectedPlan("big5/sort_numeric_desc_with_match.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -361,7 +365,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void term() throws IOException {
     String ppl = sanitize(loadExpectedQuery("term.ppl"));
     timing(summary, "term", ppl);
-    String expected = loadExpectedPlan("term.yaml");
+    String expected = loadExpectedPlan("big5/term.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -369,7 +373,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void terms_significant_1() throws IOException {
     String ppl = sanitize(loadExpectedQuery("terms_significant_1.ppl"));
     timing(summary, "terms_significant_1", ppl);
-    String expected = loadExpectedPlan("terms_significant_1.yaml");
+    String expected = loadExpectedPlan("big5/terms_significant_1.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -377,7 +381,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void terms_significant_2() throws IOException {
     String ppl = sanitize(loadExpectedQuery("terms_significant_2.ppl"));
     timing(summary, "terms_significant_2", ppl);
-    String expected = loadExpectedPlan("terms_significant_2.yaml");
+    String expected = loadExpectedPlan("big5/terms_significant_2.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -385,7 +389,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void range_agg_1() throws IOException {
     String ppl = sanitize(loadExpectedQuery("range_agg_1.ppl"));
     timing(summary, "range_agg_1", ppl);
-    String expected = loadExpectedPlan("range_agg_1.yaml");
+    String expected = loadExpectedPlan("big5/range_agg_1.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -393,7 +397,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void range_agg_2() throws IOException {
     String ppl = sanitize(loadExpectedQuery("range_agg_2.ppl"));
     timing(summary, "range_agg_2", ppl);
-    String expected = loadExpectedPlan("range_agg_2.yaml");
+    String expected = loadExpectedPlan("big5/range_agg_2.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -401,7 +405,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void cardinality_agg_high() throws IOException {
     String ppl = sanitize(loadExpectedQuery("cardinality_agg_high.ppl"));
     timing(summary, "cardinality_agg_high", ppl);
-    String expected = loadExpectedPlan("cardinality_agg_high.yaml");
+    String expected = loadExpectedPlan("big5/cardinality_agg_high.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -409,7 +413,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void cardinality_agg_high_2() throws IOException {
     String ppl = sanitize(loadExpectedQuery("cardinality_agg_high_2.ppl"));
     timing(summary, "cardinality_agg_high_2", ppl);
-    String expected = loadExpectedPlan("cardinality_agg_high_2.yaml");
+    String expected = loadExpectedPlan("big5/cardinality_agg_high_2.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
@@ -417,7 +421,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public void cardinality_agg_low() throws IOException {
     String ppl = sanitize(loadExpectedQuery("cardinality_agg_low.ppl"));
     timing(summary, "cardinality_agg_low", ppl);
-    String expected = loadExpectedPlan("cardinality_agg_low.yaml");
+    String expected = loadExpectedPlan("big5/cardinality_agg_low.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 

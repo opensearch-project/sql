@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
@@ -21,6 +22,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     enableCalcite();
 
     loadIndex(Index.DUPLICATION_NULLABLE);
+    loadIndex(Index.ACCOUNT);
   }
 
   @Test
@@ -247,5 +249,184 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         schema("name", null, "string"),
         schema("category", null, "string"),
         schema("id", null, "int"));
+  }
+
+  @Test
+  public void testDedupComplex() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | dedup 1 name", TEST_INDEX_DUPLICATION_NULLABLE));
+    verifyDataRows(
+        actual,
+        rows("X", "A", 1),
+        rows("Z", "B", 1),
+        rows("X", "C", 1),
+        rows("Z", "D", 1),
+        rows(null, "E", 1));
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | fields category, name | dedup 1 name",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    verifyDataRows(
+        actual, rows("X", "A"), rows("Z", "B"), rows("X", "C"), rows("Z", "D"), rows(null, "E"));
+    actual =
+        executeQuery(
+            String.format("source=%s | dedup 1 name, category", TEST_INDEX_DUPLICATION_NULLABLE));
+    verifyDataRows(
+        actual,
+        rows("X", "A", 1),
+        rows("Y", "A", 1),
+        rows("Y", "B", 1),
+        rows("Z", "B", 1),
+        rows("X", "C", 1),
+        rows("Z", "D", 1));
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | fields category, id, name | dedup 2 name, category",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    verifyDataRows(
+        actual,
+        rows("X", 1, "A"),
+        rows("X", 1, "A"),
+        rows("Y", 1, "A"),
+        rows("Y", 1, "A"),
+        rows("Y", 1, "B"),
+        rows("Z", 1, "B"),
+        rows("Z", 1, "B"),
+        rows("X", 1, "C"),
+        rows("X", 1, "C"),
+        rows("Z", 1, "D"));
+  }
+
+  /** Regression test for https://github.com/opensearch-project/sql/issues/3922 */
+  @Test
+  public void testSortThenDedup() throws IOException {
+    // Verify sort order is preserved through dedup
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | sort category | dedup 1 name | fields category, name",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    // PPL default sort is ASC NULLS FIRST, so null-category rows come first in the sort.
+    // For each name, dedup keeps the first row in sort order:
+    //   name=A first cat=X, name=B first cat=null (row #14), name=C first cat=X,
+    //   name=D first cat=Z, name=E first cat=null.
+    verifyDataRows(
+        actual, rows(null, "B"), rows(null, "E"), rows("X", "A"), rows("X", "C"), rows("Z", "D"));
+  }
+
+  /**
+   * Regression test for multi-field sort pushed through dedup.
+   *
+   * <p>Verifies that when a PPL {@code sort} has multiple fields before a {@code dedup}, every
+   * field is preserved through the pushdown (not only the first one). A single-field pushdown would
+   * lose the tie-breaker and return a non-deterministic row for each dedup group.
+   *
+   * <p>Data used: the {@code accounts} test index. In state {@code AK} there are multiple F and M
+   * accounts; under {@code sort state, age, account_number} the first M row is {@code (state=AK,
+   * age=20, account_number=23)} and the first F row is {@code (state=AK, age=21,
+   * account_number=334)}. Only a correct multi-field pushdown produces these exact rows.
+   */
+  @Test
+  public void testMultiColumnSortThenDedup() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | sort state, age, account_number | dedup 1 gender | fields gender,"
+                    + " state, age, account_number",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(actual, rows("M", "AK", 20, 23), rows("F", "AK", 21, 334));
+  }
+
+  /** Regression test for https://github.com/opensearch-project/sql/issues/3922 */
+  @Test
+  public void testSortThenDedupKeepEmpty() throws IOException {
+    // Verify sort order is preserved through dedup with keepempty=true
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | sort category | dedup 1 name KEEPEMPTY=true | fields category, name",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    // category should be in ascending order (with nulls first due to ASC-nulls-first)
+    // dedup 1 name KEEPEMPTY=true: keep first occurrence of each name, plus ALL null-name rows
+    verifyDataRows(
+        actual,
+        rows(null, null),
+        rows(null, "B"),
+        rows(null, "E"),
+        rows("X", null),
+        rows("X", "A"),
+        rows("X", "C"),
+        rows("Y", null),
+        rows("Z", null),
+        rows("Z", "D"));
+  }
+
+  @Test
+  public void testDedupExpr() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval new_name = lower(name) | dedup 1 new_name",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    verifyDataRows(
+        actual,
+        rows("X", "A", 1, "a"),
+        rows("Z", "B", 1, "b"),
+        rows("X", "C", 1, "c"),
+        rows("Z", "D", 1, "d"),
+        rows(null, "E", 1, "e"));
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | fields category, name, id | eval new_name = lower(name), new_category"
+                    + " = lower(category) | dedup 1 new_name, new_category",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    verifyDataRows(
+        actual,
+        rows("X", "C", 1, "c", "x"),
+        rows("Z", "D", 1, "d", "z"),
+        rows("X", "A", 1, "a", "x"),
+        rows("Y", "B", 1, "b", "y"),
+        rows("Y", "A", 1, "a", "y"),
+        rows("Z", "B", 1, "b", "z"));
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval new_name = lower(name), new_category = lower(category) | dedup 2"
+                    + " name, category",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    verifyDataRows(
+        actual,
+        rows("Y", "A", 1, "a", "y"),
+        rows("Y", "A", 1, "a", "y"),
+        rows("Z", "B", 1, "b", "z"),
+        rows("Z", "B", 1, "b", "z"),
+        rows("X", "A", 1, "a", "x"),
+        rows("X", "A", 1, "a", "x"),
+        rows("Y", "B", 1, "b", "y"),
+        rows("Z", "D", 1, "d", "z"),
+        rows("X", "C", 1, "c", "x"),
+        rows("X", "C", 1, "c", "x"));
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | fields category, id, name | eval new_name = lower(name) | eval"
+                    + " new_category = lower(category) | sort name, -category | dedup 2 new_name,"
+                    + " new_category",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    verifyDataRows(
+        actual,
+        rows("X", 1, "C", "c", "x"),
+        rows("X", 1, "C", "c", "x"),
+        rows("Z", 1, "D", "d", "z"),
+        rows("X", 1, "A", "a", "x"),
+        rows("X", 1, "A", "a", "x"),
+        rows("Y", 1, "B", "b", "y"),
+        rows("Y", 1, "A", "a", "y"),
+        rows("Y", 1, "A", "a", "y"),
+        rows("Z", 1, "B", "b", "z"),
+        rows("Z", 1, "B", "b", "z"));
   }
 }

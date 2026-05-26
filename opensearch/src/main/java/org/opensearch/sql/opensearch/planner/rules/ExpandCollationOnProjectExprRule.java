@@ -5,13 +5,14 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
+import static org.opensearch.sql.calcite.utils.PlanUtils.tryPruneRelNodes;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.volcano.AbstractConverter;
@@ -23,7 +24,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
-import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
@@ -44,14 +45,14 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
  */
 @Value.Enclosing
 public class ExpandCollationOnProjectExprRule
-    extends RelRule<ExpandCollationOnProjectExprRule.Config> {
+    extends InterruptibleRelRule<ExpandCollationOnProjectExprRule.Config> {
 
   protected ExpandCollationOnProjectExprRule(Config config) {
     super(config);
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     final AbstractConverter converter = call.rel(0);
     final Project project = call.rel(1);
     final RelTraitSet toTraits = converter.getTraitSet();
@@ -155,6 +156,7 @@ public class ExpandCollationOnProjectExprRule
       Project newProject =
           project.copy(toTraits, project.getInput(), project.getProjects(), project.getRowType());
       call.transformTo(newProject);
+      tryPruneRelNodes(call);
     }
   }
 
@@ -204,7 +206,7 @@ public class ExpandCollationOnProjectExprRule
                                 b1.operand(EnumerableProject.class)
                                     .predicate(
                                         Predicate.not(Project::containsOver)
-                                            .and(PlanUtils::projectContainsExpr))
+                                            .and(PlanUtils::containsRexCall))
                                     .anyInputs()));
 
     @Override

@@ -8,4 +8,4 @@ calcite:
               CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableCalc(expr#0=[{inputs}], c1=[$t0], c2=[$t0])
-      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[FILTER->IS NOT NULL($10), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},c1=COUNT($0)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"exists":{"field":"lastname","boost":1.0}},"track_total_hits":2147483647}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[FILTER->IS NOT NULL($0), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},c1=COUNT($0)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"exists":{"field":"lastname","boost":1.0}},"track_total_hits":2147483647}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

@@ -25,7 +25,7 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "  LogicalFilter(condition=[<=($8, 1)])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION"
-            + " BY $7 ORDER BY $7)])\n"
+            + " BY $7)])\n"
             + "      LogicalFilter(condition=[IS NOT NULL($7)])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -39,11 +39,9 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        ""
-            + "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " ROW_NUMBER() OVER (PARTITION BY `DEPTNO` ORDER BY `DEPTNO` NULLS LAST)"
-            + " `_row_number_dedup_`\n"
+            + " ROW_NUMBER() OVER (PARTITION BY `DEPTNO`) `_row_number_dedup_`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL) `t0`\n"
             + "WHERE `_row_number_dedup_` <= 1";
@@ -60,7 +58,7 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "  LogicalFilter(condition=[<=($8, 2)])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION"
-            + " BY $7 ORDER BY $7)])\n"
+            + " BY $7)])\n"
             + "      LogicalFilter(condition=[IS NOT NULL($7)])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -80,11 +78,9 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        ""
-            + "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " ROW_NUMBER() OVER (PARTITION BY `DEPTNO` ORDER BY `DEPTNO` NULLS LAST)"
-            + " `_row_number_dedup_`\n"
+            + " ROW_NUMBER() OVER (PARTITION BY `DEPTNO`) `_row_number_dedup_`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL) `t0`\n"
             + "WHERE `_row_number_dedup_` <= 2";
@@ -101,7 +97,7 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "  LogicalFilter(condition=[OR(IS NULL($7), IS NULL($2), <=($8, 1))])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION"
-            + " BY $7, $2 ORDER BY $7, $2)])\n"
+            + " BY $7, $2)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
@@ -128,8 +124,7 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " ROW_NUMBER() OVER (PARTITION BY `DEPTNO`, `JOB` ORDER BY `DEPTNO` NULLS LAST, `JOB`"
-            + " NULLS LAST) `_row_number_dedup_`\n"
+            + " ROW_NUMBER() OVER (PARTITION BY `DEPTNO`, `JOB`) `_row_number_dedup_`\n"
             + "FROM `scott`.`EMP`) `t`\n"
             + "WHERE `DEPTNO` IS NULL OR `JOB` IS NULL OR `_row_number_dedup_` <= 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -145,7 +140,7 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "  LogicalFilter(condition=[OR(IS NULL($7), IS NULL($2), <=($8, 2))])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION"
-            + " BY $7, $2 ORDER BY $7, $2)])\n"
+            + " BY $7, $2)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
@@ -178,10 +173,184 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " ROW_NUMBER() OVER (PARTITION BY `DEPTNO`, `JOB` ORDER BY `DEPTNO` NULLS LAST, `JOB`"
-            + " NULLS LAST) `_row_number_dedup_`\n"
+            + " ROW_NUMBER() OVER (PARTITION BY `DEPTNO`, `JOB`) `_row_number_dedup_`\n"
             + "FROM `scott`.`EMP`) `t`\n"
             + "WHERE `DEPTNO` IS NULL OR `JOB` IS NULL OR `_row_number_dedup_` <= 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testDedupExpr() {
+    String ppl =
+        "source=EMP | eval NEW_DEPTNO = DEPTNO + 1 | fields EMPNO, ENAME, JOB, DEPTNO, NEW_DEPTNO |"
+            + " dedup 1 NEW_DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], DEPTNO=[$3], NEW_DEPTNO=[$4])\n"
+            + "  LogicalFilter(condition=[<=($5, 1)])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], DEPTNO=[$3], NEW_DEPTNO=[$4],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $4)])\n"
+            + "      LogicalFilter(condition=[IS NOT NULL($4)])\n"
+            + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], DEPTNO=[$7],"
+            + " NEW_DEPTNO=[+($7, 1)])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    ppl =
+        "source=EMP | fields EMPNO, ENAME, JOB, DEPTNO | eval NEW_DEPTNO = DEPTNO + 1 | dedup 1"
+            + " NEW_DEPTNO";
+    root = getRelNode(ppl);
+    verifyLogical(root, expectedLogical);
+    ppl =
+        "source=EMP | eval NEW_DEPTNO = DEPTNO + 1 | fields NEW_DEPTNO, EMPNO, ENAME, JOB | dedup 1"
+            + " JOB";
+    root = getRelNode(ppl);
+    expectedLogical =
+        "LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
+            + "  LogicalFilter(condition=[<=($4, 1)])\n"
+            + "    LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $3)])\n"
+            + "      LogicalFilter(condition=[IS NOT NULL($3)])\n"
+            + "        LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    ppl =
+        "source=EMP | eval NEW_DEPTNO = DEPTNO + 1 | fields NEW_DEPTNO, EMPNO, ENAME, JOB | sort"
+            + " NEW_DEPTNO | dedup 1 NEW_DEPTNO";
+    root = getRelNode(ppl);
+    // Sort is stripped from below the window and moved to the top to ensure order is preserved
+    expectedLogical =
+        "LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])\n"
+            + "  LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
+            + "    LogicalFilter(condition=[<=($4, 1)])\n"
+            + "      LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0 NULLS"
+            + " FIRST)])\n"
+            + "        LogicalFilter(condition=[IS NOT NULL($0)])\n"
+            + "          LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  /** Regression test for https://github.com/opensearch-project/sql/issues/3922 */
+  @Test
+  public void testSortThenDedup() {
+    String ppl = "source=EMP | sort DEPTNO | dedup 1 JOB | fields DEPTNO, ENAME, JOB";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(DEPTNO=[$7], ENAME=[$1], JOB=[$2])\n"
+            + "  LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "      LogicalFilter(condition=[<=($8, 1)])\n"
+            + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION"
+            + " BY $2 ORDER BY $7 NULLS FIRST)])\n"
+            + "          LogicalFilter(condition=[IS NOT NULL($2)])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    // After fix, the sort order (DEPTNO ASC) must be preserved through dedup.
+    // The correct result has DEPTNO in ascending order: 10, 10, 10, 20, 30.
+    String expectedResult =
+        "DEPTNO=10; ENAME=MILLER; JOB=CLERK\n"
+            + "DEPTNO=10; ENAME=KING; JOB=PRESIDENT\n"
+            + "DEPTNO=10; ENAME=CLARK; JOB=MANAGER\n"
+            + "DEPTNO=20; ENAME=SCOTT; JOB=ANALYST\n"
+            + "DEPTNO=30; ENAME=ALLEN; JOB=SALESMAN\n";
+    verifyResult(root, expectedResult);
+  }
+
+  /** Regression test for https://github.com/opensearch-project/sql/issues/3922 */
+  @Test
+  public void testSortThenDedupWithEval() {
+    String ppl =
+        "source=EMP | eval NEW_DEPTNO = DEPTNO + 1 | fields NEW_DEPTNO, EMPNO, ENAME, JOB | sort"
+            + " NEW_DEPTNO | dedup 1 NEW_DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])\n"
+            + "  LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
+            + "    LogicalFilter(condition=[<=($4, 1)])\n"
+            + "      LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0 NULLS"
+            + " FIRST)])\n"
+            + "        LogicalFilter(condition=[IS NOT NULL($0)])\n"
+            + "          LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    // After fix, the sort order (NEW_DEPTNO ASC) must be preserved through dedup.
+    // The correct result has NEW_DEPTNO in ascending order: 11, 21, 31.
+    String expectedResult =
+        "NEW_DEPTNO=11; EMPNO=7782; ENAME=CLARK; JOB=MANAGER\n"
+            + "NEW_DEPTNO=21; EMPNO=7369; ENAME=SMITH; JOB=CLERK\n"
+            + "NEW_DEPTNO=31; EMPNO=7499; ENAME=ALLEN; JOB=SALESMAN\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testRenameDedup() {
+    String ppl =
+        "source=EMP | eval TEMP_DEPTNO = DEPTNO + 1 | rename TEMP_DEPTNO as NEW_DEPTNO | fields"
+            + " NEW_DEPTNO, EMPNO, ENAME, JOB | dedup 1 NEW_DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
+            + "  LogicalFilter(condition=[<=($4, 1)])\n"
+            + "    LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0)])\n"
+            + "      LogicalFilter(condition=[IS NOT NULL($0)])\n"
+            + "        LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    ppl =
+        "source=EMP | eval TEMP_DEPTNO = DEPTNO + 1 | rename TEMP_DEPTNO as NEW_DEPTNO | fields"
+            + " NEW_DEPTNO, EMPNO, ENAME, JOB | dedup 1 JOB";
+    root = getRelNode(ppl);
+    expectedLogical =
+        "LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
+            + "  LogicalFilter(condition=[<=($4, 1)])\n"
+            + "    LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $3)])\n"
+            + "      LogicalFilter(condition=[IS NOT NULL($3)])\n"
+            + "        LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    ppl =
+        "source=EMP | eval TEMP_DEPTNO = DEPTNO + 1 | rename TEMP_DEPTNO as NEW_DEPTNO | fields"
+            + " NEW_DEPTNO, EMPNO, ENAME, JOB | sort NEW_DEPTNO | dedup 1 NEW_DEPTNO";
+    root = getRelNode(ppl);
+    // Sort is stripped from below the window and moved to the top to ensure order is preserved
+    expectedLogical =
+        "LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])\n"
+            + "  LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
+            + "    LogicalFilter(condition=[<=($4, 1)])\n"
+            + "      LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0 NULLS"
+            + " FIRST)])\n"
+            + "        LogicalFilter(condition=[IS NOT NULL($0)])\n"
+            + "          LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  /**
+   * Edge case: sort field is projected away before dedup. The sort collation references a field
+   * (DEPTNO) that is no longer in the schema after the fields command. The dedup should still work
+   * correctly but without the sort-restore optimization since the sort field is unavailable.
+   */
+  @Test
+  public void testSortFieldProjectedAwayBeforeDedup() {
+    String ppl = "source=EMP | sort DEPTNO | fields ENAME, JOB | dedup 1 JOB";
+    RelNode root = getRelNode(ppl);
+    // No restore Sort at top because DEPTNO was projected away
+    String expectedLogical =
+        "LogicalProject(ENAME=[$0], JOB=[$1])\n"
+            + "  LogicalFilter(condition=[<=($2, 1)])\n"
+            + "    LogicalProject(ENAME=[$0], JOB=[$1], _row_number_dedup_=[ROW_NUMBER() OVER"
+            + " (PARTITION BY $1)])\n"
+            + "      LogicalFilter(condition=[IS NOT NULL($1)])\n"
+            + "        LogicalProject(ENAME=[$1], JOB=[$2])\n"
+            + "          LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 }

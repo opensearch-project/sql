@@ -28,6 +28,11 @@ public class SearchAnd extends SearchExpression {
   }
 
   @Override
+  public String toAnonymizedString() {
+    return left.toAnonymizedString() + " AND " + right.toAnonymizedString();
+  }
+
+  @Override
   public List<? extends UnresolvedExpression> getChild() {
     return Arrays.asList(left, right);
   }

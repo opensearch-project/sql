@@ -14,33 +14,36 @@ public class TimeUnitRegistry {
   private static final Map<String, TimeUnitConfig> UNIT_MAPPING = new HashMap<>();
 
   static {
-    // Microseconds
+    // Microseconds (case-sensitive, lowercase only)
     UNIT_MAPPING.put("us", TimeUnitConfig.MICROSECONDS);
 
     // Milliseconds
     UNIT_MAPPING.put("ms", TimeUnitConfig.MILLISECONDS);
 
-    // Centiseconds
+    // Centiseconds (case-sensitive, lowercase only)
     UNIT_MAPPING.put("cs", TimeUnitConfig.CENTISECONDS);
 
-    // Deciseconds
+    // Deciseconds (case-sensitive, lowercase only)
     UNIT_MAPPING.put("ds", TimeUnitConfig.DECISECONDS);
 
     // Seconds
     UNIT_MAPPING.put("s", TimeUnitConfig.SECONDS);
     UNIT_MAPPING.put("sec", TimeUnitConfig.SECONDS);
+    UNIT_MAPPING.put("secs", TimeUnitConfig.SECONDS);
     UNIT_MAPPING.put("second", TimeUnitConfig.SECONDS);
     UNIT_MAPPING.put("seconds", TimeUnitConfig.SECONDS);
 
-    // Minutes
+    // Minutes (case-sensitive lowercase 'm')
     UNIT_MAPPING.put("m", TimeUnitConfig.MINUTES);
     UNIT_MAPPING.put("min", TimeUnitConfig.MINUTES);
+    UNIT_MAPPING.put("mins", TimeUnitConfig.MINUTES);
     UNIT_MAPPING.put("minute", TimeUnitConfig.MINUTES);
     UNIT_MAPPING.put("minutes", TimeUnitConfig.MINUTES);
 
     // Hours
     UNIT_MAPPING.put("h", TimeUnitConfig.HOURS);
     UNIT_MAPPING.put("hr", TimeUnitConfig.HOURS);
+    UNIT_MAPPING.put("hrs", TimeUnitConfig.HOURS);
     UNIT_MAPPING.put("hour", TimeUnitConfig.HOURS);
     UNIT_MAPPING.put("hours", TimeUnitConfig.HOURS);
 
@@ -49,7 +52,7 @@ public class TimeUnitRegistry {
     UNIT_MAPPING.put("day", TimeUnitConfig.DAYS);
     UNIT_MAPPING.put("days", TimeUnitConfig.DAYS);
 
-    // Months (case-sensitive M)
+    // Months (case-sensitive uppercase 'M')
     UNIT_MAPPING.put("M", TimeUnitConfig.MONTHS);
     UNIT_MAPPING.put("mon", TimeUnitConfig.MONTHS);
     UNIT_MAPPING.put("month", TimeUnitConfig.MONTHS);
@@ -59,15 +62,19 @@ public class TimeUnitRegistry {
   /**
    * Gets the time unit configuration for the given unit string.
    *
-   * @param unit The unit string (e.g., "h", "hours", "M")
+   * @param unit The unit string (e.g., "h", "hours", "M", "m")
    * @return The time unit configuration, or null if not found
    */
   public static TimeUnitConfig getConfig(String unit) {
-    if (unit.equals("M")) {
-      // M is case-sensitive for months
+    // Handle case-sensitive units: M (month), m (minute), and subsecond units (us, cs, ds)
+    if (unit.equals("M")
+        || unit.equals("m")
+        || unit.equals("us")
+        || unit.equals("cs")
+        || unit.equals("ds")) {
       return UNIT_MAPPING.get(unit);
     } else {
-      // For all other units, use lowercase lookup
+      // For all other units, use lowercase lookup for case-insensitive matching
       return UNIT_MAPPING.get(unit.toLowerCase());
     }
   }

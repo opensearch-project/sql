@@ -7,10 +7,14 @@ package org.opensearch.sql.opensearch.response.agg;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import org.opensearch.common.document.DocumentField;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.metrics.TopHits;
@@ -21,45 +25,133 @@ public class TopHitsParser implements MetricParser {
 
   @Getter private final String name;
   private final boolean returnSingleValue;
+  private final boolean returnMergeValue;
 
-  public TopHitsParser(String name) {
-    this.name = name;
-    this.returnSingleValue = false;
-  }
-
-  public TopHitsParser(String name, boolean returnSingleValue) {
+  public TopHitsParser(String name, boolean returnSingleValue, boolean returnMergeValue) {
     this.name = name;
     this.returnSingleValue = returnSingleValue;
+    this.returnMergeValue = returnMergeValue;
   }
 
   @Override
-  public Map<String, Object> parse(Aggregation agg) {
+  public List<Map<String, Object>> parse(Aggregation agg) {
     TopHits topHits = (TopHits) agg;
     SearchHit[] hits = topHits.getHits().getHits();
 
     if (hits.length == 0) {
-      return Collections.singletonMap(agg.getName(), null);
+      return Collections.singletonList(
+          new HashMap<>(Collections.singletonMap(agg.getName(), null)));
     }
 
     if (returnSingleValue) {
-      // Extract the single value from the first (and only) hit from fields (fetchField)
-      if (hits[0].getFields() != null && !hits[0].getFields().isEmpty()) {
-        Object value = hits[0].getFields().values().iterator().next().getValue();
-        return Collections.singletonMap(agg.getName(), value);
+      Object value = null;
+      if (!isSourceEmpty(hits)) {
+        // Extract the single value from the first (and only) hit from source (fetchSource)
+        value = getLeafValue(hits[0].getSourceAsMap().values().iterator().next());
       }
-      return Collections.singletonMap(agg.getName(), null);
-    } else {
-      // Return all values as a list from fields (fetchField)
-      if (hits[0].getFields() != null && !hits[0].getFields().isEmpty()) {
-        return Collections.singletonMap(
-            agg.getName(),
+      if (!isFieldsEmpty(hits)) {
+        // Extract the single value from the first (and only) hit from fields (fetchField)
+        value = hits[0].getFields().values().iterator().next().getValue();
+      }
+      return Collections.singletonList(
+          new HashMap<>(Collections.singletonMap(agg.getName(), value)));
+    } else if (returnMergeValue) {
+      if (isEmptyHits(hits)) {
+        return Collections.singletonList(
+            new HashMap<>(Collections.singletonMap(agg.getName(), Collections.emptyList())));
+      }
+      List<Object> list = Collections.emptyList();
+      if (!isSourceEmpty(hits)) {
+        // Return all values as a list from _source (fetchSource)
+        list =
+            Arrays.stream(hits)
+                .map(SearchHit::getSourceAsMap)
+                .filter(Objects::nonNull)
+                .flatMap(map -> map.values().stream())
+                .filter(Objects::nonNull)
+                .toList();
+      }
+      if (!isFieldsEmpty(hits)) {
+        // Return all values as a list from fields (fetchField)
+        list =
             Arrays.stream(hits)
                 .flatMap(h -> h.getFields().values().stream())
-                .map(f -> f.getValue())
-                .filter(v -> v != null) // Filter out null values
-                .collect(Collectors.toList()));
+                .map(DocumentField::getValue)
+                .filter(Objects::nonNull)
+                .toList();
       }
-      return Collections.singletonMap(agg.getName(), Collections.emptyList());
+      return Collections.singletonList(
+          new HashMap<>(Collections.singletonMap(agg.getName(), list)));
+    } else {
+      // "hits": {
+      //    "hits": [
+      //      {
+      //        "_source": {
+      //          "name": "A",
+      //          "category": "X"
+      //        },
+      //        "fields": {
+      //          "name": [
+      //            "B"
+      //          ],
+      //          "category": [
+      //            "Z"
+      //          ]
+      //        }
+      //      },
+      //      {
+      //        "_source": {
+      //          "name": "A",
+      //          "category": "Y"
+      //        },
+      //        "fields": {
+      //          "category": [
+      //            "A"
+      //          ],
+      //          "state": [
+      //            "N"
+      //          ]
+      //        }
+      //      }
+      //    ]
+      // }
+      // will converts to:
+      // List[
+      //   LinkedHashMap["name" -> "B", "category" -> "Z"],
+      //   LinkedHashMap["name" -> "A", "category" -> "A", "state" -> "N"]
+      // ]
+      return Arrays.stream(hits)
+          .map(
+              hit -> {
+                Map<String, Object> source = hit.getSourceAsMap();
+                Map<String, Object> map =
+                    source == null
+                        ? new LinkedHashMap<>()
+                        : new LinkedHashMap<>(hit.getSourceAsMap());
+                hit.getFields().values().forEach(f -> map.put(f.getName(), f.getValue()));
+                return map;
+              })
+          .toList();
+    }
+  }
+
+  private boolean isEmptyHits(SearchHit[] hits) {
+    return isFieldsEmpty(hits) && isSourceEmpty(hits);
+  }
+
+  private boolean isFieldsEmpty(SearchHit[] hits) {
+    return hits[0].getFields().isEmpty();
+  }
+
+  private boolean isSourceEmpty(SearchHit[] hits) {
+    return hits[0].getSourceAsMap() == null || hits[0].getSourceAsMap().isEmpty();
+  }
+
+  private Object getLeafValue(Object object) {
+    if (object instanceof Map map) {
+      return getLeafValue(map.values().iterator().next());
+    } else {
+      return object;
     }
   }
 }

@@ -15,6 +15,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupComma
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DynamicSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldformatCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
@@ -63,18 +64,19 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.SearchAnd;
 import org.opensearch.sql.ast.expression.SearchExpression;
 import org.opensearch.sql.ast.expression.SearchGroup;
-import org.opensearch.sql.ast.expression.Span;
-import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.AddColTotals;
+import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DefaultBin;
@@ -84,6 +86,8 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
+import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -91,6 +95,9 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
+import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -111,7 +118,9 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -130,6 +139,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
@@ -214,7 +224,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
       // Create Search node with relation and query string
       Relation relation = (Relation) visitFromClause(ctx.fromClause());
-      return new Search(relation, queryString);
+      return new Search(relation, queryString, combined);
     }
   }
 
@@ -263,6 +273,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
     List<Argument> arguments =
         ctx.joinOption().stream().map(o -> (Argument) expressionBuilder.visit(o)).toList();
+    if (arguments.stream().noneMatch(arg -> arg.getArgName().equals("max"))
+        && !UnresolvedPlanHelper.legacyPreferred(settings)) {
+      arguments = new ArrayList<>(arguments);
+      arguments.add(new Argument("max", Literal.ONE));
+    }
     Argument.ArgumentMap argumentMap = Argument.ArgumentMap.of(arguments);
     if (argumentMap.get("type") != null) {
       Join.JoinType joinTypeFromArgument = ArgumentFactory.getJoinType(argumentMap);
@@ -415,7 +430,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitRenameCommand(RenameCommandContext ctx) {
     return new Rename(
-        ctx.renameClasue().stream()
+        ctx.renameClause().stream()
             .map(
                 ct ->
                     new Map(
@@ -481,14 +496,23 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /** Eventstats command. */
   public UnresolvedPlan visitEventstatsCommand(OpenSearchPPLParser.EventstatsCommandContext ctx) {
+    // 1. Parse arguments from the eventstats command
+    List<Argument> argExprList = ArgumentFactory.getArgumentList(ctx, settings);
+    ArgumentMap arguments = ArgumentMap.of(argExprList);
+
+    // bucket_nullable
+    boolean bucketNullable = (Boolean) arguments.get(Argument.BUCKET_NULLABLE).getValue();
+
+    // 2. Build groupList
+    List<UnresolvedExpression> groupList = getPartitionExprList(ctx.statsByClause());
+
     ImmutableList.Builder<UnresolvedExpression> windownFunctionListBuilder =
         new ImmutableList.Builder<>();
     for (OpenSearchPPLParser.EventstatsAggTermContext aggCtx : ctx.eventstatsAggTerm()) {
       UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
       // set partition by list for window function
       if (windowFunction instanceof WindowFunction) {
-        ((WindowFunction) windowFunction)
-            .setPartitionByList(getPartitionExprList(ctx.statsByClause()));
+        ((WindowFunction) windowFunction).setPartitionByList(groupList);
       }
       String name =
           aggCtx.alias == null
@@ -498,19 +522,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       windownFunctionListBuilder.add(alias);
     }
 
-    return new Window(windownFunctionListBuilder.build());
+    return new Window(windownFunctionListBuilder.build(), groupList, bucketNullable);
   }
 
   /** Streamstats command. */
   public UnresolvedPlan visitStreamstatsCommand(OpenSearchPPLParser.StreamstatsCommandContext ctx) {
     // 1. Parse arguments from the streamstats command
-    List<Argument> argExprList = ArgumentFactory.getArgumentList(ctx);
+    List<Argument> argExprList = ArgumentFactory.getArgumentList(ctx, settings);
     ArgumentMap arguments = ArgumentMap.of(argExprList);
 
-    // current, window and global from ArgumentFactory
+    // current, window, global and bucket_nullable from ArgumentFactory
     boolean current = (Boolean) arguments.get("current").getValue();
     int window = (Integer) arguments.get("window").getValue();
     boolean global = (Boolean) arguments.get("global").getValue();
+    boolean bucketNullable = (Boolean) arguments.get(Argument.BUCKET_NULLABLE).getValue();
 
     if (window < 0) {
       throw new IllegalArgumentException("Window size must be >= 0, but got: " + window);
@@ -561,6 +586,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         current,
         window,
         global,
+        bucketNullable,
         resetBeforeExpr,
         resetAfterExpr);
   }
@@ -725,6 +751,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Reverse();
   }
 
+  /** Transpose command. */
+  @Override
+  public UnresolvedPlan visitTransposeCommand(OpenSearchPPLParser.TransposeCommandContext ctx) {
+    java.util.Map<String, Argument> arguments = ArgumentFactory.getArgumentList(ctx);
+    return new Transpose(arguments);
+  }
+
   /** Chart command. */
   @Override
   public UnresolvedPlan visitChartCommand(OpenSearchPPLParser.ChartCommandContext ctx) {
@@ -760,41 +793,28 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Timechart command. */
   @Override
   public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
-    UnresolvedExpression binExpression =
-        AstDSL.span(AstDSL.implicitTimestampField(), AstDSL.intLiteral(1), SpanUnit.m);
-    Integer limit = 10;
-    Boolean useOther = true;
-    // Process timechart parameters
-    for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
-      UnresolvedExpression param = internalVisitExpression(paramCtx);
-      if (param instanceof Span) {
-        binExpression = param;
-      } else if (param instanceof Literal literal) {
-        if (DataType.BOOLEAN.equals(literal.getType())) {
-          useOther = (Boolean) literal.getValue();
-        } else if (DataType.INTEGER.equals(literal.getType())
-            || DataType.LONG.equals(literal.getType())) {
-          limit = (Integer) literal.getValue();
-        }
-      }
-    }
+    List<Argument> arguments = ArgumentFactory.getArgumentList(ctx, expressionBuilder);
+    ArgumentMap argMap = ArgumentMap.of(arguments);
+    Literal spanLiteral = argMap.getOrDefault("spanliteral", AstDSL.stringLiteral("1m"));
+    String timeFieldName =
+        Optional.ofNullable(argMap.get("timefield"))
+            .map(l -> (String) l.getValue())
+            .orElse(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
+    Field spanField = AstDSL.field(timeFieldName);
+    Alias span =
+        AstDSL.alias(timeFieldName, AstDSL.spanFromSpanLengthLiteral(spanField, spanLiteral));
     UnresolvedExpression aggregateFunction = parseAggTerms(List.of(ctx.statsAggTerm())).getFirst();
-
     UnresolvedExpression byField =
-        ctx.fieldExpression() != null ? internalVisitExpression(ctx.fieldExpression()) : null;
-    List<Argument> arguments =
-        List.of(
-            new Argument("limit", AstDSL.intLiteral(limit)),
-            new Argument("useother", AstDSL.booleanLiteral(useOther)));
-    binExpression = AstDSL.alias(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP, binExpression);
-    if (byField != null) {
-      byField =
-          AstDSL.alias(
-              StringUtils.unquoteIdentifier(getTextInQuery(ctx.fieldExpression())), byField);
-    }
+        Optional.ofNullable(ctx.fieldExpression())
+            .map(
+                f ->
+                    AstDSL.alias(
+                        StringUtils.unquoteIdentifier(getTextInQuery(f)),
+                        internalVisitExpression(f)))
+            .orElse(null);
     return Chart.builder()
         .aggregationFunction(aggregateFunction)
-        .rowSplit(binExpression)
+        .rowSplit(span)
         .columnSplit(byField)
         .arguments(arguments)
         .build();
@@ -807,6 +827,18 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.evalClause().stream()
             .map(ct -> (Let) internalVisitExpression(ct))
             .collect(Collectors.toList()));
+  }
+
+  @Override
+  public UnresolvedPlan visitFieldformatCommand(FieldformatCommandContext ctx) {
+    // Use the new fieldFormatEvalClause instead of evalClause
+    org.opensearch.sql.ast.tree.Eval eval =
+        new org.opensearch.sql.ast.tree.Eval(
+            ctx.fieldFormatEvalClause().stream()
+                .map(ct -> (Let) internalVisitExpression(ct))
+                .collect(Collectors.toList()));
+
+    return eval;
   }
 
   private List<UnresolvedExpression> getGroupByList(ByClauseContext ctx) {
@@ -870,6 +902,37 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Expand(fieldExpression, alias);
   }
 
+  /** mvcombine command. */
+  @Override
+  public UnresolvedPlan visitMvcombineCommand(OpenSearchPPLParser.MvcombineCommandContext ctx) {
+    Field field = (Field) internalVisitExpression(ctx.fieldExpression());
+
+    String delim = null;
+    if (ctx.DELIM() != null) {
+      delim = StringUtils.unquoteText(getTextInQuery(ctx.stringLiteral()));
+    }
+    return new MvCombine(field, delim);
+  }
+
+  @Override
+  public UnresolvedPlan visitNomvCommand(OpenSearchPPLParser.NomvCommandContext ctx) {
+    Field field = (Field) internalVisitExpression(ctx.fieldExpression());
+    return new NoMv(field);
+  }
+
+  @Override
+  public UnresolvedPlan visitMvexpandCommand(OpenSearchPPLParser.MvexpandCommandContext ctx) {
+    Field field = (Field) expressionBuilder.visit(ctx.fieldExpression());
+    Integer limit =
+        ctx.INTEGER_LITERAL() != null ? Integer.parseInt(ctx.INTEGER_LITERAL().getText()) : null;
+
+    if (limit != null && limit <= 0) {
+      throw new IllegalArgumentException("Limit must be a positive number, got: " + limit);
+    }
+
+    return new MvExpand(field, limit);
+  }
+
   @Override
   public UnresolvedPlan visitGrokCommand(OpenSearchPPLParser.GrokCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
@@ -906,9 +969,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     if (inField == null) {
       throw new IllegalArgumentException("`input` parameter is required for `spath`");
-    }
-    if (path == null) {
-      throw new IllegalArgumentException("`path` parameter is required for `spath`");
     }
 
     return new SPath(inField, outField, path);
@@ -951,8 +1011,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)));
     Literal patternBufferLimit =
         cmdOptions.getOrDefault(
-            "max_sample_count",
-            AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)));
+            "buffer_limit", AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)));
     Literal showNumberedToken =
         cmdOptions.getOrDefault(
             "show_numbered_token",
@@ -975,6 +1034,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitLookupCommand(OpenSearchPPLParser.LookupCommandContext ctx) {
     Relation lookupRelation = new Relation(this.internalVisitExpression(ctx.tableSource()));
+    // OUTPUT and REPLACE are synonyms - both overwrite existing fields
     Lookup.OutputStrategy strategy =
         ctx.APPEND() != null ? Lookup.OutputStrategy.APPEND : Lookup.OutputStrategy.REPLACE;
     java.util.Map<String, String> mappingAliasMap =
@@ -1147,6 +1207,63 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
+  public UnresolvedPlan visitConvertCommand(OpenSearchPPLParser.ConvertCommandContext ctx) {
+    List<Let> conversions =
+        ctx.convertFunction().stream()
+            .map(this::buildConversion)
+            .filter(conversion -> conversion != null)
+            .collect(Collectors.toList());
+
+    String timeFormat = null;
+    if (ctx.timeFormat != null) {
+      timeFormat = StringUtils.unquoteText(ctx.timeFormat.getText());
+    }
+
+    return new Convert(conversions, timeFormat);
+  }
+
+  /** Supported PPL convert function names (case-insensitive). */
+  private static final Set<String> SUPPORTED_CONVERSION_FUNCTIONS =
+      Set.of(
+          "auto", "num", "rmcomma", "rmunit", "memk", "none", "ctime", "mktime", "dur2sec",
+          "mstime");
+
+  private Let buildConversion(OpenSearchPPLParser.ConvertFunctionContext funcCtx) {
+    if (funcCtx.fieldExpression().isEmpty()) {
+      throw new IllegalArgumentException("Convert function requires a field argument");
+    }
+
+    String functionName = funcCtx.functionName.getText();
+
+    // Validate function name against supported conversion functions
+    if (!SUPPORTED_CONVERSION_FUNCTIONS.contains(functionName.toLowerCase())) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Unsupported conversion function '%s'. Supported functions are: %s",
+              functionName, SUPPORTED_CONVERSION_FUNCTIONS));
+    }
+
+    UnresolvedExpression fieldArg = internalVisitExpression(funcCtx.fieldExpression(0));
+    Field targetField = determineTargetField(funcCtx, fieldArg);
+
+    if ("none".equalsIgnoreCase(functionName)) {
+      return fieldArg.toString().equals(targetField.getField().toString())
+          ? null
+          : new Let(targetField, fieldArg);
+    }
+
+    return new Let(targetField, AstDSL.function(functionName, fieldArg));
+  }
+
+  private Field determineTargetField(
+      OpenSearchPPLParser.ConvertFunctionContext funcCtx, UnresolvedExpression fieldArg) {
+    if (funcCtx.alias != null) {
+      return AstDSL.field(StringUtils.unquoteIdentifier(funcCtx.alias.getText()));
+    }
+    return fieldArg instanceof Field ? (Field) fieldArg : AstDSL.field(fieldArg.toString());
+  }
+
+  @Override
   public UnresolvedPlan visitFlattenCommand(OpenSearchPPLParser.FlattenCommandContext ctx) {
     Field field = (Field) internalVisitExpression(ctx.fieldExpression());
     List<String> aliases =
@@ -1229,6 +1346,37 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     return new Multisearch(subsearches);
+  }
+
+  @Override
+  public UnresolvedPlan visitUnionCommand(OpenSearchPPLParser.UnionCommandContext ctx) {
+    List<UnresolvedPlan> datasets = new ArrayList<>();
+
+    Integer maxout = null;
+    if (ctx.subsearchOptions() != null) {
+      OpenSearchPPLParser.SubsearchOptionsContext opts = ctx.subsearchOptions();
+      if (opts.maxout != null) {
+        maxout = Integer.parseInt(opts.maxout.getText());
+      }
+    }
+
+    for (OpenSearchPPLParser.UnionDatasetContext datasetCtx : ctx.unionDataset()) {
+      if (datasetCtx.subSearch() != null) {
+        datasets.add(visitSubSearch(datasetCtx.subSearch()));
+      } else if (datasetCtx.tableSource() != null) {
+        datasets.add(
+            new Relation(
+                Collections.singletonList(internalVisitExpression(datasetCtx.tableSource()))));
+      }
+    }
+
+    // Allow 1+ here; total count (including implicit upstream) validated during planning
+    if (datasets.isEmpty()) {
+      throw new SyntaxCheckException(
+          "Union command requires at least one dataset. Provided: " + datasets.size());
+    }
+
+    return new Union(datasets, maxout);
   }
 
   @Override
@@ -1414,5 +1562,136 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       }
     }
     return false;
+  }
+
+  @Override
+  public UnresolvedPlan visitAddtotalsCommand(OpenSearchPPLParser.AddtotalsCommandContext ctx) {
+
+    List<Field> fieldList = new ArrayList<>();
+    if (ctx.fieldList() != null) {
+      fieldList = getFieldList(ctx.fieldList());
+    }
+    ImmutableMap.Builder<String, Literal> cmdOptionsBuilder = ImmutableMap.builder();
+    ctx.addtotalsOption()
+        .forEach(
+            option -> {
+              String argName = option.children.get(0).toString();
+              Literal value = (Literal) internalVisitExpression(option.children.get(2));
+              cmdOptionsBuilder.put(argName, value);
+            });
+    java.util.Map<String, Literal> options = cmdOptionsBuilder.build();
+    return new AddTotals(fieldList, options);
+  }
+
+  @Override
+  public UnresolvedPlan visitAddcoltotalsCommand(
+      OpenSearchPPLParser.AddcoltotalsCommandContext ctx) {
+
+    List<Field> fieldList = new ArrayList<>();
+    if (ctx.fieldList() != null) {
+      fieldList = getFieldList(ctx.fieldList());
+    }
+    ImmutableMap.Builder<String, Literal> cmdOptionsBuilder = ImmutableMap.builder();
+    ctx.addcoltotalsOption()
+        .forEach(
+            option -> {
+              String argName = option.children.get(0).toString();
+              Literal value = (Literal) internalVisitExpression(option.children.get(2));
+              cmdOptionsBuilder.put(argName, value);
+            });
+    java.util.Map<String, Literal> options = cmdOptionsBuilder.build();
+    return new AddColTotals(fieldList, options);
+  }
+
+  @Override
+  public UnresolvedPlan visitGraphLookupCommand(OpenSearchPPLParser.GraphLookupCommandContext ctx) {
+    // Parse lookup table
+    UnresolvedPlan fromTable = visitTableSourceClause(ctx.lookupTable);
+
+    // Parse required base: start and edge
+    OpenSearchPPLParser.StartClauseContext startCtx = ctx.startClause();
+    Field startField = null;
+    List<Literal> startValues = null;
+    if (startCtx.startField != null) {
+      // Piped mode: start=fieldExpression
+      startField = (Field) internalVisitExpression(startCtx.startField);
+    } else if (startCtx.startValue != null) {
+      // Top-level mode: single literal e.g. start="Jack"
+      startValues = List.of((Literal) internalVisitExpression(startCtx.startValue));
+    } else if (startCtx.valueList() != null) {
+      // Top-level mode: literal list e.g. start="Jack", "Eliot"
+      OpenSearchPPLParser.ValueListContext listCtx = startCtx.valueList();
+      startValues = new ArrayList<>();
+      for (OpenSearchPPLParser.LiteralValueContext lit : listCtx.literalValue()) {
+        startValues.add((Literal) internalVisitExpression(lit));
+      }
+    }
+    // Parse edge clause from EDGE_CLAUSE token (e.g., "edge=manager-->name")
+    OpenSearchPPLParser.EdgeClauseContext edgeCtx = ctx.edgeClause();
+    String edgeClauseText = edgeCtx.edgeClauseToken.getText();
+    // Remove "edge=" prefix (case-insensitive)
+    String edgeBody = edgeClauseText.substring(edgeClauseText.indexOf('=') + 1).trim();
+    // Determine direction and split by arrow
+    Direction direction;
+    String[] parts;
+    if (edgeBody.contains("<->")) {
+      direction = Direction.BI;
+      parts = edgeBody.split("<->", 2);
+    } else {
+      direction = Direction.UNI;
+      parts = edgeBody.split("-->", 2);
+    }
+    Field fromField = new Field(new QualifiedName(parts[0].trim()));
+    Field toField = new Field(new QualifiedName(parts[1].trim()));
+
+    // Parse optional args with defaults
+    Literal maxDepth = Literal.ZERO;
+    Field depthField = null;
+    boolean supportArray = false;
+    boolean batchMode = false;
+    boolean usePIT = false;
+    UnresolvedExpression filter = null;
+
+    for (OpenSearchPPLParser.GraphLookupArgsContext arg : ctx.graphLookupArgs()) {
+      if (arg.MAX_DEPTH() != null) {
+        maxDepth = (Literal) internalVisitExpression(arg.integerLiteral());
+      }
+      if (arg.DEPTH_FIELD() != null) {
+        depthField = (Field) internalVisitExpression(arg.fieldExpression());
+      }
+      if (arg.SUPPORT_ARRAY() != null) {
+        Literal literal = (Literal) internalVisitExpression(arg.booleanLiteral());
+        supportArray = Boolean.TRUE.equals(literal.getValue());
+      }
+      if (arg.BATCH_MODE() != null) {
+        Literal literal = (Literal) internalVisitExpression(arg.booleanLiteral());
+        batchMode = Boolean.TRUE.equals(literal.getValue());
+      }
+      if (arg.USE_PIT() != null) {
+        Literal literal = (Literal) internalVisitExpression(arg.booleanLiteral());
+        usePIT = Boolean.TRUE.equals(literal.getValue());
+      }
+      if (arg.FILTER() != null) {
+        filter = internalVisitExpression(arg.logicalExpression());
+      }
+    }
+
+    Field as = (Field) internalVisitExpression(ctx.outputField);
+
+    return GraphLookup.builder()
+        .fromTable(fromTable)
+        .fromField(fromField)
+        .toField(toField)
+        .as(as)
+        .maxDepth(maxDepth)
+        .startField(startField)
+        .startValues(startValues)
+        .depthField(depthField)
+        .direction(direction)
+        .supportArray(supportArray)
+        .batchMode(batchMode)
+        .usePIT(usePIT)
+        .filter(filter)
+        .build();
   }
 }

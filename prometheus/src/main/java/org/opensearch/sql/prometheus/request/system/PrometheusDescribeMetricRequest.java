@@ -10,8 +10,6 @@ package org.opensearch.sql.prometheus.request.system;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -69,25 +67,20 @@ public class PrometheusDescribeMetricRequest implements PrometheusSystemRequest 
    */
   public Map<String, ExprType> getFieldTypes() {
     Map<String, ExprType> fieldTypes = new HashMap<>();
-    AccessController.doPrivileged(
-        (PrivilegedAction<List<Void>>)
-            () -> {
-              try {
-                prometheusClient
-                    .getLabels(metricName)
-                    .forEach(label -> fieldTypes.put(label, ExprCoreType.STRING));
-              } catch (IOException e) {
-                LOG.error(
-                    "Error while fetching labels for {} from prometheus: {}",
-                    metricName,
-                    e.getMessage());
-                throw new PrometheusClientException(
-                    String.format(
-                        "Error while fetching labels " + "for %s from prometheus: %s",
-                        metricName, e.getMessage()));
-              }
-              return null;
-            });
+    try {
+      prometheusClient
+          .getLabels(metricName)
+          .forEach(label -> fieldTypes.put(label, ExprCoreType.STRING));
+    } catch (IOException e) {
+      LOG.error(
+          "Error while fetching labels for {} from prometheus: {}",
+          metricName,
+          e.getMessage());
+      throw new PrometheusClientException(
+          String.format(
+              "Error while fetching labels " + "for %s from prometheus: %s",
+              metricName, e.getMessage()));
+    }
     fieldTypes.putAll(PrometheusMetricDefaultSchema.DEFAULT_MAPPING.getMapping());
     return fieldTypes;
   }

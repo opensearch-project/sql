@@ -27,6 +27,11 @@ public class SearchNot extends SearchExpression {
   }
 
   @Override
+  public String toAnonymizedString() {
+    return "NOT(" + expression.toAnonymizedString() + ")";
+  }
+
+  @Override
   public List<? extends UnresolvedExpression> getChild() {
     return Collections.singletonList(expression);
   }

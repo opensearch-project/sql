@@ -172,7 +172,7 @@ Here are other files and sub-folders that you are likely to touch:
 
 - ``build.gradle``: Gradle build script.
 - ``docs``: documentation for developers and reference manual for users.
-- ``doc-test``: code that run .rst docs in ``docs`` folder by Python doctest library.
+- ``doctest``: code that runs .rst and .md docs in ``docs`` folder by Python doctest library.
 
 Note that other related project code has already merged into this single repository together:
 
@@ -318,6 +318,7 @@ For test cases, you can use the cases in the following checklist in case you mis
 - *Explain*
 
   - DSL for simple query
+  - Script for complex expressions, see details in `intro-scripts <./docs/dev/intro-scripts.md>`_.
   - Execution plan for complex query like JOIN
   
 - *Response format*

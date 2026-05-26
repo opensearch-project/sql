@@ -1002,7 +1002,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
             + "      LogicalFilter(condition=[<=($3, 1)])\n"
             + "        LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2],"
-            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0)])\n"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0)])\n"
             + "          LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     verifyResultCount(root, 14);
@@ -1012,8 +1012,8 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + " `EMP`.`SAL`, `EMP`.`COMM`, `t1`.`DEPTNO`, `t1`.`DNAME`, `t1`.`LOC`\n"
             + "FROM `scott`.`EMP`\n"
             + "LEFT JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
-            + "FROM (SELECT `DEPTNO`, `DNAME`, `LOC`, ROW_NUMBER() OVER (PARTITION BY `DEPTNO`"
-            + " ORDER BY `DEPTNO` NULLS LAST) `_row_number_dedup_`\n"
+            + "FROM (SELECT `DEPTNO`, `DNAME`, `LOC`, ROW_NUMBER() OVER (PARTITION BY `DEPTNO`)"
+            + " `_row_number_dedup_`\n"
             + "FROM `scott`.`DEPT`) `t`\n"
             + "WHERE `_row_number_dedup_` <= 1) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -1031,7 +1031,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
             + "      LogicalFilter(condition=[<=($3, 1)])\n"
             + "        LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2],"
-            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0)])\n"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0)])\n"
             + "          LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     verifyResultCount(root, 14);
@@ -1042,8 +1042,8 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + " `t1`.`LOC`\n"
             + "FROM `scott`.`EMP`\n"
             + "LEFT JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
-            + "FROM (SELECT `DEPTNO`, `DNAME`, `LOC`, ROW_NUMBER() OVER (PARTITION BY `DEPTNO`"
-            + " ORDER BY `DEPTNO` NULLS LAST) `_row_number_dedup_`\n"
+            + "FROM (SELECT `DEPTNO`, `DNAME`, `LOC`, ROW_NUMBER() OVER (PARTITION BY `DEPTNO`)"
+            + " `_row_number_dedup_`\n"
             + "FROM `scott`.`DEPT`) `t`\n"
             + "WHERE `_row_number_dedup_` <= 1) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -1071,13 +1071,43 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testJoinWhenLegacyNotPreferred() {
+    doReturn(false).when(settings).getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED);
+    String ppl = "source=EMP | join type=outer DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+            + "      LogicalFilter(condition=[<=($3, 1)])\n"
+            + "        LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0)])\n"
+            + "          LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `t1`.`DEPTNO`, `t1`.`DNAME`, `t1`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LEFT JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
+            + "FROM (SELECT `DEPTNO`, `DNAME`, `LOC`, ROW_NUMBER() OVER (PARTITION BY `DEPTNO`)"
+            + " `_row_number_dedup_`\n"
+            + "FROM `scott`.`DEPT`) `t`\n"
+            + "WHERE `_row_number_dedup_` <= 1) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testJoinSubsearchMaxOut() {
     String ppl1 = "source=EMP | join type=inner max=0 DEPTNO DEPT";
     RelNode root1 = getRelNode(ppl1);
     verifyResultCount(root1, 14); // no limit
     String ppl2 = "source=EMP | inner join left=l right=r on l.DEPTNO=r.DEPTNO DEPT";
     RelNode root2 = getRelNode(ppl2);
-    verifyResultCount(root1, 14); // no limit for sql-like syntax
+    verifyResultCount(root2, 14); // no limit for sql-like syntax
 
     doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT);
     root1 = getRelNode(ppl1);

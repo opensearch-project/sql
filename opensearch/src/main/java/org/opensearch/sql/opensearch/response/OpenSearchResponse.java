@@ -20,12 +20,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.ToString;
+import org.jetbrains.annotations.TestOnly;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.common.text.Text;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -39,11 +42,13 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 @ToString
 public class OpenSearchResponse implements Iterable<ExprValue> {
 
+  public static final OpenSearchResponse EMPTY = empty();
+
   /** Search query result (non-aggregation). */
   private final SearchHits hits;
 
   /** Search aggregation result. */
-  private final Aggregations aggregations;
+  @Getter private final Aggregations aggregations;
 
   /** List of requested include fields. */
   private final List<String> includes;
@@ -53,12 +58,17 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   /** OpenSearchExprValueFactory used to build ExprValue from search result. */
   @EqualsAndHashCode.Exclude private final OpenSearchExprValueFactory exprValueFactory;
 
-  /** Constructor of OpenSearchResponse. */
-  public OpenSearchResponse(
+  /** The empty OpenSearchResponse which is used for invalid search. */
+  private static OpenSearchResponse empty() {
+    return new OpenSearchResponse(SearchHits.empty(), null, List.of(), false);
+  }
+
+  @TestOnly
+  public static OpenSearchResponse of(
       SearchResponse searchResponse,
       OpenSearchExprValueFactory exprValueFactory,
       List<String> includes) {
-    this(searchResponse, exprValueFactory, includes, false);
+    return new OpenSearchResponse(searchResponse, exprValueFactory, includes, false);
   }
 
   /** Constructor of OpenSearchResponse. */
@@ -94,14 +104,35 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    * @return true for empty
    */
   public boolean isEmpty() {
-    return (hits.getHits() == null)
-        || (((hits.getHits().length == 0) && aggregations == null)
-            && (!isCountAgg
-                || hits.getTotalHits() == null)); // check total hits if is count aggregation
+    if (isCountResponse()) {
+      return hits.getTotalHits() == null;
+    } else if (isAggregationResponse()) {
+      return aggregations.asList().isEmpty();
+    } else {
+      return getHitsSize() == 0;
+    }
   }
 
   public boolean isAggregationResponse() {
     return aggregations != null;
+  }
+
+  public boolean isCompositeAggregationResponse() {
+    return isAggregationResponse()
+        && !aggregations.asList().isEmpty()
+        && (aggregations.asList().get(0) instanceof InternalComposite);
+  }
+
+  /**
+   * Get the size of composite aggregation bucket. Must be called after
+   * isCompositeAggregationResponse() is true.
+   */
+  public int getCompositeBucketSize() {
+    if (isCompositeAggregationResponse()) {
+      return ((InternalComposite) aggregations.asList().get(0)).getBuckets().size();
+    }
+    assert false : "Should never call here";
+    return -1;
   }
 
   public boolean isCountResponse() {
@@ -109,7 +140,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   }
 
   public int getHitsSize() {
-    return hits.getHits() == null ? 0 : hits.getHits().length;
+    return hits == null ? 0 : hits.getHits() == null ? 0 : hits.getHits().length;
   }
 
   /**
@@ -229,7 +260,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
               for (Map.Entry<String, Object> value : entry.entrySet()) {
                 builder.put(
                     value.getKey(),
-                    exprValueFactory.construct(value.getKey(), value.getValue(), false));
+                    exprValueFactory.construct(value.getKey(), value.getValue(), true));
               }
               return (ExprValue) ExprTupleValue.fromExprValueMap(builder.build());
             })

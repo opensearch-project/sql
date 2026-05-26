@@ -27,18 +27,24 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLambdaRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.util.Strings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Between;
@@ -69,9 +75,11 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.Sort.SortOrder;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
-import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
+import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.SubsearchUtils;
@@ -190,8 +198,15 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitNot(Not node, CalcitePlanContext context) {
-    final RexNode expr = analyze(node.getExpression(), context);
-    return context.relBuilder.not(expr);
+    // Special handling for NOT(boolean_field = true/false) - see boolean comparison helpers below
+    UnresolvedExpression inner = node.getExpression();
+    if (inner instanceof Compare compare && "=".equals(compare.getOperator())) {
+      RexNode result = tryMakeBooleanNotEquals(compare, context);
+      if (result != null) {
+        return result;
+      }
+    }
+    return context.relBuilder.not(analyze(node.getExpression(), context));
   }
 
   @Override
@@ -221,7 +236,15 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
     RexNode left = analyze(node.getLeft(), context);
     RexNode right = analyze(node.getRight(), context);
-    return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, node.getOperator(), left, right);
+    String op = node.getOperator();
+    // Handle boolean_field != literal -> IS_NOT_TRUE/IS_NOT_FALSE
+    if ("!=".equals(op) || "<>".equals(op)) {
+      RexNode result = tryMakeBooleanNotEquals(left, right, context);
+      if (result != null) {
+        return result;
+      }
+    }
+    return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, op, left, right);
   }
 
   @Override
@@ -249,6 +272,65 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     final RexNode left = analyze(node.getLeft(), context);
     final RexNode right = analyze(node.getRight(), context);
     return context.rexBuilder.equals(left, right);
+  }
+
+  // ==================== Boolean NOT comparison helpers ====================
+  // Calcite's RexSimplify transforms:
+  // - "field = true" -> "field" (handled by PredicateAnalyzer detecting boolean field)
+  // - "field = false" -> "NOT(field)" (handled by PredicateAnalyzer.prefix())
+  // - "NOT(field = true)" -> "NOT(field)" -> would generate term{false}, have conflicted semantics
+  // - "NOT(field = false)" -> "NOT(NOT(field))" -> "field" -> would generate term{true}, have
+  // conflicted semantics
+  // We intercept NOT(field = true/false) at AST level before Calcite optimization:
+  // - "NOT(field = true)" -> IS_NOT_TRUE(field): matches false, null, missing
+  // - "NOT(field = false)" -> IS_NOT_FALSE(field): matches true, null, missing
+
+  /**
+   * Try to convert boolean_field != literal or NOT(boolean_field = literal) to
+   * IS_NOT_TRUE/IS_NOT_FALSE. This preserves correct null-handling semantics.
+   */
+  private RexNode tryMakeBooleanNotEquals(RexNode left, RexNode right, CalcitePlanContext context) {
+    BooleanFieldComparison cmp = extractBooleanFieldComparison(left, right);
+    if (cmp == null) {
+      return null;
+    }
+    SqlOperator op =
+        Boolean.FALSE.equals(cmp.literalValue)
+            ? SqlStdOperatorTable.IS_NOT_FALSE
+            : SqlStdOperatorTable.IS_NOT_TRUE;
+    return context.rexBuilder.makeCall(op, cmp.field);
+  }
+
+  /** Overload for NOT(Compare) AST pattern. */
+  private RexNode tryMakeBooleanNotEquals(Compare compare, CalcitePlanContext context) {
+    return tryMakeBooleanNotEquals(
+        analyze(compare.getLeft(), context), analyze(compare.getRight(), context), context);
+  }
+
+  /** Represents a comparison between a boolean field and a boolean literal. */
+  private record BooleanFieldComparison(RexNode field, Boolean literalValue) {}
+
+  /**
+   * Extract boolean field and literal value from a comparison, normalizing operand order. Returns
+   * null if the comparison is not between a boolean field and a boolean literal.
+   */
+  private BooleanFieldComparison extractBooleanFieldComparison(RexNode left, RexNode right) {
+    if (isBooleanField(left) && isBooleanLiteral(right)) {
+      return new BooleanFieldComparison(left, ((RexLiteral) right).getValueAs(Boolean.class));
+    }
+    if (isBooleanField(right) && isBooleanLiteral(left)) {
+      return new BooleanFieldComparison(right, ((RexLiteral) left).getValueAs(Boolean.class));
+    }
+    return null;
+  }
+
+  private boolean isBooleanField(RexNode node) {
+    // Only match actual field references, not arbitrary boolean expressions like CASE
+    return node instanceof RexInputRef && node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
+  }
+
+  private boolean isBooleanLiteral(RexNode node) {
+    return node instanceof RexLiteral && node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
   }
 
   /** Resolve qualified name. Note, the name should be case-sensitive. */
@@ -297,6 +379,20 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                               TYPE_FACTORY.createSqlType(SqlTypeName.ANY))))
               .collect(Collectors.toList());
       RexNode body = node.getFunction().accept(this, context);
+
+      // Add captured variables as additional lambda parameters
+      // They are stored with keys like "__captured_0", "__captured_1", etc.
+      List<RexNode> capturedVars = context.getCapturedVariables();
+      if (capturedVars != null && !capturedVars.isEmpty()) {
+        args = new ArrayList<>(args);
+        for (int i = 0; i < capturedVars.size(); i++) {
+          RexLambdaRef capturedRef = context.getRexLambdaRefMap().get("__captured_" + i);
+          if (capturedRef != null) {
+            args.add(capturedRef);
+          }
+        }
+      }
+
       RexNode lambdaNode = context.rexBuilder.makeLambdaCall(body, args);
       return lambdaNode;
     } catch (Exception e) {
@@ -307,6 +403,28 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitLet(Let node, CalcitePlanContext context) {
     RexNode expr = analyze(node.getExpression(), context);
+    if (node.getConcatPrefix() != null) {
+
+      expr =
+          context.rexBuilder.makeCall(
+              SqlStdOperatorTable.CONCAT,
+              context.rexBuilder.makeLiteral(
+                  node.getConcatPrefix().getValue(),
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                  true),
+              expr);
+    }
+    if (node.getConcatSuffix() != null) {
+
+      expr =
+          context.rexBuilder.makeCall(
+              SqlStdOperatorTable.CONCAT,
+              expr,
+              context.rexBuilder.makeLiteral(
+                  node.getConcatSuffix().getValue(),
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                  true));
+    }
     return context.relBuilder.alias(expr, node.getVar().getField().toString());
   }
 
@@ -390,6 +508,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       context.setInCoalesceFunction(true);
     }
 
+    List<RexNode> capturedVars = null;
     try {
       for (UnresolvedExpression arg : args) {
         if (arg instanceof LambdaFunction) {
@@ -408,6 +527,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
             lambdaNode = analyze(arg, lambdaContext);
           }
           arguments.add(lambdaNode);
+          // Capture any external variables that were referenced in the lambda
+          capturedVars = lambdaContext.getCapturedVariables();
         } else {
           arguments.add(analyze(arg, context));
         }
@@ -416,6 +537,24 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       if (isCoalesce) {
         context.setInCoalesceFunction(false);
       }
+    }
+
+    // For transform/mvmap functions with captured variables, add them as additional arguments
+    if (capturedVars != null && !capturedVars.isEmpty()) {
+      if (node.getFuncName().equalsIgnoreCase("mvmap")
+          || node.getFuncName().equalsIgnoreCase("transform")) {
+        arguments = new ArrayList<>(arguments);
+        arguments.addAll(capturedVars);
+      }
+    }
+
+    if ("LIKE".equalsIgnoreCase(node.getFuncName()) && arguments.size() == 2) {
+      RexNode defaultCaseSensitive =
+          CalcitePlanContext.isLegacyPreferred()
+              ? context.rexBuilder.makeLiteral(false)
+              : context.rexBuilder.makeLiteral(true);
+      arguments = new ArrayList<>(arguments);
+      arguments.add(defaultCaseSensitive);
     }
 
     RexNode resolvedNode =
@@ -429,15 +568,32 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitWindowFunction(WindowFunction node, CalcitePlanContext context) {
-    Function windowFunction = (Function) node.getFunction();
-    List<RexNode> arguments =
-        windowFunction.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
+    // SQL emits AggregateFunction for aggregate-as-window (e.g., SUM(x) OVER); PPL emits Function.
+    final String funcName;
+    final List<RexNode> arguments;
+    final boolean isDistinct;
+    if (node.getFunction() instanceof AggregateFunction aggFunc) {
+      funcName = aggFunc.getFuncName();
+      isDistinct = Boolean.TRUE.equals(aggFunc.getDistinct());
+      List<UnresolvedExpression> argExprs = new ArrayList<>();
+      if (aggFunc.getField() != null) {
+        argExprs.add(aggFunc.getField());
+      }
+      argExprs.addAll(aggFunc.getArgList());
+      arguments = argExprs.stream().map(arg -> analyze(arg, context)).toList();
+    } else {
+      Function windowFunction = (Function) node.getFunction();
+      funcName = windowFunction.getFuncName();
+      isDistinct = false;
+      arguments = windowFunction.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
+    }
     List<RexNode> partitions =
         node.getPartitionByList().stream()
             .map(arg -> analyze(arg, context))
             .map(this::extractRexNodeFromAlias)
             .toList();
-    return BuiltinFunctionName.ofWindowFunction(windowFunction.getFuncName())
+    List<RexNode> orderKeys = translateOrderKeys(node.getSortList(), context);
+    return BuiltinFunctionName.ofWindowFunction(funcName)
         .map(
             functionName -> {
               RexNode field = arguments.isEmpty() ? null : arguments.getFirst();
@@ -445,6 +601,18 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                   (arguments.isEmpty() || arguments.size() == 1)
                       ? Collections.emptyList()
                       : arguments.subList(1, arguments.size());
+              // ROW_NUMBER takes no field/args and isn't in aggFunctionRegistry,
+              // so skip aggregate signature validation.
+              if (functionName == BuiltinFunctionName.ROW_NUMBER) {
+                return PlanUtils.makeOver(
+                    context,
+                    functionName,
+                    field,
+                    args,
+                    partitions,
+                    orderKeys,
+                    node.getWindowFrame());
+              }
               List<RexNode> nodes =
                   PPLFuncImpTable.INSTANCE.validateAggFunctionSignature(
                       functionName, field, args, context.rexBuilder);
@@ -452,24 +620,44 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                   ? PlanUtils.makeOver(
                       context,
                       functionName,
+                      isDistinct,
                       nodes.getFirst(),
                       nodes.size() <= 1 ? Collections.emptyList() : nodes.subList(1, nodes.size()),
                       partitions,
-                      List.of(),
+                      orderKeys,
                       node.getWindowFrame())
                   : PlanUtils.makeOver(
                       context,
                       functionName,
+                      isDistinct,
                       field,
                       args,
                       partitions,
-                      List.of(),
+                      orderKeys,
                       node.getWindowFrame());
             })
         .orElseThrow(
-            () ->
-                new UnsupportedOperationException(
-                    "Unexpected window function: " + windowFunction.getFuncName()));
+            () -> new UnsupportedOperationException("Unexpected window function: " + funcName));
+  }
+
+  private List<RexNode> translateOrderKeys(
+      List<Pair<SortOption, UnresolvedExpression>> sortList, CalcitePlanContext context) {
+    RelBuilder b = context.relBuilder;
+    return sortList.stream()
+        .map(
+            p -> {
+              SortOption opt = p.getLeft();
+              RexNode field = analyze(p.getRight(), context);
+              if (opt.getSortOrder() == SortOrder.DESC) {
+                field = b.desc(field);
+              }
+              return switch (opt.getNullOrder()) {
+                case NULL_LAST -> b.nullsLast(field);
+                case NULL_FIRST -> b.nullsFirst(field);
+                default -> field;
+              };
+            })
+        .toList();
   }
 
   /** extract the expression of Alias from a node */

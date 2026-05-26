@@ -1,0 +1,78 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  - do:
+      indices.create:
+        index: issue5172
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              count:
+                type: integer
+              category:
+                type: keyword
+              subcategory:
+                type: keyword
+              value:
+                type: double
+              ts:
+                type: date
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5172", "_id": "1"}}'
+          - '{"count": 1, "category": "A", "subcategory": "X", "value": 10.5, "ts": "2024-01-01"}'
+          - '{"index": {"_index": "issue5172", "_id": "2"}}'
+          - '{"count": 2, "category": "A", "subcategory": "Y", "value": 20.3, "ts": "2024-01-02"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5172
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5172: transpose with value field name collision":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5172 | where category = "A" | fields category, value | transpose 2
+
+  - match: { total: 2 }
+  - match: { schema: [ { name: column, type: string }, { name: "row 1", type: string }, { name: "row 2", type: string } ] }
+  - length: { datarows: 2 }
+
+---
+"Issue 5172: transpose with stats alias named value":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5172 | stats count() as value, avg(value) as avg_val | transpose
+
+  - match: { total: 2 }
+  - length: { datarows: 2 }

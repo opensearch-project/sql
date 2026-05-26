@@ -7,9 +7,12 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.Range;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -23,10 +26,12 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Sarg;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -59,7 +64,7 @@ public class PredicateAnalyzerTest {
   final OpenSearchTypeFactory typeFactory = OpenSearchTypeFactory.TYPE_FACTORY;
   final RexBuilder builder = new RexBuilder(typeFactory);
   final RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), builder);
-  final List<String> schema = List.of("a", "b", "c", "d");
+  final List<String> schema = List.of("a", "b", "c", "d", "e");
   final Map<String, ExprType> fieldTypes =
       Map.of(
           "a", OpenSearchDataType.of(MappingType.Integer),
@@ -67,12 +72,15 @@ public class PredicateAnalyzerTest {
               OpenSearchDataType.of(
                   MappingType.Text, Map.of("fields", Map.of("keyword", Map.of("type", "keyword")))),
           "c", OpenSearchDataType.of(MappingType.Text), // Text without keyword cannot be push down
-          "d", OpenSearchDataType.of(MappingType.Date));
+          "d", OpenSearchDataType.of(MappingType.Date),
+          "e", OpenSearchDataType.of(MappingType.Boolean));
   final RexInputRef field1 =
       builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.INTEGER), 0);
   final RexInputRef field2 =
       builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 1);
   final RexInputRef field4 = builder.makeInputRef(typeFactory.createUDT(ExprUDT.EXPR_TIMESTAMP), 3);
+  final RexInputRef field5 =
+      builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.BOOLEAN), 4);
   final RexLiteral numericLiteral = builder.makeExactLiteral(new BigDecimal(12));
   final RexLiteral stringLiteral = builder.makeLiteral("Hi");
   final RexNode dateTimeLiteral =
@@ -93,14 +101,15 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(TermQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "term" : {
-                "a" : {
-                  "value" : 12,
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "term" : {
+            "a" : {
+              "value" : 12,
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -112,30 +121,31 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(BoolQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "bool" : {
-                "must" : [
-                  {
-                    "exists" : {
-                      "field" : "a",
-                      "boost" : 1.0
-                    }
-                  }
-                ],
-                "must_not" : [
-                  {
-                    "term" : {
-                      "a" : {
-                        "value" : 12,
-                        "boost" : 1.0
-                      }
-                    }
-                  }
-                ],
-                "adjust_pure_negative" : true,
-                "boost" : 1.0
+        {
+          "bool" : {
+            "must" : [
+              {
+                "exists" : {
+                  "field" : "a",
+                  "boost" : 1.0
+                }
               }
-            }""",
+            ],
+            "must_not" : [
+              {
+                "term" : {
+                  "a" : {
+                    "value" : 12,
+                    "boost" : 1.0
+                  }
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -147,17 +157,18 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(RangeQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "range" : {
-                "a" : {
-                  "from" : 12,
-                  "to" : null,
-                  "include_lower" : false,
-                  "include_upper" : true,
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "range" : {
+            "a" : {
+              "from" : 12,
+              "to" : null,
+              "include_lower" : false,
+              "include_upper" : true,
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -170,17 +181,18 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(RangeQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "range" : {
-                "a" : {
-                  "from" : 12,
-                  "to" : null,
-                  "include_lower" : true,
-                  "include_upper" : true,
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "range" : {
+            "a" : {
+              "from" : 12,
+              "to" : null,
+              "include_lower" : true,
+              "include_upper" : true,
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -192,17 +204,18 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(RangeQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "range" : {
-                "a" : {
-                  "from" : null,
-                  "to" : 12,
-                  "include_lower" : true,
-                  "include_upper" : false,
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "range" : {
+            "a" : {
+              "from" : null,
+              "to" : 12,
+              "include_lower" : true,
+              "include_upper" : false,
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -214,17 +227,18 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(RangeQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "range" : {
-                "a" : {
-                  "from" : null,
-                  "to" : 12,
-                  "include_lower" : true,
-                  "include_upper" : true,
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "range" : {
+            "a" : {
+              "from" : null,
+              "to" : 12,
+              "include_lower" : true,
+              "include_upper" : true,
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -236,12 +250,13 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(ExistsQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "exists" : {
-                "field" : "a",
-                "boost" : 1.0
-              }
-            }""",
+        {
+          "exists" : {
+            "field" : "a",
+            "boost" : 1.0
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -266,7 +281,8 @@ public class PredicateAnalyzerTest {
             "adjust_pure_negative" : true,
             "boost" : 1.0
           }
-        }""",
+        }\
+        """,
         result.toString());
   }
 
@@ -281,16 +297,17 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(TermsQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "terms" : {
-                "a" : [
-                  12.0,
-                  13.0,
-                  14.0
-                ],
-                "boost" : 1.0
-              }
-            }""",
+        {
+          "terms" : {
+            "a" : [
+              12.0,
+              13.0,
+              14.0
+            ],
+            "boost" : 1.0
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -302,21 +319,22 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(MatchQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "match" : {
-                "b" : {
-                  "query" : "Hi",
-                  "operator" : "OR",
-                  "prefix_length" : 0,
-                  "max_expansions" : 50,
-                  "fuzzy_transpositions" : true,
-                  "lenient" : false,
-                  "zero_terms_query" : "NONE",
-                  "auto_generate_synonyms_phrase_query" : true,
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "match" : {
+            "b" : {
+              "query" : "Hi",
+              "operator" : "OR",
+              "prefix_length" : 0,
+              "max_expansions" : 50,
+              "fuzzy_transpositions" : true,
+              "lenient" : false,
+              "zero_terms_query" : "NONE",
+              "auto_generate_synonyms_phrase_query" : true,
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -329,21 +347,22 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(MatchQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "match" : {
-                "b" : {
-                  "query" : "Hi",
-                  "operator" : "OR",
-                  "prefix_length" : 0,
-                  "max_expansions" : 50,
-                  "fuzzy_transpositions" : true,
-                  "lenient" : false,
-                  "zero_terms_query" : "NONE",
-                  "auto_generate_synonyms_phrase_query" : true,
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "match" : {
+            "b" : {
+              "query" : "Hi",
+              "operator" : "OR",
+              "prefix_length" : 0,
+              "max_expansions" : 50,
+              "fuzzy_transpositions" : true,
+              "lenient" : false,
+              "zero_terms_query" : "NONE",
+              "auto_generate_synonyms_phrase_query" : true,
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -365,16 +384,17 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(MatchPhraseQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "match_phrase" : {
-                "b" : {
-                  "query" : "Hi",
-                  "slop" : 2,
-                  "zero_terms_query" : "NONE",
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "match_phrase" : {
+            "b" : {
+              "query" : "Hi",
+              "slop" : 2,
+              "zero_terms_query" : "NONE",
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -396,19 +416,20 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(MatchBoolPrefixQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "match_bool_prefix" : {
-                "b" : {
-                  "query" : "Hi",
-                  "operator" : "OR",
-                  "minimum_should_match" : "1",
-                  "prefix_length" : 0,
-                  "max_expansions" : 50,
-                  "fuzzy_transpositions" : true,
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "match_bool_prefix" : {
+            "b" : {
+              "query" : "Hi",
+              "operator" : "OR",
+              "minimum_should_match" : "1",
+              "prefix_length" : 0,
+              "max_expansions" : 50,
+              "fuzzy_transpositions" : true,
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -430,18 +451,19 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(MatchPhrasePrefixQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "match_phrase_prefix" : {
-                "b" : {
-                  "query" : "Hi",
-                  "analyzer" : "standard",
-                  "slop" : 0,
-                  "max_expansions" : 50,
-                  "zero_terms_query" : "NONE",
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "match_phrase_prefix" : {
+            "b" : {
+              "query" : "Hi",
+              "analyzer" : "standard",
+              "slop" : 0,
+              "max_expansions" : 50,
+              "zero_terms_query" : "NONE",
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -473,27 +495,28 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(QueryStringQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "query_string" : {
-                "query" : "Hi",
-                "fields" : [
-                  "b^1.0",
-                  "c^2.5"
-                ],
-                "type" : "best_fields",
-                "default_operator" : "or",
-                "max_determinized_states" : 10000,
-                "enable_position_increments" : true,
-                "fuzziness" : "1",
-                "fuzzy_prefix_length" : 0,
-                "fuzzy_max_expansions" : 50,
-                "phrase_slop" : 0,
-                "escape" : false,
-                "auto_generate_synonyms_phrase_query" : true,
-                "fuzzy_transpositions" : true,
-                "boost" : 1.0
-              }
-            }""",
+        {
+          "query_string" : {
+            "query" : "Hi",
+            "fields" : [
+              "b^1.0",
+              "c^2.5"
+            ],
+            "type" : "best_fields",
+            "default_operator" : "or",
+            "max_determinized_states" : 10000,
+            "enable_position_increments" : true,
+            "fuzziness" : "1",
+            "fuzzy_prefix_length" : 0,
+            "fuzzy_max_expansions" : 50,
+            "phrase_slop" : 0,
+            "escape" : false,
+            "auto_generate_synonyms_phrase_query" : true,
+            "fuzzy_transpositions" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -518,22 +541,23 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(SimpleQueryStringBuilder.class, result);
     assertEquals(
         """
-            {
-              "simple_query_string" : {
-                "query" : "Hi",
-                "fields" : [
-                  "b*^1.0"
-                ],
-                "flags" : -1,
-                "default_operator" : "or",
-                "analyze_wildcard" : false,
-                "auto_generate_synonyms_phrase_query" : true,
-                "fuzzy_prefix_length" : 0,
-                "fuzzy_max_expansions" : 50,
-                "fuzzy_transpositions" : true,
-                "boost" : 1.0
-              }
-            }""",
+        {
+          "simple_query_string" : {
+            "query" : "Hi",
+            "fields" : [
+              "b*^1.0"
+            ],
+            "flags" : -1,
+            "default_operator" : "or",
+            "analyze_wildcard" : false,
+            "auto_generate_synonyms_phrase_query" : true,
+            "fuzzy_prefix_length" : 0,
+            "fuzzy_max_expansions" : 50,
+            "fuzzy_transpositions" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -561,51 +585,76 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(MultiMatchQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "multi_match" : {
-                "query" : "Hi",
-                "fields" : [
-                  "b*^1.0"
-                ],
-                "type" : "best_fields",
-                "operator" : "OR",
-                "slop" : 0,
-                "prefix_length" : 0,
-                "max_expansions" : 25,
-                "zero_terms_query" : "NONE",
-                "auto_generate_synonyms_phrase_query" : true,
-                "fuzzy_transpositions" : true,
-                "boost" : 1.0
-              }
-            }""",
+        {
+          "multi_match" : {
+            "query" : "Hi",
+            "fields" : [
+              "b*^1.0"
+            ],
+            "type" : "best_fields",
+            "operator" : "OR",
+            "slop" : 0,
+            "prefix_length" : 0,
+            "max_expansions" : 25,
+            "zero_terms_query" : "NONE",
+            "auto_generate_synonyms_phrase_query" : true,
+            "fuzzy_transpositions" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
         result.toString());
   }
 
   @Test
   void likeFunction_keywordField_generatesWildcardQuery() throws ExpressionNotAnalyzableException {
-    List<RexNode> arguments = Arrays.asList(field2, builder.makeLiteral("%Hi%"));
+    List<RexNode> arguments =
+        Arrays.asList(field2, builder.makeLiteral("%Hi%"), builder.makeLiteral(true));
     RexNode call =
         PPLFuncImpTable.INSTANCE.resolve(builder, "like", arguments.toArray(new RexNode[0]));
     QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
     assertInstanceOf(WildcardQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "wildcard" : {
-                "b.keyword" : {
-                  "wildcard" : "*Hi*",
-                  "case_insensitive" : true,
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "wildcard" : {
+            "b.keyword" : {
+              "wildcard" : "*Hi*",
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void ilikeFunction_keywordField_generatesWildcardQuery() throws ExpressionNotAnalyzableException {
+    List<RexNode> arguments = Arrays.asList(field2, builder.makeLiteral("%Hi%"));
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(builder, "ilike", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+    assertInstanceOf(WildcardQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "wildcard" : {
+            "b.keyword" : {
+              "wildcard" : "*Hi*",
+              "case_insensitive" : true,
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
   @Test
   void likeFunction_textField_scriptPushDown() throws ExpressionNotAnalyzableException {
     RexInputRef field3 = builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2);
-    List<RexNode> arguments = Arrays.asList(field3, builder.makeLiteral("%Hi%"));
+    List<RexNode> arguments =
+        Arrays.asList(field3, builder.makeLiteral("%Hi%"), builder.makeLiteral(true));
     RexNode call =
         PPLFuncImpTable.INSTANCE.resolve(builder, "like", arguments.toArray(new RexNode[0]));
 
@@ -642,54 +691,55 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(BoolQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "bool" : {
-                "must_not" : [
-                  {
-                    "bool" : {
-                      "must" : [
-                        {
-                          "bool" : {
-                            "should" : [
-                              {
-                                "term" : {
-                                  "a" : {
-                                    "value" : 12,
-                                    "boost" : 1.0
-                                  }
-                                }
-                              },
-                              {
-                                "term" : {
-                                  "a" : {
-                                    "value" : 13,
-                                    "boost" : 1.0
-                                  }
-                                }
+        {
+          "bool" : {
+            "must_not" : [
+              {
+                "bool" : {
+                  "must" : [
+                    {
+                      "bool" : {
+                        "should" : [
+                          {
+                            "term" : {
+                              "a" : {
+                                "value" : 12,
+                                "boost" : 1.0
                               }
-                            ],
-                            "adjust_pure_negative" : true,
-                            "boost" : 1.0
-                          }
-                        },
-                        {
-                          "term" : {
-                            "b.keyword" : {
-                              "value" : "Hi",
-                              "boost" : 1.0
+                            }
+                          },
+                          {
+                            "term" : {
+                              "a" : {
+                                "value" : 13,
+                                "boost" : 1.0
+                              }
                             }
                           }
+                        ],
+                        "adjust_pure_negative" : true,
+                        "boost" : 1.0
+                      }
+                    },
+                    {
+                      "term" : {
+                        "b.keyword" : {
+                          "value" : "Hi",
+                          "boost" : 1.0
                         }
-                      ],
-                      "adjust_pure_negative" : true,
-                      "boost" : 1.0
+                      }
                     }
-                  }
-                ],
-                "adjust_pure_negative" : true,
-                "boost" : 1.0
+                  ],
+                  "adjust_pure_negative" : true,
+                  "boost" : 1.0
+                }
               }
-            }""",
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -701,14 +751,15 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(TermQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "term" : {
-                "b.keyword" : {
-                  "value" : "Hi",
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "term" : {
+            "b.keyword" : {
+              "value" : "Hi",
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -766,19 +817,21 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(TermQueryBuilder.class, result);
     assertEquals(
         """
-                {
-                  "term" : {
-                    "b.keyword" : {
-                      "value" : "Hi",
-                      "boost" : 1.0
-                    }
-                  }
-                }""",
+        {
+          "term" : {
+            "b.keyword" : {
+              "value" : "Hi",
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
   @Test
-  void isNullOr_ScriptPushDown() throws ExpressionNotAnalyzableException {
+  void isEmpty_pushesIsNullArmAsExistsAndCharLengthArmAsScript()
+      throws ExpressionNotAnalyzableException {
     final RelDataType rowType =
         builder
             .getTypeFactory()
@@ -787,15 +840,56 @@ public class PredicateAnalyzerTest {
             .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
             .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
             .build();
-    // PPL IS_EMPTY is translated to OR(IS_NULL(arg), IS_EMPTY(arg))
+    // PPL isempty(x) lowers to OR(IS_NULL(x), CHAR_LENGTH(x) = 0) (see PPLFuncImpTable).
+    // The IS_NULL arm has a native DSL form (bool.must_not.exists); the CHAR_LENGTH arm
+    // has no DSL equivalent and falls back to opensearch_compounded_script. The analyzer
+    // emits a bool.should that mixes the two — not a single fully-script_query, which is
+    // strictly better for matching null docs since the IS_NULL arm avoids the script
+    // engine entirely.
+    //
+    // This shape is also why no special-case detector is needed in PredicateAnalyzer.andOr:
+    // CHAR_LENGTH(null) returns null (Calcite NullPolicy.STRICT) rather than NPE, so DSL's
+    // non-short-circuiting `should` evaluation is safe even when the field is null. Prior
+    // to the OR(IS_NULL, CHAR_LENGTH=0) lowering the right arm was IS_EMPTY which compiled
+    // to `name.isEmpty()` and would NPE on null operands — that is what containIsEmptyFunction
+    // used to guard against, and is no longer needed.
     RexNode call = PPLFuncImpTable.INSTANCE.resolve(builder, BuiltinFunctionName.IS_EMPTY, field2);
     Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
     QueryExpression expression =
         PredicateAnalyzer.analyzeExpression(call, schema, fieldTypes, rowType, cluster);
-    assert (expression
-        .builder()
-        .toString()
-        .contains("\"lang\" : \"opensearch_compounded_script\""));
+
+    QueryBuilder builderResult = expression.builder();
+    assertInstanceOf(BoolQueryBuilder.class, builderResult);
+    BoolQueryBuilder bool = (BoolQueryBuilder) builderResult;
+    assertEquals(
+        2,
+        bool.should().size(),
+        "isempty pushes down as a bool.should mixing native IS_NULL and a script for"
+            + " CHAR_LENGTH=0");
+    assertTrue(bool.must().isEmpty(), "must clauses are not used by isempty pushdown");
+    assertTrue(
+        bool.mustNot().isEmpty(),
+        "must_not clauses at the top level are not used by isempty pushdown");
+
+    // Arm 1: IS_NULL($field) → bool.must_not.exists
+    QueryBuilder isNullArm = bool.should().get(0);
+    assertInstanceOf(BoolQueryBuilder.class, isNullArm);
+    BoolQueryBuilder isNullBool = (BoolQueryBuilder) isNullArm;
+    assertEquals(1, isNullBool.mustNot().size());
+    assertInstanceOf(
+        ExistsQueryBuilder.class,
+        isNullBool.mustNot().get(0),
+        "IS_NULL arm must lower to bool.must_not.exists, not to a script");
+
+    // Arm 2: CHAR_LENGTH($field) = 0 → script (CHAR_LENGTH has no native DSL form)
+    QueryBuilder charLengthArm = bool.should().get(1);
+    assertInstanceOf(
+        ScriptQueryBuilder.class,
+        charLengthArm,
+        "CHAR_LENGTH=0 arm must lower to a script_query (no native DSL equivalent)");
+    assertTrue(
+        charLengthArm.toString().contains("\"lang\" : \"opensearch_compounded_script\""),
+        "script arm uses the Calcite-RexNode-based opensearch_compounded_script lang");
   }
 
   @Test
@@ -828,22 +922,23 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(BoolQueryBuilder.class, resultBuilder);
     assertEquals(
         """
+        {
+          "bool" : {
+            "must" : [
               {
-                "bool" : {
-                  "must" : [
-                    {
-                      "term" : {
-                        "a" : {
-                          "value" : 12,
-                          "boost" : 1.0
-                        }
-                      }
-                    }
-                  ],
-                  "adjust_pure_negative" : true,
-                  "boost" : 1.0
+                "term" : {
+                  "a" : {
+                    "value" : 12,
+                    "boost" : 1.0
+                  }
                 }
-              }""",
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
         resultBuilder.toString());
 
     List<RexNode> unAnalyzableNodes = result.getUnAnalyzableNodes();
@@ -869,22 +964,23 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(BoolQueryBuilder.class, resultBuilder);
     assertEquals(
         """
-            {
-              "bool" : {
-                "must" : [
-                  {
-                    "term" : {
-                      "a" : {
-                        "value" : 12,
-                        "boost" : 1.0
-                      }
-                    }
+        {
+          "bool" : {
+            "must" : [
+              {
+                "term" : {
+                  "a" : {
+                    "value" : 12,
+                    "boost" : 1.0
                   }
-                ],
-                "adjust_pure_negative" : true,
-                "boost" : 1.0
+                }
               }
-            }""",
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
         resultBuilder.toString());
   }
 
@@ -899,21 +995,22 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(MultiMatchQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "multi_match" : {
-                "query" : "Hi",
-                "fields" : [ ],
-                "type" : "best_fields",
-                "operator" : "OR",
-                "slop" : 0,
-                "prefix_length" : 0,
-                "max_expansions" : 50,
-                "zero_terms_query" : "NONE",
-                "auto_generate_synonyms_phrase_query" : true,
-                "fuzzy_transpositions" : true,
-                "boost" : 1.0
-              }
-            }""",
+        {
+          "multi_match" : {
+            "query" : "Hi",
+            "fields" : [ ],
+            "type" : "best_fields",
+            "operator" : "OR",
+            "slop" : 0,
+            "prefix_length" : 0,
+            "max_expansions" : 50,
+            "zero_terms_query" : "NONE",
+            "auto_generate_synonyms_phrase_query" : true,
+            "fuzzy_transpositions" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -930,19 +1027,20 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(SimpleQueryStringBuilder.class, result);
     assertEquals(
         """
-            {
-              "simple_query_string" : {
-                "query" : "Hi",
-                "flags" : -1,
-                "default_operator" : "or",
-                "analyze_wildcard" : false,
-                "auto_generate_synonyms_phrase_query" : true,
-                "fuzzy_prefix_length" : 0,
-                "fuzzy_max_expansions" : 50,
-                "fuzzy_transpositions" : true,
-                "boost" : 1.0
-              }
-            }""",
+        {
+          "simple_query_string" : {
+            "query" : "Hi",
+            "flags" : -1,
+            "default_operator" : "or",
+            "analyze_wildcard" : false,
+            "auto_generate_synonyms_phrase_query" : true,
+            "fuzzy_prefix_length" : 0,
+            "fuzzy_max_expansions" : 50,
+            "fuzzy_transpositions" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -959,24 +1057,25 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(QueryStringQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "query_string" : {
-                "query" : "Hi",
-                "fields" : [ ],
-                "type" : "best_fields",
-                "default_operator" : "or",
-                "max_determinized_states" : 10000,
-                "enable_position_increments" : true,
-                "fuzziness" : "AUTO",
-                "fuzzy_prefix_length" : 0,
-                "fuzzy_max_expansions" : 50,
-                "phrase_slop" : 0,
-                "escape" : false,
-                "auto_generate_synonyms_phrase_query" : true,
-                "fuzzy_transpositions" : true,
-                "boost" : 1.0
-              }
-            }""",
+        {
+          "query_string" : {
+            "query" : "Hi",
+            "fields" : [ ],
+            "type" : "best_fields",
+            "default_operator" : "or",
+            "max_determinized_states" : 10000,
+            "enable_position_increments" : true,
+            "fuzziness" : "AUTO",
+            "fuzzy_prefix_length" : 0,
+            "fuzzy_max_expansions" : 50,
+            "phrase_slop" : 0,
+            "escape" : false,
+            "auto_generate_synonyms_phrase_query" : true,
+            "fuzzy_transpositions" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -988,18 +1087,19 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(RangeQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "range" : {
-                "d" : {
-                  "from" : "1987-02-03T04:34:56.000Z",
-                  "to" : "1987-02-03T04:34:56.000Z",
-                  "include_lower" : true,
-                  "include_upper" : true,
-                  "format" : "date_time",
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        {
+          "range" : {
+            "d" : {
+              "from" : "1987-02-03T04:34:56.000Z",
+              "to" : "1987-02-03T04:34:56.000Z",
+              "include_lower" : true,
+              "include_upper" : true,
+              "format" : "date_time",
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -1011,38 +1111,39 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(BoolQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "bool" : {
-                "should" : [
-                  {
-                    "range" : {
-                      "d" : {
-                        "from" : "1987-02-03T04:34:56.000Z",
-                        "to" : null,
-                        "include_lower" : false,
-                        "include_upper" : true,
-                        "format" : "date_time",
-                        "boost" : 1.0
-                      }
-                    }
-                  },
-                  {
-                    "range" : {
-                      "d" : {
-                        "from" : null,
-                        "to" : "1987-02-03T04:34:56.000Z",
-                        "include_lower" : true,
-                        "include_upper" : false,
-                        "format" : "date_time",
-                        "boost" : 1.0
-                      }
-                    }
+        {
+          "bool" : {
+            "should" : [
+              {
+                "range" : {
+                  "d" : {
+                    "from" : "1987-02-03T04:34:56.000Z",
+                    "to" : null,
+                    "include_lower" : false,
+                    "include_upper" : true,
+                    "format" : "date_time",
+                    "boost" : 1.0
                   }
-                ],
-                "adjust_pure_negative" : true,
-                "boost" : 1.0
+                }
+              },
+              {
+                "range" : {
+                  "d" : {
+                    "from" : null,
+                    "to" : "1987-02-03T04:34:56.000Z",
+                    "include_lower" : true,
+                    "include_upper" : false,
+                    "format" : "date_time",
+                    "boost" : 1.0
+                  }
+                }
               }
-            }""",
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
         result.toString());
   }
 
@@ -1055,18 +1156,365 @@ public class PredicateAnalyzerTest {
     assertInstanceOf(RangeQueryBuilder.class, result);
     assertEquals(
         """
-            {
-              "range" : {
-                "d" : {
-                  "from" : "1987-02-03T04:34:56.000Z",
-                  "to" : null,
-                  "include_lower" : true,
-                  "include_upper" : true,
-                  "format" : "date_time",
+        {
+          "range" : {
+            "d" : {
+              "from" : "1987-02-03T04:34:56.000Z",
+              "to" : null,
+              "include_lower" : true,
+              "include_upper" : true,
+              "format" : "date_time",
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void isTrue_booleanField_generatesTermQuery() throws ExpressionNotAnalyzableException {
+    // IS_TRUE(boolean_field) should generate a term query with value true
+    RexNode call = builder.makeCall(SqlStdOperatorTable.IS_TRUE, field5);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(TermQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "term" : {
+            "e" : {
+              "value" : true,
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void isTrue_booleanFieldCombinedWithOtherCondition_generatesCompoundQuery()
+      throws ExpressionNotAnalyzableException {
+    // IS_TRUE(boolean_field) AND other_condition
+    RexNode isTrueCall = builder.makeCall(SqlStdOperatorTable.IS_TRUE, field5);
+    RexNode equalsCall = builder.makeCall(SqlStdOperatorTable.EQUALS, field1, numericLiteral);
+    RexNode andCall = builder.makeCall(SqlStdOperatorTable.AND, isTrueCall, equalsCall);
+    QueryBuilder result = PredicateAnalyzer.analyze(andCall, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must" : [
+              {
+                "term" : {
+                  "e" : {
+                    "value" : true,
+                    "boost" : 1.0
+                  }
+                }
+              },
+              {
+                "term" : {
+                  "a" : {
+                    "value" : 12,
+                    "boost" : 1.0
+                  }
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void search_complementedPointsWithNullAsFalse_generatesExistsAndNotInQuery()
+      throws ExpressionNotAnalyzableException {
+    // Simulates: a != 12 AND a != 13 AND isnotnull(a)
+    // Calcite merges this into SEARCH($0, Sarg[...; NULL AS FALSE]) with complemented points
+    Sarg<BigDecimal> sarg =
+        Sarg.of(
+            RexUnknownAs.FALSE,
+            ImmutableRangeSet.<BigDecimal>builder()
+                .add(Range.lessThan(BigDecimal.valueOf(12)))
+                .add(Range.open(BigDecimal.valueOf(12), BigDecimal.valueOf(13)))
+                .add(Range.greaterThan(BigDecimal.valueOf(13)))
+                .build());
+    RexNode sargLiteral =
+        builder.makeSearchArgumentLiteral(sarg, typeFactory.createSqlType(SqlTypeName.DECIMAL));
+    RexNode call = builder.makeCall(SqlStdOperatorTable.SEARCH, field1, sargLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must" : [
+              {
+                "bool" : {
+                  "must_not" : [
+                    {
+                      "terms" : {
+                        "a" : [
+                          12.0,
+                          13.0
+                        ],
+                        "boost" : 1.0
+                      }
+                    }
+                  ],
+                  "adjust_pure_negative" : true,
+                  "boost" : 1.0
+                }
+              },
+              {
+                "exists" : {
+                  "field" : "a",
                   "boost" : 1.0
                 }
               }
-            }""",
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void search_complementedPointsWithNullAsUnknown_generatesExistsAndNotInQuery()
+      throws ExpressionNotAnalyzableException {
+    // Simulates: a NOT IN (12, 13)
+    // Calcite represents this as SEARCH($0, Sarg[...; NULL AS UNKNOWN]) with complemented points
+    // SQL three-valued logic: NULL NOT IN (...) evaluates to UNKNOWN (not TRUE),
+    // so null rows must be excluded.
+    Sarg<BigDecimal> sarg =
+        Sarg.of(
+            RexUnknownAs.UNKNOWN,
+            ImmutableRangeSet.<BigDecimal>builder()
+                .add(Range.lessThan(BigDecimal.valueOf(12)))
+                .add(Range.open(BigDecimal.valueOf(12), BigDecimal.valueOf(13)))
+                .add(Range.greaterThan(BigDecimal.valueOf(13)))
+                .build());
+    RexNode sargLiteral =
+        builder.makeSearchArgumentLiteral(sarg, typeFactory.createSqlType(SqlTypeName.DECIMAL));
+    RexNode call = builder.makeCall(SqlStdOperatorTable.SEARCH, field1, sargLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must" : [
+              {
+                "bool" : {
+                  "must_not" : [
+                    {
+                      "terms" : {
+                        "a" : [
+                          12.0,
+                          13.0
+                        ],
+                        "boost" : 1.0
+                      }
+                    }
+                  ],
+                  "adjust_pure_negative" : true,
+                  "boost" : 1.0
+                }
+              },
+              {
+                "exists" : {
+                  "field" : "a",
+                  "boost" : 1.0
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void notLike_keywordField_generatesBoolWithExistsAndMustNot()
+      throws ExpressionNotAnalyzableException {
+    // NOT(LIKE(field, pattern)) should generate bool query with must(exists) + mustNot(wildcard)
+    List<RexNode> arguments =
+        Arrays.asList(field2, builder.makeLiteral("%Hi%"), builder.makeLiteral(true));
+    RexNode likeCall =
+        PPLFuncImpTable.INSTANCE.resolve(builder, "like", arguments.toArray(new RexNode[0]));
+    RexNode notCall = builder.makeCall(SqlStdOperatorTable.NOT, likeCall);
+    QueryBuilder result = PredicateAnalyzer.analyze(notCall, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must" : [
+              {
+                "exists" : {
+                  "field" : "b",
+                  "boost" : 1.0
+                }
+              }
+            ],
+            "must_not" : [
+              {
+                "wildcard" : {
+                  "b.keyword" : {
+                    "wildcard" : "*Hi*",
+                    "boost" : 1.0
+                  }
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void notGreaterThan_generatesExistsAndMustNotRange() throws ExpressionNotAnalyzableException {
+    // NOT(a > 12) should generate bool query with must(exists) + mustNot(range)
+    RexNode gtCall = builder.makeCall(SqlStdOperatorTable.GREATER_THAN, field1, numericLiteral);
+    RexNode notCall = builder.makeCall(SqlStdOperatorTable.NOT, gtCall);
+    QueryBuilder result = PredicateAnalyzer.analyze(notCall, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must" : [
+              {
+                "exists" : {
+                  "field" : "a",
+                  "boost" : 1.0
+                }
+              }
+            ],
+            "must_not" : [
+              {
+                "range" : {
+                  "a" : {
+                    "from" : 12,
+                    "to" : null,
+                    "include_lower" : false,
+                    "include_upper" : true,
+                    "boost" : 1.0
+                  }
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void notIsNotNull_generatesOnlyMustNotExists() throws ExpressionNotAnalyzableException {
+    // NOT(IS_NOT_NULL(a)) = IS_NULL(a) should generate must_not(exists) WITHOUT an exists in must
+    RexNode isNotNullCall = builder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, field1);
+    RexNode notCall = builder.makeCall(SqlStdOperatorTable.NOT, isNotNullCall);
+    QueryBuilder result = PredicateAnalyzer.analyze(notCall, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must_not" : [
+              {
+                "exists" : {
+                  "field" : "a",
+                  "boost" : 1.0
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void notIsTrue_generatesOnlyMustNotTerm() throws ExpressionNotAnalyzableException {
+    // NOT(IS_TRUE(e)) should generate must_not(term(e, true)) WITHOUT an exists filter
+    RexNode isTrueCall = builder.makeCall(SqlStdOperatorTable.IS_TRUE, field5);
+    RexNode notCall = builder.makeCall(SqlStdOperatorTable.NOT, isTrueCall);
+    QueryBuilder result = PredicateAnalyzer.analyze(notCall, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must_not" : [
+              {
+                "term" : {
+                  "e" : {
+                    "value" : true,
+                    "boost" : 1.0
+                  }
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void notIsFalse_generatesOnlyMustNotTerm() throws ExpressionNotAnalyzableException {
+    // NOT(IS_FALSE(e)) should generate must_not(term(e, false)) WITHOUT an exists filter
+    RexNode isFalseCall = builder.makeCall(SqlStdOperatorTable.IS_FALSE, field5);
+    RexNode notCall = builder.makeCall(SqlStdOperatorTable.NOT, isFalseCall);
+    QueryBuilder result = PredicateAnalyzer.analyze(notCall, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "must_not" : [
+              {
+                "term" : {
+                  "e" : {
+                    "value" : false,
+                    "boost" : 1.0
+                  }
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
         result.toString());
   }
 }

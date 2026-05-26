@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.opensearch.sql.data.type.ExprCoreType.BINARY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -37,7 +38,9 @@ class CoercionUtilsTest {
         Arguments.of(STRING, INTEGER, DOUBLE),
         Arguments.of(INTEGER, STRING, DOUBLE),
         Arguments.of(STRING, DOUBLE, DOUBLE),
-        Arguments.of(INTEGER, BOOLEAN, null));
+        Arguments.of(INTEGER, BOOLEAN, null),
+        Arguments.of(BINARY, STRING, BINARY),
+        Arguments.of(STRING, BINARY, BINARY));
   }
 
   @ParameterizedTest

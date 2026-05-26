@@ -11,13 +11,11 @@ import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 
 /** The scheduler which schedule the task run in sql-worker thread pool. */
 @UtilityClass
 public class Scheduler {
-
-  public static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
-
   public static void schedule(NodeClient client, Runnable task) {
     ThreadPool threadPool = client.threadPool();
     threadPool.schedule(withCurrentContext(task), new TimeValue(0), SQL_WORKER_THREAD_POOL_NAME);

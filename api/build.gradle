@@ -5,17 +5,25 @@
 
 plugins {
     id 'java-library'
+    id 'java-test-fixtures'
+    id "io.freefair.lombok"
     id 'jacoco'
     id 'com.diffplug.spotless'
 }
 
 dependencies {
     api project(':ppl')
+    api project(':sql')
+    api group: 'org.apache.calcite', name: 'calcite-babel', version: '1.41.0'
 
+    testImplementation testFixtures(project(':api'))
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
     testImplementation group: 'org.apache.calcite', name: 'calcite-testkit', version: '1.41.0'
+
+    testFixturesApi group: 'junit', name: 'junit', version: '4.13.2'
+    testFixturesApi group: 'org.hamcrest', name: 'hamcrest', version: "${hamcrest_version}"
 }
 
 spotless {
@@ -25,10 +33,14 @@ spotless {
             exclude '**/build/**', '**/build-*/**', 'src/main/gen/**'
         }
         importOrder()
+        licenseHeader("/*\n" +
+                " * Copyright OpenSearch Contributors\n" +
+                " * SPDX-License-Identifier: Apache-2.0\n" +
+                " */\n\n")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
-        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+        googleJavaFormat('1.32.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 
@@ -58,13 +70,17 @@ jacocoTestCoverageVerification {
             limit {
                 minimum = 0.9
             }
-
         }
     }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it,
-                    exclude: ['**/antlr/parser/**'])
+                    // Calcite native SQL parser path replaced by SQL V2 ANTLR parser for now
+                    exclude: ['**/antlr/parser/**',
+                              '**/CalciteSqlQueryParser.class',
+                              '**/UnifiedQueryPlanner$CalciteNativeStrategy.class',
+                              '**/LateBindingFunctionRule.class',
+                              '**/LateBindingFunctionRule$*.class'])
         }))
     }
 }

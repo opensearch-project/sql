@@ -116,7 +116,9 @@ public class ExprValueUtils {
     if (null == o) {
       return LITERAL_NULL;
     }
-    if (o instanceof Map) {
+    if (o instanceof ExprValue) {
+      return (ExprValue) o;
+    } else if (o instanceof Map) {
       return tupleValue((Map) o);
     } else if (o instanceof List) {
       return collectionValue(((List) o));
@@ -131,7 +133,7 @@ public class ExprValueUtils {
     } else if (o instanceof Boolean) {
       return booleanValue((Boolean) o);
     } else if (o instanceof Double d) {
-      if (Double.isNaN(d)) {
+      if (!Double.isFinite(d)) {
         return LITERAL_NULL;
       }
       return doubleValue(d);
@@ -142,7 +144,7 @@ public class ExprValueUtils {
     } else if (o instanceof String) {
       return stringValue((String) o);
     } else if (o instanceof Float f) {
-      if (Float.isNaN(f)) {
+      if (!Float.isFinite(f)) {
         return LITERAL_NULL;
       }
       return floatValue(f);

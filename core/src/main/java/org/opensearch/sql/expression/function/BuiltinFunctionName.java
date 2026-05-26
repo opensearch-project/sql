@@ -58,6 +58,8 @@ public enum BuiltinFunctionName {
   SIN(FunctionName.of("sin")),
   TAN(FunctionName.of("tan")),
   SPAN(FunctionName.of("span")),
+  SCALAR_MAX(FunctionName.of("scalar_max")),
+  SCALAR_MIN(FunctionName.of("scalar_min")),
 
   /** Binning Functions. */
   SPAN_BUCKET(FunctionName.of("span_bucket")),
@@ -69,12 +71,18 @@ public enum BuiltinFunctionName {
   ARRAY(FunctionName.of("array")),
   ARRAY_LENGTH(FunctionName.of("array_length")),
   ARRAY_SLICE(FunctionName.of("array_slice"), true),
+  ARRAY_COMPACT(FunctionName.of("array_compact")),
   MAP_APPEND(FunctionName.of("map_append"), true),
   MAP_CONCAT(FunctionName.of("map_concat"), true),
   MAP_REMOVE(FunctionName.of("map_remove"), true),
   MVAPPEND(FunctionName.of("mvappend")),
   MVJOIN(FunctionName.of("mvjoin")),
   MVINDEX(FunctionName.of("mvindex")),
+  MVFIND(FunctionName.of("mvfind")),
+  MVZIP(FunctionName.of("mvzip")),
+  SPLIT(FunctionName.of("split")),
+  MVDEDUP(FunctionName.of("mvdedup")),
+  MVMAP(FunctionName.of("mvmap")),
   FORALL(FunctionName.of("forall")),
   EXISTS(FunctionName.of("exists")),
   FILTER(FunctionName.of("filter")),
@@ -158,6 +166,7 @@ public enum BuiltinFunctionName {
 
   /** Text Functions. */
   TOSTRING(FunctionName.of("tostring")),
+  TONUMBER(FunctionName.of("tonumber")),
 
   /** IP Functions. */
   CIDRMATCH(FunctionName.of("cidrmatch")),
@@ -192,6 +201,7 @@ public enum BuiltinFunctionName {
   GREATER(FunctionName.of(">")),
   GTE(FunctionName.of(">=")),
   LIKE(FunctionName.of("like")),
+  ILIKE(FunctionName.of("ilike")),
   NOT_LIKE(FunctionName.of("not like")),
 
   /** Aggregation Function. */
@@ -289,6 +299,18 @@ public enum BuiltinFunctionName {
   BRAIN(FunctionName.of("brain")),
 
   INTERVAL(FunctionName.of("interval")),
+
+  /** PPL Convert Command Functions. */
+  AUTO(FunctionName.of("auto")),
+  NUM(FunctionName.of("num")),
+  CTIME(FunctionName.of("ctime")),
+  MKTIME(FunctionName.of("mktime")),
+  DUR2SEC(FunctionName.of("dur2sec")),
+  MEMK(FunctionName.of("memk")),
+  MSTIME(FunctionName.of("mstime")),
+  RMUNIT(FunctionName.of("rmunit")),
+  RMCOMMA(FunctionName.of("rmcomma")),
+  NONE(FunctionName.of("none")),
 
   /** Data Type Convert Function. */
   CAST_TO_STRING(FunctionName.of("cast_to_string")),
@@ -403,6 +425,7 @@ public enum BuiltinFunctionName {
           .put("dc", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("distinct_count", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
+          .put("row_number", BuiltinFunctionName.ROW_NUMBER)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

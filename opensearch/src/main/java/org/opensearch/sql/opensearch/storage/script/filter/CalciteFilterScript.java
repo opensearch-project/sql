@@ -27,20 +27,25 @@ class CalciteFilterScript extends FilterScript {
 
   private final SourceLookup sourceLookup;
 
+  private final Map<String, Integer> parametersToIndex;
+
   public CalciteFilterScript(
       Function1<DataContext, Object[]> function,
       SearchLookup lookup,
       LeafReaderContext context,
-      Map<String, Object> params) {
+      Map<String, Object> params,
+      Map<String, Integer> parametersToIndex) {
     super(params, lookup, context);
     this.calciteScript = new CalciteScript(function, params);
     // TODO: we'd better get source from the leafLookup of super once it's available
     this.sourceLookup = lookup.getLeafSearchLookup(context).source();
+    this.parametersToIndex = parametersToIndex;
   }
 
   @Override
   public boolean execute() {
-    Object result = calciteScript.execute(this.getDoc(), this.sourceLookup)[0];
+    Object result =
+        calciteScript.execute(this.getDoc(), this.sourceLookup, this.parametersToIndex)[0];
     // The result should be type of BOOLEAN_NULLABLE. Treat it as false if null
     return result != null && (boolean) result;
   }

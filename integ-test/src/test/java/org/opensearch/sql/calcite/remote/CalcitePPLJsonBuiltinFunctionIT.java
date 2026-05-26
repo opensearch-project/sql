@@ -195,6 +195,36 @@ public class CalcitePPLJsonBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testJsonExtractReturnsNullForMissingPathAndNullValue() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = json_extract('{}', 'name'),"
+                    + " b = json_extract('{\\\"name\\\": null}', 'name')"
+                    + " | fields a, b | head 1",
+                TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "string"), schema("b", "string"));
+
+    verifyDataRows(actual, rows(null, null));
+  }
+
+  @Test
+  public void testJsonExtractMultiPathWithMissingPath() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = json_extract('{\\\"name\\\": \\\"John\\\"}',"
+                    + " 'name', 'age')"
+                    + " | fields a | head 1",
+                TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "string"));
+
+    verifyDataRows(actual, rows("[\"John\",null]"));
+  }
+
+  @Test
   public void testJsonKeys() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -264,6 +294,38 @@ public class CalcitePPLJsonBuiltinFunctionIT extends PPLIntegTestCase {
     verifySchema(actual, schema("a", "string"));
 
     verifyDataRows(actual, rows("{\"a\":[{\"b\":1},{\"b\":{\"c\":\"3\"}}]}"));
+  }
+
+  @Test
+  public void testJsonSetWithDollarPrefixedPath() throws IOException {
+    // Issue #5167: json_set with $.key path should not double-prefix
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a"
+                    + " =json_set('{\\\"name\\\":\\\"alice\\\",\\\"scores\\\":[90,85,92]}',"
+                    + " '$.name', 'modified_alice')| fields a | head 1",
+                TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "string"));
+
+    verifyDataRows(actual, rows("{\"name\":\"modified_alice\",\"scores\":[90,85,92]}"));
+  }
+
+  @Test
+  public void testJsonDeleteWithDollarPrefixedPath() throws IOException {
+    // Issue #5167: json_delete with $.key path should remove the key
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a"
+                    + " =json_delete('{\\\"name\\\":\\\"alice\\\",\\\"scores\\\":[90,85,92]}',"
+                    + " '$.name')| fields a | head 1",
+                TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "string"));
+
+    verifyDataRows(actual, rows("{\"scores\":[90,85,92]}"));
   }
 
   @Test

@@ -20,7 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.analysis.Analyzer;
-import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
@@ -59,7 +59,7 @@ class QueryServiceTest {
 
   @Mock private Split split;
 
-  private final Explain.ExplainFormat format = Explain.ExplainFormat.STANDARD;
+  private final ExplainMode mode = ExplainMode.STANDARD;
 
   @Test
   public void executeWithoutContext() {
@@ -89,6 +89,124 @@ class QueryServiceTest {
   @Test
   public void analyzeExceptionShouldBeCached() {
     queryService().analyzeFail().handledByOnFailure();
+  }
+
+  @Test
+  public void testExecuteWithLegacyShouldReturnCalciteErrorWhenBothFail() {
+    UnsupportedOperationException calciteException =
+        new UnsupportedOperationException("Calcite error");
+    IllegalStateException v2Exception = new IllegalStateException("V2 error");
+
+    ResponseListener<ExecutionEngine.QueryResponse> responseListener =
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
+            fail("Expected onFailure to be called");
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            // Should get the Calcite error directly (not wrapped), not the V2 error
+            assertNotNull(e);
+            assertTrue(e instanceof UnsupportedOperationException);
+            assertTrue(e.getMessage().contains("Calcite error"));
+          }
+        };
+
+    lenient().when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
+    lenient().when(analyzer.analyze(any(), any())).thenThrow(v2Exception);
+
+    QueryService service = new QueryService(analyzer, executionEngine, planner, null, settings);
+    service.executeWithLegacy(ast, queryType, responseListener, Optional.of(calciteException));
+  }
+
+  @Test
+  public void testExplainWithLegacyShouldReturnCalciteErrorWhenBothFail() {
+    UnsupportedOperationException calciteException =
+        new UnsupportedOperationException("Calcite error");
+    IllegalStateException v2Exception = new IllegalStateException("V2 error");
+
+    ResponseListener<ExecutionEngine.ExplainResponse> responseListener =
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExecutionEngine.ExplainResponse explainResponse) {
+            fail("Expected onFailure to be called");
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            // Should get the Calcite error directly (not wrapped), not the V2 error
+            assertNotNull(e);
+            assertTrue(e instanceof UnsupportedOperationException);
+            assertTrue(e.getMessage().contains("Calcite error"));
+          }
+        };
+
+    lenient().when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
+    lenient().when(analyzer.analyze(any(), any())).thenThrow(v2Exception);
+
+    QueryService service = new QueryService(analyzer, executionEngine, planner, null, settings);
+    service.explainWithLegacy(
+        ast, queryType, responseListener, ExplainMode.STANDARD, Optional.of(calciteException));
+  }
+
+  @Test
+  public void testExecuteWithLegacyShouldWrapCalciteErrorInCalciteUnsupportedException() {
+    AssertionError calciteError = new AssertionError("Calcite assertion failed");
+    IllegalStateException v2Exception = new IllegalStateException("V2 error");
+
+    ResponseListener<ExecutionEngine.QueryResponse> responseListener =
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
+            fail("Expected onFailure to be called");
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            // Errors should be wrapped in CalciteUnsupportedException
+            assertNotNull(e);
+            assertTrue(e instanceof org.opensearch.sql.exception.CalciteUnsupportedException);
+            assertTrue(e.getCause() instanceof AssertionError);
+            assertTrue(e.getMessage().contains("Calcite assertion failed"));
+          }
+        };
+
+    lenient().when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
+    lenient().when(analyzer.analyze(any(), any())).thenThrow(v2Exception);
+
+    QueryService service = new QueryService(analyzer, executionEngine, planner, null, settings);
+    service.executeWithLegacy(ast, queryType, responseListener, Optional.of(calciteError));
+  }
+
+  @Test
+  public void testExplainWithLegacyShouldWrapCalciteErrorInCalciteUnsupportedException() {
+    AssertionError calciteError = new AssertionError("Calcite assertion failed");
+    IllegalStateException v2Exception = new IllegalStateException("V2 error");
+
+    ResponseListener<ExecutionEngine.ExplainResponse> responseListener =
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExecutionEngine.ExplainResponse explainResponse) {
+            fail("Expected onFailure to be called");
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            // Errors should be wrapped in CalciteUnsupportedException
+            assertNotNull(e);
+            assertTrue(e instanceof org.opensearch.sql.exception.CalciteUnsupportedException);
+            assertTrue(e.getCause() instanceof AssertionError);
+            assertTrue(e.getMessage().contains("Calcite assertion failed"));
+          }
+        };
+
+    lenient().when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
+    lenient().when(analyzer.analyze(any(), any())).thenThrow(v2Exception);
+
+    QueryService service = new QueryService(analyzer, executionEngine, planner, null, settings);
+    service.explainWithLegacy(
+        ast, queryType, responseListener, ExplainMode.STANDARD, Optional.of(calciteError));
   }
 
   Helper queryService() {
@@ -222,7 +340,7 @@ class QueryServiceTest {
               fail();
             }
           },
-          format);
+          mode);
     }
 
     void handledByExplainOnFailure() {
@@ -240,7 +358,7 @@ class QueryServiceTest {
               assertTrue(e instanceof IllegalStateException);
             }
           },
-          format);
+          mode);
     }
   }
 }

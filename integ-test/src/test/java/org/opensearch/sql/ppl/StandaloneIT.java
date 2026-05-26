@@ -50,7 +50,6 @@ import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
-import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import org.opensearch.sql.planner.Planner;
@@ -93,7 +92,7 @@ public class StandaloneIT extends PPLIntegTestCase {
         new StandaloneModule(
             new InternalRestHighLevelClient(client()), defaultSettings(), dataSourceService));
     Injector injector = modules.createInjector();
-    pplService = SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
+    pplService = injector.getInstance(PPLService.class);
   }
 
   @Test
@@ -167,6 +166,7 @@ public class StandaloneIT extends PPLIntegTestCase {
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
               .put(Key.QUERY_BUCKET_SIZE, 1000)
+              .put(Key.SEARCH_MAX_BUCKETS, 65535)
               .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .build();

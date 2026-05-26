@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.opensearch.response.agg;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -14,6 +15,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.search.aggregations.bucket.nested.Nested;
 import org.opensearch.sql.common.utils.StringUtils;
 
 /** Parse multiple metrics in one bucket. */
@@ -45,18 +47,29 @@ public class MetricParserHelper {
    * @param aggregations {@link Aggregations}
    * @return the map between metric name and metric value.
    */
-  public Map<String, Object> parse(Aggregations aggregations) {
-    Map<String, Object> resultMap = new HashMap<>();
+  public List<Map<String, Object>> parse(Aggregations aggregations) {
+    List<Map<String, Object>> resultMapList = new ArrayList<>();
+    Map<String, Object> mergeMap = new LinkedHashMap<>();
     for (Aggregation aggregation : aggregations) {
-      if (metricParserMap.containsKey(aggregation.getName())) {
-        resultMap.putAll(metricParserMap.get(aggregation.getName()).parse(aggregation));
-      } else {
+      if (aggregation instanceof Nested) {
+        aggregation = ((Nested) aggregation).getAggregations().asList().getFirst();
+      }
+      MetricParser parser = metricParserMap.get(aggregation.getName());
+      if (parser == null) {
         throw new RuntimeException(
             StringUtils.format(
                 "couldn't parse field %s in aggregation response", aggregation.getName()));
       }
+      List<Map<String, Object>> resList = parser.parse(aggregation);
+      if (resList.size() == 1) { // single value parser
+        mergeMap.putAll(resList.get(0));
+      } else if (resList.size() > 1) { // top_hits parser
+        resultMapList.addAll(resList);
+      }
     }
-    //    countAggNameList.forEach(name -> resultMap.put(name, bucket.getDocCount()));
-    return resultMap;
+    if (!mergeMap.isEmpty()) {
+      resultMapList.add(mergeMap);
+    }
+    return resultMapList;
   }
 }

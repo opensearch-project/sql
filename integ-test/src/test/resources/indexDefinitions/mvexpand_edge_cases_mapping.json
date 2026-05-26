@@ -1,0 +1,16 @@
+{
+  "mappings": {
+    "properties": {
+      "username": { "type": "keyword" },
+      "skills": {
+        "type": "nested",
+        "properties": {
+          "name": { "type": "keyword" },
+          "level": { "type": "keyword" }
+        }
+      },
+      "skills_not_array": { "type": "keyword" },
+      "skills_int": { "type": "integer" }
+    }
+  }
+}

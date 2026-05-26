@@ -141,7 +141,7 @@ public class ObjectContent implements Content {
 
   @Override
   public boolean isArray() {
-    return value instanceof ArrayNode;
+    return value instanceof ArrayNode || value instanceof List;
   }
 
   @Override

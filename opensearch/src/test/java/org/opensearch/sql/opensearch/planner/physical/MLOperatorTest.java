@@ -15,6 +15,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.utils.MLCommonsConstants.ACTION;
 import static org.opensearch.sql.utils.MLCommonsConstants.ALGO;
+import static org.opensearch.sql.utils.MLCommonsConstants.CATEGORY_FIELD;
 import static org.opensearch.sql.utils.MLCommonsConstants.KMEANS;
 import static org.opensearch.sql.utils.MLCommonsConstants.PREDICT;
 import static org.opensearch.sql.utils.MLCommonsConstants.TRAIN;
@@ -135,6 +136,21 @@ public class MLOperatorTest {
   @Test
   public void testOpenPredict() {
     setUpPredict();
+    try (MockedStatic<MLClient> mlClientMockedStatic = Mockito.mockStatic(MLClient.class)) {
+      when(MLClient.getMLClient(any(NodeClient.class))).thenReturn(machineLearningNodeClient);
+      mlOperator.open();
+      assertTrue(mlOperator.hasNext());
+      assertNotNull(mlOperator.next());
+      assertFalse(mlOperator.hasNext());
+    }
+  }
+
+  @Test
+  public void testOpenPredictWithCategoryField() {
+    setUpPredict();
+    // Add category_field parameter
+    arguments.put(CATEGORY_FIELD, AstDSL.stringLiteral("region"));
+
     try (MockedStatic<MLClient> mlClientMockedStatic = Mockito.mockStatic(MLClient.class)) {
       when(MLClient.getMLClient(any(NodeClient.class))).thenReturn(machineLearningNodeClient);
       mlOperator.open();

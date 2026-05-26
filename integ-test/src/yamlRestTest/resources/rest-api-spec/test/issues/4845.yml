@@ -1,0 +1,49 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: test
+        body:
+          mappings:
+            properties:
+              "EventDate":
+                type: date
+                format: yyyy-MM-dd HH:mm:ss||strict_date_optional_time||epoch_millis
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"EventDate": "2013-07-15 10:47:34"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"handle custom format field with pushdown":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | stats count() by EventDate
+
+  - match: { total: 1 }
+  - match: {"schema": [{"name": "count()", "type": "bigint"},{"name": "EventDate", "type": "timestamp"}]}
+  - match: {"datarows": [[1, "2013-07-15 10:47:34"]]}

@@ -4,7 +4,7 @@ FROM hits WHERE Title LIKE '%Google%' AND URL NOT LIKE '%.google.%' AND SearchPh
 GROUP BY SearchPhrase ORDER BY c DESC LIMIT 10;
 */
 source=hits
-| where like(Title, '%Google%') and not like(URL, '%.google.%') and SearchPhrase != ''
+| where like(Title, '%Google%', true) and not like(URL, '%.google.%', true) and SearchPhrase != ''
 | stats bucket_nullable=false /* min(URL), min(Title), */ count() as c, dc(UserID) by SearchPhrase
 | sort - c
 | head 10

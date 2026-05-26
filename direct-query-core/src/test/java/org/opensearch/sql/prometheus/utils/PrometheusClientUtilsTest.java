@@ -281,6 +281,19 @@ public class PrometheusClientUtilsTest {
     PrometheusClientUtils.createPrometheusClient(metadata, settings);
   }
 
+  @Test
+  public void testCreatePrometheusClientWithRulerUri() {
+    Map<String, String> properties = new HashMap<>();
+    properties.put(PrometheusClientUtils.PROMETHEUS_URI, "http://prometheus:9090/api/prom");
+    properties.put(PrometheusClientUtils.RULER_URI, "http://prometheus:9090");
+
+    DataSourceMetadata metadata = mock(DataSourceMetadata.class);
+    when(metadata.getProperties()).thenReturn(properties);
+
+    PrometheusClient client = PrometheusClientUtils.createPrometheusClient(metadata, settings);
+    assertNotNull("Client should not be null", client);
+  }
+
   @Test(expected = IllegalArgumentException.class)
   public void testCreatePrometheusClientWithInvalidUri() {
     // Setup

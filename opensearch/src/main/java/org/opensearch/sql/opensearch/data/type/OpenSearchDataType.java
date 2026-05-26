@@ -43,7 +43,8 @@ public class OpenSearchDataType implements ExprType, Serializable {
     ScaledFloat("scaled_float", ExprCoreType.DOUBLE),
     Double("double", ExprCoreType.DOUBLE),
     Boolean("boolean", ExprCoreType.BOOLEAN),
-    Alias("alias", ExprCoreType.UNKNOWN);
+    Alias("alias", ExprCoreType.UNKNOWN),
+    KnnVector("knn_vector", ExprCoreType.ARRAY);
     // TODO: ranges, geo shape, point, shape
 
     private final String name;
@@ -144,7 +145,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
         instances.getOrDefault(mappingType.toString(), new OpenSearchDataType(mappingType));
     switch (mappingType) {
       case Object:
-        // TODO: use Object type once it has been added
+      // TODO: use Object type once it has been added
       case Nested:
         if (innerMap.isEmpty()) {
           return res;

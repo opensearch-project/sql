@@ -1,0 +1,8 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(t=[MSTIME('03:45.5':VARCHAR)])
+        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    EnumerableCalc(expr#0..18=[{inputs}], expr#19=['03:45.5':VARCHAR], expr#20=[MSTIME($t19)], t=[$t20])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m"}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

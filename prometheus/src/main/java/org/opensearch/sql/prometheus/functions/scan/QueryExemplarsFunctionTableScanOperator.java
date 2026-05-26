@@ -6,8 +6,6 @@
 package org.opensearch.sql.prometheus.functions.scan;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Locale;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -37,22 +35,17 @@ public class QueryExemplarsFunctionTableScanOperator extends TableScanOperator {
   @Override
   public void open() {
     super.open();
-    this.queryExemplarsFunctionResponseHandle =
-        AccessController.doPrivileged(
-            (PrivilegedAction<QueryExemplarsFunctionResponseHandle>)
-                () -> {
-                  try {
-                    JSONArray responseArray =
-                        prometheusClient.queryExemplars(
-                            request.getQuery(), request.getStartTime(), request.getEndTime());
-                    return new QueryExemplarsFunctionResponseHandle(responseArray);
-                  } catch (IOException e) {
-                    LOG.error(e.getMessage());
-                    throw new RuntimeException(
-                        String.format(
-                            "Error fetching data from prometheus server: %s", e.getMessage()));
-                  }
-                });
+    try {
+      JSONArray responseArray =
+          prometheusClient.queryExemplars(
+              request.getQuery(), request.getStartTime(), request.getEndTime());
+      this.queryExemplarsFunctionResponseHandle = new QueryExemplarsFunctionResponseHandle(responseArray);
+    } catch (IOException e) {
+      LOG.error(e.getMessage());
+      throw new RuntimeException(
+          String.format(
+              "Error fetching data from prometheus server: %s", e.getMessage()));
+    }
   }
 
   @Override

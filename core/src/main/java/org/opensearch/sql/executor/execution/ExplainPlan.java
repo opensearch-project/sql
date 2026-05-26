@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.executor.execution;
 
-import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
@@ -15,7 +15,7 @@ import org.opensearch.sql.executor.QueryType;
 public class ExplainPlan extends AbstractPlan {
 
   private final AbstractPlan plan;
-  private final Explain.ExplainFormat format;
+  private final ExplainMode mode;
 
   private final ResponseListener<ExecutionEngine.ExplainResponse> explainListener;
 
@@ -24,22 +24,22 @@ public class ExplainPlan extends AbstractPlan {
       QueryId queryId,
       QueryType queryType,
       AbstractPlan plan,
-      Explain.ExplainFormat format,
+      ExplainMode mode,
       ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
     super(queryId, queryType);
     this.plan = plan;
-    this.format = format;
+    this.mode = mode;
     this.explainListener = explainListener;
   }
 
   @Override
   public void execute() {
-    plan.explain(explainListener, format);
+    plan.explain(explainListener, mode);
   }
 
   @Override
   public void explain(
-      ResponseListener<ExecutionEngine.ExplainResponse> listener, Explain.ExplainFormat format) {
+      ResponseListener<ExecutionEngine.ExplainResponse> listener, ExplainMode mode) {
     throw new UnsupportedOperationException("explain query can not been explained.");
   }
 }

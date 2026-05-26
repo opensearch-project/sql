@@ -7,22 +7,22 @@ package org.opensearch.sql.opensearch.planner.rules;
 
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Sort;
 import org.immutables.value.Value;
-import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.opensearch.planner.physical.CalciteEnumerableTopK;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 
 @Value.Enclosing
-public class SortIndexScanRule extends RelRule<SortIndexScanRule.Config> {
+public class SortIndexScanRule extends InterruptibleRelRule<SortIndexScanRule.Config> {
 
   protected SortIndexScanRule(Config config) {
     super(config);
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final AbstractCalciteIndexScan scan = call.rel(1);
     if (sort.getConvention() != scan.getConvention()) {
@@ -33,19 +33,21 @@ public class SortIndexScanRule extends RelRule<SortIndexScanRule.Config> {
     AbstractCalciteIndexScan newScan = scan.pushDownSort(collations);
     if (newScan != null) {
       call.transformTo(newScan);
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends OpenSearchRuleConfig {
+    Predicate<Sort> isTopK = CalciteEnumerableTopK.class::isInstance;
     SortIndexScanRule.Config DEFAULT =
         ImmutableSortIndexScanRule.Config.builder()
             .build()
             .withOperandSupplier(
                 b0 ->
                     b0.operand(Sort.class)
-                        .predicate(PlanUtils::sortByFieldsOnly)
+                        .predicate(Predicate.not(isTopK).and(PlanUtils::sortByFieldsOnly))
                         .oneInput(
                             b1 ->
                                 b1.operand(AbstractCalciteIndexScan.class)

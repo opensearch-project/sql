@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.response.agg;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -20,6 +21,7 @@ import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 import org.opensearch.search.aggregations.bucket.histogram.InternalAutoDateHistogram;
+import org.opensearch.search.aggregations.bucket.nested.InternalNested;
 import org.opensearch.search.aggregations.bucket.range.Range;
 import org.opensearch.search.aggregations.bucket.terms.InternalMultiTerms;
 
@@ -49,7 +51,12 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
 
   @Override
   public List<Map<String, Object>> parse(Aggregations aggregations) {
-    Aggregation agg = aggregations.asList().getFirst();
+    Aggregation agg;
+    if (aggregations.asList().getFirst() instanceof InternalNested) {
+      agg = ((InternalNested) aggregations.asList().getFirst()).getAggregations().iterator().next();
+    } else {
+      agg = aggregations.asList().getFirst();
+    }
     return ((MultiBucketsAggregation) agg)
         .getBuckets().stream()
             .map(b -> parseBucket(b, agg.getName()))
@@ -84,9 +91,11 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
   }
 
   private List<Map<String, Object>> parseLeafAgg(Aggregations aggregations, long docCount) {
-    Map<String, Object> resultMap = metricsParser.parse(aggregations);
-    countAggNameList.forEach(countAggName -> resultMap.put(countAggName, docCount));
-    return List.of(resultMap);
+    List<Map<String, Object>> resultMapList = metricsParser.parse(aggregations);
+    List<Map<String, Object>> maps =
+        resultMapList.isEmpty() ? List.of(new HashMap<>()) : resultMapList;
+    countAggNameList.forEach(countAggName -> maps.forEach(map -> map.put(countAggName, docCount)));
+    return maps;
   }
 
   @Override

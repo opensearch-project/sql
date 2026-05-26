@@ -5,13 +5,12 @@
 
 package org.opensearch.sql.opensearch.response;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.ParseField;
 import org.opensearch.core.xcontent.ContextParser;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -26,6 +25,8 @@ import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregat
 import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.ParsedDateHistogram;
 import org.opensearch.search.aggregations.bucket.histogram.ParsedHistogram;
+import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.nested.ParsedNested;
 import org.opensearch.search.aggregations.bucket.terms.DoubleTerms;
 import org.opensearch.search.aggregations.bucket.terms.LongTerms;
 import org.opensearch.search.aggregations.bucket.terms.ParsedDoubleTerms;
@@ -87,6 +88,8 @@ public class AggregationResponseUtils {
               .put(
                   TopHitsAggregationBuilder.NAME,
                   (p, c) -> ParsedTopHits.fromXContent(p, (String) c))
+              .put(
+                  NestedAggregationBuilder.NAME, (p, c) -> ParsedNested.fromXContent(p, (String) c))
               .build()
               .entrySet()
               .stream()
@@ -107,10 +110,8 @@ public class AggregationResponseUtils {
   public static Aggregations fromJson(String json) {
     try {
       XContentParser contentParser =
-          new JsonXContentParser(
-              namedXContentRegistry,
-              LoggingDeprecationHandler.INSTANCE,
-              new JsonFactory().createParser(json));
+          JsonXContent.jsonXContent.createParser(
+              namedXContentRegistry, LoggingDeprecationHandler.INSTANCE, json);
       contentParser.nextToken();
       return Aggregations.fromXContent(contentParser);
     } catch (IOException e) {

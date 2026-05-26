@@ -20,6 +20,8 @@ public class QueryContext {
   /** The key of the request id in the context map. */
   private static final String REQUEST_ID_KEY = "request_id";
 
+  private static final String PROFILE_KEY = "profile";
+
   /**
    * Generates a random UUID and adds to the {@link ThreadContext} as the request id.
    *
@@ -65,5 +67,21 @@ public class QueryContext {
   private QueryContext() {
     throw new AssertionError(
         getClass().getCanonicalName() + " is a utility class and must not be initialized");
+  }
+
+  /**
+   * Store the profile flag in thread context.
+   *
+   * @param profileEnabled whether profiling is enabled
+   */
+  public static void setProfile(boolean profileEnabled) {
+    ThreadContext.put(PROFILE_KEY, Boolean.toString(profileEnabled));
+  }
+
+  /**
+   * @return true if profiling flag is set in the thread context.
+   */
+  public static boolean isProfileEnabled() {
+    return Boolean.parseBoolean(ThreadContext.get(PROFILE_KEY));
   }
 }

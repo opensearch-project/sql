@@ -5,30 +5,39 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
-import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
-
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
+import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.immutables.value.Value;
-import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.plan.rel.LogicalDedup;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
+import org.opensearch.sql.utils.Utils;
 
 @Value.Enclosing
-public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
+public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Config>
+    implements SubstitutionRule {
   private static final Logger LOG = LogManager.getLogger();
 
   protected DedupPushdownRule(Config config) {
@@ -36,103 +45,196 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
-    final LogicalProject finalOutput = call.rel(0);
-    // TODO Used when number of duplication is more than 1
-    final LogicalFilter numOfDedupFilter = call.rel(1);
-    final LogicalProject projectWithWindow = call.rel(2);
-    final CalciteLogicalIndexScan scan = call.rel(3);
-    List<RexWindow> windows = PlanUtils.getRexWindowFromProject(projectWithWindow);
-    if (windows.isEmpty() || windows.stream().anyMatch(w -> w.partitionKeys.size() > 1)) {
-      // TODO leverage inner_hits for multiple partition keys
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Cannot pushdown the dedup with multiple fields");
-      }
-      return;
-    }
-    final List<String> fieldNameList = projectWithWindow.getInput().getRowType().getFieldNames();
-    List<Integer> selectColumns = PlanUtils.getSelectColumns(windows.getFirst().partitionKeys);
-    String fieldName = fieldNameList.get(selectColumns.getFirst());
-
-    CalciteLogicalIndexScan newScan = scan.pushDownCollapse(finalOutput, fieldName);
-    if (newScan != null) {
-      call.transformTo(newScan);
-    }
+  protected void onMatchImpl(RelOptRuleCall call) {
+    final LogicalDedup logicalDedup = call.rel(0);
+    final LogicalProject projectWithExpr = call.rel(1);
+    final CalciteLogicalIndexScan scan = call.rel(2);
+    apply(call, logicalDedup, projectWithExpr, scan);
   }
 
-  private static boolean validFilter(LogicalFilter filter) {
-    if (filter.getCondition().getKind() != SqlKind.LESS_THAN_OR_EQUAL) {
-      return false;
+  protected void apply(
+      RelOptRuleCall call,
+      LogicalDedup dedup,
+      LogicalProject project,
+      CalciteLogicalIndexScan scan) {
+
+    List<RexNode> dedupColumns = dedup.getDedupeFields();
+    if (dedupColumns.stream()
+        .filter(rex -> rex.isA(SqlKind.INPUT_REF))
+        .anyMatch(
+            rex ->
+                rex.getType().getSqlTypeName() == SqlTypeName.MAP
+                    || rex.getType().getSqlTypeName() == SqlTypeName.ARRAY)) {
+      // TODO https://github.com/opensearch-project/sql/issues/5006
+      LOG.debug("Cannot pushdown the dedup since the dedup fields contains MAP/ARRAY type");
+      // fallback to non-pushdown
+      return;
     }
-    List<RexNode> operandsOfCondition = ((RexCall) filter.getCondition()).getOperands();
-    RexNode leftOperand = operandsOfCondition.getFirst();
-    if (!(leftOperand instanceof RexInputRef ref)) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Cannot pushdown the dedup since the left operand is not RexInputRef");
+
+    RelBuilder relBuilder = call.builder();
+    relBuilder.push(project);
+
+    List<RexNode> targetProjections = new ArrayList<>();
+    Set<Integer> dedupFieldsIndexSet = new HashSet<>();
+    for (RexNode dedupColumn : dedupColumns) {
+      if (dedupColumn instanceof RexInputRef ref) {
+        targetProjections.add(dedupColumn);
+        dedupFieldsIndexSet.add(ref.getIndex());
+      } else {
+        LOG.warn("The dedup column {} is illegal.", dedupColumn);
+        return;
       }
-      return false;
     }
-    String referenceName = filter.getRowType().getFieldNames().get(ref.getIndex());
-    if (!referenceName.equals(ROW_NUMBER_COLUMN_FOR_DEDUP)) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug(
-            "Cannot pushdown the dedup since the left operand is not {}",
-            ROW_NUMBER_COLUMN_FOR_DEDUP);
+    IntStream.range(0, project.getProjects().size())
+        .boxed()
+        .filter(index -> !dedupFieldsIndexSet.contains(index))
+        .map(relBuilder::field)
+        .forEach(targetProjections::add);
+
+    relBuilder.project(targetProjections);
+    LogicalProject targetChildProject = (LogicalProject) relBuilder.peek();
+
+    if (targetChildProject.getNamedProjects().stream()
+        .limit(dedupColumns.size())
+        .anyMatch(
+            pair ->
+                Utils.resolveNestedPath(pair.getValue(), scan.getOsIndex().getFieldTypes())
+                    != null)) {
+      // fallback to non-pushdown if the dedup columns contain nested fields.
+      return;
+    }
+
+    // 2 Push an Aggregate
+    // We push down a LITERAL_AGG with dedupNumer for converting the dedup command to aggregate:
+    // (1) Pass the dedupNumer to AggregateAnalyzer.processAggregateCalls()
+    // (2) Distinguish it from an optimization operator and user defined aggregator.
+    // (LITERAL_AGG is used in optimization normally, see {@link SqlKind#LITERAL_AGG})
+    List<Integer> newGroupByList = IntStream.range(0, dedupColumns.size()).boxed().toList();
+    relBuilder.aggregate(
+        relBuilder.groupKey(relBuilder.fields(newGroupByList)),
+        relBuilder.literalAgg(dedup.getAllowedDuplication()));
+
+    // add bucket_nullable = false hint
+    PPLHintUtils.addIgnoreNullBucketHintToAggregate(relBuilder);
+    // add dedup sort hint if input collation is available.
+    //
+    // The collation's field indices refer to the dedup's input row type (i.e. `project`'s output).
+    // Before handing the hint off to AggregateAnalyzer — which resolves indices against the SCAN's
+    // row type (`project.getInput()`) — permute each collation index through `project`'s source
+    // mapping. If any sort key is a computed column (not a bare `RexInputRef`) we can't push it as
+    // an OS `top_hits` sort, so drop the hint entirely and let Calcite restore order post-dedup.
+    if (dedup.getInputCollation() != null
+        && !dedup.getInputCollation().getFieldCollations().isEmpty()) {
+      RelCollation scanCollation = resolveCollationToScanSchema(dedup, project);
+      if (scanCollation != null) {
+        PPLHintUtils.addDedupSortHintToAggregate(
+            relBuilder, scanCollation, project.getInput().getRowType().getFieldNames());
       }
-      return false;
     }
-    RexNode rightOperand = operandsOfCondition.getLast();
-    if (!(rightOperand instanceof RexLiteral numLiteral)) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Cannot pushdown the dedup since the right operand is not RexLiteral");
-      }
-      return false;
+    // peek the aggregate after hint being added
+    LogicalAggregate aggregate = (LogicalAggregate) relBuilder.build();
+    assert aggregate.getGroupSet().asList().equals(newGroupByList)
+        : "The group set of aggregate should be exactly the same as the generated group list";
+
+    CalciteLogicalIndexScan newScan =
+        (CalciteLogicalIndexScan) scan.pushDownAggregate(aggregate, targetChildProject);
+    if (newScan != null) {
+      // Back to original project order
+      call.transformTo(newScan.copyWithNewSchema(dedup.getRowType()));
+      PlanUtils.tryPruneRelNodes(call);
     }
-    Integer num = numLiteral.getValueAs(Integer.class);
-    if (num == null || num > 1) {
-      // TODO leverage inner_hits for num > 1
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Cannot pushdown the dedup since number of duplicate events is larger than 1");
-      }
-      return false;
-    }
-    return true;
   }
 
   /**
-   * Match fixed pattern:<br>
-   * LogicalProject(remove _row_number_dedup_) <br>
-   * LogicalFilter(condition=[<=($1, numOfDedup)]) <br>
-   * LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0)]) <br>
-   * LogicalFilter(condition=[IS NOT NULL($0)]) <br>
+   * Rewrite {@code dedup.inputCollation} into scan-schema indices. The collation was captured in
+   * {@link org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule} against a specific row type;
+   * by the time we reach this rule Calcite may have swapped in a different input, so the
+   * collation's indices may be stale. Strategy:
+   *
+   * <ol>
+   *   <li>If the collation's indices are all valid in {@code project}'s output, permute them
+   *       through {@code project.getProjects()} into scan indices (mirrors {@code
+   *       Project.getMapping} + {@code RelCollations.permute}).
+   *   <li>Otherwise, resolve each collation position by name: look up {@code
+   *       dedup.inputCollationFieldNames[idx]} in the scan's row type.
+   * </ol>
+   *
+   * A computed-column sort key (non-{@code RexInputRef}) is not pushable as an OS field sort, so
+   * returns {@code null} in that case. Returns {@code null} also if any sort key cannot be resolved
+   * by either path.
    */
+  private static @Nullable RelCollation resolveCollationToScanSchema(
+      LogicalDedup dedup, LogicalProject project) {
+    RelCollation collation = dedup.getInputCollation();
+    int projectOutputSize = project.getRowType().getFieldCount();
+    int maxIdx = -1;
+    for (RelFieldCollation fc : collation.getFieldCollations()) {
+      maxIdx = Math.max(maxIdx, fc.getFieldIndex());
+    }
+    if (maxIdx < projectOutputSize) {
+      List<RexNode> projections = project.getProjects();
+      List<RelFieldCollation> remapped = new ArrayList<>();
+      for (RelFieldCollation fc : collation.getFieldCollations()) {
+        RexNode expr = projections.get(fc.getFieldIndex());
+        if (!(expr instanceof RexInputRef ref)) {
+          return null;
+        }
+        remapped.add(fc.withFieldIndex(ref.getIndex()));
+      }
+      return RelCollations.of(remapped);
+    }
+    List<String> originalNames = dedup.getInputCollationFieldNames();
+    if (originalNames == null) {
+      return null;
+    }
+    List<String> scanNames = project.getInput().getRowType().getFieldNames();
+    List<RelFieldCollation> remapped = new ArrayList<>();
+    for (RelFieldCollation fc : collation.getFieldCollations()) {
+      int oldIdx = fc.getFieldIndex();
+      if (oldIdx < 0 || oldIdx >= originalNames.size()) {
+        return null;
+      }
+      int scanIdx = scanNames.indexOf(originalNames.get(oldIdx));
+      if (scanIdx < 0) {
+        return null;
+      }
+      remapped.add(fc.withFieldIndex(scanIdx));
+    }
+    return RelCollations.of(remapped);
+  }
+
   @Value.Immutable
   public interface Config extends OpenSearchRuleConfig {
+    // +- LogicalDedup
+    //    +- LogicalProject
+    //       +- CalciteLogicalIndexScan
     Config DEFAULT =
         ImmutableDedupPushdownRule.Config.builder()
             .build()
+            .withDescription("Dedup-to-Aggregate")
             .withOperandSupplier(
                 b0 ->
-                    b0.operand(LogicalProject.class)
+                    b0.operand(LogicalDedup.class)
+                        // Cannot push dedup operator if keepEmpty=true
+                        .predicate(dedup -> !dedup.getKeepEmpty())
                         .oneInput(
                             b1 ->
-                                b1.operand(LogicalFilter.class)
-                                    .predicate(DedupPushdownRule::validFilter)
+                                b1.operand(LogicalProject.class)
                                     .oneInput(
                                         b2 ->
-                                            b2.operand(LogicalProject.class)
-                                                .predicate(PlanUtils::containsRowNumberDedup)
-                                                .oneInput(
-                                                    b3 ->
-                                                        b3.operand(CalciteLogicalIndexScan.class)
-                                                            .predicate(
-                                                                Predicate.not(
-                                                                        AbstractCalciteIndexScan
-                                                                            ::isLimitPushed)
-                                                                    .and(
-                                                                        AbstractCalciteIndexScan
-                                                                            ::noAggregatePushed))
-                                                            .noInputs()))));
+                                            b2.operand(CalciteLogicalIndexScan.class)
+                                                .predicate(Config::tableScanChecker)
+                                                .noInputs())));
+
+    /**
+     * Project must be not pushed since the name of expression would lose after project pushed. E.g.
+     * in query "eval new_a = a + 1 | dedup b", the "new_a" will lose.
+     */
+    private static boolean tableScanChecker(AbstractCalciteIndexScan scan) {
+      return Predicate.not(AbstractCalciteIndexScan::isLimitPushed)
+          .and(AbstractCalciteIndexScan::noAggregatePushed)
+          .test(scan);
+    }
 
     @Override
     default DedupPushdownRule toRule() {

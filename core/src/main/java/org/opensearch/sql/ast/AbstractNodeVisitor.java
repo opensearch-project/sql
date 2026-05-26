@@ -45,6 +45,8 @@ import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.AddColTotals;
+import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
@@ -52,6 +54,7 @@ import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -59,6 +62,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -66,6 +70,9 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
+import org.opensearch.sql.ast.tree.MvExpand;
+import org.opensearch.sql.ast.tree.NoMv;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -84,7 +91,9 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 
@@ -260,6 +269,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitFieldFormat(Eval node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitParse(Parse node, C context) {
     return visitChildren(node, context);
   }
@@ -277,6 +290,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitReverse(Reverse node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitTranspose(Transpose node, C context) {
     return visitChildren(node, context);
   }
 
@@ -408,6 +425,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(fillNull, context);
   }
 
+  public T visitConvert(Convert node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitPatterns(Patterns patterns, C context) {
     return visitChildren(patterns, context);
   }
@@ -449,6 +470,34 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitMultisearch(Multisearch node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitUnion(Union node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAddTotals(AddTotals node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAddColTotals(AddColTotals node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitMvCombine(MvCombine node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitNoMv(NoMv node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitMvExpand(MvExpand node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitGraphLookup(GraphLookup node, C context) {
     return visitChildren(node, context);
   }
 }

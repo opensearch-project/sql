@@ -1,0 +1,9 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(count_area=[$1], min_area=[$2], max_area=[$3], avg_area=[$4], avg_age=[$5], name=[$0])
+        LogicalAggregate(group=[{0}], count_area=[COUNT($1)], min_area=[MIN($1)], max_area=[MAX($1)], avg_area=[AVG($1)], avg_age=[AVG($2)])
+          LogicalProject(name=[$0], address.area=[$2], age=[$8])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},count_area=COUNT($1),min_area=MIN($1),max_area=MAX($1),avg_area=AVG($1),avg_age=AVG($2)), PROJECT->[count_area, min_area, max_area, avg_area, avg_age, name], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"name":{"terms":{"field":"name.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"nested_count_area":{"nested":{"path":"address"},"aggregations":{"count_area":{"value_count":{"field":"address.area"}}}},"nested_min_area":{"nested":{"path":"address"},"aggregations":{"min_area":{"min":{"field":"address.area"}}}},"nested_max_area":{"nested":{"path":"address"},"aggregations":{"max_area":{"max":{"field":"address.area"}}}},"nested_avg_area":{"nested":{"path":"address"},"aggregations":{"avg_area":{"avg":{"field":"address.area"}}}},"avg_age":{"avg":{"field":"age"}}}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

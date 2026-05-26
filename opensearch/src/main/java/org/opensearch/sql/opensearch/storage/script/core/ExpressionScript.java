@@ -9,8 +9,6 @@ import static java.util.stream.Collectors.toMap;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.time.chrono.ChronoZonedDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,12 +48,8 @@ public class ExpressionScript {
   /** Expression constructor. */
   public ExpressionScript(Expression expression) {
     this.expression = expression;
-    this.fields =
-        AccessController.doPrivileged(
-            (PrivilegedAction<Set<ReferenceExpression>>) () -> extractFields(expression));
-    this.valueFactory =
-        AccessController.doPrivileged(
-            (PrivilegedAction<OpenSearchExprValueFactory>) () -> buildValueFactory(fields));
+    this.fields = extractFields(expression);
+    this.valueFactory = buildValueFactory(fields);
   }
 
   /**
@@ -68,14 +62,9 @@ public class ExpressionScript {
   public ExprValue execute(
       Supplier<Map<String, ScriptDocValues<?>>> docProvider,
       BiFunction<Expression, Environment<Expression, ExprValue>, ExprValue> evaluator) {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<ExprValue>)
-            () -> {
-              Environment<Expression, ExprValue> valueEnv =
-                  buildValueEnv(fields, valueFactory, docProvider);
-              ExprValue result = evaluator.apply(expression, valueEnv);
-              return result;
-            });
+    Environment<Expression, ExprValue> valueEnv = buildValueEnv(fields, valueFactory, docProvider);
+    ExprValue result = evaluator.apply(expression, valueEnv);
+    return result;
   }
 
   public static Set<ReferenceExpression> extractFields(Expression expr) {

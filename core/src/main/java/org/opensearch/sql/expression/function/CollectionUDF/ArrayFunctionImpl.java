@@ -35,7 +35,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  */
 public class ArrayFunctionImpl extends ImplementorUDF {
   public ArrayFunctionImpl() {
-    super(new ArrayImplementor(), NullPolicy.ANY);
+    super(new ArrayImplementor(), NullPolicy.NONE);
   }
 
   /**
@@ -50,6 +50,10 @@ public class ArrayFunctionImpl extends ImplementorUDF {
         RelDataType originalType =
             SqlLibraryOperators.ARRAY.getReturnTypeInference().inferReturnType(sqlOperatorBinding);
         RelDataType innerType = originalType.getComponentType();
+        // Default empty/unknown element type to VARCHAR — see PR description for why.
+        if (innerType == null || isUnknownLikeType(innerType.getSqlTypeName())) {
+          innerType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+        }
         return createArrayType(
             typeFactory, typeFactory.createTypeWithNullability(innerType, true), true);
       } catch (Exception e) {
@@ -61,6 +65,17 @@ public class ArrayFunctionImpl extends ImplementorUDF {
   @Override
   public UDFOperandMetadata getOperandMetadata() {
     return null;
+  }
+
+  /**
+   * Calcite's {@link SqlLibraryOperators#ARRAY} infers a {@code NULL}-element array for an empty
+   * call list and an {@code UNKNOWN}-element array when type inference can't pick one (e.g. all
+   * operands are typeless nulls). Either of those bubbles up to the analytics-engine route's
+   * substrait converter as "Unable to convert the type UNKNOWN" — substrait has no encoding for
+   * either marker. Treat both as needing a concrete fallback.
+   */
+  private static boolean isUnknownLikeType(SqlTypeName sqlTypeName) {
+    return sqlTypeName == SqlTypeName.NULL || sqlTypeName == SqlTypeName.UNKNOWN;
   }
 
   public static class ArrayImplementor implements NotNullImplementor {
@@ -81,7 +96,8 @@ public class ArrayFunctionImpl extends ImplementorUDF {
 
   /**
    * The asList will generate the List<Object>. We need to convert internally, otherwise, the
-   * calcite will directly cast like DOUBLE -> INTEGER, which throw error
+   * calcite will directly cast like DOUBLE -> INTEGER, which throw error. Null elements are
+   * preserved in the array.
    */
   public static Object internalCast(Object... args) {
     List<Object> originalList = (List<Object>) args[0];
@@ -93,7 +109,9 @@ public class ArrayFunctionImpl extends ImplementorUDF {
             originalList.stream()
                 .map(
                     num -> {
-                      if (num instanceof BigDecimal) {
+                      if (num == null) {
+                        return null;
+                      } else if (num instanceof BigDecimal) {
                         return (BigDecimal) num;
                       } else {
                         return BigDecimal.valueOf(((Number) num).doubleValue());
@@ -104,17 +122,20 @@ public class ArrayFunctionImpl extends ImplementorUDF {
       case DOUBLE:
         result =
             originalList.stream()
-                .map(i -> (Object) ((Number) i).doubleValue())
+                .map(i -> i == null ? null : (Object) ((Number) i).doubleValue())
                 .collect(Collectors.toList());
         break;
       case FLOAT:
         result =
             originalList.stream()
-                .map(i -> (Object) ((Number) i).floatValue())
+                .map(i -> i == null ? null : (Object) ((Number) i).floatValue())
                 .collect(Collectors.toList());
         break;
       case VARCHAR, CHAR:
-        result = originalList.stream().map(i -> (Object) i.toString()).collect(Collectors.toList());
+        result =
+            originalList.stream()
+                .map(i -> i == null ? null : (Object) i.toString())
+                .collect(Collectors.toList());
         break;
       default:
         result = originalList;

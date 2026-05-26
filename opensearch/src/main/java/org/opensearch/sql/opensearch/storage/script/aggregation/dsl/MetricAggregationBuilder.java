@@ -156,7 +156,7 @@ public class MetricAggregationBuilder
             node.getArguments().get(1),
             condition,
             name,
-            new TopHitsParser(name));
+            new TopHitsParser(name, false, true));
       case "percentile":
       case "percentile_approx":
         return make(
@@ -215,7 +215,7 @@ public class MetricAggregationBuilder
       String name,
       MetricParser parser) {
     String fieldName = ((ReferenceExpression) expression).getAttr();
-    builder.fetchField(fieldName);
+    builder.fetchSource(fieldName, null);
     builder.size(size.valueOf().integerValue());
     builder.from(0);
     if (condition != null) {

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.legacy.TestsConstants.*;
@@ -989,6 +990,33 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testBinsOnTimeFieldWithPushdownDisabled_ShouldFail() throws IOException {
+    // Verify that bins parameter on timestamp fields fails with clear error when pushdown disabled
+    enabledOnlyWhenPushdownIsDisabled();
+
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "source=events_null | bin @timestamp bins=3 | stats count() by @timestamp"));
+
+    // Verify the error message clearly explains the limitation and suggests solutions
+    // Note: bins parameter on timestamp fields requires BOTH:
+    //   1. Pushdown to be enabled (plugins.calcite.pushdown.enabled=true, enabled by default)
+    //   2. The timestamp field to be used as an aggregation bucket (e.g., stats count() by
+    // @timestamp)
+    String errorMessage = exception.getMessage();
+    assertTrue(
+        "Expected clear error message about bins parameter requirements on timestamp fields, but"
+            + " got: "
+            + errorMessage,
+        errorMessage.contains("bins' parameter on timestamp fields requires")
+            && errorMessage.contains("pushdown to be enabled")
+            && errorMessage.contains("aggregation bucket"));
+  }
+
+  @Test
   public void testBinWithNestedFieldWithoutExplicitProjection() throws IOException {
     // Test bin command on nested field without explicit fields projection
     // This reproduces the bug from https://github.com/opensearch-project/sql/issues/4482
@@ -1075,5 +1103,87 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         executeQuery("source=events_null | bin cpu_usage span=7.5 | stats count() by cpu_usage");
     verifySchema(result, schema("count()", "bigint"), schema("cpu_usage", "string"));
     verifyDataRows(result, rows(3, "37.5-45.0"), rows(2, "45.0-52.5"), rows(1, "52.5-60.0"));
+  }
+
+  @Test
+  public void testBinCaseSensitivity_mon_vs_M() throws IOException {
+    // Test uppercase 'M' for months - bin by 1 month
+    JSONObject monthResultM =
+        executeQuery(
+            String.format(
+                "source=%s | bin @timestamp span=1M | fields `@timestamp` | sort `@timestamp` |"
+                    + " head 1",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(monthResultM, schema("@timestamp", null, "string"));
+    verifyDataRows(monthResultM, rows("2025-07"));
+
+    // Test full name 'mon' for months - should produce same result as 'M'
+    JSONObject monthResultMon =
+        executeQuery(
+            String.format(
+                "source=%s | bin @timestamp span=1mon | fields `@timestamp` | sort `@timestamp` |"
+                    + " head 1",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(monthResultMon, schema("@timestamp", null, "string"));
+    verifyDataRows(monthResultMon, rows("2025-07"));
+  }
+
+  @Test
+  public void testBinWithSubsecondUnits() throws IOException {
+    // Test milliseconds (ms) - bin by 100 milliseconds
+    JSONObject msResult =
+        executeQuery(
+            String.format(
+                "source=%s | bin @timestamp span=100ms | fields `@timestamp` | sort `@timestamp` |"
+                    + " head 3",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(msResult, schema("@timestamp", null, "timestamp"));
+    verifyDataRows(
+        msResult,
+        rows("2025-07-28 00:15:23"),
+        rows("2025-07-28 01:42:15"),
+        rows("2025-07-28 02:28:45"));
+
+    // Test microseconds (us) - bin by 500 microseconds
+    JSONObject usResult =
+        executeQuery(
+            String.format(
+                "source=%s | bin @timestamp span=500us | fields `@timestamp` | sort `@timestamp` |"
+                    + " head 3",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(usResult, schema("@timestamp", null, "timestamp"));
+    verifyDataRows(
+        usResult,
+        rows("2025-07-28 00:15:23"),
+        rows("2025-07-28 01:42:15"),
+        rows("2025-07-28 02:28:45"));
+
+    // Test centiseconds (cs) - bin by 10 centiseconds (100ms)
+    JSONObject csResult =
+        executeQuery(
+            String.format(
+                "source=%s | bin @timestamp span=10cs | fields `@timestamp` | sort `@timestamp` |"
+                    + " head 3",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(csResult, schema("@timestamp", null, "timestamp"));
+    verifyDataRows(
+        csResult,
+        rows("2025-07-28 00:15:23"),
+        rows("2025-07-28 01:42:15"),
+        rows("2025-07-28 02:28:45"));
+
+    // Test deciseconds (ds) - bin by 5 deciseconds (500ms)
+    JSONObject dsResult =
+        executeQuery(
+            String.format(
+                "source=%s | bin @timestamp span=5ds | fields `@timestamp` | sort `@timestamp` |"
+                    + " head 3",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(dsResult, schema("@timestamp", null, "timestamp"));
+    verifyDataRows(
+        dsResult,
+        rows("2025-07-28 00:15:23"),
+        rows("2025-07-28 01:42:15"),
+        rows("2025-07-28 02:28:45"));
   }
 }

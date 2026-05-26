@@ -62,10 +62,18 @@ public interface ExprType {
   }
 
   /**
-   * Get the original path. Types like alias type should be derived from the type of the original
-   * field.
+   * Get the original expr path. Types like alias type should be derived from the type of the
+   * original field.
    */
   default ExprType getOriginalExprType() {
+    return this;
+  }
+
+  /**
+   * Get the original data type. Types like alias type should be derived from the type of the
+   * original field.
+   */
+  default ExprType getOriginalType() {
     return this;
   }
 }

@@ -13,6 +13,7 @@ import java.util.Iterator;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.jetbrains.annotations.TestOnly;
+import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.core.common.io.stream.BytesStreamInput;
 import org.opensearch.sql.data.model.ExprValue;
@@ -43,6 +44,12 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   /** Number of rows returned. */
   private Integer queryCount;
 
+  /**
+   * Whether the cursor (including PIT) has been serialized for a subsequent page request. When
+   * true, {@link #close()} must preserve the PIT because a future request will resume from it.
+   */
+  private boolean cursorSerialized = false;
+
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
@@ -69,6 +76,11 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
 
   @Override
   public boolean hasNext() {
+    // Check for thread interruption to support query timeout
+    if (Thread.currentThread().isInterrupted()) {
+      throw new OpenSearchTimeoutException(new InterruptedException("Query execution interrupted"));
+    }
+
     // For pagination and limit, we need to limit the return rows count to pageSize or limit size
     if (queryCount >= maxResponseSize) {
       return false;
@@ -82,6 +94,11 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
 
   @Override
   public ExprValue next() {
+    // Check for thread interruption to support query timeout
+    if (Thread.currentThread().isInterrupted()) {
+      throw new OpenSearchTimeoutException(new InterruptedException("Query execution interrupted"));
+    }
+
     queryCount++;
     return iterator.next();
   }
@@ -97,7 +114,26 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   public void close() {
     super.close();
 
-    client.cleanup(request);
+    if (request.hasAnotherBatch() && cursorSerialized) {
+      // PIT has been serialized into a cursor for the next page request.
+      // Only clean up in-memory state; the PIT must survive for the next request.
+      client.cleanup(request);
+    } else {
+      // No more pages, or query failed/aborted before cursor was serialized.
+      // Force delete the PIT to prevent leaking.
+      client.forceCleanup(request);
+    }
+  }
+
+  /**
+   * Force cleanup of server-side resources (PIT) regardless of pagination state. Used by {@link
+   * org.opensearch.sql.planner.physical.CursorCloseOperator} when the client explicitly closes a
+   * cursor mid-pagination.
+   */
+  @Override
+  public void forceClose() {
+    super.close();
+    client.forceCleanup(request);
   }
 
   @Override
@@ -156,5 +192,8 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     out.write(reqAsBytes, 0, reqOut.size());
 
     out.writeInt(maxResponseSize);
+
+    // Mark that the PIT has been serialized into a cursor, so close() preserves it.
+    cursorSerialized = true;
   }
 }

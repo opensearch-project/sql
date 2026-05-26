@@ -8,8 +8,6 @@ package org.opensearch.sql.prometheus.utils;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import java.net.URI;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -39,8 +37,9 @@ public class PrometheusClientUtils {
   public static final String ACCESS_KEY = "prometheus.auth.access_key";
   public static final String SECRET_KEY = "prometheus.auth.secret_key";
 
-  // Prometheus URI constant
+  // Prometheus URI constants
   public static final String PROMETHEUS_URI = "prometheus.uri";
+  public static final String RULER_URI = "prometheus.ruler.uri";
 
   // AlertManager constants
   public static final String ALERTMANAGER_URI = "alertmanager.uri";
@@ -52,40 +51,36 @@ public class PrometheusClientUtils {
   public static final String ALERTMANAGER_SECRET_KEY = "alertmanager.auth.secret_key";
 
   public static OkHttpClient getHttpClient(Map<String, String> config, Settings settings) {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<OkHttpClient>)
-            () -> {
-              OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
-              okHttpClient.callTimeout(1, TimeUnit.MINUTES);
-              okHttpClient.connectTimeout(30, TimeUnit.SECONDS);
-              okHttpClient.followRedirects(false);
-              okHttpClient.addInterceptor(
-                  new URIValidatorInterceptor(
-                      settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST)));
-              if (config.get(AUTH_TYPE) != null) {
-                AuthenticationType authenticationType =
-                    AuthenticationType.get(config.get(AUTH_TYPE));
-                if (AuthenticationType.BASICAUTH.equals(authenticationType)) {
-                  okHttpClient.addInterceptor(
-                      new BasicAuthenticationInterceptor(
-                          config.get(USERNAME), config.get(PASSWORD)));
-                } else if (AuthenticationType.AWSSIGV4AUTH.equals(authenticationType)) {
-                  okHttpClient.addInterceptor(
-                      new AwsSigningInterceptor(
-                          new AWSStaticCredentialsProvider(
-                              new BasicAWSCredentials(
-                                  config.get(ACCESS_KEY), config.get(SECRET_KEY))),
-                          config.get(REGION),
-                          "aps"));
-                } else {
-                  throw new IllegalArgumentException(
-                      String.format(
-                          "AUTH Type : %s is not supported with Prometheus Connector",
-                          config.get(AUTH_TYPE)));
-                }
-              }
-              return okHttpClient.build();
-            });
+    OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
+    okHttpClient.callTimeout(1, TimeUnit.MINUTES);
+    okHttpClient.connectTimeout(30, TimeUnit.SECONDS);
+    okHttpClient.followRedirects(false);
+    okHttpClient.addInterceptor(
+        new URIValidatorInterceptor(
+            settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST)));
+    if (config.get(AUTH_TYPE) != null) {
+      AuthenticationType authenticationType =
+          AuthenticationType.get(config.get(AUTH_TYPE));
+      if (AuthenticationType.BASICAUTH.equals(authenticationType)) {
+        okHttpClient.addInterceptor(
+            new BasicAuthenticationInterceptor(
+                config.get(USERNAME), config.get(PASSWORD)));
+      } else if (AuthenticationType.AWSSIGV4AUTH.equals(authenticationType)) {
+        okHttpClient.addInterceptor(
+            new AwsSigningInterceptor(
+                new AWSStaticCredentialsProvider(
+                    new BasicAWSCredentials(
+                        config.get(ACCESS_KEY), config.get(SECRET_KEY))),
+                config.get(REGION),
+                "aps"));
+      } else {
+        throw new IllegalArgumentException(
+            String.format(
+                "AUTH Type : %s is not supported with Prometheus Connector",
+                config.get(AUTH_TYPE)));
+      }
+    }
+    return okHttpClient.build();
   }
 
   /**
@@ -166,7 +161,11 @@ public class PrometheusClientUtils {
       alertmanagerUri = URI.create(host.replaceAll("/$", "") + "/alertmanager");
     }
 
+    // Ruler URI defaults to prometheus.uri when not explicitly configured
+    String rulerHost = properties.get(PrometheusClientUtils.RULER_URI);
+    URI rulerUri = rulerHost != null ? URI.create(rulerHost) : uri;
+
     return new PrometheusClientImpl(
-        prometheusHttpClient, uri, alertmanagerHttpClient, alertmanagerUri);
+        prometheusHttpClient, uri, alertmanagerHttpClient, alertmanagerUri, rulerUri);
   }
 }

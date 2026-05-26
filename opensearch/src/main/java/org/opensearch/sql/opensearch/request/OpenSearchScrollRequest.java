@@ -60,7 +60,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
 
   public static final String NO_SCROLL_ID = "";
 
-  @EqualsAndHashCode.Exclude private boolean needClean = true;
+  @EqualsAndHashCode.Exclude @ToString.Exclude private boolean needClean = true;
 
   @Getter @EqualsAndHashCode.Exclude @ToString.Exclude private final List<String> includes;
 

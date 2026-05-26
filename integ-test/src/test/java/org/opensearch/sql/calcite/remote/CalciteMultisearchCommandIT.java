@@ -152,10 +152,10 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
     verifySchema(
         result,
-        schema("@timestamp", null, "string"),
+        schema("@timestamp", null, "timestamp"),
         schema("category", null, "string"),
         schema("value", null, "int"),
-        schema("timestamp", null, "string"));
+        schema("timestamp", null, "timestamp"));
 
     verifyDataRows(
         result,
@@ -342,6 +342,95 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         rows("Hattie", 5686L, null, null),
         rows(null, null, "Central Park", 1001),
         rows(null, null, "Times Square", 1002));
+  }
+
+  // ========================================================================
+  // Reproduction tests for GitHub issues #5145, #5146, #5147
+  // ========================================================================
+
+  /** Reproduce #5145: multisearch without further processing should return all rows. */
+  @Test
+  public void testMultisearchWithoutFurtherProcessing() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="
+                + " \\\"A\\\"] [search source=opensearch-sql_test_index_time_data | where category"
+                + " = \\\"B\\\"]");
+
+    verifySchema(
+        result,
+        schema("@timestamp", null, "timestamp"),
+        schema("category", null, "string"),
+        schema("value", null, "int"),
+        schema("timestamp", null, "timestamp"));
+
+    // category A has 26 rows, category B has 25 rows = 51 total
+    assertEquals(51, result.getInt("total"));
+  }
+
+  /** Reproduce #5146: span expression used after multisearch should work. */
+  @Test
+  public void testMultisearchWithSpanExpression() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="
+                + " \\\"A\\\"] [search source=opensearch-sql_test_index_time_data2 | where category"
+                + " = \\\"E\\\"] | stats count() by span(@timestamp, 1d)");
+
+    verifySchema(
+        result,
+        schema("count()", null, "bigint"),
+        schema("span(@timestamp,1d)", null, "timestamp"));
+
+    // Category A: 26 rows spanning Jul 28 – Aug 1; Category E: 10 rows spanning Jul 30 – Aug 1
+    verifyDataRows(
+        result,
+        rows(7L, "2025-07-28 00:00:00"),
+        rows(6L, "2025-07-29 00:00:00"),
+        rows(8L, "2025-07-30 00:00:00"),
+        rows(12L, "2025-07-31 00:00:00"),
+        rows(3L, "2025-08-01 00:00:00"));
+  }
+
+  /** Reproduce #5147: bin command after multisearch should produce non-null @timestamp. */
+  @Test
+  public void testMultisearchBinTimestamp() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="
+                + " \\\"A\\\"] [search source=opensearch-sql_test_index_time_data2 | where category"
+                + " = \\\"E\\\"] | fields @timestamp, category, value | bin @timestamp span=1d");
+
+    verifySchema(
+        result,
+        schema("category", null, "string"),
+        schema("value", null, "int"),
+        schema("@timestamp", null, "timestamp"));
+
+    // bin floors @timestamp to 1-day boundaries; 26 A-rows + 10 E-rows = 36 total
+    assertEquals(36, result.getInt("total"));
+  }
+
+  /** Reproduce #5147 full pattern: bin + stats after multisearch. */
+  @Test
+  public void testMultisearchBinAndStats() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="
+                + " \\\"A\\\"] [search source=opensearch-sql_test_index_time_data2 | where category"
+                + " = \\\"E\\\"] | bin @timestamp span=1d | stats count() by @timestamp");
+
+    verifySchema(
+        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
+
+    // Category A: 26 rows spanning Jul 28 – Aug 1; Category E: 10 rows spanning Jul 30 – Aug 1
+    verifyDataRows(
+        result,
+        rows(7L, "2025-07-28 00:00:00"),
+        rows(6L, "2025-07-29 00:00:00"),
+        rows(8L, "2025-07-30 00:00:00"),
+        rows(12L, "2025-07-31 00:00:00"),
+        rows(3L, "2025-08-01 00:00:00"));
   }
 
   @Test

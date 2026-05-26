@@ -34,6 +34,11 @@ public class SearchIn extends SearchExpression {
   }
 
   @Override
+  public String toAnonymizedString() {
+    return "identifier IN ***";
+  }
+
+  @Override
   public List<? extends UnresolvedExpression> getChild() {
     List<UnresolvedExpression> children = new ArrayList<>();
     children.add(field);
