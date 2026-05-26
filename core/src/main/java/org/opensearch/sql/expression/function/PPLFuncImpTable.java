@@ -60,6 +60,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_WEEK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DISTINCT_COUNT_APPROX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDEFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DUR2SEC;
@@ -1426,6 +1427,13 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);
       registerOperator(LIST, PPLBuiltinOperators.LIST);
       registerOperator(VALUES, PPLBuiltinOperators.VALUES);
+      // Logical marker so PPL parser succeeds on dc()/distinct_count()/distinct_count_approx()
+      // regardless of which execution path the query takes. OpenSearchExecutionEngine registers
+      // a real HyperLogLog++ implementation in aggExternalFunctionRegistry which overrides this
+      // marker via the external-first lookup precedence in getImplementation(). Other backends
+      // (DataFusion / analytics-engine) rewrite the operator before substrait emission and never
+      // execute the marker.
+      registerOperator(DISTINCT_COUNT_APPROX, PPLBuiltinOperators.DISTINCT_COUNT_APPROX);
 
       register(
           AVG,
