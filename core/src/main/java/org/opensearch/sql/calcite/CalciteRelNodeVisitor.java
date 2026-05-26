@@ -4301,22 +4301,35 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     List<RexNode> newFields = new ArrayList<>();
     for (String groupCandidate : groupCandidates) {
-      RexNode innerRex;
       if (ParseMethod.PATTERNS.equals(parseMethod)) {
         // Emit 4-arg REGEXP_REPLACE_PG_4 with "g" so DataFusion's regexp_replace
         // (first-match-only by default) replaces every match.
         RexNode globalFlag =
             context.rexBuilder.makeLiteral(
                 "g", context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
-        innerRex =
+        RexNode innerRex =
             context.rexBuilder.makeCall(
                 SqlLibraryOperators.REGEXP_REPLACE_PG_4, ArrayUtils.add(rexNodeList, globalFlag));
+        RexNode emptyString =
+            context.rexBuilder.makeLiteral(
+                "", context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
+        RexNode isEmptyCondition =
+            context.rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, sourceField, emptyString);
+        RexNode isNullCondition =
+            context.rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, sourceField);
+        // Calcite regexp_replace doesn't accept empty string; guard NULL / "" via CASE.
+        newFields.add(
+            context.rexBuilder.makeCall(
+                SqlStdOperatorTable.CASE,
+                isNullCondition,
+                emptyString,
+                isEmptyCondition,
+                emptyString,
+                innerRex));
       } else {
-        innerRex =
+        RexNode innerRex =
             PPLFuncImpTable.INSTANCE.resolve(
                 context.rexBuilder, ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod), rexNodeList);
-      }
-      if (!ParseMethod.PATTERNS.equals(parseMethod)) {
         newFields.add(
             PPLFuncImpTable.INSTANCE.resolve(
                 context.rexBuilder,
@@ -4326,25 +4339,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                     groupCandidate,
                     context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
                     true)));
-      } else {
-        RexNode emptyString =
-            context.rexBuilder.makeLiteral(
-                "", context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
-        RexNode isEmptyCondition =
-            context.rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, sourceField, emptyString);
-        RexNode isNullCondition =
-            context.rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, sourceField);
-        // Calcite regexp_replace(string, string, string) doesn't accept empty string.
-        // So use case when condition here to handle corner cases
-        newFields.add(
-            context.rexBuilder.makeCall(
-                SqlStdOperatorTable.CASE, // case
-                isNullCondition,
-                emptyString, // when field is NULL then ''
-                isEmptyCondition,
-                emptyString, // when field = '' then ''
-                innerRex // else regexp_replace(field, regex, replace_string)
-                ));
       }
     }
     projectPlusOverriding(newFields, groupCandidates, context);
