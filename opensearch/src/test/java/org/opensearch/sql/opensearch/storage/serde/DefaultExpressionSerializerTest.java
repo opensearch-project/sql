@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.storage.serde;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.ref;
@@ -81,5 +82,17 @@ class DefaultExpressionSerializerTest {
   @Test
   public void cannot_deserialize_illegal_expression_code() {
     assertThrows(IllegalStateException.class, () -> serializer.deserialize("hello world"));
+  }
+
+  @Test
+  public void deserialize_rejects_disallowed_class() throws Exception {
+    java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+    java.io.ObjectOutputStream objectOutput = new java.io.ObjectOutputStream(output);
+    objectOutput.writeObject(new java.net.URL("http://example.com"));
+    objectOutput.flush();
+    String encoded = java.util.Base64.getEncoder().encodeToString(output.toByteArray());
+    var exception =
+        assertThrows(IllegalStateException.class, () -> serializer.deserialize(encoded));
+    assertTrue(exception.getMessage().contains("Failed to deserialize"));
   }
 }
