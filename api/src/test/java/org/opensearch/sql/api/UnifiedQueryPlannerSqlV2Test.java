@@ -218,4 +218,137 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
                 LogicalTableScan(table=[[catalog, employees]])
             """);
   }
+
+  @Test
+  public void selectLiteralWithoutFrom() {
+    // FROM-less SELECT produces a one-row result via LogicalValues so the downstream
+    // Project evaluates over a single row.
+    givenQuery("SELECT 1")
+        .assertPlan(
+            """
+            LogicalSort(sort0=[$0], dir0=[ASC])
+              LogicalValues(tuples=[[{ 1 }]])
+            """);
+  }
+
+  @Test
+  public void selectExpressionWithoutFrom() {
+    givenQuery("SELECT 1 + 1")
+        .assertPlan(
+            """
+            LogicalProject(1 + 1=[+(1, 1)])
+              LogicalValues(tuples=[[{ 0 }]])
+            """);
+  }
+
+  @Test
+  public void testHavingMaxCol() {
+    givenQuery(
+            """
+            SELECT department FROM catalog.employees
+              GROUP BY department HAVING MAX(age) > 30
+            """)
+        .assertPlan(
+            """
+            LogicalProject(department=[$1])
+              LogicalFilter(condition=[>($0, 30)])
+                LogicalProject(MAX(age)=[$1], department=[$0])
+                  LogicalAggregate(group=[{0}], MAX(age)=[MAX($1)])
+                    LogicalProject(department=[$3], age=[$2])
+                      LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testScalarFnOverAggregate() {
+    givenQuery("SELECT ABS(MAX(age)) FROM catalog.employees")
+        .assertPlan(
+            """
+            LogicalProject(ABS(MAX(age))=[ABS($0)])
+              LogicalAggregate(group=[{}], MAX(age)=[MAX($0)])
+                LogicalProject(age=[$2])
+                  LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testArithmeticOnAggregates() {
+    givenQuery("SELECT MAX(age) + MIN(age) AS range_sum FROM catalog.employees")
+        .assertPlan(
+            """
+            LogicalProject(range_sum=[+($0, $1)])
+              LogicalAggregate(group=[{}], MAX(age)=[MAX($0)], MIN(age)=[MIN($0)])
+                LogicalProject(age=[$2])
+                  LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testHavingCountStar() {
+    givenQuery(
+            """
+            SELECT department FROM catalog.employees
+              GROUP BY department HAVING COUNT(*) > 5
+            """)
+        .assertPlan(
+            """
+            LogicalProject(department=[$1])
+              LogicalFilter(condition=[>($0, 5)])
+                LogicalProject(COUNT(*)=[$1], department=[$0])
+                  LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+                    LogicalProject(department=[$3])
+                      LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testHavingWithAlias() {
+    givenQuery(
+            """
+            SELECT department, COUNT(*) AS cnt FROM catalog.employees
+              GROUP BY department HAVING cnt > 1
+            """)
+        .assertPlan(
+            """
+            LogicalProject(department=[$1], cnt=[$0])
+              LogicalFilter(condition=[>($0, 1)])
+                LogicalProject(COUNT(*)=[$1], department=[$0])
+                  LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+                    LogicalProject(department=[$3])
+                      LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testHavingCompoundAnd() {
+    givenQuery(
+            """
+            SELECT department FROM catalog.employees
+              GROUP BY department HAVING MAX(age) > 30 AND MIN(age) < 50
+            """)
+        .assertPlan(
+            """
+            LogicalProject(department=[$2])
+              LogicalFilter(condition=[AND(>($0, 30), <($1, 50))])
+                LogicalProject(MAX(age)=[$1], MIN(age)=[$2], department=[$0])
+                  LogicalAggregate(group=[{0}], MAX(age)=[MAX($1)], MIN(age)=[MIN($1)])
+                    LogicalProject(department=[$3], age=[$2])
+                      LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testWindowOrderByDefaultsNullsFirst() {
+    // Window function ORDER BY without explicit NULLS FIRST/LAST defaults to NULLS FIRST,
+    // matching top-level ORDER BY semantics.
+    givenQuery(
+            """
+            SELECT name, ROW_NUMBER() OVER (ORDER BY id) AS rn FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], rn=[ROW_NUMBER() OVER (ORDER BY $0 NULLS FIRST)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
 }
