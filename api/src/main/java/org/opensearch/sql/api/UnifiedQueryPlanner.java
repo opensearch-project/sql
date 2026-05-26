@@ -19,10 +19,14 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.exception.QueryEngineException;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 /**
  * {@code UnifiedQueryPlanner} provides a high-level API for parsing and analyzing queries using the
@@ -30,6 +34,8 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
  * such as Spark or command-line tools, abstracting away Calcite internals.
  */
 public class UnifiedQueryPlanner {
+
+  private static final Logger LOG = LogManager.getLogger(UnifiedQueryPlanner.class);
 
   /** Planning strategy selected at construction time based on query type. */
   private final PlanningStrategy strategy;
@@ -65,10 +71,21 @@ public class UnifiedQueryPlanner {
             }
             return plan;
           });
-    } catch (SyntaxCheckException | UnsupportedOperationException e) {
+    } catch (SyntaxCheckException
+        | QueryEngineException
+        | UnsupportedOperationException
+        | IllegalArgumentException e) {
+      LOG.error("Failed to plan query: {}", e.getMessage());
       throw e;
+    } catch (AssertionError e) {
+      // Calcite throws assertion error directly when building bad RelNode
+      String message = "Failed to plan query: invalid plan structure";
+      LOG.error(message, e);
+      throw new SemanticCheckException(message, e);
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to plan query", e);
+      String message = "Failed to plan query: unexpected error";
+      LOG.error(message, e);
+      throw new IllegalStateException(message, e);
     }
   }
 
