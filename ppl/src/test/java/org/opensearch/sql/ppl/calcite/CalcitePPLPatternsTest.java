@@ -35,13 +35,13 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(ENAME=[$1], patterns_field=[CASE(SEARCH($1, Sarg['':VARCHAR; NULL AS"
             + " TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($1, '[a-zA-Z0-9]+':VARCHAR,"
-            + " '<*>':VARCHAR, 'g':VARCHAR))])\n"
+            + " '<*>':VARCHAR))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT `ENAME`, CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
-            + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END `patterns_field`\n"
+            + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END `patterns_field`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -56,18 +56,18 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(ENAME=[$1], patterns_field=[SAFE_CAST(ITEM(PATTERN_PARSER(CASE(SEARCH($1,"
             + " Sarg['':VARCHAR; NULL AS TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($1,"
-            + " '[a-zA-Z0-9]+':VARCHAR, '<*>':VARCHAR, 'g':VARCHAR)), $1), 'pattern'))],"
+            + " '[a-zA-Z0-9]+':VARCHAR, '<*>':VARCHAR)), $1), 'pattern'))],"
             + " tokens=[SAFE_CAST(ITEM(PATTERN_PARSER(CASE(SEARCH($1, Sarg['':VARCHAR; NULL AS"
             + " TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($1, '[a-zA-Z0-9]+':VARCHAR,"
-            + " '<*>':VARCHAR, 'g':VARCHAR)), $1), 'tokens'))])\n"
+            + " '<*>':VARCHAR)), $1), 'tokens'))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN ''"
-            + " ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END, `ENAME`)['pattern']"
-            + " AS STRING) `patterns_field`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR"
-            + " `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END,"
+        "SELECT `ENAME`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN"
+            + " '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `ENAME`)['pattern'] AS"
+            + " STRING) `patterns_field`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR"
+            + " `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END,"
             + " `ENAME`)['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -83,19 +83,19 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(ENAME=[$1], patterns_field=[SAFE_CAST(ITEM(PATTERN_PARSER(CASE(SEARCH($1,"
             + " Sarg['':VARCHAR; NULL AS TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($1,"
-            + " '[A-H]':VARCHAR, '<*>':VARCHAR, 'g':VARCHAR)), $1), 'pattern'))],"
+            + " '[A-H]':VARCHAR, '<*>':VARCHAR)), $1), 'pattern'))],"
             + " tokens=[SAFE_CAST(ITEM(PATTERN_PARSER(CASE(SEARCH($1, Sarg['':VARCHAR; NULL AS"
-            + " TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($1, '[A-H]':VARCHAR, '<*>':VARCHAR,"
-            + " 'g':VARCHAR)), $1), 'tokens'))])\n"
+            + " TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($1, '[A-H]':VARCHAR, '<*>':VARCHAR)),"
+            + " $1), 'tokens'))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN ''"
-            + " ELSE REGEXP_REPLACE(`ENAME`, '[A-H]', '<*>', 'g') END, `ENAME`)['pattern'] AS"
-            + " STRING) `patterns_field`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR"
-            + " `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[A-H]', '<*>', 'g') END,"
-            + " `ENAME`)['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`\n"
+        "SELECT `ENAME`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN"
+            + " '' ELSE REGEXP_REPLACE(`ENAME`, '[A-H]', '<*>') END, `ENAME`)['pattern'] AS STRING)"
+            + " `patterns_field`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` ="
+            + " '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[A-H]', '<*>') END, `ENAME`)['tokens'] AS"
+            + " MAP< VARCHAR, VARCHAR ARRAY >) `tokens`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -108,13 +108,13 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
 
     String expectedLogical =
         "LogicalProject(ENAME=[$1], upper=[CASE(SEARCH($1, Sarg['':VARCHAR; NULL AS TRUE]:VARCHAR),"
-            + " '':VARCHAR, REGEXP_REPLACE($1, '[A-H]':VARCHAR, '<*>':VARCHAR, 'g':VARCHAR))])\n"
+            + " '':VARCHAR, REGEXP_REPLACE($1, '[A-H]':VARCHAR, '<*>':VARCHAR))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT `ENAME`, CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
-            + " REGEXP_REPLACE(`ENAME`, '[A-H]', '<*>', 'g') END `upper`\n"
+            + " REGEXP_REPLACE(`ENAME`, '[A-H]', '<*>') END `upper`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -130,20 +130,20 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
         "LogicalProject(ENAME=[$1], DEPTNO=[$7],"
             + " patterns_field=[SAFE_CAST(ITEM(PATTERN_PARSER(CASE(SEARCH($1, Sarg['':VARCHAR; NULL"
             + " AS TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($1, '[a-zA-Z0-9]+':VARCHAR,"
-            + " '<*>':VARCHAR, 'g':VARCHAR)), $1), 'pattern'))],"
+            + " '<*>':VARCHAR)), $1), 'pattern'))],"
             + " tokens=[SAFE_CAST(ITEM(PATTERN_PARSER(CASE(SEARCH($1, Sarg['':VARCHAR; NULL AS"
             + " TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($1, '[a-zA-Z0-9]+':VARCHAR,"
-            + " '<*>':VARCHAR, 'g':VARCHAR)), $1), 'tokens'))])\n"
+            + " '<*>':VARCHAR)), $1), 'tokens'))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `DEPTNO`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` ="
-            + " '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END,"
-            + " `ENAME`)['pattern'] AS STRING) `patterns_field`, TRY_CAST(PATTERN_PARSER(CASE WHEN"
-            + " `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`,"
-            + " '[a-zA-Z0-9]+', '<*>', 'g') END, `ENAME`)['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY"
-            + " >) `tokens`\n"
+        "SELECT `ENAME`, `DEPTNO`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME`"
+            + " = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END,"
+            + " `ENAME`)['pattern'] AS STRING) `patterns_field`, TRY_CAST(PATTERN_PARSER(CASE"
+            + " WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`,"
+            + " '[a-zA-Z0-9]+', '<*>') END, `ENAME`)['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >)"
+            + " `tokens`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -248,18 +248,18 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
         "LogicalAggregate(group=[{1}], pattern_count=[COUNT($1)], sample_logs=[TAKE($0, $2)])\n"
             + "  LogicalProject(ENAME=[$1], patterns_field=[CASE(SEARCH($1, Sarg['':VARCHAR; NULL"
             + " AS TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($1, '[a-zA-Z0-9]+':VARCHAR,"
-            + " '<*>':VARCHAR, 'g':VARCHAR))], $f9=[10])\n"
+            + " '<*>':VARCHAR))], $f9=[10])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`,"
-            + " '[a-zA-Z0-9]+', '<*>', 'g') END `patterns_field`, COUNT(CASE WHEN `ENAME` IS NULL"
-            + " OR `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g')"
-            + " END) `pattern_count`, `TAKE`(`ENAME`, 10) `sample_logs`\n"
+            + " '[a-zA-Z0-9]+', '<*>') END `patterns_field`, COUNT(CASE WHEN `ENAME` IS NULL OR"
+            + " `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END)"
+            + " `pattern_count`, `TAKE`(`ENAME`, 10) `sample_logs`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
-            + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END";
+            + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -276,22 +276,21 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + " $2)])\n"
             + "    LogicalProject(ENAME=[$1], patterns_field=[CASE(SEARCH($1, Sarg['':VARCHAR; NULL"
             + " AS TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($1, '[a-zA-Z0-9]+':VARCHAR,"
-            + " '<*>':VARCHAR, 'g':VARCHAR))], $f9=[10])\n"
+            + " '<*>':VARCHAR))], $f9=[10])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
-            + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END, `TAKE`(`ENAME`,"
-            + " 10))['pattern'] AS STRING) `patterns_field`, COUNT(CASE WHEN `ENAME` IS NULL OR"
-            + " `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END)"
-            + " `pattern_count`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = ''"
-            + " THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END,"
-            + " `TAKE`(`ENAME`, 10))['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`,"
-            + " `TAKE`(`ENAME`, 10) `sample_logs`\n"
+            + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `TAKE`(`ENAME`, 10))['pattern']"
+            + " AS STRING) `patterns_field`, COUNT(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN"
+            + " '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END) `pattern_count`,"
+            + " TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
+            + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `TAKE`(`ENAME`, 10))['tokens']"
+            + " AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`, `TAKE`(`ENAME`, 10) `sample_logs`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
-            + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END";
+            + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -308,22 +307,22 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + " $3)])\n"
             + "    LogicalProject(ENAME=[$1], DEPTNO=[$7], patterns_field=[CASE(SEARCH($1,"
             + " Sarg['':VARCHAR; NULL AS TRUE]:VARCHAR), '':VARCHAR, REGEXP_REPLACE($1,"
-            + " '[a-zA-Z0-9]+':VARCHAR, '<*>':VARCHAR, 'g':VARCHAR))], $f9=[10])\n"
+            + " '[a-zA-Z0-9]+':VARCHAR, '<*>':VARCHAR))], $f9=[10])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT `DEPTNO`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN ''"
-            + " ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END, `TAKE`(`ENAME`,"
+            + " ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `TAKE`(`ENAME`,"
             + " 10))['pattern'] AS STRING) `patterns_field`, COUNT(CASE WHEN `ENAME` IS NULL OR"
-            + " `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END)"
+            + " `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END)"
             + " `pattern_count`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = ''"
-            + " THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END,"
-            + " `TAKE`(`ENAME`, 10))['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`,"
-            + " `TAKE`(`ENAME`, 10) `sample_logs`\n"
+            + " THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `TAKE`(`ENAME`,"
+            + " 10))['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`, `TAKE`(`ENAME`, 10)"
+            + " `sample_logs`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
-            + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>', 'g') END";
+            + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

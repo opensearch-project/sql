@@ -32,7 +32,6 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -73,20 +72,6 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
         // Continue to use the original call if failing to expand.
         // We can downgrade to still use `Sarg` literal instead of replacing it with parameter.
       }
-    }
-    // Calcite's enumerable runtime has no regexpReplace(String, String, String, String) impl,
-    // so 4-arg REGEXP_REPLACE_PG_4 fails Janino codegen on the script-pushdown path. Collapse
-    // to 3-arg REGEXP_REPLACE_3 when the flags literal is "g" — the 3-arg form is already
-    // replace-all, so semantics are preserved.
-    if (call.op == SqlLibraryOperators.REGEXP_REPLACE_PG_4
-        && call.operands.size() == 4
-        && call.operands.get(3) instanceof RexLiteral flagsLit
-        && "g".equals(flagsLit.getValueAs(String.class))) {
-      return helper
-          .rexBuilder
-          .makeCall(
-              call.getType(), SqlLibraryOperators.REGEXP_REPLACE_3, call.operands.subList(0, 3))
-          .accept(this, helper);
     }
     // Some functions only support limited numeric type. Keep conservative here.
     boolean allowNumericTypeWiden =
