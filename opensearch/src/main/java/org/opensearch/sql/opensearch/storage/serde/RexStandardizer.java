@@ -32,6 +32,7 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -72,6 +73,27 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
         // Continue to use the original call if failing to expand.
         // We can downgrade to still use `Sarg` literal instead of replacing it with parameter.
       }
+    }
+    // PPL's `patterns` lowering emits 4-arg `REGEXP_REPLACE_PG_4(field, pattern, replacement,
+    // 'g')` so the analytics-engine/DataFusion path gets global replacement (DataFusion's
+    // `regexp_replace` defaults to first-match-only without an explicit flag). Calcite's
+    // 3-arg `REGEXP_REPLACE_3` is already replace-all in its enumerable runtime, but the PG_4
+    // form has no matching `SqlFunctions.regexpReplace(String, String, String, String)` impl
+    // — Calcite's runtime only ships the `(String, String, String, int[, ...])` shapes (the
+    // 4-arg variant treats the 4th arg as start-position, not a flags string). The script
+    // pushdown path codegen would fail with `No applicable constructor/method found`. Collapse
+    // the 4-arg call to the 3-arg form whenever the flags literal is exactly `"g"`, which
+    // preserves replace-all semantics on the V2 / Calcite-pushdown side.
+    if (call.op == SqlLibraryOperators.REGEXP_REPLACE_PG_4
+        && call.operands.size() == 4
+        && call.operands.get(3) instanceof RexLiteral flagsLit
+        && "g".equals(flagsLit.getValueAs(String.class))) {
+      return helper.rexBuilder
+          .makeCall(
+              call.getType(),
+              SqlLibraryOperators.REGEXP_REPLACE_3,
+              call.operands.subList(0, 3))
+          .accept(this, helper);
     }
     // Some functions only support limited numeric type. Keep conservative here.
     boolean allowNumericTypeWiden =
