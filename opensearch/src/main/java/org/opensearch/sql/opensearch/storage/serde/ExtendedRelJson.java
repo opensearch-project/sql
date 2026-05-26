@@ -460,8 +460,7 @@ public class ExtendedRelJson extends RelJson {
               distinct,
               false);
         } else {
-          final SqlOperator operator =
-              requireNonNull(toOp(opMap, rexOperands.size()), "operator");
+          final SqlOperator operator = requireNonNull(toOp(opMap), "operator");
           final RelDataType type;
           if (jsonType != null) {
             type = toType(typeFactory, jsonType);
@@ -554,22 +553,6 @@ public class ExtendedRelJson extends RelJson {
 
   // Copied from RelJson for the usage of custom operatorTable
   @Nullable SqlOperator toOp(Map<String, ? extends @Nullable Object> map) {
-    return toOp(map, -1);
-  }
-
-  /**
-   * Look up an operator matching the {@code map}'s {@code name} / {@code kind} / {@code syntax}.
-   *
-   * <p>When {@code operandCount >= 0}, prefer an overload whose declared operand-count range
-   * accepts {@code operandCount} — Calcite registers multiple operators under the same SQL name
-   * with different arities (e.g. {@code REGEXP_REPLACE} maps to {@code REGEXP_REPLACE_3},
-   * {@code REGEXP_REPLACE_PG_4}, and {@code REGEXP_REPLACE_5} in PostgreSQL library). Picking by
-   * name + kind alone returns whichever overload is listed first, so a 4-arg call would bind to
-   * the 3-arg operator and fail at runtime with {@code IllegalArgumentException: no matching
-   * method} during {@code RexToLixTranslator} code-gen. Fall back to the first kind match when
-   * no overload's arity range fits, preserving prior behavior for callers that pass {@code -1}.
-   */
-  @Nullable SqlOperator toOp(Map<String, ? extends @Nullable Object> map, int operandCount) {
     // in case different operator has the same kind, check with both name and kind.
     String name = get(map, "name");
     String kind = get(map, "kind");
@@ -583,20 +566,10 @@ public class ExtendedRelJson extends RelJson {
         sqlSyntax,
         operators,
         SqlNameMatchers.liberal());
-    SqlOperator firstKindMatch = null;
     for (SqlOperator operator : operators) {
-      if (operator.kind != sqlKind) {
-        continue;
-      }
-      if (firstKindMatch == null) {
-        firstKindMatch = operator;
-      }
-      if (operandCount < 0 || operator.getOperandCountRange().isValidCount(operandCount)) {
+      if (operator.kind == sqlKind) {
         return operator;
       }
-    }
-    if (firstKindMatch != null) {
-      return firstKindMatch;
     }
     String class_ = (String) map.get("class");
     if (class_ != null) {

@@ -88,11 +88,10 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
         && call.operands.size() == 4
         && call.operands.get(3) instanceof RexLiteral flagsLit
         && "g".equals(flagsLit.getValueAs(String.class))) {
-      return helper.rexBuilder
+      return helper
+          .rexBuilder
           .makeCall(
-              call.getType(),
-              SqlLibraryOperators.REGEXP_REPLACE_3,
-              call.operands.subList(0, 3))
+              call.getType(), SqlLibraryOperators.REGEXP_REPLACE_3, call.operands.subList(0, 3))
           .accept(this, helper);
     }
     // Some functions only support limited numeric type. Keep conservative here.
