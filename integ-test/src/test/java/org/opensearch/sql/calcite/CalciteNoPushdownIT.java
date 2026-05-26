@@ -68,6 +68,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalcitePPLCastFunctionIT.class,
   CalcitePPLConditionBuiltinFunctionIT.class,
   CalcitePPLCryptographicFunctionIT.class,
+  CalcitePPLDashboardPatternsIT.class,
   CalcitePPLDedupIT.class,
   CalcitePPLEventstatsIT.class,
   CalciteStreamstatsCommandIT.class,
