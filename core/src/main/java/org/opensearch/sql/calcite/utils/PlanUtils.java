@@ -90,6 +90,9 @@ public interface PlanUtils {
   String ROW_NUMBER_COLUMN_FOR_TRANSPOSE = "_row_number_transpose_";
   String VALUE_COLUMN_FOR_TRANSPOSE = "_value_transpose_";
 
+  /** Ordering key on addcoltotals' UNION ALL branches: 0 on the data rows, 1 on the summary row. */
+  String ORDER_COLUMN_FOR_ADDCOLTOTALS = "_addcoltotals_order_";
+
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
       case MICROSECOND -> SpanUnit.MICROSECOND;
