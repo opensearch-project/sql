@@ -210,7 +210,7 @@ public class RestSqlAction extends BaseRestHandler {
     reportError(restChannel, exception, status);
   }
 
-  private static RestStatus getRestStatus(Exception ex) {
+  public static RestStatus getRestStatus(Exception ex) {
     int code = getRawErrorCode(ex);
     return RestStatus.fromCode(code);
   }

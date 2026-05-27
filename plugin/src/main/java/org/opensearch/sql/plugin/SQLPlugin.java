@@ -263,11 +263,8 @@ public class SQLPlugin extends Plugin
 
               @Override
               public void onFailure(Exception e) {
-                RestStatus status =
-                    (e instanceof org.opensearch.OpenSearchException osEx)
-                        ? osEx.status()
-                        : RestStatus.INTERNAL_SERVER_ERROR;
-                channel.sendResponse(new BytesRestResponse(status, e.getMessage()));
+                channel.sendResponse(
+                    new BytesRestResponse(RestSqlAction.getRestStatus(e), e.getMessage()));
               }
             });
       } else {
@@ -285,11 +282,8 @@ public class SQLPlugin extends Plugin
 
               @Override
               public void onFailure(Exception e) {
-                RestStatus status =
-                    (e instanceof org.opensearch.OpenSearchException osEx)
-                        ? osEx.status()
-                        : RestStatus.INTERNAL_SERVER_ERROR;
-                channel.sendResponse(new BytesRestResponse(status, e.getMessage()));
+                channel.sendResponse(
+                    new BytesRestResponse(RestSqlAction.getRestStatus(e), e.getMessage()));
               }
             });
       }
