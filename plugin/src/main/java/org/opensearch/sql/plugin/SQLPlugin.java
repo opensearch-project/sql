@@ -264,7 +264,7 @@ public class SQLPlugin extends Plugin
               @Override
               public void onFailure(Exception e) {
                 channel.sendResponse(
-                    new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                    new BytesRestResponse(RestSqlAction.getRestStatus(e), e.getMessage()));
               }
             });
       } else {
@@ -283,7 +283,7 @@ public class SQLPlugin extends Plugin
               @Override
               public void onFailure(Exception e) {
                 channel.sendResponse(
-                    new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                    new BytesRestResponse(RestSqlAction.getRestStatus(e), e.getMessage()));
               }
             });
       }
