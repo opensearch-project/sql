@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.junit.Assume.assumeFalse;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -1053,6 +1054,10 @@ public class SearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchTimeModifierWithSnappedWeek() throws IOException {
+    assumeFalse(
+        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
+            + " (analytics-engine storage path) does not support.",
+        isAnalyticsParquetIndicesEnabled());
     // Test whether alignment to weekday works
 
     final int docId = 101;
@@ -1141,6 +1146,10 @@ public class SearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchWithRelativeTimeModifiers() throws IOException {
+    assumeFalse(
+        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
+            + " (analytics-engine storage path) does not support.",
+        isAnalyticsParquetIndicesEnabled());
     final int docId = 101;
 
     LocalDateTime currentTime = LocalDateTime.now(ZoneOffset.UTC);
@@ -1189,6 +1198,10 @@ public class SearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchWithTimeUnitSnapping() throws IOException {
+    assumeFalse(
+        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
+            + " (analytics-engine storage path) does not support.",
+        isAnalyticsParquetIndicesEnabled());
     final int docId = 101;
 
     LocalDateTime currentHour = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
@@ -1237,6 +1250,10 @@ public class SearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchWithQuarterlyModifiers() throws IOException {
+    assumeFalse(
+        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
+            + " (analytics-engine storage path) does not support.",
+        isAnalyticsParquetIndicesEnabled());
     final int docId = 101;
 
     LocalDateTime currentQuarter =
