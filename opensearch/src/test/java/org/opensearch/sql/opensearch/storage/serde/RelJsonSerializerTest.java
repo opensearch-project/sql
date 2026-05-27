@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.storage.serde;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import com.google.common.collect.ImmutableRangeSet;
@@ -347,5 +348,17 @@ public class RelJsonSerializerTest {
     assertEquals(expectedNode, rexNode);
     assertEquals(List.of(2, 0, 0, 2), helper.sources);
     assertEquals(List.of(20, "Number", "Number", 10), helper.digests);
+  }
+
+  @Test
+  void deserialize_rejects_disallowed_class() throws Exception {
+    java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+    java.io.ObjectOutputStream objectOutput = new java.io.ObjectOutputStream(output);
+    objectOutput.writeObject(new java.net.URL("http://example.com"));
+    objectOutput.flush();
+    String encoded = java.util.Base64.getEncoder().encodeToString(output.toByteArray());
+    var exception =
+        assertThrows(IllegalStateException.class, () -> serializer.deserialize(encoded));
+    assertTrue(exception.getMessage().contains("Failed to deserialize"));
   }
 }

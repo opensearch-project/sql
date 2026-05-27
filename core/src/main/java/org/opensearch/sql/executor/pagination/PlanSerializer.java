@@ -22,6 +22,7 @@ import org.opensearch.sql.exception.NoCursorException;
 import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
+import org.opensearch.sql.utils.DeserializationFilterUtil;
 
 /**
  * This class is entry point to paged requests. It is responsible to cursor serialization and
@@ -88,6 +89,14 @@ public class PlanSerializer {
           new GZIPInputStream(new ByteArrayInputStream(HashCode.fromString(code).asBytes()));
       ObjectInputStream objectInput =
           new CursorDeserializationStream(new ByteArrayInputStream(gzip.readAllBytes()));
+      objectInput.setObjectInputFilter(
+          DeserializationFilterUtil.createFilter(
+              "org.opensearch.sql.planner.physical.*;"
+                  + "org.opensearch.sql.opensearch.storage.scan.*;"
+                  + "org.opensearch.sql.opensearch.data.type.*;"
+                  + "org.opensearch.sql.executor.pagination.*;"
+                  + "org.opensearch.sql.executor.QueryType;"
+                  + "org.opensearch.sql.utils.*;"));
       return (Serializable) objectInput.readObject();
     } catch (Exception e) {
       throw new IllegalStateException("Failed to deserialize object", e);
