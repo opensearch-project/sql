@@ -6,6 +6,11 @@
 package org.opensearch.sql.api;
 
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
+import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_BUFFER_LIMIT;
+import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_MAX_SAMPLE_COUNT;
+import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_METHOD;
+import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_MODE;
+import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_SHOW_NUMBERED_TOKEN;
 import static org.opensearch.sql.common.setting.Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT;
 import static org.opensearch.sql.common.setting.Settings.Key.PPL_REX_MAX_MATCH_LIMIT;
 import static org.opensearch.sql.common.setting.Settings.Key.PPL_SUBSEARCH_MAXOUT;
@@ -145,12 +150,18 @@ public class UnifiedQueryContext implements AutoCloseable {
      */
     private final Map<Settings.Key, Object> settings =
         new HashMap<Settings.Key, Object>(
-            Map.of(
-                QUERY_SIZE_LIMIT, SysLimit.DEFAULT.querySizeLimit(),
-                PPL_SUBSEARCH_MAXOUT, SysLimit.UNLIMITED_SUBSEARCH.subsearchLimit(),
-                PPL_JOIN_SUBSEARCH_MAXOUT, SysLimit.UNLIMITED_SUBSEARCH.joinSubsearchLimit(),
-                CALCITE_ENGINE_ENABLED, true,
-                PPL_REX_MAX_MATCH_LIMIT, 10));
+            Map.ofEntries(
+                Map.entry(QUERY_SIZE_LIMIT, SysLimit.DEFAULT.querySizeLimit()),
+                Map.entry(PPL_SUBSEARCH_MAXOUT, SysLimit.UNLIMITED_SUBSEARCH.subsearchLimit()),
+                Map.entry(
+                    PPL_JOIN_SUBSEARCH_MAXOUT, SysLimit.UNLIMITED_SUBSEARCH.joinSubsearchLimit()),
+                Map.entry(CALCITE_ENGINE_ENABLED, true),
+                Map.entry(PPL_REX_MAX_MATCH_LIMIT, 10),
+                Map.entry(PATTERN_METHOD, "SIMPLE_PATTERN"),
+                Map.entry(PATTERN_MODE, "LABEL"),
+                Map.entry(PATTERN_MAX_SAMPLE_COUNT, 10),
+                Map.entry(PATTERN_BUFFER_LIMIT, 100000),
+                Map.entry(PATTERN_SHOW_NUMBERED_TOKEN, false)));
 
     /**
      * Sets the query language frontend to be used.
