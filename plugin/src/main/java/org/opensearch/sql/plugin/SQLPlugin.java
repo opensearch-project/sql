@@ -271,7 +271,7 @@ public class SQLPlugin extends Plugin
         unifiedQueryHandler.execute(
             sqlRequest.getQuery(),
             QueryType.SQL,
-            false,
+            sqlRequest.isProfileEnabled(),
             new ActionListener<>() {
               @Override
               public void onResponse(TransportPPLQueryResponse response) {
