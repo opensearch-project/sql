@@ -263,12 +263,6 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     }
   }
 
-  // TODO: The SQL endpoint (/_plugins/_sql) returns 500 instead of 403 for security exceptions.
-  // The legacy RestSqlAction error handling wraps OpenSearchSecurityException as a generic 500
-  // Internal Server Error rather than propagating the 403 Forbidden status. The authorization
-  // IS denied (query does not execute), but the HTTP status is incorrect. These tests accept
-  // either 403 or 500 until the SQL plugin's error propagation is fixed.
-
   @Test
   public void testSQLQueryDeniedForUnauthorizedUser() throws IOException {
     ResponseException e =
@@ -276,11 +270,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
             ResponseException.class,
             () ->
                 executeSQLAsUser("SELECT name, age FROM " + TEST_INDEX + " LIMIT 3", DENIED_USER));
-    assertTrue(
-        "Expected 403 or 500 with security exception, got "
-            + e.getResponse().getStatusLine().getStatusCode(),
-        e.getResponse().getStatusLine().getStatusCode() == 403
-            || e.getResponse().getStatusLine().getStatusCode() == 500);
+    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
   }
 
   @Test
@@ -291,11 +281,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
             () ->
                 executeSQLAsUser(
                     "SELECT name, age FROM " + FORBIDDEN_INDEX + " LIMIT 3", ALLOWED_USER));
-    assertTrue(
-        "Expected 403 or 500 with security exception, got "
-            + e.getResponse().getStatusLine().getStatusCode(),
-        e.getResponse().getStatusLine().getStatusCode() == 403
-            || e.getResponse().getStatusLine().getStatusCode() == 500);
+    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
   }
 
   @Test
@@ -306,11 +292,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
             () ->
                 executeSQLAsUser(
                     "SELECT name, age FROM " + TEST_INDEX + " LIMIT 3", SEARCH_ONLY_USER));
-    assertTrue(
-        "Expected 403 or 500 with security exception, got "
-            + e.getResponse().getStatusLine().getStatusCode(),
-        e.getResponse().getStatusLine().getStatusCode() == 403
-            || e.getResponse().getStatusLine().getStatusCode() == 500);
+    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
   }
 
   /** Executes a PPL query via the production SQL plugin endpoint (/_plugins/_ppl). */
