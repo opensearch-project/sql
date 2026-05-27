@@ -144,4 +144,18 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
         .assertErrorMessageEquals("Failed to plan query: invalid plan structure")
         .assertCauseType(AssertionError.class);
   }
+
+  /**
+   * Without the {@code PATTERN_*} defaults in {@link UnifiedQueryContext}, a bare
+   * {@code patterns <field>} (no explicit {@code method=}/{@code mode=}) dies at parse time
+   * with {@code PatternMethod.valueOf("NULL")} because {@code AstBuilder.visitPatternsCommand}
+   * reads a null from {@code settings.getSettingValue(Key.PATTERN_METHOD)}. With the defaults
+   * present, the planner lowers patterns to SIMPLE / LABEL mode and adds {@code patterns_field}.
+   */
+  @Test
+  public void testPPLPatternsPicksUpDefaults() {
+    givenQuery("source = catalog.employees | patterns name")
+        .assertPlanContains("REGEXP_REPLACE")
+        .assertFields("id", "name", "age", "department", "patterns_field");
+  }
 }
