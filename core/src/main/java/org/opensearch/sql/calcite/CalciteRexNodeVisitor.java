@@ -108,6 +108,17 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   @Override
+  public RexNode visitAggregateFunction(AggregateFunction node, CalcitePlanContext context) {
+    // Resolve post-aggregate AggregateFunction via registry populated in visitAggregation.
+    Integer index = context.getAggregateOutputIndex().get(node);
+    if (index == null) {
+      throw new IllegalStateException(
+          "Aggregate function " + node + " not registered (planner bug)");
+    }
+    return context.relBuilder.field(index);
+  }
+
+  @Override
   public RexNode visitLiteral(Literal node, CalcitePlanContext context) {
     RexBuilder rexBuilder = context.rexBuilder;
     RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
@@ -652,9 +663,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                 field = b.desc(field);
               }
               return switch (opt.getNullOrder()) {
-                case NULL_LAST -> b.nullsLast(field);
+                // Unspecified NULLS defaults to NULLS FIRST, matching top-level ORDER BY.
+                case null -> b.nullsFirst(field);
                 case NULL_FIRST -> b.nullsFirst(field);
-                default -> field;
+                case NULL_LAST -> b.nullsLast(field);
               };
             })
         .toList();

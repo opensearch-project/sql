@@ -1748,6 +1748,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       reordered.addAll(aggRexList);
     }
     context.relBuilder.project(reordered);
+
+    // Register aggregate output indices for HAVING / post-aggregate resolution. clear() is safe:
+    // V2 grammar doesn't allow subqueries that nest aggregation scopes above this point.
+    context.getAggregateOutputIndex().clear();
+    int aggStartIdx = metricsFirst ? 0 : aliasedGroupByList.size();
+    for (int i = 0; i < aggExprList.size(); i++) {
+      AggregateFunction aggFunc = extractAggregateFunction(aggExprList.get(i));
+      if (aggFunc != null) {
+        context.getAggregateOutputIndex().put(aggFunc, aggStartIdx + i);
+      }
+    }
+  }
+
+  private static AggregateFunction extractAggregateFunction(UnresolvedExpression expr) {
+    if (expr instanceof AggregateFunction af) return af;
+    if (expr instanceof Alias alias) return extractAggregateFunction(alias.getDelegated());
+    return null;
   }
 
   private Optional<UnresolvedExpression> getTimeSpanField(UnresolvedExpression expr) {
@@ -4181,10 +4198,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitValues(Values values, CalcitePlanContext context) {
-    // Accept SQL SELECT without FROM (dual table), encoded as Values([[]]) — one row, zero columns.
     List<List<Literal>> rows = values.getValues();
-    if (rows == null || rows.isEmpty() || (rows.size() == 1 && rows.get(0).isEmpty())) {
+    if (rows == null || rows.isEmpty()) {
+      // PPL empty subsearch (e.g., `... | append [ ]`): zero rows, no columns.
       context.relBuilder.values(context.relBuilder.getTypeFactory().builder().build());
+      return context.relBuilder.peek();
+    }
+    if (rows.size() == 1 && rows.get(0).isEmpty()) {
+      // SQL FROM-less SELECT (dual table) encoded as Values([[]]): one-row relation for Project.
+      context.relBuilder.push(LogicalValues.createOneRow(context.relBuilder.getCluster()));
       return context.relBuilder.peek();
     }
     throw new CalciteUnsupportedException("Inline VALUES with literal rows is unsupported");
