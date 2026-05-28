@@ -225,11 +225,14 @@ public class SQLPlugin extends Plugin
         () -> {
           if (cached[0] == null) {
             var executor = AnalyticsExecutorHolder.get();
-            if (executor == null) {
+            var contextProvider =
+                org.opensearch.sql.plugin.rest.EngineContextProviderHolder.get();
+            if (executor == null || contextProvider == null) {
               return null;
             }
             cached[0] =
-                new RestUnifiedQueryAction(client, clusterService, executor, pluginSettings);
+                new RestUnifiedQueryAction(
+                    client, clusterService, executor, contextProvider, pluginSettings);
           }
           return cached[0];
         };

@@ -109,9 +109,27 @@ public class TransportPPLQueryAction
   public void setQueryPlanExecutor(
       QueryPlanExecutor<RelNode, Iterable<Object[]>> queryPlanExecutor) {
     AnalyticsExecutorHolder.set(queryPlanExecutor);
-    this.unifiedQueryHandler =
-        new RestUnifiedQueryAction(
-            clientRef, clusterServiceRef, queryPlanExecutor, pluginSettingsRef);
+    // Build the SQL router once both bridges are populated (engine context might arrive
+    // first or last depending on Guice ordering). buildUnifiedQueryHandler is idempotent.
+    buildUnifiedQueryHandlerIfReady();
+  }
+
+  /** Invoked by Guice iff analytics-engine bound {@code EngineContextProvider}. */
+  @Inject(optional = true)
+  public void setEngineContext(org.opensearch.analytics.EngineContextProvider contextProvider) {
+    org.opensearch.sql.plugin.rest.EngineContextProviderHolder.set(contextProvider);
+    buildUnifiedQueryHandlerIfReady();
+  }
+
+  private void buildUnifiedQueryHandlerIfReady() {
+    QueryPlanExecutor<RelNode, Iterable<Object[]>> executor = AnalyticsExecutorHolder.get();
+    org.opensearch.analytics.EngineContextProvider contextProvider =
+        org.opensearch.sql.plugin.rest.EngineContextProviderHolder.get();
+    if (executor != null && contextProvider != null) {
+      this.unifiedQueryHandler =
+          new RestUnifiedQueryAction(
+              clientRef, clusterServiceRef, executor, contextProvider, pluginSettingsRef);
+    }
   }
 
   /**

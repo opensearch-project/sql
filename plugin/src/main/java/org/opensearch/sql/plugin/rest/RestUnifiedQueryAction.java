@@ -22,6 +22,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexSettings;
+import org.opensearch.indices.IndicesService;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryPlanner;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -54,16 +55,19 @@ public class RestUnifiedQueryAction {
   private final AnalyticsExecutionEngine analyticsEngine;
   private final NodeClient client;
   private final ClusterService clusterService;
+  private final org.opensearch.analytics.EngineContextProvider contextProvider;
   private final org.opensearch.sql.common.setting.Settings pluginSettings;
 
   public RestUnifiedQueryAction(
       NodeClient client,
       ClusterService clusterService,
       QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor,
+      org.opensearch.analytics.EngineContextProvider contextProvider,
       org.opensearch.sql.common.setting.Settings pluginSettings) {
     this.client = client;
     this.clusterService = clusterService;
     this.analyticsEngine = new AnalyticsExecutionEngine(planExecutor);
+    this.contextProvider = contextProvider;
     this.pluginSettings = pluginSettings;
   }
 
@@ -81,6 +85,15 @@ public class RestUnifiedQueryAction {
   public boolean isAnalyticsIndex(String query, QueryType queryType) {
     if (query == null || query.isEmpty()) {
       return false;
+    }
+    // Cluster-level opt-in: when `cluster.pluggable.dataformat="composite"`, new indices
+    // inherit `index.pluggable.dataformat="composite"` at creation (see
+    // MetadataCreateIndexService), so every queryable target is analytics-eligible. Skip
+    // the per-index lookup — it doesn't work for aliases, wildcards, comma-lists, or data
+    // streams (Metadata#index() only resolves concrete names).
+    if ("composite".equals(IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(
+        clusterService.getSettings()))) {
+      return true;
     }
     try (UnifiedQueryContext context = buildParsingContext(queryType)) {
       return extractIndexName(query, queryType, context)
@@ -118,13 +131,17 @@ public class RestUnifiedQueryAction {
         .schedule(
             withCurrentContext(
                 () -> {
-                  try (UnifiedQueryContext context = buildContext(queryType, profiling)) {
+                  // Ask the engine for a per-query context — it binds the snapshot
+                  // (cluster state + schema built from it) and returns the pair, so the
+                  // schema we plan against and the state the executor uses are the same view.
+                  org.opensearch.analytics.QueryRequestContext queryCtx = contextProvider.getContext();
+                  try (UnifiedQueryContext context = buildContext(queryType, profiling, queryCtx)) {
                     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
                     RelNode plan = planner.plan(query);
                     CalcitePlanContext planContext = context.getPlanContext();
                     plan = addQuerySizeLimit(plan, planContext);
                     analyticsEngine.execute(
-                        plan, planContext, createQueryListener(queryType, listener));
+                        plan, planContext, queryCtx, createQueryListener(queryType, listener));
                   } catch (Exception e) {
                     listener.onFailure(e);
                   }
@@ -147,7 +164,8 @@ public class RestUnifiedQueryAction {
         .schedule(
             withCurrentContext(
                 () -> {
-                  try (UnifiedQueryContext context = buildContext(queryType, false)) {
+                  org.opensearch.analytics.QueryRequestContext queryCtx = contextProvider.getContext();
+                  try (UnifiedQueryContext context = buildContext(queryType, false, queryCtx)) {
                     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
                     RelNode plan = planner.plan(query);
                     CalcitePlanContext planContext = context.getPlanContext();
@@ -169,11 +187,15 @@ public class RestUnifiedQueryAction {
     return applyClusterOverrides(UnifiedQueryContext.builder().language(queryType)).build();
   }
 
-  private UnifiedQueryContext buildContext(QueryType queryType, boolean profiling) {
+  private UnifiedQueryContext buildContext(
+      QueryType queryType,
+      boolean profiling,
+      org.opensearch.analytics.QueryRequestContext queryCtx) {
     return applyClusterOverrides(
             UnifiedQueryContext.builder()
                 .language(queryType)
-                .catalog(SCHEMA_NAME, OpenSearchSchemaBuilder.buildSchema(clusterService.state()))
+                // Schema captured by queryCtx — same cluster state the executor will use.
+                .catalog(SCHEMA_NAME, queryCtx.schema())
                 .defaultNamespace(SCHEMA_NAME)
                 .profiling(profiling))
         .build();
