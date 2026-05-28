@@ -135,15 +135,18 @@ public class RestUnifiedQueryAction {
                   // (cluster state + schema built from it) and returns the pair, so the
                   // schema we plan against and the state the executor uses are the same view.
                   org.opensearch.analytics.QueryRequestContext queryCtx = contextProvider.getContext();
-                  try (UnifiedQueryContext context = buildContext(queryType, profiling, queryCtx)) {
+                  UnifiedQueryContext context = buildContext(queryType, profiling, queryCtx);
+                  ActionListener<TransportPPLQueryResponse> closingListener =
+                      wrapWithContextClose(context, listener);
+                  try {
                     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
                     RelNode plan = planner.plan(query);
                     CalcitePlanContext planContext = context.getPlanContext();
                     plan = addQuerySizeLimit(plan, planContext);
                     analyticsEngine.execute(
-                        plan, planContext, queryCtx, createQueryListener(queryType, listener));
+                        plan, planContext, queryCtx, createQueryListener(queryType, closingListener));
                   } catch (Exception e) {
-                    listener.onFailure(e);
+                    closingListener.onFailure(e);
                   }
                 }),
             new TimeValue(0),
@@ -277,5 +280,18 @@ public class RestUnifiedQueryAction {
       ThreadContext.putAll(currentContext);
       task.run();
     };
+  }
+
+  private static ActionListener<TransportPPLQueryResponse> wrapWithContextClose(
+      UnifiedQueryContext context, ActionListener<TransportPPLQueryResponse> delegate) {
+    return ActionListener.runAfter(
+        delegate,
+        () -> {
+          try {
+            context.close();
+          } catch (Exception e) {
+            LOG.warn("Failed to close query context", e);
+          }
+        });
   }
 }
