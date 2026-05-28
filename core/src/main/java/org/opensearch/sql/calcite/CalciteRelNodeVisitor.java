@@ -50,6 +50,7 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -2786,11 +2787,36 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  /** Window {@code ORDER BY} keys from the current node's collation, or empty if it has none. */
+  private static List<RexNode> deriveCollationOrderKeys(CalcitePlanContext context) {
+    RelBuilder relBuilder = context.relBuilder;
+    List<RelCollation> collations =
+        relBuilder.getCluster().getMetadataQuery().collations(relBuilder.peek());
+    if (collations == null || collations.isEmpty()) {
+      return List.of();
+    }
+    List<RexNode> orderKeys = new ArrayList<>();
+    for (RelFieldCollation fieldCollation : collations.get(0).getFieldCollations()) {
+      RexNode key = relBuilder.field(fieldCollation.getFieldIndex());
+      if (fieldCollation.direction.isDescending()) {
+        key = relBuilder.desc(key);
+      }
+      if (fieldCollation.nullDirection == RelFieldCollation.NullDirection.LAST) {
+        key = relBuilder.nullsLast(key);
+      } else if (fieldCollation.nullDirection == RelFieldCollation.NullDirection.FIRST) {
+        key = relBuilder.nullsFirst(key);
+      }
+      orderKeys.add(key);
+    }
+    return orderKeys;
+  }
+
   @Override
   public RelNode visitAppendCol(AppendCol node, CalcitePlanContext context) {
     // 1. resolve main plan
     visitChildren(node, context);
-    // 2. add row_number() column to main
+    // 2. add row_number() column to main, ordered by its collation so the zip is deterministic
+    List<RexNode> mainOrderKeys = deriveCollationOrderKeys(context);
     RexNode mainRowNumber =
         PlanUtils.makeOver(
             context,
@@ -2798,7 +2824,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             null,
             List.of(),
             List.of(),
-            List.of(),
+            mainOrderKeys,
             WindowFrame.toCurrentRow());
     context.relBuilder.projectPlus(
         context.relBuilder.alias(mainRowNumber, ROW_NUMBER_COLUMN_FOR_MAIN));
@@ -2808,7 +2834,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     transformPlanToAttachChild(node.getSubSearch(), relation);
     // 4. resolve subsearch plan
     node.getSubSearch().accept(this, context);
-    // 5. add row_number() column to subsearch
+    // 5. add row_number() column to subsearch, ordered by its collation
+    List<RexNode> subsearchOrderKeys = deriveCollationOrderKeys(context);
     RexNode subsearchRowNumber =
         PlanUtils.makeOver(
             context,
@@ -2816,7 +2843,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             null,
             List.of(),
             List.of(),
-            List.of(),
+            subsearchOrderKeys,
             WindowFrame.toCurrentRow());
     context.relBuilder.projectPlus(
         context.relBuilder.alias(subsearchRowNumber, ROW_NUMBER_COLUMN_FOR_SUBSEARCH));
@@ -2837,6 +2864,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             context.relBuilder.field(2, 1, ROW_NUMBER_COLUMN_FOR_SUBSEARCH));
     context.relBuilder.join(
         JoinAndLookupUtils.translateJoinType(Join.JoinType.FULL), joinCondition);
+
+    // sort by the row numbers (nulls last) so the output order is stable across backends
+    context.relBuilder.sort(
+        context.relBuilder.nullsLast(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_MAIN)),
+        context.relBuilder.nullsLast(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_SUBSEARCH)));
 
     if (!node.isOverride()) {
       // 8. if override = false, drop both _row_number_ columns
