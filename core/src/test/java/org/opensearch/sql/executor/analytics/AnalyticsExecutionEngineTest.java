@@ -7,6 +7,7 @@ package org.opensearch.sql.executor.analytics;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -37,6 +38,8 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import org.opensearch.sql.monitor.profile.ProfileContext;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 class AnalyticsExecutionEngineTest {
@@ -328,6 +331,49 @@ class AnalyticsExecutionEngineTest {
             + errorRef.get().getClass().getSimpleName()
             + " - "
             + errorRef.get().getMessage());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeRelNode_profilePreservedOnAsyncListener() throws Exception {
+    ProfileContext expected = QueryProfiling.activate(true);
+
+    RelNode relNode = mockRelNode("col", SqlTypeName.VARCHAR);
+    Iterable<Object[]> rows = Collections.singletonList(new Object[] {"value"});
+
+    // Fire the executor's listener on a different thread to simulate async dispatch
+    doAnswer(
+            inv -> {
+              ActionListener<Iterable<Object[]>> al = inv.getArgument(2);
+              Thread t = new Thread(() -> al.onResponse(rows));
+              t.start();
+              t.join();
+              return null;
+            })
+        .when(mockExecutor)
+        .execute(eq(relNode), any(), any(ActionListener.class));
+
+    AtomicReference<ProfileContext> seen = new AtomicReference<>();
+    engine.execute(
+        relNode,
+        mockContext,
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            seen.set(QueryProfiling.current());
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            throw new AssertionError(e);
+          }
+        });
+
+    try {
+      assertSame(expected, seen.get(), "Profile context not restored on async listener thread");
+    } finally {
+      QueryProfiling.clear();
+    }
   }
 
   // --- helpers ---

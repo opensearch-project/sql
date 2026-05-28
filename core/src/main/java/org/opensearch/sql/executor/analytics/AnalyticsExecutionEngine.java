@@ -33,7 +33,7 @@ import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.monitor.profile.MetricName;
-import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
@@ -81,7 +81,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     // to a worker pool and results arrive on the listener. Record the execute metric in the
     // listener callback, before delegating to the user-supplied listener, so the metric snapshot
     // taken by SimpleJsonResponseFormatter sees the correct value.
-    ProfileMetric execMetric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
+    ProfileContext profileCtx = QueryProfiling.current();
     long execStart = System.nanoTime();
 
     planExecutor.execute(
@@ -90,15 +90,22 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
         new ActionListener<>() {
           @Override
           public void onResponse(Iterable<Object[]> rows) {
-            try {
-              List<RelDataTypeField> fields = plan.getRowType().getFieldList();
-              List<ExprValue> results = convertRows(rows, fields);
-              Schema schema = buildSchema(fields);
-              execMetric.set(System.nanoTime() - execStart);
-              listener.onResponse(new QueryResponse(schema, results, Cursor.None));
-            } catch (Exception e) {
-              listener.onFailure(e);
-            }
+            QueryProfiling.withCurrentContext(
+                profileCtx,
+                () -> {
+                  try {
+                    List<RelDataTypeField> fields = plan.getRowType().getFieldList();
+                    List<ExprValue> results = convertRows(rows, fields);
+                    Schema schema = buildSchema(fields);
+                    profileCtx
+                        .getOrCreateMetric(MetricName.EXECUTE)
+                        .set(System.nanoTime() - execStart);
+                    listener.onResponse(new QueryResponse(schema, results, Cursor.None));
+                  } catch (Exception e) {
+                    listener.onFailure(e);
+                  }
+                  return null;
+                });
           }
 
           @Override
