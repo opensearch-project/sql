@@ -118,15 +118,18 @@ public class RestUnifiedQueryAction {
         .schedule(
             withCurrentContext(
                 () -> {
-                  try (UnifiedQueryContext context = buildContext(queryType, profiling)) {
+                  UnifiedQueryContext context = buildContext(queryType, profiling);
+                  ActionListener<TransportPPLQueryResponse> closingListener =
+                      wrapWithContextClose(context, listener);
+                  try {
                     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
                     RelNode plan = planner.plan(query);
                     CalcitePlanContext planContext = context.getPlanContext();
                     plan = addQuerySizeLimit(plan, planContext);
                     analyticsEngine.execute(
-                        plan, planContext, createQueryListener(queryType, listener));
+                        plan, planContext, createQueryListener(queryType, closingListener));
                   } catch (Exception e) {
-                    listener.onFailure(e);
+                    closingListener.onFailure(e);
                   }
                 }),
             new TimeValue(0),
@@ -255,5 +258,18 @@ public class RestUnifiedQueryAction {
       ThreadContext.putAll(currentContext);
       task.run();
     };
+  }
+
+  private static ActionListener<TransportPPLQueryResponse> wrapWithContextClose(
+      UnifiedQueryContext context, ActionListener<TransportPPLQueryResponse> delegate) {
+    return ActionListener.runAfter(
+        delegate,
+        () -> {
+          try {
+            context.close();
+          } catch (Exception e) {
+            LOG.warn("Failed to close query context", e);
+          }
+        });
   }
 }
