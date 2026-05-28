@@ -84,7 +84,7 @@ public class TestUtils {
       indexSettings.put("pluggable.dataformat.enabled", true);
       indexSettings.put("pluggable.dataformat", "composite");
       indexSettings.put("composite.primary_data_format", "parquet");
-      indexSettings.put("composite.secondary_data_formats", new org.json.JSONArray());
+      indexSettings.put("composite.secondary_data_formats", new org.json.JSONArray().put("lucene"));
       settings.put("index", indexSettings);
       jsonObject.put("settings", settings);
     }
