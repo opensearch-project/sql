@@ -58,6 +58,7 @@ boolean ignorePrometheus = ignorePrometheusProp != null && !ignorePrometheusProp
 
 repositories {
     mavenLocal()
+    maven { url "https://ci.opensearch.org/maven2/" }
     mavenCentral()
     maven {
         url 'https://jitpack.io'
