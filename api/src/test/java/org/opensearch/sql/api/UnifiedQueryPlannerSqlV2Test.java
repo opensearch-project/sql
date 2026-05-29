@@ -201,6 +201,42 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
   }
 
   @Test
+  public void testUnionAll() {
+    givenQuery(
+            """
+            SELECT name FROM catalog.employees UNION ALL SELECT dept_name FROM catalog.departments
+            """)
+        .assertPlan(
+            """
+            LogicalUnion(all=[true])
+              LogicalProject(name=[$1])
+                LogicalTableScan(table=[[catalog, employees]])
+              LogicalProject(dept_name=[$1])
+                LogicalTableScan(table=[[catalog, departments]])
+            """);
+  }
+
+  @Test
+  public void testMultiWayUnion() {
+    givenQuery(
+            """
+            SELECT name FROM catalog.employees
+            UNION ALL SELECT dept_name FROM catalog.departments
+            UNION ALL SELECT name FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalUnion(all=[true])
+              LogicalProject(name=[$1])
+                LogicalTableScan(table=[[catalog, employees]])
+              LogicalProject(dept_name=[$1])
+                LogicalTableScan(table=[[catalog, departments]])
+              LogicalProject(name=[$1])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
   public void testNotExistsSubquery() {
     givenQuery(
             """

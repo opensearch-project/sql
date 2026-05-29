@@ -758,6 +758,13 @@ class AstBuilderTest extends AstBuilderTestBase {
   }
 
   @Test
+  public void union_throws_syntax_check_exception() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildAST("SELECT name FROM t1 UNION ALL SELECT name FROM t2"));
+  }
+
+  @Test
   public void in_subquery_throws_syntax_check_exception() {
     assertThrows(
         SyntaxCheckException.class,

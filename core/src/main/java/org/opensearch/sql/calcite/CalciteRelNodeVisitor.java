@@ -3031,8 +3031,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Union command requires at least two datasets. Provided: " + inputNodes.size());
     }
 
-    List<RelNode> unifiedInputs =
-        SchemaUnifier.buildUnifiedSchemaWithTypeCoercion(inputNodes, context);
+    List<RelNode> unifiedInputs = inputNodes;
+    if (node.isUnifySchema()) {
+      unifiedInputs = SchemaUnifier.buildUnifiedSchemaWithTypeCoercion(inputNodes, context);
+    }
 
     for (RelNode input : unifiedInputs) {
       context.relBuilder.push(input);

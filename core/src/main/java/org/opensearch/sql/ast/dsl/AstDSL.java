@@ -84,6 +84,7 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -780,5 +781,9 @@ public class AstDSL {
 
   public static ExistsSubquery existsSubquery(UnresolvedPlan query) {
     return new ExistsSubquery(query);
+  }
+
+  public static Union union(List<UnresolvedPlan> datasets) {
+    return new Union(datasets);
   }
 }

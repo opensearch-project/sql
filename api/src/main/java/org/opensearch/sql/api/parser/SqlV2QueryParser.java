@@ -8,8 +8,11 @@ package org.opensearch.sql.api.parser;
 import static org.opensearch.sql.ast.dsl.AstDSL.existsSubquery;
 import static org.opensearch.sql.ast.dsl.AstDSL.inSubquery;
 import static org.opensearch.sql.ast.dsl.AstDSL.join;
+import static org.opensearch.sql.ast.dsl.AstDSL.union;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -22,6 +25,7 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ExistsSubqueryExpressionAtomContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.InSubqueryPredicateContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.JoinClauseContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.UnionSelectContext;
 import org.opensearch.sql.sql.parser.AstBuilder;
 import org.opensearch.sql.sql.parser.AstExpressionBuilder;
 import org.opensearch.sql.sql.parser.AstStatementBuilder;
@@ -79,6 +83,13 @@ public class SqlV2QueryParser implements UnifiedQueryParser<UnresolvedPlan> {
         case OpenSearchSQLParser.CROSS -> JoinType.CROSS;
         default -> JoinType.INNER;
       };
+    }
+
+    @Override
+    public UnresolvedPlan visitUnionSelect(UnionSelectContext ctx) {
+      List<UnresolvedPlan> datasets =
+          ctx.querySpecification().stream().map(this::visit).collect(Collectors.toList());
+      return union(datasets);
     }
 
     /**
