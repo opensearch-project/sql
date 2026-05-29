@@ -361,9 +361,7 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
   }
 
   /**
-   * Regression test for https://github.com/opensearch-project/sql/issues/5482
-   *
-   * <p>When a user {@code where} precedes {@code dedup}, the user filter sits adjacent to the
+   * When a user {@code where} precedes {@code dedup}, the user filter sits adjacent to the
    * bucket-non-null filter that PPL emits for the dedup pattern. The HEP optimizer must run {@link
    * PPLSimplifyDedupRule} before {@link FilterMergeRule}; otherwise the merged condition breaks the
    * simplify-rule's operand match and dedup falls through to the in-memory {@code ROW_NUMBER}
