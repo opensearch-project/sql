@@ -225,8 +225,7 @@ public class SQLPlugin extends Plugin
         () -> {
           if (cached[0] == null) {
             var executor = AnalyticsExecutorHolder.get();
-            var contextProvider =
-                org.opensearch.sql.plugin.rest.EngineContextProviderHolder.get();
+            var contextProvider = org.opensearch.sql.plugin.rest.EngineContextProviderHolder.get();
             if (executor == null || contextProvider == null) {
               return null;
             }

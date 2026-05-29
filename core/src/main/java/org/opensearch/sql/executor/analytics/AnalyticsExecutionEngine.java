@@ -81,8 +81,8 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
   }
 
   /**
-   * Overload that threads a {@link org.opensearch.analytics.QueryRequestContext} snapshot down
-   * to the analytics-engine's plan executor via {@link
+   * Overload that threads a {@link org.opensearch.analytics.QueryRequestContext} snapshot down to
+   * the analytics-engine's plan executor via {@link
    * org.opensearch.analytics.exec.QueryPlanExecutor}'s opaque context slot. The snapshot is
    * captured once at query entry so planner and executor see the same cluster state.
    */

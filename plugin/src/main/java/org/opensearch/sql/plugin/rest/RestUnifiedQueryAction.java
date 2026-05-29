@@ -17,7 +17,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
-import org.opensearch.analytics.schema.OpenSearchSchemaBuilder;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
@@ -91,8 +90,10 @@ public class RestUnifiedQueryAction {
     // MetadataCreateIndexService), so every queryable target is analytics-eligible. Skip
     // the per-index lookup — it doesn't work for aliases, wildcards, comma-lists, or data
     // streams (Metadata#index() only resolves concrete names).
-    if ("composite".equals(IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(
-        clusterService.getSettings()))) {
+    if ("composite"
+        .equals(
+            IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(
+                clusterService.getSettings()))) {
       return true;
     }
     try (UnifiedQueryContext context = buildParsingContext(queryType)) {
@@ -134,7 +135,8 @@ public class RestUnifiedQueryAction {
                   // Ask the engine for a per-query context — it binds the snapshot
                   // (cluster state + schema built from it) and returns the pair, so the
                   // schema we plan against and the state the executor uses are the same view.
-                  org.opensearch.analytics.QueryRequestContext queryCtx = contextProvider.getContext();
+                  org.opensearch.analytics.QueryRequestContext queryCtx =
+                      contextProvider.getContext();
                   UnifiedQueryContext context = buildContext(queryType, profiling, queryCtx);
                   ActionListener<TransportPPLQueryResponse> closingListener =
                       wrapWithContextClose(context, listener);
@@ -144,7 +146,10 @@ public class RestUnifiedQueryAction {
                     CalcitePlanContext planContext = context.getPlanContext();
                     plan = addQuerySizeLimit(plan, planContext);
                     analyticsEngine.execute(
-                        plan, planContext, queryCtx, createQueryListener(queryType, closingListener));
+                        plan,
+                        planContext,
+                        queryCtx,
+                        createQueryListener(queryType, closingListener));
                   } catch (Exception e) {
                     closingListener.onFailure(e);
                   }
@@ -167,7 +172,8 @@ public class RestUnifiedQueryAction {
         .schedule(
             withCurrentContext(
                 () -> {
-                  org.opensearch.analytics.QueryRequestContext queryCtx = contextProvider.getContext();
+                  org.opensearch.analytics.QueryRequestContext queryCtx =
+                      contextProvider.getContext();
                   try (UnifiedQueryContext context = buildContext(queryType, false, queryCtx)) {
                     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
                     RelNode plan = planner.plan(query);
