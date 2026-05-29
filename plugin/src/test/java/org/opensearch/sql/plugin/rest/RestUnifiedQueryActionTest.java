@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import org.apache.calcite.rel.RelNode;
 import org.junit.Before;
 import org.junit.Test;
+import org.opensearch.analytics.EngineContextProvider;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexMetadata;
@@ -40,6 +41,9 @@ public class RestUnifiedQueryActionTest {
     metadata = mock(Metadata.class);
     when(clusterService.state()).thenReturn(clusterState);
     when(clusterState.metadata()).thenReturn(metadata);
+    // isAnalyticsIndex short-circuits on the cluster.pluggable.dataformat setting; the per-index
+    // path is only exercised when this returns something other than "composite".
+    when(clusterService.getSettings()).thenReturn(Settings.EMPTY);
 
     @SuppressWarnings("unchecked")
     QueryPlanExecutor<RelNode, Iterable<Object[]>> executor = mock(QueryPlanExecutor.class);
@@ -48,6 +52,7 @@ public class RestUnifiedQueryActionTest {
             mock(NodeClient.class),
             clusterService,
             executor,
+            mock(EngineContextProvider.class),
             mock(org.opensearch.sql.common.setting.Settings.class));
   }
 
