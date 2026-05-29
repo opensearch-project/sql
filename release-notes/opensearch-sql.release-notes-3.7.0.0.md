@@ -32,6 +32,7 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.7.0
 * Create parquet-backed test indices for `spath` command analytics-engine route ([#5441](https://github.com/opensearch-project/sql/pull/5441))
 * Improve error messages for invalid index mapping by formatting index patterns and including underlying error details ([#5370](https://github.com/opensearch-project/sql/pull/5370))
 * Initial implementation of report-builder interface for richer error context in responses ([#5266](https://github.com/opensearch-project/sql/pull/5266))
+* Validate materialized view subqueries against SQL grammar deny list ([#5485](https://github.com/opensearch-project/sql/pull/5485))
 
 ### Bug Fixes
 
