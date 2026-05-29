@@ -16,6 +16,7 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupNotNull;
 import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupOrNull;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ORDER_COLUMN_FOR_ADDCOLTOTALS;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_MAIN;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_RARE_TOP;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_STREAMSTATS;
@@ -3419,13 +3420,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelNode originalData = context.relBuilder.peek();
     List<String> fieldNames = originalData.getRowType().getFieldNames();
     boolean foundLabelField = false;
-    int labelLength =
-        (labelField != null) && (labelField.length() > label.length())
-            ? labelField.length()
-            : label.length();
 
     RelDataType labelVarcharType =
-        context.relBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR, labelLength);
+        context.relBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
 
     // If no specific fields specified, use all numeric fields
     if (fieldsToAggregate.isEmpty()) {
@@ -3532,10 +3529,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // Project the totals row with proper field order and labels
       context.relBuilder.project(selectList);
       RelNode totalsRow = context.relBuilder.build();
-      // 4. Union original data with totals row
+      // 4. Union original data with totals row.
       context.relBuilder.push(originalData);
+      context.relBuilder.projectPlus(
+          context.relBuilder.alias(context.relBuilder.literal(0), ORDER_COLUMN_FOR_ADDCOLTOTALS));
+      RelNode dataWithOrder = context.relBuilder.build();
       context.relBuilder.push(totalsRow);
-      context.relBuilder.union(true); // Use UNION ALL to preserve order
+      context.relBuilder.projectPlus(
+          context.relBuilder.alias(context.relBuilder.literal(1), ORDER_COLUMN_FOR_ADDCOLTOTALS));
+      RelNode totalsWithOrder = context.relBuilder.build();
+      context.relBuilder.push(dataWithOrder);
+      context.relBuilder.push(totalsWithOrder);
+      context.relBuilder.union(true); // UNION ALL
+      context.relBuilder.sort(context.relBuilder.field(ORDER_COLUMN_FOR_ADDCOLTOTALS));
+      context.relBuilder.projectExcept(context.relBuilder.field(ORDER_COLUMN_FOR_ADDCOLTOTALS));
     }
     return context.relBuilder.peek();
   }

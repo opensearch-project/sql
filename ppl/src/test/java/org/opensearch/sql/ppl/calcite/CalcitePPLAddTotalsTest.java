@@ -207,14 +207,17 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP  | fields DEPTNO, SAL, JOB | addtotals SAL col=true";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], Total=[$5])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[null:TINYINT], SAL=[$0], JOB=[null:VARCHAR(9)],"
-            + " Total=[null:DECIMAL(7, 2)])\n"
-            + "    LogicalAggregate(group=[{}], SAL=[SUM($0)])\n"
-            + "      LogicalProject(SAL=[$5])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=[$2], Total=[$3])\n"
+            + "  LogicalSort(sort0=[$4], dir0=[ASC])\n"
+            + "    LogicalUnion(all=[true])\n"
+            + "      LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], Total=[$5],"
+            + " _addcoltotals_order_=[0])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "      LogicalProject(DEPTNO=[null:TINYINT], SAL=[$0], JOB=[null:VARCHAR(9)],"
+            + " Total=[null:DECIMAL(7, 2)], _addcoltotals_order_=[1])\n"
+            + "        LogicalAggregate(group=[{}], SAL=[SUM($0)])\n"
+            + "          LogicalProject(SAL=[$5])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
 
     verifyLogical(root, expectedLogical);
     String expectedResult =
@@ -236,12 +239,14 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `DEPTNO`, `SAL`, `JOB`, `SAL` `Total`\n"
+        "SELECT `DEPTNO`, `SAL`, `JOB`, `Total`\n"
+            + "FROM (SELECT `DEPTNO`, `SAL`, `JOB`, `SAL` `Total`, 0 `_addcoltotals_order_`\n"
             + "FROM `scott`.`EMP`\n"
             + "UNION ALL\n"
             + "SELECT CAST(NULL AS TINYINT) `DEPTNO`, SUM(`SAL`) `SAL`, CAST(NULL AS STRING) `JOB`,"
-            + " CAST(NULL AS DECIMAL(7, 2)) `Total`\n"
-            + "FROM `scott`.`EMP`";
+            + " CAST(NULL AS DECIMAL(7, 2)) `Total`, 1 `_addcoltotals_order_`\n"
+            + "FROM `scott`.`EMP`)\n"
+            + "ORDER BY `_addcoltotals_order_` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -250,13 +255,16 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP  | fields DEPTNO, SAL, JOB | addtotals SAL col=true row=false";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[null:TINYINT], SAL=[$0], JOB=[null:VARCHAR(9)])\n"
-            + "    LogicalAggregate(group=[{}], SAL=[SUM($0)])\n"
-            + "      LogicalProject(SAL=[$5])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=[$2])\n"
+            + "  LogicalSort(sort0=[$3], dir0=[ASC])\n"
+            + "    LogicalUnion(all=[true])\n"
+            + "      LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], _addcoltotals_order_=[0])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "      LogicalProject(DEPTNO=[null:TINYINT], SAL=[$0], JOB=[null:VARCHAR(9)],"
+            + " _addcoltotals_order_=[1])\n"
+            + "        LogicalAggregate(group=[{}], SAL=[SUM($0)])\n"
+            + "          LogicalProject(SAL=[$5])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         "DEPTNO=20; SAL=800.00; JOB=CLERK\n"
@@ -279,11 +287,13 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `DEPTNO`, `SAL`, `JOB`\n"
+            + "FROM (SELECT `DEPTNO`, `SAL`, `JOB`, 0 `_addcoltotals_order_`\n"
             + "FROM `scott`.`EMP`\n"
             + "UNION ALL\n"
-            + "SELECT CAST(NULL AS TINYINT) `DEPTNO`, SUM(`SAL`) `SAL`, CAST(NULL AS STRING)"
-            + " `JOB`\n"
-            + "FROM `scott`.`EMP`";
+            + "SELECT CAST(NULL AS TINYINT) `DEPTNO`, SUM(`SAL`) `SAL`, CAST(NULL AS STRING) `JOB`,"
+            + " 1 `_addcoltotals_order_`\n"
+            + "FROM `scott`.`EMP`)\n"
+            + "ORDER BY `_addcoltotals_order_` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -294,14 +304,17 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
             + "  labelfield='Total'  col=true";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], Total=[$5])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[null:TINYINT], SAL=[$0], JOB=[null:VARCHAR(9)],"
-            + " Total=[null:DECIMAL(7, 2)])\n"
-            + "    LogicalAggregate(group=[{}], SAL=[SUM($0)])\n"
-            + "      LogicalProject(SAL=[$5])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=[$2], Total=[$3])\n"
+            + "  LogicalSort(sort0=[$4], dir0=[ASC])\n"
+            + "    LogicalUnion(all=[true])\n"
+            + "      LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], Total=[$5],"
+            + " _addcoltotals_order_=[0])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "      LogicalProject(DEPTNO=[null:TINYINT], SAL=[$0], JOB=[null:VARCHAR(9)],"
+            + " Total=[null:DECIMAL(7, 2)], _addcoltotals_order_=[1])\n"
+            + "        LogicalAggregate(group=[{}], SAL=[SUM($0)])\n"
+            + "          LogicalProject(SAL=[$5])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         "DEPTNO=20; SAL=800.00; JOB=CLERK; Total=800.00\n"
@@ -324,12 +337,14 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `DEPTNO`, `SAL`, `JOB`, `SAL` `Total`\n"
+        "SELECT `DEPTNO`, `SAL`, `JOB`, `Total`\n"
+            + "FROM (SELECT `DEPTNO`, `SAL`, `JOB`, `SAL` `Total`, 0 `_addcoltotals_order_`\n"
             + "FROM `scott`.`EMP`\n"
             + "UNION ALL\n"
             + "SELECT CAST(NULL AS TINYINT) `DEPTNO`, SUM(`SAL`) `SAL`, CAST(NULL AS STRING) `JOB`,"
-            + " CAST(NULL AS DECIMAL(7, 2)) `Total`\n"
-            + "FROM `scott`.`EMP`";
+            + " CAST(NULL AS DECIMAL(7, 2)) `Total`, 1 `_addcoltotals_order_`\n"
+            + "FROM `scott`.`EMP`)\n"
+            + "ORDER BY `_addcoltotals_order_` NULLS LAST";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -370,12 +385,16 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `DEPTNO`, `SAL`, `JOB`, `SAL` `CustomSum`, CAST(NULL AS STRING) `all_emp_total`\n"
+        "SELECT `DEPTNO`, `SAL`, `JOB`, `CustomSum`, `all_emp_total`\n"
+            + "FROM (SELECT `DEPTNO`, `SAL`, `JOB`, `SAL` `CustomSum`, CAST(NULL AS STRING)"
+            + " `all_emp_total`, 0 `_addcoltotals_order_`\n"
             + "FROM `scott`.`EMP`\n"
             + "UNION ALL\n"
             + "SELECT CAST(NULL AS TINYINT) `DEPTNO`, SUM(`SAL`) `SAL`, CAST(NULL AS STRING) `JOB`,"
-            + " CAST(NULL AS DECIMAL(7, 2)) `CustomSum`, 'ColTotal' `all_emp_total`\n"
-            + "FROM `scott`.`EMP`";
+            + " CAST(NULL AS DECIMAL(7, 2)) `CustomSum`, 'ColTotal' `all_emp_total`, 1"
+            + " `_addcoltotals_order_`\n"
+            + "FROM `scott`.`EMP`)\n"
+            + "ORDER BY `_addcoltotals_order_` NULLS LAST";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -388,14 +407,17 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
     // default is row=true for addtotals
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], Total=[+($7, $5)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=['ColTotal':VARCHAR(9)],"
-            + " Total=[null:DECIMAL(8, 2)])\n"
-            + "    LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n"
-            + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=[$2], Total=[$3])\n"
+            + "  LogicalSort(sort0=[$4], dir0=[ASC])\n"
+            + "    LogicalUnion(all=[true])\n"
+            + "      LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], Total=[+($7, $5)],"
+            + " _addcoltotals_order_=[0])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "      LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=['ColTotal':VARCHAR(9)],"
+            + " Total=[null:DECIMAL(8, 2)], _addcoltotals_order_=[1])\n"
+            + "        LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n"
+            + "          LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         "DEPTNO=20; SAL=800.00; JOB=CLERK; Total=820.00\n"
@@ -416,12 +438,15 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `DEPTNO`, `SAL`, `JOB`, `DEPTNO` + `SAL` `Total`\n"
+        "SELECT `DEPTNO`, `SAL`, `JOB`, `Total`\n"
+            + "FROM (SELECT `DEPTNO`, `SAL`, `JOB`, `DEPTNO` + `SAL` `Total`, 0"
+            + " `_addcoltotals_order_`\n"
             + "FROM `scott`.`EMP`\n"
             + "UNION ALL\n"
             + "SELECT SUM(`DEPTNO`) `DEPTNO`, SUM(`SAL`) `SAL`, 'ColTotal' `JOB`, CAST(NULL AS"
-            + " DECIMAL(8, 2)) `Total`\n"
-            + "FROM `scott`.`EMP`";
+            + " DECIMAL(8, 2)) `Total`, 1 `_addcoltotals_order_`\n"
+            + "FROM `scott`.`EMP`)\n"
+            + "ORDER BY `_addcoltotals_order_` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -433,14 +458,17 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
     // default is row=true for addtotals
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], Total=[+($7, $5)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=['ColTotal':VARCHAR(9)],"
-            + " Total=[null:DECIMAL(8, 2)])\n"
-            + "    LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n"
-            + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=[$2], Total=[$3])\n"
+            + "  LogicalSort(sort0=[$4], dir0=[ASC])\n"
+            + "    LogicalUnion(all=[true])\n"
+            + "      LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], Total=[+($7, $5)],"
+            + " _addcoltotals_order_=[0])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "      LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=['ColTotal':VARCHAR(9)],"
+            + " Total=[null:DECIMAL(8, 2)], _addcoltotals_order_=[1])\n"
+            + "        LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n"
+            + "          LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         "DEPTNO=20; SAL=800.00; JOB=CLERK; Total=820.00\n"
@@ -461,12 +489,15 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `DEPTNO`, `SAL`, `JOB`, `DEPTNO` + `SAL` `Total`\n"
+        "SELECT `DEPTNO`, `SAL`, `JOB`, `Total`\n"
+            + "FROM (SELECT `DEPTNO`, `SAL`, `JOB`, `DEPTNO` + `SAL` `Total`, 0"
+            + " `_addcoltotals_order_`\n"
             + "FROM `scott`.`EMP`\n"
             + "UNION ALL\n"
             + "SELECT SUM(`DEPTNO`) `DEPTNO`, SUM(`SAL`) `SAL`, 'ColTotal' `JOB`, CAST(NULL AS"
-            + " DECIMAL(8, 2)) `Total`\n"
-            + "FROM `scott`.`EMP`";
+            + " DECIMAL(8, 2)) `Total`, 1 `_addcoltotals_order_`\n"
+            + "FROM `scott`.`EMP`)\n"
+            + "ORDER BY `_addcoltotals_order_` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
