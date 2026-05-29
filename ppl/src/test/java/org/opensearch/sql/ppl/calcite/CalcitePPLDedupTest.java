@@ -362,13 +362,11 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
 
   /**
    * When a user {@code where} precedes {@code dedup}, the user filter sits adjacent to the
-   * bucket-non-null filter that PPL emits for the dedup pattern. The HEP optimizer must run {@link
-   * PPLSimplifyDedupRule} before {@link FilterMergeRule}; otherwise the merged condition breaks the
-   * simplify-rule's operand match and dedup falls through to the in-memory {@code ROW_NUMBER}
-   * window form, defeating dedup pushdown to the shard.
-   *
-   * <p>This test mirrors the production HEP rule sequence in {@code CalciteToolsHelper#HEP_PROGRAM}
-   * and asserts that a {@code LogicalDedup} is produced in the presence of a user {@code where}.
+   * bucket-non-null filter that PPL emits for the dedup pattern. {@link PPLSimplifyDedupRule} must
+   * fold the dedup pattern into a {@link org.opensearch.sql.calcite.plan.rel.LogicalDedup} so that
+   * {@code DedupPushdownRule} can match it; otherwise dedup falls through to the in-memory {@code
+   * ROW_NUMBER} window form, defeating dedup pushdown to the shard. The user predicate must be
+   * preserved as a separate filter below the new {@code LogicalDedup}.
    */
   @Test
   public void testDedupAfterWhereProducesLogicalDedup() {
@@ -376,27 +374,25 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
     RelNode raw = getRelNodeRaw(ppl);
 
     // Sanity: the un-merged plan has both the bucket-non-null filter and the user where filter
-    // adjacent to each other above the scan — exactly the shape that triggers the bug.
+    // adjacent to each other above the scan — exactly the shape that triggered the original bug.
     String rawExplain = raw.explain();
     Assert.assertTrue(
         "Raw plan should contain the bucket-non-null filter:\n" + rawExplain,
         rawExplain.contains("IS NOT NULL"));
     Assert.assertTrue(
         "Raw plan should contain the user where filter:\n" + rawExplain,
-        rawExplain.contains("1000"));
+        rawExplain.contains(">($5, 1000)"));
     Assert.assertTrue(
         "Raw plan should contain ROW_NUMBER prior to simplification:\n" + rawExplain,
         rawExplain.contains("ROW_NUMBER"));
 
-    // Apply the production HEP rule sequence: PPLSimplifyDedupRule first, then FilterMergeRule.
+    // Apply rules in the order PPLSimplifyDedupRule -> FilterMergeRule.
     HepProgram program =
         new HepProgramBuilder()
             .addRuleInstance(PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE)
             .addRuleInstance(FilterMergeRule.Config.DEFAULT.toRule())
             .build();
-    HepPlanner planner = new HepPlanner(program);
-    planner.setRoot(raw);
-    RelNode optimized = planner.findBestExp();
+    RelNode optimized = runHepPlanner(raw, program);
 
     String optimizedExplain = optimized.explain();
     Assert.assertTrue(
@@ -406,40 +402,56 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
     Assert.assertFalse(
         "Optimized plan should not retain ROW_NUMBER after simplification:\n" + optimizedExplain,
         optimizedExplain.contains("ROW_NUMBER"));
+    Assert.assertTrue(
+        "User where predicate must be preserved as a filter below LogicalDedup:\n"
+            + optimizedExplain,
+        optimizedExplain.contains(">($5, 1000)"));
   }
 
   /**
-   * Companion to {@link #testDedupAfterWhereProducesLogicalDedup} that pins the buggy behavior:
-   * when {@link FilterMergeRule} runs before {@link PPLSimplifyDedupRule}, the merged conjunction
-   * defeats the simplify-rule's operand match and no {@code LogicalDedup} is produced. This guards
-   * against accidentally swapping the rule order in {@code CalciteToolsHelper#HEP_PROGRAM} back to
-   * the buggy ordering.
+   * Companion to {@link #testDedupAfterWhereProducesLogicalDedup} that pins the user-visible
+   * contract: with a {@code where} preceding {@code dedup}, a {@code LogicalDedup} must be produced
+   * regardless of the order in which {@link FilterMergeRule} and {@link PPLSimplifyDedupRule} fire.
+   *
+   * <p>The simplify rule's bucket-non-null operand predicate is order-independent — it accepts both
+   * a pure {@code IS NOT NULL} and an {@code AND} that contains an {@code IS NOT NULL} on a
+   * partition key — so {@code FilterMergeRule} firing first no longer disables dedup pushdown. This
+   * guards against re-introducing the original regression by reordering, removing, or adding rules
+   * to {@code CalciteToolsHelper#HEP_PROGRAM}.
    */
   @Test
-  public void testDedupAfterWhereWithFilterMergeFirstFailsToSimplify() {
+  public void testDedupAfterWhereProducesLogicalDedupRegardlessOfRuleOrder() {
     String ppl = "source=EMP | where SAL > 1000 | dedup DEPTNO";
     RelNode raw = getRelNodeRaw(ppl);
 
-    // Buggy order: FilterMergeRule first, then PPLSimplifyDedupRule.
+    // Swapped order: FilterMergeRule first, then PPLSimplifyDedupRule. This is the order that
+    // produced the original bug (#5482) before the fix.
     HepProgram program =
         new HepProgramBuilder()
             .addRuleInstance(FilterMergeRule.Config.DEFAULT.toRule())
             .addRuleInstance(PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE)
             .build();
-    HepPlanner planner = new HepPlanner(program);
-    planner.setRoot(raw);
-    RelNode optimized = planner.findBestExp();
+    RelNode optimized = runHepPlanner(raw, program);
 
     String optimizedExplain = optimized.explain();
-    Assert.assertFalse(
-        "Buggy order: PPLSimplifyDedupRule should not match after FilterMergeRule consolidates"
-            + " the bucket-non-null filter with the user where filter, so no LogicalDedup is"
-            + " produced:\n"
+    Assert.assertTrue(
+        "Even with FilterMergeRule firing first, PPLSimplifyDedupRule must still produce"
+            + " LogicalDedup so DedupPushdownRule can match it:\n"
             + optimizedExplain,
         optimizedExplain.contains("LogicalDedup"));
-    Assert.assertTrue(
-        "Buggy order: ROW_NUMBER window form should remain since simplification was skipped:\n"
-            + optimizedExplain,
+    Assert.assertFalse(
+        "ROW_NUMBER window form should be removed after simplification:\n" + optimizedExplain,
         optimizedExplain.contains("ROW_NUMBER"));
+    Assert.assertTrue(
+        "User where predicate must be preserved as a filter below LogicalDedup, even when"
+            + " FilterMergeRule fired first and folded it into the bucket-non-null filter:\n"
+            + optimizedExplain,
+        optimizedExplain.contains(">($5, 1000)"));
+  }
+
+  private static RelNode runHepPlanner(RelNode root, HepProgram program) {
+    HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(root);
+    return planner.findBestExp();
   }
 }
