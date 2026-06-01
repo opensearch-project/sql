@@ -66,6 +66,7 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.7.0
 * Bump Gradle wrapper to 9.4.1 and workaround `@Ignore` test failure ([#5414](https://github.com/opensearch-project/sql/pull/5414))
 * Fix link checker CI failure by excluding LinkedIn URLs ([#5461](https://github.com/opensearch-project/sql/pull/5461))
 * Integration test cases for field-level security ([#5008](https://github.com/opensearch-project/sql/pull/5008))
+* Skip `vectorSearch()` missing-plugin integration test when the k-NN plugin is installed, fixing the distribution integ-test run since distributions bundle k-NN ([#5492](https://github.com/opensearch-project/sql/pull/5492))
 
 ### Documentation
 
