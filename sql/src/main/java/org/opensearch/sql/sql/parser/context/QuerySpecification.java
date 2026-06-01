@@ -26,6 +26,8 @@ import lombok.Getter;
 import lombok.ToString;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.QualifiedName;
@@ -38,6 +40,7 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QuerySpecificatio
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectSpecContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import org.opensearch.sql.sql.parser.AstExpressionBuilder;
+import org.opensearch.sql.sql.parser.CompoundAggregateExpander;
 
 /**
  * Query specification domain that collects basic info for a simple query.
@@ -221,15 +224,40 @@ public class QuerySpecification {
 
     @Override
     public Void visitAggregateFunctionCall(AggregateFunctionCallContext ctx) {
-      aggregators.add(AstDSL.alias(getTextInQuery(ctx, queryString), visitAstExpression(ctx)));
+      UnresolvedExpression aggregateFunction = visitAstExpression(ctx);
+      if (CompoundAggregateExpander.isCompoundAggregate(aggregateFunction)) {
+        aggregators.addAll(expandCompoundAggregate((AggregateFunction) aggregateFunction));
+      } else {
+        aggregators.add(AstDSL.alias(getTextInQuery(ctx, queryString), aggregateFunction));
+      }
       return super.visitAggregateFunctionCall(ctx);
     }
 
     @Override
     public Void visitFilteredAggregationFunctionCall(FilteredAggregationFunctionCallContext ctx) {
       UnresolvedExpression aggregateFunction = visitAstExpression(ctx);
-      aggregators.add(AstDSL.alias(getTextInQuery(ctx, queryString), aggregateFunction));
+      if (CompoundAggregateExpander.isCompoundAggregate(aggregateFunction)) {
+        aggregators.addAll(expandCompoundAggregate((AggregateFunction) aggregateFunction));
+      } else {
+        aggregators.add(AstDSL.alias(getTextInQuery(ctx, queryString), aggregateFunction));
+      }
       return super.visitFilteredAggregationFunctionCall(ctx);
+    }
+
+    /** Expands a compound aggregate into its primitive aggregators (source-text named). */
+    private List<UnresolvedExpression> expandCompoundAggregate(AggregateFunction agg) {
+      List<UnresolvedExpression> primitives = new ArrayList<>();
+      for (UnresolvedExpression aliased :
+          CompoundAggregateExpander.expandAliased(
+              agg.getFuncName(),
+              agg.getField(),
+              agg.getField().toString(),
+              null,
+              agg.condition())) {
+        Alias innerAlias = (Alias) aliased;
+        primitives.add(AstDSL.alias(innerAlias.getName(), innerAlias.getDelegated()));
+      }
+      return primitives;
     }
 
     private boolean isDistinct(SelectSpecContext ctx) {

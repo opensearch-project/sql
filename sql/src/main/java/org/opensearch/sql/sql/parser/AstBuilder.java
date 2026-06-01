@@ -21,9 +21,11 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Function;
@@ -127,8 +129,28 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
     if (ctx.selectElements().star != null) { // TODO: project operator should be required?
       builder.add(AllFields.of());
     }
-    ctx.selectElements().selectElement().forEach(field -> builder.add(visitSelectItem(field)));
+    for (SelectElementContext element : ctx.selectElements().selectElement()) {
+      UnresolvedExpression item = visitSelectItem(element);
+      if (CompoundAggregateExpander.isCompoundAggregateAlias(item)) {
+        builder.addAll(expandCompoundAggregate(item));
+      } else {
+        builder.add(item);
+      }
+    }
     return new Project(builder.build());
+  }
+
+  /** Expands a compound aggregate ({@code STATS} / {@code EXTENDED_STATS}) into its primitives. */
+  private List<UnresolvedExpression> expandCompoundAggregate(UnresolvedExpression item) {
+    Alias alias = (Alias) item;
+    AggregateFunction agg = (AggregateFunction) alias.getDelegated();
+    String displayPrefix = alias.getAlias() != null ? alias.getAlias() : alias.getName();
+    return CompoundAggregateExpander.expandAliased(
+        agg.getFuncName(),
+        agg.getField(),
+        agg.getField().toString(),
+        displayPrefix,
+        agg.condition());
   }
 
   @Override

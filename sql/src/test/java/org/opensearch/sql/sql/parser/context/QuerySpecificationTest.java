@@ -22,6 +22,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
@@ -127,6 +128,45 @@ class QuerySpecificationTest {
                     qualifiedName("age"),
                     function(">", qualifiedName("age"), intLiteral(20))))),
         collect("SELECT AVG(age) FILTER(WHERE age > 20) FROM test").getAggregators());
+  }
+
+  @Test
+  void can_collect_compound_aggregate_as_expanded_primitives() {
+    assertEquals(
+        ImmutableSet.of(
+            alias("count(age)", aggregate("count", qualifiedName("age"))),
+            alias("sum(age)", aggregate("sum", qualifiedName("age"))),
+            alias("avg(age)", aggregate("avg", qualifiedName("age"))),
+            alias("min(age)", aggregate("min", qualifiedName("age"))),
+            alias("max(age)", aggregate("max", qualifiedName("age")))),
+        collect("SELECT STATS(age) FROM test").getAggregators());
+  }
+
+  @Test
+  void can_collect_filtered_compound_aggregate_with_propagated_condition() {
+    UnresolvedExpression condition = function(">", qualifiedName("age"), intLiteral(0));
+    assertEquals(
+        ImmutableSet.of(
+            alias("count(age)", filteredAggregate("count", qualifiedName("age"), condition)),
+            alias("sum(age)", filteredAggregate("sum", qualifiedName("age"), condition)),
+            alias("avg(age)", filteredAggregate("avg", qualifiedName("age"), condition)),
+            alias("min(age)", filteredAggregate("min", qualifiedName("age"), condition)),
+            alias("max(age)", filteredAggregate("max", qualifiedName("age"), condition))),
+        collect("SELECT STATS(age) FILTER(WHERE age > 0) FROM test").getAggregators());
+  }
+
+  @Test
+  void should_deduplicate_compound_aggregate_against_explicit_primitive() {
+    // The compound expansion's internal name format ensures the implicit avg(age) entry
+    // equals an explicit avg(age) — LinkedHashSet dedupes them into a single aggregator.
+    assertEquals(
+        ImmutableSet.of(
+            alias("count(age)", aggregate("count", qualifiedName("age"))),
+            alias("sum(age)", aggregate("sum", qualifiedName("age"))),
+            alias("avg(age)", aggregate("avg", qualifiedName("age"))),
+            alias("min(age)", aggregate("min", qualifiedName("age"))),
+            alias("max(age)", aggregate("max", qualifiedName("age")))),
+        collect("SELECT STATS(age), avg(age) FROM test").getAggregators());
   }
 
   private QuerySpecification collect(String query) {

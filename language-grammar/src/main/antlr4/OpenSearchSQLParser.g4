@@ -500,6 +500,8 @@ aggregationFunctionName
    | STDDEV
    | STDDEV_POP
    | STDDEV_SAMP
+   | STATS
+   | EXTENDED_STATS
    ;
 
 mathematicalFunctionName
