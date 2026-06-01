@@ -17,6 +17,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
+import org.opensearch.analytics.exec.profile.ProfiledResult;
 import org.opensearch.analytics.schema.BinaryType;
 import org.opensearch.analytics.schema.IpType;
 import org.opensearch.common.network.InetAddresses;
@@ -143,6 +144,52 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     } catch (Exception e) {
       listener.onFailure(e);
     }
+  }
+
+  /**
+   * Executes the query with profiling enabled. Returns results + stage timing profile. Called when
+   * {@code profile=true} is set on the request.
+   */
+  public void executeWithProfile(
+      RelNode plan,
+      CalcitePlanContext context,
+      org.opensearch.analytics.QueryRequestContext queryCtx,
+      ResponseListener<QueryResponse> listener) {
+
+    planExecutor.executeWithProfile(
+        plan,
+        queryCtx,
+        new ActionListener<>() {
+          @Override
+          public void onResponse(ProfiledResult result) {
+            try {
+              // ProfiledResult delivers the profile on BOTH success and failure paths
+              // so users get stage timing visibility even when a query partially fails.
+              QueryResponse response = buildProfiledResponse(plan, result);
+              listener.onResponse(response);
+            } catch (Exception e) {
+              listener.onFailure(e);
+            }
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            listener.onFailure(e);
+          }
+        });
+  }
+
+  private QueryResponse buildProfiledResponse(RelNode plan, ProfiledResult result) {
+    List<RelDataTypeField> fields = plan.getRowType().getFieldList();
+    Schema schema = buildSchema(fields);
+    List<ExprValue> results =
+        result.rows() != null ? convertRows(result.rows(), fields) : List.of();
+    QueryResponse response = new QueryResponse(schema, results, Cursor.None);
+    response.setProfile(result.profile());
+    if (!result.isSuccess()) {
+      response.setError(result.failure());
+    }
+    return response;
   }
 
   private List<ExprValue> convertRows(Iterable<Object[]> rows, List<RelDataTypeField> fields) {

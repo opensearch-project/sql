@@ -525,6 +525,43 @@ testClusters.analyticsEngineSecurityIT {
 
 configureSecurityPlugin(testClusters.analyticsEngineSecurityIT)
 
+task analyticsEngineProfileIT(type: RestIntegTestTask) {
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip, downloadAnalyticsBackendLuceneZip, downloadParquetDataFormatZip, downloadCompositeEngineZip, downloadAnalyticsBackendDatafusionZip
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.analytics.AnalyticsEngineProfileIT'
+    }
+}
+
+testClusters.analyticsEngineProfileIT {
+    testDistribution = 'archive'
+    plugin(getJobSchedulerPlugin())
+    plugin(getArrowBasePlugin())
+    plugin(getArrowFlightRpcPlugin())
+    plugin(getAnalyticsEnginePlugin())
+    plugin(getAnalyticsBackendLucenePlugin())
+    plugin(getAnalyticsBackendDatafusionPlugin())
+    plugin(getParquetDataFormatPlugin())
+    plugin(getCompositeEnginePlugin())
+    plugin ":opensearch-sql-plugin"
+    // Arrow Flight / streaming transport requirements
+    jvmArgs '--add-opens=java.base/java.nio=ALL-UNNAMED'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    systemProperty 'io.netty.allocator.numDirectArenas', '1'
+    systemProperty 'io.netty.noUnsafe', 'false'
+    systemProperty 'io.netty.tryUnsafe', 'true'
+    systemProperty 'io.netty.tryReflectionSetAccessible', 'true'
+    systemProperty 'opensearch.experimental.feature.pluggable.dataformat.enabled', 'true'
+    systemProperty 'opensearch.experimental.feature.transport.stream.enabled', 'true'
+    // Native library path for DataFusion/parquet — pass via -PnativeLibPath=/path/to/release/
+    if (project.findProperty('nativeLibPath')) {
+        systemProperty 'java.library.path', project.findProperty('nativeLibPath')
+    }
+}
+
 task integJdbcTest(type: RestIntegTestTask) {
     testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().with {
         plugin ":opensearch-sql-plugin"
@@ -707,6 +744,9 @@ integTest {
 
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
     exclude 'org/opensearch/sql/correctness/**'
+
+    // Exclude tests that require the analytics engine plugin stack (run separately via dedicated tasks)
+    exclude 'org/opensearch/sql/analytics/AnalyticsEngineProfileIT.class'
 
     // Explain IT is dependent on internal implementation of old engine so it's not necessary
     // to run these with new engine and not necessary to make this consistent with old engine.

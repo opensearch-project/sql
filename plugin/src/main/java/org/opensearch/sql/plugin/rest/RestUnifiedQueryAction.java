@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
+import org.opensearch.analytics.exec.profile.QueryProfile;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
@@ -137,7 +138,10 @@ public class RestUnifiedQueryAction {
                   // schema we plan against and the state the executor uses are the same view.
                   org.opensearch.analytics.QueryRequestContext queryCtx =
                       contextProvider.getContext();
-                  UnifiedQueryContext context = buildContext(queryType, profiling, queryCtx);
+                  // Disable SQL-layer phase profiling when analytics engine profiling is active.
+                  // Our QueryProfile (stages, tasks, timing) is strictly more detailed and replaces
+                  // it.
+                  UnifiedQueryContext context = buildContext(queryType, false, queryCtx);
                   ActionListener<TransportPPLQueryResponse> closingListener =
                       wrapWithContextClose(context, listener);
                   try {
@@ -145,11 +149,19 @@ public class RestUnifiedQueryAction {
                     RelNode plan = planner.plan(query);
                     CalcitePlanContext planContext = context.getPlanContext();
                     plan = addQuerySizeLimit(plan, planContext);
-                    analyticsEngine.execute(
-                        plan,
-                        planContext,
-                        queryCtx,
-                        createQueryListener(queryType, closingListener));
+                    if (profiling) {
+                      analyticsEngine.executeWithProfile(
+                          plan,
+                          planContext,
+                          queryCtx,
+                          createQueryListener(queryType, closingListener));
+                    } else {
+                      analyticsEngine.execute(
+                          plan,
+                          planContext,
+                          queryCtx,
+                          createQueryListener(queryType, closingListener));
+                    }
                   } catch (Exception e) {
                     closingListener.onFailure(e);
                   }
@@ -270,6 +282,10 @@ public class RestUnifiedQueryAction {
             formatter.format(
                 new QueryResult(
                     response.getSchema(), response.getResults(), response.getCursor(), langSpec));
+        if (response.getProfile() != null) {
+          // Append profile and error (if any) to the JSON response
+          result = appendProfileToJson(result, response.getProfile(), response.getError());
+        }
         transportListener.onResponse(new TransportPPLQueryResponse(result));
       }
 
@@ -278,6 +294,32 @@ public class RestUnifiedQueryAction {
         transportListener.onFailure(e);
       }
     };
+  }
+
+  private static String appendProfileToJson(String json, QueryProfile profile, Throwable error) {
+    try {
+      StringBuilder extra = new StringBuilder();
+      // Append profile
+      org.opensearch.core.xcontent.XContentBuilder builder =
+          org.opensearch.common.xcontent.XContentFactory.jsonBuilder();
+      profile.toXContent(builder, org.opensearch.core.xcontent.ToXContent.EMPTY_PARAMS);
+      extra.append(",\"profile\":").append(builder.toString());
+      // Append error if query partially failed
+      if (error != null) {
+        extra
+            .append(",\"error\":{\"type\":\"")
+            .append(error.getClass().getSimpleName())
+            .append("\",\"reason\":\"")
+            .append(error.getMessage() != null ? error.getMessage().replace("\"", "\\\"") : "")
+            .append("\"}");
+      }
+      if (json.endsWith("}")) {
+        return json.substring(0, json.length() - 1) + extra + "}";
+      }
+      return json;
+    } catch (Exception e) {
+      return json;
+    }
   }
 
   private static Runnable withCurrentContext(final Runnable task) {
