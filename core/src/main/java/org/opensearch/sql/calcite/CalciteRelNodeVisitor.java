@@ -2115,9 +2115,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    * Rewrites {@code eventstats} from a per-row {@link org.apache.calcite.rex.RexOver} window into a
    * cross-join (or partition-key join) against a precomputed aggregate over the same input. The
    * aggregate sits below the join, so {@code AggregateIndexScanRule.AGGREGATE_SCAN} (no-{@code BY})
-   * or {@code AggregateIndexScanRule.DEFAULT} / {@code BUCKET_NON_NULL_AGG} ({@code BY}) can push it
-   * to OpenSearch as {@code size:0+track_total_hits} or a {@code terms} aggregation. Without this
-   * rewrite the {@code RexOver} blocks every pushdown rule and the coordinator streams every
+   * or {@code AggregateIndexScanRule.DEFAULT} / {@code BUCKET_NON_NULL_AGG} ({@code BY}) can push
+   * it to OpenSearch as {@code size:0+track_total_hits} or a {@code terms} aggregation. Without
+   * this rewrite the {@code RexOver} blocks every pushdown rule and the coordinator streams every
    * matching document just to count it.
    *
    * <p>The rewrite preserves the row type {@code [original cols, agg cols]} that the legacy
@@ -2194,8 +2194,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       joinCondition = context.relBuilder.and(perKeyConditions);
     }
 
-    JoinRelType joinType =
-        (hasGroup && !bucketNullable) ? JoinRelType.LEFT : JoinRelType.INNER;
+    JoinRelType joinType = (hasGroup && !bucketNullable) ? JoinRelType.LEFT : JoinRelType.INNER;
     context.relBuilder.join(joinType, joinCondition);
 
     // Final projection: keep all original left columns, then append the aggregate output columns
@@ -2221,17 +2220,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   /**
    * Returns true if {@code node} matches the shape PPL {@code eventstats} actually emits — all
-   * window functions resolve to a registered aggregation (no {@code ROW_NUMBER} / {@code LAG} /
-   * etc.), no {@code ORDER BY}, default frame, and all partition keys are bare field references.
-   * Anything outside that shape falls through to the legacy {@code RexOver} lowering, preserving
-   * existing behavior for any future {@link Window} producer.
+   * window functions resolve to a windowable aggregation (present in both {@link
+   * BuiltinFunctionName#ofWindowFunction} and {@link BuiltinFunctionName#ofAggregation}), no
+   * {@code ORDER BY}, default frame, and all partition keys are simple (non-dotted) field
+   * references. Anything outside that shape falls through to the legacy {@code RexOver} lowering,
+   * preserving existing behavior — including the {@code Unexpected window function} error for
+   * non-windowable aggregates like {@code percentile} (window-map miss), the legacy {@code
+   * ROW_NUMBER} window form (aggregation-map miss), {@code dc} / {@code distinct_count} which are
+   * only registered under their window names, and dotted-path BY keys (e.g. {@code by
+   * doc.user.city}) which would need nested-field resolution in the join condition.
    *
    * <p>PPL's {@code AstExpressionBuilder.visitWindowFunction} wraps the parsed function in a {@link
    * WindowFunction} whose inner expression is a {@link Function} (not {@link AggregateFunction}) —
    * SQL emits {@link AggregateFunction} for aggregate-as-window — so the predicate accepts either
-   * and classifies via {@link BuiltinFunctionName#ofAggregation(String)}, which is what {@code
-   * CalciteRexNodeVisitor.visitWindowFunction} also relies on to distinguish aggregate windows from
-   * pure window functions like {@code ROW_NUMBER}.
+   * inner type and classifies by function name. Requiring presence in both maps is the cleanest
+   * intersection: windowable AND resolvable as a regular aggregate.
    */
   private static boolean canRewriteWindowAsAggregateJoin(Window node) {
     if (node.getWindowFunctionList().isEmpty()) {
@@ -2243,7 +2246,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         return false;
       }
       String funcName = extractAggregateFunctionName(wf.getFunction());
-      if (funcName == null || BuiltinFunctionName.ofAggregation(funcName).isEmpty()) {
+      if (funcName == null
+          || BuiltinFunctionName.ofWindowFunction(funcName).isEmpty()
+          || BuiltinFunctionName.ofAggregation(funcName).isEmpty()) {
         return false;
       }
       if (!wf.getSortList().isEmpty()) {
@@ -2274,14 +2279,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return null;
   }
 
+  /**
+   * A bare, simple (non-dotted) field reference. Dotted paths like {@code doc.user.city} are
+   * rejected here because the join condition references the partition key by field name via
+   * {@code relBuilder.field(2, side, name)}, which does not perform nested-field resolution.
+   */
   private static boolean isBareFieldReference(UnresolvedExpression expr) {
-    if (expr instanceof Field || expr instanceof QualifiedName) {
-      return true;
+    if (expr instanceof Field f) {
+      return isSimpleQualifiedName(f.getField());
+    }
+    if (expr instanceof QualifiedName qn) {
+      return isSimpleQualifiedName(qn);
     }
     if (expr instanceof Alias a) {
       return isBareFieldReference(a.getDelegated());
     }
     return false;
+  }
+
+  private static boolean isSimpleQualifiedName(UnresolvedExpression nameExpr) {
+    return nameExpr instanceof QualifiedName qn
+        && qn.getParts() != null
+        && qn.getParts().size() == 1;
   }
 
   /**

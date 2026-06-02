@@ -111,7 +111,8 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
             + " earliest_message=[$6], cnt=[$7])\n"
             + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
             + "    LogicalTableScan(table=[[POST, LOGS]])\n"
-            + "    LogicalAggregate(group=[{0}], earliest_message=[ARG_MIN($1, $2)], cnt=[COUNT()])\n"
+            + "    LogicalAggregate(group=[{0}], earliest_message=[ARG_MIN($1, $2)],"
+            + " cnt=[COUNT()])\n"
             + "      LogicalProject(server=[$0], message=[$2], @timestamp=[$3])\n"
             + "        LogicalTableScan(table=[[POST, LOGS]])\n";
     verifyLogical(root, expectedLogical);
