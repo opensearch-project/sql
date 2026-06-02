@@ -2221,14 +2221,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   /**
    * Returns true if {@code node} matches the shape PPL {@code eventstats} actually emits — all
    * window functions resolve to a windowable aggregation (present in both {@link
-   * BuiltinFunctionName#ofWindowFunction} and {@link BuiltinFunctionName#ofAggregation}), no
-   * {@code ORDER BY}, default frame, and all partition keys are simple (non-dotted) field
-   * references. Anything outside that shape falls through to the legacy {@code RexOver} lowering,
-   * preserving existing behavior — including the {@code Unexpected window function} error for
-   * non-windowable aggregates like {@code percentile} (window-map miss), the legacy {@code
-   * ROW_NUMBER} window form (aggregation-map miss), {@code dc} / {@code distinct_count} which are
-   * only registered under their window names, and dotted-path BY keys (e.g. {@code by
-   * doc.user.city}) which would need nested-field resolution in the join condition.
+   * BuiltinFunctionName#ofWindowFunction} and {@link BuiltinFunctionName#ofAggregation}), no {@code
+   * ORDER BY}, default frame, and all partition keys are simple (non-dotted) field references.
+   * Anything outside that shape falls through to the legacy {@code RexOver} lowering, preserving
+   * existing behavior — including the {@code Unexpected window function} error for non-windowable
+   * aggregates like {@code percentile} (window-map miss), the legacy {@code ROW_NUMBER} window form
+   * (aggregation-map miss), {@code dc} / {@code distinct_count} which are only registered under
+   * their window names, and dotted-path BY keys (e.g. {@code by doc.user.city}) which would need
+   * nested-field resolution in the join condition.
    *
    * <p>PPL's {@code AstExpressionBuilder.visitWindowFunction} wraps the parsed function in a {@link
    * WindowFunction} whose inner expression is a {@link Function} (not {@link AggregateFunction}) —
@@ -2281,8 +2281,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   /**
    * A bare, simple (non-dotted) field reference. Dotted paths like {@code doc.user.city} are
-   * rejected here because the join condition references the partition key by field name via
-   * {@code relBuilder.field(2, side, name)}, which does not perform nested-field resolution.
+   * rejected here because the join condition references the partition key by field name via {@code
+   * relBuilder.field(2, side, name)}, which does not perform nested-field resolution.
    */
   private static boolean isBareFieldReference(UnresolvedExpression expr) {
     if (expr instanceof Field f) {
