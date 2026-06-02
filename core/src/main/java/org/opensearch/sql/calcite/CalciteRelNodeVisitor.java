@@ -2105,6 +2105,204 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitWindow(Window node, CalcitePlanContext context) {
+    if (canRewriteWindowAsAggregateJoin(node)) {
+      return rewriteWindowAsAggregateJoin(node, context);
+    }
+    return visitWindowAsRexOver(node, context);
+  }
+
+  /**
+   * Rewrites {@code eventstats} from a per-row {@link org.apache.calcite.rex.RexOver} window into a
+   * cross-join (or partition-key join) against a precomputed aggregate over the same input. The
+   * aggregate sits below the join, so {@code AggregateIndexScanRule.AGGREGATE_SCAN} (no-{@code BY})
+   * or {@code AggregateIndexScanRule.DEFAULT} / {@code BUCKET_NON_NULL_AGG} ({@code BY}) can push it
+   * to OpenSearch as {@code size:0+track_total_hits} or a {@code terms} aggregation. Without this
+   * rewrite the {@code RexOver} blocks every pushdown rule and the coordinator streams every
+   * matching document just to count it.
+   *
+   * <p>The rewrite preserves the row type {@code [original cols, agg cols]} that the legacy
+   * lowering produced, so downstream consumers (limit, head, fields) see the same shape.
+   *
+   * <p>NULL-bucket semantics are preserved across both shapes:
+   *
+   * <ul>
+   *   <li>{@code bucketNullable=true}: NULL-keyed rows form a single bucket. The join uses {@code
+   *       (left.k = right.k) OR (left.k IS NULL AND right.k IS NULL)} (i.e. {@code IS NOT DISTINCT
+   *       FROM}) on each partition key, and the right aggregate keeps NULL group rows.
+   *   <li>{@code bucketNullable=false}: NULL-keyed rows are excluded from any bucket and the
+   *       eventstats column reads NULL for them. The right aggregate filters {@code IS NOT NULL} on
+   *       each partition key before grouping, and the join is {@code LEFT} on simple equality —
+   *       NULL-keyed left rows have no match and get NULL appended.
+   * </ul>
+   */
+  private RelNode rewriteWindowAsAggregateJoin(Window node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    RelNode leftInput = context.relBuilder.build();
+
+    List<UnresolvedExpression> groupList = node.getGroupList();
+    boolean hasGroup = groupList != null && !groupList.isEmpty();
+    boolean bucketNullable = node.isBucketNullable();
+
+    // Build right side: aggregate over a re-pushed copy of the left input. Each entry in
+    // windowFunctionList is Alias(WindowFunction(AggregateFunction)); strip the WindowFunction so
+    // aggVisitor sees a regular Alias(AggregateFunction) — the same shape stats lowers.
+    List<UnresolvedExpression> aggExprList =
+        node.getWindowFunctionList().stream().map(this::stripWindowFunctionForAggregate).toList();
+    context.relBuilder.push(leftInput);
+    if (hasGroup && !bucketNullable) {
+      List<RexNode> groupRex =
+          groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+      List<RexNode> isNotNullList =
+          PlanUtils.getSelectColumns(groupRex).stream()
+              .map(context.relBuilder::field)
+              .map(context.relBuilder::isNotNull)
+              .toList();
+      if (!isNotNullList.isEmpty()) {
+        context.relBuilder.filter(isNotNullList);
+      }
+    }
+    aggregateWithTrimming(groupList, aggExprList, context, !bucketNullable);
+    RelNode rightAggregate = context.relBuilder.build();
+
+    // Join left and right. Cross-join for no-BY (right is a single scalar row); equi-join on each
+    // partition key for BY. The condition for bucketNullable=true is IS NOT DISTINCT FROM so the
+    // NULL bucket on each side matches; LEFT for bucketNullable=false so NULL-keyed left rows
+    // survive with NULL aggregate values (right has no NULL bucket to match).
+    context.relBuilder.push(leftInput);
+    context.relBuilder.push(rightAggregate);
+    int leftFieldCount = leftInput.getRowType().getFieldCount();
+
+    RexNode joinCondition;
+    if (!hasGroup) {
+      joinCondition = context.relBuilder.literal(true);
+    } else {
+      List<RexNode> perKeyConditions = new ArrayList<>();
+      for (UnresolvedExpression groupExpr : groupList) {
+        String keyName = extractFieldName(groupExpr);
+        RexNode leftKey = context.relBuilder.field(2, 0, keyName);
+        RexNode rightKey = context.relBuilder.field(2, 1, keyName);
+        RexNode eq = context.relBuilder.equals(leftKey, rightKey);
+        if (bucketNullable) {
+          RexNode bothNull =
+              context.relBuilder.and(
+                  context.relBuilder.isNull(leftKey), context.relBuilder.isNull(rightKey));
+          perKeyConditions.add(context.relBuilder.or(eq, bothNull));
+        } else {
+          perKeyConditions.add(eq);
+        }
+      }
+      joinCondition = context.relBuilder.and(perKeyConditions);
+    }
+
+    JoinRelType joinType =
+        (hasGroup && !bucketNullable) ? JoinRelType.LEFT : JoinRelType.INNER;
+    context.relBuilder.join(joinType, joinCondition);
+
+    // Final projection: keep all original left columns, then append the aggregate output columns
+    // (skipping the right-side group key columns). The output row type matches what the legacy
+    // RexOver lowering produced: [left cols ..., agg outputs ...] with the user-supplied aliases.
+    int rightGroupKeyCount = hasGroup ? groupList.size() : 0;
+    int aggCount = node.getWindowFunctionList().size();
+    List<RexNode> finalProjects = new ArrayList<>();
+    List<String> finalNames = new ArrayList<>();
+    List<String> leftNames = leftInput.getRowType().getFieldNames();
+    for (int i = 0; i < leftFieldCount; i++) {
+      finalProjects.add(context.relBuilder.field(i));
+      finalNames.add(leftNames.get(i));
+    }
+    int rightAggStart = leftFieldCount + rightGroupKeyCount;
+    for (int i = 0; i < aggCount; i++) {
+      finalProjects.add(context.relBuilder.field(rightAggStart + i));
+      finalNames.add(extractAliasName(node.getWindowFunctionList().get(i)));
+    }
+    context.relBuilder.project(finalProjects, finalNames);
+    return context.relBuilder.peek();
+  }
+
+  /**
+   * Returns true if {@code node} matches the shape PPL {@code eventstats} actually emits — all
+   * window functions are aggregate functions (no {@code ROW_NUMBER} / {@code LAG} / etc.), no
+   * {@code ORDER BY}, default frame, and all partition keys are bare field references. Anything
+   * outside that shape falls through to the legacy {@code RexOver} lowering, preserving existing
+   * behavior for any future {@link Window} producer.
+   */
+  private static boolean canRewriteWindowAsAggregateJoin(Window node) {
+    if (node.getWindowFunctionList().isEmpty()) {
+      return false;
+    }
+    for (UnresolvedExpression expr : node.getWindowFunctionList()) {
+      UnresolvedExpression inner = (expr instanceof Alias a) ? a.getDelegated() : expr;
+      if (!(inner instanceof WindowFunction wf)) {
+        return false;
+      }
+      if (!(wf.getFunction() instanceof AggregateFunction)) {
+        return false;
+      }
+      if (!wf.getSortList().isEmpty()) {
+        return false;
+      }
+      if (wf.getWindowFrame() != null
+          && !Objects.equals(wf.getWindowFrame(), WindowFrame.rowsUnbounded())) {
+        return false;
+      }
+    }
+    if (node.getGroupList() != null) {
+      for (UnresolvedExpression expr : node.getGroupList()) {
+        if (!isBareFieldReference(expr)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private static boolean isBareFieldReference(UnresolvedExpression expr) {
+    if (expr instanceof Field || expr instanceof QualifiedName) {
+      return true;
+    }
+    if (expr instanceof Alias a) {
+      return isBareFieldReference(a.getDelegated());
+    }
+    return false;
+  }
+
+  /**
+   * Strips the {@link WindowFunction} wrapper from an eventstats aggregate so {@code aggVisitor}
+   * resolves it as a regular aggregate. Preserves the outer {@link Alias} so the aggregate output
+   * keeps its user-visible name (e.g. {@code count() as total}).
+   */
+  private UnresolvedExpression stripWindowFunctionForAggregate(UnresolvedExpression expr) {
+    if (expr instanceof Alias a) {
+      return new Alias(a.getName(), stripWindowFunctionForAggregate(a.getDelegated()));
+    }
+    if (expr instanceof WindowFunction wf) {
+      return wf.getFunction();
+    }
+    return expr;
+  }
+
+  private static String extractFieldName(UnresolvedExpression expr) {
+    if (expr instanceof Field f) {
+      return f.getField().toString();
+    }
+    if (expr instanceof QualifiedName qn) {
+      return qn.toString();
+    }
+    if (expr instanceof Alias a) {
+      return extractFieldName(a.getDelegated());
+    }
+    throw new IllegalArgumentException(
+        "Cannot extract field name from non-field expression: " + expr);
+  }
+
+  private static String extractAliasName(UnresolvedExpression expr) {
+    if (expr instanceof Alias a) {
+      return a.getName();
+    }
+    return expr.toString();
+  }
+
+  private RelNode visitWindowAsRexOver(Window node, CalcitePlanContext context) {
     visitChildren(node, context);
 
     List<UnresolvedExpression> groupList = node.getGroupList();
