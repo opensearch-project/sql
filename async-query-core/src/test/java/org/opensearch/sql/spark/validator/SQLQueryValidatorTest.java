@@ -11,7 +11,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
-import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -564,11 +563,111 @@ class SQLQueryValidatorTest {
   }
 
   @Test
-  void testValidateFlintExtensionQuery() {
+  void testValidateFlintExtensionQuery_safeQuery() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
     assertDoesNotThrow(
         () ->
             sqlQueryValidator.validateFlintExtensionQuery(
-                UUID.randomUUID().toString(), DataSourceType.SECURITY_LAKE));
+                "CREATE MATERIALIZED VIEW mv AS select * from table WITH (auto_refresh = false)",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_blocksTransformInMV() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE MATERIALIZED VIEW mv AS SELECT TRANSFORM(id) USING 'cmd' AS x FROM tbl"
+                    + " WITH (auto_refresh = false)",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_blocksReflectInMV() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE MATERIALIZED VIEW mv AS SELECT reflect('java.lang.System', 'getenv',"
+                    + " 'PATH') FROM tbl WITH (auto_refresh = false)",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_nonMVStatementsPass() {
+    assertDoesNotThrow(
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "DROP MATERIALIZED VIEW mv", DataSourceType.S3GLUE));
+    assertDoesNotThrow(
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "REFRESH MATERIALIZED VIEW mv", DataSourceType.S3GLUE));
+    assertDoesNotThrow(
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE SKIPPING INDEX ON tbl (col VALUE_SET)", DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_mvWithWindowFunction() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    assertDoesNotThrow(
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE MATERIALIZED VIEW ds.default.mv AS SELECT window.start AS `start.time`,"
+                    + " COUNT(*) AS count FROM ds.default.http_logs WHERE status != 200"
+                    + " GROUP BY window(`@timestamp`, '1 Minutes')"
+                    + " WITH (auto_refresh = true, refresh_interval = '1 Minutes',"
+                    + " checkpoint_location = 's3://bucket/checkpoint',"
+                    + " watermark_delay = '10 Minutes')",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_mvWithTumbleFunction() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    assertDoesNotThrow(
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE MATERIALIZED VIEW ds.default.mv AS SELECT window.start AS `start.time`,"
+                    + " COUNT(*) AS count FROM ds.default.http_logs WHERE status != 200"
+                    + " GROUP BY TUMBLE(`@timestamp`, '6 Hours')"
+                    + " WITH (auto_refresh = false)",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_mvWithHopFunction() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    assertDoesNotThrow(
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE MATERIALIZED VIEW ds.default.mv AS SELECT window.start AS `start.time`,"
+                    + " COUNT(*) AS count FROM ds.default.http_logs"
+                    + " GROUP BY HOP(`@timestamp`, '5 Minutes', '10 Minutes')"
+                    + " WITH (auto_refresh = false)",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_coveringIndexPass() {
+    assertDoesNotThrow(
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE INDEX idx ON ds.default.http_logs (status, day, clientip)"
+                    + " WITH (auto_refresh = true, refresh_interval = '5 minute',"
+                    + " checkpoint_location = 's3://bucket/checkpoint')",
+                DataSourceType.S3GLUE));
   }
 
   @Test
