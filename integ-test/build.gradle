@@ -770,7 +770,7 @@ integTest {
     // (:analyticsEngineCompatIT) against a cluster that bundles the analytics-engine plugin
     // stack. Running it here against the plain integTest/remoteCluster (no analytics-engine)
     // is pointless and leaves it exposed to suite-wide infra flakiness.
-    exclude 'org/opensearch/sql/plugin/**'
+    exclude 'org/opensearch/sql/plugin/AnalyticsEngineCompatIT.class'
 
     // Workaround for Gradle 9.4.1 ClassCastException in TestEventReporterAsListener.started
     // (line 58) — the bridge casts a parent test descriptor's reporter to
