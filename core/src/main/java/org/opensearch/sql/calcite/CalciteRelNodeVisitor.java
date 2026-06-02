@@ -2221,10 +2221,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   /**
    * Returns true if {@code node} matches the shape PPL {@code eventstats} actually emits — all
-   * window functions are aggregate functions (no {@code ROW_NUMBER} / {@code LAG} / etc.), no
-   * {@code ORDER BY}, default frame, and all partition keys are bare field references. Anything
-   * outside that shape falls through to the legacy {@code RexOver} lowering, preserving existing
-   * behavior for any future {@link Window} producer.
+   * window functions resolve to a registered aggregation (no {@code ROW_NUMBER} / {@code LAG} /
+   * etc.), no {@code ORDER BY}, default frame, and all partition keys are bare field references.
+   * Anything outside that shape falls through to the legacy {@code RexOver} lowering, preserving
+   * existing behavior for any future {@link Window} producer.
+   *
+   * <p>PPL's {@code AstExpressionBuilder.visitWindowFunction} wraps the parsed function in a {@link
+   * WindowFunction} whose inner expression is a {@link Function} (not {@link AggregateFunction}) —
+   * SQL emits {@link AggregateFunction} for aggregate-as-window — so the predicate accepts either
+   * and classifies via {@link BuiltinFunctionName#ofAggregation(String)}, which is what {@code
+   * CalciteRexNodeVisitor.visitWindowFunction} also relies on to distinguish aggregate windows from
+   * pure window functions like {@code ROW_NUMBER}.
    */
   private static boolean canRewriteWindowAsAggregateJoin(Window node) {
     if (node.getWindowFunctionList().isEmpty()) {
@@ -2235,7 +2242,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (!(inner instanceof WindowFunction wf)) {
         return false;
       }
-      if (!(wf.getFunction() instanceof AggregateFunction)) {
+      String funcName = extractAggregateFunctionName(wf.getFunction());
+      if (funcName == null || BuiltinFunctionName.ofAggregation(funcName).isEmpty()) {
         return false;
       }
       if (!wf.getSortList().isEmpty()) {
@@ -2256,6 +2264,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return true;
   }
 
+  private static String extractAggregateFunctionName(UnresolvedExpression fn) {
+    if (fn instanceof AggregateFunction af) {
+      return af.getFuncName();
+    }
+    if (fn instanceof Function f) {
+      return f.getFuncName();
+    }
+    return null;
+  }
+
   private static boolean isBareFieldReference(UnresolvedExpression expr) {
     if (expr instanceof Field || expr instanceof QualifiedName) {
       return true;
@@ -2269,14 +2287,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   /**
    * Strips the {@link WindowFunction} wrapper from an eventstats aggregate so {@code aggVisitor}
    * resolves it as a regular aggregate. Preserves the outer {@link Alias} so the aggregate output
-   * keeps its user-visible name (e.g. {@code count() as total}).
+   * keeps its user-visible name (e.g. {@code count() as total}). PPL emits the inner expression as
+   * {@link Function} (not {@link AggregateFunction}) for eventstats; {@code aggVisitor} only knows
+   * how to resolve {@link AggregateFunction}, so a {@link Function} is converted here using its
+   * first argument as the aggregate field and remaining arguments as {@code argList}.
    */
   private UnresolvedExpression stripWindowFunctionForAggregate(UnresolvedExpression expr) {
     if (expr instanceof Alias a) {
       return new Alias(a.getName(), stripWindowFunctionForAggregate(a.getDelegated()));
     }
     if (expr instanceof WindowFunction wf) {
-      return wf.getFunction();
+      UnresolvedExpression fn = wf.getFunction();
+      if (fn instanceof AggregateFunction) {
+        return fn;
+      }
+      if (fn instanceof Function f) {
+        List<UnresolvedExpression> args = f.getFuncArgs();
+        UnresolvedExpression field = args.isEmpty() ? null : args.get(0);
+        List<UnresolvedExpression> argList =
+            args.size() <= 1 ? List.of() : args.subList(1, args.size());
+        AggregateFunction agg = new AggregateFunction(f.getFuncName(), field, argList);
+        return agg;
+      }
+      return fn;
     }
     return expr;
   }

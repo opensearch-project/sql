@@ -31,13 +31,13 @@ public class CalcitePPLEventstatsTest extends CalcitePPLAbstractTest {
   public void testEventstatsCount() {
     String ppl = "source=EMP | eventstats count()";
     RelNode root = getRelNode(ppl);
+    // The final projection (8 passthrough left cols + 1 right agg col) is a no-op rename in the
+    // no-BY case, so Calcite folds it away; the root rel is the join directly.
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], count()=[$8])\n"
-            + "  LogicalJoin(condition=[true], joinType=[inner])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "    LogicalAggregate(group=[{}], count()=[COUNT()])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalJoin(condition=[true], joinType=[inner])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalAggregate(group=[{}], count()=[COUNT()])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
 
@@ -45,13 +45,14 @@ public class CalcitePPLEventstatsTest extends CalcitePPLAbstractTest {
   public void testEventstatsBy() {
     String ppl = "source=EMP | eventstats max(SAL) by DEPTNO";
     RelNode root = getRelNode(ppl);
-    // bucketNullable defaults to true, so the join keeps the NULL bucket via IS NOT DISTINCT FROM
-    // semantics: `(left.DEPTNO = right.DEPTNO) OR (left.DEPTNO IS NULL AND right.DEPTNO IS NULL)`.
+    // bucketNullable defaults to true, so the join keeps the NULL bucket: the rewrite emits
+    // `(left.DEPTNO = right.DEPTNO) OR (left.DEPTNO IS NULL AND right.DEPTNO IS NULL)`, which
+    // Calcite canonicalizes to the equivalent `IS NOT DISTINCT FROM` operator. The outer Project
+    // is preserved because we must drop the right-side group-key column ($8).
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
             + " COMM=[$6], DEPTNO=[$7], max(SAL)=[$9])\n"
-            + "  LogicalJoin(condition=[OR(=($7, $8), AND(IS NULL($7), IS NULL($8)))],"
-            + " joinType=[inner])\n"
+            + "  LogicalJoin(condition=[IS NOT DISTINCT FROM($7, $8)], joinType=[inner])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n"
             + "    LogicalAggregate(group=[{0}], max(SAL)=[MAX($1)])\n"
             + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
@@ -63,16 +64,15 @@ public class CalcitePPLEventstatsTest extends CalcitePPLAbstractTest {
   public void testEventstatsAvg() {
     String ppl = "source=EMP | eventstats avg(SAL)";
     RelNode root = getRelNode(ppl);
-    // AVG goes through the aggregate path here (not the window path), so it stays as a single
-    // AVG aggregate rather than being decomposed into SUM/COUNT as the legacy window form did.
+    // AVG now goes through the aggregate path (not the window path), so it stays as a single AVG
+    // aggregate rather than being decomposed into SUM/COUNT as the legacy window form did. The
+    // outer Project is a no-op passthrough in the no-BY case and is folded away by Calcite.
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], avg(SAL)=[$8])\n"
-            + "  LogicalJoin(condition=[true], joinType=[inner])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "    LogicalAggregate(group=[{}], avg(SAL)=[AVG($0)])\n"
-            + "      LogicalProject(SAL=[$5])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalJoin(condition=[true], joinType=[inner])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalAggregate(group=[{}], avg(SAL)=[AVG($0)])\n"
+            + "    LogicalProject(SAL=[$5])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
 
