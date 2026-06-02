@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -2246,9 +2247,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         return false;
       }
       String funcName = extractAggregateFunctionName(wf.getFunction());
-      if (funcName == null
-          || BuiltinFunctionName.ofWindowFunction(funcName).isEmpty()
-          || BuiltinFunctionName.ofAggregation(funcName).isEmpty()) {
+      if (funcName == null) {
+        return false;
+      }
+      // The user-typed name must resolve to a window function, and the windowable
+      // {@link BuiltinFunctionName}'s canonical name (e.g. {@code distinct_count_approx} for the
+      // {@code dc} / {@code distinct_count} aliases) must also be registered as a regular
+      // aggregation so {@code aggVisitor} can resolve it for the right-side LogicalAggregate.
+      Optional<BuiltinFunctionName> windowName = BuiltinFunctionName.ofWindowFunction(funcName);
+      if (windowName.isEmpty()) {
+        return false;
+      }
+      String canonical = canonicalAggregationName(windowName.get());
+      if (BuiltinFunctionName.ofAggregation(canonical).isEmpty()) {
         return false;
       }
       if (!wf.getSortList().isEmpty()) {
@@ -2277,6 +2288,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return f.getFuncName();
     }
     return null;
+  }
+
+  /**
+   * Maps a windowable {@link BuiltinFunctionName} to the function name registered in {@code
+   * BuiltinFunctionName.AGGREGATION_FUNC_MAPPING}. Most names match directly (e.g. {@code COUNT} →
+   * {@code "count"}), but the {@code dc} and {@code distinct_count} aliases are window-only — they
+   * map to {@link BuiltinFunctionName#DISTINCT_COUNT_APPROX}, whose registered aggregation name is
+   * {@code "distinct_count_approx"}. Translating to the canonical name lets the right-side
+   * aggregate go through {@code aggVisitor}'s standard {@link BuiltinFunctionName#ofAggregation}
+   * lookup with no special case for the alias.
+   */
+  private static String canonicalAggregationName(BuiltinFunctionName windowName) {
+    return windowName.name().toLowerCase(Locale.ROOT);
   }
 
   /**
@@ -2321,12 +2345,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         return fn;
       }
       if (fn instanceof Function f) {
+        // Translate window-only aliases (e.g. `dc`, `distinct_count`) to the canonical
+        // aggregation name (`distinct_count_approx`) so aggVisitor's ofAggregation lookup
+        // resolves them. For names already in the aggregation map (count, sum, avg, max, min,
+        // stddev*, var*, earliest, latest, distinct_count_approx, pattern), this is a no-op.
+        String funcName =
+            BuiltinFunctionName.ofWindowFunction(f.getFuncName())
+                .map(CalciteRelNodeVisitor::canonicalAggregationName)
+                .orElse(f.getFuncName());
         List<UnresolvedExpression> args = f.getFuncArgs();
         UnresolvedExpression field = args.isEmpty() ? null : args.get(0);
         List<UnresolvedExpression> argList =
             args.size() <= 1 ? List.of() : args.subList(1, args.size());
-        AggregateFunction agg = new AggregateFunction(f.getFuncName(), field, argList);
-        return agg;
+        return new AggregateFunction(funcName, field, argList);
       }
       return fn;
     }
