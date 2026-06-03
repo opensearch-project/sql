@@ -149,15 +149,25 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   /**
-   * Wraps {@code query} with a WHERE-prefix view over an extended index. The extended index is
+   * Returns a WHERE-prefix view source string over an extended index. The extended index is
    * expected to contain all rows from the base index with {@code "_is_real":true}, plus additional
-   * synthetic rows with {@code "_is_real":false}. This lets the same test body run against a
-   * realistic multi-command chain ({@code where} followed by the original query) to catch bugs that
-   * only surface when commands are combined.
+   * synthetic rows with {@code "_is_real":false}. Use this as a drop-in replacement for {@code
+   * "source=<index>"} in parameterized tests to verify commands work correctly when preceded by a
+   * {@code where} filter.
+   *
+   * <p>The returned string ends at {@code fields - _is_real} with no trailing pipe, so callers can
+   * append additional PPL commands with {@code " | <command>"}.
+   */
+  protected static String sourceView(String extendedIndex) {
+    return String.format("source=%s | where _is_real | fields - _is_real", extendedIndex);
+  }
+
+  /**
+   * Convenience overload that appends {@code query} to the WHERE-prefix view chain. Equivalent to
+   * {@code sourceView(extendedIndex) + " | " + query}.
    */
   protected static String sourceView(String extendedIndex, String query) {
-    return String.format(
-        "source=%s | where _is_real | fields - _is_real | %s", extendedIndex, query);
+    return sourceView(extendedIndex) + " | " + query;
   }
 
   protected void timing(MapBuilder<String, Long> builder, String query, String ppl)

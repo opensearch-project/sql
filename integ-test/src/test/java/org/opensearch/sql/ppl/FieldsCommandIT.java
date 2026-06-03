@@ -21,7 +21,6 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class FieldsCommandIT extends PPLIntegTestCase {
@@ -39,46 +38,33 @@ public class FieldsCommandIT extends PPLIntegTestCase {
 
   // --- Parameterized sources ---
 
-  static Stream<Arguments> basicFieldSelectionSources() {
+  /**
+   * Provides a direct account index source and a WHERE-prefix view source that produces the same
+   * rows. Shared by all account-based parameterized tests.
+   */
+  static Stream<String> accountIndexSources() {
     return Stream.of(
-        Arguments.of("direct", String.format("source=%s", TEST_INDEX_ACCOUNT)),
-        Arguments.of(
-            "where-prefix-view",
-            String.format(
-                "source=%s | where _is_real | fields - _is_real", TEST_INDEX_ACCOUNT_EXTENDED)));
+        String.format("source=%s", TEST_INDEX_ACCOUNT), sourceView(TEST_INDEX_ACCOUNT_EXTENDED));
   }
 
-  static Stream<Arguments> multipleFieldSelectionSources() {
+  static Stream<String> bankIndexSources() {
     return Stream.of(
-        Arguments.of("direct", String.format("source=%s", TEST_INDEX_ACCOUNT)),
-        Arguments.of(
-            "where-prefix-view",
-            String.format(
-                "source=%s | where _is_real | fields - _is_real", TEST_INDEX_ACCOUNT_EXTENDED)));
-  }
-
-  static Stream<Arguments> specialDataTypesSources() {
-    return Stream.of(
-        Arguments.of("direct", String.format("source=%s", TEST_INDEX_BANK)),
-        Arguments.of(
-            "where-prefix-view",
-            String.format(
-                "source=%s | where _is_real | fields - _is_real", TEST_INDEX_BANK_EXTENDED)));
+        String.format("source=%s", TEST_INDEX_BANK), sourceView(TEST_INDEX_BANK_EXTENDED));
   }
 
   // --- Tests ---
 
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("basicFieldSelectionSources")
-  public void testBasicFieldSelection(String label, String querySource) throws IOException {
+  @ParameterizedTest(name = "querySource={0}")
+  @MethodSource("accountIndexSources")
+  public void testBasicFieldSelection(String querySource) throws IOException {
     JSONObject result = executeQuery(querySource + " | fields firstname, lastname");
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
     verifySchema(result, schema("firstname", "string"), schema("lastname", "string"));
   }
 
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("multipleFieldSelectionSources")
-  public void testMultipleFieldSelection(String label, String querySource) throws IOException {
+  @ParameterizedTest(name = "querySource={0}")
+  @MethodSource("accountIndexSources")
+  public void testMultipleFieldSelection(String querySource) throws IOException {
     JSONObject result = executeQuery(querySource + " | fields firstname, lastname, age | head 3");
     verifySchema(
         result,
@@ -92,9 +78,9 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         rows("Nanette", "Bates", 28));
   }
 
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("specialDataTypesSources")
-  public void testSpecialDataTypes(String label, String querySource) throws IOException {
+  @ParameterizedTest(name = "querySource={0}")
+  @MethodSource("bankIndexSources")
+  public void testSpecialDataTypes(String querySource) throws IOException {
     JSONObject result = executeQuery(querySource + " | fields birthdate");
     verifySchema(result, schema("birthdate", null, "timestamp"));
     verifyDataRows(

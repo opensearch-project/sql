@@ -1,4 +1,4 @@
-﻿{"index":{"_id":"1"}}
+{"index":{"_id":"1"}}
 {"account_number":1,"balance":39225,"firstname":"Amber","lastname":"Duke","age":32,"gender":"M","address":"880 Holmes Lane","employer":"Pyrami","email":"amberduke@pyrami.com","city":"Brogan","state":"IL","_is_real":true}
 {"index":{"_id":"6"}}
 {"account_number":6,"balance":5686,"firstname":"Hattie","lastname":"Bond","age":36,"gender":"M","address":"671 Bristol Street","employer":"Netagy","email":"hattiebond@netagy.com","city":"Dante","state":"TN","_is_real":true}
@@ -1965,7 +1965,7 @@
 {"index":{"_id":"914"}}
 {"account_number":914,"balance":7120,"firstname":"Esther","lastname":"Bean","age":32,"gender":"F","address":"583 Macon Street","employer":"Applica","email":"estherbean@applica.com","city":"Homeworth","state":"MN","_is_real":true}
 {"index":{"_id":"919"}}
-{"account_number":919,"balance":39655,"firstname":"ç››è™¹","lastname":"Hanson","age":27,"gender":"M","address":"557 Hart Place","employer":"Exospace","email":"shaunahanson@exospace.com","city":"Outlook","state":"LA","_is_real":true}
+{"account_number":919,"balance":39655,"firstname":"盛虹","lastname":"Hanson","age":27,"gender":"M","address":"557 Hart Place","employer":"Exospace","email":"shaunahanson@exospace.com","city":"Outlook","state":"LA","_is_real":true}
 {"index":{"_id":"921"}}
 {"account_number":921,"balance":49119,"firstname":"Barbara","lastname":"Wade","age":29,"gender":"M","address":"687 Hoyts Lane","employer":"Roughies","email":"barbarawade@roughies.com","city":"Sattley","state":"CO","_is_real":true}
 {"index":{"_id":"926"}}
