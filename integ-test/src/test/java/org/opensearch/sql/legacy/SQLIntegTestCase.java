@@ -533,6 +533,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "account",
         getAccountIndexMapping(),
         "src/test/resources/accounts.json"),
+    ACCOUNT_EXTENDED(
+        TestsConstants.TEST_INDEX_ACCOUNT_EXTENDED,
+        "account",
+        getAccountExtendedIndexMapping(),
+        "src/test/resources/accounts_extended.json"),
     PHRASE(
         TestsConstants.TEST_INDEX_PHRASE,
         "phrase",
@@ -626,6 +631,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "account",
         getBankIndexMapping(),
         "src/test/resources/bank.json"),
+    BANK_EXTENDED(
+        TestsConstants.TEST_INDEX_BANK_EXTENDED,
+        "account",
+        getBankExtendedIndexMapping(),
+        "src/test/resources/bank_extended.json"),
     BANK_TWO(
         TestsConstants.TEST_INDEX_BANK_TWO,
         "account_two",

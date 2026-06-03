@@ -148,6 +148,18 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return String.format("source=%s | %s", index, query);
   }
 
+  /**
+   * Wraps {@code query} with a WHERE-prefix view over an extended index. The extended index is
+   * expected to contain all rows from the base index with {@code "_is_real":true}, plus additional
+   * synthetic rows with {@code "_is_real":false}. This lets the same test body run against a
+   * realistic multi-command chain ({@code where} followed by the original query) to catch bugs that
+   * only surface when commands are combined.
+   */
+  protected static String sourceView(String extendedIndex, String query) {
+    return String.format(
+        "source=%s | where _is_real | fields - _is_real | %s", extendedIndex, query);
+  }
+
   protected void timing(MapBuilder<String, Long> builder, String query, String ppl)
       throws IOException {
     executeQuery(ppl); // warm-up
