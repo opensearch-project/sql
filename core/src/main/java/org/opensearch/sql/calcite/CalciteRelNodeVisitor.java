@@ -2165,17 +2165,45 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     aggregateWithTrimming(groupList, aggExprList, context, !bucketNullable);
     RelNode rightAggregate = context.relBuilder.build();
 
-    // Join left and right. Cross-join for no-BY (right is a single scalar row); equi-join on each
-    // partition key for BY. The condition for bucketNullable=true is IS NOT DISTINCT FROM so the
-    // NULL bucket on each side matches; LEFT for bucketNullable=false so NULL-keyed left rows
-    // survive with NULL aggregate values (right has no NULL bucket to match).
-    context.relBuilder.push(leftInput);
-    context.relBuilder.push(rightAggregate);
+    // Join left and right. For BY: equi-join on each partition key (IS NOT DISTINCT FROM for
+    // bucketNullable=true so NULL buckets match; plain equality + LEFT join for false so NULL-keyed
+    // left rows survive with NULL agg values). For no-BY: a true cross-join with `condition=true`
+    // would force EnumerableNestedLoopJoin to re-open the right-side enumerator per left row —
+    // which is catastrophic when the right side is a CalciteEnumerableIndexScan (one OpenSearch
+    // request per left row, e.g. 10k OS calls for 10k matching docs). Instead, project a literal-0
+    // key on both sides and join on equality so Calcite picks EnumerableMergeJoin /
+    // EnumerableHashJoin, which drains the (single-row) right side once and probes per left row.
     int leftFieldCount = leftInput.getRowType().getFieldCount();
+    int rightGroupKeyCount = hasGroup ? groupList.size() : 0;
+    int aggCount = node.getWindowFunctionList().size();
+
+    // For no-BY, append the literal-0 key column to both sides AFTER the existing columns.
+    // Left side becomes [orig cols..., key]; right side becomes [agg outputs..., key].
+    RelNode leftForJoin = leftInput;
+    RelNode rightForJoin = rightAggregate;
+    int leftJoinKeyOffset = 0;
+    if (!hasGroup) {
+      context.relBuilder.push(leftInput);
+      context.relBuilder.projectPlus(
+          context.relBuilder.alias(context.relBuilder.literal(0), EVENTSTATS_NOGROUP_JOIN_KEY));
+      leftForJoin = context.relBuilder.build();
+      context.relBuilder.push(rightAggregate);
+      context.relBuilder.projectPlus(
+          context.relBuilder.alias(context.relBuilder.literal(0), EVENTSTATS_NOGROUP_JOIN_KEY));
+      rightForJoin = context.relBuilder.build();
+      leftJoinKeyOffset = 1;
+    }
+
+    context.relBuilder.push(leftForJoin);
+    context.relBuilder.push(rightForJoin);
 
     RexNode joinCondition;
     if (!hasGroup) {
-      joinCondition = context.relBuilder.literal(true);
+      // Equi-join on the literal-0 keys we just projected (positions: leftFieldCount on the left
+      // input post-projection, aggCount on the right after the agg outputs).
+      RexNode leftKey = context.relBuilder.field(2, 0, leftFieldCount);
+      RexNode rightKey = context.relBuilder.field(2, 1, aggCount);
+      joinCondition = context.relBuilder.equals(leftKey, rightKey);
     } else {
       List<RexNode> perKeyConditions = new ArrayList<>();
       for (UnresolvedExpression groupExpr : groupList) {
@@ -2199,10 +2227,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.join(joinType, joinCondition);
 
     // Final projection: keep all original left columns, then append the aggregate output columns
-    // (skipping the right-side group key columns). The output row type matches what the legacy
-    // RexOver lowering produced: [left cols ..., agg outputs ...] with the user-supplied aliases.
-    int rightGroupKeyCount = hasGroup ? groupList.size() : 0;
-    int aggCount = node.getWindowFunctionList().size();
+    // (skipping the right-side group key columns AND the literal-0 key columns when present).
+    // Output row type matches what the legacy RexOver lowering produced: [left cols ..., agg
+    // outputs ...] with the user-supplied aliases.
     List<RexNode> finalProjects = new ArrayList<>();
     List<String> finalNames = new ArrayList<>();
     List<String> leftNames = leftInput.getRowType().getFieldNames();
@@ -2210,7 +2237,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       finalProjects.add(context.relBuilder.field(i));
       finalNames.add(leftNames.get(i));
     }
-    int rightAggStart = leftFieldCount + rightGroupKeyCount;
+    // Right-side agg outputs come BEFORE the literal-0 key (key was added to the end via
+    // projectPlus). Absolute position in the join row = leftWidth + (right-side group-key prefix).
+    int leftWidth = leftFieldCount + leftJoinKeyOffset;
+    int rightAggStart = leftWidth + rightGroupKeyCount;
     for (int i = 0; i < aggCount; i++) {
       finalProjects.add(context.relBuilder.field(rightAggStart + i));
       finalNames.add(extractAliasName(node.getWindowFunctionList().get(i)));
@@ -2218,6 +2248,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.project(finalProjects, finalNames);
     return context.relBuilder.peek();
   }
+
+  private static final String EVENTSTATS_NOGROUP_JOIN_KEY = "__eventstats_join_key__";
 
   /**
    * Returns true if {@code node} matches the shape PPL {@code eventstats} actually emits — all

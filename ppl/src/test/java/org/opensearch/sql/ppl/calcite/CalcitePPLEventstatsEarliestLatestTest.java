@@ -50,11 +50,16 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
     String ppl = "source=LOGS | eventstats earliest(message) as earliest_message";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalJoin(condition=[true], joinType=[inner])\n"
-            + "  LogicalTableScan(table=[[POST, LOGS]])\n"
-            + "  LogicalAggregate(group=[{}], earliest_message=[ARG_MIN($0, $1)])\n"
-            + "    LogicalProject(message=[$2], @timestamp=[$3])\n"
-            + "      LogicalTableScan(table=[[POST, LOGS]])\n";
+        "LogicalProject(server=[$0], level=[$1], message=[$2], @timestamp=[$3], created_at=[$4],"
+            + " earliest_message=[$6])\n"
+            + "  LogicalJoin(condition=[=($5, $7)], joinType=[inner])\n"
+            + "    LogicalProject(server=[$0], level=[$1], message=[$2], @timestamp=[$3],"
+            + " created_at=[$4], __eventstats_join_key__=[0])\n"
+            + "      LogicalTableScan(table=[[POST, LOGS]])\n"
+            + "    LogicalProject(earliest_message=[$0], __eventstats_join_key__=[0])\n"
+            + "      LogicalAggregate(group=[{}], earliest_message=[ARG_MIN($0, $1)])\n"
+            + "        LogicalProject(message=[$2], @timestamp=[$3])\n"
+            + "          LogicalTableScan(table=[[POST, LOGS]])\n";
     verifyLogical(root, expectedLogical);
   }
 
@@ -63,11 +68,16 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
     String ppl = "source=LOGS | eventstats latest(message) as latest_message";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalJoin(condition=[true], joinType=[inner])\n"
-            + "  LogicalTableScan(table=[[POST, LOGS]])\n"
-            + "  LogicalAggregate(group=[{}], latest_message=[ARG_MAX($0, $1)])\n"
-            + "    LogicalProject(message=[$2], @timestamp=[$3])\n"
-            + "      LogicalTableScan(table=[[POST, LOGS]])\n";
+        "LogicalProject(server=[$0], level=[$1], message=[$2], @timestamp=[$3], created_at=[$4],"
+            + " latest_message=[$6])\n"
+            + "  LogicalJoin(condition=[=($5, $7)], joinType=[inner])\n"
+            + "    LogicalProject(server=[$0], level=[$1], message=[$2], @timestamp=[$3],"
+            + " created_at=[$4], __eventstats_join_key__=[0])\n"
+            + "      LogicalTableScan(table=[[POST, LOGS]])\n"
+            + "    LogicalProject(latest_message=[$0], __eventstats_join_key__=[0])\n"
+            + "      LogicalAggregate(group=[{}], latest_message=[ARG_MAX($0, $1)])\n"
+            + "        LogicalProject(message=[$2], @timestamp=[$3])\n"
+            + "          LogicalTableScan(table=[[POST, LOGS]])\n";
     verifyLogical(root, expectedLogical);
   }
 
@@ -123,11 +133,16 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
     String ppl = "source=LOGS | eventstats earliest(message, created_at) as earliest_message";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalJoin(condition=[true], joinType=[inner])\n"
-            + "  LogicalTableScan(table=[[POST, LOGS]])\n"
-            + "  LogicalAggregate(group=[{}], earliest_message=[ARG_MIN($0, $1)])\n"
-            + "    LogicalProject(message=[$2], created_at=[$4])\n"
-            + "      LogicalTableScan(table=[[POST, LOGS]])\n";
+        "LogicalProject(server=[$0], level=[$1], message=[$2], @timestamp=[$3], created_at=[$4],"
+            + " earliest_message=[$6])\n"
+            + "  LogicalJoin(condition=[=($5, $7)], joinType=[inner])\n"
+            + "    LogicalProject(server=[$0], level=[$1], message=[$2], @timestamp=[$3],"
+            + " created_at=[$4], __eventstats_join_key__=[0])\n"
+            + "      LogicalTableScan(table=[[POST, LOGS]])\n"
+            + "    LogicalProject(earliest_message=[$0], __eventstats_join_key__=[0])\n"
+            + "      LogicalAggregate(group=[{}], earliest_message=[ARG_MIN($0, $1)])\n"
+            + "        LogicalProject(message=[$2], created_at=[$4])\n"
+            + "          LogicalTableScan(table=[[POST, LOGS]])\n";
     verifyLogical(root, expectedLogical);
   }
 
@@ -136,11 +151,16 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
     String ppl = "source=LOGS | eventstats latest(message, created_at) as latest_message";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalJoin(condition=[true], joinType=[inner])\n"
-            + "  LogicalTableScan(table=[[POST, LOGS]])\n"
-            + "  LogicalAggregate(group=[{}], latest_message=[ARG_MAX($0, $1)])\n"
-            + "    LogicalProject(message=[$2], created_at=[$4])\n"
-            + "      LogicalTableScan(table=[[POST, LOGS]])\n";
+        "LogicalProject(server=[$0], level=[$1], message=[$2], @timestamp=[$3], created_at=[$4],"
+            + " latest_message=[$6])\n"
+            + "  LogicalJoin(condition=[=($5, $7)], joinType=[inner])\n"
+            + "    LogicalProject(server=[$0], level=[$1], message=[$2], @timestamp=[$3],"
+            + " created_at=[$4], __eventstats_join_key__=[0])\n"
+            + "      LogicalTableScan(table=[[POST, LOGS]])\n"
+            + "    LogicalProject(latest_message=[$0], __eventstats_join_key__=[0])\n"
+            + "      LogicalAggregate(group=[{}], latest_message=[ARG_MAX($0, $1)])\n"
+            + "        LogicalProject(message=[$2], created_at=[$4])\n"
+            + "          LogicalTableScan(table=[[POST, LOGS]])\n";
     verifyLogical(root, expectedLogical);
   }
 

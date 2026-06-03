@@ -31,13 +31,21 @@ public class CalcitePPLEventstatsTest extends CalcitePPLAbstractTest {
   public void testEventstatsCount() {
     String ppl = "source=EMP | eventstats count()";
     RelNode root = getRelNode(ppl);
-    // The final projection (8 passthrough left cols + 1 right agg col) is a no-op rename in the
-    // no-BY case, so Calcite folds it away; the root rel is the join directly.
+    // No-BY: a literal-0 key is projected on both sides so the join becomes equi
+    // (left.__eventstats_join_key__ = right.__eventstats_join_key__). Without this, Calcite picks
+    // EnumerableNestedLoopJoin and re-opens the right scan once per left row, which means
+    // ~N OpenSearch requests for an N-row result set. With the equi-join, the planner picks
+    // hash/merge and drains the (single-row) right side once.
     String expectedLogical =
-        "LogicalJoin(condition=[true], joinType=[inner])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalAggregate(group=[{}], count()=[COUNT()])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], count()=[$9])\n"
+            + "  LogicalJoin(condition=[=($8, $10)], joinType=[inner])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __eventstats_join_key__=[0])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalProject(count()=[$0], __eventstats_join_key__=[0])\n"
+            + "      LogicalAggregate(group=[{}], count()=[COUNT()])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
 
@@ -65,14 +73,19 @@ public class CalcitePPLEventstatsTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eventstats avg(SAL)";
     RelNode root = getRelNode(ppl);
     // AVG now goes through the aggregate path (not the window path), so it stays as a single AVG
-    // aggregate rather than being decomposed into SUM/COUNT as the legacy window form did. The
-    // outer Project is a no-op passthrough in the no-BY case and is folded away by Calcite.
+    // aggregate rather than being decomposed into SUM/COUNT as the legacy window form did. See
+    // testEventstatsCount for the rationale behind the literal-0 equi-join key on no-BY.
     String expectedLogical =
-        "LogicalJoin(condition=[true], joinType=[inner])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalAggregate(group=[{}], avg(SAL)=[AVG($0)])\n"
-            + "    LogicalProject(SAL=[$5])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], avg(SAL)=[$9])\n"
+            + "  LogicalJoin(condition=[=($8, $10)], joinType=[inner])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __eventstats_join_key__=[0])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalProject(avg(SAL)=[$0], __eventstats_join_key__=[0])\n"
+            + "      LogicalAggregate(group=[{}], avg(SAL)=[AVG($0)])\n"
+            + "        LogicalProject(SAL=[$5])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
 
