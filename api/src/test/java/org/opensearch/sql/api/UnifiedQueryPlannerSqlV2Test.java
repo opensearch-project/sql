@@ -278,6 +278,57 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
   }
 
   @Test
+  public void testGroupByAggregateAlias() {
+    givenQuery(
+            """
+            SELECT department, SUM(age) AS total FROM catalog.employees GROUP BY department
+            """)
+        .assertPlan(
+            """
+            LogicalProject(department=[$0], total=[$1])
+              LogicalAggregate(group=[{0}], SUM(age)=[SUM($1)])
+                LogicalProject(department=[$3], age=[$2])
+                  LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testOrderByAggregateAlias() {
+    givenQuery(
+            """
+            SELECT department, COUNT(*) AS cnt FROM catalog.employees
+              GROUP BY department ORDER BY cnt DESC LIMIT 3
+            """)
+        .assertPlan(
+            """
+            LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])
+              LogicalProject(department=[$1], cnt=[$0])
+                LogicalSort(sort0=[$0], dir0=[DESC-nulls-last], fetch=[3])
+                  LogicalProject(COUNT(*)=[$1], department=[$0])
+                    LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+                      LogicalProject(department=[$3])
+                        LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testAliasPreservedInOutputSchema() {
+    givenQuery("SELECT COUNT(*) AS cnt FROM catalog.employees").assertFields("cnt");
+
+    givenQuery("SELECT department, COUNT(*) AS cnt FROM catalog.employees GROUP BY department")
+        .assertFields("department", "cnt");
+
+    givenQuery("SELECT department, COUNT(*) FROM catalog.employees GROUP BY department")
+        .assertFields("department", "COUNT(*)");
+
+    givenQuery("SELECT MAX(age) + MIN(age) AS range_sum FROM catalog.employees")
+        .assertFields("range_sum");
+
+    givenQuery("SELECT id, name, age AS years, department FROM catalog.employees")
+        .assertFields("id", "name", "years", "department");
+  }
+
+  @Test
   public void testHavingMaxCol() {
     givenQuery(
             """
