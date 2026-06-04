@@ -499,9 +499,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           "pattern",
           ReturnTypes.explicit(UserDefinedFunctionUtils.nullablePatternAggList),
           null);
+  // ARG0_ARRAY preserves UDT element type so AnalyticsExecutionEngine can render IP/binary byte[].
   public static final SqlAggFunction LIST =
       createUserDefinedAggFunction(
-          ListAggFunction.class, "LIST", PPLReturnTypes.STRING_ARRAY, PPLOperandTypes.ANY_SCALAR);
+          ListAggFunction.class, "LIST", PPLReturnTypes.ARG0_ARRAY, PPLOperandTypes.ANY_SCALAR);
   public static final SqlAggFunction VALUES =
       createUserDefinedAggFunction(
           ValuesAggFunction.class,

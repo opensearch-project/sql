@@ -26,6 +26,7 @@ import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -215,6 +216,8 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
    *       IpFieldMapper}'s {@code valueFetcher} output).
    *   <li>{@link BinaryType} + {@code byte[]} &rarr; base64-encoded string (matches the OpenSearch
    *       {@code binary} field wire format).
+   *   <li>{@code ARRAY<IpType>} / {@code ARRAY<BinaryType>} + {@code List<byte[]>} &rarr; element-wise
+   *       UDT-aware conversion for {@code list(ip|binary)} aggregates.
    *   <li>Anything else &rarr; existing {@link ExprValueUtils#fromObjectValue} path.
    * </ul>
    *
@@ -224,17 +227,53 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
   private static ExprValue toExprValue(Object value, RelDataType type) {
     if (value instanceof byte[] bytes) {
       if (type instanceof IpType) {
-        try {
-          return ExprValueUtils.stringValue(
-              InetAddresses.toAddrString(InetAddress.getByAddress(bytes)));
-        } catch (UnknownHostException e) {
-          throw new IllegalStateException("invalid IP buffer length: " + bytes.length, e);
-        }
+        return ipBytesToExprValue(bytes);
       } else if (type instanceof BinaryType) {
-        return ExprValueUtils.stringValue(Base64.getEncoder().encodeToString(bytes));
+        return binaryBytesToExprValue(bytes);
+      }
+    }
+    if (value instanceof List<?> list) {
+      RelDataType component = type.getComponentType();
+      if (component instanceof IpType) {
+        List<ExprValue> elems = new ArrayList<>(list.size());
+        for (Object elem : list) {
+          if (elem == null) {
+            elems.add(ExprValueUtils.nullValue());
+          } else if (elem instanceof byte[] eb) {
+            elems.add(ipBytesToExprValue(eb));
+          } else {
+            elems.add(ExprValueUtils.fromObjectValue(elem));
+          }
+        }
+        return new ExprCollectionValue(elems);
+      } else if (component instanceof BinaryType) {
+        List<ExprValue> elems = new ArrayList<>(list.size());
+        for (Object elem : list) {
+          if (elem == null) {
+            elems.add(ExprValueUtils.nullValue());
+          } else if (elem instanceof byte[] eb) {
+            elems.add(binaryBytesToExprValue(eb));
+          } else {
+            elems.add(ExprValueUtils.fromObjectValue(elem));
+          }
+        }
+        return new ExprCollectionValue(elems);
       }
     }
     return ExprValueUtils.fromObjectValue(value);
+  }
+
+  private static ExprValue ipBytesToExprValue(byte[] bytes) {
+    try {
+      return ExprValueUtils.stringValue(
+          InetAddresses.toAddrString(InetAddress.getByAddress(bytes)));
+    } catch (UnknownHostException e) {
+      throw new IllegalStateException("invalid IP buffer length: " + bytes.length, e);
+    }
+  }
+
+  private static ExprValue binaryBytesToExprValue(byte[] bytes) {
+    return ExprValueUtils.stringValue(Base64.getEncoder().encodeToString(bytes));
   }
 
   private Schema buildSchema(List<RelDataTypeField> fields) {
