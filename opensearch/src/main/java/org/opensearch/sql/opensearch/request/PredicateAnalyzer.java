@@ -1378,10 +1378,10 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression equals(LiteralExpression literal) {
-      Object value = literal.value();
-      if (literal.isDateTime()) {
-        builder =
-            addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value).lte(value));
+      boolean isTimeStamp = isFieldOrLiteralDateTime(literal);
+      Object value = endpointValue(literal, isTimeStamp);
+      if (isTimeStamp) {
+        builder = rangeQuery(getFieldReference()).gte(value).lte(value).format("date_time");
       } else {
         builder = termQuery(getFieldReferenceForTermQuery(), value);
       }
@@ -1390,12 +1390,13 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression notEquals(LiteralExpression literal) {
-      Object value = literal.value();
-      if (literal.isDateTime()) {
+      boolean isTimeStamp = isFieldOrLiteralDateTime(literal);
+      Object value = endpointValue(literal, isTimeStamp);
+      if (isTimeStamp) {
         builder =
             boolQuery()
-                .should(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gt(value)))
-                .should(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lt(value)));
+                .should(rangeQuery(getFieldReference()).gt(value).format("date_time"))
+                .should(rangeQuery(getFieldReference()).lt(value).format("date_time"));
       } else {
         builder =
             boolQuery()
@@ -1408,30 +1409,73 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression gt(LiteralExpression literal) {
-      Object value = literal.value();
-      builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gt(value));
+      boolean isTimeStamp = isFieldOrLiteralDateTime(literal);
+      Object value = endpointValue(literal, isTimeStamp);
+      RangeQueryBuilder rq = rangeQuery(getFieldReference()).gt(value);
+      if (isTimeStamp) rq.format("date_time");
+      builder = rq;
       return this;
     }
 
     @Override
     public QueryExpression gte(LiteralExpression literal) {
-      Object value = literal.value();
-      builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value));
+      boolean isTimeStamp = isFieldOrLiteralDateTime(literal);
+      Object value = endpointValue(literal, isTimeStamp);
+      RangeQueryBuilder rq = rangeQuery(getFieldReference()).gte(value);
+      if (isTimeStamp) rq.format("date_time");
+      builder = rq;
       return this;
     }
 
     @Override
     public QueryExpression lt(LiteralExpression literal) {
-      Object value = literal.value();
-      builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lt(value));
+      boolean isTimeStamp = isFieldOrLiteralDateTime(literal);
+      Object value = endpointValue(literal, isTimeStamp);
+      RangeQueryBuilder rq = rangeQuery(getFieldReference()).lt(value);
+      if (isTimeStamp) rq.format("date_time");
+      builder = rq;
       return this;
     }
 
     @Override
     public QueryExpression lte(LiteralExpression literal) {
-      Object value = literal.value();
-      builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lte(value));
+      boolean isTimeStamp = isFieldOrLiteralDateTime(literal);
+      Object value = endpointValue(literal, isTimeStamp);
+      RangeQueryBuilder rq = rangeQuery(getFieldReference()).lte(value);
+      if (isTimeStamp) rq.format("date_time");
+      builder = rq;
       return this;
+    }
+
+    /**
+     * Whether the comparison should be treated as a timestamp range. The field's type is the
+     * reliable source — {@code literal.isDateTime()} relies on the literal's UDT, which {@link
+     * org.apache.calcite.rex.RexSimplify} can strip when a sibling clause is folded into a {@code
+     * Sarg} (e.g. {@code @timestamp > X AND severityText IN (...)}). Without this defensive check,
+     * the literal arrives as VARCHAR, the raw string ships to the shard without {@code
+     * format("date_time")} or ISO-8601 normalization, and the shard's default date parser rejects
+     * the space-separated {@code "2026-05-28 16:18:43"} form. See #5481.
+     */
+    private boolean isFieldOrLiteralDateTime(LiteralExpression literal) {
+      return literal.isDateTime() || (rel != null && rel.isTimeStampType());
+    }
+
+    /**
+     * Resolves the comparison endpoint to a value the shard's date parser accepts. Mirrors the Sarg
+     * path's {@code convertEndpointValue} — when the field is a timestamp, the value is routed
+     * through {@link #timestampValueForPushDown} to land in canonical ISO-8601 regardless of the
+     * literal's surviving type.
+     */
+    private Object endpointValue(LiteralExpression literal, boolean isTimeStamp) {
+      if (!isTimeStamp) {
+        return literal.value();
+      }
+      if (literal.isDateTime()) {
+        // literal.value() already normalizes for EXPR_TIMESTAMP / EXPR_DATE literals.
+        return literal.value();
+      }
+      // Field is timestamp but literal was re-typed to VARCHAR — normalize the raw value.
+      return timestampValueForPushDown(literal.value().toString());
     }
 
     @Override
