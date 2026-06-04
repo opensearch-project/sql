@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchException;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -65,13 +66,10 @@ public class RestPPLQueryAction extends BaseRestHandler {
     if (ex instanceof OpenSearchException) {
       return ((OpenSearchException) ex).status().getStatus();
     }
-    // Possible future work: We currently do this on exception types, when we have more robust
-    // ErrorCodes in more locations it may be worth switching this to be based on those instead.
-    // That lets us identify specific error cases at a granularity higher than exception types.
     if (isClientError(ex)) {
       return 400;
     }
-    return 500;
+    return ExceptionsHelper.status(ex).getStatus();
   }
 
   private static RestStatus loggedErrorCode(Exception ex) {
