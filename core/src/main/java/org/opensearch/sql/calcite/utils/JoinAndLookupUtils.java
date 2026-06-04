@@ -13,6 +13,10 @@ import java.util.stream.Collectors;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
+import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -35,6 +39,24 @@ public interface JoinAndLookupUtils {
       default:
         return JoinRelType.INNER;
     }
+  }
+
+  /**
+   * Collects the names of bare single-part-field join criteria (e.g. `on a AND b` -> [a, b]).
+   * Returns false for anything else (qualified field, comparison, OR); {@code out} is only valid
+   * when this returns true, so callers must check the return before reading it.
+   */
+  static boolean collectBareFields(UnresolvedExpression expr, List<String> out) {
+    if (expr instanceof And and) {
+      return collectBareFields(and.getLeft(), out) && collectBareFields(and.getRight(), out);
+    }
+    if (expr instanceof Field field
+        && field.getField() instanceof QualifiedName qn
+        && qn.getParts().size() == 1) {
+      out.add(qn.getParts().get(0));
+      return true;
+    }
+    return false;
   }
 
   /* ------For Lookup------ */

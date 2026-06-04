@@ -729,8 +729,9 @@ sourceFilterArg
 
 // join
 joinCommand
-   : JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
-   | sqlLikeJoinType? JOIN (joinOption)* sideAlias joinHintList? joinCriteria right = tableOrSubqueryClause
+   // Criteria alt listed first - so `join on a` reads `on` as the criteria keyword, not a field.
+   : sqlLikeJoinType? JOIN (joinOption)* sideAlias joinHintList? joinCriteria right = tableOrSubqueryClause
+   | JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
    ;
 
 sqlLikeJoinType

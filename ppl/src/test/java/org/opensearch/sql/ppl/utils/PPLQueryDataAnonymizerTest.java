@@ -620,6 +620,28 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testJoinWithImplicitField() {
+    // The AST keeps the bare field, so the anonymized query shows `on identifier`, not a rewrite.
+    assertEquals(
+        "source=table | inner join max=*** on identifier table | fields + identifier",
+        anonymize("source=t | inner join on id s | fields id"));
+    assertEquals(
+        "source=table as identifier | inner join max=*** left = identifier right = identifier on"
+            + " identifier table as identifier | fields + identifier",
+        anonymize("source=t | join left = l right = r on id s | fields id"));
+    assertEquals(
+        "source=table | inner join max=*** on identifier and identifier table | fields +"
+            + " identifier",
+        anonymize("source=t | inner join on id AND uid s | fields id"));
+    assertEquals(
+        "source=table | inner join max=*** on identifier table | fields + identifier",
+        anonymize("source=t | inner join where id s | fields id"));
+    assertEquals(
+        "source=table | inner join max=*** on identifier table | fields + identifier",
+        anonymize("source=t | join on id s | fields id"));
+  }
+
+  @Test
   public void testLookup() {
     assertEquals(
         "source=table | lookup table DEPTNO replace LOC",

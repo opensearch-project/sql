@@ -1163,4 +1163,245 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "LEFT JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  // A join-type prefix or alias is required for `on`/`where` to read as the criteria keyword
+  // rather than as a field list.
+  @Test
+  public void testJoinWithImplicitField() {
+    String ppl = "source=EMP | inner join on DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], DEPT.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DEPTNO` `DEPT.DEPTNO`,"
+            + " `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithImplicitFieldAlias() {
+    String ppl = "source=EMP | join left=l right=r on DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], r.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DEPTNO` `r.DEPTNO`,"
+            + " `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithImplicitFieldWhereKeyword() {
+    String ppl = "source=EMP | inner join where DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], DEPT.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DEPTNO` `DEPT.DEPTNO`,"
+            + " `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testLeftJoinWithImplicitField() {
+    String ppl = "source=EMP | left join on DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], DEPT.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DEPTNO` `DEPT.DEPTNO`,"
+            + " `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LEFT JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSemiJoinWithImplicitField() {
+    String ppl = "source=EMP | semi join on DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalJoin(condition=[=($7, $8)], joinType=[semi])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE EXISTS (SELECT 1\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "WHERE `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithImplicitFieldMultiField() {
+    String ppl = "source=EMP | inner join on DEPTNO AND SAL EMP";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], EMP.EMPNO=[$8], EMP.ENAME=[$9], EMP.JOB=[$10],"
+            + " EMP.MGR=[$11], EMP.HIREDATE=[$12], EMP.SAL=[$13], EMP.COMM=[$14],"
+            + " EMP.DEPTNO=[$15])\n"
+            + "  LogicalJoin(condition=[AND(=($7, $15), =($5, $13))], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  // Self-join joins the two scans by position, so the key is a real equi-join across them, not the
+  // EMP.DEPTNO=EMP.DEPTNO tautology a qualifier rewrite would collapse to.
+  @Test
+  public void testJoinWithImplicitFieldSelfJoin() {
+    String ppl = "source=EMP | inner join on DEPTNO EMP";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], EMP.EMPNO=[$8], EMP.ENAME=[$9], EMP.JOB=[$10],"
+            + " EMP.MGR=[$11], EMP.HIREDATE=[$12], EMP.SAL=[$13], EMP.COMM=[$14],"
+            + " EMP.DEPTNO=[$15])\n"
+            + "  LogicalJoin(condition=[=($7, $15)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  // ENAME is not in DEPT, so the right-side lookup fails. Match the field name only; Calcite's
+  // full message is version-dependent.
+  @Test
+  public void testJoinWithImplicitFieldNotOnBothSides() {
+    String ppl = "source=EMP | inner join on ENAME DEPT";
+    Throwable t = Assert.assertThrows(RuntimeException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(t, "ENAME");
+  }
+
+  @Test
+  public void testJoinNoPrefixImplicitField() {
+    String ppl = "source=EMP | join on DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], DEPT.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DEPTNO` `DEPT.DEPTNO`,"
+            + " `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinNoPrefixImplicitFieldWhereKeyword() {
+    String ppl = "source=EMP | join where DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], DEPT.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DEPTNO` `DEPT.DEPTNO`,"
+            + " `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  // Right side is a subquery, not a table: the bare field still resolves (no underlying table name
+  // is needed), and the right key takes the subquery alias.
+  @Test
+  public void testJoinWithImplicitFieldAliasedSubquery() {
+    String ppl = "source=EMP | inner join on DEPTNO [ source=DEPT ] as d";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], d.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+  }
+
+  // Unaliased subquery: resolves by position with no alias and no reachable table name.
+  @Test
+  public void testJoinWithImplicitFieldUnaliasedSubquery() {
+    String ppl = "source=EMP | inner join on DEPTNO [ source=DEPT ]";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], DEPT.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+  }
+
+  // Aliases make the self-join meaningful: the right columns surface under `r`.
+  @Test
+  public void testJoinWithImplicitFieldAliasedSelfJoin() {
+    String ppl = "source=EMP | inner join left=l right=r on DEPTNO EMP";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], r.EMPNO=[$8], r.ENAME=[$9], r.JOB=[$10], r.MGR=[$11],"
+            + " r.HIREDATE=[$12], r.SAL=[$13], r.COMM=[$14], r.DEPTNO=[$15])\n"
+            + "  LogicalJoin(condition=[=($7, $15)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
 }

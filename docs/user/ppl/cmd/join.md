@@ -29,6 +29,9 @@ source = table1 | left anti join left = l right = r on l.a = r.a table2
 source = table1 | join left = l right = r [ source = table2 | where d > 10 | head 5 ]
 source = table1 | inner join on table1.a = table2.a table2 | fields table1.a, table2.a, table1.b, table1.c
 source = table1 | inner join on a = c table2 | fields a, b, c, d
+source = table1 | inner join on a table2 | fields a, table2.a, b, c
+source = table1 | inner join on a AND b table2 | fields a, table2.a, b, table2.b
+source = table1 | join on a table2 | fields a, table2.a, b, c
 source = table1 as t1 | join left = l right = r on l.a = r.a table2 as t2 | fields l.a, r.a
 source = table1 as t1 | join left = l right = r on l.a = r.a table2 as t2 | fields t1.a, t2.a
 source = table1 | join left = l right = r on l.a = r.a [ source = table2 ] as s | fields l.a, s.a
@@ -40,7 +43,7 @@ The basic `join` syntax supports the following parameters.
 
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
-| `<joinCriteria>` | Required | A comparison expression specifying how to join the datasets. Must be placed after the `on` or `where` keyword in the query. |
+| `<joinCriteria>` | Required | A comparison expression specifying how to join the datasets. Must be placed after the `on` or `where` keyword in the query. A bare field name `f` (or `f AND g ...`) is shorthand for an equi-join on the common field(s) and keeps both key columns. |
 | `<right-dataset>` | Required | The right dataset, which can be an index or a subsearch, with or without an alias. |
 | `joinType` | Optional | The type of join to perform. Valid values are `left`, `semi`, `anti`, and performance-sensitive types (`right`, `full`, and `cross`). Default is `inner`. |
 | `left` | Optional | An alias for the left dataset (typically a subsearch) used to avoid ambiguous field names. Specify as `left = <leftAlias>`. |
@@ -71,7 +74,7 @@ The extended `join` syntax supports the following parameters.
 
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
-| `<joinCriteria>` | Required | A comparison expression specifying how to join the datasets. Must be placed after the `on` or `where` keyword in the query. |
+| `<joinCriteria>` | Required | A comparison expression specifying how to join the datasets. Must be placed after the `on` or `where` keyword in the query. A bare field name `f` (or `f AND g ...`) is shorthand for an equi-join on the common field(s); it keeps both key columns and differs from `<join-field-list>`, which merges duplicates. |
 | `<right-dataset>` | Required | The right dataset, which can be an index or a subsearch, with or without an alias. |  
 | `type` | Optional | The join type when using extended syntax. Valid values are `left`, `outer` (same as `left`), `semi`, `anti`, and performance-sensitive types (`right`, `full`, and `cross`). Default is `inner`. |
 | `<join-field-list>` | Optional | A list of fields used to build the join criteria. These fields must exist in both datasets. If not specified, all fields common to both datasets are used as join keys. |

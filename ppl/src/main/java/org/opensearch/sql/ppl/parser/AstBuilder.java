@@ -326,6 +326,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (ctx.fieldList() != null) {
       joinFields = Optional.of(getFieldList(ctx.fieldList()));
     }
+    // Keep a bare `on <field>` criteria verbatim; the planner expands it to an equi-join. Folding
+    // it into joinFields here would instead merge the key into one column.
     return new Join(
         projectExceptMeta(right),
         leftAlias,
