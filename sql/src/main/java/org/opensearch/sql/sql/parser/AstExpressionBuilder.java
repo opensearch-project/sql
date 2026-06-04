@@ -97,6 +97,8 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NestedExpressionA
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.OrExpressionContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TableNameContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
+import org.opensearch.sql.sql.parser.bucket.BucketFunctionExpander;
+import org.opensearch.sql.sql.parser.bucket.BucketFunctionRegistry;
 
 /** Expression builder to parse text to expression in AST. */
 public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedExpression> {
@@ -139,7 +141,18 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitScalarFunctionCall(ScalarFunctionCallContext ctx) {
-    return buildFunction(ctx.scalarFunctionName().getText(), ctx.functionArgs().functionArg());
+    String functionName = ctx.scalarFunctionName().getText();
+    List<UnresolvedExpression> args =
+        ctx.functionArgs().functionArg().stream()
+            .map(this::visitFunctionArg)
+            .collect(Collectors.toList());
+
+    Optional<BucketFunctionExpander> bucketExpander = BucketFunctionRegistry.lookup(functionName);
+    if (bucketExpander.isPresent()) {
+      return bucketExpander.get().expand(args);
+    }
+
+    return new Function(functionName, args);
   }
 
   @Override

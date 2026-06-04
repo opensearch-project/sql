@@ -443,6 +443,12 @@ scalarFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | nestedFunctionName
+   | bucketFunctionName
+   ;
+
+bucketFunctionName
+   : HISTOGRAM
+   | DATE_HISTOGRAM
    ;
 
 specificFunction
