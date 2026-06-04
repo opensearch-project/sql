@@ -500,11 +500,29 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
 
+  @Test
   public void testDateBetween() throws IOException {
+    // birthdate is a TIMESTAMP-typed field; the bounds are DATE literals. BETWEEN must coerce the
+    // mixed temporal operands rather than reject them with "expression types are incompatible".
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where birthdate between date('2018-06-01') and date('2018-06-30') |"
+                    + " fields firstname, birthdate",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("birthdate", "timestamp"));
+    verifyDataRows(
+        actual, rows("Nanette", "2018-06-23 00:00:00"), rows("Elinor", "2018-06-27 00:00:00"));
+  }
+
+  @Test
+  public void testDateIn() throws IOException {
+    // birthdate is a TIMESTAMP-typed field; the IN values are DATE literals — same mixed-temporal
+    // coercion path as testDateBetween, exercised through visitIn.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where birthdate in (DATE '2018-06-23', DATE '2018-06-27') |"
                     + " fields firstname, birthdate",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("birthdate", "timestamp"));

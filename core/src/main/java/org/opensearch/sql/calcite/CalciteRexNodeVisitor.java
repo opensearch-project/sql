@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
@@ -84,11 +85,13 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.SubsearchUtils;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.CoercionUtils;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 @RequiredArgsConstructor
@@ -233,15 +236,48 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       List<RexNode> newValueList =
           valueList.stream().map(value -> context.rexBuilder.makeCast(commonType, value)).toList();
       return context.rexBuilder.makeIn(field, newValueList);
-    } else {
-      List<ExprType> exprTypes =
-          dataTypes.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
-      throw new SemanticCheckException(
-          StringUtils.format(
-              "In expression types are incompatible: fields type %s, values type %s",
-              exprTypes.getLast(), exprTypes.subList(0, exprTypes.size() - 1)));
     }
+    // leastRestrictive() has no common type for mixed temporal representations — e.g. a standard
+    // Calcite TIMESTAMP field tested against EXPR_DATE UDT values (`ts in (date('...'), ...)`).
+    // Mirror visitBetween: widen all-temporal operands through CoercionUtils so the comparison
+    // runs, while leaving genuinely incompatible mixes to raise SemanticCheckException below.
+    List<RexNode> operands = new ArrayList<>(valueList);
+    operands.add(field);
+    List<RexNode> widened = widenTemporalOperands(context, operands);
+    if (widened != null) {
+      RexNode widenedField = widened.get(widened.size() - 1);
+      List<RexNode> widenedValues = widened.subList(0, widened.size() - 1);
+      return context.rexBuilder.makeIn(widenedField, widenedValues);
+    }
+    List<ExprType> exprTypes =
+        dataTypes.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
+    throw new SemanticCheckException(
+        StringUtils.format(
+            "In expression types are incompatible: fields type %s, values type %s",
+            exprTypes.getLast(), exprTypes.subList(0, exprTypes.size() - 1)));
   }
+
+  /**
+   * Widens a set of operands to a common temporal type when, and only when, every operand is a
+   * temporal type (DATE / TIME / TIMESTAMP), including the EXPR_DATE / EXPR_TIME / EXPR_TIMESTAMP
+   * UDTs. Returns {@code null} otherwise so non-temporal incompatible mixes still fail the type
+   * check. The widening reuses {@link CoercionUtils#widenArguments} — the same path comparison
+   * operators take — which resolves DATE / TIME to TIMESTAMP via the shared widening graph.
+   */
+  private static @Nullable List<RexNode> widenTemporalOperands(
+      CalcitePlanContext context, List<RexNode> operands) {
+    boolean allTemporal =
+        operands.stream()
+            .map(node -> OpenSearchTypeFactory.convertRelDataTypeToExprType(node.getType()))
+            .allMatch(TEMPORAL_TYPES::contains);
+    if (!allTemporal) {
+      return null;
+    }
+    return CoercionUtils.widenArguments(context.rexBuilder, operands);
+  }
+
+  private static final Set<ExprType> TEMPORAL_TYPES =
+      Set.of(ExprCoreType.DATE, ExprCoreType.TIME, ExprCoreType.TIMESTAMP);
 
   @Override
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
@@ -268,12 +304,25 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       lowerBound = context.rexBuilder.makeCast(commonType, lowerBound);
       upperBound = context.rexBuilder.makeCast(commonType, upperBound);
     } else {
-      throw new SemanticCheckException(
-          StringUtils.format(
-              "BETWEEN expression types are incompatible: [%s, %s, %s]",
-              OpenSearchTypeFactory.convertRelDataTypeToExprType(value.getType()),
-              OpenSearchTypeFactory.convertRelDataTypeToExprType(lowerBound.getType()),
-              OpenSearchTypeFactory.convertRelDataTypeToExprType(upperBound.getType())));
+      // leastRestrictive() has no common type for mixed temporal representations — e.g. a standard
+      // Calcite TIMESTAMP field compared against EXPR_DATE UDT bounds (`ts between date('...') and
+      // date('...')`). Comparison operators coerce these through CoercionUtils; BETWEEN calls
+      // leastRestrictive directly and would otherwise reject them. Fall back to the same temporal
+      // widening, scoped to all-temporal operands so genuinely incompatible mixes (e.g.
+      // `age between '35' and 38.5`) still raise SemanticCheckException.
+      List<RexNode> widened =
+          widenTemporalOperands(context, List.of(value, lowerBound, upperBound));
+      if (widened == null) {
+        throw new SemanticCheckException(
+            StringUtils.format(
+                "BETWEEN expression types are incompatible: [%s, %s, %s]",
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(value.getType()),
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(lowerBound.getType()),
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(upperBound.getType())));
+      }
+      value = widened.get(0);
+      lowerBound = widened.get(1);
+      upperBound = widened.get(2);
     }
     return context.relBuilder.between(value, lowerBound, upperBound);
   }
