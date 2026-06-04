@@ -481,9 +481,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (!context.isResolvingSubquery()) {
         context.setProjectVisited(true);
       }
-      context.relBuilder.project(expandedFields);
+
+      // Force the projection on a rename: without it, Calcite omits the project node when the
+      // columns are unchanged (same fields and order), so an alias like COUNT(*) AS cnt is lost.
+      boolean force = isRenameFieldsProject(expandedFields, currentFields);
+      context.relBuilder.project(expandedFields, ImmutableList.of(), force);
     }
     return context.relBuilder.peek();
+  }
+
+  private static boolean isRenameFieldsProject(List<RexNode> fields, List<String> currentFields) {
+    for (RexNode r : fields) {
+      if (r.getKind() == AS) {
+        RexCall as = (RexCall) r;
+        if (as.getOperands().get(0) instanceof RexInputRef ref) {
+          String name = ((RexLiteral) as.getOperands().get(1)).getValueAs(String.class);
+          if (!name.equals(currentFields.get(ref.getIndex()))) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   private boolean isSingleAllFieldsProject(Project node) {
