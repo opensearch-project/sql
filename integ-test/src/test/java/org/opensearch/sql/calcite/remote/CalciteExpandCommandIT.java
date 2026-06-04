@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.Assume.assumeFalse;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ARRAY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -295,6 +296,10 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testExpandEmptyArray() throws Exception {
+    assumeFalse(
+        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
+            + " (analytics-engine storage path) does not support.",
+        isAnalyticsParquetIndicesEnabled());
     final int docId = 6;
     Request insertRequest =
         new Request(
@@ -324,6 +329,10 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testExpandOnNullField() throws Exception {
+    assumeFalse(
+        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
+            + " (analytics-engine storage path) does not support.",
+        isAnalyticsParquetIndicesEnabled());
     final int docId = 6;
     Request insertRequest =
         new Request(
