@@ -216,8 +216,8 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
    *       IpFieldMapper}'s {@code valueFetcher} output).
    *   <li>{@link BinaryType} + {@code byte[]} &rarr; base64-encoded string (matches the OpenSearch
    *       {@code binary} field wire format).
-   *   <li>{@code ARRAY<IpType>} / {@code ARRAY<BinaryType>} + {@code List<byte[]>} &rarr; element-wise
-   *       UDT-aware conversion for {@code list(ip|binary)} aggregates.
+   *   <li>{@code ARRAY<IpType>} / {@code ARRAY<BinaryType>} + {@code List<byte[]>} &rarr;
+   *       element-wise UDT-aware conversion for {@code list(ip|binary)} aggregates.
    *   <li>Anything else &rarr; existing {@link ExprValueUtils#fromObjectValue} path.
    * </ul>
    *
