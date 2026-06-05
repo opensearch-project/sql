@@ -784,16 +784,29 @@ public class PredicateAnalyzer {
 
     private static QueryExpression constructQueryExpressionForSearch(
         RexCall call, SwapResult pair) {
+      boolean isTimeStamp =
+          (pair.getKey() instanceof NamedFieldExpression namedField)
+              && namedField.isTimeStampType();
       if (isSearchWithComplementedPoints(call)) {
+        // A NOT IN over a timestamp field cannot use a flat terms query: timestamp values must be
+        // normalized + formatted (see in()/termsQuery, which does neither). Decompose into the
+        // complement of an OR of formatted per-point range queries, mirroring the range branch.
+        if (isTimeStamp) {
+          return pointsAsTimestampOr(call, pair).not();
+        }
         return QueryExpression.create(pair.getKey()).notIn(pair.getValue());
       } else if (isSearchWithPoints(call)) {
+        // IN over a timestamp field: the flat terms query in in() emits unformatted values like
+        // '2018-06-23 00:00:00' that the date field cannot parse. Decompose into an OR of formatted
+        // per-point range queries (equals(point, true) builds gte/lte + format="date_time"), the
+        // same path the range branch below and visitCompare's `=` already take.
+        if (isTimeStamp) {
+          return pointsAsTimestampOr(call, pair);
+        }
         return QueryExpression.create(pair.getKey()).in(pair.getValue());
       } else {
         Sarg<?> sarg = pair.getValue().literal.getValueAs(Sarg.class);
         Set<? extends Range<?>> rangeSet = requireNonNull(sarg).rangeSet.asRanges();
-        boolean isTimeStamp =
-            (pair.getKey() instanceof NamedFieldExpression namedField)
-                && namedField.isTimeStampType();
         List<QueryExpression> queryExpressions =
             rangeSet.stream()
                 .map(
@@ -809,6 +822,30 @@ public class PredicateAnalyzer {
           return CompoundQueryExpression.or(queryExpressions.toArray(new QueryExpression[0]));
         }
       }
+    }
+
+    /**
+     * Builds an OR of per-point {@code equals(point, true)} query expressions for a points-only
+     * Sarg over a timestamp field. Each point becomes a {@code gte/lte} range query with {@code
+     * format="date_time"}, so the timestamp value is normalized to the date field's accepted format
+     * — unlike a flat terms query, which emits unformatted values the date field rejects.
+     */
+    private static QueryExpression pointsAsTimestampOr(RexCall call, SwapResult pair) {
+      RexLiteral literal = (RexLiteral) call.getOperands().get(1);
+      Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
+      Set<? extends Range<?>> ranges =
+          (sarg.isComplementedPoints() ? sarg.negate() : sarg).rangeSet.asRanges();
+      List<QueryExpression> queryExpressions =
+          ranges.stream()
+              .map(
+                  range ->
+                      QueryExpression.create(pair.getKey())
+                          .equals(sargPointValue(range.lowerEndpoint()), true))
+              .toList();
+      if (queryExpressions.size() == 1) {
+        return queryExpressions.getFirst();
+      }
+      return CompoundQueryExpression.or(queryExpressions.toArray(new QueryExpression[0]));
     }
 
     private QueryExpression andOr(RexCall call) {
