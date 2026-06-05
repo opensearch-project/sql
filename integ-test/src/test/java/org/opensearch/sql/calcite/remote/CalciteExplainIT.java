@@ -2153,6 +2153,29 @@ public class CalciteExplainIT extends ExplainIT {
                 + "|  transpose 4 column_name='column_names'"));
   }
 
+  /**
+   * Regression test for #5482: a user {@code where} clause adjacent to dedup's bucket-non-null
+   * filter must still let {@code PPLSimplifyDedupRule} fire even after {@code FilterMergeRule} has
+   * merged the two filters into a single AND. Without the fix, the plan keeps the in-memory {@code
+   * ROW_NUMBER} window over a row-fetching scan and dedup pushdown is silently disabled.
+   */
+  @Test
+  public void testDedupAfterWherePushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String result =
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where age > 25 | dedup gender");
+    assertTrue(
+        "Expected LogicalDedup in the plan (simplify rule should fire after FilterMergeRule):\n"
+            + result,
+        result.contains("LogicalDedup"));
+    assertFalse(
+        "Unexpected EnumerableWindow in the plan — dedup fell back to the in-memory ROW_NUMBER"
+            + " form, which means PPLSimplifyDedupRule did not fire:\n"
+            + result,
+        result.contains("EnumerableWindow"));
+  }
+
   public void testComplexDedup() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_dedup_complex1.yaml");

@@ -172,11 +172,11 @@ public class PPLSimplifyDedupRule extends RelRule<PPLSimplifyDedupRule.Config> {
   }
 
   private static boolean isNotNullOnPartitionKey(RexNode rex, Set<Integer> partitionKeyIndices) {
-    return rex instanceof RexCall rexCall
-        && rexCall.isA(SqlKind.IS_NOT_NULL)
-        && !rexCall.getOperands().isEmpty()
-        && rexCall.getOperands().get(0) instanceof RexInputRef ref
-        && partitionKeyIndices.contains(ref.getIndex());
+    if (!PlanUtils.isNotNullOnRef(rex)) {
+      return false;
+    }
+    RexInputRef ref = (RexInputRef) ((RexCall) rex).getOperands().get(0);
+    return partitionKeyIndices.contains(ref.getIndex());
   }
 
   private static @Nullable RelCollation extractCollationFromWindow(RexWindow window) {

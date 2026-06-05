@@ -786,44 +786,22 @@ public interface PlanUtils {
   }
 
   /**
-   * Loose structural check for the bucket-non-null filter PPL emits as part of the {@code dedup}
-   * pattern. Returns true for either:
-   *
-   * <ul>
-   *   <li>a pure {@code IS NOT NULL($ref)}, or
-   *   <li>any {@code AND} whose conjuncts contain at least one {@code IS NOT NULL($ref)}.
-   * </ul>
-   *
-   * <p>This intentionally accepts the un-merged shape ({@code IS NOT NULL} alone) and the merged
-   * shape that {@link org.apache.calcite.rel.rules.FilterMergeRule} produces when a user {@code
-   * where} clause precedes the dedup ({@code AND(IS NOT NULL($pk), <user predicate>)}). The
-   * concrete partition-key match — and the split-out of any user predicate that was folded in —
-   * happens inside {@code PPLSimplifyDedupRule#apply}, which has access to the partition keys
-   * declared by the {@code ROW_NUMBER} window above this filter. Keeping the operand predicate
-   * order-independent means the simplify rule fires regardless of whether {@code FilterMergeRule}
-   * has already run, so dedup pushdown is no longer load-bearing on HEP rule ordering.
-   *
-   * <p>Misclassification is bounded by the surrounding four-level operand chain: a project that
-   * does not contain the {@code _row_number_dedup_} column, above a filter whose condition is
-   * {@code _row_number_ <= N} and which does contain {@code _row_number_dedup_}, above a project
-   * that does contain {@code _row_number_dedup_} (with a {@code ROW_NUMBER} window function), above
-   * this filter. That signature is unique to the PPL-emitted dedup pattern, so a user-written
-   * filter such as {@code IS NOT NULL(x) AND ...} cannot accidentally match.
+   * Accepts the un-merged {@code IS NOT NULL($ref)} shape and the merged-{@code AND} shape that
+   * {@link org.apache.calcite.rel.rules.FilterMergeRule} produces when a user {@code where}
+   * precedes the dedup. The concrete partition-key match — and the split-out of any user predicate
+   * folded into the AND — happens in {@link PPLSimplifyDedupRule#apply}.
    */
   static boolean mayBeFilterFromBucketNonNull(LogicalFilter filter) {
     RexNode condition = filter.getCondition();
-    if (isNotNullOnRef(condition)) {
-      return true;
-    }
-    return condition instanceof RexCall rexCall
-        && rexCall.getOperator().equals(SqlStdOperatorTable.AND)
-        && rexCall.getOperands().stream().anyMatch(PlanUtils::isNotNullOnRef);
+    return isNotNullOnRef(condition)
+        || (condition instanceof RexCall rexCall
+            && rexCall.getOperator().equals(SqlStdOperatorTable.AND)
+            && rexCall.getOperands().stream().anyMatch(PlanUtils::isNotNullOnRef));
   }
 
-  static boolean isNotNullOnRef(RexNode rex) {
+  public static boolean isNotNullOnRef(RexNode rex) {
     return rex instanceof RexCall rexCall
         && rexCall.isA(SqlKind.IS_NOT_NULL)
-        && !rexCall.getOperands().isEmpty()
         && rexCall.getOperands().get(0) instanceof RexInputRef;
   }
 
