@@ -1147,6 +1147,38 @@ public class PredicateAnalyzerTest {
         result.toString());
   }
 
+  /**
+   * RexSimplify can strip the EXPR_TIMESTAMP UDT off a literal when a sibling clause is folded into
+   * a Sarg (e.g. {@code @timestamp > X AND severityText IN (...)}), leaving the literal as plain
+   * VARCHAR. The comparison must still emit a {@code format("date_time")} range query keyed off the
+   * field's type so the shard's default date parser accepts the value.
+   */
+  @Test
+  void gt_normalizesVarcharLiteralAgainstTimestampField()
+      throws ExpressionNotAnalyzableException {
+    RexLiteral varcharLiteral = (RexLiteral) builder.makeLiteral("1987-02-03 04:34:56");
+    RexNode call = builder.makeCall(SqlStdOperatorTable.GREATER_THAN, field4, varcharLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(RangeQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "range" : {
+            "d" : {
+              "from" : "1987-02-03T04:34:56.000Z",
+              "to" : null,
+              "include_lower" : false,
+              "include_upper" : true,
+              "format" : "date_time",
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
+        result.toString());
+  }
+
   @Test
   void gte_generatesRangeQueryWithFormatForDateTime() throws ExpressionNotAnalyzableException {
     RexNode call =

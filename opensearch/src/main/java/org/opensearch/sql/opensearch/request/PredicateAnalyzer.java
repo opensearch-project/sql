@@ -1447,34 +1447,16 @@ public class PredicateAnalyzer {
       return this;
     }
 
-    /**
-     * Whether the comparison should be treated as a timestamp range. The field's type is the
-     * reliable source — {@code literal.isDateTime()} relies on the literal's UDT, which {@link
-     * org.apache.calcite.rex.RexSimplify} can strip when a sibling clause is folded into a {@code
-     * Sarg} (e.g. {@code @timestamp > X AND severityText IN (...)}). Without this defensive check,
-     * the literal arrives as VARCHAR, the raw string ships to the shard without {@code
-     * format("date_time")} or ISO-8601 normalization, and the shard's default date parser rejects
-     * the space-separated {@code "2026-05-28 16:18:43"} form. See #5481.
-     */
+    // Field type is the reliable source: RexSimplify can strip the literal's UDT when a sibling
+    // clause is folded into a Sarg, leaving it as VARCHAR.
     private boolean isFieldOrLiteralDateTime(LiteralExpression literal) {
       return literal.isDateTime() || (rel != null && rel.isTimeStampType());
     }
 
-    /**
-     * Resolves the comparison endpoint to a value the shard's date parser accepts. Mirrors the Sarg
-     * path's {@code convertEndpointValue} — when the field is a timestamp, the value is routed
-     * through {@link #timestampValueForPushDown} to land in canonical ISO-8601 regardless of the
-     * literal's surviving type.
-     */
     private Object endpointValue(LiteralExpression literal, boolean isTimeStamp) {
-      if (!isTimeStamp) {
+      if (!isTimeStamp || literal.isDateTime()) {
         return literal.value();
       }
-      if (literal.isDateTime()) {
-        // literal.value() already normalizes for EXPR_TIMESTAMP / EXPR_DATE literals.
-        return literal.value();
-      }
-      // Field is timestamp but literal was re-typed to VARCHAR — normalize the raw value.
       return timestampValueForPushDown(literal.value().toString());
     }
 
