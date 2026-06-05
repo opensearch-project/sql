@@ -517,8 +517,10 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
 
   @Test
   public void testDateIn() throws IOException {
-    // birthdate is a TIMESTAMP-typed field; the IN values are DATE literals — same mixed-temporal
-    // coercion path as testDateBetween, exercised through visitIn.
+    // birthdate is a TIMESTAMP-typed field; the IN values are DATE literals. visitIn must compare
+    // each value in the field's temporal domain (via PPL `=`) rather than letting leastRestrictive
+    // collapse the common type to VARCHAR and string-compare mismatched renderings — which silently
+    // matched nothing without pushdown. See visitIn in CalciteRexNodeVisitor.
     JSONObject actual =
         executeQuery(
             String.format(
@@ -528,6 +530,38 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     verifySchema(actual, schema("firstname", "string"), schema("birthdate", "timestamp"));
     verifyDataRows(
         actual, rows("Nanette", "2018-06-23 00:00:00"), rows("Elinor", "2018-06-27 00:00:00"));
+  }
+
+  @Test
+  public void testDateNotIn() throws IOException {
+    // Complement of testDateIn: NOT IN over a temporal field. Exercises the complemented-points
+    // pushdown branch, which must also format timestamp values rather than emit a flat terms query.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where birthdate not in (DATE '2018-06-23', DATE '2018-06-27') |"
+                    + " fields firstname | sort firstname",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"));
+    verifyDataRows(
+        actual,
+        rows("Amber JOHnny"),
+        rows("Dale"),
+        rows("Dillard"),
+        rows("Hattie"),
+        rows("Virginia"));
+  }
+
+  @Test
+  public void testIn() throws IOException {
+    // Non-temporal IN keeps the leastRestrictive + makeIn path; guards against the temporal-field
+    // special-case in visitIn regressing membership tests over ordinary columns.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age in (32, 36) | fields firstname, age", TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
+    verifyDataRows(actual, rows("Amber JOHnny", 32), rows("Hattie", 36), rows("Elinor", 36));
   }
 
   @Test

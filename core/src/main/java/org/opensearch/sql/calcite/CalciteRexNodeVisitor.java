@@ -228,8 +228,23 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     final RexNode field = analyze(node.getField(), context);
     final List<RexNode> valueList =
         node.getValueList().stream().map(value -> analyze(value, context)).toList();
+    // When the field is a temporal type, do NOT use leastRestrictive + rexBuilder.makeIn. For a
+    // temporal field tested against string/date literals, leastRestrictive collapses the common
+    // type to VARCHAR (the EXPR_DATE / EXPR_TIMESTAMP UDTs are VARCHAR-backed), so makeIn casts the
+    // field DOWN to VARCHAR and string-compares mismatched renderings (e.g. '2018-06-23 00:00:00'
+    // against '2018-06-23') — silently matching nothing. Rewrite the membership test as an OR of
+    // PPL `=` comparisons, the same temporal-aware comparison path visitCompare takes for `=`, so
+    // each value is coerced to the field's timestamp domain before comparison.
+    ExprType fieldExprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(field.getType());
+    if (TEMPORAL_TYPES.contains(fieldExprType)) {
+      List<RexNode> equalities =
+          valueList.stream()
+              .map(value -> PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, "=", field, value))
+              .toList();
+      return context.relBuilder.or(equalities);
+    }
     final List<RelDataType> dataTypes =
-        new java.util.ArrayList<>(valueList.stream().map(RexNode::getType).toList());
+        new ArrayList<>(valueList.stream().map(RexNode::getType).toList());
     dataTypes.add(field.getType());
     RelDataType commonType = context.rexBuilder.getTypeFactory().leastRestrictive(dataTypes);
     if (commonType != null) {
@@ -237,24 +252,30 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           valueList.stream().map(value -> context.rexBuilder.makeCast(commonType, value)).toList();
       return context.rexBuilder.makeIn(field, newValueList);
     }
-    // leastRestrictive() has no common type for mixed temporal representations — e.g. a standard
-    // Calcite TIMESTAMP field tested against EXPR_DATE UDT values (`ts in (date('...'), ...)`).
-    // Mirror visitBetween: widen all-temporal operands through CoercionUtils so the comparison
-    // runs, while leaving genuinely incompatible mixes to raise SemanticCheckException below.
-    List<RexNode> operands = new ArrayList<>(valueList);
-    operands.add(field);
-    List<RexNode> widened = widenTemporalOperands(context, operands);
-    if (widened != null) {
-      RexNode widenedField = widened.get(widened.size() - 1);
-      List<RexNode> widenedValues = widened.subList(0, widened.size() - 1);
-      return context.rexBuilder.makeIn(widenedField, widenedValues);
-    }
     List<ExprType> exprTypes =
         dataTypes.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
     throw new SemanticCheckException(
         StringUtils.format(
             "In expression types are incompatible: fields type %s, values type %s",
             exprTypes.getLast(), exprTypes.subList(0, exprTypes.size() - 1)));
+  }
+
+  private static final Set<ExprType> TEMPORAL_TYPES =
+      Set.of(ExprCoreType.DATE, ExprCoreType.TIME, ExprCoreType.TIMESTAMP);
+
+  @Override
+  public RexNode visitCompare(Compare node, CalcitePlanContext context) {
+    RexNode left = analyze(node.getLeft(), context);
+    RexNode right = analyze(node.getRight(), context);
+    String op = node.getOperator();
+    // Handle boolean_field != literal -> IS_NOT_TRUE/IS_NOT_FALSE
+    if ("!=".equals(op) || "<>".equals(op)) {
+      RexNode result = tryMakeBooleanNotEquals(left, right, context);
+      if (result != null) {
+        return result;
+      }
+    }
+    return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, op, left, right);
   }
 
   /**
@@ -274,24 +295,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       return null;
     }
     return CoercionUtils.widenArguments(context.rexBuilder, operands);
-  }
-
-  private static final Set<ExprType> TEMPORAL_TYPES =
-      Set.of(ExprCoreType.DATE, ExprCoreType.TIME, ExprCoreType.TIMESTAMP);
-
-  @Override
-  public RexNode visitCompare(Compare node, CalcitePlanContext context) {
-    RexNode left = analyze(node.getLeft(), context);
-    RexNode right = analyze(node.getRight(), context);
-    String op = node.getOperator();
-    // Handle boolean_field != literal -> IS_NOT_TRUE/IS_NOT_FALSE
-    if ("!=".equals(op) || "<>".equals(op)) {
-      RexNode result = tryMakeBooleanNotEquals(left, right, context);
-      if (result != null) {
-        return result;
-      }
-    }
-    return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, op, left, right);
   }
 
   @Override
