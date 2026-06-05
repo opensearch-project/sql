@@ -13,10 +13,12 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.rex.RexInputRef;
@@ -47,6 +49,24 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
   @Override
   protected void onMatchImpl(RelOptRuleCall call) {
     final LogicalDedup logicalDedup = call.rel(0);
+    if (call.rels[1] instanceof LogicalFilter filter) {
+      // Push the filter into the scan, then synthesize an identity project so the standard
+      // apply() can run on the resulting Dedup → Project → Scan shape.
+      final CalciteLogicalIndexScan scan = call.rel(2);
+      AbstractRelNode scanWithFilter = scan.pushDownFilter(filter);
+      if (scanWithFilter == null) {
+        return;
+      }
+      CalciteLogicalIndexScan newScan = (CalciteLogicalIndexScan) scanWithFilter;
+      RelBuilder relBuilder = call.builder();
+      relBuilder.push(newScan);
+      // force=true so the identity project is materialized (apply() requires a LogicalProject)
+      relBuilder.project(
+          relBuilder.fields(), newScan.getRowType().getFieldNames(), /* force= */ true);
+      LogicalProject identityProject = (LogicalProject) relBuilder.build();
+      apply(call, logicalDedup, identityProject, newScan);
+      return;
+    }
     final LogicalProject projectWithExpr = call.rel(1);
     final CalciteLogicalIndexScan scan = call.rel(2);
     apply(call, logicalDedup, projectWithExpr, scan);
@@ -220,6 +240,27 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalProject.class)
+                                    .oneInput(
+                                        b2 ->
+                                            b2.operand(CalciteLogicalIndexScan.class)
+                                                .predicate(Config::tableScanChecker)
+                                                .noInputs())));
+
+    // +- LogicalDedup
+    //    +- LogicalFilter      (e.g. a `where` predicate preserved below dedup by
+    //    +- CalciteLogicalIndexScan   PPLSimplifyDedupRule when an upstream `where` is folded
+    //                                 into the bucket-non-null filter)
+    Config WITH_FILTER =
+        ImmutableDedupPushdownRule.Config.builder()
+            .build()
+            .withDescription("Dedup-to-Aggregate-WithFilter")
+            .withOperandSupplier(
+                b0 ->
+                    b0.operand(LogicalDedup.class)
+                        .predicate(dedup -> !dedup.getKeepEmpty())
+                        .oneInput(
+                            b1 ->
+                                b1.operand(LogicalFilter.class)
                                     .oneInput(
                                         b2 ->
                                             b2.operand(CalciteLogicalIndexScan.class)

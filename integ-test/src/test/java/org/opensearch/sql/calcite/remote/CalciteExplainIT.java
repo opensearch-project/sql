@@ -2154,10 +2154,9 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   /**
-   * Regression test for #5482: a user {@code where} clause adjacent to dedup's bucket-non-null
-   * filter must still let {@code PPLSimplifyDedupRule} fire even after {@code FilterMergeRule} has
-   * merged the two filters into a single AND. Without the fix, the plan keeps the in-memory {@code
-   * ROW_NUMBER} window over a row-fetching scan and dedup pushdown is silently disabled.
+   * With a user {@code where} clause preceding {@code dedup}, the physical plan must push both the
+   * filter and the dedup-as-aggregation into the OpenSearch scan, not fall back to an in-memory
+   * {@code ROW_NUMBER} window above a row-fetching scan.
    */
   @Test
   public void testDedupAfterWherePushDown() throws IOException {
@@ -2166,12 +2165,13 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             "source=opensearch-sql_test_index_account | where age > 25 | dedup gender");
     assertTrue(
-        "Expected LogicalDedup in the plan (simplify rule should fire after FilterMergeRule):\n"
-            + result,
-        result.contains("LogicalDedup"));
+        "Expected user where filter pushed down to the scan:\n" + result,
+        result.contains("FILTER->>($8, 25)"));
+    assertTrue(
+        "Expected dedup pushed down as AGGREGATION (composite + top_hits):\n" + result,
+        result.contains("AGGREGATION->"));
     assertFalse(
-        "Unexpected EnumerableWindow in the plan — dedup fell back to the in-memory ROW_NUMBER"
-            + " form, which means PPLSimplifyDedupRule did not fire:\n"
+        "Unexpected EnumerableWindow — dedup fell back to the in-memory ROW_NUMBER form:\n"
             + result,
         result.contains("EnumerableWindow"));
   }

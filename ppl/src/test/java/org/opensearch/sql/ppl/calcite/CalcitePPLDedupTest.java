@@ -449,6 +449,38 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
         optimizedExplain.contains(">($5, 1000)"));
   }
 
+  /**
+   * Mirrors the exact shape of {@code CalciteToolsHelper.HEP_PROGRAM} used in production
+   * ({@code addRuleCollection(List.of(FilterMergeRule, PPLSimplifyDedupRule))}). The two
+   * sequenced-{@code addRuleInstance} tests above prove the rule fires under either ordering,
+   * but production runs both rules in a single collection instruction. This test pins that exact
+   * shape to catch any addRuleCollection-vs-addRuleInstance traversal differences.
+   */
+  @Test
+  public void testDedupAfterWhereProducesLogicalDedupWithProductionHepProgram() {
+    String ppl = "source=EMP | where SAL > 1000 | dedup DEPTNO";
+    RelNode raw = getRelNodeRaw(ppl);
+
+    HepProgram program =
+        new HepProgramBuilder()
+            .addRuleCollection(
+                java.util.List.of(
+                    FilterMergeRule.Config.DEFAULT.toRule(),
+                    PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE))
+            .build();
+    RelNode optimized = runHepPlanner(raw, program);
+
+    String optimizedExplain = optimized.explain();
+    Assert.assertTrue(
+        "Production HEP_PROGRAM (addRuleCollection) must still produce LogicalDedup:\n"
+            + optimizedExplain,
+        optimizedExplain.contains("LogicalDedup"));
+    Assert.assertFalse(
+        "ROW_NUMBER window form should be removed under production HEP_PROGRAM:\n"
+            + optimizedExplain,
+        optimizedExplain.contains("ROW_NUMBER"));
+  }
+
   private static RelNode runHepPlanner(RelNode root, HepProgram program) {
     HepPlanner planner = new HepPlanner(program);
     planner.setRoot(root);
