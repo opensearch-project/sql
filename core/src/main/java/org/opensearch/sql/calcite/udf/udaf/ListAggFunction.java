@@ -40,25 +40,24 @@ public class ListAggFunction implements UserDefinedAggFunction<ListAggFunction.L
 
   @Override
   public ListAccumulator add(ListAccumulator acc, Object... values) {
-    // Handle case where no values are passed
     if (values == null || values.length == 0) {
       return acc;
     }
 
     Object value = values[0];
 
-    // Filter out null values and enforce 100-item limit
+    // Preserve raw element type so the result matches the ARG0_ARRAY return-type
+    // declaration on PPLBuiltinOperators.LIST. Stringifying here would break Calcite's
+    // type-checking and the response-boundary UDT dispatch for ip / binary columns.
     if (value != null && acc.size() < DEFAULT_LIMIT) {
-      // Convert value to string, handling all types safely
-      String stringValue = String.valueOf(value);
-      acc.add(stringValue);
+      acc.add(value);
     }
 
     return acc;
   }
 
   public static class ListAccumulator implements Accumulator {
-    private final List<String> values;
+    private final List<Object> values;
 
     public ListAccumulator() {
       this.values = new ArrayList<>();
@@ -69,7 +68,7 @@ public class ListAggFunction implements UserDefinedAggFunction<ListAggFunction.L
       return values;
     }
 
-    public void add(String value) {
+    public void add(Object value) {
       values.add(value);
     }
 

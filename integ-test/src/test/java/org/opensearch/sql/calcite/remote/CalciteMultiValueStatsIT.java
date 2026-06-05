@@ -43,7 +43,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
                 "source=%s | stats list(boolean_value) as bool_list",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifySchema(response, schema("bool_list", "array"));
-    verifyDataRows(response, rows(List.of("true")));
+    verifyDataRows(response, rows(List.of(true)));
   }
 
   @Test
@@ -53,7 +53,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats list(byte_number) as byte_list", TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(response, schema("byte_list", "array"));
-    verifyDataRows(response, rows(List.of("4")));
+    verifyDataRows(response, rows(List.of(4)));
   }
 
   @Test
@@ -63,7 +63,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats list(short_number) as short_list", TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(response, schema("short_list", "array"));
-    verifyDataRows(response, rows(List.of("3")));
+    verifyDataRows(response, rows(List.of(3)));
   }
 
   @Test
@@ -73,7 +73,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats list(integer_number) as int_list", TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(response, schema("int_list", "array"));
-    verifyDataRows(response, rows(List.of("2")));
+    verifyDataRows(response, rows(List.of(2)));
   }
 
   @Test
@@ -83,7 +83,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats list(long_number) as long_list", TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(response, schema("long_list", "array"));
-    verifyDataRows(response, rows(List.of("1")));
+    verifyDataRows(response, rows(List.of(1)));
   }
 
   @Test
@@ -93,7 +93,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats list(float_number) as float_list", TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(response, schema("float_list", "array"));
-    verifyDataRows(response, rows(List.of("6.2")));
+    verifyDataRows(response, rows(List.of(6.2)));
   }
 
   @Test
@@ -104,7 +104,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
                 "source=%s | stats list(double_number) as double_list",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(response, schema("double_list", "array"));
-    verifyDataRows(response, rows(List.of("5.1")));
+    verifyDataRows(response, rows(List.of(5.1)));
   }
 
   @Test
@@ -188,7 +188,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
             String.format("source=%s | head 5 | stats list(int0) as int_list", TEST_INDEX_CALCS));
     verifySchema(response, schema("int_list", "array"));
     // Nulls are filtered out by list function
-    verifyDataRows(response, rows(List.of("1", "7")));
+    verifyDataRows(response, rows(List.of(1, 7)));
   }
 
   @Test
@@ -217,7 +217,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
     assert response.has("datarows");
     // Values should be collected from the first 3 rows (str2 and int2 columns)
     // The actual values depend on the test data - int2 column contains 5, -4, 5
-    verifyDataRows(response, rows(List.of("one", "two", "three"), List.of("5", "-4", "5")));
+    verifyDataRows(response, rows(List.of("one", "two", "three"), List.of(5, -4, 5)));
   }
 
   @Test
@@ -275,7 +275,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | head 3 | stats list(int3 + 1) as arithmetic_list", TEST_INDEX_CALCS));
     verifySchema(response, schema("arithmetic_list", "array"));
-    verifyDataRows(response, rows(List.of("9", "14", "3")));
+    verifyDataRows(response, rows(List.of(9, 14, 3)));
   }
 
   // ==================== VALUES Function Tests ====================
