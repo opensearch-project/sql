@@ -1563,6 +1563,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexInputRef> aggCallRefs = PlanUtils.getInputRefsFromAggCall(resolvedAggCallList);
     boolean hintNestedAgg = containsNestedAggregator(context.relBuilder, aggCallRefs);
     trimmedRefs.addAll(aggCallRefs);
+    trimmedRefs.addAll(getAggCallFilterRefs(aggExprList, context));
     context.relBuilder.project(trimmedRefs);
 
     // Re-resolve all attributes based on adding trimmed Project.
@@ -1793,6 +1794,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (expr instanceof AggregateFunction af) return af;
     if (expr instanceof Alias alias) return extractAggregateFunction(alias.getDelegated());
     return null;
+  }
+
+  /**
+   * Collects input refs used by aggregate FILTER(WHERE ...) predicates so trimming retains them.
+   */
+  private List<RexInputRef> getAggCallFilterRefs(
+      List<UnresolvedExpression> aggExprList, CalcitePlanContext context) {
+    List<RexInputRef> refs = new ArrayList<>();
+    for (UnresolvedExpression aggExpr : aggExprList) {
+      AggregateFunction aggFunc = extractAggregateFunction(aggExpr);
+      if (aggFunc != null && aggFunc.condition() != null) {
+        refs.addAll(PlanUtils.getInputRefs(rexVisitor.analyze(aggFunc.condition(), context)));
+      }
+    }
+    return refs;
   }
 
   private Optional<UnresolvedExpression> getTimeSpanField(UnresolvedExpression expr) {
