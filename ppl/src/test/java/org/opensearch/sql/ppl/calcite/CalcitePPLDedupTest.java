@@ -424,8 +424,6 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | where SAL > 1000 | dedup DEPTNO";
     RelNode raw = getRelNodeRaw(ppl);
 
-    // Swapped order: FilterMergeRule first, then PPLSimplifyDedupRule. This is the order that
-    // produced the original bug (#5482) before the fix.
     HepProgram program =
         new HepProgramBuilder()
             .addRuleInstance(FilterMergeRule.Config.DEFAULT.toRule())

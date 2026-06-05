@@ -13,7 +13,6 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -51,13 +50,13 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     final LogicalDedup logicalDedup = call.rel(0);
     if (call.rels[1] instanceof LogicalFilter filter) {
       // Push the filter into the scan, then synthesize an identity project so the standard
-      // apply() can run on the resulting Dedup → Project → Scan shape.
+      // apply() can run on the resulting Dedup → Project → Scan shape. If the filter is only
+      // partially pushable, pushDownFilter returns a Filter wrapping the residual condition over
+      // the new scan; we can't strip a residual filter without breaking semantics, so bail.
       final CalciteLogicalIndexScan scan = call.rel(2);
-      AbstractRelNode scanWithFilter = scan.pushDownFilter(filter);
-      if (scanWithFilter == null) {
+      if (!(scan.pushDownFilter(filter) instanceof CalciteLogicalIndexScan newScan)) {
         return;
       }
-      CalciteLogicalIndexScan newScan = (CalciteLogicalIndexScan) scanWithFilter;
       RelBuilder relBuilder = call.builder();
       relBuilder.push(newScan);
       // force=true so the identity project is materialized (apply() requires a LogicalProject)
