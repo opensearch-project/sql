@@ -448,11 +448,11 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
   }
 
   /**
-   * Mirrors the exact shape of {@code CalciteToolsHelper.HEP_PROGRAM} used in production
-   * ({@code addRuleCollection(List.of(FilterMergeRule, PPLSimplifyDedupRule))}). The two
-   * sequenced-{@code addRuleInstance} tests above prove the rule fires under either ordering,
-   * but production runs both rules in a single collection instruction. This test pins that exact
-   * shape to catch any addRuleCollection-vs-addRuleInstance traversal differences.
+   * Mirrors the exact shape of {@code CalciteToolsHelper.HEP_PROGRAM} used in production ({@code
+   * addRuleCollection(List.of(FilterMergeRule, PPLSimplifyDedupRule))}). The two sequenced-{@code
+   * addRuleInstance} tests above prove the rule fires under either ordering, but production runs
+   * both rules in a single collection instruction. This test pins that exact shape to catch any
+   * addRuleCollection-vs-addRuleInstance traversal differences.
    */
   @Test
   public void testDedupAfterWhereProducesLogicalDedupWithProductionHepProgram() {
