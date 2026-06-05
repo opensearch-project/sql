@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TELEMETRY;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -232,5 +233,13 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
         rows("Amber JOHnny", "Duke Willmington", "Amber JOHnny Duke Willmington"),
         rows("Hattie", "Bond", "Hattie Bond"),
         rows("Nanette", "Bates", "Nanette Bates"));
+  }
+
+  @Test
+  public void testStruckFieldAndSubFieldWithHead() throws IOException {
+    JSONObject result =
+            executeQuery(
+                    String.format("source=%s | fields city.name, city | head", TEST_INDEX_DEEP_NESTED));
+    verifySchema(result, schema("city.name", "string"), schema("city", "struct"));
   }
 }
