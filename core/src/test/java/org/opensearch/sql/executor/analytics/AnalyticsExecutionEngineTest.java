@@ -237,6 +237,38 @@ class AnalyticsExecutionEngineTest {
         "byte[] should base64-encode to match OpenSearch binary wire format. " + dump);
   }
 
+  /** TIME-typed list elements arrive as "1970-01-01[ T]HH:mm:ss[.frac]" — strip the prefix. */
+  @Test
+  void executeRelNode_listOfStringStripsEpochDatePrefix() {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType varchar = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    RelDataType arrayOfVarchar = typeFactory.createArrayType(varchar, -1);
+    RelDataType rowType = typeFactory.builder().add("time_list", arrayOfVarchar).build();
+    RelNode relNode = mock(RelNode.class);
+    when(relNode.getRowType()).thenReturn(rowType);
+    java.util.List<String> input =
+        Arrays.asList(
+            "1970-01-01 19:36:22",
+            "1970-01-01T02:05:25",
+            "1970-01-01 12:34:56.123456789",
+            "2020-10-13 13:00:00",
+            "hello");
+    Iterable<Object[]> rows = Collections.singletonList(new Object[] {input});
+    stubExecutorWith(relNode, rows);
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    java.util.List<String> result =
+        response.getResults().get(0).tupleValue().get("time_list").collectionValue().stream()
+            .map(org.opensearch.sql.data.model.ExprValue::stringValue)
+            .toList();
+    assertEquals(
+        Arrays.asList("19:36:22", "02:05:25", "12:34:56.123456789", "2020-10-13 13:00:00", "hello"),
+        result,
+        dump);
+  }
+
   @Test
   void executeRelNode_emptyResults() {
     RelNode relNode = mockRelNode("name", SqlTypeName.VARCHAR);
