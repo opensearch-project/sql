@@ -20,7 +20,9 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.analytics.exec.profile.ProfiledResult;
 import org.opensearch.analytics.schema.BinaryType;
+import org.opensearch.analytics.schema.DateOnlyType;
 import org.opensearch.analytics.schema.IpType;
+import org.opensearch.analytics.schema.TimeOnlyType;
 import org.opensearch.common.network.InetAddresses;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.ast.statement.ExplainMode;
@@ -53,6 +55,11 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
   // list-aggregation elements bypass that path (see list_merge in DataFusion).
   private static final Pattern EPOCH_DATE_TIME_PREFIX =
       Pattern.compile("^1970-01-01[ T](\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?)$");
+
+  // DATE-typed columns whose wire is Timestamp(ms) arrive as "YYYY-MM-DD HH:mm:ss";
+  // when the column carries a DateOnlyType marker we strip the time suffix.
+  private static final Pattern DATE_WITH_MIDNIGHT_TIME =
+      Pattern.compile("^(\\d{4}-\\d{2}-\\d{2})[ T]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?$");
 
   private final QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor;
 
@@ -239,6 +246,20 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
         }
       } else if (type instanceof BinaryType) {
         return ExprValueUtils.stringValue(Base64.getEncoder().encodeToString(bytes));
+      }
+    }
+    // span(date-typed) returns Timestamp(ms) wire with midnight time; render as YYYY-MM-DD only.
+    if (type instanceof DateOnlyType && value instanceof String s) {
+      var m = DATE_WITH_MIDNIGHT_TIME.matcher(s);
+      if (m.matches()) {
+        return ExprValueUtils.stringValue(m.group(1));
+      }
+    }
+    // span(time-typed) returns Timestamp(ms) wire with 1970-01-01 prefix; render as HH:mm:ss only.
+    if (type instanceof TimeOnlyType && value instanceof String s) {
+      var m = EPOCH_DATE_TIME_PREFIX.matcher(s);
+      if (m.matches()) {
+        return ExprValueUtils.stringValue(m.group(1));
       }
     }
     // List elements that look like a sentinel-epoch-prefixed time render as HH:mm:ss only.
