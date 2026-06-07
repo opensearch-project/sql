@@ -20,7 +20,9 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.analytics.exec.profile.ProfiledResult;
 import org.opensearch.analytics.schema.BinaryType;
+import org.opensearch.analytics.schema.DateOnlyType;
 import org.opensearch.analytics.schema.IpType;
+import org.opensearch.analytics.schema.TimeOnlyType;
 import org.opensearch.common.network.InetAddresses;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.ast.statement.ExplainMode;
@@ -52,6 +54,10 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
   // post-processing (see DataFusion list_merge), arriving as "1970-01-01[ T]HH:mm:ss[.frac]".
   private static final Pattern EPOCH_DATE_TIME_PREFIX =
       Pattern.compile("^1970-01-01[ T](\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?)$");
+
+  // DateOnlyType wire is Timestamp(ms) at midnight — keep the date, drop the time.
+  private static final Pattern DATE_WITH_MIDNIGHT_TIME =
+      Pattern.compile("^(\\d{4}-\\d{2}-\\d{2})[ T]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?$");
 
   private final QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor;
 
@@ -212,7 +218,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     return results;
   }
 
-  /** Renders byte[] as IP/base64 per UDT, strips epoch-date prefix from TIME list elements. */
+  /** Renders UDT cells (IP/binary byte[]; date / time string) and strips TIME prefixes in lists. */
   private static ExprValue toExprValue(Object value, RelDataType type) {
     if (value instanceof byte[] bytes) {
       if (type instanceof IpType) {
@@ -224,6 +230,20 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
         }
       } else if (type instanceof BinaryType) {
         return ExprValueUtils.stringValue(Base64.getEncoder().encodeToString(bytes));
+      }
+    }
+    // DateOnlyType scalar — strip midnight time suffix off the Timestamp(ms) wire.
+    if (type instanceof DateOnlyType && value instanceof String s) {
+      var m = DATE_WITH_MIDNIGHT_TIME.matcher(s);
+      if (m.matches()) {
+        return ExprValueUtils.stringValue(m.group(1));
+      }
+    }
+    // TimeOnlyType scalar — strip 1970-01-01 prefix off the Timestamp(ms) wire.
+    if (type instanceof TimeOnlyType && value instanceof String s) {
+      var m = EPOCH_DATE_TIME_PREFIX.matcher(s);
+      if (m.matches()) {
+        return ExprValueUtils.stringValue(m.group(1));
       }
     }
     if (value instanceof List<?> list) {

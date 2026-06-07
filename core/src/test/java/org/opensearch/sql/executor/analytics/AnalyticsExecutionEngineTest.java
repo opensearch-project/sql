@@ -30,7 +30,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.analytics.schema.BinaryType;
+import org.opensearch.analytics.schema.DateOnlyType;
 import org.opensearch.analytics.schema.IpType;
+import org.opensearch.analytics.schema.TimeOnlyType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
@@ -235,6 +237,36 @@ class AnalyticsExecutionEngineTest {
         "U29tZSBiaW5hcnkgYmxvYg==",
         response.getResults().get(0).tupleValue().get("blob").value(),
         "byte[] should base64-encode to match OpenSearch binary wire format. " + dump);
+  }
+
+  /** DateOnlyType — schema reports DATE, value strips midnight suffix. */
+  @Test
+  void executeRelNode_dateOnlyTypeStripsTimeSuffix() {
+    RelNode relNode = mockRelNodeWithType("d", new DateOnlyType(RelDataTypeSystem.DEFAULT, true));
+    Iterable<Object[]> rows = Collections.singletonList(new Object[] {"1984-04-12 00:00:00"});
+    stubExecutorWith(relNode, rows);
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    assertEquals(ExprCoreType.DATE, response.getSchema().getColumns().get(0).getExprType(), dump);
+    assertEquals(
+        "1984-04-12", response.getResults().get(0).tupleValue().get("d").stringValue(), dump);
+  }
+
+  /** TimeOnlyType — schema reports TIME, value strips 1970-01-01 prefix. */
+  @Test
+  void executeRelNode_timeOnlyTypeStripsEpochDatePrefix() {
+    RelNode relNode = mockRelNodeWithType("t", new TimeOnlyType(RelDataTypeSystem.DEFAULT, true));
+    Iterable<Object[]> rows = Collections.singletonList(new Object[] {"1970-01-01 09:00:00"});
+    stubExecutorWith(relNode, rows);
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    assertEquals(ExprCoreType.TIME, response.getSchema().getColumns().get(0).getExprType(), dump);
+    assertEquals(
+        "09:00:00", response.getResults().get(0).tupleValue().get("t").stringValue(), dump);
   }
 
   /** TIME-typed list elements arrive as "1970-01-01[ T]HH:mm:ss[.frac]" — strip the prefix. */
