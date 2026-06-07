@@ -12,6 +12,7 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -46,6 +47,11 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
  * analytics engine, and converts the raw results into {@link QueryResponse}.
  */
 public class AnalyticsExecutionEngine implements ExecutionEngine {
+
+  // TIME-typed list elements round-trip via Timestamp and bypass ArrowValues' scalar
+  // post-processing (see DataFusion list_merge), arriving as "1970-01-01[ T]HH:mm:ss[.frac]".
+  private static final Pattern EPOCH_DATE_TIME_PREFIX =
+      Pattern.compile("^1970-01-01[ T](\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?)$");
 
   private final QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor;
 
@@ -206,21 +212,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     return results;
   }
 
-  /**
-   * Converts a single result cell to an {@link ExprValue}, dispatching on the column's UDT when
-   * present so {@code byte[]} payloads are rendered correctly:
-   *
-   * <ul>
-   *   <li>{@link IpType} + {@code byte[]} &rarr; canonical address string (matches {@code
-   *       IpFieldMapper}'s {@code valueFetcher} output).
-   *   <li>{@link BinaryType} + {@code byte[]} &rarr; base64-encoded string (matches the OpenSearch
-   *       {@code binary} field wire format).
-   *   <li>Anything else &rarr; existing {@link ExprValueUtils#fromObjectValue} path.
-   * </ul>
-   *
-   * <p>Without this dispatch, {@code fromObjectValue} throws {@code unsupported object class [B} on
-   * byte[] cells, and IP buffers leak through as raw 16-byte ipv4-mapped-ipv6 garbage.
-   */
+  /** Renders byte[] as IP/base64 per UDT, strips epoch-date prefix from TIME list elements. */
   private static ExprValue toExprValue(Object value, RelDataType type) {
     if (value instanceof byte[] bytes) {
       if (type instanceof IpType) {
@@ -234,7 +226,23 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
         return ExprValueUtils.stringValue(Base64.getEncoder().encodeToString(bytes));
       }
     }
+    if (value instanceof List<?> list) {
+      return ExprValueUtils.collectionValue(stripEpochDatePrefixInList(list));
+    }
     return ExprValueUtils.fromObjectValue(value);
+  }
+
+  private static List<Object> stripEpochDatePrefixInList(List<?> list) {
+    List<Object> out = new ArrayList<>(list.size());
+    for (Object element : list) {
+      if (element instanceof String s) {
+        var m = EPOCH_DATE_TIME_PREFIX.matcher(s);
+        out.add(m.matches() ? m.group(1) : s);
+      } else {
+        out.add(element);
+      }
+    }
+    return out;
   }
 
   private Schema buildSchema(List<RelDataTypeField> fields) {
