@@ -175,6 +175,24 @@ public class DatetimeExtensionTest extends UnifiedQueryTestBase implements Resul
   }
 
   @Test
+  public void testFilterOverEvalDerivedTimestampDoesNotAssertOnInputRef() {
+    // Regression: an `eval ts = TIMESTAMP(...)` Project produced a row with column `ts` typed
+    // as the EXPR_TIMESTAMP UDT (VARCHAR-backed). After this rule normalizes the RexCall return
+    // type to standard TIMESTAMP, the downstream Filter's `ts > '...'` condition still carries
+    // a RexInputRef whose stored type is the old UDT. Without the input-ref re-alignment, the
+    // downstream Filter's constructor assertion fires with
+    // "type mismatch: ref:EXPR_TIMESTAMP VARCHAR input:TIMESTAMP(9)".
+    givenQuery(
+            """
+            source = catalog.events \
+            | eval ts2 = TIMESTAMP(event_str) \
+            | where ts2 > '2024-01-01T00:00:00Z' \
+            | fields id\
+            """)
+        .assertReturnType("TIMESTAMP", TIMESTAMP, 9);
+  }
+
+  @Test
   public void testDatetimeFieldsPreserveStandardTypes() throws Exception {
     RelNode plan =
         planner.plan("source = catalog.events | fields hire_date, start_time, created_at");
