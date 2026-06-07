@@ -280,6 +280,24 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   }
 
   /**
+   * Whether {@code type} represents a DATE for the purpose of operand-conditional return-type
+   * inference (e.g. {@code ADDDATE(date, n)} returns DATE only when the base is a date). Recognizes
+   * both the SQL-plugin DATE UDT (via {@link #convertRelDataTypeToExprType}) and the
+   * analytics-route {@link DateOnlyType} column marker, which is {@code TIMESTAMP}-backed and would
+   * otherwise be misread as TIMESTAMP. Kept separate from {@link #convertRelDataTypeToExprType} so
+   * it isn't on the general planner path that round-trips through {@link
+   * #convertExprTypeToRelDataType}.
+   */
+  public static boolean isDateExprType(RelDataType type) {
+    return type instanceof DateOnlyType || convertRelDataTypeToExprType(type) == ExprCoreType.DATE;
+  }
+
+  /** TIME counterpart of {@link #isDateExprType} — recognizes the {@link TimeOnlyType} marker. */
+  public static boolean isTimeExprType(RelDataType type) {
+    return type instanceof TimeOnlyType || convertRelDataTypeToExprType(type) == ExprCoreType.TIME;
+  }
+
+  /**
    * Result-schema-only variant of {@link #convertRelDataTypeToExprType} that recognizes the
    * analytics-engine {@link IpType} / {@link BinaryType} markers as {@link ExprCoreType#IP} /
    * {@link ExprCoreType#BINARY}.

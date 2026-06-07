@@ -63,7 +63,10 @@ public class AddSubDateFunction extends ImplementorUDF {
     return opBinding -> {
       RelDataType temporalType = opBinding.getOperandType(0);
       RelDataType temporalDeltaType = opBinding.getOperandType(1);
-      if (OpenSearchTypeFactory.convertRelDataTypeToExprType(temporalType) == ExprCoreType.DATE
+      // isDateExprType (not convertRelDataTypeToExprType == DATE) so a DateOnlyType column — the
+      // analytics-route TIMESTAMP-backed date marker — is recognized as DATE; otherwise ADDDATE/
+      // SUBDATE on a date column would mis-declare TIMESTAMP and lose the DATE return type.
+      if (OpenSearchTypeFactory.isDateExprType(temporalType)
           && SqlTypeFamily.NUMERIC.contains(temporalDeltaType)) {
         return NULLABLE_DATE_UDT;
       } else {
