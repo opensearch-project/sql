@@ -521,7 +521,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlAggFunction DISTINCT_COUNT_APPROX =
       createUserDefinedAggFunction(
           DistinctCountApproxLogicalAggFunction.class,
-          "DISTINCT_COUNT_APPROX",
+          // Substrait-standard name the analytics-engine backend resolves by (V3 overrides it).
+          "APPROX_COUNT_DISTINCT",
           ReturnTypes.BIGINT_FORCE_NULLABLE,
           null);
 
