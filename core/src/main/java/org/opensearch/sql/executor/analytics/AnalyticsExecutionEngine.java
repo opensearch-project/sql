@@ -10,6 +10,7 @@ import java.net.UnknownHostException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -25,6 +26,7 @@ import org.opensearch.analytics.exec.profile.ProfiledResult;
 import org.opensearch.analytics.schema.BinaryType;
 import org.opensearch.analytics.schema.DateType;
 import org.opensearch.analytics.schema.IpType;
+import org.opensearch.analytics.schema.TimeType;
 import org.opensearch.common.network.InetAddresses;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.ast.statement.ExplainMode;
@@ -247,6 +249,15 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
         return ExprValueUtils.fromObjectValue(date);
       }
     }
+    // A time-only column likewise arrives as an epoch-millisecond timestamp (on 1970-01-01); render
+    // it as a SQL TIME so it matches the v2 / Calcite path (09:00:00 rather than 1970-01-01
+    // 09:00:00).
+    if (type instanceof TimeType) {
+      LocalTime time = toLocalTime(value);
+      if (time != null) {
+        return ExprValueUtils.fromObjectValue(time);
+      }
+    }
     return ExprValueUtils.fromObjectValue(value);
   }
 
@@ -276,6 +287,37 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     }
     if (value instanceof Number number) {
       return Instant.ofEpochMilli(number.longValue()).atZone(ZoneOffset.UTC).toLocalDate();
+    }
+    return null;
+  }
+
+  /**
+   * Extracts the {@link LocalTime} (time-of-day) from a timestamp-shaped result cell. Returns
+   * {@code null} for a {@code null} cell or an unrecognized runtime type so the caller falls back
+   * to the default conversion. Epoch-based values are interpreted at UTC, matching how OpenSearch
+   * stores times (as a timestamp on 1970-01-01).
+   */
+  private static LocalTime toLocalTime(Object value) {
+    if (value == null) {
+      return null;
+    }
+    if (value instanceof LocalTime localTime) {
+      return localTime;
+    }
+    if (value instanceof LocalDateTime localDateTime) {
+      return localDateTime.toLocalTime();
+    }
+    if (value instanceof Instant instant) {
+      return instant.atZone(ZoneOffset.UTC).toLocalTime();
+    }
+    if (value instanceof java.sql.Timestamp timestamp) {
+      return timestamp.toInstant().atZone(ZoneOffset.UTC).toLocalTime();
+    }
+    if (value instanceof java.sql.Time time) {
+      return time.toLocalTime();
+    }
+    if (value instanceof Number number) {
+      return Instant.ofEpochMilli(number.longValue()).atZone(ZoneOffset.UTC).toLocalTime();
     }
     return null;
   }

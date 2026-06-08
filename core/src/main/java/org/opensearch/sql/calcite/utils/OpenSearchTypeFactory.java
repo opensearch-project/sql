@@ -49,6 +49,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.analytics.schema.BinaryType;
 import org.opensearch.analytics.schema.DateType;
 import org.opensearch.analytics.schema.IpType;
+import org.opensearch.analytics.schema.TimeType;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
@@ -296,6 +297,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     }
     if (type instanceof DateType) {
       return DATE;
+    }
+    if (type instanceof TimeType) {
+      return TIME;
     }
     return convertRelDataTypeToExprType(type);
   }

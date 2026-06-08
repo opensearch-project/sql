@@ -106,16 +106,18 @@ public class CalciteAnalyticsDatetimeWireFormatIT extends PPLIntegTestCase {
     verifyDataRows(result, rows("2024-03-15"));
   }
 
-  /** TIME-mapped col: AE widens to TIMESTAMP; value must use space separator, not ISO {@code T}. */
+  /**
+   * TIME-mapped col with a time-only format: the analytics engine surfaces it as a SQL {@code TIME}
+   * (via the {@code TimeType} UDT), matching the v2 / Calcite path — time schema type and a
+   * time-of-day value, not a widened {@code TIMESTAMP}.
+   */
   @Test
   public void testTimeRootColumnHmsFormat() throws IOException {
     String query = "source=" + INDEX + " | sort t | head 1 | fields t";
     assertRoutedToAnalyticsEngine(query);
     JSONObject result = executeQuery(query);
-    verifySchema(result, schema("t", "timestamp"));
-    Assert.assertFalse(
-        "Time-mapped column must not surface as ISO T-separator literal",
-        result.getJSONArray("datarows").getJSONArray(0).getString(0).contains("T"));
+    verifySchema(result, schema("t", "time"));
+    verifyDataRows(result, rows("10:30:00"));
   }
 
   /** Eval-derived TIMESTAMP follows the same wire-format contract as a root column. */
