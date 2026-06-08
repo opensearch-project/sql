@@ -1601,12 +1601,12 @@ public class PredicateAnalyzer {
     }
 
     private Object convertEndpointValue(Object value, boolean isTimeStamp) {
-      value = sargPointValue(value);
-      // Shared normalization entry point: a Sarg endpoint can normalize to null, and
-      // timestampValueForPushDown(value.toString()) would otherwise NPE.
+      // Shared normalization entry point: guard a null endpoint so the timestamp branch's
+      // value.toString() cannot NPE. sargPointValue never produces null from a non-null input.
       if (value == null) {
         return null;
       }
+      value = sargPointValue(value);
       return isTimeStamp ? timestampValueForPushDown(value.toString()) : value;
     }
   }
