@@ -38,18 +38,12 @@ public class FieldsCommandIT extends PPLIntegTestCase {
 
   // --- Parameterized sources ---
 
-  /**
-   * Provides a direct account index source and a WHERE-prefix view source that produces the same
-   * rows. Shared by all account-based parameterized tests.
-   */
   static Stream<String> accountIndexSources() {
-    return Stream.of(
-        String.format("source=%s", TEST_INDEX_ACCOUNT), sourceView(TEST_INDEX_ACCOUNT_EXTENDED));
+    return sourceViews(TEST_INDEX_ACCOUNT);
   }
 
   static Stream<String> bankIndexSources() {
-    return Stream.of(
-        String.format("source=%s", TEST_INDEX_BANK), sourceView(TEST_INDEX_BANK_EXTENDED));
+    return sourceViews(TEST_INDEX_BANK);
   }
 
   // --- Tests ---
