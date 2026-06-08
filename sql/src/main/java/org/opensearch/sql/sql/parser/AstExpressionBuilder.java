@@ -222,7 +222,14 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
               .map(item -> ImmutablePair.of(createSortOption(item), visit(item.expression())))
               .collect(Collectors.toList());
     }
-    return new WindowFunction(visit(ctx.function), partitionByList, sortList);
+    UnresolvedExpression function = visit(ctx.function);
+    WindowFunction windowFunction = new WindowFunction(function, partitionByList, sortList);
+
+    // Aggregate window with ORDER BY defaults to a running RANGE frame (ranking ignores it).
+    if (function instanceof AggregateFunction && !sortList.isEmpty()) {
+      windowFunction.setWindowFrame(WindowFrame.rangeToCurrentRow());
+    }
+    return windowFunction;
   }
 
   @Override

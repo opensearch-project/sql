@@ -425,6 +425,33 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
   }
 
   @Test
+  public void testCountDistinctWindowWithOrderBy() {
+    // No frame printed: RANGE .. CURRENT ROW is Calcite's default for ORDER BY.
+    givenQuery(
+            """
+            SELECT department, COUNT(DISTINCT name) OVER(ORDER BY department) FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalProject(department=[$3], COUNT(DISTINCT name) OVER(ORDER BY department)=[COUNT(DISTINCT $1) OVER (ORDER BY $3 NULLS FIRST)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSumWindowWithPartitionAndOrderBy() {
+    givenQuery(
+            """
+            SELECT name, SUM(age) OVER(PARTITION BY department ORDER BY age) FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], SUM(age) OVER(PARTITION BY department ORDER BY age)=[SUM($2) OVER (PARTITION BY $3 ORDER BY $2 NULLS FIRST)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
   public void testWindowOrderByDefaultsNullsFirst() {
     // Window function ORDER BY without explicit NULLS FIRST/LAST defaults to NULLS FIRST,
     // matching top-level ORDER BY semantics.
