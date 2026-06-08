@@ -515,6 +515,25 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
         actual, rows("Nanette", "2018-06-23 00:00:00"), rows("Elinor", "2018-06-27 00:00:00"));
   }
 
+  /**
+   * A timestamp range comparison AND'd with an {@code IN} clause must push down and return rows.
+   */
+  @Test
+  public void testTimestampRangeWithInClausePushDown() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where birthdate > timestamp('2018-06-01 00:00:00') | where state in"
+                    + " ('IL', 'TN', 'WA') | fields firstname, state, birthdate",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("firstname", "string"),
+        schema("state", "string"),
+        schema("birthdate", "timestamp"));
+    verifyDataRows(actual, rows("Elinor", "WA", "2018-06-27 00:00:00"));
+  }
+
   @Test
   public void testDateIn() throws IOException {
     // birthdate is a TIMESTAMP-typed field; the IN values are DATE literals. visitIn must compare
