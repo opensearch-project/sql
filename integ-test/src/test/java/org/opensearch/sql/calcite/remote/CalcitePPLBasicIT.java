@@ -512,6 +512,28 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
         actual, rows("Nanette", "2018-06-23 00:00:00"), rows("Elinor", "2018-06-27 00:00:00"));
   }
 
+  /**
+   * Issue #5481: a timestamp range comparison AND'd with an {@code IN} clause on another field must
+   * push down and return rows. Calcite folds the {@code IN} into a {@code Sarg} and strips the
+   * timestamp literal's UDT; without the field-type-keyed fix the range query ships an unformatted
+   * date to the shard, which rejects it with a date-parse error (HTTP 500).
+   */
+  @Test
+  public void testTimestampRangeWithInClausePushDown() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where birthdate > timestamp('2018-06-01 00:00:00') | where state in"
+                    + " ('IL', 'TN', 'WA') | fields firstname, state, birthdate",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("firstname", "string"),
+        schema("state", "string"),
+        schema("birthdate", "timestamp"));
+    verifyDataRows(actual, rows("Elinor", "WA", "2018-06-27 00:00:00"));
+  }
+
   @Test
   public void testXor() throws IOException {
     JSONObject result =
