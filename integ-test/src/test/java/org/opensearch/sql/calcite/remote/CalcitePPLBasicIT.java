@@ -513,10 +513,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   }
 
   /**
-   * Issue #5481: a timestamp range comparison AND'd with an {@code IN} clause on another field must
-   * push down and return rows. Calcite folds the {@code IN} into a {@code Sarg} and strips the
-   * timestamp literal's UDT; without the field-type-keyed fix the range query ships an unformatted
-   * date to the shard, which rejects it with a date-parse error (HTTP 500).
+   * A timestamp range comparison AND'd with an {@code IN} clause must push down and return rows.
    */
   @Test
   public void testTimestampRangeWithInClausePushDown() throws IOException {
