@@ -2153,6 +2153,29 @@ public class CalciteExplainIT extends ExplainIT {
                 + "|  transpose 4 column_name='column_names'"));
   }
 
+  /**
+   * With a user {@code where} clause preceding {@code dedup}, the physical plan must push both the
+   * filter and the dedup-as-aggregation into the OpenSearch scan, not fall back to an in-memory
+   * {@code ROW_NUMBER} window above a row-fetching scan.
+   */
+  @Test
+  public void testDedupAfterWherePushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String result =
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where age > 25 | dedup gender");
+    assertTrue(
+        "Expected user where filter pushed down to the scan:\n" + result,
+        result.contains("FILTER->>($8, 25)"));
+    assertTrue(
+        "Expected dedup pushed down as AGGREGATION (composite + top_hits):\n" + result,
+        result.contains("AGGREGATION->"));
+    assertFalse(
+        "Unexpected EnumerableWindow — dedup fell back to the in-memory ROW_NUMBER form:\n"
+            + result,
+        result.contains("EnumerableWindow"));
+  }
+
   public void testComplexDedup() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_dedup_complex1.yaml");
