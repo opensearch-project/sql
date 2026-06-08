@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.opensearch.client.Request;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -52,16 +51,11 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testSimpleCount0() throws IOException {
-    Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
-    request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
-    client().performRequest(request1);
-    Request request2 = new Request("PUT", "/test/_doc/2?refresh=true");
-    request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
-    client().performRequest(request2);
-
-    JSONObject actual = executeQuery("source=test | stats count() as c");
+    // A bare auto-created index isn't parquet-backed; use the parquet-aware bank index (7 docs).
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats count() as c", TEST_INDEX_BANK));
     verifySchema(actual, schema("c", "bigint"));
-    verifyDataRows(actual, rows(2));
+    verifyDataRows(actual, rows(7));
   }
 
   @Test
