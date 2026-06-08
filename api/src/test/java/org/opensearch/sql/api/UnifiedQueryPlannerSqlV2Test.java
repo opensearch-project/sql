@@ -347,6 +347,47 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
   }
 
   @Test
+  public void testCountStarWithFilter() {
+    givenQuery("SELECT COUNT(*) FILTER(WHERE age > 30) FROM catalog.employees")
+        .assertPlan(
+            """
+            LogicalAggregate(group=[{}], COUNT(*) FILTER(WHERE age > 30)=[COUNT() FILTER $0])
+              LogicalProject($f1=[>($2, 30)])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testFilteredAggregateWithGroupBy() {
+    givenQuery(
+            """
+            SELECT department, SUM(age) FILTER(WHERE age > 30) FROM catalog.employees
+              GROUP BY department
+            """)
+        .assertPlan(
+            """
+            LogicalAggregate(group=[{0}], SUM(age) FILTER(WHERE age > 30)=[SUM($1) FILTER $2])
+              LogicalProject(department=[$3], age=[$2], $f3=[>($2, 30)])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testMultipleFilteredAggregates() {
+    givenQuery(
+            """
+            SELECT MAX(age) FILTER(WHERE age > 30), MIN(age) FILTER(WHERE age < 50)
+              FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalAggregate(group=[{}], MAX(age) FILTER(WHERE age > 30)=[MAX($0) FILTER $1], MIN(age) FILTER(WHERE age < 50)=[MIN($0) FILTER $2])
+              LogicalProject(age=[$2], $f4=[>($2, 30)], $f5=[<($2, 50)])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
   public void testScalarFnOverAggregate() {
     givenQuery("SELECT ABS(MAX(age)) FROM catalog.employees")
         .assertPlan(
