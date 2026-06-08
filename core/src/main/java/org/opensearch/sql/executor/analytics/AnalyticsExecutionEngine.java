@@ -7,6 +7,10 @@ package org.opensearch.sql.executor.analytics;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -19,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.analytics.exec.profile.ProfiledResult;
 import org.opensearch.analytics.schema.BinaryType;
+import org.opensearch.analytics.schema.DateType;
 import org.opensearch.analytics.schema.IpType;
 import org.opensearch.common.network.InetAddresses;
 import org.opensearch.core.action.ActionListener;
@@ -234,7 +239,45 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
         return ExprValueUtils.stringValue(Base64.getEncoder().encodeToString(bytes));
       }
     }
+    // A date-only column is stored (and arrives) as an epoch-millisecond timestamp; render it as a
+    // SQL DATE so it matches the v2 / Calcite path (1984-04-12 rather than 1984-04-12 00:00:00).
+    if (type instanceof DateType) {
+      LocalDate date = toLocalDate(value);
+      if (date != null) {
+        return ExprValueUtils.fromObjectValue(date);
+      }
+    }
     return ExprValueUtils.fromObjectValue(value);
+  }
+
+  /**
+   * Truncates a timestamp-shaped result cell to its {@link LocalDate}. Returns {@code null} for a
+   * {@code null} cell or an unrecognized runtime type so the caller falls back to the default
+   * conversion. Epoch-based values are interpreted at UTC, matching how OpenSearch stores dates.
+   */
+  private static LocalDate toLocalDate(Object value) {
+    if (value == null) {
+      return null;
+    }
+    if (value instanceof LocalDate localDate) {
+      return localDate;
+    }
+    if (value instanceof LocalDateTime localDateTime) {
+      return localDateTime.toLocalDate();
+    }
+    if (value instanceof Instant instant) {
+      return instant.atZone(ZoneOffset.UTC).toLocalDate();
+    }
+    if (value instanceof java.sql.Timestamp timestamp) {
+      return timestamp.toInstant().atZone(ZoneOffset.UTC).toLocalDate();
+    }
+    if (value instanceof java.sql.Date date) {
+      return date.toLocalDate();
+    }
+    if (value instanceof Number number) {
+      return Instant.ofEpochMilli(number.longValue()).atZone(ZoneOffset.UTC).toLocalDate();
+    }
+    return null;
   }
 
   private Schema buildSchema(List<RelDataTypeField> fields) {

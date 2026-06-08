@@ -47,6 +47,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.analytics.schema.BinaryType;
+import org.opensearch.analytics.schema.DateType;
 import org.opensearch.analytics.schema.IpType;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprBinaryType;
@@ -292,6 +293,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     }
     if (type instanceof BinaryType) {
       return BINARY;
+    }
+    if (type instanceof DateType) {
+      return DATE;
     }
     return convertRelDataTypeToExprType(type);
   }
