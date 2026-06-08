@@ -980,7 +980,11 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
                 "source=%s | stats percentile(balance, 50) as p50, percentile(balance, 90) as p90",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("p50", "bigint"), schema("p90", "bigint"));
-    verifyDataRows(actual, rows(32838, 48086));
+    // percentile() is approximate. The analytics-engine backend (DataFusion) uses a different
+    // t-digest interpolation than the Calcite/OpenSearch percentile_approx implementation, so p90
+    // lands on a different value (p50 agrees). Both are valid approximations.
+    int expectedP90 = isAnalyticsParquetIndicesEnabled() ? 46576 : 48086;
+    verifyDataRows(actual, rows(32838, expectedP90));
   }
 
   @Test
@@ -990,14 +994,18 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats sum(balance) as a by age", TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(response, schema("a", null, "bigint"), schema("age", null, "int"));
+    // SUM of an all-null bucket is null per the SQL spec. The DSL-pushdown path returns 0 instead
+    // (a known pushdown quirk); the analytics-engine backend (DataFusion) follows the spec like
+    // Calcite-no-pushdown and returns null. See testSumNull and #3408.
+    Object emptySum = (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled()) ? null : 0;
     verifyDataRows(
         response,
-        rows(isPushdownDisabled() ? null : 0, null),
+        rows(emptySum, null),
         rows(32838, 28),
         rows(39225, 32),
         rows(4180, 33),
         rows(48086, 34),
-        rows(isPushdownDisabled() ? null : 0, 36));
+        rows(emptySum, 36));
   }
 
   @Test
@@ -1061,7 +1069,9 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             + "  ],\n"
             + "  \"datarows\": [\n"
             + "    [\n"
-            + (isPushdownDisabled() ? "      null\n" : "      0\n")
+            + ((isPushdownDisabled() || isAnalyticsParquetIndicesEnabled())
+                ? "      null\n"
+                : "      0\n")
             + "    ]\n"
             + "  ],\n"
             + "  \"total\": 1,\n"
