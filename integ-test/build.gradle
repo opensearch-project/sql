@@ -1035,12 +1035,29 @@ task integTestRemote(type: RestIntegTestTask) {
         systemProperty 'tests.analytics.parquet_indices', System.getProperty("tests.analytics.parquet_indices")
     }
 
+    // True only when the analytics-engine route is active (every test index parquet-backed). Matches
+    // AnalyticsIndexConfig.isEnabled, which parses the value rather than checking mere presence, so a
+    // `-Dtests.analytics.parquet_indices=false` run stays on the v2 path.
+    def analyticsEnabled = Boolean.parseBoolean(System.getProperty("tests.analytics.parquet_indices", "false"))
+
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
 
-    if (System.getProperty("tests.rest.bwcsuite") == null) {
-        filter {
+    filter {
+        if (System.getProperty("tests.rest.bwcsuite") == null) {
             excludeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
+
+        if (analyticsEnabled) {
+            // Full-text search (search-filter syntax -> Lucene query_string) needs an inverted-index
+            // reader that parquet-backed analytics indices lack, so it's unsupported on this route.
+            excludeTestsMatching '*OperatorIT.testEqualOperator'
+            excludeTestsMatching '*OperatorIT.testNotEqualOperator'
+            excludeTestsMatching '*OperatorIT.testLessOperator'
+            excludeTestsMatching '*OperatorIT.testLteOperator'
+            excludeTestsMatching '*OperatorIT.testGreaterOperator'
+            excludeTestsMatching '*OperatorIT.testGteOperator'
+            excludeTestsMatching '*OperatorIT.testNotOperator'
         }
     }
 
