@@ -66,6 +66,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
       initClient();
     }
 
+    // When -Dtests.analytics.parquet_indices=true, make every index (including ones a test
+    // auto-creates via a raw document PUT, which bypasses createIndexByRestClient) parquet-backed
+    // composite, so it is stored as a DataFormatAwareEngine and is actually scannable by the
+    // analytics engine it routes to. Must run before init() creates any index.
+    TestUtils.AnalyticsIndexConfig.applyClusterSettings(client());
+
     if (shouldResetQuerySizeLimit()) {
       resetQuerySizeLimit();
     }

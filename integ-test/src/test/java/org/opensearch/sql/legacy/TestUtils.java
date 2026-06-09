@@ -23,6 +23,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
@@ -68,6 +69,11 @@ public class TestUtils {
       return Boolean.parseBoolean(System.getProperty(ENABLED_PROP, "false"));
     }
 
+    // Composite-store format values shared by the index-level and cluster-level settings below.
+    private static final String DATAFORMAT_COMPOSITE = "composite";
+    private static final String PRIMARY_FORMAT_PARQUET = "parquet";
+    private static final String SECONDARY_FORMAT_LUCENE = "lucene";
+
     /**
      * Inject the parquet-backed composite-store index settings into {@code jsonObject}. No-op when
      * the config is disabled; idempotent — safe on any index-creation JSON shape.
@@ -82,11 +88,36 @@ public class TestUtils {
           settings.has("index") ? settings.getJSONObject("index") : new JSONObject();
       indexSettings.put("number_of_shards", 1);
       indexSettings.put("pluggable.dataformat.enabled", true);
-      indexSettings.put("pluggable.dataformat", "composite");
-      indexSettings.put("composite.primary_data_format", "parquet");
-      indexSettings.put("composite.secondary_data_formats", new org.json.JSONArray().put("lucene"));
+      indexSettings.put("pluggable.dataformat", DATAFORMAT_COMPOSITE);
+      indexSettings.put("composite.primary_data_format", PRIMARY_FORMAT_PARQUET);
+      indexSettings.put(
+          "composite.secondary_data_formats", new JSONArray().put(SECONDARY_FORMAT_LUCENE));
       settings.put("index", indexSettings);
       jsonObject.put("settings", settings);
+    }
+
+    /**
+     * Set the composite-store defaults at the cluster level so even indices auto-created by a raw
+     * document {@code PUT} (which bypass {@link #applyIndexCreationSettings}) are parquet-backed.
+     * Otherwise such an index inherits only the composite value — so it routes to the analytics
+     * engine — but not the {@code .enabled} flag, leaving it stored as a plain-Lucene {@code
+     * EngineBackedIndexer} that fails at query time. No-op when disabled; idempotent.
+     */
+    public static void applyClusterSettings(RestClient client) {
+      if (!isEnabled()) {
+        return;
+      }
+      JSONObject persistent =
+          new JSONObject()
+              .put("cluster.pluggable.dataformat.enabled", true)
+              .put("cluster.pluggable.dataformat", DATAFORMAT_COMPOSITE)
+              .put("cluster.composite.primary_data_format", PRIMARY_FORMAT_PARQUET)
+              .put(
+                  "cluster.composite.secondary_data_formats",
+                  new JSONArray().put(SECONDARY_FORMAT_LUCENE));
+      Request request = new Request("PUT", "/_cluster/settings");
+      request.setJsonEntity(new JSONObject().put("persistent", persistent).toString());
+      performRequest(client, request);
     }
 
     /**
