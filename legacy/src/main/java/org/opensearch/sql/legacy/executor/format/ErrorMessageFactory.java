@@ -6,6 +6,7 @@
 package org.opensearch.sql.legacy.executor.format;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.sql.common.error.ErrorReport;
 
 public class ErrorMessageFactory {
   /**
@@ -24,6 +25,10 @@ public class ErrorMessageFactory {
     } else if (unwrapCause(e) instanceof OpenSearchException) {
       OpenSearchException exception = (OpenSearchException) unwrapCause(e);
       return new OpenSearchErrorMessage(exception, exception.status().getStatus());
+    }
+    // Unwrap ErrorReport so the error type reflects the underlying cause, not the wrapper.
+    if (e instanceof ErrorReport) {
+      return new ErrorMessage(((ErrorReport) e).getCause(), status);
     }
     return new ErrorMessage(e, status);
   }
