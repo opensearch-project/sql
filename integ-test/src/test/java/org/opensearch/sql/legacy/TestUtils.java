@@ -262,6 +262,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getAccountExtendedIndexMapping() {
+    String mappingFile = "account_extended_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getPhraseIndexMapping() {
     String mappingFile = "phrase_index_mapping.json";
     return getMappingFile(mappingFile);
@@ -331,6 +336,11 @@ public class TestUtils {
 
   public static String getBankIndexMapping() {
     String mappingFile = "bank_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getBankExtendedIndexMapping() {
+    String mappingFile = "bank_extended_index_mapping.json";
     return getMappingFile(mappingFile);
   }
 
