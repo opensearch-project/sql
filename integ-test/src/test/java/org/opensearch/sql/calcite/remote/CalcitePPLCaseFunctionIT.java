@@ -25,6 +25,8 @@ import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
+  private static volatile boolean dataAppended = false;
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -38,7 +40,12 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     appendDataForBadResponse();
   }
 
-  private void appendDataForBadResponse() throws IOException {
+  private synchronized void appendDataForBadResponse() throws IOException {
+    if (dataAppended) {
+      return; // Data already appended, skip to avoid duplicates when running full test suite
+    }
+    dataAppended = true;
+
     Request request1 = new Request("PUT", "/" + TEST_INDEX_WEBLOGS + "/_doc/7?refresh=true");
     request1.setJsonEntity(
         "{\"host\": \"::1\", \"method\": \"GET\", \"url\": \"/history/apollo/\", \"response\":"
