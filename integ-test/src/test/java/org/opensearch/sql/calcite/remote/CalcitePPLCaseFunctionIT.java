@@ -42,7 +42,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
 
   private synchronized void appendDataForBadResponse() throws IOException {
     if (dataAppended) {
-      return; // Data already appended, skip to avoid duplicates when running full test suite
+      return;
     }
     dataAppended = true;
 
@@ -315,7 +315,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK));
     verifySchema(actual4, schema("avg(balance)", "double"), schema("age_range", "string"));
     // There's such a discrepancy because null cannot be the key for a range query
-    if (isPushdownDisabled()) {
+    if (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled()) {
       verifyDataRows(
           actual4,
           rows(32838.0, "u30"),
@@ -470,7 +470,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
     verifySchema(actual, schema("avg(age)", "double"), schema("age_category", "string"));
     // There is such discrepancy because range aggregations will ignore null values
-    if (isPushdownDisabled()) {
+    if (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled()) {
       verifyDataRows(
           actual,
           rows(10, "teenager"),
