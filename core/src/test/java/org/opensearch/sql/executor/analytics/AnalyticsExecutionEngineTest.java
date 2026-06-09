@@ -242,7 +242,8 @@ class AnalyticsExecutionEngineTest {
   /** DateOnlyType — schema reports DATE, value strips midnight suffix. */
   @Test
   void executeRelNode_dateOnlyTypeStripsTimeSuffix() {
-    RelNode relNode = mockRelNodeWithType("d", new DateOnlyType(RelDataTypeSystem.DEFAULT, true));
+    RelNode relNode =
+        mockRelNodeWithType("d", new DateOnlyType(RelDataTypeSystem.DEFAULT, true, 3));
     Iterable<Object[]> rows = Collections.singletonList(new Object[] {"1984-04-12 00:00:00"});
     stubExecutorWith(relNode, rows);
 
@@ -257,7 +258,8 @@ class AnalyticsExecutionEngineTest {
   /** TimeOnlyType — schema reports TIME, value strips 1970-01-01 prefix. */
   @Test
   void executeRelNode_timeOnlyTypeStripsEpochDatePrefix() {
-    RelNode relNode = mockRelNodeWithType("t", new TimeOnlyType(RelDataTypeSystem.DEFAULT, true));
+    RelNode relNode =
+        mockRelNodeWithType("t", new TimeOnlyType(RelDataTypeSystem.DEFAULT, true, 3));
     Iterable<Object[]> rows = Collections.singletonList(new Object[] {"1970-01-01 09:00:00"});
     stubExecutorWith(relNode, rows);
 
