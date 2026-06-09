@@ -63,6 +63,7 @@ import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.ScriptService;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
@@ -241,6 +242,7 @@ public class SQLPlugin extends Plugin
           || !unifiedQueryHandler.isAnalyticsIndex(sqlRequest.getQuery(), QueryType.SQL)) {
         return false;
       }
+      LOGGER.info("[{}] Routing SQL query to analytics engine", QueryContext.getRequestId());
       if (sqlRequest.isExplainRequest()) {
         unifiedQueryHandler.explain(
             sqlRequest.getQuery(),
