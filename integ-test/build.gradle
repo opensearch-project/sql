@@ -766,6 +766,12 @@ integTest {
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
 
+    // Exclude the analytics-engine smoke test, because it executes in another task
+    // (:analyticsEngineCompatIT) against a cluster that bundles the analytics-engine plugin
+    // stack. Running it here against the plain integTest/remoteCluster (no analytics-engine)
+    // is pointless and leaves it exposed to suite-wide infra flakiness.
+    exclude 'org/opensearch/sql/plugin/AnalyticsEngineCompatIT.class'
+
     // Workaround for Gradle 9.4.1 ClassCastException in TestEventReporterAsListener.started
     // (line 58) — the bridge casts a parent test descriptor's reporter to
     // GroupTestEventReporterInternal but a class-level @Ignore produces a non-composite parent
@@ -1029,12 +1035,35 @@ task integTestRemote(type: RestIntegTestTask) {
         systemProperty 'tests.analytics.parquet_indices', System.getProperty("tests.analytics.parquet_indices")
     }
 
+    // Primary-shard count for analytics-backed test indices (default 1). Set to e.g. 3 to
+    // reproduce multi-shard coordination behavior on a single-node cluster.
+    if (System.getProperty("tests.analytics.num_shards") != null) {
+        systemProperty 'tests.analytics.num_shards', System.getProperty("tests.analytics.num_shards")
+    }
+
+    // True only when the analytics-engine route is active (every test index parquet-backed). Matches
+    // AnalyticsIndexConfig.isEnabled, which parses the value rather than checking mere presence, so a
+    // `-Dtests.analytics.parquet_indices=false` run stays on the v2 path.
+    def analyticsEnabled = Boolean.parseBoolean(System.getProperty("tests.analytics.parquet_indices", "false"))
+
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
 
-    if (System.getProperty("tests.rest.bwcsuite") == null) {
-        filter {
+    filter {
+        if (System.getProperty("tests.rest.bwcsuite") == null) {
             excludeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
+
+        if (analyticsEnabled) {
+            // Full-text search (search-filter syntax -> Lucene query_string) needs an inverted-index
+            // reader that parquet-backed analytics indices lack, so it's unsupported on this route.
+            excludeTestsMatching '*OperatorIT.testEqualOperator'
+            excludeTestsMatching '*OperatorIT.testNotEqualOperator'
+            excludeTestsMatching '*OperatorIT.testLessOperator'
+            excludeTestsMatching '*OperatorIT.testLteOperator'
+            excludeTestsMatching '*OperatorIT.testGreaterOperator'
+            excludeTestsMatching '*OperatorIT.testGteOperator'
+            excludeTestsMatching '*OperatorIT.testNotOperator'
         }
     }
 

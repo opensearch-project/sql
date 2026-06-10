@@ -107,8 +107,8 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
         executeQuery(
             source(
                 TEST_INDEX_BANK,
-                "eval result = mvappend(firstname, lastname) | head 1 | fields firstname, lastname,"
-                    + " result"));
+                "eval result = mvappend(firstname, lastname) | sort account_number | head 1 |"
+                    + " fields firstname, lastname, result"));
 
     verifySchema(
         actual,
@@ -179,7 +179,7 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
             source(
                 TEST_INDEX_BANK,
                 "eval combined = mvappend(firstname, lastname) | where array_length(combined) = 2 |"
-                    + " head 1 | fields firstname, lastname, combined"));
+                    + " sort account_number | head 1 | fields firstname, lastname, combined"));
 
     verifySchema(
         actual,
@@ -198,8 +198,8 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
         executeQuery(
             source(
                 TEST_INDEX_BANK,
-                "eval result = mvappend(array(age), array(age * 2), age + 10) | head 1 | fields"
-                    + " age, result"));
+                "eval result = mvappend(array(age), array(age * 2), age + 10) | sort"
+                    + " account_number | head 1 | fields age, result"));
 
     verifySchema(actual, schema("age", "int"), schema("result", "array"));
     verifyDataRows(actual, rows(32, List.of(32, 64, 42)));

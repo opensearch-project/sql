@@ -14,6 +14,8 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -58,6 +60,8 @@ import org.opensearch.transport.client.node.NodeClient;
 /** Send PPL query transport action. */
 public class TransportPPLQueryAction
     extends HandledTransportAction<ActionRequest, TransportPPLQueryResponse> {
+
+  private static final Logger LOG = LogManager.getLogger(TransportPPLQueryAction.class);
 
   private final Injector injector;
 
@@ -171,6 +175,7 @@ public class TransportPPLQueryAction
     // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
     if (unifiedQueryHandler != null
         && unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
+      LOG.info("[{}] Routing PPL query to analytics engine", QueryContext.getRequestId());
       if (transformedRequest.isExplainRequest()) {
         unifiedQueryHandler.explain(
             transformedRequest.getRequest(),

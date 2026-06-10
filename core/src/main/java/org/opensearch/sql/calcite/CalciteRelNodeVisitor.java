@@ -481,9 +481,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (!context.isResolvingSubquery()) {
         context.setProjectVisited(true);
       }
-      context.relBuilder.project(expandedFields);
+
+      // Force the projection on a rename: without it, Calcite omits the project node when the
+      // columns are unchanged (same fields and order), so an alias like COUNT(*) AS cnt is lost.
+      boolean force = isRenameFieldsProject(expandedFields, currentFields);
+      context.relBuilder.project(expandedFields, ImmutableList.of(), force);
     }
     return context.relBuilder.peek();
+  }
+
+  private static boolean isRenameFieldsProject(List<RexNode> fields, List<String> currentFields) {
+    for (RexNode r : fields) {
+      if (r.getKind() == AS) {
+        RexCall as = (RexCall) r;
+        if (as.getOperands().get(0) instanceof RexInputRef ref) {
+          String name = ((RexLiteral) as.getOperands().get(1)).getValueAs(String.class);
+          if (!name.equals(currentFields.get(ref.getIndex()))) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   private boolean isSingleAllFieldsProject(Project node) {
@@ -1544,6 +1563,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexInputRef> aggCallRefs = PlanUtils.getInputRefsFromAggCall(resolvedAggCallList);
     boolean hintNestedAgg = containsNestedAggregator(context.relBuilder, aggCallRefs);
     trimmedRefs.addAll(aggCallRefs);
+    trimmedRefs.addAll(getAggCallFilterRefs(aggExprList, context));
     context.relBuilder.project(trimmedRefs);
 
     // Re-resolve all attributes based on adding trimmed Project.
@@ -1774,6 +1794,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (expr instanceof AggregateFunction af) return af;
     if (expr instanceof Alias alias) return extractAggregateFunction(alias.getDelegated());
     return null;
+  }
+
+  /**
+   * Collects input refs used by aggregate FILTER(WHERE ...) predicates so trimming retains them.
+   */
+  private List<RexInputRef> getAggCallFilterRefs(
+      List<UnresolvedExpression> aggExprList, CalcitePlanContext context) {
+    List<RexInputRef> refs = new ArrayList<>();
+    for (UnresolvedExpression aggExpr : aggExprList) {
+      AggregateFunction aggFunc = extractAggregateFunction(aggExpr);
+      if (aggFunc != null && aggFunc.condition() != null) {
+        refs.addAll(PlanUtils.getInputRefs(rexVisitor.analyze(aggFunc.condition(), context)));
+      }
+    }
+    return refs;
   }
 
   private Optional<UnresolvedExpression> getTimeSpanField(UnresolvedExpression expr) {
@@ -3031,8 +3066,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Union command requires at least two datasets. Provided: " + inputNodes.size());
     }
 
-    List<RelNode> unifiedInputs =
-        SchemaUnifier.buildUnifiedSchemaWithTypeCoercion(inputNodes, context);
+    List<RelNode> unifiedInputs = inputNodes;
+    if (node.isUnifySchema()) {
+      unifiedInputs = SchemaUnifier.buildUnifiedSchemaWithTypeCoercion(inputNodes, context);
+    }
 
     for (RelNode input : unifiedInputs) {
       context.relBuilder.push(input);

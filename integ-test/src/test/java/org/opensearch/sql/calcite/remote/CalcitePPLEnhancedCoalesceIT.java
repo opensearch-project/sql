@@ -73,8 +73,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(name, 123, 'unknown') | fields name, result |"
-                    + " head 1",
+                "source=%s | eval result = coalesce(name, 123, 'unknown') | sort - age | fields"
+                    + " name, result | head 1",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
@@ -100,8 +100,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(name, age, year, month) | fields name, age,"
-                    + " year, month, result | head 2",
+                "source=%s | eval result = coalesce(name, age, year, month) | sort - age | fields"
+                    + " name, age, year, month, result | head 2",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(
@@ -139,8 +139,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(nonexistent_field, name) | fields name, result"
-                    + " | head 2",
+                "source=%s | eval result = coalesce(nonexistent_field, name) | sort - age"
+                    + " | fields name, result | head 2",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
@@ -234,7 +234,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce('', name) | fields name, result | head 1",
+                "source=%s | eval result = coalesce('', name) | sort - age | fields name, result"
+                    + " | head 1",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
@@ -247,7 +248,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(' ', name) | fields name, result | head 1",
+                "source=%s | eval result = coalesce(' ', name) | sort - age | fields name, result"
+                    + " | head 1",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
@@ -274,8 +276,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(age, year, 999) | fields age, year, result |"
-                    + " head 2",
+                "source=%s | eval result = coalesce(age, year, 999) | sort - age | fields age,"
+                    + " year, result | head 2",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("age", "int"), schema("year", "int"), schema("result", "int"));
@@ -288,7 +290,7 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval result = coalesce(nonexistent_field, age,"
-                    + " 'default') | fields age, result | head 2",
+                    + " 'default') | sort - age | fields age, result | head 2",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("age", "int"), schema("result", "string"));
@@ -300,8 +302,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(age, year, month) | fields age, year, month,"
-                    + " result | head 2",
+                "source=%s | eval result = coalesce(age, year, month) | sort - age | fields age,"
+                    + " year, month, result | head 2",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(

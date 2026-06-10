@@ -788,15 +788,21 @@ public interface PlanUtils {
     return Mappings.target(getSelectColumns(rexNodes), schema.getFieldCount());
   }
 
+  /**
+   * Accepts the un-merged {@code IS NOT NULL($ref)} shape and the merged-{@code AND} shape that
+   * {@link org.apache.calcite.rel.rules.FilterMergeRule} produces when a user {@code where}
+   * precedes the dedup. The concrete partition-key match — and the split-out of any user predicate
+   * folded into the AND — happens in {@link PPLSimplifyDedupRule#apply}.
+   */
   static boolean mayBeFilterFromBucketNonNull(LogicalFilter filter) {
     RexNode condition = filter.getCondition();
     return isNotNullOnRef(condition)
         || (condition instanceof RexCall rexCall
             && rexCall.getOperator().equals(SqlStdOperatorTable.AND)
-            && rexCall.getOperands().stream().allMatch(PlanUtils::isNotNullOnRef));
+            && rexCall.getOperands().stream().anyMatch(PlanUtils::isNotNullOnRef));
   }
 
-  private static boolean isNotNullOnRef(RexNode rex) {
+  public static boolean isNotNullOnRef(RexNode rex) {
     return rex instanceof RexCall rexCall
         && rexCall.isA(SqlKind.IS_NOT_NULL)
         && rexCall.getOperands().get(0) instanceof RexInputRef;

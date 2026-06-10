@@ -10,10 +10,12 @@ import static org.junit.Assert.assertThrows;
 
 import java.util.Map;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 
@@ -72,7 +74,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
     // This is valid in SparkSQL, but Calcite requires "catalog" as the default root schema to
     // resolve it
-    assertThrows(IllegalStateException.class, () -> planner.plan("source = opensearch.employees"));
+    assertThrows(SemanticCheckException.class, () -> planner.plan("source = opensearch.employees"));
   }
 
   @Test
@@ -129,6 +131,20 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
     givenInvalidQuery("source = catalog.employees | rename id* as x*y*")
         .assertErrorType(SemanticCheckException.class)
         .assertErrorMessageEquals("Source and target patterns have different wildcard counts");
+  }
+
+  @Test
+  public void fieldNotFoundIsRethrownAsErrorReport() {
+    givenInvalidQuery("source = catalog.employees | where unknown_field = 1")
+        .assertErrorType(ErrorReport.class)
+        .assertErrorMessageContains("Field [unknown_field] not found");
+  }
+
+  @Test
+  public void invalidTableIsRethrownAsSemanticCheckException() {
+    givenInvalidQuery("source = catalog.nonexistent_table")
+        .assertErrorType(SemanticCheckException.class)
+        .assertCauseType(CalciteException.class);
   }
 
   @Test

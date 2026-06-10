@@ -264,6 +264,12 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
+  public UnresolvedPlan visitUnionSelect(OpenSearchSQLParser.UnionSelectContext ctx) {
+    throw new SyntaxCheckException(
+        "UNION is not supported in the V2 SQL engine. Falling back to legacy engine.");
+  }
+
+  @Override
   public UnresolvedPlan visitHavingClause(HavingClauseContext ctx) {
     AstHavingFilterBuilder builder = new AstHavingFilterBuilder(context.peek());
     return new Filter(builder.visit(ctx.expression()));

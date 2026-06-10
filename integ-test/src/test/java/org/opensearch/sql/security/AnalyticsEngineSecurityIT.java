@@ -23,6 +23,8 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
 
   private static final String TEST_INDEX = "analytics_security_test";
   private static final String FORBIDDEN_INDEX = "analytics_forbidden_test";
+  private static final String TEST_INDEX_2 = "analytics_security_extra";
+  private static final String TEST_ALIAS = "analytics_alias";
 
   private static final String ALLOWED_USER = "analytics_allowed_user";
   private static final String ALLOWED_ROLE = "analytics_allowed_role";
@@ -32,6 +34,10 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
   private static final String SEARCH_ONLY_ROLE = "analytics_search_only_role";
   private static final String WILDCARD_USER = "analytics_wildcard_user";
   private static final String WILDCARD_ROLE = "analytics_wildcard_role";
+  private static final String ALIAS_USER = "analytics_alias_user";
+  private static final String ALIAS_ROLE = "analytics_alias_role";
+  private static final String EXACT_PERM_USER = "analytics_exact_perm_user";
+  private static final String EXACT_PERM_ROLE = "analytics_exact_perm_role";
 
   private static boolean initialized = false;
 
@@ -73,30 +79,39 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     // Create composite (analytics-engine-backed) indices so the SQL plugin routes
     // queries through the analytics engine's DefaultPlanExecutor.
     createCompositeIndex(TEST_INDEX);
+    createCompositeIndex(TEST_INDEX_2);
+    createCompositeIndex(FORBIDDEN_INDEX);
+
+    RequestOptions.Builder opts = RequestOptions.DEFAULT.toBuilder();
+    opts.addHeader("Content-Type", "application/x-ndjson");
+
     Request bulk = new Request("POST", "/_bulk");
     bulk.addParameter("refresh", "true");
     bulk.setJsonEntity(
         String.format(
             Locale.ROOT,
             "{\"index\": {\"_index\": \"%s\"}}\n{\"name\": \"alice\", \"age\": 30}\n"
-                + "{\"index\": {\"_index\": \"%s\"}}\n{\"name\": \"bob\", \"age\": 25}\n",
+                + "{\"index\": {\"_index\": \"%s\"}}\n{\"name\": \"bob\", \"age\": 25}\n"
+                + "{\"index\": {\"_index\": \"%s\"}}\n{\"name\": \"carol\", \"age\": 28}\n"
+                + "{\"index\": {\"_index\": \"%s\"}}\n{\"name\": \"secret\", \"age\": 99}\n",
             TEST_INDEX,
-            TEST_INDEX));
-    RequestOptions.Builder opts = RequestOptions.DEFAULT.toBuilder();
-    opts.addHeader("Content-Type", "application/x-ndjson");
+            TEST_INDEX,
+            TEST_INDEX_2,
+            FORBIDDEN_INDEX));
     bulk.setOptions(opts);
     client().performRequest(bulk);
 
-    createCompositeIndex(FORBIDDEN_INDEX);
-    Request bulkF = new Request("POST", "/_bulk");
-    bulkF.addParameter("refresh", "true");
-    bulkF.setJsonEntity(
+    // Create alias pointing to TEST_INDEX
+    Request aliasReq = new Request("POST", "/_aliases");
+    aliasReq.setJsonEntity(
         String.format(
             Locale.ROOT,
-            "{\"index\": {\"_index\": \"%s\"}}\n{\"name\": \"secret\", \"age\": 99}\n",
-            FORBIDDEN_INDEX));
-    bulkF.setOptions(opts);
-    client().performRequest(bulkF);
+            """
+            {"actions": [{"add": {"index": "%s", "alias": "%s"}}]}
+            """,
+            TEST_INDEX,
+            TEST_ALIAS));
+    client().performRequest(aliasReq);
   }
 
   private void createCompositeIndex(String index) throws IOException {
@@ -166,6 +181,30 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
           "indices:data/read*", "indices:admin/mappings/get", "indices:monitor/settings/get"
         });
     createUser(WILDCARD_USER, WILDCARD_ROLE);
+
+    // Role with access only to the alias — verifies security plugin resolves alias to
+    // concrete index and permits access when role's index_patterns matches the alias name.
+    createRoleWithPermissions(
+        ALIAS_ROLE,
+        TEST_ALIAS,
+        new String[] {"cluster:admin/opensearch/ppl", "cluster:admin/opensearch/sql"},
+        new String[] {
+          "indices:data/read*", "indices:admin/mappings/get", "indices:monitor/settings/get"
+        });
+    createUser(ALIAS_USER, ALIAS_ROLE);
+
+    // Role with exactly indices:data/read/analytics/query — proves this specific permission
+    // is both necessary and sufficient for analytics engine queries.
+    createRoleWithPermissions(
+        EXACT_PERM_ROLE,
+        TEST_INDEX,
+        new String[] {"cluster:admin/opensearch/ppl", "cluster:admin/opensearch/sql"},
+        new String[] {
+          "indices:data/read/analytics/query",
+          "indices:admin/mappings/get",
+          "indices:monitor/settings/get"
+        });
+    createUser(EXACT_PERM_USER, EXACT_PERM_ROLE);
   }
 
   @Test
@@ -216,6 +255,26 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
                 executePPLAsUser(
                     "source = " + TEST_INDEX + " | fields name, age", SEARCH_ONLY_USER));
     assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+    String body = org.opensearch.sql.legacy.TestUtils.getResponseBody(e.getResponse(), true);
+    assertTrue(
+        "Expected response to reference the missing analytics/query action, got: " + body,
+        body.contains("indices:data/read/analytics/query"));
+  }
+
+  @Test
+  public void testPPLQueryAllowedWithExactAnalyticsQueryPermission() throws IOException {
+    // User has exactly indices:data/read/analytics/query (not a broad wildcard).
+    // Proves this specific permission is sufficient for analytics engine queries.
+    try {
+      JSONObject result =
+          executePPLAsUser("source = " + TEST_INDEX + " | fields name, age", EXACT_PERM_USER);
+      assertTrue("Expected datarows in response", result.has("datarows"));
+    } catch (ResponseException e) {
+      assertNotEquals(
+          "Expected auth to pass (not 403) for user with exact analytics/query permission",
+          403,
+          e.getResponse().getStatusLine().getStatusCode());
+    }
   }
 
   @Test
@@ -244,6 +303,93 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
             () ->
                 executePPLAsUser(
                     "source = " + FORBIDDEN_INDEX + " | fields name, age", WILDCARD_USER));
+    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+  }
+
+  // --- Alias-based access tests ---
+
+  @Test
+  public void testPPLQueryAllowedViaAlias() throws IOException {
+    // User's role has index_patterns: ["analytics_alias"]. Security plugin resolves the
+    // alias to the concrete index. Since AnalyticsQueryRequest uses strictExpandOpen(),
+    // IndexNameExpressionResolver resolves the alias and security matches it against the
+    // role's index_patterns which includes the alias name.
+    try {
+      JSONObject result =
+          executePPLAsUser("source = " + TEST_ALIAS + " | fields name, age", ALIAS_USER);
+      assertTrue("Expected datarows in response", result.has("datarows"));
+    } catch (ResponseException e) {
+      assertNotEquals(
+          "Expected auth to pass (not 403) for alias-permitted user",
+          403,
+          e.getResponse().getStatusLine().getStatusCode());
+    }
+  }
+
+  @Test
+  public void testPPLQueryDeniedViaAliasForUnauthorizedUser() throws IOException {
+    // DENIED_USER has no access to analytics_alias or the underlying index.
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () -> executePPLAsUser("source = " + TEST_ALIAS + " | fields name, age", DENIED_USER));
+    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void testPPLQueryAllowedViaConcreteIndexForAliasUser() throws IOException {
+    // ALIAS_USER's role has index_patterns: ["analytics_alias"]. In OpenSearch's security
+    // model, granting access to an alias also implicitly grants access to the underlying
+    // concrete index. This verifies the query succeeds via the concrete name.
+    try {
+      JSONObject result =
+          executePPLAsUser("source = " + TEST_INDEX + " | fields name, age", ALIAS_USER);
+      assertTrue("Expected datarows in response", result.has("datarows"));
+    } catch (ResponseException e) {
+      assertNotEquals(
+          "Expected auth to pass (not 403) for alias user querying concrete index",
+          403,
+          e.getResponse().getStatusLine().getStatusCode());
+    }
+  }
+
+  // --- Wildcard index pattern in query tests ---
+
+  @Test
+  public void testPPLQueryWithWildcardIndexAllowed() throws IOException {
+    // WILDCARD_USER has index_patterns: ["analytics_security*"]. Query uses wildcard
+    // "analytics_security*" which resolves to analytics_security_test and
+    // analytics_security_extra — both match the role's pattern.
+    try {
+      JSONObject result =
+          executePPLAsUser("source = analytics_security* | fields name, age", WILDCARD_USER);
+      assertTrue("Expected datarows in response", result.has("datarows"));
+    } catch (ResponseException e) {
+      assertNotEquals(
+          "Expected auth to pass (not 403) for wildcard query with matching permissions",
+          403,
+          e.getResponse().getStatusLine().getStatusCode());
+    }
+  }
+
+  @Test
+  public void testPPLQueryWithWildcardIndexDenied() throws IOException {
+    // DENIED_USER has no access to any analytics_* indices.
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () -> executePPLAsUser("source = analytics_security* | fields name, age", DENIED_USER));
+    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void testPPLQueryWithWildcardIndexPartialAccessDenied() throws IOException {
+    // ALIAS_USER only has access to "analytics_alias" — not to "analytics_security*".
+    // A wildcard query expanding to indices the user lacks permission for should be denied.
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () -> executePPLAsUser("source = analytics_security* | fields name, age", ALIAS_USER));
     assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
   }
 

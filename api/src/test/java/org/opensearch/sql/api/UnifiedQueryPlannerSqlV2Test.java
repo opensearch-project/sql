@@ -201,6 +201,42 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
   }
 
   @Test
+  public void testUnionAll() {
+    givenQuery(
+            """
+            SELECT name FROM catalog.employees UNION ALL SELECT dept_name FROM catalog.departments
+            """)
+        .assertPlan(
+            """
+            LogicalUnion(all=[true])
+              LogicalProject(name=[$1])
+                LogicalTableScan(table=[[catalog, employees]])
+              LogicalProject(dept_name=[$1])
+                LogicalTableScan(table=[[catalog, departments]])
+            """);
+  }
+
+  @Test
+  public void testMultiWayUnion() {
+    givenQuery(
+            """
+            SELECT name FROM catalog.employees
+            UNION ALL SELECT dept_name FROM catalog.departments
+            UNION ALL SELECT name FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalUnion(all=[true])
+              LogicalProject(name=[$1])
+                LogicalTableScan(table=[[catalog, employees]])
+              LogicalProject(dept_name=[$1])
+                LogicalTableScan(table=[[catalog, departments]])
+              LogicalProject(name=[$1])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
   public void testNotExistsSubquery() {
     givenQuery(
             """
@@ -242,6 +278,57 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
   }
 
   @Test
+  public void testGroupByAggregateAlias() {
+    givenQuery(
+            """
+            SELECT department, SUM(age) AS total FROM catalog.employees GROUP BY department
+            """)
+        .assertPlan(
+            """
+            LogicalProject(department=[$0], total=[$1])
+              LogicalAggregate(group=[{0}], SUM(age)=[SUM($1)])
+                LogicalProject(department=[$3], age=[$2])
+                  LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testOrderByAggregateAlias() {
+    givenQuery(
+            """
+            SELECT department, COUNT(*) AS cnt FROM catalog.employees
+              GROUP BY department ORDER BY cnt DESC LIMIT 3
+            """)
+        .assertPlan(
+            """
+            LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])
+              LogicalProject(department=[$1], cnt=[$0])
+                LogicalSort(sort0=[$0], dir0=[DESC-nulls-last], fetch=[3])
+                  LogicalProject(COUNT(*)=[$1], department=[$0])
+                    LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+                      LogicalProject(department=[$3])
+                        LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testAliasPreservedInOutputSchema() {
+    givenQuery("SELECT COUNT(*) AS cnt FROM catalog.employees").assertFields("cnt");
+
+    givenQuery("SELECT department, COUNT(*) AS cnt FROM catalog.employees GROUP BY department")
+        .assertFields("department", "cnt");
+
+    givenQuery("SELECT department, COUNT(*) FROM catalog.employees GROUP BY department")
+        .assertFields("department", "COUNT(*)");
+
+    givenQuery("SELECT MAX(age) + MIN(age) AS range_sum FROM catalog.employees")
+        .assertFields("range_sum");
+
+    givenQuery("SELECT id, name, age AS years, department FROM catalog.employees")
+        .assertFields("id", "name", "years", "department");
+  }
+
+  @Test
   public void testHavingMaxCol() {
     givenQuery(
             """
@@ -256,6 +343,47 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
                   LogicalAggregate(group=[{0}], MAX(age)=[MAX($1)])
                     LogicalProject(department=[$3], age=[$2])
                       LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testCountStarWithFilter() {
+    givenQuery("SELECT COUNT(*) FILTER(WHERE age > 30) FROM catalog.employees")
+        .assertPlan(
+            """
+            LogicalAggregate(group=[{}], COUNT(*) FILTER(WHERE age > 30)=[COUNT() FILTER $0])
+              LogicalProject($f1=[>($2, 30)])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testFilteredAggregateWithGroupBy() {
+    givenQuery(
+            """
+            SELECT department, SUM(age) FILTER(WHERE age > 30) FROM catalog.employees
+              GROUP BY department
+            """)
+        .assertPlan(
+            """
+            LogicalAggregate(group=[{0}], SUM(age) FILTER(WHERE age > 30)=[SUM($1) FILTER $2])
+              LogicalProject(department=[$3], age=[$2], $f3=[>($2, 30)])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testMultipleFilteredAggregates() {
+    givenQuery(
+            """
+            SELECT MAX(age) FILTER(WHERE age > 30), MIN(age) FILTER(WHERE age < 50)
+              FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalAggregate(group=[{}], MAX(age) FILTER(WHERE age > 30)=[MAX($0) FILTER $1], MIN(age) FILTER(WHERE age < 50)=[MIN($0) FILTER $2])
+              LogicalProject(age=[$2], $f4=[>($2, 30)], $f5=[<($2, 50)])
+                LogicalTableScan(table=[[catalog, employees]])
             """);
   }
 
@@ -334,6 +462,33 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
                   LogicalAggregate(group=[{0}], MAX(age)=[MAX($1)], MIN(age)=[MIN($1)])
                     LogicalProject(department=[$3], age=[$2])
                       LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testCountDistinctWindowWithOrderBy() {
+    // No frame printed: RANGE .. CURRENT ROW is Calcite's default for ORDER BY.
+    givenQuery(
+            """
+            SELECT department, COUNT(DISTINCT name) OVER(ORDER BY department) FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalProject(department=[$3], COUNT(DISTINCT name) OVER(ORDER BY department)=[COUNT(DISTINCT $1) OVER (ORDER BY $3 NULLS FIRST)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSumWindowWithPartitionAndOrderBy() {
+    givenQuery(
+            """
+            SELECT name, SUM(age) OVER(PARTITION BY department ORDER BY age) FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], SUM(age) OVER(PARTITION BY department ORDER BY age)=[SUM($2) OVER (PARTITION BY $3 ORDER BY $2 NULLS FIRST)])
+              LogicalTableScan(table=[[catalog, employees]])
             """);
   }
 
