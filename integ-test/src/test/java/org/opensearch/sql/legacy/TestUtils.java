@@ -19,9 +19,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -144,33 +146,96 @@ public class TestUtils {
     }
 
     /**
-     * Resolve a test-resource path to its analytics-engine variant when one exists. The
-     * analytics-engine cannot read {@code nested}/{@code geo_point}/{@code geo_shape} fields, so a
-     * handful of test datasets ship an {@code _ae} sibling (e.g. {@code
-     * datatypes_index_mapping.json} → {@code datatypes_index_mapping_ae.json}, {@code
-     * datatypes.json} → {@code datatypes_ae.json}) that drops those fields from the mapping and the
-     * matching keys from each bulk doc.
-     *
-     * <p>When the config is disabled, or no {@code _ae} sibling exists on disk, the original {@code
-     * relPath} is returned unchanged — so normal CI is byte-for-byte identical and a dataset only
-     * needs a variant if its fields are actually unsupported. The variant name is formed by
-     * inserting {@code _ae} before the final extension; paths without an extension are returned
-     * as-is.
-     *
-     * @param relPath project-root-relative resource path (mapping or bulk-data file)
-     * @return the {@code _ae} variant's relative path when enabled and present, else {@code
-     *     relPath}
+     * Field types the analytics-engine (DataFusion) backend cannot read. Any property of one of
+     * these types is removed from the mapping (and the matching key from each bulk doc) before a
+     * test index is created/loaded on the analytics-engine route, so seeding a dataset that happens
+     * to use one of them doesn't fail the whole test. Applied uniformly to every dataset — no
+     * per-index variant files to author or keep in sync.
      */
-    static String resolveDatasetPath(String relPath) {
-      if (!isEnabled() || relPath == null) {
-        return relPath;
+    private static final Set<String> UNSUPPORTED_FIELD_TYPES =
+        Set.of("nested", "geo_point", "geo_shape", "binary", "alias");
+
+    /**
+     * Remove every {@link #UNSUPPORTED_FIELD_TYPES} property (recursively, including object
+     * sub-properties) from an index-creation JSON's {@code mappings.properties}, and report the set
+     * of <em>top-level</em> field names that were dropped so the matching keys can be stripped from
+     * bulk data. No-op when disabled. Mutates {@code jsonObject} in place.
+     *
+     * @return the top-level property names removed (empty when disabled or nothing matched)
+     */
+    static Set<String> stripUnsupportedMappingFields(JSONObject jsonObject) {
+      if (!isEnabled() || !jsonObject.has("mappings")) {
+        return Set.of();
       }
-      int dot = relPath.lastIndexOf('.');
-      if (dot < 0) {
-        return relPath;
+      JSONObject mappings = jsonObject.getJSONObject("mappings");
+      if (!mappings.has("properties")) {
+        return Set.of();
       }
-      String variant = relPath.substring(0, dot) + "_ae" + relPath.substring(dot);
-      return new File(getResourceFilePath(variant)).exists() ? variant : relPath;
+      Set<String> droppedTopLevel = new HashSet<>();
+      JSONObject properties = mappings.getJSONObject("properties");
+      for (String field : properties.keySet().toArray(new String[0])) {
+        if (removeIfUnsupported(properties, field)) {
+          droppedTopLevel.add(field);
+        }
+      }
+      return droppedTopLevel;
+    }
+
+    /**
+     * If {@code properties[field]} is an unsupported type, remove it and return true. Otherwise
+     * recurse into its nested {@code properties} (a plain {@code object} field) and keep it.
+     */
+    private static boolean removeIfUnsupported(JSONObject properties, String field) {
+      JSONObject def = properties.optJSONObject(field);
+      if (def == null) {
+        return false;
+      }
+      String type = def.optString("type", null);
+      if (type != null && UNSUPPORTED_FIELD_TYPES.contains(type)) {
+        properties.remove(field);
+        return true;
+      }
+      if (def.has("properties")) {
+        JSONObject sub = def.getJSONObject("properties");
+        for (String child : sub.keySet().toArray(new String[0])) {
+          removeIfUnsupported(sub, child);
+        }
+      }
+      return false;
+    }
+
+    /**
+     * Strip the given top-level keys from every document line of a bulk NDJSON payload. Bulk format
+     * alternates an action line ({@code {"index":{...}}}) with a source line; only source lines
+     * (those without a bulk action key) are rewritten. No-op when disabled or {@code droppedFields}
+     * is empty.
+     */
+    static String stripBulkFields(String bulkBody, Set<String> droppedFields) {
+      if (!isEnabled() || droppedFields.isEmpty()) {
+        return bulkBody;
+      }
+      String[] lines = bulkBody.split("\n", -1);
+      StringBuilder out = new StringBuilder(bulkBody.length());
+      for (int i = 0; i < lines.length; i++) {
+        String line = lines[i];
+        String trimmed = line.trim();
+        if (!trimmed.isEmpty() && trimmed.charAt(0) == '{') {
+          JSONObject doc = new JSONObject(trimmed);
+          boolean isActionLine =
+              doc.has("index") || doc.has("create") || doc.has("update") || doc.has("delete");
+          if (!isActionLine) {
+            for (String f : droppedFields) {
+              doc.remove(f);
+            }
+            line = doc.toString();
+          }
+        }
+        out.append(line);
+        if (i < lines.length - 1) {
+          out.append('\n');
+        }
+      }
+      return out.toString();
     }
 
     private AnalyticsIndexConfig() {}
@@ -188,8 +253,24 @@ public class TestUtils {
     JSONObject jsonObject = isNullOrEmpty(mapping) ? new JSONObject() : new JSONObject(mapping);
     setZeroReplicas(jsonObject);
     AnalyticsIndexConfig.applyIndexCreationSettings(jsonObject);
+    // On the analytics-engine route, drop fields of types DataFusion can't read so the index can
+    // still be created from datasets that happen to use them. No-op otherwise.
+    AnalyticsIndexConfig.stripUnsupportedMappingFields(jsonObject);
     request.setJsonEntity(jsonObject.toString());
     performRequest(client, request);
+  }
+
+  /**
+   * Top-level field names the analytics-engine route would strip from {@code mapping}. Used by
+   * {@link #loadDataByRestClient(RestClient, String, String, java.util.Set)} so bulk docs drop the
+   * same keys the mapping dropped. Returns an empty set when AE is disabled or {@code mapping} is
+   * empty.
+   */
+  public static Set<String> analyticsDroppedFields(String mapping) {
+    if (isNullOrEmpty(mapping)) {
+      return Set.of();
+    }
+    return AnalyticsIndexConfig.stripUnsupportedMappingFields(new JSONObject(mapping));
   }
 
   /**
@@ -255,12 +336,25 @@ public class TestUtils {
    */
   public static void loadDataByRestClient(
       RestClient client, String indexName, String dataSetFilePath) throws IOException {
-    Path path =
-        Paths.get(getResourceFilePath(AnalyticsIndexConfig.resolveDatasetPath(dataSetFilePath)));
+    loadDataByRestClient(client, indexName, dataSetFilePath, Set.of());
+  }
+
+  /**
+   * Same as {@link #loadDataByRestClient(RestClient, String, String)} but strips {@code
+   * droppedFields} (the keys removed from the mapping on the analytics-engine route) from every
+   * bulk source doc, so the index mapping and the data agree. When AE is disabled or {@code
+   * droppedFields} is empty this is byte-for-byte identical to the 3-arg form.
+   */
+  public static void loadDataByRestClient(
+      RestClient client, String indexName, String dataSetFilePath, Set<String> droppedFields)
+      throws IOException {
+    Path path = Paths.get(getResourceFilePath(dataSetFilePath));
+    String body = new String(Files.readAllBytes(path));
+    body = AnalyticsIndexConfig.stripBulkFields(body, droppedFields);
     Request request =
         new Request(
             "POST", "/" + indexName + "/_bulk?" + AnalyticsIndexConfig.bulkLoadRefreshParam());
-    request.setJsonEntity(new String(Files.readAllBytes(path)));
+    request.setJsonEntity(body);
     performRequest(client, request);
   }
 
@@ -694,8 +788,7 @@ public class TestUtils {
 
   public static String getMappingFile(String fileName) {
     try {
-      return fileToString(
-          AnalyticsIndexConfig.resolveDatasetPath(MAPPING_FILE_PATH + fileName), false);
+      return fileToString(MAPPING_FILE_PATH + fileName, false);
     } catch (IOException e) {
       return null;
     }
