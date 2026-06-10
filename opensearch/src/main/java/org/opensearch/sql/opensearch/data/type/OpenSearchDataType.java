@@ -16,6 +16,7 @@ import lombok.Getter;
 import org.apache.commons.lang3.EnumUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 /** The extension of ExprType in OpenSearch. */
 @EqualsAndHashCode
@@ -297,7 +298,17 @@ public class OpenSearchDataType implements ExprType, Serializable {
         (key, value) -> {
           if (value instanceof OpenSearchAliasType && value.getOriginalPath().isPresent()) {
             String originalPath = value.getOriginalPath().get();
-            result.put(key, new OpenSearchAliasType(originalPath, result.get(originalPath)));
+            OpenSearchDataType target = result.get(originalPath);
+            if (target == null) {
+              throw new SemanticCheckException(
+                  String.format(
+                      "Alias field [%s] refers to unresolved path [%s]. The alias path must point"
+                          + " to an existing field in the mapping; a text multi-field (e.g."
+                          + " \"%s.keyword\") or a removed/renamed field is not a valid alias"
+                          + " target.",
+                      key, originalPath, originalPath));
+            }
+            result.put(key, new OpenSearchAliasType(originalPath, target));
           }
         });
   }

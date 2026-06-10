@@ -43,6 +43,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchDataTypeTest {
@@ -481,6 +482,43 @@ class OpenSearchDataTypeTest {
         () -> assertEquals(aliasTypeOnDouble, aliasTypeOnDouble.getExprType()),
         () -> assertEquals(ExprCoreType.DOUBLE, aliasTypeOnDouble.getOriginalExprType()),
         () -> assertEquals("original_path2", aliasTypeOnDouble.getOriginalPath().orElseThrow()));
+  }
+
+  @Test
+  public void traverseAndFlatten_alias_to_unresolvable_path_throws_descriptive_error() {
+    // An alias whose path targets a text multi-field (e.g. "source.keyword"). Multi-fields are
+    // stored under OpenSearchTextType.fields, not properties, so they are never added to the
+    // flattened mapping and the alias target resolves to null. Previously this surfaced as an
+    // opaque NullPointerException (issue #5535).
+    Map<String, OpenSearchDataType> keywordAliasTree =
+        Map.of(
+            "source", textKeywordType,
+            "source_alias",
+                new OpenSearchAliasType("source.keyword", OpenSearchDataType.of(MappingType.Invalid)));
+    SemanticCheckException keywordException =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> OpenSearchDataType.traverseAndFlatten(keywordAliasTree));
+    assertEquals(
+        "Alias field [source_alias] refers to unresolved path [source.keyword]. The alias path"
+            + " must point to an existing field in the mapping; a text multi-field (e.g."
+            + " \"source.keyword.keyword\") or a removed/renamed field is not a valid alias target.",
+        keywordException.getMessage());
+
+    // An alias whose path targets a field that does not exist (e.g. renamed/removed).
+    Map<String, OpenSearchDataType> missingFieldTree =
+        Map.of(
+            "col1", textType,
+            "col_alias", new OpenSearchAliasType("missing", OpenSearchDataType.of(MappingType.Invalid)));
+    SemanticCheckException missingException =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> OpenSearchDataType.traverseAndFlatten(missingFieldTree));
+    assertEquals(
+        "Alias field [col_alias] refers to unresolved path [missing]. The alias path must point to"
+            + " an existing field in the mapping; a text multi-field (e.g. \"missing.keyword\") or a"
+            + " removed/renamed field is not a valid alias target.",
+        missingException.getMessage());
   }
 
   @Test
