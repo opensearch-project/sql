@@ -65,8 +65,18 @@ public class TestUtils {
      */
     public static final String ENABLED_PROP = "tests.analytics.parquet_indices";
 
+    /**
+     * System property overriding the number of primary shards for analytics-backed test indices.
+     * Defaults to 1 (single-shard). Set to e.g. "3" for multi-shard coverage runs.
+     */
+    public static final String NUM_SHARDS_PROP = "tests.analytics.num_shards";
+
     public static boolean isEnabled() {
       return Boolean.parseBoolean(System.getProperty(ENABLED_PROP, "false"));
+    }
+
+    public static int getNumShards() {
+      return Integer.parseInt(System.getProperty(NUM_SHARDS_PROP, "1"));
     }
 
     // Composite-store format values shared by the index-level and cluster-level settings below.
@@ -86,7 +96,7 @@ public class TestUtils {
           jsonObject.has("settings") ? jsonObject.getJSONObject("settings") : new JSONObject();
       JSONObject indexSettings =
           settings.has("index") ? settings.getJSONObject("index") : new JSONObject();
-      indexSettings.put("number_of_shards", 1);
+      indexSettings.put("number_of_shards", getNumShards());
       indexSettings.put("pluggable.dataformat.enabled", true);
       indexSettings.put("pluggable.dataformat", DATAFORMAT_COMPOSITE);
       indexSettings.put("composite.primary_data_format", PRIMARY_FORMAT_PARQUET);
