@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
@@ -42,21 +43,29 @@ public interface JoinAndLookupUtils {
   }
 
   /**
-   * Collects the names of bare single-part-field join criteria (e.g. `on a AND b` -> [a, b]).
-   * Returns false for anything else (qualified field, comparison, OR); {@code out} is only valid
-   * when this returns true, so callers must check the return before reading it.
+   * Collects the names of bare single-part-field join criteria (e.g. {@code on a AND b} -> {@code
+   * Optional.of(["a","b"])}). Returns empty for anything else (qualified field, comparison, OR).
+   * The list is only constructed when every node in the AND-tree is a bare field.
    */
-  static boolean collectBareFields(UnresolvedExpression expr, List<String> out) {
+  static Optional<List<String>> collectBareFields(UnresolvedExpression expr) {
     if (expr instanceof And and) {
-      return collectBareFields(and.getLeft(), out) && collectBareFields(and.getRight(), out);
+      return collectBareFields(and.getLeft())
+          .flatMap(
+              left ->
+                  collectBareFields(and.getRight())
+                      .map(
+                          right -> {
+                            List<String> merged = new ArrayList<>(left);
+                            merged.addAll(right);
+                            return merged;
+                          }));
     }
     if (expr instanceof Field field
         && field.getField() instanceof QualifiedName qn
-        && qn.getParts().size() == 1) {
-      out.add(qn.getParts().get(0));
-      return true;
+        && qn.getPrefix().isEmpty()) {
+      return Optional.of(new ArrayList<>(List.of(qn.getSuffix())));
     }
-    return false;
+    return Optional.empty();
   }
 
   /* ------For Lookup------ */

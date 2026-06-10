@@ -935,7 +935,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | inner join on name %s | fields name, age, state, country, occupation,"
-                    + " salary",
+                    + " salary | sort name, occupation",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
@@ -945,21 +945,23 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("occupation", "string"),
         schema("salary", "int"));
-    verifyDataRows(
+    // Rows are listed in the `sort name, occupation` order so verifyDataRowsInOrder also
+    // validates the sort (David/Doctor < David/Unemployed, then Hello, Jake, Jane, John).
+    verifyDataRowsInOrder(
         actual,
-        rows("Jake", 70, "California", "USA", "Engineer", 100000),
-        rows("Hello", 30, "New York", "USA", "Artist", 70000),
-        rows("John", 25, "Ontario", "Canada", "Doctor", 120000),
-        rows("Jane", 20, "Quebec", "Canada", "Scientist", 90000),
         rows("David", 40, "Washington", "USA", "Doctor", 120000),
-        rows("David", 40, "Washington", "USA", "Unemployed", 0));
+        rows("David", 40, "Washington", "USA", "Unemployed", 0),
+        rows("Hello", 30, "New York", "USA", "Artist", 70000),
+        rows("Jake", 70, "California", "USA", "Engineer", 100000),
+        rows("Jane", 20, "Quebec", "Canada", "Scientist", 90000),
+        rows("John", 25, "Ontario", "Canada", "Doctor", 120000));
 
     // The shorthand and the explicit qualified-equality form are output-identical.
     JSONObject explicitForm =
         executeQuery(
             String.format(
                 "source=%s | inner join on %s.name = %s.name %s | fields name, age, state, country,"
-                    + " occupation, salary",
+                    + " occupation, salary | sort name, occupation",
                 TEST_INDEX_STATE_COUNTRY,
                 TEST_INDEX_STATE_COUNTRY,
                 TEST_INDEX_OCCUPATION,
@@ -973,13 +975,14 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | join on name %s | fields name, age, state, occupation, salary",
+                "source=%s | join on name %s | fields name, age, state, occupation, salary | sort"
+                    + " name, occupation",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
     JSONObject explicitForm =
         executeQuery(
             String.format(
                 "source=%s | join on %s.name = %s.name %s | fields name, age, state, occupation,"
-                    + " salary",
+                    + " salary | sort name, occupation",
                 TEST_INDEX_STATE_COUNTRY,
                 TEST_INDEX_STATE_COUNTRY,
                 TEST_INDEX_OCCUPATION,
@@ -1017,8 +1020,8 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
 
   @Test
   public void testAliasedSelfJoinWithImplicitField() throws IOException {
-    // Self-join on the unique `name`: a real equi-join matches each of the 8 rows to itself (8
-    // rows), not the 64-row cross product a tautology would give.
+    // Self-join on the unique `name`: a real equi-join yields 8 rows, not the 64-row cross product
+    // a tautology would give.
     JSONObject actual =
         executeQuery(
             String.format(
