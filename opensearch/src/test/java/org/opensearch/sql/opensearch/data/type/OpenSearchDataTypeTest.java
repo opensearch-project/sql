@@ -489,32 +489,36 @@ class OpenSearchDataTypeTest {
     // Alias path targets a text multi-field, which is not in the flattened mapping.
     Map<String, OpenSearchDataType> keywordAliasTree =
         Map.of(
-            "source", textKeywordType,
+            "source",
+            textKeywordType,
             "source_alias",
-                new OpenSearchAliasType("source.keyword", OpenSearchDataType.of(MappingType.Invalid)));
+            new OpenSearchAliasType("source.keyword", OpenSearchDataType.of(MappingType.Invalid)));
     SemanticCheckException keywordException =
         assertThrows(
             SemanticCheckException.class,
             () -> OpenSearchDataType.traverseAndFlatten(keywordAliasTree));
     assertEquals(
-        "Alias field [source_alias] refers to unresolved path [source.keyword]. The alias path"
-            + " must point to an existing field in the mapping; a text multi-field (e.g."
-            + " \"source.keyword.keyword\") or a removed/renamed field is not a valid alias target.",
+        "Alias field [source_alias] refers to unresolved path [source.keyword]. The alias path must"
+            + " point to an existing field in the mapping; a text multi-field (e.g."
+            + " \"source.keyword.keyword\") or a removed/renamed field is not a valid alias"
+            + " target.",
         keywordException.getMessage());
 
     // Alias path targets a field that does not exist.
     Map<String, OpenSearchDataType> missingFieldTree =
         Map.of(
-            "col1", textType,
-            "col_alias", new OpenSearchAliasType("missing", OpenSearchDataType.of(MappingType.Invalid)));
+            "col1",
+            textType,
+            "col_alias",
+            new OpenSearchAliasType("missing", OpenSearchDataType.of(MappingType.Invalid)));
     SemanticCheckException missingException =
         assertThrows(
             SemanticCheckException.class,
             () -> OpenSearchDataType.traverseAndFlatten(missingFieldTree));
     assertEquals(
         "Alias field [col_alias] refers to unresolved path [missing]. The alias path must point to"
-            + " an existing field in the mapping; a text multi-field (e.g. \"missing.keyword\") or a"
-            + " removed/renamed field is not a valid alias target.",
+            + " an existing field in the mapping; a text multi-field (e.g. \"missing.keyword\") or"
+            + " a removed/renamed field is not a valid alias target.",
         missingException.getMessage());
   }
 

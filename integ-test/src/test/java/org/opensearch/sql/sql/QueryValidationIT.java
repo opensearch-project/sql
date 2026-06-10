@@ -118,13 +118,11 @@ public class QueryValidationIT extends SQLIntegTestCase {
     expectResponseException()
         .hasStatusCode(BAD_REQUEST)
         .hasErrorType("SemanticCheckException")
-        .containsMessage(
-            "Alias field [source_alias] refers to unresolved path [source.keyword]")
+        .containsMessage("Alias field [source_alias] refers to unresolved path [source.keyword]")
         .whenExecute(String.format(Locale.ROOT, "SELECT * FROM %s", index));
   }
 
-  private static void createIndexWithMapping(String indexName, String mapping)
-      throws IOException {
+  private static void createIndexWithMapping(String indexName, String mapping) throws IOException {
     Request request = new Request("PUT", "/" + indexName);
     request.setJsonEntity(String.format(Locale.ROOT, "{ \"mappings\": %s }", mapping));
     client().performRequest(request);
