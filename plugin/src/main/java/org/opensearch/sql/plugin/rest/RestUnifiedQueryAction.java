@@ -13,6 +13,7 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 import java.util.Map;
 import java.util.Optional;
 import org.apache.calcite.rel.RelNode;
+import org.apache.commons.lang3.Strings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -40,6 +41,7 @@ import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
+import org.opensearch.sql.utils.SystemIndexUtils;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
@@ -95,7 +97,17 @@ public class RestUnifiedQueryAction {
         .equals(
             IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(
                 clusterService.getSettings()))) {
-      return true;
+      // Analytics engine can't serve system catalog; SHOW/DESCRIBE fall back to default pipeline
+      try (UnifiedQueryContext context = buildParsingContext(queryType)) {
+        boolean systemCatalog =
+            extractIndexName(query, queryType, context)
+                .map(RestUnifiedQueryAction::isSystemCatalog)
+                .orElse(false);
+        return !systemCatalog;
+      } catch (Exception e) {
+        // Check legacy-syntax SHOW/DESCRIBE; otherwise let AE handle and surface the error.
+        return !isLegacySystemCatalogQuery(query);
+      }
     }
     try (UnifiedQueryContext context = buildParsingContext(queryType)) {
       return extractIndexName(query, queryType, context)
@@ -105,6 +117,16 @@ public class RestUnifiedQueryAction {
     } catch (Exception e) {
       return false;
     }
+  }
+
+  private static boolean isSystemCatalog(String name) {
+    return SystemIndexUtils.isSystemIndex(name)
+        || SystemIndexUtils.DATASOURCES_TABLE_NAME.equals(name);
+  }
+
+  private static boolean isLegacySystemCatalogQuery(String query) {
+    String trimmed = query.trim();
+    return Strings.CI.startsWith(trimmed, "SHOW ") || Strings.CI.startsWith(trimmed, "DESCRIBE ");
   }
 
   private String stripSchemaPrefix(String indexName) {
