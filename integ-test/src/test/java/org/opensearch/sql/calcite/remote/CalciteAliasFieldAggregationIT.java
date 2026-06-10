@@ -15,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 import java.io.IOException;
 import java.util.List;
 import org.json.JSONObject;
+import org.junit.Assume;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
@@ -31,6 +32,12 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
+    // Alias fields are unsupported on the analytics-engine (parquet/composite) route — the index
+    // can't even be created, and these tests query the alias fields directly. There's nothing to
+    // salvage by stripping, so skip the whole class on the AE route. Runs normally otherwise.
+    Assume.assumeFalse(
+        "Alias-field aggregation is unsupported on the analytics-engine route",
+        isAnalyticsParquetIndicesEnabled());
     enableCalcite();
     createTestIndexWithAliasFields();
     loadIndex(Index.DATA_TYPE_ALIAS);
