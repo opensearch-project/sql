@@ -143,6 +143,36 @@ public class TestUtils {
       return isEnabled() ? "refresh=true" : "refresh=wait_for&wait_for_active_shards=all";
     }
 
+    /**
+     * Resolve a test-resource path to its analytics-engine variant when one exists. The
+     * analytics-engine cannot read {@code nested}/{@code geo_point}/{@code geo_shape} fields, so a
+     * handful of test datasets ship an {@code _ae} sibling (e.g. {@code
+     * datatypes_index_mapping.json} → {@code datatypes_index_mapping_ae.json}, {@code
+     * datatypes.json} → {@code datatypes_ae.json}) that drops those fields from the mapping and the
+     * matching keys from each bulk doc.
+     *
+     * <p>When the config is disabled, or no {@code _ae} sibling exists on disk, the original {@code
+     * relPath} is returned unchanged — so normal CI is byte-for-byte identical and a dataset only
+     * needs a variant if its fields are actually unsupported. The variant name is formed by
+     * inserting {@code _ae} before the final extension; paths without an extension are returned
+     * as-is.
+     *
+     * @param relPath project-root-relative resource path (mapping or bulk-data file)
+     * @return the {@code _ae} variant's relative path when enabled and present, else {@code
+     *     relPath}
+     */
+    static String resolveDatasetPath(String relPath) {
+      if (!isEnabled() || relPath == null) {
+        return relPath;
+      }
+      int dot = relPath.lastIndexOf('.');
+      if (dot < 0) {
+        return relPath;
+      }
+      String variant = relPath.substring(0, dot) + "_ae" + relPath.substring(dot);
+      return new File(getResourceFilePath(variant)).exists() ? variant : relPath;
+    }
+
     private AnalyticsIndexConfig() {}
   }
 
@@ -225,7 +255,8 @@ public class TestUtils {
    */
   public static void loadDataByRestClient(
       RestClient client, String indexName, String dataSetFilePath) throws IOException {
-    Path path = Paths.get(getResourceFilePath(dataSetFilePath));
+    Path path =
+        Paths.get(getResourceFilePath(AnalyticsIndexConfig.resolveDatasetPath(dataSetFilePath)));
     Request request =
         new Request(
             "POST", "/" + indexName + "/_bulk?" + AnalyticsIndexConfig.bulkLoadRefreshParam());
@@ -663,7 +694,8 @@ public class TestUtils {
 
   public static String getMappingFile(String fileName) {
     try {
-      return fileToString(MAPPING_FILE_PATH + fileName, false);
+      return fileToString(
+          AnalyticsIndexConfig.resolveDatasetPath(MAPPING_FILE_PATH + fileName), false);
     } catch (IOException e) {
       return null;
     }
