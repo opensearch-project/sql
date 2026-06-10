@@ -14,6 +14,9 @@ import java.util.function.BiConsumer;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.commons.lang3.EnumUtils;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.QueryProcessingStage;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -300,13 +303,22 @@ public class OpenSearchDataType implements ExprType, Serializable {
             String originalPath = value.getOriginalPath().get();
             OpenSearchDataType target = result.get(originalPath);
             if (target == null) {
-              throw new SemanticCheckException(
-                  String.format(
-                      "Alias field [%s] refers to unresolved path [%s]. The alias path must point"
-                          + " to an existing field in the mapping; a text multi-field (e.g."
-                          + " \"%s.keyword\") or a removed/renamed field is not a valid alias"
-                          + " target.",
-                      key, originalPath, originalPath));
+              throw ErrorReport.wrap(
+                      new SemanticCheckException(
+                          String.format(
+                              "Alias field [%s] refers to unresolved path [%s].",
+                              key, originalPath)))
+                  .code(ErrorCode.FIELD_NOT_FOUND)
+                  .stage(QueryProcessingStage.ANALYZING)
+                  .location("while resolving alias fields in the index mapping")
+                  .context("alias_field", key)
+                  .context("alias_path", originalPath)
+                  .suggestion(
+                      "The alias path must point to an existing field in the mapping; a text"
+                          + " multi-field (e.g. \""
+                          + originalPath
+                          + ".keyword\") or a removed/renamed field is not a valid alias target.")
+                  .build();
             }
             result.put(key, new OpenSearchAliasType(originalPath, target));
           }

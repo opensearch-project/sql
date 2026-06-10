@@ -41,6 +41,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.QueryProcessingStage;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -493,16 +496,23 @@ class OpenSearchDataTypeTest {
             textKeywordType,
             "source_alias",
             new OpenSearchAliasType("source.keyword", OpenSearchDataType.of(MappingType.Invalid)));
-    SemanticCheckException keywordException =
+    ErrorReport keywordError =
         assertThrows(
-            SemanticCheckException.class,
-            () -> OpenSearchDataType.traverseAndFlatten(keywordAliasTree));
-    assertEquals(
-        "Alias field [source_alias] refers to unresolved path [source.keyword]. The alias path must"
-            + " point to an existing field in the mapping; a text multi-field (e.g."
-            + " \"source.keyword.keyword\") or a removed/renamed field is not a valid alias"
-            + " target.",
-        keywordException.getMessage());
+            ErrorReport.class, () -> OpenSearchDataType.traverseAndFlatten(keywordAliasTree));
+    assertAll(
+        () -> assertEquals(ErrorCode.FIELD_NOT_FOUND, keywordError.getCode()),
+        () -> assertEquals(QueryProcessingStage.ANALYZING, keywordError.getStage()),
+        () -> assertTrue(keywordError.getCause() instanceof SemanticCheckException),
+        () ->
+            assertEquals(
+                "Alias field [source_alias] refers to unresolved path [source.keyword].",
+                keywordError.getCause().getMessage()),
+        () -> assertEquals("source_alias", keywordError.getContext().get("alias_field")),
+        () -> assertEquals("source.keyword", keywordError.getContext().get("alias_path")),
+        () ->
+            assertTrue(
+                keywordError.getSuggestion().contains("\"source.keyword.keyword\"")
+                    && keywordError.getSuggestion().contains("not a valid alias target")));
 
     // Alias path targets a field that does not exist.
     Map<String, OpenSearchDataType> missingFieldTree =
@@ -511,15 +521,17 @@ class OpenSearchDataTypeTest {
             textType,
             "col_alias",
             new OpenSearchAliasType("missing", OpenSearchDataType.of(MappingType.Invalid)));
-    SemanticCheckException missingException =
+    ErrorReport missingError =
         assertThrows(
-            SemanticCheckException.class,
-            () -> OpenSearchDataType.traverseAndFlatten(missingFieldTree));
-    assertEquals(
-        "Alias field [col_alias] refers to unresolved path [missing]. The alias path must point to"
-            + " an existing field in the mapping; a text multi-field (e.g. \"missing.keyword\") or"
-            + " a removed/renamed field is not a valid alias target.",
-        missingException.getMessage());
+            ErrorReport.class, () -> OpenSearchDataType.traverseAndFlatten(missingFieldTree));
+    assertAll(
+        () -> assertEquals(ErrorCode.FIELD_NOT_FOUND, missingError.getCode()),
+        () -> assertTrue(missingError.getCause() instanceof SemanticCheckException),
+        () ->
+            assertEquals(
+                "Alias field [col_alias] refers to unresolved path [missing].",
+                missingError.getCause().getMessage()),
+        () -> assertEquals("missing", missingError.getContext().get("alias_path")));
   }
 
   @Test
