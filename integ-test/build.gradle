@@ -1035,6 +1035,12 @@ task integTestRemote(type: RestIntegTestTask) {
         systemProperty 'tests.analytics.parquet_indices', System.getProperty("tests.analytics.parquet_indices")
     }
 
+    // Primary-shard count for analytics-backed test indices (default 1). Set to e.g. 3 to
+    // reproduce multi-shard coordination behavior on a single-node cluster.
+    if (System.getProperty("tests.analytics.num_shards") != null) {
+        systemProperty 'tests.analytics.num_shards', System.getProperty("tests.analytics.num_shards")
+    }
+
     // True only when the analytics-engine route is active (every test index parquet-backed). Matches
     // AnalyticsIndexConfig.isEnabled, which parses the value rather than checking mere presence, so a
     // `-Dtests.analytics.parquet_indices=false` run stays on the v2 path.

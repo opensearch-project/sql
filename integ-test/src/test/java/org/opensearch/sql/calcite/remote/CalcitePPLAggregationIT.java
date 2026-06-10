@@ -542,8 +542,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 15minute) as"
-                    + " datetime_span",
+                "source=%s | sort key | head 5 | stats count(datetime0) by span(datetime0,"
+                    + " 15minute) as datetime_span",
                 TEST_INDEX_CALCS));
     verifySchema(
         actual, schema("datetime_span", "timestamp"), schema("count(datetime0)", "bigint"));
@@ -558,8 +558,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 5second) as"
-                    + " datetime_span",
+                "source=%s | sort key | head 5 | stats count(datetime0) by span(datetime0,"
+                    + " 5second) as datetime_span",
                 TEST_INDEX_CALCS));
     verifySchema(
         actual, schema("datetime_span", "timestamp"), schema("count(datetime0)", "bigint"));
@@ -574,8 +574,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 3month) as"
-                    + " datetime_span",
+                "source=%s | sort key | head 5 | stats count(datetime0) by span(datetime0,"
+                    + " 3month) as datetime_span",
                 TEST_INDEX_CALCS));
     verifySchema(
         actual, schema("datetime_span", "timestamp"), schema("count(datetime0)", "bigint"));
@@ -587,8 +587,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0), count(datetime1) by span(time1,"
-                    + " 15minute) as time_span",
+                "source=%s | sort key | head 5 | stats count(datetime0), count(datetime1) by"
+                    + " span(time1, 15minute) as time_span",
                 TEST_INDEX_CALCS));
     verifySchema(
         actual,
