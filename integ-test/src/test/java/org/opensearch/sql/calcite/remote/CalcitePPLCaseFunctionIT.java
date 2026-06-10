@@ -25,7 +25,6 @@ import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
-  private static volatile boolean dataAppended = false;
 
   @Override
   public void init() throws Exception {
@@ -40,12 +39,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     appendDataForBadResponse();
   }
 
-  private synchronized void appendDataForBadResponse() throws IOException {
-    if (dataAppended) {
-      return;
-    }
-    dataAppended = true;
-
+  private void appendDataForBadResponse() throws IOException {
     Request request1 = new Request("PUT", "/" + TEST_INDEX_WEBLOGS + "/_doc/7?refresh=true");
     request1.setJsonEntity(
         "{\"host\": \"::1\", \"method\": \"GET\", \"url\": \"/history/apollo/\", \"response\":"
@@ -55,14 +49,15 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
         new Request("PUT", "/" + TestsConstants.TEST_INDEX_WEBLOGS + "/_doc/8?refresh=true");
     request2.setJsonEntity(
         "{\"host\": \"0.0.0.2\", \"method\": \"GET\", \"url\":"
-            + " \"/shuttle/missions/sts-73/mission-sts-73.html\", \"response\": \"500\", \"bytes\":"
-            + " \"4085\"}");
+            + " \"/shuttle/missions/sts-73/mission-sts-73.html\", \"response\": \"500\","
+            + " \"bytes\": \"4085\"}");
     client().performRequest(request2);
     Request request3 =
         new Request("PUT", "/" + TestsConstants.TEST_INDEX_WEBLOGS + "/_doc/9?refresh=true");
     request3.setJsonEntity(
-        "{\"host\": \"::3\", \"method\": \"GET\", \"url\": \"/shuttle/countdown/countdown.html\","
-            + " \"response\": \"403\", \"bytes\": \"3985\"}");
+        "{\"host\": \"::3\", \"method\": \"GET\", \"url\":"
+            + " \"/shuttle/countdown/countdown.html\", \"response\": \"403\", \"bytes\":"
+            + " \"3985\"}");
     client().performRequest(request3);
     Request request4 =
         new Request("PUT", "/" + TestsConstants.TEST_INDEX_WEBLOGS + "/_doc/10?refresh=true");
