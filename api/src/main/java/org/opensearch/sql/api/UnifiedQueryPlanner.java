@@ -14,6 +14,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -25,6 +26,7 @@ import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.exception.SemanticCheckException;
 
@@ -74,13 +76,18 @@ public class UnifiedQueryPlanner {
     } catch (SyntaxCheckException
         | QueryEngineException
         | UnsupportedOperationException
-        | IllegalArgumentException e) {
-      LOG.error("Failed to plan query: {}", e.getMessage());
+        | IllegalArgumentException
+        | ErrorReport e) {
+      LOG.warn("Failed to plan query: {}", e.getMessage());
       throw e;
+    } catch (CalciteException e) {
+      // Calcite validation errors (e.g. table not found) indicate an invalid query.
+      LOG.warn("Failed to plan query, invalid query: {}", e.getMessage());
+      throw new SemanticCheckException(e.getMessage(), e);
     } catch (AssertionError e) {
       // Calcite throws assertion error directly when building bad RelNode
       String message = "Failed to plan query: invalid plan structure";
-      LOG.error(message, e);
+      LOG.warn(message, e);
       throw new SemanticCheckException(message, e);
     } catch (Exception e) {
       String message = "Failed to plan query: unexpected error";
