@@ -486,10 +486,7 @@ class OpenSearchDataTypeTest {
 
   @Test
   public void traverseAndFlatten_alias_to_unresolvable_path_throws_descriptive_error() {
-    // An alias whose path targets a text multi-field (e.g. "source.keyword"). Multi-fields are
-    // stored under OpenSearchTextType.fields, not properties, so they are never added to the
-    // flattened mapping and the alias target resolves to null. Previously this surfaced as an
-    // opaque NullPointerException (issue #5535).
+    // Alias path targets a text multi-field, which is not in the flattened mapping.
     Map<String, OpenSearchDataType> keywordAliasTree =
         Map.of(
             "source", textKeywordType,
@@ -505,7 +502,7 @@ class OpenSearchDataTypeTest {
             + " \"source.keyword.keyword\") or a removed/renamed field is not a valid alias target.",
         keywordException.getMessage());
 
-    // An alias whose path targets a field that does not exist (e.g. renamed/removed).
+    // Alias path targets a field that does not exist.
     Map<String, OpenSearchDataType> missingFieldTree =
         Map.of(
             "col1", textType,
