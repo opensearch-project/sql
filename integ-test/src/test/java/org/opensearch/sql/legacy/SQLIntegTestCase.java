@@ -716,6 +716,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getDataTypeNonnumericIndexMapping(),
         "src/test/resources/datatypes.json"),
+    DATETIME_SIMPLE(
+        TestsConstants.TEST_INDEX_DATETIME_SIMPLE,
+        "_doc",
+        getDateTimeSimpleIndexMapping(),
+        "src/test/resources/datetime_simple.json"),
     BEER(
         TestsConstants.TEST_INDEX_BEER, "beer", null, "src/test/resources/beer.stackexchange.json"),
     NULL_MISSING(

@@ -59,6 +59,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_STRINGS = TEST_INDEX + "_strings";
   public static final String TEST_INDEX_DATATYPE_NUMERIC = TEST_INDEX + "_datatypes_numeric";
   public static final String TEST_INDEX_DATATYPE_NONNUMERIC = TEST_INDEX + "_datatypes_nonnumeric";
+  public static final String TEST_INDEX_DATETIME_SIMPLE = TEST_INDEX + "_datetime_simple";
   public static final String TEST_INDEX_BEER = TEST_INDEX + "_beer";
   public static final String TEST_INDEX_NULL_MISSING = TEST_INDEX + "_null_missing";
   public static final String TEST_INDEX_CALCS = TEST_INDEX + "_calcs";

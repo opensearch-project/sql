@@ -363,6 +363,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getDateTimeSimpleIndexMapping() {
+    String mappingFile = "datetime_simple_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getGeopointIndexMapping() {
     String mappingFile = "geopoint_index_mapping.json";
     return getMappingFile(mappingFile);
