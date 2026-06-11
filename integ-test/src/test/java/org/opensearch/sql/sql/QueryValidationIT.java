@@ -117,7 +117,10 @@ public class QueryValidationIT extends SQLIntegTestCase {
 
     expectResponseException()
         .hasStatusCode(BAD_REQUEST)
-        .hasErrorType("ErrorReport")
+        // #5532 unwraps ErrorReport to its cause in the SQL error formatter, so the reported type
+        // is
+        // now the underlying SemanticCheckException, not the ErrorReport wrapper.
+        .hasErrorType("SemanticCheckException")
         .containsMessage("Alias field [source_alias] refers to unresolved path [source.keyword]")
         .whenExecute(String.format(Locale.ROOT, "SELECT * FROM %s", index));
   }
