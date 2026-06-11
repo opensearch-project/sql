@@ -146,14 +146,34 @@ public class TestUtils {
     }
 
     /**
-     * Field types the analytics-engine (DataFusion) backend cannot read. Any property of one of
-     * these types is removed from the mapping (and the matching key from each bulk doc) before a
-     * test index is created/loaded on the analytics-engine route, so seeding a dataset that happens
-     * to use one of them doesn't fail the whole test. Applied uniformly to every dataset — no
+     * Field types the analytics-engine (DataFusion) backend cannot read, and which therefore must
+     * be removed from a test index's mapping (and the matching key from each bulk doc) before the
+     * index is created/loaded on the analytics-engine route. Seeding a dataset that happens to use
+     * one of them would otherwise fail ingestion and surface as an unrelated {@code expected:<1>
+     * but was:<0>} downstream — so we strip uniformly at load time across every dataset, no
      * per-index variant files to author or keep in sync.
+     *
+     * <p><b>This set is the single source of truth.</b> The strip triggers purely on a mapping's
+     * field <em>types</em> (not on which IT is running), so any IT — existing or newly added — that
+     * loads one of these datasets through {@link SQLIntegTestCase#loadIndex} is handled out of the
+     * box. {@code AnalyticsUnsupportedFieldStripVerifyIT} imports this same constant and proves no
+     * listed type survives in any live mapping, so the list cannot silently drift.
+     *
+     * <p><b>What is and isn't here, and why:</b>
+     *
+     * <ul>
+     *   <li>{@code nested} — entire subtree dropped (the engine has no nested-document support).
+     *   <li>{@code geo_point}, {@code geo_shape} — fall through the engine's type whitelist ({@code
+     *       OpenSearchSchemaBuilder.mapFieldType} default → null), so the column can't scan.
+     *   <li>{@code alias} — indirection the scan-row-type builder doesn't resolve.
+     *   <li><b>{@code binary} is intentionally NOT here</b> — the engine maps {@code binary →
+     *       VARBINARY} (same as {@code ip}, see {@code OpenSearchSchemaBuilder.mapFieldType}), so
+     *       it is a supported scan type. Stripping it would needlessly mutate fixtures and could
+     *       mask a real binary-handling bug rather than let the assertion surface it.
+     * </ul>
      */
-    private static final Set<String> UNSUPPORTED_FIELD_TYPES =
-        Set.of("nested", "geo_point", "geo_shape", "binary", "alias");
+    public static final Set<String> UNSUPPORTED_FIELD_TYPES =
+        Set.of("nested", "geo_point", "geo_shape", "alias");
 
     /**
      * Remove every {@link #UNSUPPORTED_FIELD_TYPES} property (recursively, including object
@@ -209,6 +229,11 @@ public class TestUtils {
      * alternates an action line ({@code {"index":{...}}}) with a source line; only source lines
      * (those without a bulk action key) are rewritten. No-op when disabled or {@code droppedFields}
      * is empty.
+     *
+     * <p>A source line is re-serialized <em>only when it actually carried one of the dropped
+     * keys</em>; every other line (action lines and docs that never had the field) is appended
+     * byte-for-byte unchanged. This keeps the payload as close to the on-disk fixture as possible —
+     * we don't reorder keys or reformat numbers on docs we aren't modifying.
      */
     static String stripBulkFields(String bulkBody, Set<String> droppedFields) {
       if (!isEnabled() || droppedFields.isEmpty()) {
@@ -224,10 +249,18 @@ public class TestUtils {
           boolean isActionLine =
               doc.has("index") || doc.has("create") || doc.has("update") || doc.has("delete");
           if (!isActionLine) {
+            boolean removedAny = false;
             for (String f : droppedFields) {
-              doc.remove(f);
+              if (doc.has(f)) {
+                doc.remove(f);
+                removedAny = true;
+              }
             }
-            line = doc.toString();
+            // Only rewrite the line if we actually removed something; otherwise leave it verbatim
+            // so untouched docs stay byte-for-byte identical to the fixture.
+            if (removedAny) {
+              line = doc.toString();
+            }
           }
         }
         out.append(line);

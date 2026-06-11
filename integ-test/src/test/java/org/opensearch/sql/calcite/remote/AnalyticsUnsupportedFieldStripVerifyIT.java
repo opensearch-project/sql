@@ -25,8 +25,8 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  *
  * <ol>
  *   <li><b>Create succeeded</b> — the index exists (a mapping that still contained
- *       nested/geo_point/geo_shape/binary/alias would have been rejected by the parquet/composite
- *       store at PUT time, so existence proves the strip removed them).
+ *       nested/geo_point/geo_shape/alias would have been rejected by the parquet/composite store at
+ *       PUT time, so existence proves the strip removed them).
  *   <li><b>Mapping is clean</b> — the live mapping pulled back from the cluster contains none of
  *       the unsupported types at any depth.
  *   <li><b>Data agrees with mapping</b> — every doc is searchable and no doc carries a stripped key
@@ -42,8 +42,11 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  */
 public class AnalyticsUnsupportedFieldStripVerifyIT extends PPLIntegTestCase {
 
+  // Single source of truth — the same set the load-path strip uses
+  // (TestUtils.AnalyticsIndexConfig).
+  // Importing it (rather than re-listing) guarantees the verifier and the stripper can't drift.
   private static final Set<String> UNSUPPORTED =
-      Set.of("nested", "geo_point", "geo_shape", "binary", "alias");
+      org.opensearch.sql.legacy.TestUtils.AnalyticsIndexConfig.UNSUPPORTED_FIELD_TYPES;
 
   /**
    * Field types the parquet/composite store also rejects but that are out of scope for the strip
