@@ -1033,16 +1033,6 @@ task integTestRemote(type: RestIntegTestTask) {
     // to the analytics-engine planner via index settings.
     if (System.getProperty("tests.analytics.parquet_indices") != null) {
         systemProperty 'tests.analytics.parquet_indices', System.getProperty("tests.analytics.parquet_indices")
-
-        // === Class-level excludes: PPL ITs doomed by the unsupported-field strip ===
-        // On the analytics-engine route, TestUtils.AnalyticsIndexConfig strips
-        // nested/geo_point/geo_shape/alias fields from every test mapping AND its bulk data, because
-        // the parquet/composite store can't scan them. Tests whose queries reference such a field
-        // therefore can't pass — the data no longer exists. Exclude them here rather than asserting.
-        //
-        // GeoPointFormatsIT: EVERY test reads a geo_point field (point / location.point / nested geo
-        // in geopoint_index_mapping + complex_geo_index_mapping) — whole class is doomed.
-        exclude 'org/opensearch/sql/ppl/GeoPointFormatsIT.class'
     }
 
     // Primary-shard count for analytics-backed test indices (default 1). Set to e.g. 3 to
@@ -1075,12 +1065,15 @@ task integTestRemote(type: RestIntegTestTask) {
             excludeTestsMatching '*OperatorIT.testGteOperator'
             excludeTestsMatching '*OperatorIT.testNotOperator'
 
-            // === Method-level excludes: PPL tests querying a stripped field ===
-            // These reference a nested/geo_point/alias-typed field that the unsupported-field strip
-            // removes from the test data+mapping on the AE route, so they can't pass. (Verified
-            // field-by-field against the index mappings; only the doomed methods are excluded — the
-            // rest of each class still runs.)
+            // === Excludes: PPL ITs doomed by the unsupported-field strip ===
+            // On the AE route TestUtils.AnalyticsIndexConfig strips nested/geo_point/geo_shape/alias
+            // fields from every test mapping AND its bulk data (the parquet/composite store can't
+            // scan them). A test whose query references such a field can't pass — the data is gone.
+            // Verified field-by-field against the index mappings; only doomed work is excluded.
+            // Gated on the parsed boolean so `-Dtests.analytics.parquet_indices=false` excludes none.
             //
+            // GeoPointFormatsIT: EVERY test reads a geo_point field — whole class doomed.
+            excludeTestsMatching 'org.opensearch.sql.ppl.GeoPointFormatsIT'
             // datatypes_index_mapping: nested_value=nested, geo_point_value=geo_point.
             excludeTestsMatching 'org.opensearch.sql.ppl.DataTypeIT.test_nonnumeric_data_types'
             excludeTestsMatching 'org.opensearch.sql.ppl.SystemFunctionIT.typeof_opensearch_types'

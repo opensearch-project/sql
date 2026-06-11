@@ -159,6 +159,9 @@ public class TestUtils {
      * box. {@code AnalyticsUnsupportedFieldStripVerifyIT} imports this same constant and proves no
      * listed type survives in any live mapping, so the list cannot silently drift.
      *
+     * <p><b>This set is the always-strip core.</b> {@code binary} is handled conditionally and is
+     * NOT in this set — see {@link #isUnsupportedForAeStore}.
+     *
      * <p><b>What is and isn't here, and why:</b>
      *
      * <ul>
@@ -166,24 +169,50 @@ public class TestUtils {
      *   <li>{@code geo_point}, {@code geo_shape} — fall through the engine's type whitelist ({@code
      *       OpenSearchSchemaBuilder.mapFieldType} default → null), so the column can't scan.
      *   <li>{@code alias} — indirection the scan-row-type builder doesn't resolve.
-     *   <li><b>{@code binary} is intentionally NOT here</b> — the engine maps {@code binary →
-     *       VARBINARY} (same as {@code ip}, see {@code OpenSearchSchemaBuilder.mapFieldType}), so
-     *       it is a supported scan type. Stripping it would needlessly mutate fixtures and could
-     *       mask a real binary-handling bug rather than let the assertion surface it.
+     *   <li><b>{@code binary} is conditional, not in this set.</b> The engine's read path maps
+     *       {@code binary → VARBINARY} (same as {@code ip}), so a binary column scans fine — but
+     *       the parquet/composite <em>store</em> rejects creating a {@code binary} field that lacks
+     *       {@code store: true} ("Unable to derive source for [X] with store disabled", verified on
+     *       the AE cluster). So we strip a {@code binary} field only when it is NOT {@code store:
+     *       true}; a {@code store: true} binary field is kept and ingests/scans normally. Adding
+     *       {@code binary} to this unconditional set would over-strip the supported case.
      * </ul>
      */
     public static final Set<String> UNSUPPORTED_FIELD_TYPES =
         Set.of("nested", "geo_point", "geo_shape", "alias");
 
     /**
+     * Whether a field definition cannot be created/scanned on the analytics-engine route and so
+     * must be stripped. True for any {@link #UNSUPPORTED_FIELD_TYPES} type, and additionally for a
+     * {@code binary} field that is not {@code store: true} — the parquet store can't derive {@code
+     * _source} for a store-disabled binary field at mapping time.
+     */
+    private static boolean isUnsupportedForAeStore(JSONObject def) {
+      String type = def.optString("type", null);
+      if (type == null) {
+        return false;
+      }
+      if (UNSUPPORTED_FIELD_TYPES.contains(type)) {
+        return true;
+      }
+      return "binary".equals(type) && !def.optBoolean("store", false);
+    }
+
+    /**
      * Remove every {@link #UNSUPPORTED_FIELD_TYPES} property (recursively, including object
-     * sub-properties) from an index-creation JSON's {@code mappings.properties}, and report the set
-     * of <em>top-level</em> field names that were dropped so the matching keys can be stripped from
+     * sub-properties) from an index-creation JSON's {@code mappings.properties}, and report the
+     * <em>exact dotted paths</em> that were dropped so the matching values can be stripped from
      * bulk data. No-op when disabled. Mutates {@code jsonObject} in place.
      *
-     * @return the top-level property names removed (empty when disabled or nothing matched)
+     * <p>Paths are returned as ordered part lists, e.g. {@code ["location", "point"]} for a {@code
+     * geo_point} sub-field of an object {@code location}, so the bulk-source strip can remove the
+     * exact nested value while preserving unaffected siblings ({@code location.city} etc.). A
+     * top-level unsupported field comes back as a single-element list, e.g. {@code
+     * ["nested_value"]}.
+     *
+     * @return the dropped field paths (empty when disabled or nothing matched)
      */
-    static Set<String> stripUnsupportedMappingFields(JSONObject jsonObject) {
+    static Set<List<String>> stripUnsupportedMappingFields(JSONObject jsonObject) {
       if (!isEnabled() || !jsonObject.has("mappings")) {
         return Set.of();
       }
@@ -191,52 +220,48 @@ public class TestUtils {
       if (!mappings.has("properties")) {
         return Set.of();
       }
-      Set<String> droppedTopLevel = new HashSet<>();
-      JSONObject properties = mappings.getJSONObject("properties");
+      Set<List<String>> dropped = new HashSet<>();
+      collectAndRemoveUnsupported(mappings.getJSONObject("properties"), new ArrayList<>(), dropped);
+      return dropped;
+    }
+
+    /**
+     * Walk a {@code properties} block, removing every property whose {@code type} is unsupported
+     * (recording its full path) and recursing into object sub-{@code properties} for the rest.
+     */
+    private static void collectAndRemoveUnsupported(
+        JSONObject properties, List<String> prefix, Set<List<String>> dropped) {
       for (String field : properties.keySet().toArray(new String[0])) {
-        if (removeIfUnsupported(properties, field)) {
-          droppedTopLevel.add(field);
+        JSONObject def = properties.optJSONObject(field);
+        if (def == null) {
+          continue;
+        }
+        List<String> path = new ArrayList<>(prefix);
+        path.add(field);
+        if (isUnsupportedForAeStore(def)) {
+          properties.remove(field);
+          dropped.add(List.copyOf(path));
+        } else if (def.has("properties")) {
+          collectAndRemoveUnsupported(def.getJSONObject("properties"), path, dropped);
         }
       }
-      return droppedTopLevel;
     }
 
     /**
-     * If {@code properties[field]} is an unsupported type, remove it and return true. Otherwise
-     * recurse into its nested {@code properties} (a plain {@code object} field) and keep it.
-     */
-    private static boolean removeIfUnsupported(JSONObject properties, String field) {
-      JSONObject def = properties.optJSONObject(field);
-      if (def == null) {
-        return false;
-      }
-      String type = def.optString("type", null);
-      if (type != null && UNSUPPORTED_FIELD_TYPES.contains(type)) {
-        properties.remove(field);
-        return true;
-      }
-      if (def.has("properties")) {
-        JSONObject sub = def.getJSONObject("properties");
-        for (String child : sub.keySet().toArray(new String[0])) {
-          removeIfUnsupported(sub, child);
-        }
-      }
-      return false;
-    }
-
-    /**
-     * Strip the given top-level keys from every document line of a bulk NDJSON payload. Bulk format
-     * alternates an action line ({@code {"index":{...}}}) with a source line; only source lines
-     * (those without a bulk action key) are rewritten. No-op when disabled or {@code droppedFields}
-     * is empty.
+     * Strip the given dropped <em>paths</em> from every source document of a bulk NDJSON payload.
+     * Bulk format alternates an action line ({@code {"index":{...}}}) with a source line; only
+     * source lines (those without a bulk action key) are rewritten. No-op when disabled or {@code
+     * droppedPaths} is empty.
      *
-     * <p>A source line is re-serialized <em>only when it actually carried one of the dropped
-     * keys</em>; every other line (action lines and docs that never had the field) is appended
-     * byte-for-byte unchanged. This keeps the payload as close to the on-disk fixture as possible —
-     * we don't reorder keys or reformat numbers on docs we aren't modifying.
+     * <p>Each path is removed recursively: it descends through nested objects <em>and arrays of
+     * objects</em> (so a {@code nested}/object array has the field stripped from every element),
+     * leaving unaffected siblings intact. A source line is re-serialized <em>only when removing a
+     * path actually changed it</em>; every other line (action lines and docs that never had the
+     * dropped path) is appended byte-for-byte unchanged, so untouched docs match the fixture
+     * exactly.
      */
-    static String stripBulkFields(String bulkBody, Set<String> droppedFields) {
-      if (!isEnabled() || droppedFields.isEmpty()) {
+    static String stripBulkFields(String bulkBody, Set<List<String>> droppedPaths) {
+      if (!isEnabled() || droppedPaths.isEmpty()) {
         return bulkBody;
       }
       String[] lines = bulkBody.split("\n", -1);
@@ -250,11 +275,8 @@ public class TestUtils {
               doc.has("index") || doc.has("create") || doc.has("update") || doc.has("delete");
           if (!isActionLine) {
             boolean removedAny = false;
-            for (String f : droppedFields) {
-              if (doc.has(f)) {
-                doc.remove(f);
-                removedAny = true;
-              }
+            for (List<String> path : droppedPaths) {
+              removedAny |= removePath(doc, path, 0);
             }
             // Only rewrite the line if we actually removed something; otherwise leave it verbatim
             // so untouched docs stay byte-for-byte identical to the fixture.
@@ -269,6 +291,37 @@ public class TestUtils {
         }
       }
       return out.toString();
+    }
+
+    /**
+     * Remove {@code path[idx..]} from {@code node}, descending through objects and arrays of
+     * objects. Returns true if anything was removed. At the last path part the key is deleted from
+     * the object; otherwise we recurse into the child object (or each object element of a child
+     * array).
+     */
+    private static boolean removePath(Object node, List<String> path, int idx) {
+      String part = path.get(idx);
+      boolean last = idx == path.size() - 1;
+      boolean removed = false;
+      if (node instanceof JSONObject) {
+        JSONObject obj = (JSONObject) node;
+        if (!obj.has(part)) {
+          return false;
+        }
+        if (last) {
+          obj.remove(part);
+          return true;
+        }
+        removed = removePath(obj.get(part), path, idx + 1);
+      } else if (node instanceof JSONArray) {
+        // The mapping path can sit under an array (e.g. a nested/object array); strip from each
+        // object element, ignoring non-object elements.
+        JSONArray arr = (JSONArray) node;
+        for (int j = 0; j < arr.length(); j++) {
+          removed |= removePath(arr.get(j), path, idx);
+        }
+      }
+      return removed;
     }
 
     private AnalyticsIndexConfig() {}
@@ -294,12 +347,13 @@ public class TestUtils {
   }
 
   /**
-   * Top-level field names the analytics-engine route would strip from {@code mapping}. Used by
-   * {@link #loadDataByRestClient(RestClient, String, String, java.util.Set)} so bulk docs drop the
-   * same keys the mapping dropped. Returns an empty set when AE is disabled or {@code mapping} is
+   * Exact dropped field <em>paths</em> the analytics-engine route would remove from {@code mapping}
+   * (e.g. {@code ["location", "point"]} for a nested {@code geo_point}). Used by {@link
+   * #loadDataByRestClient(RestClient, String, String, java.util.Set)} so bulk docs drop the same
+   * paths the mapping dropped. Returns an empty set when AE is disabled or {@code mapping} is
    * empty.
    */
-  public static Set<String> analyticsDroppedFields(String mapping) {
+  public static Set<List<String>> analyticsDroppedFields(String mapping) {
     if (isNullOrEmpty(mapping)) {
       return Set.of();
     }
@@ -374,21 +428,55 @@ public class TestUtils {
 
   /**
    * Same as {@link #loadDataByRestClient(RestClient, String, String)} but strips {@code
-   * droppedFields} (the keys removed from the mapping on the analytics-engine route) from every
-   * bulk source doc, so the index mapping and the data agree. When AE is disabled or {@code
-   * droppedFields} is empty this is byte-for-byte identical to the 3-arg form.
+   * droppedPaths} (the exact field paths removed from the mapping on the analytics-engine route)
+   * from every bulk source doc, so the index mapping and the data agree. When AE is disabled or
+   * {@code droppedPaths} is empty this is byte-for-byte identical to the 3-arg form.
    */
   public static void loadDataByRestClient(
-      RestClient client, String indexName, String dataSetFilePath, Set<String> droppedFields)
+      RestClient client, String indexName, String dataSetFilePath, Set<List<String>> droppedPaths)
       throws IOException {
     Path path = Paths.get(getResourceFilePath(dataSetFilePath));
     String body = new String(Files.readAllBytes(path));
-    body = AnalyticsIndexConfig.stripBulkFields(body, droppedFields);
+    body = AnalyticsIndexConfig.stripBulkFields(body, droppedPaths);
     Request request =
         new Request(
             "POST", "/" + indexName + "/_bulk?" + AnalyticsIndexConfig.bulkLoadRefreshParam());
     request.setJsonEntity(body);
-    performRequest(client, request);
+    Response response = performRequest(client, request);
+    failIfBulkHadItemErrors(indexName, response);
+  }
+
+  /**
+   * A {@code _bulk} call can return HTTP 200 while individual items failed ({@code "errors":true}).
+   * That silent partial ingestion is exactly the failure mode that surfaces later as an unrelated
+   * row-count/assertion error in some downstream IT, so fail loudly here — naming the index and the
+   * first few item errors — for ALL test bulk loads, not just the analytics-engine route.
+   */
+  private static void failIfBulkHadItemErrors(String indexName, Response response)
+      throws IOException {
+    JSONObject body = new JSONObject(getResponseBody(response));
+    if (!body.optBoolean("errors", false)) {
+      return;
+    }
+    JSONArray items = body.optJSONArray("items");
+    List<String> firstErrors = new ArrayList<>();
+    if (items != null) {
+      for (int i = 0; i < items.length() && firstErrors.size() < 5; i++) {
+        JSONObject action = items.getJSONObject(i);
+        // each item is { "<op>": { ..., "error": {...} } } where <op> is index/create/update/delete
+        for (String op : action.keySet()) {
+          JSONObject result = action.optJSONObject(op);
+          if (result != null && result.has("error")) {
+            firstErrors.add("doc#" + i + ": " + result.get("error"));
+          }
+        }
+      }
+    }
+    throw new IllegalStateException(
+        "Bulk load into ["
+            + indexName
+            + "] had item failures (errors=true). First failures:\n  "
+            + String.join("\n  ", firstErrors));
   }
 
   /**
