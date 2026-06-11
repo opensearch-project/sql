@@ -1905,10 +1905,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
     } else {
       // The join-with-criteria grammar doesn't allow empty join condition
-      RexNode joinCondition =
-          node.getJoinCondition()
-              .map(c -> rexVisitor.analyzeJoinCondition(c, context))
-              .orElse(context.relBuilder.literal(true));
+      RexNode joinCondition;
+      Optional<List<String>> bareFields =
+          JoinAndLookupUtils.collectBareFields(node.getJoinCondition().get());
+      if (bareFields.isPresent()) {
+        // Bare-field shorthand `on a [AND b ...]`. Resolving by stack position rather than by
+        // qualifier keeps a self-join `join on f t` a real cross-scan equi-join, not f = f.
+        joinCondition =
+            bareFields.get().stream()
+                .map(f -> buildJoinConditionByFieldName(context, f))
+                .reduce(context.rexBuilder::and)
+                .orElse(context.relBuilder.literal(true));
+      } else {
+        joinCondition =
+            node.getJoinCondition()
+                .map(c -> rexVisitor.analyzeJoinCondition(c, context))
+                .orElse(context.relBuilder.literal(true));
+      }
       if (node.getJoinType() == SEMI || node.getJoinType() == ANTI) {
         // semi and anti join only return left table outputs
         context.relBuilder.join(

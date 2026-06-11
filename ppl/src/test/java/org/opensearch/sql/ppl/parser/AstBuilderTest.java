@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
+import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.appendPipe;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
@@ -77,6 +78,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.GraphLookup;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -1851,5 +1853,90 @@ public class AstBuilderTest extends AstPlanningTestBase {
   @Test
   public void testMaxoutAsFieldName() {
     plan("source=t | eval maxout = 1");
+  }
+
+  // These assert on joinCondition/joinFields rather than full Join equality, since JoinHint has no
+  // equals().
+  @Test
+  public void testJoinWithImplicitFieldKeepsBareField() {
+    Join shorthand = (Join) plan("source=t1 | inner join on a AND b t2");
+    assertTrue(shorthand.getJoinFields().isEmpty());
+    assertEquals(Optional.of(and(field("a"), field("b"))), shorthand.getJoinCondition());
+  }
+
+  @Test
+  public void testJoinWithSingleImplicitFieldKeepsBareField() {
+    Join shorthand = (Join) plan("source=t1 | inner join on a t2");
+    assertTrue(shorthand.getJoinFields().isEmpty());
+    assertEquals(Optional.of(field("a")), shorthand.getJoinCondition());
+  }
+
+  @Test
+  public void testJoinWithMultipleImplicitFieldsFlattenInOrder() {
+    Join join = (Join) plan("source=t1 | inner join on a AND b AND c t2");
+    assertTrue(join.getJoinFields().isEmpty());
+    assertEquals(
+        Optional.of(and(and(field("a"), field("b")), field("c"))), join.getJoinCondition());
+  }
+
+  @Test
+  public void testJoinWithImplicitFieldWhereKeywordKeepsBareField() {
+    Join join = (Join) plan("source=t1 | inner join where a t2");
+    assertTrue(join.getJoinFields().isEmpty());
+    assertEquals(Optional.of(field("a")), join.getJoinCondition());
+  }
+
+  @Test
+  public void testJoinWithQualifiedConditionIsNotRewritten() {
+    Join join = (Join) plan("source=t1 | inner join on l.a = r.a t2");
+    assertEquals(
+        Optional.of(compare("=", field(qualifiedName("l", "a")), field(qualifiedName("r", "a")))),
+        join.getJoinCondition());
+    assertTrue(join.getJoinFields().isEmpty());
+  }
+
+  // No-prefix form: the grammar reorder lets `on` read as the criteria keyword, not a field.
+  @Test
+  public void testJoinNoPrefixImplicitFieldKeepsBareField() {
+    Join join = (Join) plan("source=t1 | join on a t2");
+    assertTrue(join.getJoinFields().isEmpty());
+    assertEquals(Optional.of(field("a")), join.getJoinCondition());
+  }
+
+  @Test
+  public void testJoinNoPrefixImplicitFieldWhereKeepsBareField() {
+    Join join = (Join) plan("source=t1 | join where a t2");
+    assertTrue(join.getJoinFields().isEmpty());
+    assertEquals(Optional.of(field("a")), join.getJoinCondition());
+  }
+
+  @Test
+  public void testJoinWithImplicitFieldKeepsAliasesOnNode() {
+    Join join = (Join) plan("source=t1 | join left = l right = r on a t2");
+    assertTrue(join.getJoinFields().isEmpty());
+    assertEquals(Optional.of(field("a")), join.getJoinCondition());
+    assertEquals(Optional.of("l"), join.getLeftAlias());
+    assertEquals(Optional.of("r"), join.getRightAlias());
+  }
+
+  // The reorder must not change the field-list form.
+  @Test
+  public void testJoinFieldListStillParsesAsFieldList() {
+    Join join = (Join) plan("source=t1 | join a t2");
+    assertEquals(Optional.empty(), join.getJoinCondition());
+    assertEquals(Optional.of(List.of(field("a"))), join.getJoinFields());
+  }
+
+  @Test
+  public void testJoinNoPrefixComparisonStaysCondition() {
+    Join join = (Join) plan("source=t1 | join on a = b t2");
+    assertTrue(join.getJoinCondition().isPresent());
+    assertTrue(join.getJoinFields().isEmpty());
+  }
+
+  // A prefix with a bare field but no on/where is still a field list, so this is a syntax error.
+  @Test
+  public void testJoinPrefixWithoutCriteriaKeywordIsSyntaxError() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t1 | inner join a t2"));
   }
 }
