@@ -214,7 +214,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
     if (!isIndexExist(client, indexName)) {
       createIndexByRestClient(client, indexName, mapping);
-      loadDataByRestClient(client, indexName, dataSet);
+      // On the analytics-engine route, unsupported-typed fields are stripped from the mapping; drop
+      // the same keys from the bulk data so the two agree. Empty (no-op) off the AE route.
+      loadDataByRestClient(client, indexName, dataSet, analyticsDroppedFields(mapping));
     }
   }
 
