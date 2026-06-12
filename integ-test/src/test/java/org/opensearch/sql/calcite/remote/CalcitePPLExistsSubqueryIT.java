@@ -43,15 +43,6 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
 
   @Test
   public void testSimpleExistsSubquery() throws IOException {
-    // Check base data counts
-    JSONObject workerCount =
-        executeQuery(String.format("source = %s | stats count()", TEST_INDEX_WORKER));
-    JSONObject workInfoCount =
-        executeQuery(String.format("source = %s | stats count()", TEST_INDEX_WORK_INFORMATION));
-    System.out.println("[TRIAGE] worker count: " + workerCount.getJSONArray("datarows"));
-    System.out.println(
-        "[TRIAGE] work_information count: " + workInfoCount.getJSONArray("datarows"));
-
     JSONObject result =
         executeQuery(
             String.format(

@@ -17,6 +17,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.analytics.exec.profile.ProfiledResult;
 import org.opensearch.analytics.schema.BinaryType;
@@ -279,7 +280,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
       ExprType result = OpenSearchTypeFactory.convertAnalyticsEngineRelDataTypeToExprType(type);
       if (result == org.opensearch.sql.data.type.ExprCoreType.UNDEFINED) {
         // Log when we're about to return UNDEFINED so we can diagnose type inference issues
-        org.apache.logging.log4j.LogManager.getLogger(AnalyticsExecutionEngine.class)
+        LogManager.getLogger(AnalyticsExecutionEngine.class)
             .warn(
                 "convertType: RelDataType {} (SqlTypeName={}) converted to UNDEFINED",
                 type,
@@ -287,7 +288,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
       }
       return result;
     } catch (IllegalArgumentException e) {
-      org.apache.logging.log4j.LogManager.getLogger(AnalyticsExecutionEngine.class)
+      LogManager.getLogger(AnalyticsExecutionEngine.class)
           .warn(
               "convertType: Failed to convert RelDataType {} (SqlTypeName={}), returning UNKNOWN",
               type,

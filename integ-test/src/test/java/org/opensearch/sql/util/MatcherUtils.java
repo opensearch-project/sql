@@ -148,13 +148,13 @@ public class MatcherUtils {
   public static void verifySchema(JSONObject response, Matcher<JSONObject>... matchers) {
     try {
       JSONArray schema = response.getJSONArray("schema");
-      LOG.info(
-          "[TRIAGE] verifySchema - expected {} columns, actual {} columns",
+      LOG.debug(
+          "verifySchema - expected {} columns, actual {} columns",
           matchers.length,
           schema.length());
       verify(schema, matchers);
     } catch (Exception e) {
-      LOG.error(String.format("verify schema failed, response: %s", response.toString()), e);
+      LOG.error("verify schema failed, response: {}", response.toString(), e);
       throw e;
     }
   }
@@ -164,20 +164,17 @@ public class MatcherUtils {
     try {
       verifyInOrder(response.getJSONArray("schema"), matchers);
     } catch (Exception e) {
-      LOG.error(String.format("verify schema failed, response: %s", response.toString()), e);
+      LOG.error("verify schema failed, response: {}", response.toString(), e);
       throw e;
     }
   }
 
   @SafeVarargs
   public static void verifyDataRows(JSONObject response, Matcher<JSONArray>... matchers) {
-    // ponytail: debug logging for multi-shard triage
     JSONArray actual = response.getJSONArray("datarows");
-    LOG.info(
-        "[TRIAGE] verifyDataRows - expected {} rows, actual {} rows",
-        matchers.length,
-        actual.length());
-    LOG.info("[TRIAGE] Actual data rows: {}", actual.toString());
+    LOG.debug(
+        "verifyDataRows - expected {} rows, actual {} rows", matchers.length, actual.length());
+    LOG.debug("Actual data rows: {}", actual.toString());
     verify(actual, matchers);
   }
 
@@ -216,20 +213,16 @@ public class MatcherUtils {
   public static <T> void verify(JSONArray array, Matcher<T>... matchers) {
     List<T> objects = new ArrayList<>();
     array.iterator().forEachRemaining(o -> objects.add((T) o));
-    // ponytail: debug logging for multi-shard triage
     if (matchers.length != objects.size()) {
-      LOG.warn(
-          "[TRIAGE] verify() count mismatch - expected {}, got {}",
-          matchers.length,
-          objects.size());
-      LOG.warn("[TRIAGE] Actual rows: {}", objects.toString());
+      LOG.debug("verify() count mismatch - expected {}, got {}", matchers.length, objects.size());
+      LOG.debug("Actual rows: {}", objects.toString());
     }
     try {
       assertEquals(matchers.length, objects.size());
       assertThat(objects, containsInAnyOrder(matchers));
     } catch (AssertionError e) {
-      LOG.error("[TRIAGE] verify() failed - assertion error: {}", e.getMessage());
-      LOG.error("[TRIAGE] Actual rows: {}", objects.toString());
+      LOG.debug("verify() failed - assertion error: {}", e.getMessage());
+      LOG.debug("Actual rows: {}", objects.toString());
       throw e;
     }
   }
@@ -265,19 +258,16 @@ public class MatcherUtils {
   public static <T> void verifyInOrder(JSONArray array, Matcher<T>... matchers) {
     List<T> objects = new ArrayList<>();
     array.iterator().forEachRemaining(o -> objects.add((T) o));
-    // ponytail: debug logging for multi-shard triage
     if (matchers.length != objects.size()) {
-      LOG.warn(
-          "[TRIAGE] verifyInOrder() count mismatch - expected {}, got {}",
-          matchers.length,
-          objects.size());
-      LOG.warn("[TRIAGE] Actual rows: {}", objects.toString());
+      LOG.debug(
+          "verifyInOrder() count mismatch - expected {}, got {}", matchers.length, objects.size());
+      LOG.debug("Actual rows: {}", objects.toString());
     }
     try {
       assertEquals(matchers.length, objects.size());
       assertThat(objects, contains(matchers));
     } catch (AssertionError e) {
-      LOG.error("[TRIAGE] verifyInOrder() failed - assertion error: {}", e.getMessage());
+      LOG.debug("verifyInOrder() failed - assertion error: {}", e.getMessage());
       throw e;
     }
   }

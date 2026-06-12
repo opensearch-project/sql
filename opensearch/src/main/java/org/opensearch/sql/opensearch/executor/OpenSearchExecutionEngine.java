@@ -339,7 +339,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
           client.getClass().getName());
     }
 
-    // ponytail: name must match AggregateFunction.APPROX_COUNT_DISTINCT in analytics-engine
+    // name must match AggregateFunction.APPROX_COUNT_DISTINCT in analytics-engine
     String approxCountDistinctName = "APPROX_COUNT_DISTINCT";
     SqlUserDefinedAggFunction approxDistinctCountFunction =
         UserDefinedFunctionUtils.createUserDefinedAggFunction(
