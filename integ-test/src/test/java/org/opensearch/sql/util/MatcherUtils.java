@@ -222,12 +222,14 @@ public class MatcherUtils {
           "[TRIAGE] verify() count mismatch - expected {}, got {}",
           matchers.length,
           objects.size());
+      LOG.warn("[TRIAGE] Actual rows: {}", objects.toString());
     }
     try {
       assertEquals(matchers.length, objects.size());
       assertThat(objects, containsInAnyOrder(matchers));
     } catch (AssertionError e) {
       LOG.error("[TRIAGE] verify() failed - assertion error: {}", e.getMessage());
+      LOG.error("[TRIAGE] Actual rows: {}", objects.toString());
       throw e;
     }
   }
@@ -269,6 +271,7 @@ public class MatcherUtils {
           "[TRIAGE] verifyInOrder() count mismatch - expected {}, got {}",
           matchers.length,
           objects.size());
+      LOG.warn("[TRIAGE] Actual rows: {}", objects.toString());
     }
     try {
       assertEquals(matchers.length, objects.size());
@@ -344,6 +347,10 @@ public class MatcherUtils {
   }
 
   public static TypeSafeMatcher<JSONArray> closeTo(Object... values) {
+    return approximately(ABSOLUTE_TOLERANCE, values);
+  }
+
+  public static TypeSafeMatcher<JSONArray> approximately(double tolerance, Object... values) {
     return new TypeSafeMatcher<JSONArray>() {
       @Override
       protected boolean matchesSafely(JSONArray item) {
@@ -372,16 +379,12 @@ public class MatcherUtils {
         description.appendText(Arrays.toString(values));
       }
 
-      /**
-       * ULP-aware comparison: tolerates up to {@link #ULP_TOLERANCE_FACTOR} ULPs or {@link
-       * #ABSOLUTE_TOLERANCE}, whichever is larger.
-       */
       private boolean valuesAreClose(Number v1, Number v2) {
         double d1 = v1.doubleValue();
         double d2 = v2.doubleValue();
         double diff = Math.abs(d1 - d2);
         double ulpTolerance = ULP_TOLERANCE_FACTOR * Math.max(Math.ulp(d1), Math.ulp(d2));
-        return diff <= Math.max(ABSOLUTE_TOLERANCE, ulpTolerance);
+        return diff <= Math.max(tolerance, ulpTolerance);
       }
     };
   }
