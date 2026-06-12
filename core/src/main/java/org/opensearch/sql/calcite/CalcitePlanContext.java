@@ -22,6 +22,7 @@ import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
@@ -70,6 +71,9 @@ public class CalcitePlanContext {
    * resolution.
    */
   @Getter private final Map<AggregateFunction, Integer> aggregateOutputIndex = new HashMap<>();
+
+  /** Maps GROUP BY Function AST nodes to their output field index for post-aggregate resolution. */
+  @Getter private final Map<Function, Integer> groupKeyOutputIndex = new HashMap<>();
 
   /**
    * List of captured variables from outer scope for lambda functions. When a lambda body references

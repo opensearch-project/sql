@@ -506,4 +506,45 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
               LogicalTableScan(table=[[catalog, employees]])
             """);
   }
+
+  @Test
+  public void testGroupByExpression() {
+    givenQuery("SELECT LENGTH(name), COUNT(*) FROM catalog.employees GROUP BY LENGTH(name)")
+        .assertPlan(
+            """
+            LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+              LogicalProject(LENGTH(name)=[CHAR_LENGTH($1)])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testHavingOnGroupByExpression() {
+    givenQuery(
+            "SELECT COUNT(*) FROM catalog.employees GROUP BY LENGTH(name) HAVING LENGTH(name) > 3")
+        .assertPlan(
+            """
+            LogicalProject(COUNT(*)=[$0])
+              LogicalFilter(condition=[>($1, 3)])
+                LogicalProject(COUNT(*)=[$1], LENGTH(name)=[$0])
+                  LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+                    LogicalProject(LENGTH(name)=[CHAR_LENGTH($1)])
+                      LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testOrderByGroupByExpression() {
+    givenQuery(
+            """
+            SELECT LENGTH(name) FROM catalog.employees GROUP BY LENGTH(name) ORDER BY LENGTH(name)
+            """)
+        .assertPlan(
+            """
+            LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])
+              LogicalAggregate(group=[{0}])
+                LogicalProject(LENGTH(name)=[CHAR_LENGTH($1)])
+                  LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
 }
