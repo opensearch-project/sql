@@ -158,7 +158,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
         "source=EMP | eval z = mod(0.5, 1, 2) | fields z",
         "MOD function expects"
             + " {[INTEGER,INTEGER]|[INTEGER,DOUBLE]|[DOUBLE,INTEGER]|[DOUBLE,DOUBLE]}, but got"
-            + " [DOUBLE,INTEGER,INTEGER]");
+            + " [DECIMAL,INTEGER,INTEGER]");
   }
 
   // Test UDF registered with sql std operators: registerOperator(PI, SqlStdOperatorTable.PI)

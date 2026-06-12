@@ -17,13 +17,14 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -63,12 +64,10 @@ public class TimestampDiffFunction extends ImplementorUDF {
       // timestampdiff(interval, start, end)
       int startIndex = 1;
       int endIndex = 2;
-      var startType =
-          OpenSearchTypeFactory.convertRelDataTypeToExprType(
-              call.getOperands().get(startIndex).getType());
-      var endType =
-          OpenSearchTypeFactory.convertRelDataTypeToExprType(
-              call.getOperands().get(endIndex).getType());
+      org.apache.calcite.rel.type.RelDataType startRelType =
+          call.getOperands().get(startIndex).getType();
+      org.apache.calcite.rel.type.RelDataType endRelType =
+          call.getOperands().get(endIndex).getType();
 
       Expression functionProperties =
           Expressions.call(
@@ -79,15 +78,20 @@ public class TimestampDiffFunction extends ImplementorUDF {
               ExprValueUtils.class,
               "fromObjectValue",
               translatedOperands.get(startIndex),
-              Expressions.constant(startType));
+              Expressions.constant(
+                  OpenSearchTypeFactory.convertRelDataTypeToExprType(startRelType)));
       Expression end =
           Expressions.call(
               ExprValueUtils.class,
               "fromObjectValue",
               translatedOperands.get(endIndex),
-              Expressions.constant(endType));
+              Expressions.constant(OpenSearchTypeFactory.convertRelDataTypeToExprType(endRelType)));
 
-      if (ExprCoreType.TIME.equals(startType) || ExprCoreType.TIME.equals(endType)) {
+      boolean startIsTime =
+          startRelType instanceof ExprTimeType || startRelType.getSqlTypeName() == SqlTypeName.TIME;
+      boolean endIsTime =
+          endRelType instanceof ExprTimeType || endRelType.getSqlTypeName() == SqlTypeName.TIME;
+      if (startIsTime || endIsTime) {
         return Expressions.call(
             DiffImplementor.class, "diffForTime", functionProperties, unit, start, end);
       }

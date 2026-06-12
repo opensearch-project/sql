@@ -18,6 +18,8 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
@@ -25,8 +27,6 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -43,12 +43,9 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  */
 public class FormatFunction extends ImplementorUDF {
 
-  public FormatFunction(ExprType functionType) {
-    super(new DataFormatImplementor(functionType), NullPolicy.ANY);
-    if (!functionType.equals(ExprCoreType.DATE) && !functionType.equals(ExprCoreType.TIME)) {
-      throw new IllegalArgumentException(
-          "Function type can only be DATE or TIME, but got: " + functionType);
-    }
+  /** Discriminates DATE_FORMAT (false) from TIME_FORMAT (true) at registration time. */
+  public FormatFunction(boolean isTimeFormat) {
+    super(new DataFormatImplementor(isTimeFormat), NullPolicy.ANY);
   }
 
   @Override
@@ -63,14 +60,13 @@ public class FormatFunction extends ImplementorUDF {
 
   @RequiredArgsConstructor
   public static class DataFormatImplementor implements NotNullImplementor {
-    private final ExprType functionType;
+    private final boolean isTimeFormat;
 
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      ExprType type =
-          OpenSearchTypeFactory.convertRelDataTypeToExprType(
-              call.getOperands().getFirst().getType());
+      org.apache.calcite.rel.type.RelDataType firstOperandType =
+          call.getOperands().getFirst().getType();
       Expression functionProperties =
           Expressions.call(
               UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
@@ -79,23 +75,19 @@ public class FormatFunction extends ImplementorUDF {
               ExprValueUtils.class,
               "fromObjectValue",
               translatedOperands.get(0),
-              Expressions.constant(type));
+              Expressions.constant(
+                  OpenSearchTypeFactory.convertRelDataTypeToExprType(firstOperandType)));
       Expression format = Expressions.new_(ExprStringValue.class, translatedOperands.get(1));
 
-      if (ExprCoreType.TIME.equals(functionType)) {
+      if (isTimeFormat) {
         return Expressions.call(DataFormatImplementor.class, "timeFormat", datetime, format);
-      } else {
-        if (ExprCoreType.TIME.equals(type)) {
-          return Expressions.call(
-              DataFormatImplementor.class,
-              "dateFormatForTime",
-              functionProperties,
-              format,
-              datetime);
-        } else {
-          return Expressions.call(DataFormatImplementor.class, "dateFormat", datetime, format);
-        }
       }
+      if (firstOperandType instanceof ExprTimeType
+          || firstOperandType.getSqlTypeName() == SqlTypeName.TIME) {
+        return Expressions.call(
+            DataFormatImplementor.class, "dateFormatForTime", functionProperties, format, datetime);
+      }
+      return Expressions.call(DataFormatImplementor.class, "dateFormat", datetime, format);
     }
 
     public static String dateFormat(ExprValue date, ExprStringValue format) {

@@ -1655,6 +1655,22 @@ public class PredicateAnalyzer {
     // https://github.com/opensearch-project/sql/pull/3442
   }
 
+  /**
+   * Renders a TIMESTAMP/DATE/TIME literal as a string in a way that works for both UDT-backed
+   * (VARCHAR) literals and standard Calcite temporal literals (whose value is a TimestampString /
+   * DateString / TimeString, not an NlsString).
+   */
+  private static String temporalLiteralAsString(RexLiteral literal) {
+    RelDataType t = literal.getType();
+    if (t instanceof ExprSqlType) {
+      // UDT-backed literal: the value is an NlsString.
+      return RexLiteral.stringValue(literal);
+    }
+    // Standard Calcite temporal literal: getValueAs(String.class) handles
+    // TimestampString/DateString/TimeString uniformly.
+    return literal.getValueAs(String.class);
+  }
+
   private static String ipValueForPushDown(String value) {
     ExprIpValue exprIpValue = new ExprIpValue(value);
     return exprIpValue.value();
@@ -1927,7 +1943,7 @@ public class PredicateAnalyzer {
       } else if (isBoolean()) {
         return booleanValue();
       } else if (isTimestamp() || isDate()) {
-        return timestampValueForPushDown(RexLiteral.stringValue(literal));
+        return timestampValueForPushDown(temporalLiteralAsString(literal));
       } else if (isString()) {
         return RexLiteral.stringValue(literal);
       } else if (isIp()) {
@@ -1962,17 +1978,15 @@ public class PredicateAnalyzer {
     }
 
     public boolean isTimestamp() {
-      if (literal.getType() instanceof ExprSqlType exprSqlType) {
-        return exprSqlType.getUdt() == ExprUDT.EXPR_TIMESTAMP;
-      }
-      return false;
+      RelDataType t = literal.getType();
+      if (t.getSqlTypeName() == SqlTypeName.TIMESTAMP) return true;
+      return t instanceof ExprSqlType exprSqlType && exprSqlType.getUdt() == ExprUDT.EXPR_TIMESTAMP;
     }
 
     public boolean isDate() {
-      if (literal.getType() instanceof ExprSqlType exprSqlType) {
-        return exprSqlType.getUdt() == ExprUDT.EXPR_DATE;
-      }
-      return false;
+      RelDataType t = literal.getType();
+      if (t.getSqlTypeName() == SqlTypeName.DATE) return true;
+      return t instanceof ExprSqlType exprSqlType && exprSqlType.getUdt() == ExprUDT.EXPR_DATE;
     }
 
     public boolean isIp() {

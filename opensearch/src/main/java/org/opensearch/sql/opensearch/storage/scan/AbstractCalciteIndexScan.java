@@ -53,6 +53,7 @@ import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
+import org.opensearch.sql.calcite.plan.rel.TemporalSchemaRewritable;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
@@ -71,7 +72,8 @@ import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
-public abstract class AbstractCalciteIndexScan extends TableScan implements AliasFieldsWrappable {
+public abstract class AbstractCalciteIndexScan extends TableScan
+    implements AliasFieldsWrappable, TemporalSchemaRewritable {
   private static final Logger LOG = LogManager.getLogger(AbstractCalciteIndexScan.class);
   public final OpenSearchIndex osIndex;
   // The schema of this scan operator, it's initialized with the row type of the table, but may be
@@ -101,6 +103,24 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
   @Override
   public RelDataType deriveRowType() {
     return this.schema;
+  }
+
+  /**
+   * Rebuild this scan with a new row type while preserving the existing pushdown context. Used by
+   * {@code TemporalUdtRewriteShuttle} to convert the scan's schema from standard Calcite temporal
+   * types to UDT-backed types in place, so Linq4j codegen sees the same VARCHAR-backed types that
+   * {@code OpenSearchExprValueFactory} delivers at runtime.
+   */
+  @Override
+  public RelNode withRowType(RelDataType rowType) {
+    return buildScan(
+        getCluster(),
+        getTraitSet(),
+        getHints(),
+        getTable(),
+        osIndex,
+        rowType,
+        pushDownContext.clone());
   }
 
   @Override

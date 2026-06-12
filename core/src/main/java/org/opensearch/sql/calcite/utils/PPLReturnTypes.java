@@ -21,11 +21,11 @@ public final class PPLReturnTypes {
   private PPLReturnTypes() {}
 
   public static final SqlReturnTypeInference DATE_FORCE_NULLABLE =
-      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_DATE_UDT);
+      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_DATE_T);
   public static final SqlReturnTypeInference TIME_FORCE_NULLABLE =
-      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_TIME_UDT);
+      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_TIME_T);
   public static final SqlReturnTypeInference TIMESTAMP_FORCE_NULLABLE =
-      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT);
+      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_T);
   public static final SqlReturnTypeInference IP_FORCE_NULLABLE =
       ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_IP_UDT);
   public static SqlReturnTypeInference INTEGER_FORCE_NULLABLE =
@@ -36,9 +36,9 @@ public final class PPLReturnTypes {
       opBinding -> {
         RelDataType temporalType = opBinding.getOperandType(0);
         if (OpenSearchTypeFactory.isTimeExprType(temporalType)) {
-          return UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
+          return UserDefinedFunctionUtils.NULLABLE_TIME_T;
         }
-        return UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
+        return UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_T;
       };
   public static SqlReturnTypeInference ARG0_ARRAY =
       opBinding -> {

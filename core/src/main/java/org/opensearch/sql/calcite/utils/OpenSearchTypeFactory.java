@@ -173,11 +173,13 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         case BOOLEAN:
           return TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN, nullable);
         case DATE:
-          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, nullable);
+          return TYPE_FACTORY.createSqlType(SqlTypeName.DATE, nullable);
         case TIME:
-          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, nullable);
+          return TYPE_FACTORY.createTypeWithNullability(
+              TYPE_FACTORY.createSqlType(SqlTypeName.TIME, 9), nullable);
         case TIMESTAMP:
-          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);
+          return TYPE_FACTORY.createTypeWithNullability(
+              TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP, 9), nullable);
         case BINARY:
           return TYPE_FACTORY.createSqlType(SqlTypeName.VARBINARY, nullable);
         case ARRAY:
@@ -197,11 +199,13 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       if (fieldType.legacyTypeName().equalsIgnoreCase("binary")) {
         return TYPE_FACTORY.createUDT(ExprUDT.EXPR_BINARY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("timestamp")) {
-        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);
+        return TYPE_FACTORY.createTypeWithNullability(
+            TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP, 9), nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("date")) {
-        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, nullable);
+        return TYPE_FACTORY.createSqlType(SqlTypeName.DATE, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("time")) {
-        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, nullable);
+        return TYPE_FACTORY.createTypeWithNullability(
+            TYPE_FACTORY.createSqlType(SqlTypeName.TIME, 9), nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("geo_point")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.GEOMETRY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("text")) {
@@ -382,6 +386,15 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    */
   public static boolean isUserDefinedType(RelDataType type) {
     return type instanceof AbstractExprRelDataType<?>;
+  }
+
+  /** Whether a RelDataType is a standard SQL DATE/TIME/TIMESTAMP (not a UDT). */
+  public static boolean isStandardTemporalType(RelDataType type) {
+    if (type instanceof AbstractExprRelDataType<?>) {
+      return false;
+    }
+    SqlTypeName n = type.getSqlTypeName();
+    return n == SqlTypeName.DATE || n == SqlTypeName.TIME || n == SqlTypeName.TIMESTAMP;
   }
 
   /**

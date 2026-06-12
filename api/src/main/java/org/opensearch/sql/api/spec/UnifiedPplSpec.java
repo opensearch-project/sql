@@ -10,7 +10,6 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.opensearch.sql.api.spec.datetime.DatetimeExtension;
 
 /**
  * PPL language specification.
@@ -38,6 +37,6 @@ public class UnifiedPplSpec implements LanguageSpec {
 
   @Override
   public List<LanguageExtension> extensions() {
-    return List.of(new DatetimeExtension());
+    return List.of();
   }
 }

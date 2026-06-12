@@ -17,6 +17,8 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
@@ -25,8 +27,6 @@ import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -63,15 +63,17 @@ public class TimestampAddFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      ExprType timestampBaseType =
-          OpenSearchTypeFactory.convertRelDataTypeToExprType(call.getOperands().get(2).getType());
+      org.apache.calcite.rel.type.RelDataType timestampBaseRelType =
+          call.getOperands().get(2).getType();
       Expression timestampBase =
           Expressions.call(
               ExprValueUtils.class,
               "fromObjectValue",
               translatedOperands.get(2),
-              Expressions.constant(timestampBaseType));
-      if (ExprCoreType.TIME.equals(timestampBaseType)) {
+              Expressions.constant(
+                  OpenSearchTypeFactory.convertRelDataTypeToExprType(timestampBaseRelType)));
+      if (timestampBaseRelType instanceof ExprTimeType
+          || timestampBaseRelType.getSqlTypeName() == SqlTypeName.TIME) {
         return Expressions.call(
             TimestampAddImplementor.class,
             "timestampAddForTimeType",

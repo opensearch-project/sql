@@ -147,20 +147,6 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
         .assertCauseType(CalciteException.class);
   }
 
-  @Test
-  public void assertionErrorIsWrappedAsSemanticCheckException() {
-    // Remove when the underlying Calcite assertion is fixed.
-    givenInvalidQuery(
-            """
-            source = catalog.employees
-            | eval ts = timestamp('2024-01-01')
-            | stats max(ts)
-            """)
-        .assertErrorType(SemanticCheckException.class)
-        .assertErrorMessageEquals("Failed to plan query: invalid plan structure")
-        .assertCauseType(AssertionError.class);
-  }
-
   /**
    * Without the {@code PATTERN_*} defaults in {@link UnifiedQueryContext}, a bare {@code patterns
    * <field>} (no explicit {@code method=}/{@code mode=}) dies at parse time with {@code
