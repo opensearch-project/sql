@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.Assume.assumeFalse;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CASCADED_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
@@ -23,6 +24,12 @@ import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.WhereCommandIT;
 
 public class CalciteWhereCommandIT extends WhereCommandIT {
+
+  private static final String NESTED_UNSUPPORTED_ON_AE =
+      "Nested-field queries can't run on the analytics-engine route: the parquet/composite store"
+          + " has no nested-document support, so nested fields are stripped from the dataset at"
+          + " load.";
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -40,6 +47,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testFilterOnComputedNestedFields() throws IOException {
+    assumeFalse(NESTED_UNSUPPORTED_ON_AE, isAnalyticsParquetIndicesEnabled());
     JSONObject result =
         executeQuery(
             String.format(
@@ -52,6 +60,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testFilterOnNestedAndRootFields() throws IOException {
+    assumeFalse(NESTED_UNSUPPORTED_ON_AE, isAnalyticsParquetIndicesEnabled());
     JSONObject result =
         executeQuery(
             String.format(
@@ -64,6 +73,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testFilterOnNestedFields() throws IOException {
+    assumeFalse(NESTED_UNSUPPORTED_ON_AE, isAnalyticsParquetIndicesEnabled());
     // address is a nested object
     JSONObject result1 =
         executeQuery(
@@ -83,6 +93,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testFilterOnMultipleCascadedNestedFields() throws IOException {
+    assumeFalse(NESTED_UNSUPPORTED_ON_AE, isAnalyticsParquetIndicesEnabled());
     // SQL's static type system does not allow returning list[int] in place of int
     enabledOnlyWhenPushdownIsEnabled();
     JSONObject result =
@@ -126,6 +137,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testScriptFilterOnDifferentNestedHierarchyShouldThrow() throws IOException {
+    assumeFalse(NESTED_UNSUPPORTED_ON_AE, isAnalyticsParquetIndicesEnabled());
     enabledOnlyWhenPushdownIsEnabled();
     Throwable t =
         assertThrows(
@@ -144,6 +156,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testAggFilterOnNestedFields() throws IOException {
+    assumeFalse(NESTED_UNSUPPORTED_ON_AE, isAnalyticsParquetIndicesEnabled());
     enabledOnlyWhenPushdownIsEnabled();
     JSONObject result =
         executeQuery(
