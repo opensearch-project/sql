@@ -929,6 +929,109 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testJoinWithImplicitField() throws IOException {
+    // Keep-both, so co-named columns (other than the key) resolve to the left side.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | inner join on name %s | fields name, age, state, country, occupation,"
+                    + " salary | sort name, occupation",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("occupation", "string"),
+        schema("salary", "int"));
+    // Rows are listed in the `sort name, occupation` order so verifyDataRowsInOrder also
+    // validates the sort (David/Doctor < David/Unemployed, then Hello, Jake, Jane, John).
+    verifyDataRowsInOrder(
+        actual,
+        rows("David", 40, "Washington", "USA", "Doctor", 120000),
+        rows("David", 40, "Washington", "USA", "Unemployed", 0),
+        rows("Hello", 30, "New York", "USA", "Artist", 70000),
+        rows("Jake", 70, "California", "USA", "Engineer", 100000),
+        rows("Jane", 20, "Quebec", "Canada", "Scientist", 90000),
+        rows("John", 25, "Ontario", "Canada", "Doctor", 120000));
+
+    // The shorthand and the explicit qualified-equality form are output-identical.
+    JSONObject explicitForm =
+        executeQuery(
+            String.format(
+                "source=%s | inner join on %s.name = %s.name %s | fields name, age, state, country,"
+                    + " occupation, salary | sort name, occupation",
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION,
+                TEST_INDEX_OCCUPATION));
+    assertJsonEquals(explicitForm.toString(), actual.toString());
+  }
+
+  @Test
+  public void testJoinNoPrefixImplicitField() throws IOException {
+    // No-prefix `join on name` matches the explicit qualified form, not the field-list `join name`.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | join on name %s | fields name, age, state, occupation, salary | sort"
+                    + " name, occupation",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    JSONObject explicitForm =
+        executeQuery(
+            String.format(
+                "source=%s | join on %s.name = %s.name %s | fields name, age, state, occupation,"
+                    + " salary | sort name, occupation",
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION,
+                TEST_INDEX_OCCUPATION));
+    assertJsonEquals(explicitForm.toString(), actual.toString());
+  }
+
+  @Test
+  public void testLeftJoinWithImplicitField() throws IOException {
+    // Keep-both does not coalesce, so unmatched-left rows keep the non-null left key, not a NULL.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | left join on name %s | fields name, age, state, occupation, salary",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("occupation", "string"),
+        schema("salary", "int"));
+    verifyDataRows(
+        actual,
+        rows("Jake", 70, "California", "Engineer", 100000),
+        rows("Hello", 30, "New York", "Artist", 70000),
+        rows("John", 25, "Ontario", "Doctor", 120000),
+        rows("Jane", 20, "Quebec", "Scientist", 90000),
+        rows("David", 40, "Washington", "Doctor", 120000),
+        rows("David", 40, "Washington", "Unemployed", 0),
+        rows("Jim", 27, "B.C", null, null),
+        rows("Peter", 57, "B.C", null, null),
+        rows("Rick", 70, "B.C", null, null));
+  }
+
+  @Test
+  public void testAliasedSelfJoinWithImplicitField() throws IOException {
+    // Self-join on the unique `name`: a real equi-join yields 8 rows, not the 64-row cross product
+    // a tautology would give.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | inner join left=l right=r on name %s | fields name, r.name",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY));
+    verifyNumOfRows(actual, 8);
+    verifySchema(actual, schema("name", "string"), schema("r.name", "string"));
+  }
+
+  @Test
   public void testJoinComparing() throws IOException {
     JSONObject actual =
         executeQuery(

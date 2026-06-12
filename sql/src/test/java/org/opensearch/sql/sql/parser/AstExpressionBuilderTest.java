@@ -44,6 +44,8 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.WindowFrame;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
@@ -308,12 +310,23 @@ class AstExpressionBuilderTest {
 
   @Test
   public void canBuildAggregateWindowFunction() {
+    WindowFunction expected =
+        new WindowFunction(
+            aggregate("AVG", qualifiedName("age")),
+            ImmutableList.of(qualifiedName("state")),
+            ImmutableList.of(ImmutablePair.of(new SortOption(null, null), qualifiedName("age"))));
+    expected.setWindowFrame(WindowFrame.rangeToCurrentRow());
+    assertEquals(expected, buildExprAst("AVG(age) OVER (PARTITION BY state ORDER BY age)"));
+  }
+
+  @Test
+  public void canBuildAggregateWindowFunctionWithoutOrderBy() {
     assertEquals(
         window(
             aggregate("AVG", qualifiedName("age")),
             ImmutableList.of(qualifiedName("state")),
-            ImmutableList.of(ImmutablePair.of(new SortOption(null, null), qualifiedName("age")))),
-        buildExprAst("AVG(age) OVER (PARTITION BY state ORDER BY age)"));
+            ImmutableList.of()),
+        buildExprAst("AVG(age) OVER (PARTITION BY state)"));
   }
 
   @Test

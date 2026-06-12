@@ -66,6 +66,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
       initClient();
     }
 
+    // When -Dtests.analytics.parquet_indices=true, make every index (including ones a test
+    // auto-creates via a raw document PUT, which bypasses createIndexByRestClient) parquet-backed
+    // composite, so it is stored as a DataFormatAwareEngine and is actually scannable by the
+    // analytics engine it routes to. Must run before init() creates any index.
+    TestUtils.AnalyticsIndexConfig.applyClusterSettings(client());
+
     if (shouldResetQuerySizeLimit()) {
       resetQuerySizeLimit();
     }
@@ -533,6 +539,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "account",
         getAccountIndexMapping(),
         "src/test/resources/accounts.json"),
+    ACCOUNT_EXTENDED(
+        TestsConstants.TEST_INDEX_ACCOUNT_EXTENDED,
+        "account_extended",
+        getAccountExtendedIndexMapping(),
+        "src/test/resources/accounts_extended.json"),
     PHRASE(
         TestsConstants.TEST_INDEX_PHRASE,
         "phrase",
@@ -626,6 +637,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "account",
         getBankIndexMapping(),
         "src/test/resources/bank.json"),
+    BANK_EXTENDED(
+        TestsConstants.TEST_INDEX_BANK_EXTENDED,
+        "bank_extended",
+        getBankExtendedIndexMapping(),
+        "src/test/resources/bank_extended.json"),
     BANK_TWO(
         TestsConstants.TEST_INDEX_BANK_TWO,
         "account_two",
@@ -716,6 +732,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getDataTypeNonnumericIndexMapping(),
         "src/test/resources/datatypes.json"),
+    DATETIME_SIMPLE(
+        TestsConstants.TEST_INDEX_DATETIME_SIMPLE,
+        "_doc",
+        getDateTimeSimpleIndexMapping(),
+        "src/test/resources/datetime_simple.json"),
     BEER(
         TestsConstants.TEST_INDEX_BEER, "beer", null, "src/test/resources/beer.stackexchange.json"),
     NULL_MISSING(

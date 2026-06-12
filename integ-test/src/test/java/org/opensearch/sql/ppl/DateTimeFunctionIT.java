@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.junit.Assume.assumeFalse;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -1565,6 +1566,10 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testCompareAgainstUTCDate() throws IOException {
+    assumeFalse(
+        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
+            + " (analytics-engine storage path) does not support.",
+        isAnalyticsParquetIndicesEnabled());
     LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
     String isoTimestamp = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
     String pplTimestamp = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));

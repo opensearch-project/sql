@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.opensearch.sql.data.type.ExprCoreType.BINARY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -16,6 +17,7 @@ import java.util.stream.Stream;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -37,7 +39,9 @@ class CoercionUtilsTest {
         Arguments.of(STRING, INTEGER, DOUBLE),
         Arguments.of(INTEGER, STRING, DOUBLE),
         Arguments.of(STRING, DOUBLE, DOUBLE),
-        Arguments.of(INTEGER, BOOLEAN, null));
+        Arguments.of(INTEGER, BOOLEAN, null),
+        Arguments.of(BINARY, STRING, BINARY),
+        Arguments.of(STRING, BINARY, BINARY));
   }
 
   @ParameterizedTest
@@ -46,6 +50,40 @@ class CoercionUtilsTest {
       ExprCoreType left, ExprCoreType right, ExprCoreType expectedCommonType) {
     assertEquals(
         expectedCommonType, CoercionUtils.resolveCommonType(left, right).orElseGet(() -> null));
+  }
+
+  @Test
+  void widenArgumentsUnifiesPlainTimestampWithDateUdtBounds() {
+    // Reproduces the BETWEEN/IN operand set seen on a non-UDT path (e.g. the analytics engine's
+    // parquet scan): a standard Calcite TIMESTAMP field against EXPR_DATE UDT bounds.
+    // leastRestrictive
+    // returns no common type for this mix, but the temporal widening used by comparison operators
+    // must resolve all three to a single timestamp type so the predicate can run.
+    RexNode plainTimestampField =
+        REX_BUILDER.makeInputRef(
+            OpenSearchTypeFactory.TYPE_FACTORY.createTypeWithNullability(
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP), true),
+            0);
+    RexNode dateLower =
+        REX_BUILDER.makeNullLiteral(
+            OpenSearchTypeFactory.TYPE_FACTORY.createUDT(
+                OpenSearchTypeFactory.ExprUDT.EXPR_DATE, true));
+    RexNode dateUpper =
+        REX_BUILDER.makeNullLiteral(
+            OpenSearchTypeFactory.TYPE_FACTORY.createUDT(
+                OpenSearchTypeFactory.ExprUDT.EXPR_DATE, true));
+
+    List<RexNode> widened =
+        CoercionUtils.widenArguments(
+            REX_BUILDER, List.of(plainTimestampField, dateLower, dateUpper));
+
+    assertNotNull(widened);
+    assertEquals(3, widened.size());
+    for (RexNode node : widened) {
+      assertEquals(
+          ExprCoreType.TIMESTAMP,
+          OpenSearchTypeFactory.convertRelDataTypeToExprType(node.getType()));
+    }
   }
 
   @Test

@@ -60,6 +60,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_WEEK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DISTINCT_COUNT_APPROX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDEFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DUR2SEC;
@@ -92,6 +93,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_TRANSLATE3;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ISNULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_BLANK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_EMPTY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
@@ -133,9 +135,13 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_APP
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_CONCAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_REMOVE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCHPHRASE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCHPHRASEQUERY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCHQUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_BOOL_PREFIX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE_PREFIX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_QUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
@@ -154,6 +160,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTHNAME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_OF_YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MSTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIMATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIMATCHQUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
@@ -178,6 +186,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITIO
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POW;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POWER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUARTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUERY_STRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
@@ -254,6 +263,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKDAY
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKOFYEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK_OF_YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WIDTH_BUCKET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WILDCARDQUERY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WILDCARD_QUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
@@ -908,6 +919,15 @@ public class PPLFuncImpTable {
       registerOperator(SIMPLE_QUERY_STRING, PPLBuiltinOperators.SIMPLE_QUERY_STRING);
       registerOperator(QUERY_STRING, PPLBuiltinOperators.QUERY_STRING);
       registerOperator(MULTI_MATCH, PPLBuiltinOperators.MULTI_MATCH);
+      registerOperator(QUERY, PPLBuiltinOperators.QUERY);
+      registerOperator(WILDCARD_QUERY, PPLBuiltinOperators.WILDCARD_QUERY);
+      registerOperator(WILDCARDQUERY, PPLBuiltinOperators.WILDCARD_QUERY);
+      registerOperator(MATCH_QUERY, PPLBuiltinOperators.MATCH);
+      registerOperator(MATCHQUERY, PPLBuiltinOperators.MATCH);
+      registerOperator(MATCHPHRASE, PPLBuiltinOperators.MATCH_PHRASE);
+      registerOperator(MATCHPHRASEQUERY, PPLBuiltinOperators.MATCH_PHRASE);
+      registerOperator(MULTIMATCH, PPLBuiltinOperators.MULTI_MATCH);
+      registerOperator(MULTIMATCHQUERY, PPLBuiltinOperators.MULTI_MATCH);
       registerOperator(REX_EXTRACT, PPLBuiltinOperators.REX_EXTRACT);
       registerOperator(REX_EXTRACT_MULTI, PPLBuiltinOperators.REX_EXTRACT_MULTI);
       registerOperator(REX_OFFSET, PPLBuiltinOperators.REX_OFFSET);
@@ -1147,6 +1167,8 @@ public class PPLFuncImpTable {
           IS_PRESENT, SqlStdOperatorTable.IS_NOT_NULL, PPLTypeChecker.family(SqlTypeFamily.IGNORE));
       registerOperator(
           IS_NULL, SqlStdOperatorTable.IS_NULL, PPLTypeChecker.family(SqlTypeFamily.IGNORE));
+      registerOperator(
+          ISNULL, SqlStdOperatorTable.IS_NULL, PPLTypeChecker.family(SqlTypeFamily.IGNORE));
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
@@ -1260,6 +1282,19 @@ public class PPLFuncImpTable {
                       builder.makeNullLiteral(arg1.getType()),
                       arg1),
           PPLTypeChecker.wrapComparable((SameOperandTypeChecker) OperandTypes.SAME_SAME));
+      // PPL isempty(x) — TRUE iff x is NULL or an empty string. We express this as
+      //   OR(IS_NULL(x), CHAR_LENGTH(x) = 0)
+      // rather than reusing SqlStdOperatorTable.IS_EMPTY: the latter is the SQL:2003
+      // multiset/collection IS EMPTY predicate (its OperandTypeChecker is
+      // OperandTypes.COLLECTION_OR_MAP and its enumerable runtime calls
+      // java.util.Collection.isEmpty() reflectively). Passing a string operand only
+      // worked by coincidence — RexBuilder.makeCall bypasses the operand checker, and
+      // Calcite's enumerable codegen emits a bare `target.isEmpty()` call that happens
+      // to bind to String.isEmpty() at Janino compile time. The CHAR_LENGTH form makes
+      // the string semantics explicit, lets every backend translate the predicate
+      // through their normal length / equality bindings, and works on any code path
+      // that doesn't go through Calcite's enumerable runtime (e.g. Substrait emission
+      // for analytics-engine, which has no IS EMPTY mapping).
       register(
           IS_EMPTY,
           (FunctionImp1)
@@ -1267,7 +1302,10 @@ public class PPLFuncImpTable {
                   builder.makeCall(
                       SqlStdOperatorTable.OR,
                       builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
-                      builder.makeCall(SqlStdOperatorTable.IS_EMPTY, arg)),
+                      builder.makeCall(
+                          SqlStdOperatorTable.EQUALS,
+                          builder.makeCall(SqlStdOperatorTable.CHAR_LENGTH, arg),
+                          builder.makeExactLiteral(BigDecimal.ZERO))),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
       register(
           IS_BLANK,
@@ -1277,12 +1315,15 @@ public class PPLFuncImpTable {
                       SqlStdOperatorTable.OR,
                       builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
                       builder.makeCall(
-                          SqlStdOperatorTable.IS_EMPTY,
+                          SqlStdOperatorTable.EQUALS,
                           builder.makeCall(
-                              SqlStdOperatorTable.TRIM,
-                              builder.makeFlag(Flag.BOTH),
-                              builder.makeLiteral(" "),
-                              arg))),
+                              SqlStdOperatorTable.CHAR_LENGTH,
+                              builder.makeCall(
+                                  SqlStdOperatorTable.TRIM,
+                                  builder.makeFlag(Flag.BOTH),
+                                  builder.makeLiteral(" "),
+                                  arg)),
+                          builder.makeExactLiteral(BigDecimal.ZERO))),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
       register(
           ILIKE,
@@ -1359,6 +1400,13 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);
       registerOperator(LIST, PPLBuiltinOperators.LIST);
       registerOperator(VALUES, PPLBuiltinOperators.VALUES);
+      // Logical marker so PPL parser succeeds on dc()/distinct_count()/distinct_count_approx()
+      // regardless of which execution path the query takes. OpenSearchExecutionEngine registers
+      // a real HyperLogLog++ implementation in aggExternalFunctionRegistry which overrides this
+      // marker via the external-first lookup precedence in getImplementation(). Other backends
+      // (DataFusion / analytics-engine) rewrite the operator before substrait emission and never
+      // execute the marker.
+      registerOperator(DISTINCT_COUNT_APPROX, PPLBuiltinOperators.DISTINCT_COUNT_APPROX);
 
       register(
           AVG,

@@ -85,10 +85,12 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinBasicFunctionality() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | bin age span=5 | fields age | head 3", TEST_INDEX_ACCOUNT));
+            String.format(
+                "source=%s | bin age span=5 | sort account_number | fields age | head 3",
+                TEST_INDEX_ACCOUNT));
     verifySchema(result, schema("age", null, "string"));
 
-    verifyDataRows(result, rows("30-35"), rows("35-40"), rows("25-30"));
+    verifyDataRows(result, rows("25-30"), rows("30-35"), rows("20-25"));
   }
 
   @Test
@@ -195,7 +197,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject binOnlyResult =
         executeQuery(
             String.format(
-                "source=%s" + " | bin @timestamp span=4h" + " | fields `@timestamp` | head 3",
+                "source=%s"
+                    + " | bin @timestamp span=4h"
+                    + " | fields `@timestamp` | sort `@timestamp` | head 3",
                 TEST_INDEX_TIME_DATA));
 
     // Verify schema and that binning works correctly
@@ -235,7 +239,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | bin @timestamp span=4mon as cate | fields"
-                    + " cate, @timestamp | head 5",
+                    + " cate, @timestamp | sort @timestamp | head 5",
                 TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("cate", null, "string"), schema("@timestamp", null, "timestamp"));
 

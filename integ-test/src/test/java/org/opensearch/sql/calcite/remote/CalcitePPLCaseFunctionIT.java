@@ -25,6 +25,7 @@ import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -48,14 +49,15 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
         new Request("PUT", "/" + TestsConstants.TEST_INDEX_WEBLOGS + "/_doc/8?refresh=true");
     request2.setJsonEntity(
         "{\"host\": \"0.0.0.2\", \"method\": \"GET\", \"url\":"
-            + " \"/shuttle/missions/sts-73/mission-sts-73.html\", \"response\": \"500\", \"bytes\":"
-            + " \"4085\"}");
+            + " \"/shuttle/missions/sts-73/mission-sts-73.html\", \"response\": \"500\","
+            + " \"bytes\": \"4085\"}");
     client().performRequest(request2);
     Request request3 =
         new Request("PUT", "/" + TestsConstants.TEST_INDEX_WEBLOGS + "/_doc/9?refresh=true");
     request3.setJsonEntity(
-        "{\"host\": \"::3\", \"method\": \"GET\", \"url\": \"/shuttle/countdown/countdown.html\","
-            + " \"response\": \"403\", \"bytes\": \"3985\"}");
+        "{\"host\": \"::3\", \"method\": \"GET\", \"url\":"
+            + " \"/shuttle/countdown/countdown.html\", \"response\": \"403\", \"bytes\":"
+            + " \"3985\"}");
     client().performRequest(request3);
     Request request4 =
         new Request("PUT", "/" + TestsConstants.TEST_INDEX_WEBLOGS + "/_doc/10?refresh=true");
@@ -308,7 +310,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK));
     verifySchema(actual4, schema("avg(balance)", "double"), schema("age_range", "string"));
     // There's such a discrepancy because null cannot be the key for a range query
-    if (isPushdownDisabled()) {
+    if (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled()) {
       verifyDataRows(
           actual4,
           rows(32838.0, "u30"),
@@ -463,7 +465,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
     verifySchema(actual, schema("avg(age)", "double"), schema("age_category", "string"));
     // There is such discrepancy because range aggregations will ignore null values
-    if (isPushdownDisabled()) {
+    if (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled()) {
       verifyDataRows(
           actual,
           rows(10, "teenager"),

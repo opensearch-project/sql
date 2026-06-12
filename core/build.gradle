@@ -33,6 +33,8 @@ plugins {
 }
 
 repositories {
+    mavenLocal()
+    maven { url "https://ci.opensearch.org/maven2/" }
     mavenCentral()
 }
 
@@ -63,6 +65,12 @@ dependencies {
     }
     api 'org.apache.calcite:calcite-linq4j:1.41.0'
     api project(':common')
+    compileOnly 'org.opensearch.sandbox:analytics-api:3.8.0-SNAPSHOT'
+    // Needed because analytics-api's QueryPlanExecutor signature uses
+    // org.opensearch.core.action.ActionListener; AnalyticsExecutionEngine references that type.
+    compileOnly group: 'org.opensearch', name: 'opensearch-core', version: "${opensearch_version}"
+    testImplementation 'org.opensearch.sandbox:analytics-api:3.8.0-SNAPSHOT'
+    testImplementation group: 'org.opensearch', name: 'opensearch-core', version: "${opensearch_version}"
     implementation "com.github.seancfoley:ipaddress:5.4.2"
     implementation "com.jayway.jsonpath:json-path:2.9.0"
 

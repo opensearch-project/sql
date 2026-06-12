@@ -15,9 +15,17 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
+  // Pre-create each test index through TestUtils.createIndexByRestClient so the
+  // analytics-engine compatibility run (tests.analytics.parquet_indices=true)
+  // provisions them as parquet-backed composite stores. Raw `PUT /<idx>/_doc/N`
+  // bypasses the helper, yielding a Lucene-only index that DataFusion cannot
+  // acquireReader on (`UnsupportedOperationException: acquireReader is not
+  // supported in EngineBackedIndexer`). Mapping passed as null — dynamic
+  // mapping infers the doc fields from the subsequent PUTs.
   @Override
   public void init() throws Exception {
     super.init();
@@ -26,48 +34,64 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
 
     // Simple JSON docs for path-based extraction
-    Request request1 = new Request("PUT", "/test_spath/_doc/1?refresh=true");
-    request1.setJsonEntity("{\"doc\": \"{\\\"n\\\": 1}\"}");
-    client().performRequest(request1);
+    if (!TestUtils.isIndexExist(client(), "test_spath")) {
+      TestUtils.createIndexByRestClient(client(), "test_spath", null);
 
-    Request request2 = new Request("PUT", "/test_spath/_doc/2?refresh=true");
-    request2.setJsonEntity("{\"doc\": \"{\\\"n\\\": 2}\"}");
-    client().performRequest(request2);
+      Request request1 = new Request("PUT", "/test_spath/_doc/1?refresh=true");
+      request1.setJsonEntity("{\"doc\": \"{\\\"n\\\": 1}\"}");
+      client().performRequest(request1);
 
-    Request request3 = new Request("PUT", "/test_spath/_doc/3?refresh=true");
-    request3.setJsonEntity("{\"doc\": \"{\\\"n\\\": 3}\"}");
-    client().performRequest(request3);
+      Request request2 = new Request("PUT", "/test_spath/_doc/2?refresh=true");
+      request2.setJsonEntity("{\"doc\": \"{\\\"n\\\": 2}\"}");
+      client().performRequest(request2);
+
+      Request request3 = new Request("PUT", "/test_spath/_doc/3?refresh=true");
+      request3.setJsonEntity("{\"doc\": \"{\\\"n\\\": 3}\"}");
+      client().performRequest(request3);
+    }
 
     // Auto-extract mode: flatten rules and edge cases (empty, malformed)
-    Request autoExtractDoc = new Request("PUT", "/test_spath_auto/_doc/1?refresh=true");
-    autoExtractDoc.setJsonEntity(
-        "{\"nested_doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\"}}\","
-            + " \"array_doc\": \"{\\\"tags\\\":[\\\"java\\\",\\\"sql\\\"]}\","
-            + " \"merge_doc\": \"{\\\"a\\\":{\\\"b\\\":1},\\\"a.b\\\":2}\","
-            + " \"stringify_doc\": \"{\\\"n\\\":30,\\\"b\\\":true,\\\"x\\\":null}\","
-            + " \"empty_doc\": \"{}\","
-            + " \"malformed_doc\": \"{\\\"user\\\":{\\\"name\\\":\"}");
-    client().performRequest(autoExtractDoc);
+    if (!TestUtils.isIndexExist(client(), "test_spath_auto")) {
+      TestUtils.createIndexByRestClient(client(), "test_spath_auto", null);
+
+      Request autoExtractDoc = new Request("PUT", "/test_spath_auto/_doc/1?refresh=true");
+      autoExtractDoc.setJsonEntity(
+          "{\"nested_doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\"}}\","
+              + " \"array_doc\": \"{\\\"tags\\\":[\\\"java\\\",\\\"sql\\\"]}\","
+              + " \"merge_doc\": \"{\\\"a\\\":{\\\"b\\\":1},\\\"a.b\\\":2}\","
+              + " \"stringify_doc\": \"{\\\"n\\\":30,\\\"b\\\":true,\\\"x\\\":null}\","
+              + " \"empty_doc\": \"{}\","
+              + " \"malformed_doc\": \"{\\\"user\\\":{\\\"name\\\":\"}");
+      client().performRequest(autoExtractDoc);
+    }
 
     // Auto-extract mode: 2-doc index for spath + command (eval/where/stats/sort) tests
-    Request cmdDoc1 = new Request("PUT", "/test_spath_cmd/_doc/1?refresh=true");
-    cmdDoc1.setJsonEntity(
-        "{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\",\\\"age\\\":30}}\"}");
-    client().performRequest(cmdDoc1);
+    if (!TestUtils.isIndexExist(client(), "test_spath_cmd")) {
+      TestUtils.createIndexByRestClient(client(), "test_spath_cmd", null);
 
-    Request cmdDoc2 = new Request("PUT", "/test_spath_cmd/_doc/2?refresh=true");
-    cmdDoc2.setJsonEntity(
-        "{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"Alice\\\",\\\"age\\\":25}}\"}");
-    client().performRequest(cmdDoc2);
+      Request cmdDoc1 = new Request("PUT", "/test_spath_cmd/_doc/1?refresh=true");
+      cmdDoc1.setJsonEntity(
+          "{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\",\\\"age\\\":30}}\"}");
+      client().performRequest(cmdDoc1);
+
+      Request cmdDoc2 = new Request("PUT", "/test_spath_cmd/_doc/2?refresh=true");
+      cmdDoc2.setJsonEntity(
+          "{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"Alice\\\",\\\"age\\\":25}}\"}");
+      client().performRequest(cmdDoc2);
+    }
 
     // Auto-extract mode: null input handling (doc 1 establishes mapping, doc 2 has null)
-    Request nullDoc1 = new Request("PUT", "/test_spath_null/_doc/1?refresh=true");
-    nullDoc1.setJsonEntity("{\"doc\": \"{\\\"n\\\": 1}\"}");
-    client().performRequest(nullDoc1);
+    if (!TestUtils.isIndexExist(client(), "test_spath_null")) {
+      TestUtils.createIndexByRestClient(client(), "test_spath_null", null);
 
-    Request nullDoc2 = new Request("PUT", "/test_spath_null/_doc/2?refresh=true");
-    nullDoc2.setJsonEntity("{\"doc\": null}");
-    client().performRequest(nullDoc2);
+      Request nullDoc1 = new Request("PUT", "/test_spath_null/_doc/1?refresh=true");
+      nullDoc1.setJsonEntity("{\"doc\": \"{\\\"n\\\": 1}\"}");
+      client().performRequest(nullDoc1);
+
+      Request nullDoc2 = new Request("PUT", "/test_spath_null/_doc/2?refresh=true");
+      nullDoc2.setJsonEntity("{\"doc\": null}");
+      client().performRequest(nullDoc2);
+    }
   }
 
   @Test
@@ -215,5 +239,28 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
                 + " | sort doc.user.name | fields doc.user.name");
     verifySchema(result, schema("doc.user.name", "string"));
     verifyDataRowsInOrder(result, rows("Alice"), rows("John"));
+  }
+
+  @Test
+  public void testSpathAutoExtractWithMultiFieldEval() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc"
+                + " | eval doc.user.name=doc.user.name, doc.user.age=doc.user.age"
+                + " | fields doc.user.name, doc.user.age");
+    verifySchema(result, schema("doc.user.name", "string"), schema("doc.user.age", "string"));
+    verifyDataRows(result, rows("Alice", "25"), rows("John", "30"));
+  }
+
+  @Test
+  public void testSpathAutoExtractWithSeparateEvalCommands() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath_cmd | spath input=doc"
+                + " | eval doc.user.name=doc.user.name"
+                + " | eval doc.user.age=doc.user.age"
+                + " | fields doc.user.name, doc.user.age");
+    verifySchema(result, schema("doc.user.name", "string"), schema("doc.user.age", "string"));
+    verifyDataRows(result, rows("Alice", "25"), rows("John", "30"));
   }
 }

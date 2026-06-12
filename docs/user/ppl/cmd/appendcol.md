@@ -20,123 +20,92 @@ The `appendcol` command supports the following parameters.
 | `<subsearch>` | Required | Executes PPL commands as a secondary search. The `subsearch` uses the data specified in the `source` clause of the main search results as its input. |
 | `override` | Optional | Specifies whether the results of the main search should be overwritten when column names conflict. Default is `false`. |
   
-  
 
-## Example 1: Append a count aggregation to existing search results  
+## Example 1: Appending a different aggregation alongside existing results
 
-This example appends `count by gender` to `sum by gender, state`:
-  
+This example shows log counts per service alongside error counts per service. Because both queries group by service name in the same sort order, the rows align correctly:
+
 ```ppl
-source=accounts
-| stats sum(age) by gender, state
-| appendcol [ stats count(age) by gender ]
-| head 10
+source=otellogs
+| stats count() as total_logs by `resource.attributes.service.name`
+| sort `resource.attributes.service.name`
+| appendcol [ where severityText = 'ERROR' | stats count() as error_count by `resource.attributes.service.name` | sort `resource.attributes.service.name` ]
+| fields `resource.attributes.service.name`, total_logs, error_count
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 10/10
-+--------+-------+----------+------------+
-| gender | state | sum(age) | count(age) |
-|--------+-------+----------+------------|
-| F      | AK    | 317      | 493        |
-| F      | AL    | 397      | 507        |
-| F      | AR    | 229      | NULL       |
-| F      | AZ    | 238      | NULL       |
-| F      | CA    | 282      | NULL       |
-| F      | CO    | 217      | NULL       |
-| F      | CT    | 147      | NULL       |
-| F      | DC    | 358      | NULL       |
-| F      | DE    | 101      | NULL       |
-| F      | FL    | 310      | NULL       |
-+--------+-------+----------+------------+
+fetched rows / total rows = 7/7
++----------------------------------+------------+-------------+
+| resource.attributes.service.name | total_logs | error_count |
+|----------------------------------+------------+-------------|
+| cart                             | 3          | 2           |
+| checkout                         | 3          | 1           |
+| frontend                         | 4          | 2           |
+| frontend-proxy                   | 3          | 1           |
+| payment                          | 2          | 1           |
+| product-catalog                  | 4          | null        |
+| recommendation                   | 1          | null        |
++----------------------------------+------------+-------------+
 ```
-  
 
-## Example 2: Append a count aggregation to existing search results, overriding the main search results  
+## Example 2: Appending multiple subsearch results
 
-This example appends `count by gender` to `sum by gender, state` and overrides the main search results:
-  
+The following query chains multiple `appendcol` commands to add summary statistics alongside detail rows. The first appendcol adds the total error count, and the second adds the number of affected services:
+
 ```ppl
-source=accounts
-| stats sum(age) by gender, state
-| appendcol override=true [ stats count(age) by gender ]
-| head 10
+source=otellogs
+| where severityText = 'ERROR'
+| fields `resource.attributes.service.name`, severityText, body
+| sort `resource.attributes.service.name`
+| appendcol [ where severityText = 'ERROR' | stats count() as total_errors ]
+| appendcol [ where severityText = 'ERROR' | stats distinct_count(`resource.attributes.service.name`) as services_affected ]
+| head 4
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 10/10
-+--------+-------+----------+------------+
-| gender | state | sum(age) | count(age) |
-|--------+-------+----------+------------|
-| F      | AK    | 317      | 493        |
-| M      | AL    | 397      | 507        |
-| F      | AR    | 229      | NULL       |
-| F      | AZ    | 238      | NULL       |
-| F      | CA    | 282      | NULL       |
-| F      | CO    | 217      | NULL       |
-| F      | CT    | 147      | NULL       |
-| F      | DC    | 358      | NULL       |
-| F      | DE    | 101      | NULL       |
-| F      | FL    | 310      | NULL       |
-+--------+-------+----------+------------+
+fetched rows / total rows = 4/4
++----------------------------------+--------------+----------------------------------------------------------------------------------------------+--------------+-------------------+
+| resource.attributes.service.name | severityText | body                                                                                         | total_errors | services_affected |
+|----------------------------------+--------------+----------------------------------------------------------------------------------------------+--------------+-------------------|
+| checkout                         | ERROR        | NullPointerException in CheckoutService.placeOrder at line 142                               | 7            | 5                 |
+| checkout                         | ERROR        | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) | null         | null              |
+| frontend-proxy                   | ERROR        | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 | null         | null              |
+| payment                          | ERROR        | Payment failed: connection timeout to payment gateway after 30000ms                          | null         | null              |
++----------------------------------+--------------+----------------------------------------------------------------------------------------------+--------------+-------------------+
 ```
-  
 
-## Example 3: Append multiple subsearch results  
+## Example 3: Resolving column name conflicts using the override parameter
 
-The following query chains multiple `appendcol` commands to add columns from different subsearches:
-  
+When the main search and subsearch share a column name, `override=true` replaces the main search values with the subsearch values. In this example, both produce a column named `agg` -- the main search uses it for total log counts, the subsearch for error-only counts. With override, the error counts replace the totals:
+
 ```ppl
-source=employees
-| fields name, dept, age
-| appendcol [ stats avg(age) as avg_age ]
-| appendcol [ stats max(age) as max_age ]
+source=otellogs
+| stats count() as agg by severityText
+| sort severityText
+| appendcol override=true [ where severityText IN ('ERROR', 'WARN') | stats count() as agg by severityText | sort severityText ]
 ```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 9/9
-+------+-------------+-----+------------------+---------+
-| name | dept        | age | avg_age          | max_age |
-|------+-------------+-----+------------------+---------|
-| Lisa | Sales       | 35  | 31.2222222222222 | 38      |
-| Fred | Engineering | 28  | NULL             | NULL    |
-| Paul | Engineering | 23  | NULL             | NULL    |
-| Evan | Sales       | 38  | NULL             | NULL    |
-| Chloe| Engineering | 25  | NULL             | NULL    |
-| Tom  | Engineering | 33  | NULL             | NULL    |
-| Alex | Sales       | 33  | NULL             | NULL    |
-| Jane | Marketing   | 28  | NULL             | NULL    |
-| Jeff | Marketing   | 38  | NULL             | NULL    |
-+------+-------------+-----+------------------+---------+
-```
-  
 
-## Example 4: Resolve column name conflicts using the override parameter
-
-The following query shows how to use `appendcol` with the `override` option when column names in the main search and subsearch conflict:
-  
-```ppl
-source=employees
-| stats avg(age) as agg by dept
-| appendcol override=true [ stats max(age) as agg by dept ]
-```
-  
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 3/3
-+-----+-------------+
-| agg | dept        |
-|-----+-------------|
-| 38  | Sales       |
-| 38  | Engineering |
-| 38  | Marketing   |
-+-----+-------------+
+fetched rows / total rows = 4/4
++-----+--------------+
+| agg | severityText |
+|-----+--------------|
+| 7   | ERROR        |
+| 4   | WARN         |
+| 6   | INFO         |
+| 4   | WARN         |
++-----+--------------+
 ```
-  
+
+## Limitations
+
+The `appendcol` command has the following limitations:
+
+* **Row alignment**: The subsearch results are appended positionally (row by row). If the main search and subsearch return different numbers of rows, the shorter result set is padded with `NULL` values.
+* **Schema compatibility**: When fields with the same name exist in both the main search and the subsearch but have incompatible types, the query fails with an error.

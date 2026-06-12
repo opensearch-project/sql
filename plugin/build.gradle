@@ -1,5 +1,4 @@
 import java.util.concurrent.Callable
-import org.opensearch.gradle.dependencies.CompileOnlyResolvePlugin
 
 /*
  * Copyright OpenSearch Contributors
@@ -44,6 +43,7 @@ ext {
 
 repositories {
     mavenLocal()
+    maven { url "https://ci.opensearch.org/maven2/" }
     mavenCentral()
     maven {
         url 'https://jitpack.io'
@@ -55,7 +55,7 @@ opensearchplugin {
     name 'opensearch-sql'
     description 'OpenSearch SQL'
     classname 'org.opensearch.sql.plugin.SQLPlugin'
-    extendedPlugins = ['opensearch-job-scheduler']
+    extendedPlugins = ['opensearch-job-scheduler', 'analytics-engine;optional=true']
     licenseFile rootProject.file("LICENSE.txt")
     noticeFile rootProject.file("NOTICE")
 }
@@ -160,6 +160,8 @@ dependencies {
     api "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
 
     api project(":ppl")
+    api project(':api')
+    implementation "org.opensearch.sandbox:analytics-api:${opensearch_version.tokenize('-')[0]}-SNAPSHOT"
     api project(':legacy')
     api project(':opensearch')
     api project(':prometheus')
@@ -320,4 +322,3 @@ testClusters.integTest {
 run {
     useCluster testClusters.integTest
 }
-

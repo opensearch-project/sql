@@ -1,0 +1,85 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  - do:
+      indices.create:
+        index: issue5175
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              dummy:
+                type: keyword
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5175", "_id": "1"}}'
+          - '{"dummy": "row"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5175
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5175: COALESCE(null, 42) returns integer 42":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5175 | eval x = COALESCE(null, 42) | fields x | head 1
+
+  - match: { total: 1 }
+  - match: { schema: [ { name: x, type: int } ] }
+  - match: { datarows: [ [ 42 ] ] }
+
+---
+"Issue 5175: COALESCE(42, null) returns integer 42":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5175 | eval x = COALESCE(42, null) | fields x | head 1
+
+  - match: { total: 1 }
+  - match: { schema: [ { name: x, type: int } ] }
+  - match: { datarows: [ [ 42 ] ] }
+
+---
+"Issue 5175: COALESCE(null, 3.14) returns double":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5175 | eval x = COALESCE(null, 3.14) | fields x | head 1
+
+  - match: { total: 1 }
+  - match: { schema: [ { name: x, type: double } ] }
+  - match: { datarows: [ [ 3.14 ] ] }

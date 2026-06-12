@@ -325,8 +325,10 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "| multisearch "
-                    + "[search source=%s | fields firstname, balance | head 2] "
-                    + "[search source=%s | fields description, place_id | head 2]",
+                    + "[search source=%s | sort account_number | fields firstname, balance"
+                    + " | head 2] "
+                    + "[search source=%s | sort place_id | fields description, place_id"
+                    + " | head 2]",
                 TEST_INDEX_ACCOUNT, TEST_INDEX_LOCATIONS_TYPE_CONFLICT));
 
     verifySchema(
@@ -338,8 +340,8 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         result,
+        rows("Bradshaw", 16623L, null, null),
         rows("Amber", 39225L, null, null),
-        rows("Hattie", 5686L, null, null),
         rows(null, null, "Central Park", 1001),
         rows(null, null, "Times Square", 1002));
   }

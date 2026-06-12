@@ -103,6 +103,34 @@ public class QueryValidationIT extends SQLIntegTestCase {
     client().performRequest(request);
   }
 
+  // An alias field whose path targets a text multi-field (e.g. "source.keyword") must fail with a
+  // descriptive client error rather than an opaque NullPointerException.
+  @Test
+  public void testAliasToKeywordMultiFieldFailsWithBadRequest() throws IOException {
+    String index = "test_alias_unresolved_keyword";
+    createIndexWithMapping(
+        index,
+        "{ \"properties\": {"
+            + "  \"source\": { \"type\": \"text\", \"fields\": { \"keyword\": { \"type\":"
+            + " \"keyword\" } } },"
+            + "  \"source_alias\": { \"type\": \"alias\", \"path\": \"source.keyword\" } } }");
+
+    expectResponseException()
+        .hasStatusCode(BAD_REQUEST)
+        // #5532 unwraps ErrorReport to its cause in the SQL error formatter, so the reported type
+        // is
+        // now the underlying SemanticCheckException, not the ErrorReport wrapper.
+        .hasErrorType("SemanticCheckException")
+        .containsMessage("Alias field [source_alias] refers to unresolved path [source.keyword]")
+        .whenExecute(String.format(Locale.ROOT, "SELECT * FROM %s", index));
+  }
+
+  private static void createIndexWithMapping(String indexName, String mapping) throws IOException {
+    Request request = new Request("PUT", "/" + indexName);
+    request.setJsonEntity(String.format(Locale.ROOT, "{ \"mappings\": %s }", mapping));
+    client().performRequest(request);
+  }
+
   public ResponseExceptionAssertion expectResponseException() {
     return new ResponseExceptionAssertion(exceptionRule);
   }

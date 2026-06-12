@@ -181,7 +181,12 @@ public final class CoercionUtils {
               (left, right) -> ExprCoreType.TIMESTAMP),
           CoercionRule.of(
               (left, right) -> hasString(left, right) && hasNumber(left, right),
-              (left, right) -> ExprCoreType.DOUBLE));
+              (left, right) -> ExprCoreType.DOUBLE),
+          // (BINARY, STRING) → BINARY: ip/binary columns compared with string literals.
+          // Triggers ExtendedRexBuilder.makeCast which wraps the literal with BINARY.
+          CoercionRule.of(
+              (left, right) -> hasString(left, right) && hasBinary(left, right),
+              (left, right) -> ExprCoreType.BINARY));
 
   private static boolean hasString(ExprType left, ExprType right) {
     return left == ExprCoreType.STRING || right == ExprCoreType.STRING;
@@ -193,6 +198,10 @@ public final class CoercionUtils {
 
   private static boolean hasBoolean(ExprType left, ExprType right) {
     return left == ExprCoreType.BOOLEAN || right == ExprCoreType.BOOLEAN;
+  }
+
+  private static boolean hasBinary(ExprType left, ExprType right) {
+    return left == ExprCoreType.BINARY || right == ExprCoreType.BINARY;
   }
 
   private record CoercionRule(

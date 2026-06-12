@@ -7,10 +7,13 @@ package org.opensearch.sql.opensearch.storage;
 
 import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 
+import java.util.Collection;
+import java.util.List;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.storage.system.OpenSearchSystemIndex;
 import org.opensearch.sql.storage.StorageEngine;
@@ -24,6 +27,11 @@ public class OpenSearchStorageEngine implements StorageEngine {
   @Getter private final OpenSearchClient client;
 
   @Getter private final Settings settings;
+
+  @Override
+  public Collection<FunctionResolver> getFunctions() {
+    return List.of(new VectorSearchTableFunctionResolver(client, settings));
+  }
 
   @Override
   public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {

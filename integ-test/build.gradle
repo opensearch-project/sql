@@ -58,6 +58,7 @@ boolean ignorePrometheus = ignorePrometheusProp != null && !ignorePrometheusProp
 
 repositories {
     mavenLocal()
+    maven { url "https://ci.opensearch.org/maven2/" }
     mavenCentral()
     maven {
         url 'https://jitpack.io'
@@ -213,6 +214,7 @@ dependencies {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.9.3')
+    testImplementation('org.junit.jupiter:junit-jupiter-params:5.9.3')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.9.3')
     testRuntimeOnly('org.junit.platform:junit-platform-launcher:1.9.3')
 
@@ -270,6 +272,114 @@ def getGeoSpatialPlugin() {
     }
 }
 
+// fetch from the feature-build artifact for now (linux/x64 only; for local dev pass -PanalyticsEngineZip=/path instead).
+ext.pluginVersion = opensearch_version.tokenize('-')[0]
+ext.featureBuildBase = "https://ci.opensearch.org/ci/dbc/feature-build-opensearch/feature-datafusion/latest/linux/x64/tar/builds/opensearch/plugins"
+ext.analyticsEngineZipDest = "${buildDir}/distributions/analytics-engine-${pluginVersion}-SNAPSHOT.zip"
+ext.arrowFlightRpcZipDest = "${buildDir}/distributions/arrow-flight-rpc-${pluginVersion}-SNAPSHOT.zip"
+ext.arrowBaseZipDest = "${buildDir}/distributions/arrow-base-${pluginVersion}-SNAPSHOT.zip"
+ext.testPplFrontendZipDest = "${buildDir}/distributions/test-ppl-frontend-${pluginVersion}-SNAPSHOT.zip"
+ext.analyticsBackendLuceneZipDest = "${buildDir}/distributions/analytics-backend-lucene-${pluginVersion}-SNAPSHOT.zip"
+ext.parquetDataFormatZipDest = "${buildDir}/distributions/parquet-data-format-${pluginVersion}-SNAPSHOT.zip"
+ext.compositeEngineZipDest = "${buildDir}/distributions/composite-engine-${pluginVersion}-SNAPSHOT.zip"
+ext.analyticsBackendDatafusionZipDest = "${buildDir}/distributions/analytics-backend-datafusion-${pluginVersion}-SNAPSHOT.zip"
+
+task downloadAnalyticsEngineZip(type: Download) {
+    src "${featureBuildBase}/1-analytics-engine-${pluginVersion}.zip"
+    dest analyticsEngineZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('analyticsEngineZip') }
+}
+
+task downloadArrowFlightRpcZip(type: Download) {
+    src "${featureBuildBase}/0-2-arrow-flight-rpc-${pluginVersion}.zip"
+    dest arrowFlightRpcZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('arrowFlightRpcZip') }
+}
+
+task downloadArrowBaseZip(type: Download) {
+    src "${featureBuildBase}/0-1-arrow-base-${pluginVersion}.zip"
+    dest arrowBaseZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('arrowBaseZip') }
+}
+
+task downloadTestPplFrontendZip(type: Download) {
+    src "${featureBuildBase}/1-test-ppl-frontend-${pluginVersion}.zip"
+    dest testPplFrontendZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('testPplFrontendZip') }
+}
+
+task downloadAnalyticsBackendLuceneZip(type: Download) {
+    src "${featureBuildBase}/1-analytics-backend-lucene-${pluginVersion}.zip"
+    dest analyticsBackendLuceneZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('analyticsBackendLuceneZip') }
+}
+
+task downloadParquetDataFormatZip(type: Download) {
+    src "${featureBuildBase}/1-parquet-data-format-${pluginVersion}.zip"
+    dest parquetDataFormatZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('parquetDataFormatZip') }
+}
+
+task downloadCompositeEngineZip(type: Download) {
+    src "${featureBuildBase}/1-composite-engine-${pluginVersion}.zip"
+    dest compositeEngineZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('compositeEngineZip') }
+}
+
+task downloadAnalyticsBackendDatafusionZip(type: Download) {
+    src "${featureBuildBase}/1-analytics-backend-datafusion-${pluginVersion}.zip"
+    dest analyticsBackendDatafusionZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('analyticsBackendDatafusionZip') }
+}
+
+def getAnalyticsEnginePlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('analyticsEngineZip') ?: analyticsEngineZipDest)) }
+}
+
+def getArrowFlightRpcPlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('arrowFlightRpcZip') ?: arrowFlightRpcZipDest)) }
+}
+
+def getArrowBasePlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('arrowBaseZip') ?: arrowBaseZipDest)) }
+}
+
+def getTestPplFrontendPlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('testPplFrontendZip') ?: testPplFrontendZipDest)) }
+}
+
+def getAnalyticsBackendLucenePlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('analyticsBackendLuceneZip') ?: analyticsBackendLuceneZipDest)) }
+}
+
+def getParquetDataFormatPlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('parquetDataFormatZip') ?: parquetDataFormatZipDest)) }
+}
+
+def getCompositeEnginePlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('compositeEngineZip') ?: compositeEngineZipDest)) }
+}
+
+def getAnalyticsBackendDatafusionPlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('analyticsBackendDatafusionZip') ?: analyticsBackendDatafusionZipDest)) }
+}
+
 testClusters {
     integTest {
         testDistribution = 'archive'
@@ -299,6 +409,15 @@ testClusters {
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+    }
+    // Smoke test: verify sql loads cleanly alongside analytics-engine.
+    analyticsEngineCompat {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getArrowBasePlugin())
+        plugin(getArrowFlightRpcPlugin())
+        plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
     }
 }
@@ -351,9 +470,102 @@ task stopPrometheus(type: KillProcessTask) {
 
 stopPrometheus.mustRunAfter startPrometheus
 
+task analyticsEngineCompatIT(type: RestIntegTestTask) {
+    useCluster testClusters.analyticsEngineCompat
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip
+    systemProperty 'tests.security.manager', 'false'
+    filter {
+        includeTestsMatching 'org.opensearch.sql.plugin.AnalyticsEngineCompatIT'
+    }
+}
+
+task analyticsEngineSecurityIT(type: RestIntegTestTask) {
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip, downloadAnalyticsBackendLuceneZip, downloadParquetDataFormatZip, downloadCompositeEngineZip, downloadAnalyticsBackendDatafusionZip
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+
+    doFirst {
+        systemProperty "https", "false"
+        systemProperty "user", "admin"
+        systemProperty "password", "admin"
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
+    }
+}
+
+testClusters.analyticsEngineSecurityIT {
+    testDistribution = 'archive'
+    plugin(getJobSchedulerPlugin())
+    plugin(getArrowBasePlugin())
+    plugin(getArrowFlightRpcPlugin())
+    plugin(getAnalyticsEnginePlugin())
+    plugin(getAnalyticsBackendLucenePlugin())
+    plugin(getAnalyticsBackendDatafusionPlugin())
+    plugin(getParquetDataFormatPlugin())
+    plugin(getCompositeEnginePlugin())
+    plugin ":opensearch-sql-plugin"
+    // Arrow Flight / streaming transport requirements
+    jvmArgs '--add-opens=java.base/java.nio=ALL-UNNAMED'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    systemProperty 'io.netty.allocator.numDirectArenas', '1'
+    systemProperty 'io.netty.noUnsafe', 'false'
+    systemProperty 'io.netty.tryUnsafe', 'true'
+    systemProperty 'io.netty.tryReflectionSetAccessible', 'true'
+    systemProperty 'opensearch.experimental.feature.pluggable.dataformat.enabled', 'true'
+    systemProperty 'opensearch.experimental.feature.transport.stream.enabled', 'true'
+    // Native library path for DataFusion/parquet — pass via -PnativeLibPath=/path/to/release/
+    if (project.findProperty('nativeLibPath')) {
+        systemProperty 'java.library.path', project.findProperty('nativeLibPath')
+    }
+}
+
+configureSecurityPlugin(testClusters.analyticsEngineSecurityIT)
+
+task analyticsEngineProfileIT(type: RestIntegTestTask) {
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip, downloadAnalyticsBackendLuceneZip, downloadParquetDataFormatZip, downloadCompositeEngineZip, downloadAnalyticsBackendDatafusionZip
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.analytics.AnalyticsEngineProfileIT'
+    }
+}
+
+testClusters.analyticsEngineProfileIT {
+    testDistribution = 'archive'
+    plugin(getJobSchedulerPlugin())
+    plugin(getArrowBasePlugin())
+    plugin(getArrowFlightRpcPlugin())
+    plugin(getAnalyticsEnginePlugin())
+    plugin(getAnalyticsBackendLucenePlugin())
+    plugin(getAnalyticsBackendDatafusionPlugin())
+    plugin(getParquetDataFormatPlugin())
+    plugin(getCompositeEnginePlugin())
+    plugin ":opensearch-sql-plugin"
+    // Arrow Flight / streaming transport requirements
+    jvmArgs '--add-opens=java.base/java.nio=ALL-UNNAMED'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    systemProperty 'io.netty.allocator.numDirectArenas', '1'
+    systemProperty 'io.netty.noUnsafe', 'false'
+    systemProperty 'io.netty.tryUnsafe', 'true'
+    systemProperty 'io.netty.tryReflectionSetAccessible', 'true'
+    systemProperty 'opensearch.experimental.feature.pluggable.dataformat.enabled', 'true'
+    systemProperty 'opensearch.experimental.feature.transport.stream.enabled', 'true'
+    // Native library path for DataFusion/parquet — pass via -PnativeLibPath=/path/to/release/
+    if (project.findProperty('nativeLibPath')) {
+        systemProperty 'java.library.path', project.findProperty('nativeLibPath')
+    }
+}
+
 task integJdbcTest(type: RestIntegTestTask) {
-    testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().
+    testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().with {
         plugin ":opensearch-sql-plugin"
+    }
 
     useJUnitPlatform()
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
@@ -412,6 +624,11 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     }
     afterTest { desc, result ->
         logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
+    }
+
+    // Exclude tests that require the analytics engine plugin stack (run separately via analyticsEngineSecurityIT)
+    filter {
+        excludeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
     }
 
     systemProperty 'tests.security.manager', 'false'
@@ -528,6 +745,9 @@ integTest {
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
     exclude 'org/opensearch/sql/correctness/**'
 
+    // Exclude tests that require the analytics engine plugin stack (run separately via dedicated tasks)
+    exclude 'org/opensearch/sql/analytics/AnalyticsEngineProfileIT.class'
+
     // Explain IT is dependent on internal implementation of old engine so it's not necessary
     // to run these with new engine and not necessary to make this consistent with old engine.
     exclude 'org/opensearch/sql/legacy/ExplainIT.class'
@@ -545,6 +765,46 @@ integTest {
 
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
+
+    // Exclude the analytics-engine smoke test, because it executes in another task
+    // (:analyticsEngineCompatIT) against a cluster that bundles the analytics-engine plugin
+    // stack. Running it here against the plain integTest/remoteCluster (no analytics-engine)
+    // is pointless and leaves it exposed to suite-wide infra flakiness.
+    exclude 'org/opensearch/sql/plugin/AnalyticsEngineCompatIT.class'
+
+    // Workaround for Gradle 9.4.1 ClassCastException in TestEventReporterAsListener.started
+    // (line 58) — the bridge casts a parent test descriptor's reporter to
+    // GroupTestEventReporterInternal but a class-level @Ignore produces a non-composite parent
+    // descriptor with a leaf reporter, so the cast fails and aborts the entire integTest task
+    // even though the tests would have been skipped anyway. The bridge is registered by Gradle's
+    // own AbstractTestTask (we can't bypass it from user code), so the only available remedy is
+    // to keep these classes off the test runner's input set. Net behaviour for CI: still
+    // skipped, just at the build layer instead of inside JUnit. Remove once Gradle ships a fix
+    // (not fixed as of 9.5.0). OrderIT is already excluded above.
+    exclude 'org/opensearch/sql/calcite/remote/CalciteInformationSchemaCommandIT.class'
+    exclude 'org/opensearch/sql/calcite/remote/CalciteJsonFunctionsIT.class'
+    exclude 'org/opensearch/sql/calcite/remote/CalcitePrometheusDataSourceCommandsIT.class'
+    exclude 'org/opensearch/sql/calcite/remote/CalciteShowDataSourcesCommandIT.class'
+    exclude 'org/opensearch/sql/legacy/AggregationIT.class'
+    exclude 'org/opensearch/sql/legacy/DateFormatIT.class'
+    exclude 'org/opensearch/sql/legacy/DateFunctionsIT.class'
+    exclude 'org/opensearch/sql/legacy/HashJoinIT.class'
+    exclude 'org/opensearch/sql/legacy/HavingIT.class'
+    exclude 'org/opensearch/sql/legacy/JSONRequestIT.class'
+    exclude 'org/opensearch/sql/legacy/JoinIT.class'
+    exclude 'org/opensearch/sql/legacy/MathFunctionsIT.class'
+    exclude 'org/opensearch/sql/legacy/MetricsIT.class'
+    exclude 'org/opensearch/sql/legacy/MultiQueryIT.class'
+    exclude 'org/opensearch/sql/legacy/NestedFieldQueryIT.class'
+    exclude 'org/opensearch/sql/legacy/PreparedStatementIT.class'
+    exclude 'org/opensearch/sql/legacy/QueryFunctionsIT.class'
+    exclude 'org/opensearch/sql/legacy/QueryIT.class'
+    exclude 'org/opensearch/sql/legacy/SQLFunctionsIT.class'
+    exclude 'org/opensearch/sql/legacy/ShowIT.class'
+    exclude 'org/opensearch/sql/legacy/SourceFieldIT.class'
+    exclude 'org/opensearch/sql/legacy/SubqueryIT.class'
+    exclude 'org/opensearch/sql/ppl/JsonFunctionsIT.class'
+    exclude 'org/opensearch/sql/sql/ExpressionIT.class'
 
     finalizedBy 'printIntegTestPaths'
 }
@@ -767,12 +1027,43 @@ task integTestRemote(type: RestIntegTestTask) {
     systemProperty "user", System.getProperty("user")
     systemProperty "password", System.getProperty("password")
 
+    // Forward the analytics-engine parquet-indices toggle when set on the gradle command
+    // line. TestUtils.createIndexByRestClient reads this to back every test-created index
+    // with composite/parquet so RestUnifiedQueryAction.isAnalyticsIndex (post-#5432) routes
+    // to the analytics-engine planner via index settings.
+    if (System.getProperty("tests.analytics.parquet_indices") != null) {
+        systemProperty 'tests.analytics.parquet_indices', System.getProperty("tests.analytics.parquet_indices")
+    }
+
+    // Primary-shard count for analytics-backed test indices (default 1). Set to e.g. 3 to
+    // reproduce multi-shard coordination behavior on a single-node cluster.
+    if (System.getProperty("tests.analytics.num_shards") != null) {
+        systemProperty 'tests.analytics.num_shards', System.getProperty("tests.analytics.num_shards")
+    }
+
+    // True only when the analytics-engine route is active (every test index parquet-backed). Matches
+    // AnalyticsIndexConfig.isEnabled, which parses the value rather than checking mere presence, so a
+    // `-Dtests.analytics.parquet_indices=false` run stays on the v2 path.
+    def analyticsEnabled = Boolean.parseBoolean(System.getProperty("tests.analytics.parquet_indices", "false"))
+
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
 
-    if (System.getProperty("tests.rest.bwcsuite") == null) {
-        filter {
+    filter {
+        if (System.getProperty("tests.rest.bwcsuite") == null) {
             excludeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
+
+        if (analyticsEnabled) {
+            // Full-text search (search-filter syntax -> Lucene query_string) needs an inverted-index
+            // reader that parquet-backed analytics indices lack, so it's unsupported on this route.
+            excludeTestsMatching '*OperatorIT.testEqualOperator'
+            excludeTestsMatching '*OperatorIT.testNotEqualOperator'
+            excludeTestsMatching '*OperatorIT.testLessOperator'
+            excludeTestsMatching '*OperatorIT.testLteOperator'
+            excludeTestsMatching '*OperatorIT.testGreaterOperator'
+            excludeTestsMatching '*OperatorIT.testGteOperator'
+            excludeTestsMatching '*OperatorIT.testNotOperator'
         }
     }
 

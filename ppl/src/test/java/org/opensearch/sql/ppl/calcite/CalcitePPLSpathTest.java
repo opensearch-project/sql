@@ -124,6 +124,34 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testSpathAutoExtractWithMultiFieldEval() {
+    // Issue #5185: eval with multiple dotted-path assignments from MAP column
+    // should not remove the MAP root field
+    withPPLQuery(
+            "source=EMP | spath input=ENAME"
+                + " | eval ENAME.user.name=ENAME.user.name, ENAME.user.age=ENAME.user.age"
+                + " | fields ENAME.user.name, ENAME.user.age")
+        .expectLogical(
+            "LogicalProject(ENAME.user.name=[ITEM(JSON_EXTRACT_ALL($1), 'user.name')],"
+                + " ENAME.user.age=[ITEM(JSON_EXTRACT_ALL($1), 'user.age')])\n"
+                + "  LogicalTableScan(table=[[scott, EMP]])\n");
+  }
+
+  @Test
+  public void testSpathAutoExtractWithSeparateEvalCommands() {
+    // Issue #5185: separate eval commands with dotted-path assignments from MAP column
+    withPPLQuery(
+            "source=EMP | spath input=ENAME"
+                + " | eval ENAME.user.name=ENAME.user.name"
+                + " | eval ENAME.user.age=ENAME.user.age"
+                + " | fields ENAME.user.name, ENAME.user.age")
+        .expectLogical(
+            "LogicalProject(ENAME.user.name=[ITEM(JSON_EXTRACT_ALL($1), 'user.name')],"
+                + " ENAME.user.age=[ITEM(JSON_EXTRACT_ALL($1), 'user.age')])\n"
+                + "  LogicalTableScan(table=[[scott, EMP]])\n");
+  }
+
+  @Test
   public void testSpathAutoExtractModeWithSort() {
     withPPLQuery("source=EMP | spath input=ENAME output=result" + " | sort result.user.name")
         .expectLogical(

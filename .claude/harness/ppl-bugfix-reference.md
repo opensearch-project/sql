@@ -21,6 +21,11 @@ Consult this file when you need fix-path-specific guidance or test templates.
 1. AST nodes in `core/.../ast/tree/`, functions in `core/.../expression/function/` or `PPLBuiltinOperators`
 2. Watch Visitor pattern — sync `AbstractNodeVisitor`, `Analyzer`, `CalciteRelNodeVisitor`, `PPLQueryDataAnonymizer`
 3. Test: `verifyLogical()`, `verifyPPLToSparkSQL()`, `verifyResult()`
+4. **Before writing a new function-name → Calcite-op switch, try to reuse the existing visitor**
+   (`aggVisitor` / `rexVisitor` / `CalciteAggCallVisitor` / `CalciteRexNodeVisitor`). If the issue
+   is that a shared visitor resolves field references against the wrong row (e.g., wrong side of a
+   join), rewrite the AST field references to reference the correct names and delegate instead of
+   duplicating the AVG/SUM/MIN/MAX/STDDEV/... mapping by hand.
 
 ### Path C — Type System / Semantic Analysis
 

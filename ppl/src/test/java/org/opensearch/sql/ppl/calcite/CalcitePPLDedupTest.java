@@ -5,9 +5,15 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.test.CalciteAssert;
+import org.junit.Assert;
 import org.junit.Test;
+import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
 
 public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
 
@@ -217,16 +223,73 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
         "source=EMP | eval NEW_DEPTNO = DEPTNO + 1 | fields NEW_DEPTNO, EMPNO, ENAME, JOB | sort"
             + " NEW_DEPTNO | dedup 1 NEW_DEPTNO";
     root = getRelNode(ppl);
+    // Sort is stripped from below the window and moved to the top to ensure order is preserved
     expectedLogical =
-        "LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
-            + "  LogicalFilter(condition=[<=($4, 1)])\n"
-            + "    LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
-            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0)])\n"
-            + "      LogicalFilter(condition=[IS NOT NULL($0)])\n"
-            + "        LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])\n"
+        "LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])\n"
+            + "  LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
+            + "    LogicalFilter(condition=[<=($4, 1)])\n"
+            + "      LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0 NULLS"
+            + " FIRST)])\n"
+            + "        LogicalFilter(condition=[IS NOT NULL($0)])\n"
             + "          LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
             + "            LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
+  }
+
+  /** Regression test for https://github.com/opensearch-project/sql/issues/3922 */
+  @Test
+  public void testSortThenDedup() {
+    String ppl = "source=EMP | sort DEPTNO | dedup 1 JOB | fields DEPTNO, ENAME, JOB";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(DEPTNO=[$7], ENAME=[$1], JOB=[$2])\n"
+            + "  LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "      LogicalFilter(condition=[<=($8, 1)])\n"
+            + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION"
+            + " BY $2 ORDER BY $7 NULLS FIRST)])\n"
+            + "          LogicalFilter(condition=[IS NOT NULL($2)])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    // After fix, the sort order (DEPTNO ASC) must be preserved through dedup.
+    // The correct result has DEPTNO in ascending order: 10, 10, 10, 20, 30.
+    String expectedResult =
+        "DEPTNO=10; ENAME=MILLER; JOB=CLERK\n"
+            + "DEPTNO=10; ENAME=KING; JOB=PRESIDENT\n"
+            + "DEPTNO=10; ENAME=CLARK; JOB=MANAGER\n"
+            + "DEPTNO=20; ENAME=SCOTT; JOB=ANALYST\n"
+            + "DEPTNO=30; ENAME=ALLEN; JOB=SALESMAN\n";
+    verifyResult(root, expectedResult);
+  }
+
+  /** Regression test for https://github.com/opensearch-project/sql/issues/3922 */
+  @Test
+  public void testSortThenDedupWithEval() {
+    String ppl =
+        "source=EMP | eval NEW_DEPTNO = DEPTNO + 1 | fields NEW_DEPTNO, EMPNO, ENAME, JOB | sort"
+            + " NEW_DEPTNO | dedup 1 NEW_DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])\n"
+            + "  LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
+            + "    LogicalFilter(condition=[<=($4, 1)])\n"
+            + "      LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0 NULLS"
+            + " FIRST)])\n"
+            + "        LogicalFilter(condition=[IS NOT NULL($0)])\n"
+            + "          LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    // After fix, the sort order (NEW_DEPTNO ASC) must be preserved through dedup.
+    // The correct result has NEW_DEPTNO in ascending order: 11, 21, 31.
+    String expectedResult =
+        "NEW_DEPTNO=11; EMPNO=7782; ENAME=CLARK; JOB=MANAGER\n"
+            + "NEW_DEPTNO=21; EMPNO=7369; ENAME=SMITH; JOB=CLERK\n"
+            + "NEW_DEPTNO=31; EMPNO=7499; ENAME=ALLEN; JOB=SALESMAN\n";
+    verifyResult(root, expectedResult);
   }
 
   @Test
@@ -261,15 +324,164 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
         "source=EMP | eval TEMP_DEPTNO = DEPTNO + 1 | rename TEMP_DEPTNO as NEW_DEPTNO | fields"
             + " NEW_DEPTNO, EMPNO, ENAME, JOB | sort NEW_DEPTNO | dedup 1 NEW_DEPTNO";
     root = getRelNode(ppl);
+    // Sort is stripped from below the window and moved to the top to ensure order is preserved
     expectedLogical =
-        "LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
-            + "  LogicalFilter(condition=[<=($4, 1)])\n"
-            + "    LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
-            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0)])\n"
-            + "      LogicalFilter(condition=[IS NOT NULL($0)])\n"
-            + "        LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])\n"
+        "LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])\n"
+            + "  LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
+            + "    LogicalFilter(condition=[<=($4, 1)])\n"
+            + "      LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0 NULLS"
+            + " FIRST)])\n"
+            + "        LogicalFilter(condition=[IS NOT NULL($0)])\n"
             + "          LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
             + "            LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
+  }
+
+  /**
+   * Edge case: sort field is projected away before dedup. The sort collation references a field
+   * (DEPTNO) that is no longer in the schema after the fields command. The dedup should still work
+   * correctly but without the sort-restore optimization since the sort field is unavailable.
+   */
+  @Test
+  public void testSortFieldProjectedAwayBeforeDedup() {
+    String ppl = "source=EMP | sort DEPTNO | fields ENAME, JOB | dedup 1 JOB";
+    RelNode root = getRelNode(ppl);
+    // No restore Sort at top because DEPTNO was projected away
+    String expectedLogical =
+        "LogicalProject(ENAME=[$0], JOB=[$1])\n"
+            + "  LogicalFilter(condition=[<=($2, 1)])\n"
+            + "    LogicalProject(ENAME=[$0], JOB=[$1], _row_number_dedup_=[ROW_NUMBER() OVER"
+            + " (PARTITION BY $1)])\n"
+            + "      LogicalFilter(condition=[IS NOT NULL($1)])\n"
+            + "        LogicalProject(ENAME=[$1], JOB=[$2])\n"
+            + "          LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  /**
+   * When a user {@code where} precedes {@code dedup}, the user filter sits adjacent to the
+   * bucket-non-null filter that PPL emits for the dedup pattern. {@link PPLSimplifyDedupRule} must
+   * fold the dedup pattern into a {@link org.opensearch.sql.calcite.plan.rel.LogicalDedup} so that
+   * {@code DedupPushdownRule} can match it; otherwise dedup falls through to the in-memory {@code
+   * ROW_NUMBER} window form, defeating dedup pushdown to the shard. The user predicate must be
+   * preserved as a separate filter below the new {@code LogicalDedup}.
+   */
+  @Test
+  public void testDedupAfterWhereProducesLogicalDedup() {
+    String ppl = "source=EMP | where SAL > 1000 | dedup DEPTNO";
+    RelNode raw = getRelNodeRaw(ppl);
+
+    // Sanity: the un-merged plan has both the bucket-non-null filter and the user where filter
+    // adjacent to each other above the scan — exactly the shape that triggered the original bug.
+    String rawExplain = raw.explain();
+    Assert.assertTrue(
+        "Raw plan should contain the bucket-non-null filter:\n" + rawExplain,
+        rawExplain.contains("IS NOT NULL"));
+    Assert.assertTrue(
+        "Raw plan should contain the user where filter:\n" + rawExplain,
+        rawExplain.contains(">($5, 1000)"));
+    Assert.assertTrue(
+        "Raw plan should contain ROW_NUMBER prior to simplification:\n" + rawExplain,
+        rawExplain.contains("ROW_NUMBER"));
+
+    // Apply rules in the order PPLSimplifyDedupRule -> FilterMergeRule.
+    HepProgram program =
+        new HepProgramBuilder()
+            .addRuleInstance(PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE)
+            .addRuleInstance(FilterMergeRule.Config.DEFAULT.toRule())
+            .build();
+    RelNode optimized = runHepPlanner(raw, program);
+
+    String optimizedExplain = optimized.explain();
+    Assert.assertTrue(
+        "Optimized plan should contain LogicalDedup so DedupPushdownRule can match it:\n"
+            + optimizedExplain,
+        optimizedExplain.contains("LogicalDedup"));
+    Assert.assertFalse(
+        "Optimized plan should not retain ROW_NUMBER after simplification:\n" + optimizedExplain,
+        optimizedExplain.contains("ROW_NUMBER"));
+    Assert.assertTrue(
+        "User where predicate must be preserved as a filter below LogicalDedup:\n"
+            + optimizedExplain,
+        optimizedExplain.contains(">($5, 1000)"));
+  }
+
+  /**
+   * Companion to {@link #testDedupAfterWhereProducesLogicalDedup} that pins the user-visible
+   * contract: with a {@code where} preceding {@code dedup}, a {@code LogicalDedup} must be produced
+   * regardless of the order in which {@link FilterMergeRule} and {@link PPLSimplifyDedupRule} fire.
+   *
+   * <p>The simplify rule's bucket-non-null operand predicate is order-independent — it accepts both
+   * a pure {@code IS NOT NULL} and an {@code AND} that contains an {@code IS NOT NULL} on a
+   * partition key — so {@code FilterMergeRule} firing first no longer disables dedup pushdown. This
+   * guards against re-introducing the original regression by reordering, removing, or adding rules
+   * to {@code CalciteToolsHelper#HEP_PROGRAM}.
+   */
+  @Test
+  public void testDedupAfterWhereProducesLogicalDedupRegardlessOfRuleOrder() {
+    String ppl = "source=EMP | where SAL > 1000 | dedup DEPTNO";
+    RelNode raw = getRelNodeRaw(ppl);
+
+    HepProgram program =
+        new HepProgramBuilder()
+            .addRuleInstance(FilterMergeRule.Config.DEFAULT.toRule())
+            .addRuleInstance(PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE)
+            .build();
+    RelNode optimized = runHepPlanner(raw, program);
+
+    String optimizedExplain = optimized.explain();
+    Assert.assertTrue(
+        "Even with FilterMergeRule firing first, PPLSimplifyDedupRule must still produce"
+            + " LogicalDedup so DedupPushdownRule can match it:\n"
+            + optimizedExplain,
+        optimizedExplain.contains("LogicalDedup"));
+    Assert.assertFalse(
+        "ROW_NUMBER window form should be removed after simplification:\n" + optimizedExplain,
+        optimizedExplain.contains("ROW_NUMBER"));
+    Assert.assertTrue(
+        "User where predicate must be preserved as a filter below LogicalDedup, even when"
+            + " FilterMergeRule fired first and folded it into the bucket-non-null filter:\n"
+            + optimizedExplain,
+        optimizedExplain.contains(">($5, 1000)"));
+  }
+
+  /**
+   * Mirrors the exact shape of {@code CalciteToolsHelper.HEP_PROGRAM} used in production ({@code
+   * addRuleCollection(List.of(FilterMergeRule, PPLSimplifyDedupRule))}). The two sequenced-{@code
+   * addRuleInstance} tests above prove the rule fires under either ordering, but production runs
+   * both rules in a single collection instruction. This test pins that exact shape to catch any
+   * addRuleCollection-vs-addRuleInstance traversal differences.
+   */
+  @Test
+  public void testDedupAfterWhereProducesLogicalDedupWithProductionHepProgram() {
+    String ppl = "source=EMP | where SAL > 1000 | dedup DEPTNO";
+    RelNode raw = getRelNodeRaw(ppl);
+
+    HepProgram program =
+        new HepProgramBuilder()
+            .addRuleCollection(
+                java.util.List.of(
+                    FilterMergeRule.Config.DEFAULT.toRule(),
+                    PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE))
+            .build();
+    RelNode optimized = runHepPlanner(raw, program);
+
+    String optimizedExplain = optimized.explain();
+    Assert.assertTrue(
+        "Production HEP_PROGRAM (addRuleCollection) must still produce LogicalDedup:\n"
+            + optimizedExplain,
+        optimizedExplain.contains("LogicalDedup"));
+    Assert.assertFalse(
+        "ROW_NUMBER window form should be removed under production HEP_PROGRAM:\n"
+            + optimizedExplain,
+        optimizedExplain.contains("ROW_NUMBER"));
+  }
+
+  private static RelNode runHepPlanner(RelNode root, HepProgram program) {
+    HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(root);
+    return planner.findBestExp();
   }
 }

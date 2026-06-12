@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
@@ -37,11 +38,14 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.util.Strings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Between;
@@ -72,6 +76,8 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.Sort.SortOrder;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
@@ -79,11 +85,13 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.SubsearchUtils;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.CoercionUtils;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 @RequiredArgsConstructor
@@ -100,6 +108,17 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   public RexNode analyzeJoinCondition(UnresolvedExpression unresolved, CalcitePlanContext context) {
     return context.resolveJoinCondition(unresolved, this::analyze);
+  }
+
+  @Override
+  public RexNode visitAggregateFunction(AggregateFunction node, CalcitePlanContext context) {
+    // Resolve post-aggregate AggregateFunction via registry populated in visitAggregation.
+    Integer index = context.getAggregateOutputIndex().get(node);
+    if (index == null) {
+      throw new IllegalStateException(
+          "Aggregate function " + node + " not registered (planner bug)");
+    }
+    return context.relBuilder.field(index);
   }
 
   @Override
@@ -209,23 +228,40 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     final RexNode field = analyze(node.getField(), context);
     final List<RexNode> valueList =
         node.getValueList().stream().map(value -> analyze(value, context)).toList();
+    // When the field is a temporal type, do NOT use leastRestrictive + rexBuilder.makeIn. For a
+    // temporal field tested against string/date literals, leastRestrictive collapses the common
+    // type to VARCHAR (the EXPR_DATE / EXPR_TIMESTAMP UDTs are VARCHAR-backed), so makeIn casts the
+    // field DOWN to VARCHAR and string-compares mismatched renderings (e.g. '2018-06-23 00:00:00'
+    // against '2018-06-23') — silently matching nothing. Rewrite the membership test as an OR of
+    // PPL `=` comparisons, the same temporal-aware comparison path visitCompare takes for `=`, so
+    // each value is coerced to the field's timestamp domain before comparison.
+    ExprType fieldExprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(field.getType());
+    if (TEMPORAL_TYPES.contains(fieldExprType)) {
+      List<RexNode> equalities =
+          valueList.stream()
+              .map(value -> PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, "=", field, value))
+              .toList();
+      return context.relBuilder.or(equalities);
+    }
     final List<RelDataType> dataTypes =
-        new java.util.ArrayList<>(valueList.stream().map(RexNode::getType).toList());
+        new ArrayList<>(valueList.stream().map(RexNode::getType).toList());
     dataTypes.add(field.getType());
     RelDataType commonType = context.rexBuilder.getTypeFactory().leastRestrictive(dataTypes);
     if (commonType != null) {
       List<RexNode> newValueList =
           valueList.stream().map(value -> context.rexBuilder.makeCast(commonType, value)).toList();
       return context.rexBuilder.makeIn(field, newValueList);
-    } else {
-      List<ExprType> exprTypes =
-          dataTypes.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
-      throw new SemanticCheckException(
-          StringUtils.format(
-              "In expression types are incompatible: fields type %s, values type %s",
-              exprTypes.getLast(), exprTypes.subList(0, exprTypes.size() - 1)));
     }
+    List<ExprType> exprTypes =
+        dataTypes.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
+    throw new SemanticCheckException(
+        StringUtils.format(
+            "In expression types are incompatible: fields type %s, values type %s",
+            exprTypes.getLast(), exprTypes.subList(0, exprTypes.size() - 1)));
   }
+
+  private static final Set<ExprType> TEMPORAL_TYPES =
+      Set.of(ExprCoreType.DATE, ExprCoreType.TIME, ExprCoreType.TIMESTAMP);
 
   @Override
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
@@ -242,6 +278,25 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, op, left, right);
   }
 
+  /**
+   * Widens a set of operands to a common temporal type when, and only when, every operand is a
+   * temporal type (DATE / TIME / TIMESTAMP), including the EXPR_DATE / EXPR_TIME / EXPR_TIMESTAMP
+   * UDTs. Returns {@code null} otherwise so non-temporal incompatible mixes still fail the type
+   * check. The widening reuses {@link CoercionUtils#widenArguments} — the same path comparison
+   * operators take — which resolves DATE / TIME to TIMESTAMP via the shared widening graph.
+   */
+  private static @Nullable List<RexNode> widenTemporalOperands(
+      CalcitePlanContext context, List<RexNode> operands) {
+    boolean allTemporal =
+        operands.stream()
+            .map(node -> OpenSearchTypeFactory.convertRelDataTypeToExprType(node.getType()))
+            .allMatch(TEMPORAL_TYPES::contains);
+    if (!allTemporal) {
+      return null;
+    }
+    return CoercionUtils.widenArguments(context.rexBuilder, operands);
+  }
+
   @Override
   public RexNode visitBetween(Between node, CalcitePlanContext context) {
     RexNode value = analyze(node.getValue(), context);
@@ -252,12 +307,25 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       lowerBound = context.rexBuilder.makeCast(commonType, lowerBound);
       upperBound = context.rexBuilder.makeCast(commonType, upperBound);
     } else {
-      throw new SemanticCheckException(
-          StringUtils.format(
-              "BETWEEN expression types are incompatible: [%s, %s, %s]",
-              OpenSearchTypeFactory.convertRelDataTypeToExprType(value.getType()),
-              OpenSearchTypeFactory.convertRelDataTypeToExprType(lowerBound.getType()),
-              OpenSearchTypeFactory.convertRelDataTypeToExprType(upperBound.getType())));
+      // leastRestrictive() has no common type for mixed temporal representations — e.g. a standard
+      // Calcite TIMESTAMP field compared against EXPR_DATE UDT bounds (`ts between date('...') and
+      // date('...')`). Comparison operators coerce these through CoercionUtils; BETWEEN calls
+      // leastRestrictive directly and would otherwise reject them. Fall back to the same temporal
+      // widening, scoped to all-temporal operands so genuinely incompatible mixes (e.g.
+      // `age between '35' and 38.5`) still raise SemanticCheckException.
+      List<RexNode> widened =
+          widenTemporalOperands(context, List.of(value, lowerBound, upperBound));
+      if (widened == null) {
+        throw new SemanticCheckException(
+            StringUtils.format(
+                "BETWEEN expression types are incompatible: [%s, %s, %s]",
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(value.getType()),
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(lowerBound.getType()),
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(upperBound.getType())));
+      }
+      value = widened.get(0);
+      lowerBound = widened.get(1);
+      upperBound = widened.get(2);
     }
     return context.relBuilder.between(value, lowerBound, upperBound);
   }
@@ -563,15 +631,32 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitWindowFunction(WindowFunction node, CalcitePlanContext context) {
-    Function windowFunction = (Function) node.getFunction();
-    List<RexNode> arguments =
-        windowFunction.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
+    // SQL emits AggregateFunction for aggregate-as-window (e.g., SUM(x) OVER); PPL emits Function.
+    final String funcName;
+    final List<RexNode> arguments;
+    final boolean isDistinct;
+    if (node.getFunction() instanceof AggregateFunction aggFunc) {
+      funcName = aggFunc.getFuncName();
+      isDistinct = Boolean.TRUE.equals(aggFunc.getDistinct());
+      List<UnresolvedExpression> argExprs = new ArrayList<>();
+      if (aggFunc.getField() != null) {
+        argExprs.add(aggFunc.getField());
+      }
+      argExprs.addAll(aggFunc.getArgList());
+      arguments = argExprs.stream().map(arg -> analyze(arg, context)).toList();
+    } else {
+      Function windowFunction = (Function) node.getFunction();
+      funcName = windowFunction.getFuncName();
+      isDistinct = false;
+      arguments = windowFunction.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
+    }
     List<RexNode> partitions =
         node.getPartitionByList().stream()
             .map(arg -> analyze(arg, context))
             .map(this::extractRexNodeFromAlias)
             .toList();
-    return BuiltinFunctionName.ofWindowFunction(windowFunction.getFuncName())
+    List<RexNode> orderKeys = translateOrderKeys(node.getSortList(), context);
+    return BuiltinFunctionName.ofWindowFunction(funcName)
         .map(
             functionName -> {
               RexNode field = arguments.isEmpty() ? null : arguments.getFirst();
@@ -579,6 +664,18 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                   (arguments.isEmpty() || arguments.size() == 1)
                       ? Collections.emptyList()
                       : arguments.subList(1, arguments.size());
+              // ROW_NUMBER takes no field/args and isn't in aggFunctionRegistry,
+              // so skip aggregate signature validation.
+              if (functionName == BuiltinFunctionName.ROW_NUMBER) {
+                return PlanUtils.makeOver(
+                    context,
+                    functionName,
+                    field,
+                    args,
+                    partitions,
+                    orderKeys,
+                    node.getWindowFrame());
+              }
               List<RexNode> nodes =
                   PPLFuncImpTable.INSTANCE.validateAggFunctionSignature(
                       functionName, field, args, context.rexBuilder);
@@ -586,24 +683,45 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                   ? PlanUtils.makeOver(
                       context,
                       functionName,
+                      isDistinct,
                       nodes.getFirst(),
                       nodes.size() <= 1 ? Collections.emptyList() : nodes.subList(1, nodes.size()),
                       partitions,
-                      List.of(),
+                      orderKeys,
                       node.getWindowFrame())
                   : PlanUtils.makeOver(
                       context,
                       functionName,
+                      isDistinct,
                       field,
                       args,
                       partitions,
-                      List.of(),
+                      orderKeys,
                       node.getWindowFrame());
             })
         .orElseThrow(
-            () ->
-                new UnsupportedOperationException(
-                    "Unexpected window function: " + windowFunction.getFuncName()));
+            () -> new UnsupportedOperationException("Unexpected window function: " + funcName));
+  }
+
+  private List<RexNode> translateOrderKeys(
+      List<Pair<SortOption, UnresolvedExpression>> sortList, CalcitePlanContext context) {
+    RelBuilder b = context.relBuilder;
+    return sortList.stream()
+        .map(
+            p -> {
+              SortOption opt = p.getLeft();
+              RexNode field = analyze(p.getRight(), context);
+              if (opt.getSortOrder() == SortOrder.DESC) {
+                field = b.desc(field);
+              }
+              return switch (opt.getNullOrder()) {
+                // Unspecified NULLS defaults to NULLS FIRST, matching top-level ORDER BY.
+                case null -> b.nullsFirst(field);
+                case NULL_FIRST -> b.nullsFirst(field);
+                case NULL_LAST -> b.nullsLast(field);
+              };
+            })
+        .toList();
   }
 
   /** extract the expression of Alias from a node */
