@@ -276,8 +276,23 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
 
   private ExprType convertType(RelDataType type) {
     try {
-      return OpenSearchTypeFactory.convertAnalyticsEngineRelDataTypeToExprType(type);
+      ExprType result = OpenSearchTypeFactory.convertAnalyticsEngineRelDataTypeToExprType(type);
+      if (result == org.opensearch.sql.data.type.ExprCoreType.UNDEFINED) {
+        // Log when we're about to return UNDEFINED so we can diagnose type inference issues
+        org.apache.logging.log4j.LogManager.getLogger(AnalyticsExecutionEngine.class)
+            .warn(
+                "convertType: RelDataType {} (SqlTypeName={}) converted to UNDEFINED",
+                type,
+                type.getSqlTypeName());
+      }
+      return result;
     } catch (IllegalArgumentException e) {
+      org.apache.logging.log4j.LogManager.getLogger(AnalyticsExecutionEngine.class)
+          .warn(
+              "convertType: Failed to convert RelDataType {} (SqlTypeName={}), returning UNKNOWN",
+              type,
+              type.getSqlTypeName(),
+              e);
       return org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
     }
   }

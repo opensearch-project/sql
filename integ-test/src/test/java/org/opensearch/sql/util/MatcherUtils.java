@@ -147,7 +147,12 @@ public class MatcherUtils {
   @SafeVarargs
   public static void verifySchema(JSONObject response, Matcher<JSONObject>... matchers) {
     try {
-      verify(response.getJSONArray("schema"), matchers);
+      JSONArray schema = response.getJSONArray("schema");
+      LOG.info(
+          "[TRIAGE] verifySchema - expected {} columns, actual {} columns",
+          matchers.length,
+          schema.length());
+      verify(schema, matchers);
     } catch (Exception e) {
       LOG.error(String.format("verify schema failed, response: %s", response.toString()), e);
       throw e;
@@ -166,7 +171,14 @@ public class MatcherUtils {
 
   @SafeVarargs
   public static void verifyDataRows(JSONObject response, Matcher<JSONArray>... matchers) {
-    verify(response.getJSONArray("datarows"), matchers);
+    // ponytail: debug logging for multi-shard triage
+    JSONArray actual = response.getJSONArray("datarows");
+    LOG.info(
+        "[TRIAGE] verifyDataRows - expected {} rows, actual {} rows",
+        matchers.length,
+        actual.length());
+    LOG.info("[TRIAGE] Actual data rows: {}", actual.toString());
+    verify(actual, matchers);
   }
 
   @SafeVarargs
@@ -204,8 +216,20 @@ public class MatcherUtils {
   public static <T> void verify(JSONArray array, Matcher<T>... matchers) {
     List<T> objects = new ArrayList<>();
     array.iterator().forEachRemaining(o -> objects.add((T) o));
-    assertEquals(matchers.length, objects.size());
-    assertThat(objects, containsInAnyOrder(matchers));
+    // ponytail: debug logging for multi-shard triage
+    if (matchers.length != objects.size()) {
+      LOG.warn(
+          "[TRIAGE] verify() count mismatch - expected {}, got {}",
+          matchers.length,
+          objects.size());
+    }
+    try {
+      assertEquals(matchers.length, objects.size());
+      assertThat(objects, containsInAnyOrder(matchers));
+    } catch (AssertionError e) {
+      LOG.error("[TRIAGE] verify() failed - assertion error: {}", e.getMessage());
+      throw e;
+    }
   }
 
   // TODO: this is temporary fix for fixing serverless tests to pass as it creates multiple shards
@@ -239,8 +263,20 @@ public class MatcherUtils {
   public static <T> void verifyInOrder(JSONArray array, Matcher<T>... matchers) {
     List<T> objects = new ArrayList<>();
     array.iterator().forEachRemaining(o -> objects.add((T) o));
-    assertEquals(matchers.length, objects.size());
-    assertThat(objects, contains(matchers));
+    // ponytail: debug logging for multi-shard triage
+    if (matchers.length != objects.size()) {
+      LOG.warn(
+          "[TRIAGE] verifyInOrder() count mismatch - expected {}, got {}",
+          matchers.length,
+          objects.size());
+    }
+    try {
+      assertEquals(matchers.length, objects.size());
+      assertThat(objects, contains(matchers));
+    } catch (AssertionError e) {
+      LOG.error("[TRIAGE] verifyInOrder() failed - assertion error: {}", e.getMessage());
+      throw e;
+    }
   }
 
   @SuppressWarnings("unchecked")
