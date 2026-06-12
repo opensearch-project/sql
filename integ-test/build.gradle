@@ -1079,6 +1079,9 @@ task integTestRemote(type: RestIntegTestTask) {
             excludeTestsMatching 'org.opensearch.sql.ppl.SystemFunctionIT.typeof_opensearch_types'
             // alias_index_mapping: alias_col is type=alias; query is `where alias_col > 1`.
             excludeTestsMatching 'org.opensearch.sql.ppl.DataTypeIT.test_alias_data_type'
+            // CalciteAliasFieldAggregationIT: raw-PUT alias index can't be created on the AE route
+            // and every test queries alias fields directly — whole class doomed.
+            excludeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteAliasFieldAggregationIT'
         }
     }
 
