@@ -103,6 +103,7 @@ import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.Scannable;
+import org.opensearch.sql.calcite.plan.rel.TemporalUdtRewriteShuttle;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
 import org.opensearch.sql.calcite.profile.PlanProfileBuilder;
@@ -330,6 +331,10 @@ public class CalciteToolsHelper {
         profileContext.setPlanRoot(plan.planRoot());
         root = root.withRel(plan.rel());
       }
+      // The TemporalUdtRewriteShuttle is applied PRE-Volcano in OpenSearchRelRunners.run().
+      // We do not apply it here (post-Volcano) because the shuttle may introduce LogicalProject
+      // wrappers around table scans, which are incompatible with the EnumerableRel-only plan
+      // that Volcano produces.
       if (root.rel instanceof Scannable scannable) {
         Hook.PLAN_BEFORE_IMPLEMENTATION.run(root);
         RelDataType resultType = root.rel.getRowType();
@@ -518,6 +523,7 @@ public class CalciteToolsHelper {
       long startTime = System.nanoTime();
       // Optimize the plan by Calcite's HepPlanner before using VolcanoPlanner in prepareStatement.
       rel = CalciteToolsHelper.optimize(rel, context);
+      rel = rel.accept(new TemporalUdtRewriteShuttle(OpenSearchTypeFactory.TYPE_FACTORY));
       final RelShuttle shuttle =
           new RelHomogeneousShuttle() {
             @Override

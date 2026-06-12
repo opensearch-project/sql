@@ -20,8 +20,6 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -58,8 +56,7 @@ public class ExtractFunction extends ImplementorUDF {
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression unit = translatedOperands.get(0);
       Expression datetime = translatedOperands.get(1);
-      ExprType datetimeType =
-          OpenSearchTypeFactory.convertRelDataTypeToExprType(call.getOperands().get(1).getType());
+      org.apache.calcite.rel.type.RelDataType datetimeRelType = call.getOperands().get(1).getType();
 
       Expression functionProperties =
           Expressions.call(
@@ -70,11 +67,12 @@ public class ExtractFunction extends ImplementorUDF {
               ExprValueUtils.class,
               "fromObjectValue",
               datetime,
-              Expressions.constant(datetimeType));
+              Expressions.constant(
+                  OpenSearchTypeFactory.convertRelDataTypeToExprType(datetimeRelType)));
 
       Expression part = Expressions.new_(ExprStringValue.class, unit);
 
-      if (ExprCoreType.TIME.equals(datetimeType)) {
+      if (OpenSearchTypeFactory.isTimeExprType(datetimeRelType)) {
         return Expressions.call(
             ExtractImplementor.class,
             "extractForTime",

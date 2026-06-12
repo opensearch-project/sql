@@ -19,8 +19,6 @@ import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeConversionUtils;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -61,10 +59,9 @@ public class LastDayFunction extends ImplementorUDF {
       Expression properties = exprOperandsWithProperties.get(0);
       Expression datetime = exprOperandsWithProperties.get(1);
 
-      ExprType datetimeType =
-          OpenSearchTypeFactory.convertRelDataTypeToExprType(
-              call.getOperands().getFirst().getType());
-      if (ExprCoreType.TIME == datetimeType) {
+      org.apache.calcite.rel.type.RelDataType firstOperandType =
+          call.getOperands().getFirst().getType();
+      if (OpenSearchTypeFactory.isTimeExprType(firstOperandType)) {
         return Expressions.call(LastDayImplementor.class, "lastDayToday", properties);
       }
 

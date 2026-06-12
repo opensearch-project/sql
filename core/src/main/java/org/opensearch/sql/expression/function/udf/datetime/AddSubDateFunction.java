@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.expression.function.udf.datetime;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_DATE_UDT;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_DATE_T;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_T;
 import static org.opensearch.sql.utils.DateTimeUtils.extractTimestamp;
 
 import java.time.ZoneOffset;
@@ -32,7 +32,6 @@ import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -65,9 +64,9 @@ public class AddSubDateFunction extends ImplementorUDF {
       RelDataType temporalDeltaType = opBinding.getOperandType(1);
       if (OpenSearchTypeFactory.isDateExprType(temporalType)
           && SqlTypeFamily.NUMERIC.contains(temporalDeltaType)) {
-        return NULLABLE_DATE_UDT;
+        return NULLABLE_DATE_T;
       } else {
-        return NULLABLE_TIMESTAMP_UDT;
+        return NULLABLE_TIMESTAMP_T;
       }
     };
   }
@@ -106,8 +105,7 @@ public class AddSubDateFunction extends ImplementorUDF {
 
       if (SqlTypeFamily.NUMERIC.contains(temporalDeltaType)) {
         String applyDaysFuncName;
-        if (ExprCoreType.DATE.equals(
-            OpenSearchTypeFactory.convertRelDataTypeToExprType(temporalType))) {
+        if (OpenSearchTypeFactory.isDateExprType(temporalType)) {
           applyDaysFuncName = isAdd ? "dateAddDaysOnDate" : "dateSubDaysOnDate";
         } else {
           applyDaysFuncName = isAdd ? "dateAddDaysOnTimestamp" : "dateSubDaysOnTimestamp";

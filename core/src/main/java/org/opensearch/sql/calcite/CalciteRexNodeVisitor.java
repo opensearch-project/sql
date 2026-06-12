@@ -925,10 +925,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitCast(Cast node, CalcitePlanContext context) {
     RexNode expr = analyze(node.getExpression(), context);
-    RelDataType type =
-        OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType());
     RelDataType nullableType =
-        context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType(), true);
     // call makeCast() instead of cast() because the saft parameter is true could avoid exception.
     return context.rexBuilder.makeCast(nullableType, expr, true, true);
   }

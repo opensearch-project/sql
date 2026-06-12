@@ -5,15 +5,24 @@
 
 package org.opensearch.sql.api;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
+import java.util.List;
 import java.util.Map;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.RelShuttleImpl;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.junit.Test;
+import org.opensearch.sql.api.spec.LanguageSpec;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -171,20 +180,6 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
         .assertErrorMessageContains("Unexpected window function: rank");
   }
 
-  @Test
-  public void assertionErrorIsWrappedAsSemanticCheckException() {
-    // Remove when the underlying Calcite assertion is fixed.
-    givenInvalidQuery(
-            """
-            source = catalog.employees
-            | eval ts = timestamp('2024-01-01')
-            | stats max(ts)
-            """)
-        .assertErrorType(SemanticCheckException.class)
-        .assertErrorMessageEquals("Failed to plan query: invalid plan structure")
-        .assertCauseType(AssertionError.class);
-  }
-
   /**
    * Without the {@code PATTERN_*} defaults in {@link UnifiedQueryContext}, a bare {@code patterns
    * <field>} (no explicit {@code method=}/{@code mode=}) dies at parse time with {@code
@@ -197,5 +192,101 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
     givenQuery("source = catalog.employees | patterns name")
         .assertPlanContains("REGEXP_REPLACE")
         .assertFields("id", "name", "age", "department", "patterns_field");
+  }
+
+  /**
+   * A post-analysis rule that raises {@link AssertionError} — as Calcite does when it builds an
+   * inconsistent RelNode — must be normalized to a {@link SemanticCheckException} so callers
+   * classify it as a 4xx rather than an unhandled 500.
+   */
+  @Test
+  public void assertionErrorInPostAnalysisRuleIsWrappedAsSemanticCheckException() {
+    UnifiedQueryPlanner localPlanner = plannerWithPostAnalysisRule(new AssertionErrorShuttle());
+
+    SemanticCheckException ex =
+        assertThrows(
+            SemanticCheckException.class, () -> localPlanner.plan("source = catalog.employees"));
+    assertEquals("Failed to plan query: invalid plan structure", ex.getMessage());
+    assertTrue(
+        "Expected AssertionError cause, got " + ex.getCause(),
+        ex.getCause() instanceof AssertionError);
+  }
+
+  /**
+   * An unexpected {@link RuntimeException} in a post-analysis rule falls through to the generic
+   * catch and is wrapped as an {@link IllegalStateException}, keeping the surface stable for
+   * callers even when a rule misbehaves.
+   */
+  @Test
+  public void unexpectedExceptionInPostAnalysisRuleIsWrappedAsIllegalStateException() {
+    UnifiedQueryPlanner localPlanner = plannerWithPostAnalysisRule(new RuntimeExceptionShuttle());
+
+    IllegalStateException ex =
+        assertThrows(
+            IllegalStateException.class, () -> localPlanner.plan("source = catalog.employees"));
+    assertEquals("Failed to plan query: unexpected error", ex.getMessage());
+    assertTrue(
+        "Expected RuntimeException cause, got " + ex.getCause(),
+        ex.getCause() instanceof RuntimeException);
+  }
+
+  /**
+   * Builds a planner whose language spec wraps the current context's spec with an additional
+   * post-analysis rule. Used by the catch-branch tests above.
+   */
+  private UnifiedQueryPlanner plannerWithPostAnalysisRule(RelShuttle rule) {
+    LanguageSpec baseSpec = context.getLangSpec();
+    LanguageSpec throwingSpec =
+        new LanguageSpec() {
+          @Override
+          public SqlParser.Config parserConfig() {
+            return baseSpec.parserConfig();
+          }
+
+          @Override
+          public SqlValidator.Config validatorConfig() {
+            return baseSpec.validatorConfig();
+          }
+
+          @Override
+          public List<LanguageExtension> extensions() {
+            return baseSpec.extensions();
+          }
+
+          @Override
+          public List<RelShuttle> postAnalysisRules() {
+            return List.of(rule);
+          }
+        };
+    UnifiedQueryContext throwingContext =
+        new UnifiedQueryContext(
+            context.getPlanContext(), context.getSettings(), context.getParser(), throwingSpec);
+    return new UnifiedQueryPlanner(throwingContext);
+  }
+
+  /** RelShuttle that always throws {@link AssertionError} on the first visited node. */
+  private static class AssertionErrorShuttle extends RelShuttleImpl {
+    @Override
+    public RelNode visit(TableScan scan) {
+      throw new AssertionError("simulated bad RelNode");
+    }
+
+    @Override
+    public RelNode visit(RelNode other) {
+      throw new AssertionError("simulated bad RelNode");
+    }
+  }
+
+  /** RelShuttle that always throws {@link RuntimeException} on the first visited node. */
+  private static class RuntimeExceptionShuttle extends RelShuttleImpl {
+    @Override
+    public RelNode visit(TableScan scan) {
+      throw new RuntimeException("simulated post-analysis failure");
+    }
+
+    @Override
+    public RelNode visit(RelNode other) {
+      throw new RuntimeException("simulated post-analysis failure");
+    }
   }
 }

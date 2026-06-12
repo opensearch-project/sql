@@ -23,8 +23,6 @@ import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -63,19 +61,18 @@ public class WeekdayFunction extends ImplementorUDF {
               UserDefinedFunctionUtils.class,
               "restoreFunctionProperties",
               rexToLixTranslator.getRoot());
-      ExprType dateType =
-          OpenSearchTypeFactory.convertRelDataTypeToExprType(
-              rexCall.getOperands().getFirst().getType());
+      org.apache.calcite.rel.type.RelDataType firstOperandType =
+          rexCall.getOperands().getFirst().getType();
+      if (OpenSearchTypeFactory.isTimeExprType(firstOperandType)) {
+        return Expressions.call(WeekdayImplementor.class, "weekdayForTime", functionProperties);
+      }
       Expression date =
           Expressions.call(
               ExprValueUtils.class,
               "fromObjectValue",
               operands.getFirst(),
-              Expressions.constant(dateType));
-
-      if (ExprCoreType.TIME.equals(dateType)) {
-        return Expressions.call(WeekdayImplementor.class, "weekdayForTime", functionProperties);
-      }
+              Expressions.constant(
+                  OpenSearchTypeFactory.convertRelDataTypeToExprType(firstOperandType)));
       return Expressions.call(WeekdayImplementor.class, "weekday", date);
     }
 

@@ -17,9 +17,10 @@ import org.locationtech.jts.geom.Geometry;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 
-/** The SqlType for ExprUDT. The UDT which uses a standard SQL type should extend this. */
-public class ExprSqlType extends AbstractExprRelDataType<BasicSqlType> {
-  public ExprSqlType(OpenSearchTypeFactory typeFactory, ExprUDT exprUDT, SqlTypeName sqlTypeName) {
+/** The SqlType for an OpenSearch UDT backed by a {@link BasicSqlType}. */
+public abstract class ExprSqlType extends AbstractExprRelDataType<BasicSqlType> {
+  protected ExprSqlType(
+      OpenSearchTypeFactory typeFactory, ExprUDT exprUDT, SqlTypeName sqlTypeName) {
     this(exprUDT, (BasicSqlType) typeFactory.createSqlType(sqlTypeName));
   }
 
@@ -87,20 +88,21 @@ public class ExprSqlType extends AbstractExprRelDataType<BasicSqlType> {
     };
   }
 
+  /** Subclasses must construct their own variant when re-wrapped with new nullability. */
+  protected abstract ExprSqlType cloneWith(BasicSqlType inner);
+
   @Override
   public ExprSqlType createWithNullability(OpenSearchTypeFactory typeFactory, boolean nullable) {
     if (isNullable() == nullable) {
       return this;
     }
-    return new ExprSqlType(
-        super.udt, (BasicSqlType) typeFactory.createTypeWithNullability(super.relType, nullable));
+    return cloneWith((BasicSqlType) typeFactory.createTypeWithNullability(super.relType, nullable));
   }
 
   @Override
   public ExprSqlType createWithCharsetAndCollation(
       OpenSearchTypeFactory typeFactory, Charset charset, SqlCollation collation) {
-    return new ExprSqlType(
-        super.udt,
+    return cloneWith(
         (BasicSqlType)
             typeFactory.createTypeWithCharsetAndCollation(super.relType, charset, collation));
   }

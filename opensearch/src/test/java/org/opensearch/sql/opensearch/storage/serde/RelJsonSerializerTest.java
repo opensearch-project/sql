@@ -87,9 +87,9 @@ public class RelJsonSerializerTest {
             .getTypeFactory()
             .builder()
             .kind(StructKind.FULLY_QUALIFIED)
-            .add("date", UserDefinedFunctionUtils.NULLABLE_DATE_UDT)
-            .add("time", UserDefinedFunctionUtils.NULLABLE_TIME_UDT)
-            .add("timestamp", UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT)
+            .add("date", UserDefinedFunctionUtils.NULLABLE_DATE_T)
+            .add("time", UserDefinedFunctionUtils.NULLABLE_TIME_T)
+            .add("timestamp", UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_T)
             .add("ip", UserDefinedFunctionUtils.NULLABLE_IP_UDT)
             .add("binary", TYPE_FACTORY.createUDT(OpenSearchTypeFactory.ExprUDT.EXPR_BINARY))
             .build();
@@ -195,7 +195,7 @@ public class RelJsonSerializerTest {
             .getTypeFactory()
             .builder()
             .kind(StructKind.FULLY_QUALIFIED)
-            .add("date", UserDefinedFunctionUtils.NULLABLE_DATE_UDT)
+            .add("date", UserDefinedFunctionUtils.NULLABLE_DATE_T)
             .add("text", TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true))
             .build();
     Map<String, ExprType> fieldTypesWithUDT =

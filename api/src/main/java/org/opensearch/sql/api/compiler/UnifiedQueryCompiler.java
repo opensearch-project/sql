@@ -18,6 +18,8 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.tools.RelRunner;
 import org.opensearch.sql.api.UnifiedQueryContext;
+import org.opensearch.sql.calcite.plan.rel.TemporalUdtRewriteShuttle;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 
 /**
  * {@code UnifiedQueryCompiler} compiles Calcite logical plans ({@link RelNode}) into executable
@@ -59,6 +61,10 @@ public class UnifiedQueryCompiler {
     for (var rule : context.getLangSpec().preCompilationRules()) {
       plan = plan.accept(rule);
     }
+
+    // Rewrite standard temporal types in the logical plan to their UDT counterparts, matching
+    // the runtime representation that OpenSearchExprValueFactory delivers (VARCHAR-backed).
+    plan = plan.accept(new TemporalUdtRewriteShuttle(OpenSearchTypeFactory.TYPE_FACTORY));
 
     // Apply shuttle to convert LogicalTableScan to BindableTableScan
     final RelHomogeneousShuttle shuttle =

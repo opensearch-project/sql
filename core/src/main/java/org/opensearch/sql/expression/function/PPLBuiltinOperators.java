@@ -41,7 +41,6 @@ import org.opensearch.sql.calcite.udf.udaf.ValuesAggFunction;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.CollectionUDF.ArrayFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ExistsFunctionImpl;
@@ -246,15 +245,14 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator SECOND = new DatePartFunction(TimeUnit.SECOND).toUDF("SECOND");
   public static final SqlOperator MICROSECOND =
       new DatePartFunction(TimeUnit.MICROSECOND).toUDF("MICROSECOND");
-  public static final SqlOperator NOW = new CurrentFunction(ExprCoreType.TIMESTAMP).toUDF("NOW");
+  public static final SqlOperator NOW =
+      new CurrentFunction(CurrentFunction.Kind.TIMESTAMP).toUDF("NOW");
   public static final SqlOperator CURRENT_TIME =
-      new CurrentFunction(ExprCoreType.TIME).toUDF("CURRENT_TIME");
+      new CurrentFunction(CurrentFunction.Kind.TIME).toUDF("CURRENT_TIME");
   public static final SqlOperator CURRENT_DATE =
-      new CurrentFunction(ExprCoreType.DATE).toUDF("CURRENT_DATE");
-  public static final SqlOperator DATE_FORMAT =
-      new FormatFunction(ExprCoreType.DATE).toUDF("DATE_FORMAT");
-  public static final SqlOperator TIME_FORMAT =
-      new FormatFunction(ExprCoreType.TIME).toUDF("TIME_FORMAT");
+      new CurrentFunction(CurrentFunction.Kind.DATE).toUDF("CURRENT_DATE");
+  public static final SqlOperator DATE_FORMAT = new FormatFunction(false).toUDF("DATE_FORMAT");
+  public static final SqlOperator TIME_FORMAT = new FormatFunction(true).toUDF("TIME_FORMAT");
   public static final SqlOperator DAYNAME = new PeriodNameFunction(TimeUnit.DAY).toUDF("DAYNAME");
   public static final SqlOperator MONTHNAME =
       new PeriodNameFunction(TimeUnit.MONTH).toUDF("MONTHNAME");

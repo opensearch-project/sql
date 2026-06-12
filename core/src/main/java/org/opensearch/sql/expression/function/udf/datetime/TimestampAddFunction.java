@@ -25,8 +25,6 @@ import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -63,15 +61,16 @@ public class TimestampAddFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      ExprType timestampBaseType =
-          OpenSearchTypeFactory.convertRelDataTypeToExprType(call.getOperands().get(2).getType());
+      org.apache.calcite.rel.type.RelDataType timestampBaseRelType =
+          call.getOperands().get(2).getType();
       Expression timestampBase =
           Expressions.call(
               ExprValueUtils.class,
               "fromObjectValue",
               translatedOperands.get(2),
-              Expressions.constant(timestampBaseType));
-      if (ExprCoreType.TIME.equals(timestampBaseType)) {
+              Expressions.constant(
+                  OpenSearchTypeFactory.convertRelDataTypeToExprType(timestampBaseRelType)));
+      if (OpenSearchTypeFactory.isTimeExprType(timestampBaseRelType)) {
         return Expressions.call(
             TimestampAddImplementor.class,
             "timestampAddForTimeType",
