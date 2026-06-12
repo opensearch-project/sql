@@ -1064,6 +1064,24 @@ task integTestRemote(type: RestIntegTestTask) {
             excludeTestsMatching '*OperatorIT.testGreaterOperator'
             excludeTestsMatching '*OperatorIT.testGteOperator'
             excludeTestsMatching '*OperatorIT.testNotOperator'
+
+            // === Excludes: PPL ITs doomed by the unsupported-field strip ===
+            // On the AE route TestUtils.AnalyticsIndexConfig strips nested/geo_point/geo_shape/alias
+            // fields from every test mapping AND its bulk data (the parquet/composite store can't
+            // scan them). A test whose query references such a field can't pass — the data is gone.
+            // Verified field-by-field against the index mappings; only doomed work is excluded.
+            // Gated on the parsed boolean so `-Dtests.analytics.parquet_indices=false` excludes none.
+            //
+            // GeoPointFormatsIT: EVERY test reads a geo_point field — whole class doomed.
+            excludeTestsMatching 'org.opensearch.sql.ppl.GeoPointFormatsIT'
+            // datatypes_index_mapping: nested_value=nested, geo_point_value=geo_point.
+            excludeTestsMatching 'org.opensearch.sql.ppl.DataTypeIT.test_nonnumeric_data_types'
+            excludeTestsMatching 'org.opensearch.sql.ppl.SystemFunctionIT.typeof_opensearch_types'
+            // alias_index_mapping: alias_col is type=alias; query is `where alias_col > 1`.
+            excludeTestsMatching 'org.opensearch.sql.ppl.DataTypeIT.test_alias_data_type'
+            // CalciteAliasFieldAggregationIT: raw-PUT alias index can't be created on the AE route
+            // and every test queries alias fields directly — whole class doomed.
+            excludeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteAliasFieldAggregationIT'
         }
     }
 

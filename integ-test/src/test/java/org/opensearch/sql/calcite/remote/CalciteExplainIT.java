@@ -2888,10 +2888,13 @@ public class CalciteExplainIT extends ExplainIT {
             "source=%s | fields firstname, age | eval names = array(firstname) | nomv names |"
                 + " fields names",
             TEST_INDEX_BANK);
-    var result = explainQueryYaml(query);
+    // Assert on the LOGICAL plan only: nomv lowers to MVJOIN -> ARRAY_JOIN, which is stable in the
+    // logical plan regardless of pushdown. The physical section's rendering varies with the
+    // pushdown setting (e.g. under CalciteNoPushdownIT), so scanning the whole output is flaky.
+    String logical = logicalPlan(explainQueryYaml(query));
     Assert.assertTrue(
-        "Expected explain to contain ARRAY_JOIN function",
-        result.toLowerCase().contains("array_join"));
+        "Expected logical plan to contain ARRAY_JOIN function",
+        logical.toLowerCase().contains("array_join"));
   }
 
   @Test
@@ -2901,10 +2904,24 @@ public class CalciteExplainIT extends ExplainIT {
             "source=%s | eval full_name = concat(firstname, ' J.') | eval name_array ="
                 + " array(full_name) | nomv name_array | fields name_array",
             TEST_INDEX_BANK);
-    var result = explainQueryYaml(query);
+    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase();
     Assert.assertTrue(
-        "Expected explain to contain both CONCAT and ARRAY_JOIN",
-        result.toLowerCase().contains("concat") && result.toLowerCase().contains("array_join"));
+        "Expected logical plan to contain both CONCAT and ARRAY_JOIN",
+        logical.contains("concat") && logical.contains("array_join"));
+  }
+
+  /**
+   * Return just the {@code logical:} section of a YAML explain result (everything before the {@code
+   * physical:} key). The logical plan is deterministic across pushdown on/off, whereas the physical
+   * section's rendering varies — so assertions on plan content should target the logical plan to
+   * avoid flakiness.
+   *
+   * <p>Splits on the line-anchored top-level {@code "\nphysical:"} key so a string value that
+   * happens to contain {@code "physical:"} inside the logical section can't truncate the plan.
+   */
+  private static String logicalPlan(String explainYaml) {
+    int physicalIdx = explainYaml.indexOf("\nphysical:");
+    return physicalIdx >= 0 ? explainYaml.substring(0, physicalIdx) : explainYaml;
   }
 
   @Test

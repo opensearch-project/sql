@@ -17,6 +17,7 @@ import com.carrotsearch.randomizedtesting.annotations.Name;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.TimeZone;
 import org.junit.After;
@@ -133,7 +134,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareEqTimestampWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16')", "ts_d_t", true),
@@ -148,7 +149,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareEqDateWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("DATE('2020-09-16') = TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
@@ -163,7 +164,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareEqTimeWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("TIME('10:20:30') = TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
@@ -178,7 +179,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareNeqTimestampWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("TIMESTAMP('2020-09-16 10:20:30') != DATE('1961-04-12')", "ts_d_t", true),
@@ -193,7 +194,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareNeqDateWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("DATE('2020-09-16') != TIMESTAMP('1961-04-12 09:07:00')", "d_ts_t", true),
@@ -208,7 +209,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareNeqTimeWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("TIME('22:15:07') != TIMESTAMP('1984-12-15 22:15:07')", "t_ts_t", true),
@@ -223,7 +224,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareLtTimestampWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("TIMESTAMP('2020-09-16 10:20:30') < DATE('2077-04-12')", "ts_d_t", true),
@@ -252,7 +253,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareLtTimeWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("TIME('22:15:07') < TIMESTAMP('2242-12-15 22:15:07')", "t_ts_t", true),
@@ -267,7 +268,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareGtTimestampWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("TIMESTAMP('2020-09-16 10:20:30') > DATE('1961-04-12')", "ts_d_t", true),
@@ -296,7 +297,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareGtTimeWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("TIME('22:15:07') > TIMESTAMP('1984-12-15 22:15:07')", "t_ts_t", true),
@@ -311,7 +312,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareLteTimestampWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("TIMESTAMP('2020-09-16 10:20:30') <= DATE('2077-04-12')", "ts_d_t", true),
@@ -340,7 +341,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareLteTimeWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("TIME('10:20:30') <= TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
@@ -355,7 +356,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareGteTimestampWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("TIMESTAMP('2020-09-16 10:20:30') >= DATE('1961-04-12')", "ts_d_t", true),
@@ -384,7 +385,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareGteTimeWithOtherTypes() {
-    var today = LocalDate.now().toString();
+    var today = LocalDate.now(ZoneOffset.UTC).toString();
     return Arrays.asList(
         $$(
             $("TIME('10:20:30') >= TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
