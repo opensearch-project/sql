@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CASCADED_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.NESTED_FIELDS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -23,6 +24,7 @@ import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.WhereCommandIT;
 
 public class CalciteWhereCommandIT extends WhereCommandIT {
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -40,6 +42,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testFilterOnComputedNestedFields() throws IOException {
+    assumeNotAnalytics(NESTED_FIELDS);
     JSONObject result =
         executeQuery(
             String.format(
@@ -52,6 +55,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testFilterOnNestedAndRootFields() throws IOException {
+    assumeNotAnalytics(NESTED_FIELDS);
     JSONObject result =
         executeQuery(
             String.format(
@@ -64,6 +68,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testFilterOnNestedFields() throws IOException {
+    assumeNotAnalytics(NESTED_FIELDS);
     // address is a nested object
     JSONObject result1 =
         executeQuery(
@@ -83,6 +88,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testFilterOnMultipleCascadedNestedFields() throws IOException {
+    assumeNotAnalytics(NESTED_FIELDS);
     // SQL's static type system does not allow returning list[int] in place of int
     enabledOnlyWhenPushdownIsEnabled();
     JSONObject result =
@@ -126,6 +132,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testScriptFilterOnDifferentNestedHierarchyShouldThrow() throws IOException {
+    assumeNotAnalytics(NESTED_FIELDS);
     enabledOnlyWhenPushdownIsEnabled();
     Throwable t =
         assertThrows(
@@ -144,6 +151,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testAggFilterOnNestedFields() throws IOException {
+    assumeNotAnalytics(NESTED_FIELDS);
     enabledOnlyWhenPushdownIsEnabled();
     JSONObject result =
         executeQuery(

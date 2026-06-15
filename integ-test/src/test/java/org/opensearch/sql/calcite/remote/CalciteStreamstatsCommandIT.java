@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.junit.Assume.assumeFalse;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.DOC_MUTATION;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -508,10 +508,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testStreamstatsGlobal() throws IOException {
-    assumeFalse(
-        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
-            + " (analytics-engine storage path) does not support.",
-        isAnalyticsParquetIndicesEnabled());
+    assumeNotAnalytics(DOC_MUTATION);
     final int docId = 5;
     Request insertRequest =
         new Request(
@@ -671,10 +668,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testStreamstatsReset() throws IOException {
-    assumeFalse(
-        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
-            + " (analytics-engine storage path) does not support.",
-        isAnalyticsParquetIndicesEnabled());
+    assumeNotAnalytics(DOC_MUTATION);
     final int docId = 5;
     Request insertRequest =
         new Request(
@@ -943,10 +937,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMultipleStreamstatsWithNull2() throws IOException {
-    assumeFalse(
-        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
-            + " (analytics-engine storage path) does not support.",
-        isAnalyticsParquetIndicesEnabled());
+    assumeNotAnalytics(DOC_MUTATION);
     final int docId = 5;
     Request insertRequest =
         new Request(

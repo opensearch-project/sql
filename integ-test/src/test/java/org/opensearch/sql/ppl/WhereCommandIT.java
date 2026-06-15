@@ -9,6 +9,8 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_TIME;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.DYNAMIC_STRING_NO_KEYWORD;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.ID_METADATA;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -216,6 +218,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testWhereWithMetadataFields() throws IOException {
+    assumeNotAnalytics(ID_METADATA);
     JSONObject result =
         executeQuery(
             String.format("source=%s | where _id='1' | fields firstname", TEST_INDEX_ACCOUNT));
@@ -224,6 +227,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testWhereWithMetadataFields2() throws IOException {
+    assumeNotAnalytics(ID_METADATA);
     JSONObject result =
         executeQuery(String.format("source=%s | where _id='1'", TEST_INDEX_ACCOUNT));
     verifyDataRows(
@@ -531,6 +535,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testDoubleEqualWithSpecialCharacters() throws IOException {
+    assumeNotAnalytics(DYNAMIC_STRING_NO_KEYWORD);
     // Test == with strings containing special characters
     JSONObject result =
         executeQuery(
