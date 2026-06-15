@@ -6,6 +6,8 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.COALESCE_ALL_NULL_OPERANDS;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.HEAD_WITHOUT_STABLE_SORT;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -37,7 +39,7 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
   @Test
   public void testCoalesceBasic() throws IOException {
-
+    assumeNotAnalytics(HEAD_WITHOUT_STABLE_SORT);
     JSONObject actual =
         executeQuery(
             String.format(
@@ -53,7 +55,7 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
   @Test
   public void testCoalesceWithMixedTypes() throws IOException {
-
+    assumeNotAnalytics(HEAD_WITHOUT_STABLE_SORT);
     JSONObject actual =
         executeQuery(
             String.format(
@@ -121,7 +123,7 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval result1 = coalesce(name, 'default'), result2 = coalesce(result1,"
-                    + " age) | fields name, age, result1, result2 | head 2",
+                    + " age) | sort - age | fields name, age, result1, result2 | head 2",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(
@@ -153,8 +155,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(field1, field2, name, 'fallback') | fields"
-                    + " name, result | head 1",
+                "source=%s | eval result = coalesce(field1, field2, name, 'fallback') | sort - age"
+                    + " | fields name, result | head 1",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
@@ -163,7 +165,7 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
   @Test
   public void testCoalesceWithAllNonExistentFields() throws IOException {
-
+    assumeNotAnalytics(COALESCE_ALL_NULL_OPERANDS);
     JSONObject actual =
         executeQuery(
             String.format(
@@ -221,7 +223,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(null, age) | fields age, result | head 3",
+                "source=%s | eval result = coalesce(null, age) | sort - age | fields age, result |"
+                    + " head 3",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("age", "int"), schema("result", "int"));
@@ -263,7 +266,7 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval empty_field = '' | eval result = coalesce(empty_field, name) |"
-                    + " fields name, result | head 1",
+                    + " sort - age | fields name, result | head 1",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
