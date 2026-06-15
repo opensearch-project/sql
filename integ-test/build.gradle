@@ -1082,6 +1082,26 @@ task integTestRemote(type: RestIntegTestTask) {
             // CalciteAliasFieldAggregationIT: raw-PUT alias index can't be created on the AE route
             // and every test queries alias fields directly — whole class doomed.
             excludeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteAliasFieldAggregationIT'
+
+            // === Excludes: WhereCommandIT / CalciteWhereCommandIT route divergences (#5546) ===
+            // Each test also carries an in-test assumeNotAnalytics(...) recording the reason (see
+            // AnalyticsRouteLimitation); listed here so the AE-route skip set stays countable in one
+            // place. Reasons:
+            //  - Nested-field queries: the parquet/composite store has no nested-document support, so
+            //    nested fields are stripped at load (#5541). Defined only in CalciteWhereCommandIT.
+            excludeTestsMatching '*CalciteWhereCommandIT.testFilterOnComputedNestedFields'
+            excludeTestsMatching '*CalciteWhereCommandIT.testFilterOnNestedAndRootFields'
+            excludeTestsMatching '*CalciteWhereCommandIT.testFilterOnNestedFields'
+            excludeTestsMatching '*CalciteWhereCommandIT.testFilterOnMultipleCascadedNestedFields'
+            excludeTestsMatching '*CalciteWhereCommandIT.testScriptFilterOnDifferentNestedHierarchyShouldThrow'
+            excludeTestsMatching '*CalciteWhereCommandIT.testAggFilterOnNestedFields'
+            //  - _id metadata field not exposed on parquet-backed scans. Defined in the base
+            //    WhereCommandIT and inherited by CalciteWhereCommandIT; the glob matches both runs.
+            excludeTestsMatching '*WhereCommandIT.testWhereWithMetadataFields'
+            excludeTestsMatching '*WhereCommandIT.testWhereWithMetadataFields2'
+            //  - Exact == on a dynamically-mapped string (email) returns no rows: dynamic mapping
+            //    omits the .keyword sub-field on the AE route.
+            excludeTestsMatching '*WhereCommandIT.testDoubleEqualWithSpecialCharacters'
         }
     }
 
