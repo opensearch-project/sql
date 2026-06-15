@@ -54,7 +54,38 @@ public enum AnalyticsRouteLimitation {
    */
   DOC_MUTATION(
       "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine (analytics-engine storage"
-          + " path) does not support.");
+          + " path) does not support."),
+
+  /**
+   * When every {@code multisearch} subsearch reads the same index, the analytics-engine route
+   * applies the first subsearch's filter to all of them (each keeps its own {@code eval} label), so
+   * later subsearches silently return the first subsearch's rows. Produces wrong counts/duplication
+   * — the route can't be asserted against. Reproduces single-shard.
+   */
+  MULTISEARCH_SAME_INDEX_CONFLATION(
+      "multisearch with same-index subsearches conflates on the analytics-engine route: every"
+          + " subsearch executes the first subsearch's filter, so counts/rows are wrong."),
+
+  /**
+   * A {@code multisearch} over heterogeneous indices returns the merged columns in a different
+   * order than the v2/Calcite path (e.g. trailing fields swapped), so row-order-sensitive
+   * assertions diverge even though the values are correct.
+   */
+  MULTISEARCH_COLUMN_ORDER(
+      "multisearch over different indices returns merged columns in a different order on the"
+          + " analytics-engine route than the v2/Calcite path."),
+
+  /**
+   * Binning a time field then grouping by it ({@code bin <timefield> bins=N | stats ... by
+   * <timefield>}) diverges on the analytics-engine route: the date-histogram bucket column comes
+   * back typed {@code string} rather than {@code timestamp}, and the route produces a different
+   * bucket set (different auto-histogram span / empty buckets not filtered) so the row counts don't
+   * match the v2/Calcite path.
+   */
+  BIN_TIME_FIELD_BUCKETING(
+      "bin on a time field then grouping by it diverges on the analytics-engine route: the bucket"
+          + " column is typed string (not timestamp) and the bucket set differs from the v2/Calcite"
+          + " path.");
 
   private final String reason;
 

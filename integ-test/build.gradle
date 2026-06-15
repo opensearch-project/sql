@@ -1102,6 +1102,28 @@ task integTestRemote(type: RestIntegTestTask) {
             //  - Exact == on a dynamically-mapped string (email) returns no rows: dynamic mapping
             //    omits the .keyword sub-field on the AE route.
             excludeTestsMatching '*WhereCommandIT.testDoubleEqualWithSpecialCharacters'
+
+            // === Excludes: CalciteMultisearchCommandIT route divergences ===
+            // Each test also carries an in-test assumeNotAnalytics(...) recording the reason (see
+            // AnalyticsRouteLimitation); listed here so the AE-route skip set stays countable.
+            //  - Same-index subsearch conflation: when every subsearch reads the same index, the AE
+            //    route applies the first subsearch's filter to all of them, so counts are wrong.
+            excludeTestsMatching '*CalciteMultisearchCommandIT.testMultisearchWithThreeSubsearches'
+            excludeTestsMatching '*CalciteMultisearchCommandIT.testMultisearchWithComplexAggregation'
+            excludeTestsMatching '*CalciteMultisearchCommandIT.testMultisearchWithoutFurtherProcessing'
+            //  - Column-order divergence: multisearch over different indices returns merged columns
+            //    in a different order than the v2/Calcite path.
+            excludeTestsMatching '*CalciteMultisearchCommandIT.testMultisearchWithTimestampInterleaving'
+
+            // === Excludes: CalciteBinCommandIT route divergences ===
+            // bin on a time field then grouping by it: the AE route types the date-histogram bucket
+            // column as string (not timestamp) AND produces a different bucket set (auto-histogram
+            // span / empty-bucket filtering differ), so both schema and row counts diverge. Each
+            // test also carries an in-test assumeNotAnalytics(...) (see AnalyticsRouteLimitation).
+            excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeField_Count'
+            excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeField_Avg'
+            excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeAndTermField_Count'
+            excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeAndTermField_Avg'
         }
     }
 
