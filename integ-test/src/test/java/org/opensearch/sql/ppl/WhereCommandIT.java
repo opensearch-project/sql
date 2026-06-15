@@ -6,10 +6,11 @@
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeFalse;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_TIME;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.DYNAMIC_STRING_NO_KEYWORD;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.ID_METADATA;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -217,10 +218,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testWhereWithMetadataFields() throws IOException {
-    assumeFalse(
-        "The analytics-engine route doesn't expose the _id metadata field (parquet-backed scans"
-            + " surface only mapped document fields).",
-        isAnalyticsParquetIndicesEnabled());
+    assumeNotAnalytics(ID_METADATA);
     JSONObject result =
         executeQuery(
             String.format("source=%s | where _id='1' | fields firstname", TEST_INDEX_ACCOUNT));
@@ -229,10 +227,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testWhereWithMetadataFields2() throws IOException {
-    assumeFalse(
-        "The analytics-engine route doesn't expose the _id metadata field (parquet-backed scans"
-            + " surface only mapped document fields).",
-        isAnalyticsParquetIndicesEnabled());
+    assumeNotAnalytics(ID_METADATA);
     JSONObject result =
         executeQuery(String.format("source=%s | where _id='1'", TEST_INDEX_ACCOUNT));
     verifyDataRows(
@@ -540,13 +535,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testDoubleEqualWithSpecialCharacters() throws IOException {
-    assumeFalse(
-        "email is dynamically mapped to a text field without a .keyword sub-field on the parquet"
-            + " route (the composite dataformat's dynamic mapping omits the keyword sub-field that"
-            + " standard OpenSearch adds), and exact equality on an analyzed text field isn't"
-            + " supported by the DataFusion scan. firstname (explicit text+keyword) still exercises"
-            + " == on the analytics route.",
-        isAnalyticsParquetIndicesEnabled());
+    assumeNotAnalytics(DYNAMIC_STRING_NO_KEYWORD);
     // Test == with strings containing special characters
     JSONObject result =
         executeQuery(
