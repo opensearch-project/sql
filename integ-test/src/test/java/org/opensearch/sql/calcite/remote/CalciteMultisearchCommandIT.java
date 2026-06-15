@@ -6,6 +6,8 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.MULTISEARCH_COLUMN_ORDER;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.MULTISEARCH_SAME_INDEX_CONFLATION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -65,6 +67,7 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMultisearchWithThreeSubsearches() throws IOException {
+    assumeNotAnalytics(MULTISEARCH_SAME_INDEX_CONFLATION);
     JSONObject result =
         executeQuery(
             String.format(
@@ -81,6 +84,7 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMultisearchWithComplexAggregation() throws IOException {
+    assumeNotAnalytics(MULTISEARCH_SAME_INDEX_CONFLATION);
     JSONObject result =
         executeQuery(
             String.format(
@@ -143,6 +147,7 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMultisearchWithTimestampInterleaving() throws IOException {
+    assumeNotAnalytics(MULTISEARCH_COLUMN_ORDER);
     JSONObject result =
         executeQuery(
             "| multisearch [search"
@@ -353,6 +358,7 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
   /** Reproduce #5145: multisearch without further processing should return all rows. */
   @Test
   public void testMultisearchWithoutFurtherProcessing() throws IOException {
+    assumeNotAnalytics(MULTISEARCH_SAME_INDEX_CONFLATION);
     JSONObject result =
         executeQuery(
             "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="

@@ -9,6 +9,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.BIN_TIME_FIELD_BUCKETING;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -872,6 +873,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testStatsWithBinsOnTimeField_Count() throws IOException {
     // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
     enabledOnlyWhenPushdownIsEnabled();
+    assumeNotAnalytics(BIN_TIME_FIELD_BUCKETING);
 
     JSONObject result =
         executeQuery("source=events_null | bin @timestamp bins=3 | stats count() by @timestamp");
@@ -910,6 +912,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testStatsWithBinsOnTimeField_Avg() throws IOException {
     // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
     enabledOnlyWhenPushdownIsEnabled();
+    assumeNotAnalytics(BIN_TIME_FIELD_BUCKETING);
 
     JSONObject result =
         executeQuery(
@@ -951,6 +954,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testStatsWithBinsOnTimeAndTermField_Count() throws IOException {
     // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
     enabledOnlyWhenPushdownIsEnabled();
+    assumeNotAnalytics(BIN_TIME_FIELD_BUCKETING);
 
     JSONObject result =
         executeQuery(
@@ -974,6 +978,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testStatsWithBinsOnTimeAndTermField_Avg() throws IOException {
     // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
     enabledOnlyWhenPushdownIsEnabled();
+    assumeNotAnalytics(BIN_TIME_FIELD_BUCKETING);
 
     JSONObject result =
         executeQuery(
