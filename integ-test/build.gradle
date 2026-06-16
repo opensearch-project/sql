@@ -1135,6 +1135,18 @@ task integTestRemote(type: RestIntegTestTask) {
             //    nullable tiebreak these would need orders nulls differently than v2/Calcite.
             excludeTestsMatching '*CalcitePPLEnhancedCoalesceIT.testCoalesceWithMixedTypes'
             excludeTestsMatching '*CalcitePPLEnhancedCoalesceIT.testCoalesceBasic'
+
+            // === Excludes: CalcitePPLScalarSubqueryIT / CalcitePPLInSubqueryIT route divergences ===
+            // Each test also carries an in-test assumeNotAnalytics(...) recording the reason (see
+            // AnalyticsRouteLimitation); listed here so the AE-route skip set stays countable.
+            //  - Exact equality on an explicitly text-mapped field (department/occupation = '...')
+            //    in the subsearch returns no rows on the AE route (analyzed text, no .keyword).
+            excludeTestsMatching '*CalcitePPLScalarSubqueryIT.testTwoUncorrelatedScalarSubqueriesInOr'
+            excludeTestsMatching '*CalcitePPLInSubqueryIT.testInSubqueryWithTableAlias'
+            excludeTestsMatching '*CalcitePPLInSubqueryIT.testInCorrelatedSubquery'
+            //  - subsearch.maxout is lowered as a LIMIT on the in-subquery semi-join's right side,
+            //    which the AE route does not honor, so the subsearch returns all rows.
+            excludeTestsMatching '*CalcitePPLInSubqueryIT.testSubsearchMaxOut'
         }
     }
 
