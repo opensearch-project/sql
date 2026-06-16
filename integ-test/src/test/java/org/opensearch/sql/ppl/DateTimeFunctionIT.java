@@ -56,6 +56,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     TimeZone.setDefault(testTz);
   }
 
+  // "Today" as the query engine sees it. The analytics-engine route resolves now()/curdate()
+  // in UTC, while the v2/Calcite-over-Lucene path uses the JVM default zone (set to systemTz
+  // above). Tests that assert against an engine-supplied current date must use the matching
+  // zone, otherwise they fail by one day whenever the run straddles the UTC/local date boundary.
+  private LocalDate engineToday() {
+    return isAnalyticsParquetIndicesEnabled() ? LocalDate.now(ZoneOffset.UTC) : LocalDate.now();
+  }
+
   @Test
   public void testAddDateWithDays() throws IOException {
     var result =
@@ -82,7 +90,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval " + " f = adddate(TIME('07:40:00'), 0)" + " | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
-    verifySome(result.getJSONArray("datarows"), rows(LocalDate.now() + " 07:40:00"));
+    verifySome(result.getJSONArray("datarows"), rows(engineToday() + " 07:40:00"));
   }
 
   @Test
@@ -128,7 +136,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .plusDays(1)
                 .atTime(LocalTime.of(7, 40))
                 .atZone(systemTz.toZoneId())
@@ -145,7 +153,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .atTime(LocalTime.of(8, 40))
                 .atZone(systemTz.toZoneId())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
@@ -278,7 +286,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .plusDays(1)
                 .atTime(LocalTime.of(7, 40))
                 .atZone(systemTz.toZoneId())
@@ -295,7 +303,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .atTime(LocalTime.of(8, 40))
                 .atZone(systemTz.toZoneId())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
@@ -460,7 +468,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .plusDays(-1)
                 .atTime(LocalTime.of(7, 40))
                 .atZone(systemTz.toZoneId())
@@ -477,7 +485,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .atTime(LocalTime.of(6, 40))
                 .atZone(systemTz.toZoneId())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
@@ -1034,7 +1042,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval " + " f = subdate(TIME('07:40:00'), 0)" + " | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
-    verifySome(result.getJSONArray("datarows"), rows(LocalDate.now() + " 07:40:00"));
+    verifySome(result.getJSONArray("datarows"), rows(engineToday() + " 07:40:00"));
   }
 
   @Test
@@ -1080,7 +1088,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .plusDays(-1)
                 .atTime(LocalTime.of(7, 40))
                 .atZone(systemTz.toZoneId())
@@ -1097,7 +1105,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .atTime(LocalTime.of(6, 40))
                 .atZone(systemTz.toZoneId())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
