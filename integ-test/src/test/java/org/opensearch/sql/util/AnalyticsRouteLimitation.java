@@ -48,6 +48,19 @@ public enum AnalyticsRouteLimitation {
           + " analyzed text field."),
 
   /**
+   * Exact equality ({@code =} / {@code ==}) on an explicitly {@code text}-mapped field (no {@code
+   * .keyword} sub-field) returns no rows on the analytics-engine route — the DataFusion scan can't
+   * match on an analyzed text field. The sibling of {@link #DYNAMIC_STRING_NO_KEYWORD} for fields
+   * that are mapped {@code text} on purpose rather than by dynamic mapping. Verified directly:
+   * {@code where department = 'DATA'} returns no rows while {@code like(department, 'DATA')} and
+   * keyword-field equality both work.
+   */
+  TEXT_FIELD_EXACT_MATCH(
+      "Exact equality (= / ==) on an explicitly text-mapped field (no .keyword sub-field) returns"
+          + " no rows on the analytics-engine route: the DataFusion scan can't match on an analyzed"
+          + " text field. Use like() or a keyword field instead."),
+
+  /**
    * The analytics-engine storage path ({@code DataFormatAwareEngine}) does not support in-place
    * document mutation, so tests that seed state via raw {@code PUT}+{@code DELETE} can't run on
    * this route.
@@ -108,7 +121,19 @@ public enum AnalyticsRouteLimitation {
   HEAD_WITHOUT_STABLE_SORT(
       "head N without a sort on a key that is unique over the head window is non-deterministic on"
           + " the analytics-engine route, and a nullable tiebreak orders nulls differently than the"
-          + " v2/Calcite path.");
+          + " v2/Calcite path."),
+
+  /**
+   * The {@code subsearch.maxout} cap on an {@code in}-subquery is lowered as a {@code LIMIT} on the
+   * right-hand side of the semi-join ({@code LogicalSystemLimit(fetch=N, type=SUBSEARCH_MAXOUT)}).
+   * The analytics-engine route does not honor that LIMIT, so the subsearch returns all rows
+   * regardless of the cap. Verified: with {@code subsearch.maxout=1} an {@code id in [...]}
+   * subquery still returns every matching row.
+   */
+  SUBSEARCH_MAXOUT_IN_SUBQUERY(
+      "subsearch.maxout is not honored on the analytics-engine route: the LIMIT lowered onto the"
+          + " in-subquery semi-join's right side is dropped, so the subsearch returns all rows"
+          + " regardless of the cap.");
 
   private final String reason;
 
