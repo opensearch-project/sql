@@ -1124,6 +1124,17 @@ task integTestRemote(type: RestIntegTestTask) {
             excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeField_Avg'
             excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeAndTermField_Count'
             excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeAndTermField_Avg'
+
+            // === Excludes: CalcitePPLEnhancedCoalesceIT route divergences ===
+            // Each test also carries an in-test assumeNotAnalytics(...) recording the reason (see
+            // AnalyticsRouteLimitation). The other ordering-sensitive coalesce tests were fixed in
+            // place with an explicit `sort` instead of being skipped.
+            //  - COALESCE over all-untyped-null operands is rejected by the capability registry.
+            excludeTestsMatching '*CalcitePPLEnhancedCoalesceIT.testCoalesceWithAllNonExistentFields'
+            //  - head N without a sort unique over the head window is non-deterministic, and the
+            //    nullable tiebreak these would need orders nulls differently than v2/Calcite.
+            excludeTestsMatching '*CalcitePPLEnhancedCoalesceIT.testCoalesceWithMixedTypes'
+            excludeTestsMatching '*CalcitePPLEnhancedCoalesceIT.testCoalesceBasic'
         }
     }
 

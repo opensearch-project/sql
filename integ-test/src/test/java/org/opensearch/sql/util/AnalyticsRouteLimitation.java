@@ -85,7 +85,30 @@ public enum AnalyticsRouteLimitation {
   BIN_TIME_FIELD_BUCKETING(
       "bin on a time field then grouping by it diverges on the analytics-engine route: the bucket"
           + " column is typed string (not timestamp) and the bucket set differs from the v2/Calcite"
-          + " path.");
+          + " path."),
+
+  /**
+   * {@code COALESCE} over operands that are all untyped NULL (e.g. {@code coalesce(field1, field2,
+   * field3)} where every field is missing from the mapping) is rejected by the analytics-engine
+   * capability registry with {@code No backend supports scalar function [COALESCE] among
+   * [datafusion]}. The v2/Calcite path returns an {@code undefined}-typed null instead (#5175).
+   */
+  COALESCE_ALL_NULL_OPERANDS(
+      "COALESCE over all-untyped-null operands is unsupported on the analytics-engine route (the"
+          + " capability registry rejects it); the v2/Calcite path returns an undefined-typed"
+          + " null."),
+
+  /**
+   * A {@code head N} without a stable {@code sort} returns a non-deterministic row set on the
+   * analytics-engine route — raw-{@code PUT} docs land in a separate segment and can sort ahead of
+   * the bulk-loaded docs. Adding a {@code sort} fixes it only when the sort key is unique over the
+   * head window; when ties fall back to a nullable key, null placement diverges between the
+   * v2/Calcite and analytics routes, so the row set still differs.
+   */
+  HEAD_WITHOUT_STABLE_SORT(
+      "head N without a sort on a key that is unique over the head window is non-deterministic on"
+          + " the analytics-engine route, and a nullable tiebreak orders nulls differently than the"
+          + " v2/Calcite path.");
 
   private final String reason;
 
