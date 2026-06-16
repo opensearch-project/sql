@@ -168,7 +168,31 @@ public enum AnalyticsRouteLimitation {
   EARLIEST_LATEST_NOW_CLOCK(
       "earliest/latest with relative-time 'now' against utc_timestamp() diverges on the"
           + " analytics-engine route: 'now' and utc_timestamp() resolve to the same instant"
-          + " (earliest('now', now) is true), but differ on the v2/Calcite path (false).");
+          + " (earliest('now', now) is true), but differ on the v2/Calcite path (false)."),
+
+  /**
+   * eval {@code max(...)} / {@code min(...)} over operands that mix numeric and string types (e.g.
+   * {@code max(14, age, 'Fred', holdersName)}) throws {@code SqlValidatorException: Cannot infer
+   * return type for GREATEST} on the analytics-engine route. The SCALAR_MAX/SCALAR_MIN UDF is
+   * converted to a DataFusion {@code GREATEST}/{@code LEAST} during Substrait conversion, and that
+   * operator can't unify heterogeneous operand types. The v2/Calcite path applies OpenSearch's
+   * mixed-type comparison (strings sort above numbers) and returns a result.
+   */
+  EVAL_MAX_MIN_MIXED_TYPES(
+      "eval max()/min() over mixed numeric+string operands throws 'Cannot infer return type for"
+          + " GREATEST' on the analytics-engine route: the DataFusion GREATEST/LEAST can't unify"
+          + " heterogeneous operand types."),
+
+  /**
+   * eval {@code max(...)} / {@code min(...)} over all-integer operands reports the result column as
+   * {@code bigint} on the analytics-engine route — DataFusion widens integer results to Int64 —
+   * whereas the v2/Calcite path reports {@code int} when the selected value fits in an int. The
+   * values match; only the schema's integer width differs.
+   */
+  EVAL_MAX_MIN_INT_WIDENING(
+      "eval max()/min() over integer operands reports the result column as bigint on the"
+          + " analytics-engine route (DataFusion widens integers to Int64), whereas the v2/Calcite"
+          + " path reports int.");
 
   private final String reason;
 

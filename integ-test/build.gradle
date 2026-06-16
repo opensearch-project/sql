@@ -1164,6 +1164,18 @@ task integTestRemote(type: RestIntegTestTask) {
             //  - earliest('now', utc_timestamp()): 'now' and utc_timestamp() resolve to the same
             //    instant on the route (true) but differ on v2 (false).
             excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testEarliestWithEval'
+
+            // === Excludes: CalcitePPLEvalMaxMinFunctionIT route divergences ===
+            // The AnalyticsExecutionEngine ANY-rescue (this PR) fixes the homogeneous max()/min()
+            // schema types, so most of the class now passes on the AE route. Three tests still
+            // diverge; each carries an in-test assumeNotAnalytics(...) (see AnalyticsRouteLimitation).
+            //  - Mixed numeric+string operands throw 'Cannot infer return type for GREATEST' (the
+            //    DataFusion GREATEST/LEAST can't unify heterogeneous operand types).
+            excludeTestsMatching '*CalcitePPLEvalMaxMinFunctionIT.testEvalMaxNumericAndString'
+            excludeTestsMatching '*CalcitePPLEvalMaxMinFunctionIT.testEvalMinNumericAndString'
+            //  - max() over int operands reports bigint on the AE route (DataFusion widens integers
+            //    to Int64) where the v2/Calcite path reports int.
+            excludeTestsMatching '*CalcitePPLEvalMaxMinFunctionIT.testEvalMaxNumeric'
         }
     }
 
