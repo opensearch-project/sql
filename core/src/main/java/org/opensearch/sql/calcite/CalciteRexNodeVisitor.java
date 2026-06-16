@@ -563,6 +563,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
+    // Resolve a group-by expression to its group-key output index.
+    Integer groupKeyIndex = context.getGroupKeyOutputIndex().get(node);
+    if (groupKeyIndex != null) {
+      return context.relBuilder.field(groupKeyIndex);
+    }
     List<UnresolvedExpression> args = node.getFuncArgs();
     List<RexNode> arguments = new ArrayList<>();
 

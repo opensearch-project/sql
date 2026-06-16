@@ -1788,11 +1788,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.getAggregateOutputIndex().put(aggFunc, aggStartIdx + i);
       }
     }
+
+    // Register group-by expression output indices so post-aggregate references resolve to them;
+    // clear() safe as above.
+    context.getGroupKeyOutputIndex().clear();
+    int groupStartIdx = metricsFirst ? aggRexList.size() : 0;
+    for (int i = 0; i < groupExprList.size(); i++) {
+      Function groupFunc = extractFunction(groupExprList.get(i));
+      if (groupFunc != null) {
+        context.getGroupKeyOutputIndex().put(groupFunc, groupStartIdx + i);
+      }
+    }
   }
 
   private static AggregateFunction extractAggregateFunction(UnresolvedExpression expr) {
     if (expr instanceof AggregateFunction af) return af;
     if (expr instanceof Alias alias) return extractAggregateFunction(alias.getDelegated());
+    return null;
+  }
+
+  private static Function extractFunction(UnresolvedExpression expr) {
+    if (expr instanceof Function f) return f;
+    if (expr instanceof Alias alias) return extractFunction(alias.getDelegated());
     return null;
   }
 
