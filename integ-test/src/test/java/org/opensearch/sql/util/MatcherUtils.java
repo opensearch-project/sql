@@ -24,6 +24,7 @@ import com.google.gson.JsonParser;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -430,6 +431,29 @@ public class MatcherUtils {
     assertEquals(
         JsonParser.parseString(eliminatePid(expected)),
         JsonParser.parseString(eliminatePid(actual)));
+  }
+
+  /**
+   * Compare two {@code datarows} JSON arrays as multisets — same rows, order ignored. Use when the
+   * test only asserts that two queries return the <em>same set of rows</em> (e.g. checking that two
+   * equivalent alias syntaxes produce the same result), not that they emit them in the same order.
+   * The analytics-engine (DataFusion) route does not guarantee the same row order as the v2/Calcite
+   * route, so a plain {@link #assertJsonEquals} on the serialized datarows is order-sensitive and
+   * flaky on that route; comparing as multisets asserts the intended equivalence without depending
+   * on output order.
+   */
+  public static void assertJsonRowsEqualIgnoreOrder(String expectedRows, String actualRows) {
+    List<String> expected = new ArrayList<>();
+    new JSONArray(eliminatePid(expectedRows))
+        .iterator()
+        .forEachRemaining(o -> expected.add(o.toString()));
+    List<String> actual = new ArrayList<>();
+    new JSONArray(eliminatePid(actualRows))
+        .iterator()
+        .forEachRemaining(o -> actual.add(o.toString()));
+    expected.sort(Comparator.naturalOrder());
+    actual.sort(Comparator.naturalOrder());
+    assertEquals(expected, actual);
   }
 
   /**
