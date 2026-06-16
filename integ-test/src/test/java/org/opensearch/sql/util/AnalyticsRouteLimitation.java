@@ -133,7 +133,42 @@ public enum AnalyticsRouteLimitation {
   SUBSEARCH_MAXOUT_IN_SUBQUERY(
       "subsearch.maxout is not honored on the analytics-engine route: the LIMIT lowered onto the"
           + " in-subquery semi-join's right side is dropped, so the subsearch returns all rows"
-          + " regardless of the cap.");
+          + " regardless of the cap."),
+
+  /**
+   * Querying an {@code object}/struct parent field directly (e.g. {@code isnull(aws)} where {@code
+   * aws} is an {@code object}) fails on the analytics-engine route with {@code FIELD_NOT_FOUND}.
+   * The route flattens objects into dotted leaf columns — {@code aws.cloudwatch.log_group} scans
+   * fine — but the struct parent is not exposed as a queryable column. Distinct from {@link
+   * #NESTED_FIELDS}: {@code object} parents survive in the OpenSearch mapping (they aren't stripped
+   * at load) yet still can't be referenced as a whole.
+   */
+  STRUCT_PARENT_FIELD(
+      "Querying an object/struct parent field directly is unsupported on the analytics-engine"
+          + " route: objects are flattened to dotted leaf columns and the parent resolves to"
+          + " FIELD_NOT_FOUND."),
+
+  /**
+   * {@code concat()} over a NULL argument diverges: the analytics-engine route (DataFusion) treats
+   * NULL as an empty string (e.g. {@code concat('H', null)} = {@code 'H'}), whereas the v2/Calcite
+   * engine propagates NULL ({@code concat('H', null)} = {@code null}). Any expression that depends
+   * on the NULL-propagating behavior over a possibly-null operand diverges.
+   */
+  CONCAT_NULL_AS_EMPTY(
+      "concat() treats a NULL argument as an empty string on the analytics-engine route (DataFusion"
+          + " semantics), whereas the v2/Calcite engine propagates NULL."),
+
+  /**
+   * {@code earliest('now', <ts>)} / {@code latest('now', <ts>)} where {@code <ts>} is {@code
+   * utc_timestamp()} diverge: on the analytics-engine route the relative-time {@code 'now'} and
+   * {@code utc_timestamp()} resolve to the same instant (so {@code earliest('now', now)} is {@code
+   * true}), whereas on the v2/Calcite path they differ (it is {@code false}) — a clock-source
+   * divergence between the relative-time evaluation and {@code utc_timestamp()}.
+   */
+  EARLIEST_LATEST_NOW_CLOCK(
+      "earliest/latest with relative-time 'now' against utc_timestamp() diverges on the"
+          + " analytics-engine route: 'now' and utc_timestamp() resolve to the same instant"
+          + " (earliest('now', now) is true), but differ on the v2/Calcite path (false).");
 
   private final String reason;
 

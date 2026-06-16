@@ -1147,6 +1147,23 @@ task integTestRemote(type: RestIntegTestTask) {
             //  - subsearch.maxout is lowered as a LIMIT on the in-subquery semi-join's right side,
             //    which the AE route does not honor, so the subsearch returns all rows.
             excludeTestsMatching '*CalcitePPLInSubqueryIT.testSubsearchMaxOut'
+
+            // === Excludes: CalcitePPLConditionBuiltinFunctionIT route divergences ===
+            // Each test also carries an in-test assumeNotAnalytics(...) recording the reason (see
+            // AnalyticsRouteLimitation); listed here so the AE-route skip set stays countable.
+            //  - isnull/isnotnull on the object/struct parent field big5.aws: objects are flattened
+            //    to dotted leaf columns and the struct parent is not a queryable column.
+            excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testIsNullWithStruct'
+            excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testIsNotNullWithStruct'
+            //  - isnull/isnotnull on the nested field nested_simple.address: nested fields are
+            //    stripped at index creation (the route can't store them).
+            excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testIsNullWithNested'
+            excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testIsNotNullWithNested'
+            //  - concat('H', null): DataFusion treats NULL as empty string; v2/Calcite propagates NULL.
+            excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testNullIfWithExpression'
+            //  - earliest('now', utc_timestamp()): 'now' and utc_timestamp() resolve to the same
+            //    instant on the route (true) but differ on v2 (false).
+            excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testEarliestWithEval'
         }
     }
 
