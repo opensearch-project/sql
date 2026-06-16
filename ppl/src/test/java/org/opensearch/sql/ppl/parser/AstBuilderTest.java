@@ -954,6 +954,69 @@ public class AstBuilderTest extends AstPlanningTestBase {
     assertEqual("source=t | spath input=f output=o", spath(relation("t"), "f", "o", null));
   }
 
+  // Narrowing source_field from `expression` to `valueExpression` rejects misparse-as-comparison.
+
+  @Test
+  public void testGrokCommandRejectsNamedFieldParameter() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | grok field=raw \"pattern\""));
+  }
+
+  @Test
+  public void testParseCommandRejectsNamedFieldParameter() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | parse field=raw \"pattern\""));
+  }
+
+  @Test
+  public void testPatternsCommandRejectsNamedFieldParameter() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | patterns field=raw"));
+  }
+
+  @Test
+  public void testGrokCommandRejectsComparisonSourceField() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | grok raw > 0 \"pattern\""));
+  }
+
+  @Test
+  public void testGrokCommandRejectsKeywordNamedParameter() {
+    // Covers a searchableKeyWord beyond FIELD (max_match=body misparses today too).
+    assertThrows(
+        SyntaxCheckException.class, () -> plan("source=t | grok max_match=body \"pattern\""));
+  }
+
+  @Test
+  public void testSpathCommandRejectsComparisonInInput() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | spath input=a=b"));
+  }
+
+  @Test
+  public void testSpathCommandRejectsComparisonInOutput() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | spath input=f output=a=b"));
+  }
+
+  @Test
+  public void testSpathCommandRejectsFunctionCallInput() {
+    // spath stringifies its input; a function call is not a valid field path.
+    assertThrows(
+        SyntaxCheckException.class, () -> plan("source=t | spath input=substring(doc,1,3)"));
+  }
+
+  @Test
+  public void testGrokCommandStillAcceptsDottedAndKeywordFields() {
+    plan("source=t | grok log.message \"pattern\""); // dotted path
+    plan("source=t | grok source \"pattern\""); // keyword-as-id field name
+  }
+
+  @Test
+  public void testParseCommandStillAcceptsFunctionCallSource() {
+    // Regression guard: this is what narrowing all the way to fieldExpression would have broken.
+    plan("source=t | parse substring(raw, 1, 5) \"pattern\"");
+  }
+
+  @Test
+  public void testPatternsCommandStillAcceptsDottedFieldWithOptions() {
+    plan("source=t | patterns log.message method=simple_pattern mode=label");
+  }
+
   @Test
   public void testKmeansCommand() {
     assertEqual(

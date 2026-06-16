@@ -422,11 +422,11 @@ rareTopOption
    ;
 
 grokCommand
-   : GROK (source_field = expression) (pattern = stringLiteral)
+   : GROK (source_field = valueExpression) (pattern = stringLiteral)
    ;
 
 parseCommand
-   : PARSE (source_field = expression) (pattern = stringLiteral)
+   : PARSE (source_field = valueExpression) (pattern = stringLiteral)
    ;
 
 spathCommand
@@ -434,8 +434,8 @@ spathCommand
    ;
 
 spathParameter
-   : (INPUT EQUAL input = expression)
-   | (OUTPUT EQUAL output = expression)
+   : (INPUT EQUAL input = fieldExpression)
+   | (OUTPUT EQUAL output = fieldExpression)
    | ((PATH EQUAL)? path = indexablePath)
    ;
 
@@ -478,7 +478,7 @@ patternsMethod
    ;
 
 patternsCommand
-   : PATTERNS (source_field = expression) (statsByClause)? (patternsCommandOption)* (patternsParameter)*
+   : PATTERNS (source_field = valueExpression) (statsByClause)? (patternsCommandOption)* (patternsParameter)*
    ;
 
 patternsCommandOption
