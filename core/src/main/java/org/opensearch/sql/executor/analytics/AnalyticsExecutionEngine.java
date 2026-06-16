@@ -32,6 +32,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -123,7 +124,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
                   try {
                     List<RelDataTypeField> fields = plan.getRowType().getFieldList();
                     List<ExprValue> results = convertRows(rows, fields);
-                    Schema schema = buildSchema(fields);
+                    Schema schema = buildSchema(fields, results);
                     profileCtx
                         .getOrCreateMetric(MetricName.EXECUTE)
                         .set(System.nanoTime() - execStart);
@@ -193,9 +194,9 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
 
   private QueryResponse buildProfiledResponse(RelNode plan, ProfiledResult result) {
     List<RelDataTypeField> fields = plan.getRowType().getFieldList();
-    Schema schema = buildSchema(fields);
     List<ExprValue> results =
         result.rows() != null ? convertRows(result.rows(), fields) : List.of();
+    Schema schema = buildSchema(fields, results);
     QueryResponse response = new QueryResponse(schema, results, Cursor.None);
     response.setProfile(result.profile());
     if (!result.isSuccess()) {
@@ -265,10 +266,20 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     return out;
   }
 
-  private Schema buildSchema(List<RelDataTypeField> fields) {
+  private Schema buildSchema(List<RelDataTypeField> fields, List<ExprValue> results) {
     List<Schema.Column> columns = new ArrayList<>();
     for (RelDataTypeField field : fields) {
       ExprType exprType = convertType(field.getType());
+      // A column whose planned type is ANY (e.g. the SCALAR_MAX/SCALAR_MIN UDFs declare ANY since
+      // they accept mixed numeric/string operands) maps to UNDEFINED. Recover the concrete type
+      // from the first row's runtime value, mirroring OpenSearchExecutionEngine.buildResultSet on
+      // the Calcite path so both routes report the same schema type.
+      if (exprType == ExprCoreType.UNDEFINED && !results.isEmpty()) {
+        ExprValue cell = results.getFirst().tupleValue().get(field.getName());
+        if (cell != null && !cell.isNull() && !cell.isMissing()) {
+          exprType = cell.type();
+        }
+      }
       columns.add(new Schema.Column(field.getName(), null, exprType));
     }
     return new Schema(columns);
