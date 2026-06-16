@@ -5,7 +5,12 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.CONCAT_NULL_AS_EMPTY;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.EARLIEST_LATEST_NOW_CLOCK;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.NESTED_FIELDS;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.STRUCT_PARENT_FIELD;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
@@ -22,22 +27,29 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
 
+    // init() runs as @Before, before every test method. On the analytics route the parquet-backed
+    // store is append-only on same-_id PUT, so seed the extra docs only when the index is first
+    // created — otherwise they accumulate a duplicate per test method and inflate row counts.
+    boolean stateCountryWithNullExisted =
+        isIndexExist(client(), TEST_INDEX_STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.CALCS);
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.BIG5);
-    Request request1 =
-        new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/7?refresh=true");
-    request1.setJsonEntity(
-        "{\"name\":\"   "
-            + " \",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
-    client().performRequest(request1);
-    Request request2 =
-        new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/8?refresh=true");
-    request2.setJsonEntity(
-        "{\"name\":\"\",\"age\":57,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
-    client().performRequest(request2);
+    if (!stateCountryWithNullExisted) {
+      Request request1 =
+          new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/7?refresh=true");
+      request1.setJsonEntity(
+          "{\"name\":\"   "
+              + " \",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
+      client().performRequest(request1);
+      Request request2 =
+          new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/8?refresh=true");
+      request2.setJsonEntity(
+          "{\"name\":\"\",\"age\":57,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
+      client().performRequest(request2);
+    }
   }
 
   @Test
@@ -54,6 +66,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testIsNullWithStruct() throws IOException {
+    // Queries the object/struct parent field 'aws' directly.
+    assumeNotAnalytics(STRUCT_PARENT_FIELD);
     JSONObject actual = executeQuery("source=big5 | where isnull(aws) | fields aws");
     verifySchema(actual, schema("aws", "struct"));
     verifyNumOfRows(actual, 0);
@@ -61,6 +75,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testIsNullWithNested() throws IOException {
+    // Queries a nested field; the route strips nested fields at index creation.
+    assumeNotAnalytics(NESTED_FIELDS);
     JSONObject actual =
         executeQuery(
             String.format(
@@ -124,6 +140,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testIsNotNullWithStruct() throws IOException {
+    // Queries the object/struct parent field 'aws' directly.
+    assumeNotAnalytics(STRUCT_PARENT_FIELD);
     JSONObject actual = executeQuery("source=big5 | where isnotnull(aws) | fields aws");
     verifySchema(actual, schema("aws", "struct"));
     verifyNumOfRows(actual, 3);
@@ -131,6 +149,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testIsNotNullWithNested() throws IOException {
+    // Queries a nested field; the route strips nested fields at index creation.
+    assumeNotAnalytics(NESTED_FIELDS);
     JSONObject actual =
         executeQuery(
             String.format(
@@ -165,6 +185,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testNullIfWithExpression() throws IOException {
+    // concat('H', name) over the null-name row diverges (NULL-as-empty vs NULL-propagating).
+    assumeNotAnalytics(CONCAT_NULL_AS_EMPTY);
     JSONObject actual =
         executeQuery(
             String.format(
@@ -354,6 +376,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testEarliestWithEval() throws IOException {
+    // earliest('now', utc_timestamp()) resolves true on the route but false on v2 (clock source).
+    assumeNotAnalytics(EARLIEST_LATEST_NOW_CLOCK);
     JSONObject actual =
         executeQuery(
             String.format(
