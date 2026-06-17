@@ -6,8 +6,8 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.MULTISEARCH_COLUMN_ORDER;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.MULTISEARCH_SAME_INDEX_CONFLATION;
+import static org.opensearch.sql.util.Capability.MULTISEARCH_COLUMN_ORDER;
+import static org.opensearch.sql.util.Capability.MULTISEARCH_SAME_INDEX_CONFLATION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -18,6 +18,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
@@ -66,8 +67,8 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTISEARCH_SAME_INDEX_CONFLATION)
   public void testMultisearchWithThreeSubsearches() throws IOException {
-    assumeNotAnalytics(MULTISEARCH_SAME_INDEX_CONFLATION);
     JSONObject result =
         executeQuery(
             String.format(
@@ -83,8 +84,8 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTISEARCH_SAME_INDEX_CONFLATION)
   public void testMultisearchWithComplexAggregation() throws IOException {
-    assumeNotAnalytics(MULTISEARCH_SAME_INDEX_CONFLATION);
     JSONObject result =
         executeQuery(
             String.format(
@@ -146,8 +147,8 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTISEARCH_COLUMN_ORDER)
   public void testMultisearchWithTimestampInterleaving() throws IOException {
-    assumeNotAnalytics(MULTISEARCH_COLUMN_ORDER);
     JSONObject result =
         executeQuery(
             "| multisearch [search"
@@ -357,8 +358,8 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
   /** Reproduce #5145: multisearch without further processing should return all rows. */
   @Test
+  @RequiresCapability(MULTISEARCH_SAME_INDEX_CONFLATION)
   public void testMultisearchWithoutFurtherProcessing() throws IOException {
-    assumeNotAnalytics(MULTISEARCH_SAME_INDEX_CONFLATION);
     JSONObject result =
         executeQuery(
             "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="

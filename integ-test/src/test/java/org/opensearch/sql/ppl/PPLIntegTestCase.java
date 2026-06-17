@@ -38,7 +38,6 @@ import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.protocol.response.format.Format;
-import org.opensearch.sql.util.AnalyticsRouteLimitation;
 import org.opensearch.sql.util.RetryProcessor;
 
 /** OpenSearch Rest integration test base for PPL testing. */
@@ -68,16 +67,6 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
    */
   public static boolean isAnalyticsParquetIndicesEnabled() {
     return TestUtils.AnalyticsIndexConfig.isEnabled();
-  }
-
-  /**
-   * Skip the current test on the analytics-engine route because of a known limitation of that route
-   * (no-op on the v2/Calcite path). The {@link AnalyticsRouteLimitation} registry holds the reason,
-   * so a skip reads as {@code assumeNotAnalytics(NESTED_FIELDS)} and every route gap stays
-   * greppable in one place.
-   */
-  public static void assumeNotAnalytics(AnalyticsRouteLimitation limitation) {
-    Assume.assumeFalse(limitation.reason(), isAnalyticsParquetIndicesEnabled());
   }
 
   protected JSONObject executeQuery(String query) throws IOException {

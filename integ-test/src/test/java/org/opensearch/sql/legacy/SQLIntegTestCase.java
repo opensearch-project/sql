@@ -35,6 +35,7 @@ import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
@@ -59,6 +60,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   public boolean shouldResetQuerySizeLimit() {
     return true;
   }
+
+  @Rule public final CapabilityRule capabilityRule = new CapabilityRule();
 
   @Before
   public void setUpIndices() throws Exception {

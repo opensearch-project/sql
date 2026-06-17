@@ -9,8 +9,8 @@ import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.SUBSEARCH_MAXOUT_IN_SUBQUERY;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.TEXT_FIELD_EXACT_MATCH;
+import static org.opensearch.sql.util.Capability.SUBSEARCH_MAXOUT_IN_SUBQUERY;
+import static org.opensearch.sql.util.Capability.TEXT_FIELD_EXACT_MATCH;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
 
@@ -348,9 +349,10 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = TEXT_FIELD_EXACT_MATCH,
+      note = "Subsearch filters a text-mapped field with exact equality (i.department = 'DATA').")
   public void testInSubqueryWithTableAlias() throws IOException {
-    // Subsearch filters a text-mapped field with exact equality (i.department = 'DATA').
-    assumeNotAnalytics(TEXT_FIELD_EXACT_MATCH);
     JSONObject result =
         executeQuery(
             String.format(
@@ -368,9 +370,10 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = TEXT_FIELD_EXACT_MATCH,
+      note = "Subsearch filters a text-mapped field with exact equality (occupation = 'Engineer').")
   public void testInCorrelatedSubquery() throws IOException {
-    // Subsearch filters a text-mapped field with exact equality (occupation = 'Engineer').
-    assumeNotAnalytics(TEXT_FIELD_EXACT_MATCH);
     JSONObject result =
         executeQuery(
             String.format(
@@ -384,8 +387,8 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SUBSEARCH_MAXOUT_IN_SUBQUERY)
   public void testSubsearchMaxOut() throws IOException {
-    assumeNotAnalytics(SUBSEARCH_MAXOUT_IN_SUBQUERY);
     setSubsearchMaxOut(1);
     JSONObject result =
         executeQuery(

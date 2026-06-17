@@ -7,10 +7,10 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.*;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.CONCAT_NULL_AS_EMPTY;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.EARLIEST_LATEST_NOW_CLOCK;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.NESTED_FIELDS;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.STRUCT_PARENT_FIELD;
+import static org.opensearch.sql.util.Capability.CONCAT_NULL_AS_EMPTY;
+import static org.opensearch.sql.util.Capability.EARLIEST_LATEST_NOW_CLOCK;
+import static org.opensearch.sql.util.Capability.NESTED_FIELDS;
+import static org.opensearch.sql.util.Capability.STRUCT_PARENT_FIELD;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
@@ -20,6 +20,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   @Override
@@ -65,18 +66,20 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = STRUCT_PARENT_FIELD,
+      note = "Queries the object/struct parent field 'aws' directly.")
   public void testIsNullWithStruct() throws IOException {
-    // Queries the object/struct parent field 'aws' directly.
-    assumeNotAnalytics(STRUCT_PARENT_FIELD);
     JSONObject actual = executeQuery("source=big5 | where isnull(aws) | fields aws");
     verifySchema(actual, schema("aws", "struct"));
     verifyNumOfRows(actual, 0);
   }
 
   @Test
+  @RequiresCapability(
+      value = NESTED_FIELDS,
+      note = "Queries a nested field; the route strips nested fields at index creation.")
   public void testIsNullWithNested() throws IOException {
-    // Queries a nested field; the route strips nested fields at index creation.
-    assumeNotAnalytics(NESTED_FIELDS);
     JSONObject actual =
         executeQuery(
             String.format(
@@ -139,18 +142,20 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = STRUCT_PARENT_FIELD,
+      note = "Queries the object/struct parent field 'aws' directly.")
   public void testIsNotNullWithStruct() throws IOException {
-    // Queries the object/struct parent field 'aws' directly.
-    assumeNotAnalytics(STRUCT_PARENT_FIELD);
     JSONObject actual = executeQuery("source=big5 | where isnotnull(aws) | fields aws");
     verifySchema(actual, schema("aws", "struct"));
     verifyNumOfRows(actual, 3);
   }
 
   @Test
+  @RequiresCapability(
+      value = NESTED_FIELDS,
+      note = "Queries a nested field; the route strips nested fields at index creation.")
   public void testIsNotNullWithNested() throws IOException {
-    // Queries a nested field; the route strips nested fields at index creation.
-    assumeNotAnalytics(NESTED_FIELDS);
     JSONObject actual =
         executeQuery(
             String.format(
@@ -184,9 +189,11 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = CONCAT_NULL_AS_EMPTY,
+      note =
+          "concat('H', name) over the null-name row diverges (NULL-as-empty vs NULL-propagating).")
   public void testNullIfWithExpression() throws IOException {
-    // concat('H', name) over the null-name row diverges (NULL-as-empty vs NULL-propagating).
-    assumeNotAnalytics(CONCAT_NULL_AS_EMPTY);
     JSONObject actual =
         executeQuery(
             String.format(
@@ -375,9 +382,12 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = EARLIEST_LATEST_NOW_CLOCK,
+      note =
+          "earliest('now', utc_timestamp()) resolves true on the route but false on v2 (clock"
+              + " source).")
   public void testEarliestWithEval() throws IOException {
-    // earliest('now', utc_timestamp()) resolves true on the route but false on v2 (clock source).
-    assumeNotAnalytics(EARLIEST_LATEST_NOW_CLOCK);
     JSONObject actual =
         executeQuery(
             String.format(

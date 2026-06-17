@@ -1084,8 +1084,8 @@ task integTestRemote(type: RestIntegTestTask) {
             excludeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteAliasFieldAggregationIT'
 
             // === Excludes: WhereCommandIT / CalciteWhereCommandIT route divergences (#5546) ===
-            // Each test also carries an in-test assumeNotAnalytics(...) recording the reason (see
-            // AnalyticsRouteLimitation); listed here so the AE-route skip set stays countable in one
+            // Each test also carries an in-test requireCapability(...) recording the reason (see
+            // Capability); listed here so the AE-route skip set stays countable in one
             // place. Reasons:
             //  - Nested-field queries: the parquet/composite store has no nested-document support, so
             //    nested fields are stripped at load (#5541). Defined only in CalciteWhereCommandIT.
@@ -1104,8 +1104,8 @@ task integTestRemote(type: RestIntegTestTask) {
             excludeTestsMatching '*WhereCommandIT.testDoubleEqualWithSpecialCharacters'
 
             // === Excludes: CalciteMultisearchCommandIT route divergences ===
-            // Each test also carries an in-test assumeNotAnalytics(...) recording the reason (see
-            // AnalyticsRouteLimitation); listed here so the AE-route skip set stays countable.
+            // Each test also carries an in-test requireCapability(...) recording the reason (see
+            // Capability); listed here so the AE-route skip set stays countable.
             //  - Same-index subsearch conflation: when every subsearch reads the same index, the AE
             //    route applies the first subsearch's filter to all of them, so counts are wrong.
             excludeTestsMatching '*CalciteMultisearchCommandIT.testMultisearchWithThreeSubsearches'
@@ -1119,15 +1119,15 @@ task integTestRemote(type: RestIntegTestTask) {
             // bin on a time field then grouping by it: the AE route types the date-histogram bucket
             // column as string (not timestamp) AND produces a different bucket set (auto-histogram
             // span / empty-bucket filtering differ), so both schema and row counts diverge. Each
-            // test also carries an in-test assumeNotAnalytics(...) (see AnalyticsRouteLimitation).
+            // test also carries an in-test requireCapability(...) (see Capability).
             excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeField_Count'
             excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeField_Avg'
             excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeAndTermField_Count'
             excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeAndTermField_Avg'
 
             // === Excludes: CalcitePPLEnhancedCoalesceIT route divergences ===
-            // Each test also carries an in-test assumeNotAnalytics(...) recording the reason (see
-            // AnalyticsRouteLimitation). The other ordering-sensitive coalesce tests were fixed in
+            // Each test also carries an in-test requireCapability(...) recording the reason (see
+            // Capability). The other ordering-sensitive coalesce tests were fixed in
             // place with an explicit `sort` instead of being skipped.
             //  - COALESCE over all-untyped-null operands is rejected by the capability registry.
             excludeTestsMatching '*CalcitePPLEnhancedCoalesceIT.testCoalesceWithAllNonExistentFields'
@@ -1137,8 +1137,8 @@ task integTestRemote(type: RestIntegTestTask) {
             excludeTestsMatching '*CalcitePPLEnhancedCoalesceIT.testCoalesceBasic'
 
             // === Excludes: CalcitePPLScalarSubqueryIT / CalcitePPLInSubqueryIT route divergences ===
-            // Each test also carries an in-test assumeNotAnalytics(...) recording the reason (see
-            // AnalyticsRouteLimitation); listed here so the AE-route skip set stays countable.
+            // Each test also carries an in-test requireCapability(...) recording the reason (see
+            // Capability); listed here so the AE-route skip set stays countable.
             //  - Exact equality on an explicitly text-mapped field (department/occupation = '...')
             //    in the subsearch returns no rows on the AE route (analyzed text, no .keyword).
             excludeTestsMatching '*CalcitePPLScalarSubqueryIT.testTwoUncorrelatedScalarSubqueriesInOr'
@@ -1149,8 +1149,8 @@ task integTestRemote(type: RestIntegTestTask) {
             excludeTestsMatching '*CalcitePPLInSubqueryIT.testSubsearchMaxOut'
 
             // === Excludes: CalcitePPLConditionBuiltinFunctionIT route divergences ===
-            // Each test also carries an in-test assumeNotAnalytics(...) recording the reason (see
-            // AnalyticsRouteLimitation); listed here so the AE-route skip set stays countable.
+            // Each test also carries an in-test requireCapability(...) recording the reason (see
+            // Capability); listed here so the AE-route skip set stays countable.
             //  - isnull/isnotnull on the object/struct parent field big5.aws: objects are flattened
             //    to dotted leaf columns and the struct parent is not a queryable column.
             excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testIsNullWithStruct'
@@ -1168,7 +1168,7 @@ task integTestRemote(type: RestIntegTestTask) {
             // === Excludes: CalcitePPLEvalMaxMinFunctionIT route divergences ===
             // The AnalyticsExecutionEngine ANY-rescue (this PR) fixes the homogeneous max()/min()
             // schema types, so most of the class now passes on the AE route. Three tests still
-            // diverge; each carries an in-test assumeNotAnalytics(...) (see AnalyticsRouteLimitation).
+            // diverge; each carries an in-test requireCapability(...) (see Capability).
             //  - Mixed numeric+string operands throw 'Cannot infer return type for GREATEST' (the
             //    DataFusion GREATEST/LEAST can't unify heterogeneous operand types).
             excludeTestsMatching '*CalcitePPLEvalMaxMinFunctionIT.testEvalMaxNumericAndString'
