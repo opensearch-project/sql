@@ -167,6 +167,39 @@ class AnalyticsExecutionEngineTest {
         6.0, response.getResults().get(0).tupleValue().get("d").value(), "double value. " + dump);
   }
 
+  /**
+   * A column whose planned type is ANY (e.g. the SCALAR_MAX/SCALAR_MIN UDFs declare ANY) maps to
+   * UNDEFINED; recover the concrete type from the first row's runtime value so the schema matches
+   * the Calcite path instead of reporting "undefined".
+   */
+  @Test
+  void executeRelNode_anyColumnRecoversTypeFromFirstRow() {
+    RelNode relNode = mockRelNode("age", SqlTypeName.BIGINT, "new", SqlTypeName.ANY);
+    Iterable<Object[]> rows = Arrays.asList(new Object[] {2L, 3}, new Object[] {4L, 4});
+    stubExecutorWith(relNode, rows);
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    // 'new' is ANY in the plan but the first row's value is an Integer → schema reports INTEGER.
+    assertEquals(ExprCoreType.LONG, response.getSchema().getColumns().get(0).getExprType(), dump);
+    assertEquals(
+        ExprCoreType.INTEGER, response.getSchema().getColumns().get(1).getExprType(), dump);
+  }
+
+  /** ANY column with no rows to derive from stays UNDEFINED (mirrors the Calcite path fallback). */
+  @Test
+  void executeRelNode_anyColumnEmptyResultsStaysUndefined() {
+    RelNode relNode = mockRelNode("new", SqlTypeName.ANY);
+    stubExecutorWith(relNode, Collections.emptyList());
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    assertEquals(
+        ExprCoreType.UNDEFINED, response.getSchema().getColumns().get(0).getExprType(), dump);
+  }
+
   @Test
   void executeRelNode_temporalTypes() {
     RelNode relNode =

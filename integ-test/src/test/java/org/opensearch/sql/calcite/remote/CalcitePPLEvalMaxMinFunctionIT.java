@@ -7,6 +7,8 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.EVAL_MAX_MIN_INT_WIDENING;
+import static org.opensearch.sql.util.AnalyticsRouteLimitation.EVAL_MAX_MIN_MIXED_TYPES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -28,6 +30,8 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testEvalMaxNumeric() throws Exception {
+    // max(1, 3, age) selects an int-valued result; the AE route reports it as bigint.
+    assumeNotAnalytics(EVAL_MAX_MIN_INT_WIDENING);
     JSONObject result =
         executeQuery(
             String.format(
@@ -49,6 +53,8 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testEvalMaxNumericAndString() throws Exception {
+    // Mixed numeric+string operands -> 'Cannot infer return type for GREATEST' on the AE route.
+    assumeNotAnalytics(EVAL_MAX_MIN_MIXED_TYPES);
     JSONObject result =
         executeQuery(
             String.format(
@@ -83,6 +89,8 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testEvalMinNumericAndString() throws Exception {
+    // Mixed numeric+string operands -> 'Cannot infer return type for GREATEST' on the AE route.
+    assumeNotAnalytics(EVAL_MAX_MIN_MIXED_TYPES);
     JSONObject result =
         executeQuery(
             String.format(
