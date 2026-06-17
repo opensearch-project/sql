@@ -9,7 +9,7 @@ import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.TEXT_FIELD_EXACT_MATCH;
+import static org.opensearch.sql.util.Capability.TEXT_FIELD_EXACT_MATCH;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -21,6 +21,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
 
@@ -237,9 +238,10 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = TEXT_FIELD_EXACT_MATCH,
+      note = "Subsearch filters a text-mapped field with exact equality (department = 'DATA').")
   public void testTwoUncorrelatedScalarSubqueriesInOr() throws IOException {
-    // Subsearch filters a text-mapped field with exact equality (department = 'DATA').
-    assumeNotAnalytics(TEXT_FIELD_EXACT_MATCH);
     JSONObject result =
         executeQuery(
             String.format(

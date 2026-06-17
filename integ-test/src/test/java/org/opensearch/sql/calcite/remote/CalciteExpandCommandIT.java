@@ -7,7 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ARRAY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.DOC_MUTATION;
+import static org.opensearch.sql.util.Capability.DOC_MUTATION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -20,6 +20,7 @@ import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteExpandCommandIT extends PPLIntegTestCase {
   @Override
@@ -295,8 +296,8 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testExpandEmptyArray() throws Exception {
-    assumeNotAnalytics(DOC_MUTATION);
     final int docId = 6;
     Request insertRequest =
         new Request(
@@ -325,8 +326,8 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testExpandOnNullField() throws Exception {
-    assumeNotAnalytics(DOC_MUTATION);
     final int docId = 6;
     Request insertRequest =
         new Request(

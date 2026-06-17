@@ -6,8 +6,8 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.COALESCE_ALL_NULL_OPERANDS;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.HEAD_WITHOUT_STABLE_SORT;
+import static org.opensearch.sql.util.Capability.COALESCE_ALL_NULL_OPERANDS;
+import static org.opensearch.sql.util.Capability.HEAD_WITHOUT_STABLE_SORT;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -15,6 +15,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   @Override
@@ -38,8 +39,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testCoalesceBasic() throws IOException {
-    assumeNotAnalytics(HEAD_WITHOUT_STABLE_SORT);
     JSONObject actual =
         executeQuery(
             String.format(
@@ -54,8 +55,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testCoalesceWithMixedTypes() throws IOException {
-    assumeNotAnalytics(HEAD_WITHOUT_STABLE_SORT);
     JSONObject actual =
         executeQuery(
             String.format(
@@ -164,8 +165,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(COALESCE_ALL_NULL_OPERANDS)
   public void testCoalesceWithAllNonExistentFields() throws IOException {
-    assumeNotAnalytics(COALESCE_ALL_NULL_OPERANDS);
     JSONObject actual =
         executeQuery(
             String.format(

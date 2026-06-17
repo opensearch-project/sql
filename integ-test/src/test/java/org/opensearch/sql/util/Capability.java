@@ -6,17 +6,17 @@
 package org.opensearch.sql.util;
 
 /**
- * Single registry of the known behavioral divergences of the analytics-engine route
- * (parquet/composite store + DataFusion backend, activated by {@code
- * -Dtests.analytics.parquet_indices=true}). Each constant carries the reason a test is skipped on
- * that route.
+ * Backend-agnostic registry of execution capabilities a test may require. Each constant names a
+ * behavior (nested fields, document mutation, stable head ordering, ...) and carries the reason it
+ * is unavailable on a backend that lacks it — currently the analytics-engine route. Tests declare
+ * the capability they need via {@code BackendCapabilities.requireCapability(...)} or the {@link
+ * RequiresCapability} annotation rather than naming a backend.
  *
- * <p>Pair it with {@code PPLIntegTestCase.assumeNotAnalytics(...)} so a skip reads as {@code
- * assumeNotAnalytics(NESTED_FIELDS)} instead of a copy-pasted string literal. Keeping every reason
- * here makes the full set of analytics-route gaps greppable in one place — both for humans tracking
- * what still needs fixing and as a single block of context to hand an agent for bulk triage.
+ * <p>Keeping every reason here makes the full set of route gaps greppable in one place — both for
+ * humans tracking what still needs fixing and as a single block of context to hand an agent for
+ * bulk triage.
  */
-public enum AnalyticsRouteLimitation {
+public enum Capability {
   /**
    * The parquet/composite store has no nested-document support, so nested fields are stripped from
    * the dataset at load (#5541) and queries that reference them resolve against fields that don't
@@ -196,7 +196,7 @@ public enum AnalyticsRouteLimitation {
 
   private final String reason;
 
-  AnalyticsRouteLimitation(String reason) {
+  Capability(String reason) {
     this.reason = reason;
   }
 

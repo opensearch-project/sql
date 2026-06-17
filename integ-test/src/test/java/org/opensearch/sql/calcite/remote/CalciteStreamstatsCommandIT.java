@@ -6,7 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
-import static org.opensearch.sql.util.AnalyticsRouteLimitation.DOC_MUTATION;
+import static org.opensearch.sql.util.Capability.DOC_MUTATION;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -15,6 +15,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   @Override
@@ -507,8 +508,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsGlobal() throws IOException {
-    assumeNotAnalytics(DOC_MUTATION);
     final int docId = 5;
     Request insertRequest =
         new Request(
@@ -667,8 +668,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsReset() throws IOException {
-    assumeNotAnalytics(DOC_MUTATION);
     final int docId = 5;
     Request insertRequest =
         new Request(
@@ -936,8 +937,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testMultipleStreamstatsWithNull2() throws IOException {
-    assumeNotAnalytics(DOC_MUTATION);
     final int docId = 5;
     Request insertRequest =
         new Request(
