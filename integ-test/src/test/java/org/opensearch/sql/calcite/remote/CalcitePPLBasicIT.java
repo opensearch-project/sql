@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.junit.Assume.assumeFalse;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.REGEXP_FILTER;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -21,6 +22,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLBasicIT extends PPLIntegTestCase {
 
@@ -154,6 +156,9 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = REGEXP_FILTER,
+      note = "REGEXP filter throws a backend NullPointerException on the AE route.")
   public void testRegexpFilter() throws IOException {
     JSONObject actual = executeQuery("source=test | where name REGEXP 'he.*' | fields name, age");
     verifySchema(actual, schema("name", "string"), schema("age", "bigint"));

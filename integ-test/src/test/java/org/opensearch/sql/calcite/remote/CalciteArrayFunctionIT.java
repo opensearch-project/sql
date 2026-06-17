@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.util.Capability.ARRAY_HIGHER_ORDER_FUNC;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -15,6 +16,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   @Override
@@ -22,7 +24,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
     loadIndex(Index.BANK);
-    loadIndex(Index.ARRAY);
+    // No test queries the array index (all build arrays inline via array()); its multi-value
+    // numbers field can't be bulk-loaded into the parquet store, so skip it on the AE route.
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.ARRAY);
+    }
   }
 
   @Test
@@ -85,6 +91,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testForAll() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -99,6 +110,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testExists() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -113,6 +129,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testFilter() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -127,6 +148,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testTransform() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -141,6 +167,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testTransformForTwoInput() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -155,6 +186,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testTransformForWithDouble() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -169,6 +205,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testTransformForWithUDF() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -185,6 +226,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testReduce() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -202,6 +248,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testReduce2() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -216,6 +267,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testReduce3() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -231,6 +287,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testReduceWithUDF() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -796,6 +857,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testMvmap() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -809,6 +875,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testMvmapWithAddition() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -822,6 +893,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testMvmapWithNestedFunction() throws IOException {
     // Test mvmap with mvindex as first argument - extracts field name from nested function
     // Equivalent to Splunk: mvmap(mvindex(arr, 1, 3), arr * 10)
@@ -839,6 +915,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testMvmapWithOtherFieldReference() throws IOException {
     // Test mvmap with reference to another field in the expression
     // The first record in bank has age=32, so array(1,2,3) * 32 = [32, 64, 96]
@@ -854,6 +935,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ARRAY_HIGHER_ORDER_FUNC,
+      note =
+          "Higher-order array function (transform/mvmap/reduce/filter/exists/forall) takes a"
+              + " lambda.")
   public void testMvmapWithEvalFieldReference() throws IOException {
     // Test mvmap with reference to another field created by eval
     // array(1,2,3) * 10 = [10, 20, 30]
