@@ -17,6 +17,7 @@ import org.apache.commons.lang3.Strings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
+import org.opensearch.analytics.QueryRequestContext;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.analytics.exec.profile.QueryProfile;
 import org.opensearch.cluster.service.ClusterService;
@@ -42,6 +43,7 @@ import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.utils.SystemIndexUtils;
+import org.opensearch.tasks.Task;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
@@ -144,11 +146,31 @@ public class RestUnifiedQueryAction {
         && "composite".equals(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(settings));
   }
 
-  /** Execute a query through the unified query pipeline on the sql-worker thread pool. */
+  /** Execute with no parent task (SQL path): the analytics query runs detached, not cancellable. */
   public void execute(
       String query,
       QueryType queryType,
       boolean profiling,
+      ActionListener<TransportPPLQueryResponse> listener) {
+    doExecute(query, queryType, profiling, null, listener);
+  }
+
+  /** Execute linked to {@code parentTask} so a front-end cancel propagates into the engine. */
+  public void execute(
+      String query,
+      QueryType queryType,
+      boolean profiling,
+      Task parentTask,
+      ActionListener<TransportPPLQueryResponse> listener) {
+    assert parentTask != null : "parentTask required for cancellation propagation";
+    doExecute(query, queryType, profiling, parentTask, listener);
+  }
+
+  private void doExecute(
+      String query,
+      QueryType queryType,
+      boolean profiling,
+      Task parentTask,
       ActionListener<TransportPPLQueryResponse> listener) {
     client
         .threadPool()
@@ -158,8 +180,9 @@ public class RestUnifiedQueryAction {
                   // Ask the engine for a per-query context — it binds the snapshot
                   // (cluster state + schema built from it) and returns the pair, so the
                   // schema we plan against and the state the executor uses are the same view.
-                  org.opensearch.analytics.QueryRequestContext queryCtx =
-                      contextProvider.getContext();
+                  // Carry the front-end task so cancellation propagates into the engine.
+                  QueryRequestContext queryCtx =
+                      withParentTask(contextProvider.getContext(), parentTask);
                   // Disable SQL-layer phase profiling when analytics engine profiling is active.
                   // Our QueryProfile (stages, tasks, timing) is strictly more detailed and replaces
                   // it.
@@ -192,22 +215,39 @@ public class RestUnifiedQueryAction {
             SQL_WORKER_THREAD_POOL_NAME);
   }
 
-  /**
-   * Explain a query through the unified query pipeline on the sql-worker thread pool. Returns
-   * ExplainResponse via ResponseListener so the caller can format it.
-   */
+  /** Explain with no parent task (SQL path). */
   public void explain(
       String query,
       QueryType queryType,
       ExplainMode mode,
+      ResponseListener<ExplainResponse> listener) {
+    doExplain(query, queryType, mode, null, listener);
+  }
+
+  /** Explain linked to {@code parentTask} so a front-end cancel propagates into the engine. */
+  public void explain(
+      String query,
+      QueryType queryType,
+      ExplainMode mode,
+      Task parentTask,
+      ResponseListener<ExplainResponse> listener) {
+    assert parentTask != null : "parentTask required for cancellation propagation";
+    doExplain(query, queryType, mode, parentTask, listener);
+  }
+
+  private void doExplain(
+      String query,
+      QueryType queryType,
+      ExplainMode mode,
+      Task parentTask,
       ResponseListener<ExplainResponse> listener) {
     client
         .threadPool()
         .schedule(
             withCurrentContext(
                 () -> {
-                  org.opensearch.analytics.QueryRequestContext queryCtx =
-                      contextProvider.getContext();
+                  QueryRequestContext queryCtx =
+                      withParentTask(contextProvider.getContext(), parentTask);
                   try (UnifiedQueryContext context = buildContext(queryType, false, queryCtx)) {
                     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
                     RelNode plan = planner.plan(query);
@@ -231,9 +271,7 @@ public class RestUnifiedQueryAction {
   }
 
   private UnifiedQueryContext buildContext(
-      QueryType queryType,
-      boolean profiling,
-      org.opensearch.analytics.QueryRequestContext queryCtx) {
+      QueryType queryType, boolean profiling, QueryRequestContext queryCtx) {
     return applyClusterOverrides(
             UnifiedQueryContext.builder()
                 .language(queryType)
@@ -242,6 +280,14 @@ public class RestUnifiedQueryAction {
                 .defaultNamespace(SCHEMA_NAME)
                 .profiling(profiling))
         .build();
+  }
+
+  /** Returns {@code ctx} carrying {@code parentTask}, or unchanged when there is none. */
+  private static QueryRequestContext withParentTask(QueryRequestContext ctx, Task parentTask) {
+    if (parentTask == null) {
+      return ctx;
+    }
+    return new QueryRequestContext(ctx.clusterState(), ctx.schema(), ctx.querySource(), parentTask);
   }
 
   /**
