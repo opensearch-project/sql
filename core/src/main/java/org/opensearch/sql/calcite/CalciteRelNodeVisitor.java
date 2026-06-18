@@ -219,15 +219,47 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
+    if (context.isTrackingEnabled()) {
+      int idBefore = context.relBuilder.size() > 0 ? context.relBuilder.peek().getId() : -1;
+      RelNode result = unresolved.accept(this, context);
+      int idAfter = context.relBuilder.peek().getId();
+      java.util.List<Integer> producedIds = new java.util.ArrayList<>();
+      for (int id = idBefore + 1; id <= idAfter; id++) {
+        producedIds.add(id);
+      }
+      context.recordMapping(unresolved.getClass().getSimpleName(), producedIds);
+      return result;
+    }
     return unresolved.accept(this, context);
   }
 
   @Override
   public RelNode visitChildren(Node node, CalcitePlanContext context) {
+    if (context.isTrackingEnabled() && node instanceof UnresolvedPlan) {
+      // Track each child's total contribution (the subtree it produces)
+      RelNode result = null;
+      for (org.opensearch.sql.ast.Node child : node.getChild()) {
+        int idBefore = context.relBuilder.size() > 0 ? context.relBuilder.peek().getId() : -1;
+        RelNode childResult = child.accept(this, context);
+        result = childResult;
+        // After child.accept returns, the child's visit* method has fully completed,
+        // so all RelNodes produced by that child (including ITS children) are on the stack.
+        int idAfter = context.relBuilder.peek().getId();
+        if (child instanceof UnresolvedPlan) {
+          java.util.List<Integer> producedIds = new java.util.ArrayList<>();
+          for (int id = idBefore + 1; id <= idAfter; id++) {
+            producedIds.add(id);
+          }
+          context.recordMapping(child.getClass().getSimpleName(), producedIds);
+        }
+      }
+      if (node instanceof UnresolvedPlan plan) {
+        mapPathMaterializer.materializePaths(plan, context);
+      }
+      return result;
+    }
     RelNode result = super.visitChildren(node, context);
     if (node instanceof UnresolvedPlan plan) {
-      // Materialize MAP dotted paths as flat columns after children are analyzed
-      // (so MAP/struct types are known) but before the command's own visit logic runs.
       mapPathMaterializer.materializePaths(plan, context);
     }
     return result;
