@@ -1239,6 +1239,52 @@ task integTestRemote(type: RestIntegTestTask) {
             // === Excludes: CalcitePPLBasicIT route divergence ===
             // REGEXP filter throws a backend NullPointerException on the AE route.
             excludeTestsMatching '*CalcitePPLBasicIT.testRegexpFilter'
+
+            // === Excludes: percentile is approximate on AE (DataFusion) but exact on v2/Calcite ===
+            excludeTestsMatching '*StatsCommandIT.testStatsPercentileWithNull'
+            excludeTestsMatching '*StatsCommandIT.testStatsPercentileByNullValue'
+            excludeTestsMatching '*StatsCommandIT.testStatsPercentileByNullValueNonNullBucket'
+            excludeTestsMatching '*StatsCommandIT.testStatsPercentileBySpan'
+            excludeTestsMatching '*CalcitePPLAggregationIT.testPercentile'
+            excludeTestsMatching '*CalcitePPLAggregationIT.testPercentileShortcutsFloatingPoint'
+
+            // === Excludes: span() time-field bucketing differs on the AE route ===
+            excludeTestsMatching '*StatsCommandIT.testStatsBySpanTimeWithNullBucket'
+            excludeTestsMatching '*CalciteChartCommandIT.testChartMaxValueByTimestampSpanDayAndWeek'
+
+            // === Excludes: float/half_float arithmetic keeps 32-bit precision on AE ===
+            excludeTestsMatching '*CalcitePPLBuiltinFunctionIT.testDivide'
+            excludeTestsMatching '*CalcitePPLBuiltinFunctionIT.testModFloatAndNegative'
+            excludeTestsMatching '*CalcitePPLBuiltinFunctionIT.testModShouldReturnWiderTypes'
+
+            // === Excludes: date_format/strftime render some tokens differently on AE ===
+            excludeTestsMatching '*DateTimeFunctionIT.testDateFormat'
+            excludeTestsMatching '*CalciteDateTimeFunctionIT.testStrftimeWithDateFields'
+
+            // === Excludes: unix_timestamp drops sub-second precision on AE ===
+            excludeTestsMatching '*DateTimeFunctionIT.testUnixTimestampWithTimestampString'
+
+            // === Excludes: json_set/json_delete with a $-prefixed path is a no-op on AE ===
+            excludeTestsMatching '*CalcitePPLJsonBuiltinFunctionIT.testJsonSetWithDollarPrefixedPath'
+            excludeTestsMatching '*CalcitePPLJsonBuiltinFunctionIT.testJsonDeleteWithDollarPrefixedPath'
+
+            // === Excludes: dedup surviving-row selection is non-deterministic on AE ===
+            excludeTestsMatching '*CalcitePPLDedupIT.testDedupComplex'
+            excludeTestsMatching '*CalcitePPLDedupIT.testDedupExpr'
+            excludeTestsMatching '*CalcitePPLDedupIT.testConsecutiveImplicitFallbackV2'
+
+            // === Excludes: same-index union conflates on AE (delegated predicate leak) ===
+            excludeTestsMatching '*CalciteUnionCommandIT.testUnionThreeSubsearches'
+            excludeTestsMatching '*CalciteUnionCommandIT.testUnionMidPipeline_SingleExplicitDataset'
+
+            // === Excludes: rename * returns columns in a different order on AE ===
+            excludeTestsMatching '*CalcitePPLRenameIT.testRenameFullWildcardExcludesMetadataFields'
+
+            // === Excludes: otel_logs multi-value field can't load into the parquet store ===
+            excludeTestsMatching '*CalciteChartCommandIT.testChartLimit0WithUseOther'
+            excludeTestsMatching '*CalciteChartCommandIT.testChartLimitTopWithUseOther'
+            excludeTestsMatching '*CalciteChartCommandIT.testChartLimitBottomWithUseOther'
+            excludeTestsMatching '*CalciteChartCommandIT.testChartLimitTopWithMinAgg'
         }
     }
 

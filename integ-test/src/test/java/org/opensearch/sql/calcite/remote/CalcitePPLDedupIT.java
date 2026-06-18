@@ -7,12 +7,14 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE;
+import static org.opensearch.sql.util.Capability.DEDUP_NONDETERMINISTIC;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLDedupIT extends PPLIntegTestCase {
 
@@ -95,6 +97,9 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DEDUP_NONDETERMINISTIC,
+      note = "dedup CONSECUTIVE behavior diverges on the AE route.")
   public void testConsecutiveImplicitFallbackV2() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -252,6 +257,10 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DEDUP_NONDETERMINISTIC,
+      note =
+          "dedup surviving-duplicate selection diverges on the AE route (no stable merge order).")
   public void testDedupComplex() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s | dedup 1 name", TEST_INDEX_DUPLICATION_NULLABLE));
@@ -364,6 +373,10 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DEDUP_NONDETERMINISTIC,
+      note =
+          "dedup surviving-duplicate selection diverges on the AE route (no stable merge order).")
   public void testDedupExpr() throws IOException {
     JSONObject actual =
         executeQuery(

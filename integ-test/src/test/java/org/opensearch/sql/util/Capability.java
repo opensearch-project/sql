@@ -279,7 +279,92 @@ public enum Capability {
    */
   ADDTOTALS_JOIN_PANIC(
       "addtotals crashes the DataFusion backend with a join panic (out-of-range slice index) on the"
-          + " analytics-engine route.");
+          + " analytics-engine route."),
+
+  /**
+   * {@code percentile}/{@code median} is approximate on the analytics-engine route (DataFusion's
+   * approx percentile) but exact on the v2/Calcite path, so percentile values, null-bucket rows,
+   * and by-span groupings diverge.
+   */
+  PERCENTILE_APPROXIMATE(
+      "percentile/median is approximate on the analytics-engine route (DataFusion) but exact on the"
+          + " v2/Calcite path, so the values diverge."),
+
+  /**
+   * Arithmetic over {@code float}/{@code half_float}-typed fields keeps 32-bit float precision on
+   * the analytics-engine route (DataFusion), whereas the v2/Calcite path widens to double, so the
+   * least-significant digits diverge (e.g. 0.2 vs 0.19999981).
+   */
+  FLOAT_ARITHMETIC_PRECISION(
+      "Arithmetic over float/half_float fields keeps 32-bit precision on the analytics-engine route"
+          + " (DataFusion) but widens to double on the v2/Calcite path, so the values diverge in"
+          + " the least-significant digits."),
+
+  /**
+   * Datetime formatting functions ({@code date_format}, {@code strftime}) render some tokens /
+   * sub-second precision differently on the analytics-engine route than on the v2/Calcite path.
+   */
+  DATETIME_FORMAT_RENDERING(
+      "date_format/strftime render some format tokens and sub-second precision differently on the"
+          + " analytics-engine route than the v2/Calcite path."),
+
+  /**
+   * {@code json_set}/{@code json_delete} with a {@code $}-prefixed path ({@code $.key}) is a no-op
+   * on the analytics-engine route (the JSON UDF doesn't strip the {@code $} prefix), whereas the
+   * v2/Calcite path applies the modification.
+   */
+  JSON_DOLLAR_PATH(
+      "json_set/json_delete with a $-prefixed path is a no-op on the analytics-engine route (the"
+          + " JSON UDF doesn't handle the $ prefix), whereas the v2/Calcite path applies it."),
+
+  /**
+   * A dataset whose document has a multi-value array for a scalar-mapped field can't be bulk-loaded
+   * into the parquet/composite store ({@code Cannot accept multiple values for field ...}), so
+   * tests reading that dataset fail at setup on the analytics-engine route.
+   */
+  MULTI_VALUE_FIELD_LOAD(
+      "A multi-value array for a scalar-mapped field can't be bulk-loaded into the parquet store on"
+          + " the analytics-engine route, so the dataset fails to load."),
+
+  /**
+   * {@code dedup} returns a different/non-deterministic row set on the analytics-engine route — the
+   * engine merges per-fragment batches without a stable tiebreaker, so which duplicate survives
+   * (and {@code CONSECUTIVE=true} behavior) diverges from the v2/Calcite path.
+   */
+  DEDUP_NONDETERMINISTIC(
+      "dedup returns a different row set on the analytics-engine route: per-fragment merge order"
+          + " has no stable tiebreaker, so the surviving duplicate (and CONSECUTIVE behavior)"
+          + " diverges."),
+
+  /**
+   * {@code union}/{@code multisearch} over subsearches that read the same index conflates on the
+   * analytics-engine route: a delegated predicate from one branch leaks onto the co-located shard
+   * fragment and is applied to all branches, so counts/rows are wrong. Same root cause as {@link
+   * #MULTISEARCH_SAME_INDEX_CONFLATION} / {@link #APPENDPIPE_MAIN_RESULT_DROPPED}.
+   */
+  SAME_INDEX_UNION_CONFLATION(
+      "union over same-index subsearches conflates on the analytics-engine route: a delegated"
+          + " predicate from one branch leaks across the co-located shard fragment, so counts/rows"
+          + " are wrong."),
+
+  /**
+   * A wildcard projection/rename ({@code rename * as ...}, {@code fields *}) returns columns in a
+   * different order on the analytics-engine route (e.g. not mapping order) than the v2/Calcite
+   * path, so row-position-sensitive assertions diverge even though the values are correct.
+   */
+  WILDCARD_COLUMN_ORDER(
+      "A wildcard projection/rename returns columns in a different order on the analytics-engine"
+          + " route than the v2/Calcite path."),
+
+  /**
+   * {@code unix_timestamp()} over a timestamp string with sub-second precision drops the fractional
+   * seconds on the analytics-engine route (e.g. {@code unix_timestamp('1984-06-06
+   * 12:00:00.123456')} returns {@code 455371200} instead of {@code 455371200.123456}), whereas the
+   * v2/Calcite path preserves them.
+   */
+  UNIX_TIMESTAMP_SUBSECOND(
+      "unix_timestamp() drops sub-second precision on the analytics-engine route (returns whole"
+          + " seconds), whereas the v2/Calcite path preserves the fractional seconds.");
 
   private final String reason;
 

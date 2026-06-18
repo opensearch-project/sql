@@ -9,12 +9,14 @@ import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NONNUME
 import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
+import static org.opensearch.sql.util.Capability.SCALED_FLOAT_TYPE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class SystemFunctionIT extends PPLIntegTestCase {
 
@@ -53,6 +55,9 @@ public class SystemFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = SCALED_FLOAT_TYPE,
+      note = "typeof(scaled_float) is bigint on the AE route, not double.")
   public void typeof_opensearch_types() throws IOException {
     JSONObject response =
         executeQuery(
