@@ -189,6 +189,7 @@ public class TransportPPLQueryAction
             transformedRequest.getRequest(),
             QueryType.PPL,
             transformedRequest.profile(),
+            transformedRequest.getFetchSize(),
             task,
             clearingListener);
       }
