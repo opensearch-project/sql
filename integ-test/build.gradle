@@ -1075,10 +1075,11 @@ task integTestRemote(type: RestIntegTestTask) {
             // GeoPointFormatsIT: EVERY test reads a geo_point field — whole class doomed.
             excludeTestsMatching 'org.opensearch.sql.ppl.GeoPointFormatsIT'
             // datatypes_index_mapping: nested_value=nested, geo_point_value=geo_point.
-            excludeTestsMatching 'org.opensearch.sql.ppl.DataTypeIT.test_nonnumeric_data_types'
-            excludeTestsMatching 'org.opensearch.sql.ppl.SystemFunctionIT.typeof_opensearch_types'
+            // Glob matches the Calcite subclasses too (CalciteDataTypeIT, CalciteSystemFunctionIT).
+            excludeTestsMatching '*DataTypeIT.test_nonnumeric_data_types'
+            excludeTestsMatching '*SystemFunctionIT.typeof_opensearch_types'
             // alias_index_mapping: alias_col is type=alias; query is `where alias_col > 1`.
-            excludeTestsMatching 'org.opensearch.sql.ppl.DataTypeIT.test_alias_data_type'
+            excludeTestsMatching '*DataTypeIT.test_alias_data_type'
             // CalciteAliasFieldAggregationIT: raw-PUT alias index can't be created on the AE route
             // and every test queries alias fields directly — whole class doomed.
             excludeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteAliasFieldAggregationIT'
@@ -1176,6 +1177,33 @@ task integTestRemote(type: RestIntegTestTask) {
             //  - max() over int operands reports bigint on the AE route (DataFusion widens integers
             //    to Int64) where the v2/Calcite path reports int.
             excludeTestsMatching '*CalcitePPLEvalMaxMinFunctionIT.testEvalMaxNumeric'
+
+            // === Excludes: CalcitePPLCaseFunctionIT route divergences ===
+            // bin @timestamp then group by it: bucket column typed string (not timestamp) on AE.
+            excludeTestsMatching '*CalcitePPLCaseFunctionIT.testNestedCaseAggWithAutoDateHistogram'
+
+            // === Excludes: CalcitePPLStringBuiltinFunctionIT route divergences ===
+            // Re-PUT a shared _id with different data; the append-only AE store can't replace docs.
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testConcatWithField'
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testConcatWs'
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testReverse'
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testRight'
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testTrim'
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testRTrim'
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testLTrim'
+
+            // === Excludes: full-text relevance functions (unsupported on DataFusion) ===
+            excludeTestsMatching '*MultiMatchIT.test_wildcard_multi_match'
+            excludeTestsMatching '*QueryStringIT.wildcard_test'
+            excludeTestsMatching '*SimpleQueryStringIT.test_wildcard_simple_query_string'
+
+            // === Excludes: CalciteLikeQueryIT route divergence ===
+            // LIKE is case-insensitive on AE (DataFusion); v2/Calcite treats LIKE as case-sensitive.
+            excludeTestsMatching '*CalciteLikeQueryIT.test_the_default_3rd_option'
+
+            // === Excludes: CalcitePPLAppendPipeCommandIT route divergence ===
+            // appendpipe drops the main pipeline's rows on AE (subpipe filter applied in place).
+            excludeTestsMatching '*CalcitePPLAppendPipeCommandIT.testDoubleAppendPipeWithFilter'
         }
     }
 

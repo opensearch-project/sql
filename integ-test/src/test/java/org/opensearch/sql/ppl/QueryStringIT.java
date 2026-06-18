@@ -6,10 +6,12 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BEER;
+import static org.opensearch.sql.util.Capability.FULLTEXT_RELEVANCE_FUNC;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class QueryStringIT extends PPLIntegTestCase {
 
@@ -56,6 +58,9 @@ public class QueryStringIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = FULLTEXT_RELEVANCE_FUNC,
+      note = "multi_match/query_string/simple_query_string are full-text relevance funcs.")
   public void wildcard_test() throws IOException {
 
     String query1 = "source=" + TEST_INDEX_BEER + " | where query_string(['Tags'], 'taste')";

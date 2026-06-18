@@ -192,7 +192,35 @@ public enum Capability {
   EVAL_MAX_MIN_INT_WIDENING(
       "eval max()/min() over integer operands reports the result column as bigint on the"
           + " analytics-engine route (DataFusion widens integers to Int64), whereas the v2/Calcite"
-          + " path reports int.");
+          + " path reports int."),
+
+  /**
+   * Lucene full-text relevance functions ({@code match}, {@code multi_match}, {@code query_string},
+   * {@code simple_query_string}, …) are unsupported on the analytics-engine route — DataFusion has
+   * no relevance scorer, so a query that filters on one returns no rows.
+   */
+  FULLTEXT_RELEVANCE_FUNC(
+      "Full-text relevance functions (match/multi_match/query_string/simple_query_string) are"
+          + " unsupported on the analytics-engine route: DataFusion has no relevance scorer, so the"
+          + " filter returns no rows."),
+
+  /**
+   * LIKE is case-insensitive on the analytics-engine route (DataFusion), whereas the v2/Calcite
+   * path treats {@code LIKE} as case-sensitive (only {@code ILIKE} is case-insensitive).
+   */
+  LIKE_CASE_SENSITIVITY(
+      "LIKE is case-insensitive on the analytics-engine route (DataFusion), whereas the v2/Calcite"
+          + " path treats LIKE as case-sensitive."),
+
+  /**
+   * {@code appendpipe [subpipe]} drops the main pipeline's rows on the analytics-engine route: the
+   * subpipe's filter is applied to the main result instead of its output being appended to it, so
+   * the original rows are lost (e.g. {@code stats ... | appendpipe [where gender='F']} returns only
+   * the filtered F rows, not the originals plus the filtered copy).
+   */
+  APPENDPIPE_MAIN_RESULT_DROPPED(
+      "appendpipe drops the main pipeline's rows on the analytics-engine route: the subpipe filter"
+          + " is applied to the main result instead of appended, so the originals are lost.");
 
   private final String reason;
 

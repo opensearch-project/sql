@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.util.Capability.APPENDPIPE_MAIN_RESULT_DROPPED;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -17,6 +18,7 @@ import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLAppendPipeCommandIT extends PPLIntegTestCase {
   @Override
@@ -145,6 +147,9 @@ public class CalcitePPLAppendPipeCommandIT extends PPLIntegTestCase {
 
   /** Regression test: double appendpipe with non-aggregation (filter) subpipeline. */
   @Test
+  @RequiresCapability(
+      value = APPENDPIPE_MAIN_RESULT_DROPPED,
+      note = "appendpipe drops the main pipeline's rows on the AE route (filter applied in place).")
   public void testDoubleAppendPipeWithFilter() throws IOException {
     JSONObject actual =
         executeQuery(
