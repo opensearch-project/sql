@@ -220,7 +220,66 @@ public enum Capability {
    */
   APPENDPIPE_MAIN_RESULT_DROPPED(
       "appendpipe drops the main pipeline's rows on the analytics-engine route: the subpipe filter"
-          + " is applied to the main result instead of appended, so the originals are lost.");
+          + " is applied to the main result instead of appended, so the originals are lost."),
+
+  /**
+   * Higher-order array functions that take a lambda ({@code transform}/{@code mvmap}, {@code
+   * reduce}, {@code filter}, {@code exists}, {@code forall}) are unsupported on the
+   * analytics-engine route: the capability registry rejects them ({@code No backend supports scalar
+   * function [...] among [lucene, datafusion]}) since the backends can't execute a PPL lambda.
+   */
+  ARRAY_HIGHER_ORDER_FUNC(
+      "Higher-order array functions (transform/mvmap, reduce, filter, exists, forall) are"
+          + " unsupported on the analytics-engine route: the backends can't execute a PPL lambda."),
+
+  /**
+   * {@code scaled_float} fields are reported as {@code bigint} on the analytics-engine route
+   * (DataFusion stores the underlying scaled long) rather than {@code double} as on v2/Calcite.
+   */
+  SCALED_FLOAT_TYPE(
+      "scaled_float is reported as bigint on the analytics-engine route (DataFusion stores the"
+          + " scaled long), whereas the v2/Calcite path reports double."),
+
+  /**
+   * Coercing an empty string to a numeric field yields {@code null} on the analytics-engine route,
+   * whereas the v2/Calcite path coerces it to {@code 0}.
+   */
+  STRING_TO_NUMERIC_COERCION(
+      "Coercing an empty/invalid string to a numeric field yields null on the analytics-engine"
+          + " route, whereas the v2/Calcite path coerces it to 0."),
+
+  /**
+   * A wildcard/alias source whose member indices map the same field to incompatible types (e.g.
+   * {@code text} in one, {@code boolean} in another) is rejected on the analytics-engine route
+   * ({@code resolves to indices with incompatible field types}); the v2/Calcite path coerces.
+   */
+  CROSS_INDEX_INCOMPATIBLE_TYPES(
+      "A wildcard/alias source with incompatible field types across member indices is rejected on"
+          + " the analytics-engine route, whereas the v2/Calcite path coerces."),
+
+  /**
+   * The {@code REGEXP} filter operator throws a backend NullPointerException on the
+   * analytics-engine route.
+   */
+  REGEXP_FILTER(
+      "The REGEXP filter operator throws a backend NullPointerException on the analytics-engine"
+          + " route."),
+
+  /**
+   * {@code mvcombine} lowers to an {@code ARRAY_AGG} aggregate the analytics-engine backend doesn't
+   * register ({@code No enum constant ... AggregateFunction.ARRAY_AGG}).
+   */
+  MVCOMBINE_ARRAY_AGG(
+      "mvcombine lowers to ARRAY_AGG, which the analytics-engine backend does not support (no"
+          + " AggregateFunction.ARRAY_AGG enum constant)."),
+
+  /**
+   * {@code addtotals} crashes the DataFusion backend with a join panic (out-of-range slice index)
+   * on the analytics-engine route.
+   */
+  ADDTOTALS_JOIN_PANIC(
+      "addtotals crashes the DataFusion backend with a join panic (out-of-range slice index) on the"
+          + " analytics-engine route.");
 
   private final String reason;
 
