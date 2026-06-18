@@ -166,15 +166,18 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
 
   @Test
   public void testSortAgeAndFieldsNameAge() throws IOException {
+    // firstname is a unique secondary key so the age=36 tie has a deterministic,
+    // engine-independent order (sort is otherwise free to order ties differently per engine).
     JSONObject actual =
         executeQuery(
-            String.format("source=%s | sort - age | fields firstname, age", TEST_INDEX_BANK));
+            String.format(
+                "source=%s | sort - age, firstname | fields firstname, age", TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRowsInOrder(
         actual,
         rows("Virginia", 39),
-        rows("Hattie", 36),
         rows("Elinor", 36),
+        rows("Hattie", 36),
         rows("Dillard", 34),
         rows("Dale", 33),
         rows("Amber JOHnny", 32),
@@ -201,15 +204,17 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
 
   @Test
   public void testSortWithNullValue() throws IOException {
+    // firstname is a unique secondary key so the three null-balance rows have a deterministic,
+    // engine-independent order (sort is otherwise free to order ties differently per engine).
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | sort balance | fields firstname, balance",
+                "source=%s | sort balance, firstname | fields firstname, balance",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyDataRowsInOrder(
         result,
-        rows("Hattie", null),
         rows("Elinor", null),
+        rows("Hattie", null),
         rows("Virginia", null),
         rows("Dale", 4180),
         rows("Nanette", 32838),
@@ -316,9 +321,12 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
 
   @Test
   public void testSortWithAutoCast() throws IOException {
+    // firstname is a unique secondary key so the age=36 tie has a deterministic,
+    // engine-independent order (sort is otherwise free to order ties differently per engine).
     JSONObject result =
         executeQuery(
-            String.format("source=%s | sort AUTO(age) | fields firstname, age", TEST_INDEX_BANK));
+            String.format(
+                "source=%s | sort AUTO(age), firstname | fields firstname, age", TEST_INDEX_BANK));
     verifySchema(result, schema("firstname", "string"), schema("age", "int"));
     verifyDataRowsInOrder(
         result,
@@ -326,8 +334,8 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
         rows("Amber JOHnny", 32),
         rows("Dale", 33),
         rows("Dillard", 34),
-        rows("Hattie", 36),
         rows("Elinor", 36),
+        rows("Hattie", 36),
         rows("Virginia", 39));
   }
 }

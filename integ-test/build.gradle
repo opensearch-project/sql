@@ -1285,6 +1285,49 @@ task integTestRemote(type: RestIntegTestTask) {
             excludeTestsMatching '*CalciteChartCommandIT.testChartLimitTopWithUseOther'
             excludeTestsMatching '*CalciteChartCommandIT.testChartLimitBottomWithUseOther'
             excludeTestsMatching '*CalciteChartCommandIT.testChartLimitTopWithMinAgg'
+
+            // === Excludes: streamstats carries all columns through; AE reorders them ===
+            excludeTestsMatching '*CalciteReverseCommandIT.testStreamstatsWithReverse'
+            excludeTestsMatching '*CalciteReverseCommandIT.testStreamstatsByWithReverse'
+            excludeTestsMatching '*CalciteReverseCommandIT.testStreamstatsWindowWithReverse'
+            excludeTestsMatching '*CalciteReverseCommandIT.testStreamstatsWithSortThenReverse'
+
+            // === Excludes: invalid-datetime error-message shape differs on AE ===
+            excludeTestsMatching '*CalcitePPLBuiltinDatetimeFunctionInvalidIT.testDAYNAMEInvalid'
+            excludeTestsMatching '*CalcitePPLBuiltinDatetimeFunctionInvalidIT.testMONTHNAMEInvalid'
+
+            // === Excludes: seeded RAND(seed) unsupported on AE ===
+            excludeTestsMatching '*MathematicalFunctionIT.testRand'
+
+            // === Excludes: IP UDT is materialized as BINARY/byte[] on AE ===
+            excludeTestsMatching '*CastFunctionIT.testCastToIP'
+            excludeTestsMatching '*CalcitePPLAppendCommandIT.testAppendSchemaMergeWithIpUDT'
+
+            // === Excludes: append head-without-stable-sort + TIME-widened-to-TIMESTAMP signature ===
+            excludeTestsMatching '*CalcitePPLAppendCommandIT.testAppendWithMergedColumn'
+            excludeTestsMatching '*CalcitePPLBuiltinFunctionsNullIT.testTimediffNull'
+
+            // === Excludes: consecutive dedup has no working V2 fallback on AE ===
+            excludeTestsMatching '*CalciteDedupCommandIT.testConsecutiveDedup'
+
+            // === Excludes: binary field stripped at load; values() ignores configured limit ===
+            excludeTestsMatching '*CalciteMultiValueStatsIT.testListFunctionWithBinary'
+            excludeTestsMatching '*CalciteMultiValueStatsIT.testValuesFunctionRespectsConfiguredLimit'
+
+            // === Excludes: _id/_index metadata not exposed; cross-index object-leaf merge ===
+            excludeTestsMatching '*FieldsCommandIT.testMetadataFields'
+            excludeTestsMatching '*FieldsCommandIT.testMergedObjectFields'
+            // OOS: asserts the Calcite-disabled error, but the AE route is always Calcite-enabled.
+            excludeTestsMatching '*FieldsCommandIT.testEnhancedFieldsWhenCalciteDisabled'
+
+            // === Excludes: head N without a stable sort returns a non-deterministic row set ===
+            excludeTestsMatching '*SortCommandIT.testHeadThenSort'
+
+            // === Excludes: like() doesn't rewrite to .keyword in the explain plan on AE ===
+            excludeTestsMatching '*LikeQueryIT.test_convert_field_text_to_keyword'
+
+            // === Excludes: asserts a Lucene pushdown fragment absent on the AE route ===
+            excludeTestsMatching '*CalciteSortCommandIT.testPushdownSortCastToDoubleExpression'
         }
     }
 

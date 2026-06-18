@@ -364,7 +364,112 @@ public enum Capability {
    */
   UNIX_TIMESTAMP_SUBSECOND(
       "unix_timestamp() drops sub-second precision on the analytics-engine route (returns whole"
-          + " seconds), whereas the v2/Calcite path preserves the fractional seconds.");
+          + " seconds), whereas the v2/Calcite path preserves the fractional seconds."),
+
+  /**
+   * The {@code _index} (and {@code _id}) metadata field is not exposed on the analytics-engine
+   * route — parquet-backed scans surface only mapped document fields, so a query referencing {@code
+   * _index} fails with {@code FIELD_NOT_FOUND}. Sibling of {@link #ID_METADATA}.
+   */
+  INDEX_METADATA(
+      "The analytics-engine route doesn't expose the _index metadata field (parquet-backed scans"
+          + " surface only mapped document fields)."),
+
+  /**
+   * An {@code object} leaf sub-field present in only some member indices of a wildcard/alias source
+   * resolves to {@code FIELD_NOT_FOUND} on the analytics-engine route (e.g. {@code machine.os2}
+   * mapped only in one of two {@code merge_test_*} indices), whereas the v2/Calcite path merges the
+   * schemas and returns the leaf with nulls for the indices that lack it.
+   */
+  CROSS_INDEX_OBJECT_LEAF_MERGE(
+      "An object leaf field present in only some wildcard member indices resolves to"
+          + " FIELD_NOT_FOUND on the analytics-engine route, whereas the v2/Calcite path merges the"
+          + " schemas."),
+
+  /**
+   * {@code dayname}/{@code monthname} (and similar) over an invalid datetime literal throw a
+   * different error-message shape on the analytics-engine route ({@code timestamp:... yyyy-MM-dd
+   * HH:mm:ss[.SSSSSSSSS]}) than the v2/Calcite path ({@code date:... yyyy-MM-dd}): the route parses
+   * the literal through the TIMESTAMP path, so a different parser produces the message. Both
+   * engines correctly reject the input; only the message text diverges.
+   */
+  INVALID_DATETIME_ERROR_SHAPE(
+      "An invalid datetime literal throws a different error-message shape on the analytics-engine"
+          + " route (timestamp/yyyy-MM-dd HH:mm:ss[...]) than the v2/Calcite path"
+          + " (date/yyyy-MM-dd); both engines reject the input, only the message differs."),
+
+  /**
+   * Seeded {@code RAND(seed)} is unsupported on the analytics-engine route (rejected with {@code
+   * Seeded RAND(seed) is not supported on the analytics-engine route}); DataFusion has no
+   * deterministic seeded RAND equivalent. {@code RAND()} without a seed works.
+   */
+  RAND_SEED_UNSUPPORTED(
+      "Seeded RAND(seed) is unsupported on the analytics-engine route (DataFusion has no"
+          + " deterministic seeded RAND); RAND() without a seed works."),
+
+  /**
+   * The IP user-defined type is materialized as a raw {@code BINARY}/{@code byte[]} column on the
+   * analytics-engine route, so operations that need its IP type — {@code cast(... as IP)}, {@code
+   * cidrmatch} over an appended/merged IP column — fail ({@code Cannot convert BINARY to IP} /
+   * {@code unsupported object class [B}). The v2/Calcite path keeps the column typed IP.
+   */
+  IP_UDT_BINARY_REPRESENTATION(
+      "The IP user-defined type is materialized as a raw BINARY/byte[] column on the"
+          + " analytics-engine route, so cast(... as IP) and cidrmatch over an IP column fail; the"
+          + " v2/Calcite path keeps the column typed IP."),
+
+  /**
+   * A {@code TIME}-typed field is presented as {@code TIMESTAMP} on the analytics-engine route, so
+   * a function with a {@code TIME}-only signature (e.g. {@code TIMEDIFF} expects {@code [TIME,
+   * TIME]}) rejects it with a type error ({@code expects {[TIME,TIME]}, but got
+   * [TIMESTAMP,TIMESTAMP]}). The v2/Calcite path preserves the {@code TIME} type and the function
+   * accepts it.
+   */
+  TIME_TYPE_WIDENED_TO_TIMESTAMP(
+      "A TIME-typed field is presented as TIMESTAMP on the analytics-engine route, so functions"
+          + " with a TIME-only signature (e.g. TIMEDIFF) reject it with a type error; the"
+          + " v2/Calcite path preserves the TIME type."),
+
+  /**
+   * {@code binary}-typed fields are stripped from the dataset at load on the analytics-engine route
+   * (the parquet/composite store can't hold them), so a query referencing a binary field resolves
+   * to {@code FIELD_NOT_FOUND}.
+   */
+  BINARY_FIELD_STRIPPED(
+      "binary-typed fields are stripped from the dataset at load on the analytics-engine route, so"
+          + " queries referencing a binary field resolve to FIELD_NOT_FOUND."),
+
+  /**
+   * The {@code plugins.ppl.values.max.limit} cap on {@code values()}/{@code list()} is not honored
+   * on the analytics-engine route: {@code PplAggregateCallRewriter} emits no sort/limit for these
+   * aggregates, so all unique values are returned regardless of the configured limit.
+   */
+  VALUES_LIMIT_NOT_HONORED(
+      "The plugins.ppl.values.max.limit cap on values()/list() is not honored on the"
+          + " analytics-engine route (the aggregate rewriter emits no limit), so all unique values"
+          + " are returned."),
+
+  /**
+   * {@code like()} over a {@code text}+{@code keyword} field does not rewrite the filter to the
+   * {@code .keyword} sub-field in the explain plan on the analytics-engine route (the DataFusion
+   * scan has no Lucene term-pushdown to rewrite to), so a test asserting the plan contains {@code
+   * <field>.keyword} fails. The v2/Calcite-over-Lucene path performs the pushdown rewrite.
+   */
+  TEXT_KEYWORD_PUSHDOWN_REWRITE(
+      "like() over a text+keyword field doesn't rewrite to the .keyword sub-field in the explain"
+          + " plan on the analytics-engine route (no Lucene term-pushdown), whereas the v2/Calcite"
+          + " path does."),
+
+  /**
+   * A test that asserts a Lucene-specific pushdown fragment in the explain plan (e.g. the {@code
+   * SORT->[...]} sort-pushdown JSON) can't pass on the analytics-engine route: the DataFusion scan
+   * produces a different plan shape with no Lucene pushdown fragment. The query results are
+   * correct; only the plan-text assertion diverges.
+   */
+  LUCENE_PUSHDOWN_EXPLAIN(
+      "A test asserting a Lucene-specific pushdown fragment in the explain plan (e.g. SORT->[...])"
+          + " can't pass on the analytics-engine route: the DataFusion scan produces a different"
+          + " plan with no Lucene pushdown fragment.");
 
   private final String reason;
 
