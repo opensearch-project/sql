@@ -176,17 +176,20 @@ public class TransportPPLQueryAction
     if (unifiedQueryHandler != null
         && unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
       LOG.info("[{}] Routing PPL query to analytics engine", QueryContext.getRequestId());
+      // Pass this PPL task so the analytics engine links its query task to it for cancellation.
       if (transformedRequest.isExplainRequest()) {
         unifiedQueryHandler.explain(
             transformedRequest.getRequest(),
             QueryType.PPL,
             transformedRequest.mode(),
+            task,
             createExplainResponseListener(transformedRequest, clearingListener));
       } else {
         unifiedQueryHandler.execute(
             transformedRequest.getRequest(),
             QueryType.PPL,
             transformedRequest.profile(),
+            task,
             clearingListener);
       }
       return;
