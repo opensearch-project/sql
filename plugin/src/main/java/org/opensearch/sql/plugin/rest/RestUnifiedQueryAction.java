@@ -346,13 +346,14 @@ public class RestUnifiedQueryAction {
   }
 
   /**
-   * Cap the result to {@code fetchSize} rows when {@code fetchSize > 0}, mirroring PPL's
-   * {@code fetch_size} (which the V2 path lowers to a top-level {@code head N} in
-   * AstStatementBuilder). {@code fetchSize <= 0} means "use system default", so no limit is added.
-   * Uses the same {@code relBuilder.limit} primitive that {@code head} lowers to, so the analytics
-   * backend sees an ordinary fetch limit.
+   * Cap the result to {@code fetchSize} rows when {@code fetchSize > 0}, mirroring PPL's {@code
+   * fetch_size} (which the V2 path lowers to a top-level {@code head N} in AstStatementBuilder).
+   * {@code fetchSize <= 0} means "use system default", so no limit is added. Uses the same {@code
+   * relBuilder.limit} primitive that {@code head} lowers to, so the analytics backend sees an
+   * ordinary fetch limit.
    */
-  private static RelNode addFetchSizeLimit(RelNode plan, CalcitePlanContext context, int fetchSize) {
+  private static RelNode addFetchSizeLimit(
+      RelNode plan, CalcitePlanContext context, int fetchSize) {
     if (fetchSize <= 0) {
       return plan;
     }
