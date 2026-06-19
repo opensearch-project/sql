@@ -272,8 +272,7 @@ public class SQLPlugin extends Plugin
               }
             });
       } else {
-        // The analytics route only emits JSON. Reject an unsupported output format (e.g.
-        // format=csv) up front with a clean 4xx instead of silently returning JSON.
+        // Analytics route only emits JSON; reject unsupported formats (e.g. csv) with a 4xx.
         try {
           AnalyticsEngineFormatSupport.validateFormat(sqlRequest.format());
         } catch (Exception e) {

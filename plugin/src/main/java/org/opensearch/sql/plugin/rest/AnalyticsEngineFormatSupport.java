@@ -12,33 +12,19 @@ import org.opensearch.sql.common.error.QueryProcessingStage;
 import org.opensearch.sql.protocol.response.format.Format;
 
 /**
- * Guards the analytics-engine (Calcite/DataFusion) query route, which only produces JSON output.
- *
- * <p>The unified analytics route formats every response with {@code SimpleJsonResponseFormatter}
- * and does not implement the alternate response formats (csv/raw/viz) that the classic SQL/PPL
- * engines support. Previously a {@code format=csv} request on an analytics index was silently
- * answered with JSON, which is misleading: the client asked for one content type and received
- * another with no indication the parameter was dropped.
- *
- * <p>This guard rejects an unsupported output format up front with a structured {@link ErrorReport}
- * coded {@link ErrorCode#UNSUPPORTED_OPERATION}, so the REST layer returns a clean client error
- * (4xx) with an actionable message instead of silently ignoring the request.
+ * Guards the analytics-engine query route, which only produces JSON. Rejects the alternate output
+ * formats (csv/raw/viz) the route does not implement, instead of silently answering with JSON.
  */
 public final class AnalyticsEngineFormatSupport {
 
   private AnalyticsEngineFormatSupport() {}
 
   /**
-   * Throw an {@link ErrorReport} if the requested output format is not supported on the analytics
+   * Throw an {@link ErrorReport} if the requested output format is unsupported on the analytics
    * engine. JSON/JDBC (the default) is supported; csv/raw/viz are not.
-   *
-   * @param format the resolved response format requested by the client
-   * @throws ErrorReport (coded {@link ErrorCode#UNSUPPORTED_OPERATION}) when the format is
-   *     unsupported on the analytics route
    */
   public static void validateFormat(Format format) {
-    // JDBC (the default) is the JSON contract the analytics route emits. Anything else is an
-    // alternate output format that the analytics route does not implement.
+    // JDBC (the default) is the JSON contract the analytics route emits.
     if (format == Format.JDBC) {
       return;
     }
