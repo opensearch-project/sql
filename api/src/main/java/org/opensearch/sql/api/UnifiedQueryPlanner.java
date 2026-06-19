@@ -27,6 +27,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.exception.SemanticCheckException;
 
@@ -73,6 +74,10 @@ public class UnifiedQueryPlanner {
             }
             return plan;
           });
+    } catch (CalciteUnsupportedException e) {
+      // Unsupported feature (e.g. table functions) is an invalid query, i.e. a client error.
+      // Must precede the QueryEngineException branch as it is a subclass.
+      throw new SemanticCheckException(e.getMessage(), e);
     } catch (SyntaxCheckException
         | QueryEngineException
         | UnsupportedOperationException
