@@ -16,16 +16,16 @@ import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.QueryEngineException;
 
 /**
- * Verifies {@link RestSqlAction#getRestStatus(Exception)} classifies unsupported-feature and other
- * client errors as 4xx instead of letting them leak as HTTP 500. Covers both the exception-type
- * path ({@link #isClientError}) and the structured {@link ErrorReport} / {@link ErrorCode} path.
+ * Verifies {@link RestSqlAction#getRestStatus(Exception)} classifies unsupported-feature errors as
+ * a client error (4xx) instead of letting them leak as HTTP 500, while leaving the existing
+ * index-not-found (404) and server-fault (500) behavior unchanged.
  */
 public class RestSqlActionErrorStatusTest {
 
   /**
-   * Regression for the analytics-engine cursor / vectorSearch() 500s: a {@link
-   * QueryEngineException} (e.g. {@link CalciteUnsupportedException} for an unsupported SQL table
-   * function) is a client error and must map to 400, matching the PPL path.
+   * The fix: a {@link QueryEngineException} (e.g. {@link CalciteUnsupportedException} for an
+   * unsupported SQL table function such as {@code vectorSearch()}) is a client error and must map
+   * to 400, matching the PPL path. Previously it leaked as 500.
    */
   @Test
   public void queryEngineExceptionIsClientError400() {
@@ -33,20 +33,9 @@ public class RestSqlActionErrorStatusTest {
     assertEquals(RestStatus.BAD_REQUEST, RestSqlAction.getRestStatus(ex));
   }
 
-  /** An ErrorReport carrying UNSUPPORTED_OPERATION should be a 400 regardless of cause type. */
-  @Test
-  public void errorReportUnsupportedOperationIsClientError400() {
-    ErrorReport report =
-        ErrorReport.wrap(new RuntimeException("unsupported"))
-            .code(ErrorCode.UNSUPPORTED_OPERATION)
-            .build();
-    assertEquals(RestStatus.BAD_REQUEST, RestSqlAction.getRestStatus(report));
-  }
-
   /**
-   * An ErrorReport wrapping a CalciteUnsupportedException (the shape produced by
-   * visitTableFunction) maps to 400 — exercises both the ErrorCode path and the cause-unwrap
-   * fallback.
+   * An {@link ErrorReport} wrapping a {@link CalciteUnsupportedException} (the shape produced by
+   * {@code visitTableFunction}) unwraps to its client-error cause and maps to 400.
    */
   @Test
   public void errorReportWrappingCalciteUnsupportedIsClientError400() {
@@ -57,38 +46,28 @@ public class RestSqlActionErrorStatusTest {
     assertEquals(RestStatus.BAD_REQUEST, RestSqlAction.getRestStatus(report));
   }
 
-  /** ErrorReport.PERMISSION_DENIED maps to 403. */
+  /**
+   * Unchanged behavior: index-not-found stays 404. An {@link IndexNotFoundException} is an
+   * OpenSearchException whose status is NOT_FOUND; this PR must not flip that to 400.
+   */
   @Test
-  public void errorReportPermissionDeniedIs403() {
-    ErrorReport report =
-        ErrorReport.wrap(new RuntimeException("denied")).code(ErrorCode.PERMISSION_DENIED).build();
-    assertEquals(RestStatus.FORBIDDEN, RestSqlAction.getRestStatus(report));
+  public void indexNotFoundStays404() {
+    assertEquals(
+        RestStatus.NOT_FOUND,
+        RestSqlAction.getRestStatus(new IndexNotFoundException("nonexistent")));
   }
 
   /**
-   * When an ErrorReport's code carries no status opinion (e.g. EXECUTION_ERROR), classification
-   * falls back to the wrapped cause. A non-client cause stays 500.
+   * Unchanged behavior: an ErrorReport wrapping an IndexNotFoundException still unwraps to its
+   * cause's NOT_FOUND status (404), not 400.
    */
   @Test
-  public void errorReportWithoutClientCodeFallsBackToCause500() {
-    ErrorReport report =
-        ErrorReport.wrap(new RuntimeException("boom")).code(ErrorCode.EXECUTION_ERROR).build();
-    assertEquals(RestStatus.INTERNAL_SERVER_ERROR, RestSqlAction.getRestStatus(report));
-  }
-
-  /**
-   * Fallback path: an ErrorReport whose code carries no opinion but whose cause is a recognized
-   * client error (IndexNotFoundException is an OpenSearchException with NOT_FOUND status) keeps the
-   * cause's status.
-   */
-  @Test
-  public void errorReportFallbackHonorsCauseStatus404() {
-    ErrorReport report =
-        ErrorReport.wrap(new IndexNotFoundException("nonexistent")).code(ErrorCode.UNKNOWN).build();
+  public void errorReportWrappingIndexNotFoundStays404() {
+    ErrorReport report = ErrorReport.wrap(new IndexNotFoundException("nonexistent")).build();
     assertEquals(RestStatus.NOT_FOUND, RestSqlAction.getRestStatus(report));
   }
 
-  /** A genuine server fault (unrecognized runtime exception) still maps to 500. */
+  /** Unchanged behavior: a genuine server fault still maps to 500. */
   @Test
   public void unrecognizedExceptionIsServerError500() {
     assertEquals(

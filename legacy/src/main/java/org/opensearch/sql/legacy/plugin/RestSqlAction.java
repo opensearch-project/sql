@@ -32,7 +32,6 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -218,13 +217,9 @@ public class RestSqlAction extends BaseRestHandler {
   }
 
   private static int getRawErrorCode(Exception ex) {
-    if (ex instanceof ErrorReport errorReport) {
-      // Prefer the structured ErrorCode; fall back to classifying the cause when it has no opinion.
-      Integer codeStatus = httpStatusForErrorCode(errorReport.getCode());
-      if (codeStatus != null) {
-        return codeStatus;
-      }
-      return getRawErrorCode(errorReport.getCause());
+    // Recursively unwrap ErrorReport to get to the underlying cause
+    if (ex instanceof ErrorReport) {
+      return getRawErrorCode(((ErrorReport) ex).getCause());
     }
     if (ex instanceof OpenSearchException) {
       return ((OpenSearchException) ex).status().getStatus();
@@ -233,28 +228,6 @@ public class RestSqlAction extends BaseRestHandler {
       return 400;
     }
     return 500;
-  }
-
-  /** Map a client-error {@link ErrorCode} to a 4xx, or {@code null} to defer to the cause. */
-  private static Integer httpStatusForErrorCode(ErrorCode code) {
-    if (code == null) {
-      return null;
-    }
-    return switch (code) {
-      case FIELD_NOT_FOUND,
-          SYNTAX_ERROR,
-          AMBIGUOUS_FIELD,
-          SEMANTIC_ERROR,
-          EVALUATION_ERROR,
-          TYPE_ERROR,
-          UNSUPPORTED_OPERATION,
-          INDEX_NOT_FOUND,
-          RESOURCE_LIMIT_EXCEEDED ->
-          400;
-      case PERMISSION_DENIED -> 403;
-      // PLANNING_ERROR, EXECUTION_ERROR, UNKNOWN: no opinion — classify the wrapped cause instead.
-      default -> null;
-    };
   }
 
   /**
