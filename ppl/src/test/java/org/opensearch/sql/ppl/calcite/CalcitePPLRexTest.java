@@ -307,24 +307,13 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  /**
-   * Regression for the rex-inside-appendcol NPE. The subsearch starts with rex (no upstream
-   * source), so the parsed Rex node has a null {@code child} until {@link
-   * org.opensearch.sql.calcite.utils.PlanUtils#transformPlanToAttachChild} walks the subsearch tree
-   * to attach the main relation. That walker calls {@code getChild()} on every node it crosses.
-   * {@code Rex.getChild()} previously returned {@code ImmutableList.of(child)} which throws NPE
-   * when {@code child} is null; sibling AST nodes (Project / Filter / Eval / Aggregation) all guard
-   * with {@code child == null ? ImmutableList.of() : ...}. This test ensures the rex-in-appendcol
-   * pipeline plans without NPE.
-   */
+  /** Verifies that rex plans correctly when it appears as the first command of a subsearch. */
   @Test
-  public void testRexInsideAppendCol() {
+  public void testRexInsideSubsearch() {
     String ppl =
         "source=EMP | stats count() as base_c by JOB"
             + " | appendcol [ rex field=ENAME '^(?<first>[A-Z])' | fields ENAME, first ]";
     RelNode root = getRelNode(ppl);
-    // Just verify planning succeeds (does not throw). Plan-shape assertions for AppendCol's join
-    // shape live in CalcitePPLAppendColumnsTest; this regression only covers the NPE.
     org.junit.Assert.assertNotNull(root);
   }
 }
