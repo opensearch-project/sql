@@ -7,10 +7,13 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.protocol.response.format.Format;
 
 public class CalcitePPLExplainIT extends PPLIntegTestCase {
 
@@ -78,12 +81,10 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   public void testJsonTreeFormat() throws IOException {
     var resultStr =
         explainQuery(
-            "source=test | where age > 20 | fields name",
-            org.opensearch.sql.protocol.response.format.Format.JSON_TREE,
-            org.opensearch.sql.ast.statement.ExplainMode.STANDARD);
+            "source=test | where age > 20 | fields name", Format.JSON_TREE, ExplainMode.STANDARD);
 
     // Parse JSON
-    var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+    var mapper = new ObjectMapper();
     var result = mapper.readTree(resultStr);
 
     // Verify tree structure exists

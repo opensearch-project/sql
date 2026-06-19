@@ -28,6 +28,8 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import java.io.IOException;
 import java.util.Locale;
 import org.apache.commons.text.StringEscapeUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -3017,26 +3019,22 @@ public class CalciteExplainIT extends ExplainIT {
     String result = explainQuery(query, Format.JSON_TREE, ExplainMode.STANDARD);
 
     // Parse JSON response
-    org.json.JSONObject json = new org.json.JSONObject(result);
-    org.json.JSONObject calcite = json.getJSONObject("calcite");
+    JSONObject json = new JSONObject(result);
+    JSONObject calcite = json.getJSONObject("calcite");
 
-    // Verify logical plan is structured JSON (not a plain string)
-    String logicalStr = calcite.getString("logical");
-    org.json.JSONObject logical = new org.json.JSONObject(logicalStr);
-
-    // Verify it contains the rels array (RelJsonWriter format)
+    // Verify logical plan is a structured JSON object (not a plain string)
+    JSONObject logical = calcite.getJSONObject("logical");
     Assert.assertTrue("Logical plan should contain 'rels' array", logical.has("rels"));
-    org.json.JSONArray rels = logical.getJSONArray("rels");
+    JSONArray rels = logical.getJSONArray("rels");
     Assert.assertTrue("Rels array should not be empty", rels.length() > 0);
 
     // Verify first rel is a proper RelNode structure
-    org.json.JSONObject firstRel = rels.getJSONObject(0);
+    JSONObject firstRel = rels.getJSONObject(0);
     Assert.assertTrue("RelNode should have 'relOp' field", firstRel.has("relOp"));
     Assert.assertTrue("RelNode should have 'id' field", firstRel.has("id"));
 
     // Verify physical plan also has structured format
-    String physicalStr = calcite.getString("physical");
-    org.json.JSONObject physical = new org.json.JSONObject(physicalStr);
+    JSONObject physical = calcite.getJSONObject("physical");
     Assert.assertTrue("Physical plan should contain 'rels' array", physical.has("rels"));
   }
 }

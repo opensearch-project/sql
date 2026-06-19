@@ -41,6 +41,8 @@ public abstract class AbstractPlan {
    * @param mode explain mode
    * @param format output format
    */
-  public abstract void explain(
-      ResponseListener<ExecutionEngine.ExplainResponse> listener, ExplainMode mode, Format format);
+  public void explain(
+      ResponseListener<ExecutionEngine.ExplainResponse> listener, ExplainMode mode, Format format) {
+    explain(listener, mode);
+  }
 }

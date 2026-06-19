@@ -10,6 +10,7 @@ import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse.normal
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -247,8 +248,8 @@ public class TransportPPLQueryAction
                   // For json_tree format, use parsed tree objects instead of strings
                   if (response.getCalcite() != null
                       && response.getCalcite().getLogicalTree() != null) {
-                    Map<String, Object> result = new java.util.LinkedHashMap<>();
-                    Map<String, Object> calcite = new java.util.LinkedHashMap<>();
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    Map<String, Object> calcite = new LinkedHashMap<>();
                     calcite.put("logical", response.getCalcite().getLogicalTree());
                     if (response.getCalcite().getPhysicalTree() != null) {
                       calcite.put("physical", response.getCalcite().getPhysicalTree());

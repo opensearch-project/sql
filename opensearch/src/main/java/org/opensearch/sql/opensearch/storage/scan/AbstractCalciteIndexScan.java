@@ -33,6 +33,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -109,7 +110,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
     if (!pushDownContext.isEmpty()) {
       pw.item("PushDownContext", String.valueOf(pushDownContext));
       // For JSON output, serialize sourceBuilder as a proper JSON string
-      if (pw instanceof org.apache.calcite.rel.externalize.RelJsonWriter) {
+      if (pw instanceof RelJsonWriter) {
         try {
           OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
           pw.item("sourceBuilder", requestBuilder.getSourceBuilder().toString());
