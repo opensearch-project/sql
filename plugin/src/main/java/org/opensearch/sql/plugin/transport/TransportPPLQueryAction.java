@@ -40,6 +40,7 @@ import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
+import org.opensearch.sql.plugin.rest.AnalyticsEngineFormatSupport;
 import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
 import org.opensearch.sql.ppl.PPLService;
@@ -185,6 +186,14 @@ public class TransportPPLQueryAction
             task,
             createExplainResponseListener(transformedRequest, clearingListener));
       } else {
+        // The analytics route only emits JSON. Reject an unsupported output format (e.g.
+        // format=csv) up front with a clean 4xx instead of silently returning JSON.
+        try {
+          AnalyticsEngineFormatSupport.validateFormat(format(transformedRequest));
+        } catch (Exception e) {
+          clearingListener.onFailure(e);
+          return;
+        }
         unifiedQueryHandler.execute(
             transformedRequest.getRequest(),
             QueryType.PPL,

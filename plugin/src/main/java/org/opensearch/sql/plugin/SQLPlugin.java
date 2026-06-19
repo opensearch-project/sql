@@ -107,6 +107,7 @@ import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine;
 import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
+import org.opensearch.sql.plugin.rest.AnalyticsEngineFormatSupport;
 import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
 import org.opensearch.sql.plugin.rest.RestPPLGrammarAction;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
@@ -271,6 +272,14 @@ public class SQLPlugin extends Plugin
               }
             });
       } else {
+        // The analytics route only emits JSON. Reject an unsupported output format (e.g.
+        // format=csv) up front with a clean 4xx instead of silently returning JSON.
+        try {
+          AnalyticsEngineFormatSupport.validateFormat(sqlRequest.format());
+        } catch (Exception e) {
+          RestSqlAction.handleException(channel, e);
+          return true;
+        }
         unifiedQueryHandler.execute(
             sqlRequest.getQuery(),
             QueryType.SQL,
