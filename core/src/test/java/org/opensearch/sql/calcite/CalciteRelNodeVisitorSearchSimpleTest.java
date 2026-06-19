@@ -6,16 +6,22 @@
 package org.opensearch.sql.calcite;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Search;
+import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.exception.CalciteUnsupportedException;
 
 /**
  * Simple tests for CalciteRelNodeVisitor.visitSearch method. Tests basic functionality without
@@ -101,5 +107,25 @@ public class CalciteRelNodeVisitorSearchSimpleTest {
 
     // Assert
     assertEquals(queryString, searchNode.getQueryString());
+  }
+
+  /**
+   * Table functions (e.g. SQL {@code vectorSearch(...)}) are unsupported on the Calcite /
+   * analytics-engine path. The visitor must surface this as a structured {@link ErrorReport} coded
+   * {@link ErrorCode#UNSUPPORTED_OPERATION} (so the REST layer returns a 4xx, not a 500), while
+   * preserving the {@link CalciteUnsupportedException} cause so the v2-fallback detection in
+   * QueryService still recognizes it.
+   */
+  @Test
+  public void testVisitTableFunctionThrowsUnsupportedOperationErrorReport() {
+    TableFunction tableFunction =
+        new TableFunction(AstDSL.qualifiedName("vectorSearch"), List.of());
+
+    ErrorReport report =
+        assertThrows(ErrorReport.class, () -> visitor.visitTableFunction(tableFunction, null));
+
+    assertEquals(ErrorCode.UNSUPPORTED_OPERATION, report.getCode());
+    assertInstanceOf(CalciteUnsupportedException.class, report.getCause());
+    assertNotNull(report.getSuggestion());
   }
 }

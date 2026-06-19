@@ -32,9 +32,11 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import org.opensearch.sql.legacy.antlr.SqlAnalysisConfig;
@@ -216,9 +218,15 @@ public class RestSqlAction extends BaseRestHandler {
   }
 
   private static int getRawErrorCode(Exception ex) {
-    // Recursively unwrap ErrorReport to get to the underlying cause
-    if (ex instanceof ErrorReport) {
-      return getRawErrorCode(((ErrorReport) ex).getCause());
+    if (ex instanceof ErrorReport errorReport) {
+      // Prefer the structured ErrorCode the producing layer attached: it tells us whether this is
+      // a client error independent of the wrapped cause's runtime type. Fall back to unwrapping
+      // and classifying the cause when the code is unset/UNKNOWN.
+      Integer codeStatus = httpStatusForErrorCode(errorReport.getCode());
+      if (codeStatus != null) {
+        return codeStatus;
+      }
+      return getRawErrorCode(errorReport.getCause());
     }
     if (ex instanceof OpenSearchException) {
       return ((OpenSearchException) ex).status().getStatus();
@@ -227,6 +235,33 @@ public class RestSqlAction extends BaseRestHandler {
       return 400;
     }
     return 500;
+  }
+
+  /**
+   * Map an {@link ErrorCode} to an HTTP status, or {@code null} when the code carries no status
+   * opinion (so the caller falls back to classifying the wrapped cause). Client-side codes are 4xx;
+   * backend codes return {@code null} rather than forcing a 5xx, since the cause may still be a
+   * recognized client error.
+   */
+  private static Integer httpStatusForErrorCode(ErrorCode code) {
+    if (code == null) {
+      return null;
+    }
+    return switch (code) {
+      case FIELD_NOT_FOUND,
+          SYNTAX_ERROR,
+          AMBIGUOUS_FIELD,
+          SEMANTIC_ERROR,
+          EVALUATION_ERROR,
+          TYPE_ERROR,
+          UNSUPPORTED_OPERATION,
+          INDEX_NOT_FOUND,
+          RESOURCE_LIMIT_EXCEEDED ->
+          400;
+      case PERMISSION_DENIED -> 403;
+      // PLANNING_ERROR, EXECUTION_ERROR, UNKNOWN: no opinion — classify the wrapped cause instead.
+      default -> null;
+    };
   }
 
   /**
@@ -334,6 +369,12 @@ public class RestSqlAction extends BaseRestHandler {
         || e instanceof SqlAnalysisException
         || e instanceof SyntaxCheckException
         || e instanceof SemanticCheckException
+        // Unsupported-feature errors (e.g. CalciteUnsupportedException for a SQL table function
+        // routed to the analytics engine) are a QueryEngineException. They mean "the client asked
+        // for something this engine does not support" — a client error (4xx), not a backend fault
+        // (5xx). The PPL path (RestPPLQueryAction#isClientError) already classifies these as 400;
+        // mirror that here so the SQL path is consistent and these don't leak as HTTP 500.
+        || e instanceof QueryEngineException
         || e instanceof ExpressionEvaluationException;
   }
 
