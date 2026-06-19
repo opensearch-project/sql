@@ -7,7 +7,7 @@ package org.opensearch.sql.ppl.utils;
 
 import com.google.common.collect.ImmutableList;
 import lombok.experimental.UtilityClass;
-import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.setting.Settings;
@@ -21,7 +21,7 @@ public class UnresolvedPlanHelper {
     if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
       return plan;
     } else {
-      return new Project(ImmutableList.of(AllFields.of())).attach(plan);
+      return new Project(ImmutableList.of(AllFieldsExcludeMeta.of())).attach(plan);
     }
   }
 

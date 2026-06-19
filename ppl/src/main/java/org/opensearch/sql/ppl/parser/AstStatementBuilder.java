@@ -12,6 +12,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
@@ -37,7 +38,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
       rawPlan = new Head(context.getFetchSize(), 0).attach(rawPlan);
     }
     UnresolvedPlan plan = addSelectAll(rawPlan);
-    Query query = new Query(plan, 0, PPL);
+    Query query = new Query(plan, 0, PPL, context.isIncludeMetadata());
     if (context.getHighlightConfig() != null
         && context.getHighlightConfig().fields() != null
         && !context.getHighlightConfig().fields().isEmpty()) {
@@ -76,13 +77,21 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
 
     private final String format;
     private final String explainMode;
+
+    /** Whether to include metadata fields like _id, _index, _score in the result. */
+    private final boolean includeMetadata;
   }
 
   private UnresolvedPlan addSelectAll(UnresolvedPlan plan) {
     if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
       return plan;
     } else {
-      return new Project(ImmutableList.of(AllFields.of())).attach(plan);
+      // Use AllFieldsExcludeMeta when include_metadata is false (default behavior)
+      // Use AllFields when include_metadata is true (include metadata fields)
+      boolean includeMetadata = context.isIncludeMetadata();
+      AllFields allFields = includeMetadata ? AllFields.of() : AllFieldsExcludeMeta.of();
+
+      return new Project(ImmutableList.of(allFields)).attach(plan);
     }
   }
 }

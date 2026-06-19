@@ -31,6 +31,7 @@ public class PPLQueryRequestFactory {
   private static final String QUERY_PARAMS_PRETTY = "pretty";
   private static final String QUERY_PARAMS_PROFILE = "profile";
   private static final String QUERY_PARAMS_FETCH_SIZE = "fetch_size";
+  private static final String QUERY_PARAMS_INCLUDE_METADATA = "include_metadata";
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
@@ -96,6 +97,13 @@ public class PPLQueryRequestFactory {
           throw new IllegalArgumentException(
               "Invalid fetch_size parameter: must be a valid integer", e);
         }
+      }
+      // Support include_metadata as a URL parameter if not already in the JSON body
+      if (!jsonContent.has(QUERY_PARAMS_INCLUDE_METADATA)
+          && restRequest.params().containsKey(QUERY_PARAMS_INCLUDE_METADATA)) {
+        jsonContent.put(
+            QUERY_PARAMS_INCLUDE_METADATA,
+            Boolean.parseBoolean(restRequest.params().get(QUERY_PARAMS_INCLUDE_METADATA)));
       }
       PPLQueryRequest pplRequest =
           new PPLQueryRequest(

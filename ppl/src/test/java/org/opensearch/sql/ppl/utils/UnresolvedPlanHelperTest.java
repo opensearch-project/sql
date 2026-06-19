@@ -15,7 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Rename;
@@ -39,7 +39,7 @@ public class UnresolvedPlanHelperTest extends TestCase {
 
     UnresolvedPlan plan = UnresolvedPlanHelper.addSelectAll(project);
     assertTrue(plan instanceof Project);
-    assertThat(((Project) plan).getProjectList(), Matchers.contains(AllFields.of()));
+    assertThat(((Project) plan).getProjectList(), Matchers.contains(AllFieldsExcludeMeta.of()));
   }
 
   @Test

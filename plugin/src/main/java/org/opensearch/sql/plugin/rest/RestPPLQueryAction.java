@@ -105,7 +105,8 @@ public class RestPPLQueryAction extends BaseRestHandler {
   @Override
   protected Set<String> responseParams() {
     Set<String> responseParams = new HashSet<>(super.responseParams());
-    responseParams.addAll(Arrays.asList("format", "mode", "sanitize", "fetch_size"));
+    responseParams.addAll(
+        Arrays.asList("format", "mode", "sanitize", "fetch_size", "include_metadata"));
     return responseParams;
   }
 

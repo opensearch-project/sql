@@ -9,6 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -52,7 +55,7 @@ class QueryPlanTest {
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
     query.execute();
 
-    verify(queryService, times(1)).execute(any(), any(), any(), any());
+    verify(queryService, times(1)).execute(any(), any(), any(), anyBoolean(), any());
   }
 
   @Test
@@ -60,7 +63,8 @@ class QueryPlanTest {
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
     query.explain(explainListener, mode);
 
-    verify(queryService, times(1)).explain(plan, queryType, null, explainListener, mode);
+    verify(queryService, times(1))
+        .explain(eq(plan), eq(queryType), isNull(), anyBoolean(), eq(explainListener), eq(mode));
   }
 
   @Test

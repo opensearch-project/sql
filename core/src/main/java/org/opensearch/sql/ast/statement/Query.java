@@ -26,6 +26,7 @@ public class Query extends Statement {
   protected final UnresolvedPlan plan;
   protected final int fetchSize;
   private final QueryType queryType;
+  private final boolean includeMetadata;
   private HighlightConfig highlightConfig;
 
   @Override

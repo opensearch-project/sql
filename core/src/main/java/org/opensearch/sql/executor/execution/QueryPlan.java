@@ -32,6 +32,8 @@ public class QueryPlan extends AbstractPlan {
 
   protected final HighlightConfig highlightConfig;
 
+  protected final boolean includeMetadata;
+
   /** Constructor. */
   public QueryPlan(
       QueryId queryId,
@@ -39,7 +41,7 @@ public class QueryPlan extends AbstractPlan {
       UnresolvedPlan plan,
       QueryService queryService,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    this(queryId, queryType, plan, queryService, listener, null);
+    this(queryId, queryType, plan, queryService, listener, null, false);
   }
 
   /** Constructor with highlight config. */
@@ -50,12 +52,25 @@ public class QueryPlan extends AbstractPlan {
       QueryService queryService,
       ResponseListener<ExecutionEngine.QueryResponse> listener,
       HighlightConfig highlightConfig) {
+    this(queryId, queryType, plan, queryService, listener, highlightConfig, false);
+  }
+
+  /** Constructor with highlight config and include metadata flag. */
+  public QueryPlan(
+      QueryId queryId,
+      QueryType queryType,
+      UnresolvedPlan plan,
+      QueryService queryService,
+      ResponseListener<ExecutionEngine.QueryResponse> listener,
+      HighlightConfig highlightConfig,
+      boolean includeMetadata) {
     super(queryId, queryType);
     this.plan = plan;
     this.queryService = queryService;
     this.listener = listener;
     this.pageSize = Optional.empty();
     this.highlightConfig = highlightConfig;
+    this.includeMetadata = includeMetadata;
   }
 
   /** Constructor with page size. */
@@ -66,20 +81,38 @@ public class QueryPlan extends AbstractPlan {
       int pageSize,
       QueryService queryService,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    this(queryId, queryType, plan, pageSize, queryService, listener, false);
+  }
+
+  /** Constructor with page size and include metadata flag. */
+  public QueryPlan(
+      QueryId queryId,
+      QueryType queryType,
+      UnresolvedPlan plan,
+      int pageSize,
+      QueryService queryService,
+      ResponseListener<ExecutionEngine.QueryResponse> listener,
+      boolean includeMetadata) {
     super(queryId, queryType);
     this.plan = plan;
     this.queryService = queryService;
     this.listener = listener;
     this.pageSize = Optional.of(pageSize);
     this.highlightConfig = null;
+    this.includeMetadata = includeMetadata;
   }
 
   @Override
   public void execute() {
     if (pageSize.isPresent()) {
-      queryService.execute(new Paginate(pageSize.get(), plan), getQueryType(), listener);
+      queryService.execute(
+          new Paginate(pageSize.get(), plan),
+          getQueryType(),
+          highlightConfig,
+          includeMetadata,
+          listener);
     } else {
-      queryService.execute(plan, getQueryType(), highlightConfig, listener);
+      queryService.execute(plan, getQueryType(), highlightConfig, includeMetadata, listener);
     }
   }
 
@@ -91,7 +124,7 @@ public class QueryPlan extends AbstractPlan {
           new NotImplementedException(
               "`explain` feature for paginated requests is not implemented yet."));
     } else {
-      queryService.explain(plan, getQueryType(), highlightConfig, listener, mode);
+      queryService.explain(plan, getQueryType(), highlightConfig, includeMetadata, listener, mode);
     }
   }
 }
