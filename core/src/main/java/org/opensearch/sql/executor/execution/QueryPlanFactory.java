@@ -144,6 +144,7 @@ public class QueryPlanFactory
         node.getQueryType(),
         create(node.getStatement(), NO_CONSUMER_RESPONSE_LISTENER, context.getRight()),
         node.getMode(),
+        node.getFormat(),
         context.getRight());
   }
 }

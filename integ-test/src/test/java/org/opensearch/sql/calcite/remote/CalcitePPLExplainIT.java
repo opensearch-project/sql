@@ -74,6 +74,50 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
     assertJsonEquals(expected, result);
   }
 
+  @Test
+  public void testJsonTreeFormat() throws IOException {
+    var resultStr =
+        explainQuery(
+            "source=test | where age > 20 | fields name",
+            org.opensearch.sql.protocol.response.format.Format.JSON_TREE,
+            org.opensearch.sql.ast.statement.ExplainMode.STANDARD);
+
+    // Parse JSON
+    var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+    var result = mapper.readTree(resultStr);
+
+    // Verify tree structure exists
+    assertTrue(result.has("calcite"));
+    assertTrue(result.get("calcite").has("logical"));
+    assertTrue(result.get("calcite").has("physical"));
+
+    // Verify logical and physical are parsed JSON objects, not strings
+    assertTrue(result.get("calcite").get("logical").isObject());
+    assertTrue(result.get("calcite").get("physical").isObject());
+
+    // Verify sourceBuilder exists in physical plan rels
+    var physical = result.get("calcite").get("physical");
+    assertTrue(physical.has("rels"));
+    var rels = physical.get("rels");
+    assertTrue(rels.isArray());
+
+    // Find a rel with sourceBuilder
+    boolean foundSourceBuilder = false;
+    for (int i = 0; i < rels.size(); i++) {
+      var rel = rels.get(i);
+      if (rel.has("sourceBuilder")) {
+        foundSourceBuilder = true;
+        // Verify sourceBuilder is a parsed JSON object, not a string
+        assertTrue(rel.get("sourceBuilder").isObject());
+        // Verify it has expected OpenSearch DSL fields
+        assertTrue(rel.get("sourceBuilder").has("from"));
+        assertTrue(rel.get("sourceBuilder").has("size"));
+        break;
+      }
+    }
+    assertTrue("sourceBuilder not found in physical plan rels", foundSourceBuilder);
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.

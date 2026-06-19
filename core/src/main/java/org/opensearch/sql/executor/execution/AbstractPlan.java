@@ -12,6 +12,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.protocol.response.format.Format;
 
 /** AbstractPlan represent the execution entity of the Statement. */
 @RequiredArgsConstructor
@@ -32,4 +33,14 @@ public abstract class AbstractPlan {
    */
   public abstract void explain(
       ResponseListener<ExecutionEngine.ExplainResponse> listener, ExplainMode mode);
+
+  /**
+   * Explain query execution with format.
+   *
+   * @param listener query explain response listener.
+   * @param mode explain mode
+   * @param format output format
+   */
+  public abstract void explain(
+      ResponseListener<ExecutionEngine.ExplainResponse> listener, ExplainMode mode, Format format);
 }

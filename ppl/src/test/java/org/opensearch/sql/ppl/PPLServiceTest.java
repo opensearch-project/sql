@@ -22,7 +22,6 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
-import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
@@ -134,15 +133,6 @@ public class PPLServiceTest {
 
   @Test
   public void testExplainShouldPass() {
-    doAnswer(
-            invocation -> {
-              ResponseListener<ExplainResponse> listener = invocation.getArgument(3);
-              listener.onResponse(new ExplainResponse(new ExplainResponseNode("test")));
-              return null;
-            })
-        .when(queryService)
-        .explain(any(), any(), any(), any(), any());
-
     pplService.explain(
         new PPLQueryRequest("search source=t a=1", null, EXPLAIN),
         new ResponseListener<ExplainResponse>() {

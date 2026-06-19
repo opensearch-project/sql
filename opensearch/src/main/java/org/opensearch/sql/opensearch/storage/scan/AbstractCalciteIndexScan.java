@@ -105,13 +105,23 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
 
   @Override
   public RelWriter explainTerms(RelWriter pw) {
-    String explainString = String.valueOf(pushDownContext);
-    if (pw instanceof RelWriterImpl) {
-      // Only add request builder to the explain plan
-      explainString += ", " + pushDownContext.createRequestBuilder();
+    super.explainTerms(pw);
+    if (!pushDownContext.isEmpty()) {
+      pw.item("PushDownContext", String.valueOf(pushDownContext));
+      // For JSON output, serialize sourceBuilder as a proper JSON string
+      if (pw instanceof org.apache.calcite.rel.externalize.RelJsonWriter) {
+        try {
+          OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
+          pw.item("sourceBuilder", requestBuilder.getSourceBuilder().toString());
+        } catch (Exception e) {
+          // Ignore if request builder cannot be created
+        }
+      } else if (pw instanceof RelWriterImpl) {
+        // Only add request builder to the string explain plan
+        pw.item("RequestBuilder", pushDownContext.createRequestBuilder().toString());
+      }
     }
-    return super.explainTerms(pw)
-        .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
+    return pw;
   }
 
   protected Integer getQuerySizeLimit() {

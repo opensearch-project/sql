@@ -12,6 +12,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.protocol.response.format.Format;
 
 /**
  * Query plan which does not reflect a search query being executed. It contains a command or an
@@ -48,6 +49,12 @@ public class CommandPlan extends AbstractPlan {
   @Override
   public void explain(
       ResponseListener<ExecutionEngine.ExplainResponse> listener, ExplainMode mode) {
+    throw new UnsupportedOperationException("CommandPlan does not support explain");
+  }
+
+  @Override
+  public void explain(
+      ResponseListener<ExecutionEngine.ExplainResponse> listener, ExplainMode mode, Format format) {
     throw new UnsupportedOperationException("CommandPlan does not support explain");
   }
 }

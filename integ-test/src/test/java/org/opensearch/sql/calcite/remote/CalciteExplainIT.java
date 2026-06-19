@@ -3010,4 +3010,33 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_union.yaml");
     assertYamlEqualsIgnoreId(expected, actual);
   }
+
+  @Test
+  public void testExplainJsonTreeFormat() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | where age > 30 | fields age";
+    String result = explainQuery(query, Format.JSON_TREE, ExplainMode.STANDARD);
+
+    // Parse JSON response
+    org.json.JSONObject json = new org.json.JSONObject(result);
+    org.json.JSONObject calcite = json.getJSONObject("calcite");
+
+    // Verify logical plan is structured JSON (not a plain string)
+    String logicalStr = calcite.getString("logical");
+    org.json.JSONObject logical = new org.json.JSONObject(logicalStr);
+
+    // Verify it contains the rels array (RelJsonWriter format)
+    Assert.assertTrue("Logical plan should contain 'rels' array", logical.has("rels"));
+    org.json.JSONArray rels = logical.getJSONArray("rels");
+    Assert.assertTrue("Rels array should not be empty", rels.length() > 0);
+
+    // Verify first rel is a proper RelNode structure
+    org.json.JSONObject firstRel = rels.getJSONObject(0);
+    Assert.assertTrue("RelNode should have 'relOp' field", firstRel.has("relOp"));
+    Assert.assertTrue("RelNode should have 'id' field", firstRel.has("id"));
+
+    // Verify physical plan also has structured format
+    String physicalStr = calcite.getString("physical");
+    org.json.JSONObject physical = new org.json.JSONObject(physicalStr);
+    Assert.assertTrue("Physical plan should contain 'rels' array", physical.has("rels"));
+  }
 }

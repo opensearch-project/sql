@@ -11,6 +11,7 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
@@ -243,6 +244,18 @@ public class TransportPPLQueryAction
               new JsonResponseFormatter<>(PRETTY) {
                 @Override
                 protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
+                  // For json_tree format, use parsed tree objects instead of strings
+                  if (response.getCalcite() != null
+                      && response.getCalcite().getLogicalTree() != null) {
+                    Map<String, Object> result = new java.util.LinkedHashMap<>();
+                    Map<String, Object> calcite = new java.util.LinkedHashMap<>();
+                    calcite.put("logical", response.getCalcite().getLogicalTree());
+                    if (response.getCalcite().getPhysicalTree() != null) {
+                      calcite.put("physical", response.getCalcite().getPhysicalTree());
+                    }
+                    result.put("calcite", calcite);
+                    return result;
+                  }
                   return response;
                 }
               };

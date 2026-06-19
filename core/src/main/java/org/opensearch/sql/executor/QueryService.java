@@ -54,6 +54,7 @@ import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.protocol.response.format.Format;
 
 /** The low level interface of core engine. */
 @RequiredArgsConstructor
@@ -124,8 +125,19 @@ public class QueryService {
       HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode) {
+    explain(plan, queryType, highlightConfig, listener, mode, null);
+  }
+
+  /** Explain with optional highlight config and format. */
+  public void explain(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      ResponseListener<ExecutionEngine.ExplainResponse> listener,
+      ExplainMode mode,
+      Format format) {
     if (shouldUseCalcite(queryType)) {
-      explainWithCalcite(plan, queryType, highlightConfig, listener, mode);
+      explainWithCalcite(plan, queryType, highlightConfig, listener, mode, format);
     } else {
       explainWithLegacy(plan, queryType, listener, mode, Optional.empty());
     }
@@ -192,6 +204,16 @@ public class QueryService {
       HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode) {
+    explainWithCalcite(plan, queryType, highlightConfig, listener, mode, null);
+  }
+
+  public void explainWithCalcite(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      ResponseListener<ExecutionEngine.ExplainResponse> listener,
+      ExplainMode mode,
+      Format format) {
     CalcitePlanContext.run(
         () -> {
           try {
@@ -206,7 +228,11 @@ public class QueryService {
                       () -> {
                         RelNode relNode = analyze(plan, context);
                         RelNode calcitePlan = convertToCalcitePlan(relNode, context);
-                        executionEngine.explain(calcitePlan, mode, context, listener);
+                        if (format != null) {
+                          executionEngine.explain(calcitePlan, mode, format, context, listener);
+                        } else {
+                          executionEngine.explain(calcitePlan, mode, context, listener);
+                        }
                       },
                       settings);
                 },
