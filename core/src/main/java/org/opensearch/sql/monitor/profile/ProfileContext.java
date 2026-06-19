@@ -27,6 +27,9 @@ public interface ProfileContext {
    */
   void setPlanRoot(ProfilePlanNode planRoot);
 
+  /** TODO: merge with planRoot into one generic execution-engine-specific plan profile field. */
+  default void setEnginePlan(Object plan) {}
+
   /**
    * Finalize profiling and return a snapshot.
    *
