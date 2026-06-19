@@ -82,6 +82,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.SubsearchUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -824,10 +825,30 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitCast(Cast node, CalcitePlanContext context) {
     RexNode expr = analyze(node.getExpression(), context);
-    RelDataType type =
-        OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType());
     RelDataType nullableType =
-        context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
+        switch (node.getDataType()) {
+          case TYPE_ERROR ->
+              throw new IllegalArgumentException("Unsupported AST DataType: " + node.getDataType());
+          case NULL -> TYPE_FACTORY.createSqlType(SqlTypeName.NULL, true);
+          case INTEGER -> TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, true);
+          case LONG -> TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, true);
+          case SHORT -> TYPE_FACTORY.createSqlType(SqlTypeName.SMALLINT, true);
+          case FLOAT -> TYPE_FACTORY.createSqlType(SqlTypeName.REAL, true);
+          case DOUBLE, DECIMAL -> TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE, true);
+          case STRING -> TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true);
+          case BOOLEAN -> TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN, true);
+          case DATE -> TYPE_FACTORY.createSqlType(SqlTypeName.DATE, true);
+          case TIME ->
+              TYPE_FACTORY.createTypeWithNullability(
+                  TYPE_FACTORY.createSqlType(SqlTypeName.TIME, 9), true);
+          case TIMESTAMP ->
+              TYPE_FACTORY.createTypeWithNullability(
+                  TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP, 9), true);
+          case INTERVAL ->
+              throw new IllegalArgumentException(
+                  "INTERVAL must carry a unit; cannot map to RelDataType directly.");
+          case IP -> TYPE_FACTORY.createUDT(ExprUDT.EXPR_IP, true);
+        };
     // call makeCast() instead of cast() because the saft parameter is true could avoid exception.
     return context.rexBuilder.makeCast(nullableType, expr, true, true);
   }

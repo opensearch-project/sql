@@ -17,14 +17,14 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -63,19 +63,19 @@ public class WeekdayFunction extends ImplementorUDF {
               UserDefinedFunctionUtils.class,
               "restoreFunctionProperties",
               rexToLixTranslator.getRoot());
-      ExprType dateType =
-          OpenSearchTypeFactory.convertRelDataTypeToExprType(
-              rexCall.getOperands().getFirst().getType());
+      org.apache.calcite.rel.type.RelDataType firstOperandType =
+          rexCall.getOperands().getFirst().getType();
+      if (firstOperandType instanceof ExprTimeType
+          || firstOperandType.getSqlTypeName() == SqlTypeName.TIME) {
+        return Expressions.call(WeekdayImplementor.class, "weekdayForTime", functionProperties);
+      }
       Expression date =
           Expressions.call(
               ExprValueUtils.class,
               "fromObjectValue",
               operands.getFirst(),
-              Expressions.constant(dateType));
-
-      if (ExprCoreType.TIME.equals(dateType)) {
-        return Expressions.call(WeekdayImplementor.class, "weekdayForTime", functionProperties);
-      }
+              Expressions.constant(
+                  OpenSearchTypeFactory.convertRelDataTypeToExprType(firstOperandType)));
       return Expressions.call(WeekdayImplementor.class, "weekday", date);
     }
 

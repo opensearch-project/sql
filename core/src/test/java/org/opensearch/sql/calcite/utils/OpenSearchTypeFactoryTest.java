@@ -330,4 +330,47 @@ public class OpenSearchTypeFactoryTest {
           "Analytics-engine variant must agree with the general variant for " + t.getSqlTypeName());
     }
   }
+
+  @Test
+  public void convertExprTypeToRelDataType_timestamp_returns_standard_timestamp9() {
+    RelDataType t =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.TIMESTAMP, true);
+    assertEquals(SqlTypeName.TIMESTAMP, t.getSqlTypeName());
+    assertFalse(OpenSearchTypeFactory.isUserDefinedType(t));
+    assertTrue(t.isNullable());
+  }
+
+  @Test
+  public void convertExprTypeToRelDataType_date_returns_standard_date() {
+    RelDataType t = OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.DATE, true);
+    assertEquals(SqlTypeName.DATE, t.getSqlTypeName());
+    assertFalse(OpenSearchTypeFactory.isUserDefinedType(t));
+    assertTrue(t.isNullable());
+  }
+
+  @Test
+  public void convertExprTypeToRelDataType_time_returns_standard_time9() {
+    RelDataType t = OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.TIME, true);
+    assertEquals(SqlTypeName.TIME, t.getSqlTypeName());
+    assertFalse(OpenSearchTypeFactory.isUserDefinedType(t));
+    assertTrue(t.isNullable());
+  }
+
+  @Test
+  public void isStandardTemporalType_recognizes_basic_temporal() {
+    assertTrue(
+        OpenSearchTypeFactory.isStandardTemporalType(TYPE_FACTORY.createSqlType(SqlTypeName.DATE)));
+    assertTrue(
+        OpenSearchTypeFactory.isStandardTemporalType(
+            TYPE_FACTORY.createSqlType(SqlTypeName.TIME, 9)));
+    assertTrue(
+        OpenSearchTypeFactory.isStandardTemporalType(
+            TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP, 9)));
+    assertFalse(
+        OpenSearchTypeFactory.isStandardTemporalType(
+            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR)));
+    assertFalse(
+        OpenSearchTypeFactory.isStandardTemporalType(
+            TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP)));
+  }
 }

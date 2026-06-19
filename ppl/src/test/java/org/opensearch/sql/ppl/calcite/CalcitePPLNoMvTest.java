@@ -201,7 +201,7 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalSort(fetch=[1])\n"
             + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array('a', 'b')],"
-            + " does_not_exist=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(null:ANY ARRAY), '\n"
+            + " does_not_exist=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(null:ANY NOT NULL ARRAY), '\n"
             + "'), '':VARCHAR)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);

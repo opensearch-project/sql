@@ -6,11 +6,6 @@
 package org.opensearch.sql.expression.function;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.opensearch.sql.data.type.ExprCoreType.BINARY;
-import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
-import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
-import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -23,33 +18,51 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 
 class CoercionUtilsTest {
 
-  private static final RexBuilder REX_BUILDER = new RexBuilder(OpenSearchTypeFactory.TYPE_FACTORY);
+  private static final OpenSearchTypeFactory TF = OpenSearchTypeFactory.TYPE_FACTORY;
+  private static final RexBuilder REX_BUILDER = new RexBuilder(TF);
 
-  private static RexNode nullLiteral(ExprCoreType type) {
-    return REX_BUILDER.makeNullLiteral(OpenSearchTypeFactory.convertExprTypeToRelDataType(type));
+  private static RelDataType type(SqlTypeName name) {
+    return TF.createSqlType(name);
+  }
+
+  private static RexNode nullLiteral(RelDataType type) {
+    return REX_BUILDER.makeNullLiteral(type);
   }
 
   private static Stream<Arguments> commonWidestTypeArguments() {
+    RelDataType string = type(SqlTypeName.VARCHAR);
+    RelDataType integer = type(SqlTypeName.INTEGER);
+    RelDataType doubleT = type(SqlTypeName.DOUBLE);
+    RelDataType bool = type(SqlTypeName.BOOLEAN);
+    RelDataType binary = TF.createUDT(ExprUDT.EXPR_BINARY);
+    RelDataType varbinary = type(SqlTypeName.VARBINARY);
     return Stream.of(
-        Arguments.of(STRING, INTEGER, DOUBLE),
-        Arguments.of(INTEGER, STRING, DOUBLE),
-        Arguments.of(STRING, DOUBLE, DOUBLE),
-        Arguments.of(INTEGER, BOOLEAN, null),
-        Arguments.of(BINARY, STRING, BINARY),
-        Arguments.of(STRING, BINARY, BINARY));
+        Arguments.of(string, integer, doubleT),
+        Arguments.of(integer, string, doubleT),
+        Arguments.of(string, doubleT, doubleT),
+        Arguments.of(integer, bool, null),
+        Arguments.of(binary, string, varbinary),
+        Arguments.of(string, binary, varbinary));
   }
 
   @ParameterizedTest
   @MethodSource("commonWidestTypeArguments")
-  public void findCommonWidestType(
-      ExprCoreType left, ExprCoreType right, ExprCoreType expectedCommonType) {
-    assertEquals(
-        expectedCommonType, CoercionUtils.resolveCommonType(left, right).orElseGet(() -> null));
+  public void findCommonWidestType(RelDataType left, RelDataType right, RelDataType expected) {
+    if (expected == null) {
+      assertTrue(CoercionUtils.resolveCommonType(left, right).isEmpty());
+    } else {
+      assertEquals(
+          expected.getSqlTypeName(),
+          CoercionUtils.resolveCommonType(left, right)
+              .map(RelDataType::getSqlTypeName)
+              .orElse(null));
+    }
   }
 
   @Test
@@ -88,42 +101,75 @@ class CoercionUtilsTest {
 
   @Test
   void castArgumentsReturnsExactMatchWhenAvailable() {
-    PPLTypeChecker typeChecker = new StubTypeChecker(List.of(List.of(INTEGER), List.of(DOUBLE)));
-    List<RexNode> arguments = List.of(nullLiteral(INTEGER));
+    PPLTypeChecker typeChecker =
+        new StubTypeChecker(
+            List.of(List.of(type(SqlTypeName.INTEGER)), List.of(type(SqlTypeName.DOUBLE))));
+    List<RexNode> arguments = List.of(nullLiteral(type(SqlTypeName.INTEGER)));
 
     List<RexNode> result = CoercionUtils.castArguments(REX_BUILDER, typeChecker, arguments);
 
     assertNotNull(result);
     assertEquals(1, result.size());
-    assertEquals(
-        INTEGER, OpenSearchTypeFactory.convertRelDataTypeToExprType(result.getFirst().getType()));
+    assertEquals(SqlTypeName.INTEGER, result.getFirst().getType().getSqlTypeName());
   }
 
   @Test
   void castArgumentsFallsBackToWidestCandidate() {
     PPLTypeChecker typeChecker =
-        new StubTypeChecker(List.of(List.of(ExprCoreType.LONG), List.of(DOUBLE)));
-    List<RexNode> arguments = List.of(nullLiteral(STRING));
+        new StubTypeChecker(
+            List.of(List.of(type(SqlTypeName.BIGINT)), List.of(type(SqlTypeName.DOUBLE))));
+    List<RexNode> arguments = List.of(nullLiteral(type(SqlTypeName.VARCHAR)));
 
     List<RexNode> result = CoercionUtils.castArguments(REX_BUILDER, typeChecker, arguments);
 
     assertNotNull(result);
-    assertEquals(
-        DOUBLE, OpenSearchTypeFactory.convertRelDataTypeToExprType(result.getFirst().getType()));
+    assertEquals(SqlTypeName.DOUBLE, result.getFirst().getType().getSqlTypeName());
   }
 
   @Test
   void castArgumentsReturnsNullWhenNoCompatibleSignatureExists() {
-    PPLTypeChecker typeChecker = new StubTypeChecker(List.of(List.of(ExprCoreType.GEO_POINT)));
-    List<RexNode> arguments = List.of(nullLiteral(INTEGER));
+    PPLTypeChecker typeChecker = new StubTypeChecker(List.of(List.of(type(SqlTypeName.GEOMETRY))));
+    List<RexNode> arguments = List.of(nullLiteral(type(SqlTypeName.INTEGER)));
 
     assertNull(CoercionUtils.castArguments(REX_BUILDER, typeChecker, arguments));
   }
 
-  private static class StubTypeChecker implements PPLTypeChecker {
-    private final List<List<ExprType>> signatures;
+  @Test
+  void hasStringDetectsCharacterArguments() {
+    assertTrue(
+        CoercionUtils.hasString(
+            List.of(
+                nullLiteral(type(SqlTypeName.VARCHAR)), nullLiteral(type(SqlTypeName.INTEGER)))));
+    assertFalse(
+        CoercionUtils.hasString(
+            List.of(nullLiteral(type(SqlTypeName.INTEGER)), nullLiteral(PPLOperandTypes.IP_UDT))));
+  }
 
-    private StubTypeChecker(List<List<ExprType>> signatures) {
+  @Test
+  void resolveCommonType_dateAndTime_returns_standardTimestamp() {
+    RelDataType date = TF.createSqlType(SqlTypeName.DATE);
+    RelDataType time = TF.createSqlType(SqlTypeName.TIME, 9);
+    RelDataType result = CoercionUtils.resolveCommonType(date, time).orElse(null);
+    assertNotNull(result);
+    assertEquals(SqlTypeName.TIMESTAMP, result.getSqlTypeName());
+    // Standard temporal, not UDT.
+    assertFalse(OpenSearchTypeFactory.isUserDefinedType(result));
+  }
+
+  @Test
+  void resolveCommonType_udtDateAndUdtTime_also_returns_standardTimestamp() {
+    RelDataType udtDate = TF.createUDT(ExprUDT.EXPR_DATE);
+    RelDataType udtTime = TF.createUDT(ExprUDT.EXPR_TIME);
+    RelDataType result = CoercionUtils.resolveCommonType(udtDate, udtTime).orElse(null);
+    assertNotNull(result);
+    assertEquals(SqlTypeName.TIMESTAMP, result.getSqlTypeName());
+    assertFalse(OpenSearchTypeFactory.isUserDefinedType(result));
+  }
+
+  private static class StubTypeChecker implements PPLTypeChecker {
+    private final List<List<RelDataType>> signatures;
+
+    private StubTypeChecker(List<List<RelDataType>> signatures) {
       this.signatures = signatures;
     }
 
@@ -138,7 +184,7 @@ class CoercionUtilsTest {
     }
 
     @Override
-    public List<List<ExprType>> getParameterTypes() {
+    public List<List<RelDataType>> getParameterTypes() {
       return signatures;
     }
   }

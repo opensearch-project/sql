@@ -16,8 +16,9 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.calcite.type.ExprDateType;
+import org.opensearch.sql.calcite.type.ExprTimeStampType;
+import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -59,9 +60,13 @@ public class WidthBucketFunction extends ImplementorUDF {
   }
 
   public static boolean dateRelatedType(RelDataType type) {
-    return type instanceof ExprSqlType exprSqlType
-        && List.of(ExprUDT.EXPR_DATE, ExprUDT.EXPR_TIME, ExprUDT.EXPR_TIMESTAMP)
-            .contains(exprSqlType.getUdt());
+    SqlTypeName sqlTypeName = type.getSqlTypeName();
+    return type instanceof ExprDateType
+        || type instanceof ExprTimeType
+        || type instanceof ExprTimeStampType
+        || sqlTypeName == SqlTypeName.DATE
+        || sqlTypeName == SqlTypeName.TIME
+        || sqlTypeName == SqlTypeName.TIMESTAMP;
   }
 
   @Override

@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -76,6 +75,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.expression.function.PPLTypeChecker;
 
 public interface PlanUtils {
 
@@ -582,17 +582,14 @@ public interface PlanUtils {
   }
 
   /**
-   * Get a string representation of the argument types expressed in ExprType for error messages.
+   * Get a string representation of the argument types for error messages.
    *
    * @param argTypes the list of argument types as {@link RelDataType}
    * @return a string in the format [type1,type2,...] representing the argument types
    */
   static String getActualSignature(List<RelDataType> argTypes) {
     return "["
-        + argTypes.stream()
-            .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
-            .map(Objects::toString)
-            .collect(Collectors.joining(","))
+        + argTypes.stream().map(PPLTypeChecker::renderTypeName).collect(Collectors.joining(","))
         + "]";
   }
 
