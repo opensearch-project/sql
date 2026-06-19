@@ -197,7 +197,11 @@ public class TransportPPLQueryAction
       pplService.analyze(
         transformedRequest, createAnalyzeResponseListener(transformedRequest, clearingListener));
     }
-    // else if (transformedRequest.analyze()) {
+    /**
+     * Commenting out lines 196-199 and replacing them with lines 203-211 will
+     * separate the `profile` and `analyze` endpoints. See PR #5568.
+     */
+    // } else if (transformedRequest.analyze()) {
     //   pplService.analyze(
     //     transformedRequest, createAnalyzeResponseListener(transformedRequest, clearingListener));
     // } else {

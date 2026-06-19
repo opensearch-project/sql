@@ -6,7 +6,6 @@
 package org.opensearch.sql.executor;
 
 import java.util.List;
-import java.util.Map;
 import lombok.Builder;
 import lombok.Data;
 import org.opensearch.sql.monitor.profile.QueryProfile;
@@ -24,7 +23,7 @@ public class AnalyzeResponse {
   private final List<OperatorNode> operator_tree;
   private final List<String> recommendations;
   private final List<SchemaColumn> schema;
-  private final List<Map<String, Object>> datarows;
+  private final Object[][] datarows;
   private final long total;
   private final long size;
 
