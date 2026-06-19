@@ -3254,16 +3254,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitTableFunction(TableFunction node, CalcitePlanContext context) {
-    // Unsupported on the Calcite path; report as UNSUPPORTED_OPERATION (4xx, not 5xx). Keep the
-    // CalciteUnsupportedException cause so QueryService's v2-fallback detection still applies.
-    throw ErrorReport.wrap(
-            new CalciteUnsupportedException("Table function is unsupported in Calcite"))
-        .code(ErrorCode.UNSUPPORTED_OPERATION)
-        .location("while planning a table function on the analytics engine")
-        .suggestion(
-            "Table functions are not supported on the analytics engine; run this query against a"
-                + " non-analytics index.")
-        .build();
+    throw new CalciteUnsupportedException("Table function is unsupported in Calcite");
   }
 
   /**

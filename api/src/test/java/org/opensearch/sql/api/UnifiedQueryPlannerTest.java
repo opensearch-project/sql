@@ -16,6 +16,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 
@@ -145,6 +146,17 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
     givenInvalidQuery("source = catalog.nonexistent_table")
         .assertErrorType(SemanticCheckException.class)
         .assertCauseType(CalciteException.class);
+  }
+
+  @Test
+  public void unsupportedFeatureIsRethrownAsSemanticCheckException() {
+    // A feature unsupported on the analytics engine (here a PPL command that raises
+    // CalciteUnsupportedException; SQL table functions like vectorSearch() take the same path) is
+    // an invalid query, normalized to a SemanticCheckException so callers classify it as a 4xx.
+    givenInvalidQuery("source = catalog.employees | kmeans")
+        .assertErrorType(SemanticCheckException.class)
+        .assertCauseType(CalciteUnsupportedException.class)
+        .assertErrorMessageContains("unsupported in Calcite");
   }
 
   @Test

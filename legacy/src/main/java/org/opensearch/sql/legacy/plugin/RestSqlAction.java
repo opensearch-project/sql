@@ -35,7 +35,6 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import org.opensearch.sql.legacy.antlr.SqlAnalysisConfig;
@@ -335,9 +334,6 @@ public class RestSqlAction extends BaseRestHandler {
         || e instanceof SqlAnalysisException
         || e instanceof SyntaxCheckException
         || e instanceof SemanticCheckException
-        // Unsupported-feature errors (e.g. CalciteUnsupportedException) are client errors, as the
-        // PPL path already treats them. Mirror it here so they don't leak as HTTP 500.
-        || e instanceof QueryEngineException
         || e instanceof ExpressionEvaluationException;
   }
 
