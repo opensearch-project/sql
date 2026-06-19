@@ -169,6 +169,9 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
       org.opensearch.analytics.QueryRequestContext queryCtx,
       ResponseListener<QueryResponse> listener) {
 
+    ProfileContext profileCtx = QueryProfiling.current();
+    long execStart = System.nanoTime();
+
     planExecutor.executeWithProfile(
         plan,
         queryCtx,
@@ -178,6 +181,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
             try {
               // ProfiledResult delivers the profile on BOTH success and failure paths
               // so users get stage timing visibility even when a query partially fails.
+              profileCtx.getOrCreateMetric(MetricName.EXECUTE).set(System.nanoTime() - execStart);
               QueryResponse response = buildProfiledResponse(plan, result);
               listener.onResponse(response);
             } catch (Exception e) {
