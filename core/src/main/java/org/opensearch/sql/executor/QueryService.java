@@ -391,11 +391,13 @@ public class QueryService {
                     }
                   }
 
-                  List<Map<String, Object>> datarows = new ArrayList<>();
+                  Object[][] datarows = new Object[queryResponse.getResults().size()][];
+                  int rowIdx = 0;
                   for (var exprValue : queryResponse.getResults()) {
-                    Map<String, Object> row = new java.util.LinkedHashMap<>();
-                    exprValue.tupleValue().forEach((k, v) -> row.put(k, v.value()));
-                    datarows.add(row);
+                    datarows[rowIdx++] =
+                        exprValue.tupleValue().entrySet().stream()
+                            .map(e -> e.getValue().value())
+                            .toArray(Object[]::new);
                   }
 
                   AnalyzeResponse response =
@@ -408,8 +410,8 @@ public class QueryService {
                           .profile(profile)
                           .schema(schema)
                           .datarows(datarows)
-                          .total(datarows.size())
-                          .size(datarows.size())
+                          .total(datarows.length)
+                          .size(datarows.length)
                           .build();
                   listener.onResponse(response);
                 },
