@@ -3254,11 +3254,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitTableFunction(TableFunction node, CalcitePlanContext context) {
-    // Table functions (e.g. SQL `vectorSearch(...)`) are not implemented on the Calcite /
-    // analytics-engine path. Surface this as a structured ErrorReport with the
-    // UNSUPPORTED_OPERATION code so the REST layer classifies it as a client error (4xx) rather
-    // than a backend fault (5xx). The wrapped CalciteUnsupportedException is preserved as the
-    // cause so the v2-fallback detection in QueryService#isCalciteUnsupportedError still applies.
+    // Unsupported on the Calcite path; report as UNSUPPORTED_OPERATION (4xx, not 5xx). Keep the
+    // CalciteUnsupportedException cause so QueryService's v2-fallback detection still applies.
     throw ErrorReport.wrap(
             new CalciteUnsupportedException("Table function is unsupported in Calcite"))
         .code(ErrorCode.UNSUPPORTED_OPERATION)

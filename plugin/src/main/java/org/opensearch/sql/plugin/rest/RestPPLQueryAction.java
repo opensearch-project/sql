@@ -63,9 +63,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
   // Package-private for unit testing of the error-status classification.
   static int getRawErrorCode(Exception ex) {
     if (ex instanceof ErrorReport errorReport) {
-      // Prefer the structured ErrorCode the producing layer attached: it identifies client errors
-      // at a finer granularity than exception types (see the note below). Fall back to unwrapping
-      // and classifying the cause when the code carries no status opinion.
+      // Prefer the structured ErrorCode; fall back to classifying the cause when it has no opinion.
       Integer codeStatus = httpStatusForErrorCode(errorReport.getCode());
       if (codeStatus != null) {
         return codeStatus;
@@ -81,12 +79,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
     return 500;
   }
 
-  /**
-   * Map an {@link ErrorCode} to an HTTP status, or {@code null} when the code carries no status
-   * opinion (so the caller falls back to classifying the wrapped cause). Client-side codes are 4xx;
-   * backend codes return {@code null} rather than forcing a 5xx, since the cause may still be a
-   * recognized client error.
-   */
+  /** Map a client-error {@link ErrorCode} to a 4xx, or {@code null} to defer to the cause. */
   private static Integer httpStatusForErrorCode(ErrorCode code) {
     if (code == null) {
       return null;

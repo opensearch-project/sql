@@ -219,9 +219,7 @@ public class RestSqlAction extends BaseRestHandler {
 
   private static int getRawErrorCode(Exception ex) {
     if (ex instanceof ErrorReport errorReport) {
-      // Prefer the structured ErrorCode the producing layer attached: it tells us whether this is
-      // a client error independent of the wrapped cause's runtime type. Fall back to unwrapping
-      // and classifying the cause when the code is unset/UNKNOWN.
+      // Prefer the structured ErrorCode; fall back to classifying the cause when it has no opinion.
       Integer codeStatus = httpStatusForErrorCode(errorReport.getCode());
       if (codeStatus != null) {
         return codeStatus;
@@ -237,12 +235,7 @@ public class RestSqlAction extends BaseRestHandler {
     return 500;
   }
 
-  /**
-   * Map an {@link ErrorCode} to an HTTP status, or {@code null} when the code carries no status
-   * opinion (so the caller falls back to classifying the wrapped cause). Client-side codes are 4xx;
-   * backend codes return {@code null} rather than forcing a 5xx, since the cause may still be a
-   * recognized client error.
-   */
+  /** Map a client-error {@link ErrorCode} to a 4xx, or {@code null} to defer to the cause. */
   private static Integer httpStatusForErrorCode(ErrorCode code) {
     if (code == null) {
       return null;
@@ -369,11 +362,8 @@ public class RestSqlAction extends BaseRestHandler {
         || e instanceof SqlAnalysisException
         || e instanceof SyntaxCheckException
         || e instanceof SemanticCheckException
-        // Unsupported-feature errors (e.g. CalciteUnsupportedException for a SQL table function
-        // routed to the analytics engine) are a QueryEngineException. They mean "the client asked
-        // for something this engine does not support" — a client error (4xx), not a backend fault
-        // (5xx). The PPL path (RestPPLQueryAction#isClientError) already classifies these as 400;
-        // mirror that here so the SQL path is consistent and these don't leak as HTTP 500.
+        // Unsupported-feature errors (e.g. CalciteUnsupportedException) are client errors, as the
+        // PPL path already treats them. Mirror it here so they don't leak as HTTP 500.
         || e instanceof QueryEngineException
         || e instanceof ExpressionEvaluationException;
   }
