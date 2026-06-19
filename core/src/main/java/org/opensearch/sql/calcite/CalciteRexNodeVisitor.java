@@ -131,6 +131,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       case NULL:
         return rexBuilder.makeNullLiteral(typeFactory.createSqlType(SqlTypeName.NULL));
       case STRING:
+        // saffron.properties sets calcite.default.charset=UTF-8 so non-ASCII characters
+        // (e.g. Chinese, Arabic) are accepted and literal types stay compatible with column types.
         if (value.toString().length() == 1) {
           // To align Spark/PostgreSQL, Char(1) is useful, such as cast('1' to boolean) should
           // return true

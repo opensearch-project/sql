@@ -151,6 +151,19 @@ public class SQLPlugin extends Plugin
 
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
+  static {
+    // CalciteSystemProperty reads saffron.properties via its own classloader. In OpenSearch 3.x,
+    // Calcite is loaded by a parent/server classloader that cannot see resources bundled inside
+    // the plugin JAR, so saffron.properties is silently ignored. Setting the equivalent JVM
+    // system properties here (before any Calcite class is first used) is classloader-agnostic
+    // and produces the same effect as -Dcalcite.default.charset=UTF-8 in jvm.options, making
+    // non-ASCII PPL string literals (Chinese, Arabic, etc.) work without user configuration.
+    if (System.getProperty("calcite.default.charset") == null) {
+      System.setProperty("calcite.default.charset", "UTF-8");
+      System.setProperty("calcite.default.collation.name", "UTF-8$en_US");
+    }
+  }
+
   private List<ExecutionEngine> executionEngineExtensions = List.of();
   private ClusterService clusterService;
 

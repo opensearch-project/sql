@@ -13,6 +13,7 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTOR
 import java.sql.Connection;
 import java.util.List;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -25,7 +26,9 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.LambdaFunction;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
@@ -74,6 +77,43 @@ public class CalciteRexNodeVisitorTest {
   @AfterEach
   public void tearDown() {
     mockedStatic.close();
+  }
+
+  @Test
+  public void testVisitLiteralNonAsciiStringDoesNotThrow() {
+    // Regression test for https://github.com/opensearch-project/OpenSearch/issues/21880
+    // Chinese (and other non-Latin) string literals must not throw CalciteException when
+    // visitLiteral builds them via RexBuilder.makeLiteral.
+    // context.rexBuilder is a real ExtendedRexBuilder backed by TYPE_FACTORY (the mock
+    // only supplies TYPE_FACTORY through getTypeFactory()), so this exercises the real
+    // Calcite NlsString / makeLiteral code path.
+    CalciteRexNodeVisitor realVisitor = new CalciteRexNodeVisitor(relNodeVisitor);
+    CalcitePlanContext realContext =
+        CalcitePlanContext.create(frameworkConfig, SysLimit.DEFAULT, QueryType.PPL);
+
+    Literal chineseLiteral = new Literal("未处置", DataType.STRING);
+    Literal arabicLiteral = new Literal("مرحبا", DataType.STRING);
+    Literal singleCharLiteral = new Literal("中", DataType.STRING);
+
+    // VARCHAR multi-char: must not throw and must carry UTF-8 charset
+    RexNode chineseNode = realVisitor.visitLiteral(chineseLiteral, realContext);
+    assertNotNull(chineseNode);
+    assertInstanceOf(RexLiteral.class, chineseNode);
+    assertEquals(SqlTypeName.VARCHAR, chineseNode.getType().getSqlTypeName());
+    assertEquals(java.nio.charset.StandardCharsets.UTF_8, chineseNode.getType().getCharset());
+
+    RexNode arabicNode = realVisitor.visitLiteral(arabicLiteral, realContext);
+    assertNotNull(arabicNode);
+    assertInstanceOf(RexLiteral.class, arabicNode);
+    assertEquals(SqlTypeName.VARCHAR, arabicNode.getType().getSqlTypeName());
+    assertEquals(java.nio.charset.StandardCharsets.UTF_8, arabicNode.getType().getCharset());
+
+    // CHAR(1): single non-ASCII character must also carry UTF-8 charset
+    RexNode singleCharNode = realVisitor.visitLiteral(singleCharLiteral, realContext);
+    assertNotNull(singleCharNode);
+    assertInstanceOf(RexLiteral.class, singleCharNode);
+    assertEquals(SqlTypeName.CHAR, singleCharNode.getType().getSqlTypeName());
+    assertEquals(java.nio.charset.StandardCharsets.UTF_8, singleCharNode.getType().getCharset());
   }
 
   @Test
