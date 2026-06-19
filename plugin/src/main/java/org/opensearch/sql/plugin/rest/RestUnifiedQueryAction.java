@@ -152,7 +152,7 @@ public class RestUnifiedQueryAction {
       QueryType queryType,
       boolean profiling,
       ActionListener<TransportPPLQueryResponse> listener) {
-    doExecute(query, queryType, profiling, null, listener);
+    doExecute(query, queryType, profiling, 0, null, listener);
   }
 
   /** Execute linked to {@code parentTask} so a front-end cancel propagates into the engine. */
@@ -160,16 +160,18 @@ public class RestUnifiedQueryAction {
       String query,
       QueryType queryType,
       boolean profiling,
+      int fetchSize,
       Task parentTask,
       ActionListener<TransportPPLQueryResponse> listener) {
     assert parentTask != null : "parentTask required for cancellation propagation";
-    doExecute(query, queryType, profiling, parentTask, listener);
+    doExecute(query, queryType, profiling, fetchSize, parentTask, listener);
   }
 
   private void doExecute(
       String query,
       QueryType queryType,
       boolean profiling,
+      int fetchSize,
       Task parentTask,
       ActionListener<TransportPPLQueryResponse> listener) {
     client
@@ -193,6 +195,10 @@ public class RestUnifiedQueryAction {
                     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
                     RelNode plan = planner.plan(query);
                     CalcitePlanContext planContext = context.getPlanContext();
+                    // PPL fetch_size caps the response to N rows (no cursor) — the V2 path attaches
+                    // a `head N` in AstStatementBuilder; the unified path parses only the query
+                    // string, so apply the equivalent top-level limit here before the system cap.
+                    plan = addFetchSizeLimit(plan, planContext, fetchSize);
                     plan = addQuerySizeLimit(plan, planContext);
                     if (profiling) {
                       analyticsEngine.executeWithProfile(
@@ -337,6 +343,21 @@ public class RestUnifiedQueryAction {
         LogicalSystemLimit.SystemLimitType.QUERY_SIZE_LIMIT,
         plan,
         context.relBuilder.literal(context.sysLimit.querySizeLimit()));
+  }
+
+  /**
+   * Cap the result to {@code fetchSize} rows when {@code fetchSize > 0}, mirroring PPL's {@code
+   * fetch_size} (which the V2 path lowers to a top-level {@code head N} in AstStatementBuilder).
+   * {@code fetchSize <= 0} means "use system default", so no limit is added. Uses the same {@code
+   * relBuilder.limit} primitive that {@code head} lowers to, so the analytics backend sees an
+   * ordinary fetch limit.
+   */
+  private static RelNode addFetchSizeLimit(
+      RelNode plan, CalcitePlanContext context, int fetchSize) {
+    if (fetchSize <= 0) {
+      return plan;
+    }
+    return context.relBuilder.push(plan).limit(0, fetchSize).build();
   }
 
   private ResponseListener<QueryResponse> createQueryListener(
