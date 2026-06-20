@@ -5,4 +5,4 @@ calcite:
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
   physical: |
     EnumerableCalc(expr#0..18=[{inputs}], expr#19=[1066507633], expr#20=[CTIME($t19)], ts=[$t20])
-      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[LIMIT->10000]]], RequestBuilder=[OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m"}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m"}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
