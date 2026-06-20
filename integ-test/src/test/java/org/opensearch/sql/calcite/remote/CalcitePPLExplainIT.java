@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.ppl.PPLIntegTestCase.GlobalPushdownConfig;
 import org.opensearch.sql.protocol.response.format.Format;
 
 public class CalcitePPLExplainIT extends PPLIntegTestCase {
@@ -102,7 +103,7 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
     var rels = physical.get("rels");
     assertTrue(rels.isArray());
 
-    // Find a rel with sourceBuilder
+    // Find a rel with sourceBuilder (only present when pushdown is enabled)
     boolean foundSourceBuilder = false;
     for (int i = 0; i < rels.size(); i++) {
       var rel = rels.get(i);
@@ -116,7 +117,10 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
         break;
       }
     }
-    assertTrue("sourceBuilder not found in physical plan rels", foundSourceBuilder);
+    // Only assert sourceBuilder exists when pushdown is enabled
+    if (GlobalPushdownConfig.enabled) {
+      assertTrue("sourceBuilder not found in physical plan rels", foundSourceBuilder);
+    }
   }
 
   /**
