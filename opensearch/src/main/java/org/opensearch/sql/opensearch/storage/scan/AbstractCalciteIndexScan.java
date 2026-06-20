@@ -106,23 +106,29 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
 
   @Override
   public RelWriter explainTerms(RelWriter pw) {
-    super.explainTerms(pw);
-    if (!pushDownContext.isEmpty()) {
-      pw.item("PushDownContext", String.valueOf(pushDownContext));
-      // For JSON output, serialize sourceBuilder as a proper JSON string
-      if (pw instanceof RelJsonWriter) {
+    // Build explain string with context and request builder info
+    String explainString = String.valueOf(pushDownContext);
+    if (pw instanceof RelJsonWriter) {
+      // For JSON output, add structured items
+      super.explainTerms(pw);
+      if (!pushDownContext.isEmpty()) {
+        pw.item("PushDownContext", explainString);
         try {
           OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
           pw.item("sourceBuilder", requestBuilder.getSourceBuilder().toString());
         } catch (Exception e) {
           // Ignore if request builder cannot be created
         }
-      } else if (pw instanceof RelWriterImpl) {
-        // Only add request builder to the string explain plan
-        pw.item("RequestBuilder", pushDownContext.createRequestBuilder().toString());
       }
+      return pw;
+    } else {
+      // For text output, use original chained format
+      if (pw instanceof RelWriterImpl && !pushDownContext.isEmpty()) {
+        explainString += ", " + pushDownContext.createRequestBuilder();
+      }
+      return super.explainTerms(pw)
+          .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
     }
-    return pw;
   }
 
   protected Integer getQuerySizeLimit() {
