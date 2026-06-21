@@ -323,7 +323,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
         // aggregators.
         return null;
       }
-      RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(collations));
+      RelTraitSet traitsWithCollations = getTraitSet().replace(RelCollations.of(collations));
       PushDownContext pushDownContextWithoutSort = this.pushDownContext.cloneWithoutSort();
       AbstractAction<?> action;
       Object digest;
