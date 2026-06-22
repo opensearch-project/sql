@@ -212,23 +212,19 @@ public class TransportPPLQueryAction
     if (transformedRequest.isExplainRequest()) {
       pplService.explain(
           transformedRequest, createExplainResponseListener(transformedRequest, clearingListener));
-    } else {
-      pplService.analyze(
-        transformedRequest, createAnalyzeResponseListener(transformedRequest, clearingListener));
-    }
     /**
-     * Commenting out lines 196-199 and replacing them with lines 203-211 will
+     * Removing  `|| transformedRequest.profile()` from line 200 will
      * separate the `profile` and `analyze` endpoints. See PR #5568.
      */
-    // } else if (transformedRequest.analyze()) {
-    //   pplService.analyze(
-    //     transformedRequest, createAnalyzeResponseListener(transformedRequest, clearingListener));
-    // } else {
-    //   pplService.execute(
-    //       transformedRequest,
-    //       createListener(transformedRequest, clearingListener),
-    //       createExplainResponseListener(transformedRequest, clearingListener));
-    // }
+    } else if (transformedRequest.analyze() || transformedRequest.profile()) {
+      pplService.analyze(
+        transformedRequest, createAnalyzeResponseListener(transformedRequest, clearingListener));
+    } else {
+      pplService.execute(
+          transformedRequest,
+          createListener(transformedRequest, clearingListener),
+          createExplainResponseListener(transformedRequest, clearingListener));
+    }
   }
 
 
