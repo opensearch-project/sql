@@ -35,7 +35,12 @@ public class DefaultExpressionSerializer implements ExpressionSerializer {
     try {
       ByteArrayInputStream input = new ByteArrayInputStream(Base64.getDecoder().decode(code));
       ObjectInputStream objectInput = new ObjectInputStream(input);
-      objectInput.setObjectInputFilter(DeserializationFilterUtil.createFilter(""));
+      java.security.AccessController.doPrivileged(
+          (java.security.PrivilegedAction<Void>)
+              () -> {
+                objectInput.setObjectInputFilter(DeserializationFilterUtil.createFilter(""));
+                return null;
+              });
       return (Expression) objectInput.readObject();
     } catch (Exception e) {
       throw new IllegalStateException("Failed to deserialize expression code: " + code, e);

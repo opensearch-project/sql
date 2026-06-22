@@ -89,14 +89,19 @@ public class PlanSerializer {
           new GZIPInputStream(new ByteArrayInputStream(HashCode.fromString(code).asBytes()));
       ObjectInputStream objectInput =
           new CursorDeserializationStream(new ByteArrayInputStream(gzip.readAllBytes()));
-      objectInput.setObjectInputFilter(
-          DeserializationFilterUtil.createFilter(
-              "org.opensearch.sql.planner.physical.*;"
-                  + "org.opensearch.sql.opensearch.storage.scan.*;"
-                  + "org.opensearch.sql.opensearch.data.type.*;"
-                  + "org.opensearch.sql.executor.pagination.*;"
-                  + "org.opensearch.sql.executor.QueryType;"
-                  + "org.opensearch.sql.utils.*;"));
+      java.security.AccessController.doPrivileged(
+          (java.security.PrivilegedAction<Void>)
+              () -> {
+                objectInput.setObjectInputFilter(
+                    DeserializationFilterUtil.createFilter(
+                        "org.opensearch.sql.planner.physical.*;"
+                            + "org.opensearch.sql.opensearch.storage.scan.*;"
+                            + "org.opensearch.sql.opensearch.data.type.*;"
+                            + "org.opensearch.sql.executor.pagination.*;"
+                            + "org.opensearch.sql.executor.QueryType;"
+                            + "org.opensearch.sql.utils.*;"));
+                return null;
+              });
       return (Serializable) objectInput.readObject();
     } catch (Exception e) {
       throw new IllegalStateException("Failed to deserialize object", e);

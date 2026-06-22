@@ -24,4 +24,7 @@ grant {
   permission javax.management.MBeanServerPermission "findMBeanServer";
   permission javax.management.MBeanPermission "com.amazonaws.metrics.*", "*";
   permission javax.management.MBeanTrustPermission "register";
+
+  // Deserialization filter
+  permission java.io.SerializablePermission "serialFilter";
 };
