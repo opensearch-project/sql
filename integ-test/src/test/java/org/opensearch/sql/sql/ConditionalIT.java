@@ -46,12 +46,8 @@ public class ConditionalIT extends SQLIntegTestCase {
   public void ifnullShouldPassJDBC() throws IOException {
     JSONObject response =
         executeJdbcRequest(
-            "SELECT IFNULL(lastname, 'unknown') AS name FROM "
-                + TEST_INDEX_ACCOUNT
-                + " GROUP BY name");
-    assertEquals("IFNULL(lastname, 'unknown')", response.query("/schema/0/name"));
-    assertEquals("name", response.query("/schema/0/alias"));
-    assertEquals("keyword", response.query("/schema/0/type"));
+            "SELECT IFNULL(lastname, 'unknown') FROM " + TEST_INDEX_ACCOUNT + " GROUP BY 1");
+    verifySchema(response, schema("IFNULL(lastname, 'unknown')", null, "keyword"));
   }
 
   @Test
