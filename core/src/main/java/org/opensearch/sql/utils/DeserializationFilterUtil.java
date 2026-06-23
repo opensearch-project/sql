@@ -44,6 +44,7 @@ public class DeserializationFilterUtil {
           + "java.math.BigDecimal;"
           + "java.math.BigInteger;"
           + "java.time.**;"
+          + "java.util.regex.Pattern;"
           + "com.google.common.collect.**;";
 
   /**
