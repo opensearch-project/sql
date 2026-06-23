@@ -6,6 +6,7 @@
 package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sql.util.Capability.VECTOR_SEARCH;
 
 import java.io.IOException;
 import org.junit.Assume;
@@ -15,12 +16,14 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration tests for vectorSearch SQL table function — validation and error paths. These tests
  * verify that invalid inputs are rejected with clear error messages. Explain-plan DSL shape tests
  * live in {@link VectorSearchExplainIT}.
  */
+@RequiresCapability(VECTOR_SEARCH)
 public class VectorSearchIT extends SQLIntegTestCase {
 
   @Override

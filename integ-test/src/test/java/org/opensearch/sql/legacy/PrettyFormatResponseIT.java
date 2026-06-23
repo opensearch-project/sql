@@ -10,6 +10,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.opensearch.sql.util.Capability.DYNAMIC_STRING_NO_KEYWORD;
+import static org.opensearch.sql.util.Capability.NESTED_FIELDS;
+import static org.opensearch.sql.util.Capability.RESPONSE_FORMAT;
 
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -27,6 +30,7 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  *
@@ -97,6 +101,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
 
   // This is testing a deprecated feature
   @Test
+  @RequiresCapability(RESPONSE_FORMAT)
   public void wrongIndexType() throws IOException {
     String type = "wrongType";
     try {
@@ -167,18 +172,21 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void selectAllFromNestedWithoutFieldInFrom() throws IOException {
     assertNestedFieldQueryResultContainsColumnsAndData(
         "SELECT * FROM %s", regularFields, fields("message", "comment"));
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void selectAllFromNestedWithFieldInFrom() throws IOException {
     assertNestedFieldQueryResultContainsColumnsAndData(
         "SELECT * FROM %s e, e.message m", regularFields, messageFields);
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void selectAllFromNestedWithMultipleFieldsInFrom() throws IOException {
     assertNestedFieldQueryResultContainsColumnsAndData(
         "SELECT * FROM %s e, e.message m, e.comment c",
@@ -186,12 +194,14 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void selectAllNestedFromNestedWithFieldInFrom() throws IOException {
     assertNestedFieldQueryResultContainsColumnsAndData(
         "SELECT m.* FROM %s e, e.message m", messageFields);
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void selectSpecificRegularFieldAndAllFromNestedWithFieldInFrom() throws IOException {
     assertNestedFieldQueryResultContainsColumnsAndData(
         "SELECT e.someField, m.* FROM %s e, e.message m", fields("someField"), messageFields);
@@ -218,6 +228,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void selectNestedFields() throws IOException {
     JSONObject response =
         executeQuery(
@@ -237,6 +248,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void selectNestedFieldWithWildcard() throws IOException {
     JSONObject response =
         executeQuery(
@@ -456,6 +468,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   // TEST_INDEX_ACCOUNT);
   //    }
   @Test
+  @RequiresCapability(RESPONSE_FORMAT)
   public void fieldsWithAlias() throws IOException {
     JSONObject response =
         executeQuery(
@@ -506,6 +519,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(RESPONSE_FORMAT)
   public void joinQueryWithAlias() throws IOException {
     JSONObject response =
         executeQuery(
@@ -565,6 +579,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DYNAMIC_STRING_NO_KEYWORD)
   public void fieldOrder() throws IOException {
 
     final String[] expectedFields = {"age", "firstname", "address", "gender", "email"};
@@ -574,6 +589,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DYNAMIC_STRING_NO_KEYWORD)
   public void fieldOrderOther() throws IOException {
 
     final String[] expectedFields = {"email", "firstname", "age", "gender", "address"};

@@ -6,6 +6,7 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WILDCARD;
+import static org.opensearch.sql.util.Capability.TEXT_KEYWORD_PUSHDOWN_REWRITE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -13,6 +14,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class LikeQueryIT extends SQLIntegTestCase {
   @Override
@@ -145,6 +147,7 @@ public class LikeQueryIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(TEXT_KEYWORD_PUSHDOWN_REWRITE)
   public void test_convert_field_text_to_keyword() throws IOException {
     String query = "SELECT * FROM " + TEST_INDEX_WILDCARD + " WHERE TextKeywordBody LIKE '*'";
     String result = explainQuery(query);

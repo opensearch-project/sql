@@ -11,6 +11,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.util.Capability.UNTYPED_NULL_LITERAL;
 import static org.opensearch.sql.util.MatcherUtils.hitAny;
 import static org.opensearch.sql.util.MatcherUtils.kvInt;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -32,6 +33,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class ConditionalIT extends SQLIntegTestCase {
 
@@ -51,6 +53,7 @@ public class ConditionalIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(UNTYPED_NULL_LITERAL)
   public void ifnullWithNullInputTest() {
     JSONObject response =
         new JSONObject(

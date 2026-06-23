@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.GEOPOINT_TYPE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -17,6 +18,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class GeopointFormatsIT extends SQLIntegTestCase {
 
@@ -26,6 +28,7 @@ public class GeopointFormatsIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(GEOPOINT_TYPE)
   public void testReadingGeopoints() throws IOException {
     String query = String.format("SELECT point FROM %s LIMIT 5", Index.GEOPOINTS.getName());
     JSONObject result = executeJdbcRequest(query);
@@ -41,6 +44,7 @@ public class GeopointFormatsIT extends SQLIntegTestCase {
 
   public static final double TOLERANCE = 1E-5;
 
+  @RequiresCapability(GEOPOINT_TYPE)
   public void testReadingGeoHash() throws IOException {
     String query = String.format("SELECT point FROM %s WHERE _id='6'", Index.GEOPOINTS.getName());
     JSONObject result = executeJdbcRequest(query);

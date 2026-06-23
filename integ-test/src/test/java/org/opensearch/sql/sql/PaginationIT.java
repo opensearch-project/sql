@@ -8,6 +8,7 @@ package org.opensearch.sql.sql;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ONLINE;
+import static org.opensearch.sql.util.Capability.PAGINATION_CURSOR;
 
 import java.io.IOException;
 import lombok.SneakyThrows;
@@ -21,8 +22,10 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 import org.opensearch.sql.util.TestUtils;
 
+@RequiresCapability(PAGINATION_CURSOR)
 public class PaginationIT extends SQLIntegTestCase {
   @Override
   public void init() throws IOException {

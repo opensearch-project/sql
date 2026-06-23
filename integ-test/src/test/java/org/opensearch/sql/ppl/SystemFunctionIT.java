@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NUMERIC
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.util.Capability.SCALED_FLOAT_TYPE;
+import static org.opensearch.sql.util.Capability.UNTYPED_NULL_LITERAL;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -28,6 +29,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(UNTYPED_NULL_LITERAL)
   public void typeof_sql_types() throws IOException {
     JSONObject response =
         executeQuery(
