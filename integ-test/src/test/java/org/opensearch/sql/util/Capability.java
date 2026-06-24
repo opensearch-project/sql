@@ -469,7 +469,37 @@ public enum Capability {
   LUCENE_PUSHDOWN_EXPLAIN(
       "A test asserting a Lucene-specific pushdown fragment in the explain plan (e.g. SORT->[...])"
           + " can't pass on the analytics-engine route: the DataFusion scan produces a different"
-          + " plan with no Lucene pushdown fragment.");
+          + " plan with no Lucene pushdown fragment."),
+
+  /**
+   * Chaining two {@code streamstats} commands where an upstream stage partitions {@code by} a group
+   * fails on the analytics-engine route. Each {@code streamstats ... by} stage projects a {@code
+   * ROW_NUMBER() OVER ()} sequence column to order its window; the Calcite plan aliases these
+   * distinctly ({@code __stream_seq__}), but the Substrait converter names both physical columns
+   * after the operator ({@code "row_number() ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW"}),
+   * so the stacked schema has a duplicate/ambiguous field name. Verified: it surfaces as a 500
+   * ({@code Schema contains duplicate unqualified field name ...} / streaming-fragment failure) or,
+   * for chained {@code window} streamstats, non-deterministic window values. A single {@code
+   * streamstats by} (or a chain where only the final stage has {@code by}) works.
+   */
+  CHAINED_STREAMSTATS_BY(
+      "Chaining two streamstats where an upstream stage partitions by a group fails on the"
+          + " analytics-engine route: both stages emit a ROW_NUMBER() sequence column the Substrait"
+          + " converter names identically, producing a duplicate/ambiguous field name (500) or"
+          + " non-deterministic window values."),
+
+  /**
+   * {@code streamstats} computes its running/window aggregate over the backend scan order on the
+   * analytics-engine route, ignoring a preceding {@code | sort}. The {@code OVER} clause carries no
+   * explicit {@code ORDER BY} (streamstats orders by encounter order by design), so DataFusion
+   * evaluates the window in scan order rather than the sorted order the v2/Calcite path honors.
+   * Verified: {@code sort age | streamstats window=2 avg(age)} yields window values computed in
+   * insertion order, not age order, so the per-row aggregates diverge.
+   */
+  STREAMSTATS_SORT_NOT_HONORED(
+      "streamstats computes its window over the backend scan order on the analytics-engine route,"
+          + " ignoring a preceding | sort (the OVER clause has no explicit ORDER BY), so the window"
+          + " values diverge from the v2/Calcite path which honors the sort.");
 
   private final String reason;
 
