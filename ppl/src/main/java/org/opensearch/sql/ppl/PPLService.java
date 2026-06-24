@@ -172,10 +172,7 @@ public class PPLService {
       target = child;
     }
     String nodeType = target.getClass().getSimpleName().replace("Context", "");
-    return QuerySegment.builder()
-        .nodeType(nodeType)
-        .source(source)
-        .build();
+    return QuerySegment.builder().nodeType(nodeType).source(source).build();
   }
 
   private AbstractPlan plan(
