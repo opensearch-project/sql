@@ -482,7 +482,7 @@ public class QueryService {
     List<double[]> physicalTimings = new ArrayList<>();
     if (profile != null && profile.getPlan() != null) {
       List<QueryProfile.PlanNode> planNodes = new ArrayList<>();
-      QueryProfile.PlanNode current = profile.getPlan();
+      QueryProfile.PlanNode current = (QueryProfile.PlanNode) profile.getPlan();
       while (current != null) {
         planNodes.add(current);
         current =

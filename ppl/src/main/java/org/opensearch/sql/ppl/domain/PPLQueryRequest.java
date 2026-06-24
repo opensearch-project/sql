@@ -70,8 +70,13 @@ public class PPLQueryRequest {
     this(pplQuery, jsonContent, path, format, ExplainMode.STANDARD.getModeName(), false, false);
   }
 
-  public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path,
-    String format, String explainMode, boolean profile) {
+  public PPLQueryRequest(
+      String pplQuery,
+      JSONObject jsonContent,
+      String path,
+      String format,
+      String explainMode,
+      boolean profile) {
     this(pplQuery, jsonContent, path, format, explainMode, profile, false);
   }
 
