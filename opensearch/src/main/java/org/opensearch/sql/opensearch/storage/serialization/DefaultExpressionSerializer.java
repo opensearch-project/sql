@@ -12,6 +12,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Base64;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.utils.DeserializationFilterUtil;
 
 /** Default serializer that (de-)serialize expressions by JDK serialization. */
 public class DefaultExpressionSerializer implements ExpressionSerializer {
@@ -34,6 +35,12 @@ public class DefaultExpressionSerializer implements ExpressionSerializer {
     try {
       ByteArrayInputStream input = new ByteArrayInputStream(Base64.getDecoder().decode(code));
       ObjectInputStream objectInput = new ObjectInputStream(input);
+      java.security.AccessController.doPrivileged(
+          (java.security.PrivilegedAction<Void>)
+              () -> {
+                objectInput.setObjectInputFilter(DeserializationFilterUtil.createFilter(""));
+                return null;
+              });
       return (Expression) objectInput.readObject();
     } catch (Exception e) {
       throw new IllegalStateException("Failed to deserialize expression code: " + code, e);
