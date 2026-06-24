@@ -52,4 +52,4 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.11.0
 *  bump okio to 3.4.0 by @joshuali925 in https://github.com/opensearch-project/sql/pull/2047
 
 ---
-**Full Changelog**: https://github.com/opensearch-project/sql/compare/2.3.0.0...v.2.11.0.0
+**Full Changelog**: https://github.com/opensearch-project/sql/compare/2.3.0.0...2.11.0.0
