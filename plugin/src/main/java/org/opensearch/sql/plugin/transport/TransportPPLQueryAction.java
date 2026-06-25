@@ -212,13 +212,13 @@ public class TransportPPLQueryAction
     if (transformedRequest.isExplainRequest()) {
       pplService.explain(
           transformedRequest, createExplainResponseListener(transformedRequest, clearingListener));
-    /**
-     * Removing  `|| transformedRequest.profile()` from line 200 will
-     * separate the `profile` and `analyze` endpoints. See PR #5568.
-     */
+      /**
+       * Removing `|| transformedRequest.profile()` from line 200 will separate the `profile` and
+       * `analyze` endpoints. See PR #5568.
+       */
     } else if (transformedRequest.analyze() || transformedRequest.profile()) {
       pplService.analyze(
-        transformedRequest, createAnalyzeResponseListener(transformedRequest, clearingListener));
+          transformedRequest, createAnalyzeResponseListener(transformedRequest, clearingListener));
     } else {
       pplService.execute(
           transformedRequest,
@@ -226,7 +226,6 @@ public class TransportPPLQueryAction
           createExplainResponseListener(transformedRequest, clearingListener));
     }
   }
-
 
   private ResponseListener<AnalyzeResponse> createAnalyzeResponseListener(
       PPLQueryRequest request, ActionListener<TransportPPLQueryResponse> listener) {
@@ -250,7 +249,7 @@ public class TransportPPLQueryAction
       }
     };
   }
-  
+
   /**
    * TODO: need to extract an interface for both SQL and PPL action handler and move these common
    * methods to the interface. This is not easy to do now because SQL action handler is still in
