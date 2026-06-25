@@ -80,7 +80,11 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.PHRASE);
     loadIndex(Index.GAME_OF_THRONES);
-    loadIndex(Index.NESTED);
+    // Skip on the analytics-engine route, where the parquet store rejects nested_objects'
+    // multi-value array in the scalar-mapped myNum field at bulk load.
+    if (!TestUtils.AnalyticsIndexConfig.isEnabled()) {
+      loadIndex(Index.NESTED);
+    }
   }
 
   @Override
