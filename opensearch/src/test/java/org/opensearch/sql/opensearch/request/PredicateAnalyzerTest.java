@@ -1649,4 +1649,48 @@ public class PredicateAnalyzerTest {
         """,
         result.toString());
   }
+
+  @Test
+  void andWithUnpushableLike_partiallyPushesOtherPredicates()
+      throws ExpressionNotAnalyzableException {
+    // field3 (c) is text without .keyword → LIKE throws PredicateAnalyzerException
+    // field4 (d) is date → timestamp range should push as RangeQueryBuilder
+    final RelDataType rowType =
+        builder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("a", typeFactory.createSqlType(SqlTypeName.INTEGER))
+            .add("b", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+            .add("c", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+            .add("d", typeFactory.createUDT(ExprUDT.EXPR_TIMESTAMP))
+            .add("e", typeFactory.createSqlType(SqlTypeName.BOOLEAN))
+            .build();
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+
+    RexInputRef field3 = builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2);
+    RexNode likeCall =
+        builder.makeCall(
+            SqlStdOperatorTable.LIKE, field3, stringLiteral, builder.makeLiteral("\\"));
+    RexNode rangeCall =
+        builder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, field4, dateTimeLiteral);
+    RexNode andCall = builder.makeCall(SqlStdOperatorTable.AND, rangeCall, likeCall);
+
+    QueryBuilder result = PredicateAnalyzer.analyze(andCall, schema, fieldTypes, rowType, cluster);
+
+    // Should be a BoolQueryBuilder with range in must[] and LIKE as script
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    BoolQueryBuilder boolQuery = (BoolQueryBuilder) result;
+    assertEquals(2, boolQuery.must().size());
+
+    // First must clause should be the range query (pushable)
+    QueryBuilder firstMust = boolQuery.must().get(0);
+    assertInstanceOf(RangeQueryBuilder.class, firstMust);
+    RangeQueryBuilder rangeQuery = (RangeQueryBuilder) firstMust;
+    assertEquals("d", rangeQuery.fieldName());
+
+    // Second must clause should be script query (unpushable LIKE)
+    QueryBuilder secondMust = boolQuery.must().get(1);
+    assertInstanceOf(ScriptQueryBuilder.class, secondMust);
+  }
 }

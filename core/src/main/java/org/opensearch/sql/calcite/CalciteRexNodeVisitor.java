@@ -835,6 +835,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitCase(Case node, CalcitePlanContext context) {
     List<RexNode> caseOperands = new ArrayList<>();
+    List<RelDataType> resultTypes = new ArrayList<>();
     for (When when : node.getWhenClauses()) {
       RexNode condition = analyze(when.getCondition(), context);
       if (!SqlTypeUtil.isBoolean(condition.getType())) {
@@ -843,11 +844,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                 "Condition expected a boolean type, but got %s", condition.getType()));
       }
       caseOperands.add(condition);
-      caseOperands.add(analyze(when.getResult(), context));
+      RexNode result = analyze(when.getResult(), context);
+      caseOperands.add(result);
+      resultTypes.add(result.getType());
     }
     RexNode elseExpr =
         node.getElseClause().map(e -> analyze(e, context)).orElse(context.relBuilder.literal(null));
     caseOperands.add(elseExpr);
+    resultTypes.add(elseExpr.getType());
+
+    // Pre-validate the THEN/ELSE result types so an unsupertyped mix surfaces as a clean
+    // 400 here instead of an opaque NPE deep in Calcite's makeCall return-type inference.
+    RelDataType commonType = context.rexBuilder.getTypeFactory().leastRestrictive(resultTypes);
+    if (commonType == null) {
+      throw new ExpressionEvaluationException(
+          StringUtils.format("case branches must have a common type, but got %s", resultTypes));
+    }
     return context.rexBuilder.makeCall(SqlStdOperatorTable.CASE, caseOperands);
   }
 
