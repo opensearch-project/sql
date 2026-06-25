@@ -76,23 +76,23 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testStreamstatsByAfterSortOrdersWindowBySequence() {
+  public void testStreamstatsByAfterSortOrdersWindowByCollation() {
     String ppl = "source=EMP | sort - SAL | streamstats max(SAL) by DEPTNO";
     RelNode root = getRelNode(ppl);
 
     String plan = root.explain();
-    assertTrue(plan.contains("__stream_seq__=[ROW_NUMBER() OVER (ORDER BY $5 DESC NULLS LAST)]"));
-    assertTrue(plan.contains("MAX($5) OVER (PARTITION BY $7 ORDER BY $8"));
+    assertFalse(plan.contains("__stream_seq__"));
+    assertTrue(plan.contains("MAX($5) OVER (PARTITION BY $7 ORDER BY $5 DESC NULLS LAST"));
   }
 
   @Test
-  public void testStreamstatsAfterSortOrdersWindowBySequence() {
+  public void testStreamstatsAfterSortOrdersWindowByCollation() {
     String ppl = "source=EMP | sort - SAL | streamstats max(SAL)";
     RelNode root = getRelNode(ppl);
 
     String plan = root.explain();
-    assertTrue(plan.contains("__stream_seq__=[ROW_NUMBER() OVER (ORDER BY $5 DESC NULLS LAST)]"));
-    assertTrue(plan.contains("max(SAL)=[MAX($5) OVER (ORDER BY $8 ROWS UNBOUNDED PRECEDING)]"));
+    assertFalse(plan.contains("__stream_seq__"));
+    assertTrue(plan.contains("max(SAL)=[MAX($5) OVER (ORDER BY $5 DESC NULLS LAST"));
   }
 
   @Test

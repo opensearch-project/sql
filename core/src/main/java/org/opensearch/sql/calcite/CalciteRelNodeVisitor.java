@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -2279,7 +2280,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .relBuilder
               .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
               .over()
-              .orderBy(derivePipelineSortOrderKeys(context))
+              .orderBy(deriveCollationOrderKeys(context))
               .rowsTo(RexWindowBounds.CURRENT_ROW)
               .as(ROW_NUMBER_COLUMN_FOR_STREAMSTATS);
       context.relBuilder.projectPlus(streamSeq);
@@ -2296,8 +2297,31 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           new String[] {ROW_NUMBER_COLUMN_FOR_STREAMSTATS});
     }
 
-    List<RexNode> inputOrderKeys = derivePipelineSortOrderKeys(context);
-    if (hasGroup || !inputOrderKeys.isEmpty()) {
+    List<RexNode> inputOrderKeys = deriveCollationOrderKeys(context);
+    if (!inputOrderKeys.isEmpty()) {
+      List<RexNode> overExpressions =
+          node.getWindowFunctionList().stream()
+              .map(w -> rexVisitor.analyze(w, context))
+              .map(rex -> addWindowOrder(rex, inputOrderKeys, context))
+              .toList();
+
+      if (hasGroup && !node.isBucketNullable()) {
+        List<RexNode> groupByList =
+            groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+        List<RexNode> notNullList =
+            PlanUtils.getSelectColumns(groupByList).stream()
+                .map(context.relBuilder::field)
+                .map(context.relBuilder::isNotNull)
+                .toList();
+        RexNode groupNotNull = context.relBuilder.and(notNullList);
+        context.relBuilder.projectPlus(
+            wrapWindowFunctionsWithGroupNotNull(overExpressions, groupNotNull, context));
+      } else {
+        context.relBuilder.projectPlus(overExpressions);
+      }
+
+      context.relBuilder.sort(inputOrderKeys);
+    } else if (hasGroup) {
       // streamstats is order-sensitive. Materialize input order before any grouped window can
       // repartition rows, then make each window frame walk that sequence explicitly.
       RexNode streamSeq =
@@ -2314,7 +2338,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<RexNode> overExpressions =
           node.getWindowFunctionList().stream()
               .map(w -> rexVisitor.analyze(w, context))
-              .map(rex -> addStreamSeqOrder(rex, seqColIndex, context))
+              .map(rex -> addWindowOrder(rex, List.of(context.relBuilder.field(seqColIndex)), context))
               .toList();
 
       if (hasGroup && !node.isBucketNullable()) {
@@ -2347,8 +2371,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private RexNode addStreamSeqOrder(RexNode rex, int seqColIndex, CalcitePlanContext context) {
-    RexInputRef seqRef = context.relBuilder.field(seqColIndex);
+  private RexNode addWindowOrder(
+      RexNode rex, List<RexNode> orderKeys, CalcitePlanContext context) {
+    if (orderKeys.isEmpty()) {
+      return rex;
+    }
+    ImmutableList.Builder<RexFieldCollation> orderCollationBuilder = ImmutableList.builder();
+    orderKeys.forEach(key -> orderCollationBuilder.add(toRexFieldCollation(key)));
+    ImmutableList<RexFieldCollation> orderCollations = orderCollationBuilder.build();
     return rex.accept(
         new RexShuttle() {
           @Override
@@ -2358,13 +2388,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             if (!window.orderKeys.isEmpty()) {
               return recursed;
             }
-            RexFieldCollation seqOrder = new RexFieldCollation(seqRef, Set.of());
             return context.rexBuilder.makeOver(
                 recursed.getType(),
                 recursed.getAggOperator(),
                 recursed.getOperands(),
                 window.partitionKeys,
-                ImmutableList.of(seqOrder),
+                orderCollations,
                 window.getLowerBound(),
                 window.getUpperBound(),
                 window.isRows(),
@@ -2374,6 +2403,47 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 recursed.ignoreNulls());
           }
         });
+  }
+
+  private static RexFieldCollation toRexFieldCollation(RexNode node) {
+    return toRexFieldCollation(
+        node,
+        RelFieldCollation.Direction.ASCENDING,
+        RelFieldCollation.NullDirection.UNSPECIFIED);
+  }
+
+  private static RexFieldCollation toRexFieldCollation(
+      RexNode node,
+      RelFieldCollation.Direction direction,
+      RelFieldCollation.NullDirection nullDirection) {
+    switch (node.getKind()) {
+      case DESCENDING:
+        return toRexFieldCollation(
+            ((RexCall) node).getOperands().getFirst(),
+            RelFieldCollation.Direction.DESCENDING,
+            nullDirection);
+      case NULLS_FIRST:
+        return toRexFieldCollation(
+            ((RexCall) node).getOperands().getFirst(),
+            direction,
+            RelFieldCollation.NullDirection.FIRST);
+      case NULLS_LAST:
+        return toRexFieldCollation(
+            ((RexCall) node).getOperands().getFirst(),
+            direction,
+            RelFieldCollation.NullDirection.LAST);
+      default:
+        Set<SqlKind> flags = EnumSet.noneOf(SqlKind.class);
+        if (direction == RelFieldCollation.Direction.DESCENDING) {
+          flags.add(SqlKind.DESCENDING);
+        }
+        if (nullDirection == RelFieldCollation.NullDirection.FIRST) {
+          flags.add(SqlKind.NULLS_FIRST);
+        } else if (nullDirection == RelFieldCollation.NullDirection.LAST) {
+          flags.add(SqlKind.NULLS_LAST);
+        }
+        return new RexFieldCollation(node, flags);
+    }
   }
 
   private List<RexNode> wrapWindowFunctionsWithGroupNotNull(
@@ -2689,7 +2759,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .relBuilder
             .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
             .over()
-            .orderBy(derivePipelineSortOrderKeys(context))
+            .orderBy(deriveCollationOrderKeys(context))
             .rowsTo(RexWindowBounds.CURRENT_ROW)
             .as(ROW_NUMBER_COLUMN_FOR_STREAMSTATS);
     context.relBuilder.projectPlus(rowNum);
@@ -2927,21 +2997,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       orderKeys.add(key);
     }
     return orderKeys;
-  }
-
-  /** Window {@code ORDER BY} keys only when the current pipeline contains an explicit sort. */
-  private static List<RexNode> derivePipelineSortOrderKeys(CalcitePlanContext context) {
-    return hasSortInInput(context.relBuilder.peek())
-        ? deriveCollationOrderKeys(context)
-        : List.of();
-  }
-
-  private static boolean hasSortInInput(RelNode rel) {
-    if (rel instanceof Sort) {
-      return true;
-    }
-    List<RelNode> inputs = rel.getInputs();
-    return inputs.size() == 1 && hasSortInInput(inputs.getFirst());
   }
 
   @Override
@@ -3987,7 +4042,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               }
             });
 
-    List<RexNode> trendlineOrderKeys = derivePipelineSortOrderKeys(context);
+    List<RexNode> trendlineOrderKeys = deriveCollationOrderKeys(context);
 
     List<RexNode> trendlineNodes = new ArrayList<>();
     List<String> aliases = new ArrayList<>();
