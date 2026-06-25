@@ -160,6 +160,18 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
   }
 
   @Test
+  public void unsupportedWindowFunctionIsRethrownAsSemanticCheckException() {
+    // Window functions outside WINDOW_FUNC_MAPPING reach
+    // CalciteRexNodeVisitor#visitWindowFunction's
+    // orElseThrow. The throw site emits CalciteUnsupportedException so this path normalizes to a
+    // 4xx SemanticCheckException rather than escaping as a 500.
+    givenInvalidQuery("source = catalog.employees | eventstats rank()")
+        .assertErrorType(SemanticCheckException.class)
+        .assertCauseType(CalciteUnsupportedException.class)
+        .assertErrorMessageContains("Unexpected window function: rank");
+  }
+
+  @Test
   public void assertionErrorIsWrappedAsSemanticCheckException() {
     // Remove when the underlying Calcite assertion is fixed.
     givenInvalidQuery(
