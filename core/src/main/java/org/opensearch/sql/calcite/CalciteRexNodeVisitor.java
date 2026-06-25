@@ -705,7 +705,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                       node.getWindowFrame());
             })
         .orElseThrow(
-            () -> new UnsupportedOperationException("Unexpected window function: " + funcName));
+            () -> new CalciteUnsupportedException("Unexpected window function: " + funcName));
   }
 
   private List<RexNode> translateOrderKeys(
