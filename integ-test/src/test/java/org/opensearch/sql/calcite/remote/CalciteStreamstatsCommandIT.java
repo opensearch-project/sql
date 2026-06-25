@@ -8,7 +8,6 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.Capability.CHAINED_STREAMSTATS_BY;
 import static org.opensearch.sql.util.Capability.DOC_MUTATION;
-import static org.opensearch.sql.util.Capability.STREAMSTATS_SORT_NOT_HONORED;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -1017,7 +1016,6 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsAndSort() throws IOException {
     JSONObject actual =
         executeQuery(

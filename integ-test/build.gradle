@@ -1329,19 +1329,16 @@ task integTestRemote(type: RestIntegTestTask) {
             // === Excludes: asserts a Lucene pushdown fragment absent on the AE route ===
             excludeTestsMatching '*CalciteSortCommandIT.testPushdownSortCastToDoubleExpression'
 
-            // === Excludes: CalciteStreamstatsCommandIT route divergences ===
+            // === Excludes: chained CalciteStreamstatsCommandIT route divergences ===
             // Each test also carries an in-test @RequiresCapability(...) recording the reason.
-            //  - CHAINED_STREAMSTATS_BY: chaining two streamstats where an upstream stage has `by`
-            //    emits two ROW_NUMBER() sequence columns the Substrait converter names identically,
-            //    so the stacked schema has a duplicate/ambiguous field name (500) or, for chained
-            //    window streamstats, non-deterministic values. Fails single- and multi-shard.
+            // Chaining two streamstats where an upstream stage has `by` emits two ROW_NUMBER()
+            // sequence columns the Substrait converter names identically, so the stacked schema has
+            // a duplicate/ambiguous field name (500) or, for chained window streamstats,
+            // non-deterministic values. Fails single- and multi-shard.
             excludeTestsMatching '*CalciteStreamstatsCommandIT.testMultipleStreamstats'
             excludeTestsMatching '*CalciteStreamstatsCommandIT.testMultipleStreamstatsWithWindow'
             excludeTestsMatching '*CalciteStreamstatsCommandIT.testMultipleStreamstatsWithNull1'
             excludeTestsMatching '*CalciteStreamstatsCommandIT.testMultipleStreamstatsWithEval'
-            //  - STREAMSTATS_SORT_NOT_HONORED: streamstats computes its window over the backend scan
-            //    order, ignoring a preceding `| sort` (the OVER clause has no explicit ORDER BY).
-            excludeTestsMatching '*CalciteStreamstatsCommandIT.testStreamstatsAndSort'
         }
     }
 

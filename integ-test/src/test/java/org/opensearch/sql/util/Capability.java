@@ -486,20 +486,7 @@ public enum Capability {
       "Chaining two streamstats where an upstream stage partitions by a group fails on the"
           + " analytics-engine route: both stages emit a ROW_NUMBER() sequence column the Substrait"
           + " converter names identically, producing a duplicate/ambiguous field name (500) or"
-          + " non-deterministic window values."),
-
-  /**
-   * {@code streamstats} computes its running/window aggregate over the backend scan order on the
-   * analytics-engine route, ignoring a preceding {@code | sort}. The {@code OVER} clause carries no
-   * explicit {@code ORDER BY} (streamstats orders by encounter order by design), so DataFusion
-   * evaluates the window in scan order rather than the sorted order the v2/Calcite path honors.
-   * Verified: {@code sort age | streamstats window=2 avg(age)} yields window values computed in
-   * insertion order, not age order, so the per-row aggregates diverge.
-   */
-  STREAMSTATS_SORT_NOT_HONORED(
-      "streamstats computes its window over the backend scan order on the analytics-engine route,"
-          + " ignoring a preceding | sort (the OVER clause has no explicit ORDER BY), so the window"
-          + " values diverge from the v2/Calcite path which honors the sort.");
+          + " non-deterministic window values.");
 
   private final String reason;
 
