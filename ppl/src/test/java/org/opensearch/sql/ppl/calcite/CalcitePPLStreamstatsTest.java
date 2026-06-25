@@ -29,7 +29,7 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
             + "  LogicalSort(sort0=[$8], dir0=[ASC])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[$8], max(SAL)=[MAX($5) OVER"
-            + " (PARTITION BY $7 ROWS UNBOUNDED PRECEDING)])\n"
+            + " (PARTITION BY $7 ORDER BY $8 ROWS UNBOUNDED PRECEDING)])\n"
             + "      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[ROW_NUMBER() OVER ()])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
@@ -37,8 +37,8 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MAX(`SAL`)"
-            + " OVER (PARTITION BY `DEPTNO` ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)"
-            + " `max(SAL)`\n"
+            + " OVER (PARTITION BY `DEPTNO` ORDER BY `__stream_seq__` NULLS LAST ROWS BETWEEN"
+            + " UNBOUNDED PRECEDING AND CURRENT ROW) `max(SAL)`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " ROW_NUMBER() OVER () `__stream_seq__`\n"
             + "FROM `scott`.`EMP`) `t`\n"
@@ -56,8 +56,8 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
             + "  LogicalSort(sort0=[$8], dir0=[ASC])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[$8], max(SAL)=[CASE(IS NOT"
-            + " NULL($7), MAX($5) OVER (PARTITION BY $7 ROWS UNBOUNDED PRECEDING), null:DECIMAL(7,"
-            + " 2))])\n"
+            + " NULL($7), MAX($5) OVER (PARTITION BY $7 ORDER BY $8 ROWS UNBOUNDED PRECEDING),"
+            + " null:DECIMAL(7, 2))])\n"
             + "      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[ROW_NUMBER() OVER ()])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
@@ -65,13 +65,34 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, CASE WHEN"
-            + " `DEPTNO` IS NOT NULL THEN MAX(`SAL`) OVER (PARTITION BY `DEPTNO` ROWS BETWEEN"
-            + " UNBOUNDED PRECEDING AND CURRENT ROW) ELSE NULL END `max(SAL)`\n"
+            + " `DEPTNO` IS NOT NULL THEN MAX(`SAL`) OVER (PARTITION BY `DEPTNO` ORDER BY"
+            + " `__stream_seq__` NULLS LAST ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) ELSE"
+            + " NULL END `max(SAL)`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " ROW_NUMBER() OVER () `__stream_seq__`\n"
             + "FROM `scott`.`EMP`) `t`\n"
             + "ORDER BY `__stream_seq__` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testStreamstatsByAfterSortOrdersWindowBySequence() {
+    String ppl = "source=EMP | sort - SAL | streamstats max(SAL) by DEPTNO";
+    RelNode root = getRelNode(ppl);
+
+    String plan = root.explain();
+    assertTrue(plan.contains("__stream_seq__=[ROW_NUMBER() OVER (ORDER BY $5 DESC NULLS LAST)]"));
+    assertTrue(plan.contains("MAX($5) OVER (PARTITION BY $7 ORDER BY $8"));
+  }
+
+  @Test
+  public void testStreamstatsAfterSortOrdersWindowBySequence() {
+    String ppl = "source=EMP | sort - SAL | streamstats max(SAL)";
+    RelNode root = getRelNode(ppl);
+
+    String plan = root.explain();
+    assertTrue(plan.contains("__stream_seq__=[ROW_NUMBER() OVER (ORDER BY $5 DESC NULLS LAST)]"));
+    assertTrue(plan.contains("max(SAL)=[MAX($5) OVER (ORDER BY $8 ROWS UNBOUNDED PRECEDING)]"));
   }
 
   @Test
@@ -123,7 +144,7 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
             + "  LogicalSort(sort0=[$8], dir0=[ASC])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[$8], max(SAL)=[MAX($5) OVER"
-            + " (PARTITION BY $7 ROWS 4 PRECEDING)])\n"
+            + " (PARTITION BY $7 ORDER BY $8 ROWS 4 PRECEDING)])\n"
             + "      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[ROW_NUMBER() OVER ()])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
@@ -131,7 +152,8 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MAX(`SAL`)"
-            + " OVER (PARTITION BY `DEPTNO` ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) `max(SAL)`\n"
+            + " OVER (PARTITION BY `DEPTNO` ORDER BY `__stream_seq__` NULLS LAST ROWS BETWEEN 4"
+            + " PRECEDING AND CURRENT ROW) `max(SAL)`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " ROW_NUMBER() OVER () `__stream_seq__`\n"
             + "FROM `scott`.`EMP`) `t`\n"
@@ -152,8 +174,9 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
             + " 11}])\n"
             + "      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[$8], __reset_before_flag__=[$9],"
-            + " __reset_after_flag__=[$10], __seg_id__=[+(SUM($9) OVER (ROWS UNBOUNDED PRECEDING),"
-            + " COALESCE(SUM($10) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0))])\n"
+            + " __reset_after_flag__=[$10], __seg_id__=[+(SUM($9) OVER (ORDER BY $8 ROWS"
+            + " UNBOUNDED PRECEDING), COALESCE(SUM($10) OVER (ORDER BY $8 ROWS BETWEEN UNBOUNDED"
+            + " PRECEDING AND 1 PRECEDING), 0))])\n"
             + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[ROW_NUMBER() OVER ()],"
             + " __reset_before_flag__=[CASE(>($5, 100), 1, 0)], __reset_after_flag__=[CASE(<($5,"
@@ -167,8 +190,8 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
             + "            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3],"
             + " HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[$8],"
             + " __reset_before_flag__=[$9], __reset_after_flag__=[$10], __seg_id__=[+(SUM($9) OVER"
-            + " (ROWS UNBOUNDED PRECEDING), COALESCE(SUM($10) OVER (ROWS BETWEEN UNBOUNDED"
-            + " PRECEDING AND 1 PRECEDING), 0))])\n"
+            + " (ORDER BY $8 ROWS UNBOUNDED PRECEDING), COALESCE(SUM($10) OVER (ORDER BY $8 ROWS"
+            + " BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0))])\n"
             + "              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3],"
             + " HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[ROW_NUMBER() OVER"
             + " ()], __reset_before_flag__=[CASE(>($5, 100), 1, 0)],"
@@ -181,9 +204,10 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
             + " `$cor0`.`SAL`, `$cor0`.`COMM`, `$cor0`.`DEPTNO`, `t5`.`avg(SAL)`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " `__stream_seq__`, `__reset_before_flag__`, `__reset_after_flag__`,"
-            + " (SUM(`__reset_before_flag__`) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT"
-            + " ROW)) + COALESCE(SUM(`__reset_after_flag__`) OVER (ROWS BETWEEN UNBOUNDED PRECEDING"
-            + " AND 1 PRECEDING), 0) `__seg_id__`\n"
+            + " (SUM(`__reset_before_flag__`) OVER (ORDER BY `__stream_seq__` NULLS LAST ROWS"
+            + " BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) +"
+            + " COALESCE(SUM(`__reset_after_flag__`) OVER (ORDER BY `__stream_seq__` NULLS LAST"
+            + " ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) `__seg_id__`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " ROW_NUMBER() OVER () `__stream_seq__`, CASE WHEN `SAL` > 100 THEN 1 ELSE 0 END"
             + " `__reset_before_flag__`, CASE WHEN `SAL` < 50 THEN 1 ELSE 0 END"
@@ -192,9 +216,10 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
             + "LATERAL (SELECT AVG(`SAL`) `avg(SAL)`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " `__stream_seq__`, `__reset_before_flag__`, `__reset_after_flag__`,"
-            + " (SUM(`__reset_before_flag__`) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT"
-            + " ROW)) + COALESCE(SUM(`__reset_after_flag__`) OVER (ROWS BETWEEN UNBOUNDED PRECEDING"
-            + " AND 1 PRECEDING), 0) `__seg_id__`\n"
+            + " (SUM(`__reset_before_flag__`) OVER (ORDER BY `__stream_seq__` NULLS LAST ROWS"
+            + " BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) +"
+            + " COALESCE(SUM(`__reset_after_flag__`) OVER (ORDER BY `__stream_seq__` NULLS LAST"
+            + " ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) `__seg_id__`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " ROW_NUMBER() OVER () `__stream_seq__`, CASE WHEN `SAL` > 100 THEN 1 ELSE 0 END"
             + " `__reset_before_flag__`, CASE WHEN `SAL` < 50 THEN 1 ELSE 0 END"
@@ -234,7 +259,7 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
             + "  LogicalSort(sort0=[$8], dir0=[DESC])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[$8], max(SAL)=[MAX($5) OVER"
-            + " (PARTITION BY $7 ROWS UNBOUNDED PRECEDING)])\n"
+            + " (PARTITION BY $7 ORDER BY $8 ROWS UNBOUNDED PRECEDING)])\n"
             + "      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[ROW_NUMBER() OVER ()])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
@@ -242,8 +267,8 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " MAX(`SAL`) OVER (PARTITION BY `DEPTNO` ROWS BETWEEN UNBOUNDED"
-            + " PRECEDING AND CURRENT ROW) `max(SAL)`\n"
+            + " MAX(`SAL`) OVER (PARTITION BY `DEPTNO` ORDER BY `__stream_seq__` NULLS LAST ROWS"
+            + " BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) `max(SAL)`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " ROW_NUMBER() OVER () `__stream_seq__`\n"
             + "FROM `scott`.`EMP`) `t`\n"

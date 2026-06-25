@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertTrue;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert.SchemaSpec;
 import org.junit.Test;
@@ -60,6 +62,17 @@ public class CalcitePPLTrendlineTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE `SAL` IS NOT NULL";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTrendlineWithSortOrdersWindowFrame() {
+    String ppl = "source=EMP | trendline sort - SAL sma(2, SAL) | fields SAL, SAL_trendline";
+    RelNode root = getRelNode(ppl);
+
+    String plan = root.explain();
+    assertTrue(plan.contains("LogicalSort(sort0=[$5], dir0=[DESC])"));
+    assertTrue(plan.contains("COUNT() OVER (ORDER BY $5 DESC"));
+    assertTrue(plan.contains("SUM($5) OVER (ORDER BY $5 DESC"));
   }
 
   @Test

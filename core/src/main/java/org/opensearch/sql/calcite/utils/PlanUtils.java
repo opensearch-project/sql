@@ -201,9 +201,9 @@ public interface PlanUtils {
         //     sum(x) / count(x)
         return context.relBuilder.call(
             SqlStdOperatorTable.DIVIDE,
-            sumOver(context, field, partitions, rows, lowerBound, upperBound),
+            sumOver(context, field, partitions, orderKeys, rows, lowerBound, upperBound),
             context.relBuilder.cast(
-                countOver(context, field, partitions, rows, lowerBound, upperBound),
+                countOver(context, field, partitions, orderKeys, rows, lowerBound, upperBound),
                 SqlTypeName.DOUBLE));
       // stddev_pop(x) ==>
       //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / count(x), 0.5)
@@ -217,13 +217,17 @@ public interface PlanUtils {
       // var_samp(x) ==>
       //     (sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1)
       case STDDEV_POP:
-        return variance(context, field, partitions, rows, lowerBound, upperBound, true, true);
+        return variance(
+            context, field, partitions, orderKeys, rows, lowerBound, upperBound, true, true);
       case STDDEV_SAMP:
-        return variance(context, field, partitions, rows, lowerBound, upperBound, false, true);
+        return variance(
+            context, field, partitions, orderKeys, rows, lowerBound, upperBound, false, true);
       case VARPOP:
-        return variance(context, field, partitions, rows, lowerBound, upperBound, true, false);
+        return variance(
+            context, field, partitions, orderKeys, rows, lowerBound, upperBound, true, false);
       case VARSAMP:
-        return variance(context, field, partitions, rows, lowerBound, upperBound, false, false);
+        return variance(
+            context, field, partitions, orderKeys, rows, lowerBound, upperBound, false, false);
       case ROW_NUMBER:
         return withOver(
             context.relBuilder.aggregateCall(SqlStdOperatorTable.ROW_NUMBER),
@@ -255,24 +259,26 @@ public interface PlanUtils {
       CalcitePlanContext ctx,
       RexNode operation,
       List<RexNode> partitions,
+      List<RexNode> orderKeys,
       boolean rows,
       RexWindowBound lowerBound,
       RexWindowBound upperBound) {
     return withOver(
-        ctx.relBuilder.sum(operation), partitions, List.of(), rows, lowerBound, upperBound);
+        ctx.relBuilder.sum(operation), partitions, orderKeys, rows, lowerBound, upperBound);
   }
 
   private static RexNode countOver(
       CalcitePlanContext ctx,
       RexNode operation,
       List<RexNode> partitions,
+      List<RexNode> orderKeys,
       boolean rows,
       RexWindowBound lowerBound,
       RexWindowBound upperBound) {
     return withOver(
         ctx.relBuilder.count(ImmutableList.of(operation)),
         partitions,
-        List.of(),
+        orderKeys,
         rows,
         lowerBound,
         upperBound);
@@ -301,16 +307,18 @@ public interface PlanUtils {
       CalcitePlanContext ctx,
       RexNode operator,
       List<RexNode> partitions,
+      List<RexNode> orderKeys,
       boolean rows,
       RexWindowBound lowerBound,
       RexWindowBound upperBound,
       boolean biased,
       boolean sqrt) {
     RexNode argSquared = ctx.relBuilder.call(SqlStdOperatorTable.MULTIPLY, operator, operator);
-    RexNode sumArgSquared = sumOver(ctx, argSquared, partitions, rows, lowerBound, upperBound);
-    RexNode sum = sumOver(ctx, operator, partitions, rows, lowerBound, upperBound);
+    RexNode sumArgSquared =
+        sumOver(ctx, argSquared, partitions, orderKeys, rows, lowerBound, upperBound);
+    RexNode sum = sumOver(ctx, operator, partitions, orderKeys, rows, lowerBound, upperBound);
     RexNode sumSquared = ctx.relBuilder.call(SqlStdOperatorTable.MULTIPLY, sum, sum);
-    RexNode count = countOver(ctx, operator, partitions, rows, lowerBound, upperBound);
+    RexNode count = countOver(ctx, operator, partitions, orderKeys, rows, lowerBound, upperBound);
     RexNode countCast = ctx.relBuilder.cast(count, SqlTypeName.DOUBLE);
     RexNode avgSumSquared = ctx.relBuilder.call(SqlStdOperatorTable.DIVIDE, sumSquared, countCast);
     RexNode diff = ctx.relBuilder.call(SqlStdOperatorTable.MINUS, sumArgSquared, avgSumSquared);
