@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.Assume.assumeFalse;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.Capability.MULTISEARCH_COLUMN_ORDER;
 import static org.opensearch.sql.util.Capability.MULTISEARCH_SAME_INDEX_CONFLATION;
@@ -12,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -31,6 +33,7 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
     loadIndex(Index.TIME_TEST_DATA);
     loadIndex(Index.TIME_TEST_DATA2);
     loadIndex(Index.LOCATIONS_TYPE_CONFLICT);
+    loadIndex(Index.DATA_TYPE_ALIAS);
   }
 
   @Test
@@ -461,5 +464,43 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         exception
             .getMessage()
             .contains("Unable to process column 'age' due to incompatible types:"));
+  }
+
+  /**
+   * Regression test for GitHub issue #5533. When {@code @timestamp} is defined as a field-type
+   * alias in the index mapping, multisearch used to throw:
+   *
+   * <pre>ClassCastException: RelCompositeTrait cannot be cast to RelCollation</pre>
+   *
+   * <p>Root cause: {@code reIndexCollations()} and {@code pushDownSort()} both used {@code
+   * RelTraitSet.plus()} which composes collation traits into a {@link
+   * org.apache.calcite.rel.RelCompositeTrait} when a collation is already present. Calcite's {@code
+   * RelTraitSet.getCollation()} then fails with a ClassCastException. Fixed by using {@code
+   * RelTraitSet.replace()} instead to always replace the collation trait.
+   */
+  @Test
+  public void testMultisearchWithTimestampAliasFieldDoesNotThrow() throws IOException {
+    // alias-typed fields are stripped when loading indices in analytics-engine parquet mode,
+    // so @timestamp does not exist in TEST_INDEX_ALIAS on that route.
+    assumeFalse(
+        "alias-typed fields are stripped in analytics-engine parquet mode;"
+            + " @timestamp won't exist in TEST_INDEX_ALIAS on that route.",
+        isAnalyticsParquetIndicesEnabled());
+    // TEST_INDEX_ALIAS has @timestamp defined as an alias field pointing to original_date.
+    // Running multisearch on such an index used to crash with ClassCastException.
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "| multisearch "
+                    + "[search source=%s | where original_col > 1 | fields original_col,"
+                    + " @timestamp] "
+                    + "[search source=%s | where original_col = 1 | fields original_col,"
+                    + " @timestamp]",
+                TEST_INDEX_ALIAS, TEST_INDEX_ALIAS));
+
+    verifySchemaInOrder(
+        result, schema("original_col", null, "int"), schema("@timestamp", null, "timestamp"));
+    // 2 rows from original_col > 1, 1 row from original_col = 1
+    assertEquals(3, result.getInt("total"));
   }
 }
