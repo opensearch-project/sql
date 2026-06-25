@@ -87,10 +87,8 @@ public class PPLQueryRequestFactory {
       String queryString = jsonContent.optString(PPL_FIELD_NAME, "");
       // if both profile and analyze are requested, profile overrides analyze
       boolean profileSupported = isProfileSupported(restRequest.path(), format, queryString);
-      boolean enableProfile =
-          profileRequested && profileSupported;
-      boolean enableAnalyze =
-          analyzeRequested && !profileRequested && profileSupported;
+      boolean enableProfile = profileRequested && profileSupported;
+      boolean enableAnalyze = analyzeRequested && !profileRequested && profileSupported;
       // Support fetch_size as a URL parameter if not already in the JSON body
       if (!jsonContent.has(QUERY_PARAMS_FETCH_SIZE)
           && restRequest.params().containsKey(QUERY_PARAMS_FETCH_SIZE)) {
