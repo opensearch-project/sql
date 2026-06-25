@@ -10,6 +10,9 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.calcite.rel.RelNode;
@@ -22,7 +25,10 @@ import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.analytics.exec.profile.QueryProfile;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.sql.api.UnifiedQueryContext;
@@ -38,6 +44,8 @@ import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.lang.LangSpec;
+import org.opensearch.sql.monitor.profile.ProfileContext;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
@@ -152,7 +160,7 @@ public class RestUnifiedQueryAction {
       QueryType queryType,
       boolean profiling,
       ActionListener<TransportPPLQueryResponse> listener) {
-    doExecute(query, queryType, profiling, null, listener);
+    doExecute(query, queryType, profiling, 0, null, listener);
   }
 
   /** Execute linked to {@code parentTask} so a front-end cancel propagates into the engine. */
@@ -160,16 +168,18 @@ public class RestUnifiedQueryAction {
       String query,
       QueryType queryType,
       boolean profiling,
+      int fetchSize,
       Task parentTask,
       ActionListener<TransportPPLQueryResponse> listener) {
     assert parentTask != null : "parentTask required for cancellation propagation";
-    doExecute(query, queryType, profiling, parentTask, listener);
+    doExecute(query, queryType, profiling, fetchSize, parentTask, listener);
   }
 
   private void doExecute(
       String query,
       QueryType queryType,
       boolean profiling,
+      int fetchSize,
       Task parentTask,
       ActionListener<TransportPPLQueryResponse> listener) {
     client
@@ -183,29 +193,32 @@ public class RestUnifiedQueryAction {
                   // Carry the front-end task so cancellation propagates into the engine.
                   QueryRequestContext queryCtx =
                       withParentTask(contextProvider.getContext(), parentTask);
-                  // Disable SQL-layer phase profiling when analytics engine profiling is active.
-                  // Our QueryProfile (stages, tasks, timing) is strictly more detailed and replaces
-                  // it.
-                  UnifiedQueryContext context = buildContext(queryType, false, queryCtx);
+
+                  UnifiedQueryContext context = buildContext(queryType, profiling, queryCtx);
+                  ProfileContext profileCtx = QueryProfiling.current();
                   ActionListener<TransportPPLQueryResponse> closingListener =
                       wrapWithContextClose(context, listener);
                   try {
                     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
                     RelNode plan = planner.plan(query);
                     CalcitePlanContext planContext = context.getPlanContext();
+                    // PPL fetch_size caps the response to N rows (no cursor) — the V2 path attaches
+                    // a `head N` in AstStatementBuilder; the unified path parses only the query
+                    // string, so apply the equivalent top-level limit here before the system cap.
+                    plan = addFetchSizeLimit(plan, planContext, fetchSize);
                     plan = addQuerySizeLimit(plan, planContext);
                     if (profiling) {
                       analyticsEngine.executeWithProfile(
                           plan,
                           planContext,
                           queryCtx,
-                          createQueryListener(queryType, closingListener));
+                          createQueryListener(queryType, profileCtx, closingListener));
                     } else {
                       analyticsEngine.execute(
                           plan,
                           planContext,
                           queryCtx,
-                          createQueryListener(queryType, closingListener));
+                          createQueryListener(queryType, profileCtx, closingListener));
                     }
                   } catch (Exception e) {
                     closingListener.onFailure(e);
@@ -339,20 +352,48 @@ public class RestUnifiedQueryAction {
         context.relBuilder.literal(context.sysLimit.querySizeLimit()));
   }
 
+  /**
+   * Cap the result to {@code fetchSize} rows when {@code fetchSize > 0}, mirroring PPL's {@code
+   * fetch_size} (which the V2 path lowers to a top-level {@code head N} in AstStatementBuilder).
+   * {@code fetchSize <= 0} means "use system default", so no limit is added. Uses the same {@code
+   * relBuilder.limit} primitive that {@code head} lowers to, so the analytics backend sees an
+   * ordinary fetch limit.
+   */
+  private static RelNode addFetchSizeLimit(
+      RelNode plan, CalcitePlanContext context, int fetchSize) {
+    if (fetchSize <= 0) {
+      return plan;
+    }
+    return context.relBuilder.push(plan).limit(0, fetchSize).build();
+  }
+
   private ResponseListener<QueryResponse> createQueryListener(
-      QueryType queryType, ActionListener<TransportPPLQueryResponse> transportListener) {
+      QueryType queryType,
+      ProfileContext profileCtx,
+      ActionListener<TransportPPLQueryResponse> transportListener) {
     ResponseFormatter<QueryResult> formatter = new SimpleJsonResponseFormatter(PRETTY);
     return new ResponseListener<QueryResponse>() {
       @Override
       public void onResponse(QueryResponse response) {
         LangSpec langSpec = queryType == QueryType.PPL ? PPL_SPEC : LangSpec.SQL_SPEC;
-        String result =
-            formatter.format(
-                new QueryResult(
-                    response.getSchema(), response.getResults(), response.getCursor(), langSpec));
+
+        // Set the engine profile as the plan so the formatter serializes it in one pass.
         if (response.getProfile() != null) {
-          // Append profile and error (if any) to the JSON response
-          result = appendProfileToJson(result, response.getProfile(), response.getError());
+          profileCtx.setEnginePlan(toJsonElement(response.getProfile()));
+        }
+
+        String result =
+            QueryProfiling.withCurrentContext(
+                profileCtx,
+                () ->
+                    formatter.format(
+                        new QueryResult(
+                            response.getSchema(),
+                            response.getResults(),
+                            response.getCursor(),
+                            langSpec)));
+        if (response.getError() != null) {
+          result = appendError(result, response.getError());
         }
         transportListener.onResponse(new TransportPPLQueryResponse(result));
       }
@@ -364,30 +405,24 @@ public class RestUnifiedQueryAction {
     };
   }
 
-  private static String appendProfileToJson(String json, QueryProfile profile, Throwable error) {
+  private static JsonElement toJsonElement(QueryProfile profile) {
     try {
-      StringBuilder extra = new StringBuilder();
-      // Append profile
-      org.opensearch.core.xcontent.XContentBuilder builder =
-          org.opensearch.common.xcontent.XContentFactory.jsonBuilder();
-      profile.toXContent(builder, org.opensearch.core.xcontent.ToXContent.EMPTY_PARAMS);
-      extra.append(",\"profile\":").append(builder.toString());
-      // Append error if query partially failed
-      if (error != null) {
-        extra
-            .append(",\"error\":{\"type\":\"")
-            .append(error.getClass().getSimpleName())
-            .append("\",\"reason\":\"")
-            .append(error.getMessage() != null ? error.getMessage().replace("\"", "\\\"") : "")
-            .append("\"}");
-      }
-      if (json.endsWith("}")) {
-        return json.substring(0, json.length() - 1) + extra + "}";
-      }
-      return json;
+      XContentBuilder builder = XContentFactory.jsonBuilder();
+      profile.toXContent(builder, ToXContent.EMPTY_PARAMS);
+      return JsonParser.parseString(builder.toString());
     } catch (Exception e) {
+      return null;
+    }
+  }
+
+  private static String appendError(String json, Throwable error) {
+    if (!json.endsWith("}")) {
       return json;
     }
+    JsonObject err = new JsonObject();
+    err.addProperty("type", error.getClass().getSimpleName());
+    err.addProperty("reason", error.getMessage() != null ? error.getMessage() : "");
+    return json.substring(0, json.length() - 1) + ",\"error\":" + err + "}";
   }
 
   private static Runnable withCurrentContext(final Runnable task) {

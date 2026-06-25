@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.Capability.ADDTOTALS_JOIN_PANIC;
+import static org.opensearch.sql.util.Capability.MVCOMBINE_ARRAY_AGG;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -22,6 +24,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration tests for PPL queries that reference MAP dotted paths (e.g. {@code doc.user.name}).
@@ -141,6 +144,9 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = ADDTOTALS_JOIN_PANIC,
+      note = "addtotals crashes the DataFusion backend with a join panic on the AE route.")
   public void testAddtotalsOnMapPath() throws IOException {
     JSONObject result =
         ppl(
@@ -163,6 +169,9 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MVCOMBINE_ARRAY_AGG,
+      note = "mvcombine lowers to ARRAY_AGG, unregistered on the analytics backend.")
   public void testMvcombineOnMapPath() throws IOException {
     JSONObject result =
         ppl(

@@ -1394,7 +1394,7 @@ public class PredicateAnalyzer {
                 .caseInsensitive(!caseSensitive);
         return this;
       }
-      throw new UnsupportedOperationException("Like query is not supported for text field");
+      throw new PredicateAnalyzerException("Like query is not supported for text field");
     }
 
     @Override

@@ -17,6 +17,7 @@ public class DefaultProfileContext implements ProfileContext {
   private boolean finished;
   private final Map<MetricName, DefaultMetricImpl> metrics = new ConcurrentHashMap<>();
   private ProfilePlanNode planRoot;
+  private Object enginePlan;
   private QueryProfile profile;
 
   public DefaultProfileContext() {}
@@ -40,6 +41,11 @@ public class DefaultProfileContext implements ProfileContext {
     }
   }
 
+  @Override
+  public synchronized void setEnginePlan(Object enginePlan) {
+    this.enginePlan = enginePlan;
+  }
+
   /** {@inheritDoc} */
   @Override
   public synchronized QueryProfile finish() {
@@ -55,7 +61,8 @@ public class DefaultProfileContext implements ProfileContext {
       snapshot.put(metricName, millis);
     }
     double totalMillis = ProfileUtils.roundToMillis(endNanos - startNanos);
-    QueryProfile.PlanNode planSnapshot = planRoot == null ? null : planRoot.snapshot();
+    Object planSnapshot =
+        enginePlan != null ? enginePlan : (planRoot == null ? null : planRoot.snapshot());
     profile = new QueryProfile(totalMillis, snapshot, planSnapshot);
     return profile;
   }

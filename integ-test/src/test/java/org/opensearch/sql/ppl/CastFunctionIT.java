@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
+import static org.opensearch.sql.util.Capability.IP_UDT_BINARY_REPRESENTATION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -24,6 +25,7 @@ import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CastFunctionIT extends PPLIntegTestCase {
   @Override
@@ -403,6 +405,11 @@ public class CastFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = IP_UDT_BINARY_REPRESENTATION,
+      note =
+          "cast(... as IP) sees the IP UDT as BINARY on the AE route"
+              + " (IP_UDT_BINARY_REPRESENTATION).")
   public void testCastToIP() throws IOException {
     // Test casting IP to IP type
     JSONObject actual =

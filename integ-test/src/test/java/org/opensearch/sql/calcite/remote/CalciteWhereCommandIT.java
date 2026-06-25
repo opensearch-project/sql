@@ -31,7 +31,12 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
     super.init();
     enableCalcite();
     loadIndex(Index.NESTED_SIMPLE);
-    loadIndex(Index.DEEP_NESTED);
+    // deep_nested has a multi-value array for the scalar-mapped `accounts.id` field, which the
+    // parquet store rejects at bulk load; skip it on the AE route so it doesn't abort init(). The
+    // only test that queries deep_nested is already excluded on the AE route (nested fields).
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.DEEP_NESTED);
+    }
     loadIndex(Index.CASCADED_NESTED);
   }
 
