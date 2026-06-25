@@ -482,7 +482,7 @@ public class QueryService {
     // them to the pushed group until we've accounted for all pushed logical nodes.
     // The LogicalSystemLimit added by convertToCalcitePlan counts toward the logical depth
     // but has no segment, so we only count nodes that appear in exclusiveIds.
-    int pushedLogicalNodes = 0;
+    long pushedLogicalNodes = 0;
     int pushedSegments = 0;
     for (int idx = 0; idx < querySegments.size() && pushedLogicalNodes < pushedNodeCount; idx++) {
       Set<Integer> ids = idx < exclusiveIds.size() ? exclusiveIds.get(idx) : Set.of();
