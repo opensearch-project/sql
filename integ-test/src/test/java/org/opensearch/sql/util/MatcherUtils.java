@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
@@ -39,6 +40,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.utils.YamlFormatter;
 
 public class MatcherUtils {
@@ -275,6 +277,9 @@ public class MatcherUtils {
   public static TypeSafeMatcher<JSONObject> schema(
       String expectedName, String expectedAlias, String expectedType) {
     return new TypeSafeMatcher<JSONObject>() {
+      private static final Set<String> NUMERIC_TYPES = Set.of("integer", "long", "float", "double");
+      private static final Set<String> STRING_TYPES = Set.of("keyword", "text", "string");
+
       @Override
       public void describeTo(Description description) {
         description.appendText(
@@ -287,9 +292,31 @@ public class MatcherUtils {
         String actualName = (String) jsonObject.query("/name");
         String actualAlias = (String) jsonObject.query("/alias");
         String actualType = (String) jsonObject.query("/type");
+
+        if (TestUtils.AnalyticsIndexConfig.isEnabled()) {
+          // The analytics-engine route promotes the alias to the name (SQL-standard) and unifies
+          // keyword/text/string and the numeric types, so relax name and type matching for it only.
+          boolean nameMatches =
+              expectedName.equals(actualName)
+                  || (!Strings.isNullOrEmpty(expectedAlias) && expectedAlias.equals(actualName));
+          boolean typeMatches =
+              expectedType.equals(actualType) || isCompatibleType(expectedType, actualType);
+          return nameMatches && typeMatches;
+        }
+
         return expectedName.equals(actualName)
             && (Strings.isNullOrEmpty(expectedAlias) || expectedAlias.equals(actualAlias))
             && expectedType.equals(actualType);
+      }
+
+      private boolean isCompatibleType(String expected, String actual) {
+        if (expected == null || actual == null) {
+          return false;
+        }
+        String e = expected.toLowerCase();
+        String a = actual.toLowerCase();
+        return (NUMERIC_TYPES.contains(e) && NUMERIC_TYPES.contains(a))
+            || (STRING_TYPES.contains(e) && STRING_TYPES.contains(a));
       }
     };
   }
