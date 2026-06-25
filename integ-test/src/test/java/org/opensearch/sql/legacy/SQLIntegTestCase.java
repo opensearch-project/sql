@@ -139,6 +139,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {
+    // No client when every test in the class was skipped (e.g. @RequiresCapability on the AE
+    // route).
+    if (client() == null) {
+      return;
+    }
     if (System.getProperty("tests.rest.bwcsuite") == null) {
       wipeAllOpenSearchIndices();
       wipeAllClusterSettings();
