@@ -70,9 +70,11 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String plan = root.explain();
-    assertFalse(plan.contains("__stream_seq__"));
-    assertTrue(plan.contains("MAX($5) OVER (PARTITION BY $7 ORDER BY $5 DESC NULLS LAST"));
-    assertEquals(1, countOccurrences(plan, "LogicalSort("));
+    assertTrue(plan.contains("__stream_seq__=[ROW_NUMBER() OVER ()]"));
+    assertTrue(plan.contains("MAX($5) OVER (PARTITION BY $7 ORDER BY $8"));
+    assertTrue(plan.contains("LogicalSort(sort0=[$5], dir0=[DESC-nulls-last])"));
+    assertTrue(plan.contains("LogicalSort(sort0=[$8], dir0=[ASC])"));
+    assertEquals(2, countOccurrences(plan, "LogicalSort("));
   }
 
   @Test
@@ -83,7 +85,6 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
     String plan = root.explain();
     assertFalse(plan.contains("__stream_seq__"));
     assertTrue(plan.contains("max(SAL)=[MAX($5) OVER (ORDER BY $5 DESC NULLS LAST"));
-    assertEquals(1, countOccurrences(plan, "LogicalSort("));
   }
 
   private static int countOccurrences(String text, String target) {

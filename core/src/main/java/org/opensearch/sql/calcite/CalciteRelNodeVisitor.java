@@ -2299,15 +2299,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Short-term correctness workaround: streamstats/trendline are evaluated in arrival order, and
     // some engines can preserve that order through window partitions without an explicit ORDER BY.
     // DataFusion and Calcite EnumerableWindow do not currently provide that guarantee for
-    // partitioned windows, so we declare the inherited input order on the window frame and restore
-    // explicit upstream sort order after the window. This may add a small per-partition sort cost
-    // on engines that did not need it; the long-term fix is a real streaming window operator.
-    RelCollation strippedInputCollation = stripInputSort(context.relBuilder);
-    List<RexNode> windowOrderKeys =
-        strippedInputCollation == null
-            ? deriveCollationOrderKeys(context)
-            : PlanUtils.collationToOrderKeys(context.relBuilder, strippedInputCollation);
-    boolean useStreamSeq = windowOrderKeys.isEmpty() && hasGroup;
+    // partitioned windows, so we make grouped streamstats frames walk an explicit input sequence.
+    // When the input already has an explicit Sort, materialize the sequence after that Sort instead
+    // of stripping it; this preserves "sort, then streamstats" semantics including tie arrival
+    // order. This may add a small per-partition sort cost on engines that did not need it; the
+    // long-term fix is a real streaming window operator.
+    RelCollation explicitInputCollation = PlanUtils.findInputCollation(context.relBuilder.peek());
+    List<RexNode> windowOrderKeys = deriveCollationOrderKeys(context);
+    boolean useStreamSeq =
+        hasGroup && (windowOrderKeys.isEmpty() || explicitInputCollation != null);
     if (useStreamSeq) {
       // streamstats is order-sensitive. Materialize input order before any grouped window can
       // repartition rows, then make each window frame walk that sequence explicitly.
@@ -2331,9 +2331,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .toList();
     projectStreamWindowExpressions(overExpressions, hasGroup, groupList, node, context);
 
-    if (strippedInputCollation != null) {
-      PlanUtils.restoreInputOrder(context.relBuilder, strippedInputCollation);
-    } else if (!finalWindowOrderKeys.isEmpty()) {
+    if (!finalWindowOrderKeys.isEmpty()) {
       context.relBuilder.sort(finalWindowOrderKeys);
     }
     if (useStreamSeq) {
