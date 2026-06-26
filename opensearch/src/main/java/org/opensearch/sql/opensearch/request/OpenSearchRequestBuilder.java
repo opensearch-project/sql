@@ -198,6 +198,8 @@ public class OpenSearchRequestBuilder {
 
     if (current == null) {
       sourceBuilder.query(query);
+    } else if (isBoolFilterQuery(current)) {
+      ((BoolQueryBuilder) current).filter(query);
     } else {
       sourceBuilder.query(QueryBuilders.boolQuery().filter(current).filter(query));
     }

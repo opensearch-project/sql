@@ -341,13 +341,15 @@ class OpenSearchRequestBuilderTest {
 
     QueryBuilder newQuery = QueryBuilders.termQuery("intA", 1);
     requestBuilder.pushDownFilterForCalcite(newQuery);
-    initialBoolQuery.filter(newQuery);
     SearchSourceBuilder expectedSourceBuilder =
         new SearchSourceBuilder()
             .from(DEFAULT_OFFSET)
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
-            .query(QueryBuilders.boolQuery().filter(initialBoolQuery).filter(newQuery));
+            .query(
+                QueryBuilders.boolQuery()
+                    .filter(QueryBuilders.termQuery("name", "John"))
+                    .filter(newQuery));
 
     assertSearchSourceBuilder(expectedSourceBuilder, requestBuilder);
   }
