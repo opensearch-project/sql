@@ -122,11 +122,33 @@ public class RestUnifiedQueryAction {
     try (UnifiedQueryContext context = buildParsingContext(queryType)) {
       return extractIndexName(query, queryType, context)
           .map(this::stripSchemaPrefix)
-          .map(this::isPluggableDataformatIndex)
+          .map(this::allIndicesArePluggableDataformat)
           .orElse(false);
     } catch (Exception e) {
       return false;
     }
+  }
+
+  /**
+   * Checks if all indices in a (possibly comma-separated) index expression are pluggable
+   * dataformat. For multi-index queries (source=idx1,idx2), each index is checked independently.
+   * Returns true only if every index is composite — mixed or all-lucene returns false.
+   */
+  private boolean allIndicesArePluggableDataformat(String indexExpression) {
+    String[] indices = indexExpression.split(",");
+    if (indices.length == 0) {
+      return false;
+    }
+    for (String idx : indices) {
+      String trimmed = idx.trim();
+      if (trimmed.isEmpty()) {
+        continue;
+      }
+      if (!isPluggableDataformatIndex(trimmed)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private static boolean isSystemCatalog(String name) {
