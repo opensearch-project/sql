@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -71,6 +72,7 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
     String plan = root.explain();
     assertFalse(plan.contains("__stream_seq__"));
     assertTrue(plan.contains("MAX($5) OVER (PARTITION BY $7 ORDER BY $5 DESC NULLS LAST"));
+    assertEquals(1, countOccurrences(plan, "LogicalSort("));
   }
 
   @Test
@@ -81,6 +83,11 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
     String plan = root.explain();
     assertFalse(plan.contains("__stream_seq__"));
     assertTrue(plan.contains("max(SAL)=[MAX($5) OVER (ORDER BY $5 DESC NULLS LAST"));
+    assertEquals(1, countOccurrences(plan, "LogicalSort("));
+  }
+
+  private static int countOccurrences(String text, String target) {
+    return text.split(java.util.regex.Pattern.quote(target), -1).length - 1;
   }
 
   @Test

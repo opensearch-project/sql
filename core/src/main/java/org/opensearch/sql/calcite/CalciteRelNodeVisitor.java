@@ -2296,13 +2296,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           new String[] {ROW_NUMBER_COLUMN_FOR_STREAMSTATS});
     }
 
-    // Short-term correctness workaround for DataFusion: streamstats/trendline are evaluated in
-    // arrival order, and some engines can preserve that order through window partitions without an
-    // explicit ORDER BY. DataFusion's physical window plan does not currently provide that
-    // guarantee, so we declare the inherited input order on the window frame. This may add a small
-    // per-partition sort cost on engines that did not need it; the long-term fix is a real
-    // streaming window operator.
-    List<RexNode> windowOrderKeys = deriveCollationOrderKeys(context);
+    // Short-term correctness workaround: streamstats/trendline are evaluated in arrival order, and
+    // some engines can preserve that order through window partitions without an explicit ORDER BY.
+    // DataFusion and Calcite EnumerableWindow do not currently provide that guarantee for
+    // partitioned windows, so we declare the inherited input order on the window frame and restore
+    // explicit upstream sort order after the window. This may add a small per-partition sort cost
+    // on engines that did not need it; the long-term fix is a real streaming window operator.
+    RelCollation strippedInputCollation = stripInputSort(context.relBuilder);
+    List<RexNode> windowOrderKeys =
+        strippedInputCollation == null
+            ? deriveCollationOrderKeys(context)
+            : PlanUtils.collationToOrderKeys(context.relBuilder, strippedInputCollation);
     boolean useStreamSeq = windowOrderKeys.isEmpty() && hasGroup;
     if (useStreamSeq) {
       // streamstats is order-sensitive. Materialize input order before any grouped window can
@@ -2327,7 +2331,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .toList();
     projectStreamWindowExpressions(overExpressions, hasGroup, groupList, node, context);
 
-    if (!finalWindowOrderKeys.isEmpty()) {
+    if (strippedInputCollation != null) {
+      PlanUtils.restoreInputOrder(context.relBuilder, strippedInputCollation);
+    } else if (!finalWindowOrderKeys.isEmpty()) {
       context.relBuilder.sort(finalWindowOrderKeys);
     }
     if (useStreamSeq) {
@@ -3986,11 +3992,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               }
             });
 
-    // Short-term correctness workaround for DataFusion: streamstats/trendline are evaluated in
-    // arrival order, and some engines can preserve that order through window partitions without an
-    // explicit ORDER BY. DataFusion's physical window plan does not currently provide that
-    // guarantee, so we declare the inherited input order on the window frame. This may add a small
-    // per-partition sort cost on engines that did not need it; the long-term fix is a real
+    // Short-term correctness workaround: streamstats/trendline are evaluated in arrival order, and
+    // some engines can preserve that order through window partitions without an explicit ORDER BY.
+    // DataFusion and Calcite EnumerableWindow do not currently provide that guarantee for every
+    // window frame, so we declare the inherited input order on the window frame. This may add a
+    // small per-partition sort cost on engines that did not need it; the long-term fix is a real
     // streaming window operator.
     List<RexNode> trendlineOrderKeys = deriveCollationOrderKeys(context);
 

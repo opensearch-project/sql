@@ -757,6 +757,42 @@ public interface PlanUtils {
   }
 
   /**
+   * Convert a {@link RelCollation} to {@link RexNode} order keys using the current RelBuilder field
+   * references.
+   */
+  public static List<RexNode> collationToOrderKeys(
+      RelBuilder relBuilder, @Nullable RelCollation collation) {
+    if (collation == null || collation.getFieldCollations().isEmpty()) {
+      return List.of();
+    }
+    List<RexNode> orderKeys = new ArrayList<>();
+    for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+      RexNode fieldRef = relBuilder.field(fieldCollation.getFieldIndex());
+      if (fieldCollation.direction.isDescending()) {
+        fieldRef = relBuilder.desc(fieldRef);
+      }
+      if (fieldCollation.nullDirection == RelFieldCollation.NullDirection.LAST) {
+        fieldRef = relBuilder.nullsLast(fieldRef);
+      } else if (fieldCollation.nullDirection == RelFieldCollation.NullDirection.FIRST) {
+        fieldRef = relBuilder.nullsFirst(fieldRef);
+      }
+      orderKeys.add(fieldRef);
+    }
+    return orderKeys;
+  }
+
+  /**
+   * Re-apply a sort to restore input order that may have been disrupted by a window operator.
+   * EnumerableWindow can re-partition data by the PARTITION BY key, destroying upstream sort order.
+   */
+  public static void restoreInputOrder(
+      RelBuilder relBuilder, @Nullable RelCollation inputCollation) {
+    if (inputCollation != null && !inputCollation.getFieldCollations().isEmpty()) {
+      relBuilder.sort(collationToOrderKeys(relBuilder, inputCollation));
+    }
+  }
+
+  /**
    * Remove the first Sort node found in the tree, replacing it with its input. Only traverses
    * through single-input operators (Filter, Project) that preserve order.
    */
