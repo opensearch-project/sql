@@ -2305,20 +2305,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .map(rex -> addWindowOrder(rex, inputOrderKeys, context))
               .toList();
 
-      if (hasGroup && !node.isBucketNullable()) {
-        List<RexNode> groupByList =
-            groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
-        List<RexNode> notNullList =
-            PlanUtils.getSelectColumns(groupByList).stream()
-                .map(context.relBuilder::field)
-                .map(context.relBuilder::isNotNull)
-                .toList();
-        RexNode groupNotNull = context.relBuilder.and(notNullList);
-        context.relBuilder.projectPlus(
-            wrapWindowFunctionsWithGroupNotNull(overExpressions, groupNotNull, context));
-      } else {
-        context.relBuilder.projectPlus(overExpressions);
-      }
+      projectStreamWindowExpressions(overExpressions, hasGroup, groupList, node, context);
 
       context.relBuilder.sort(inputOrderKeys);
     } else if (hasGroup) {
@@ -2329,7 +2316,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .relBuilder
               .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
               .over()
-              .orderBy(inputOrderKeys)
               .rowsTo(RexWindowBounds.CURRENT_ROW)
               .as(ROW_NUMBER_COLUMN_FOR_STREAMSTATS);
       context.relBuilder.projectPlus(streamSeq);
@@ -2338,27 +2324,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<RexNode> overExpressions =
           node.getWindowFunctionList().stream()
               .map(w -> rexVisitor.analyze(w, context))
-              .map(rex -> addWindowOrder(rex, List.of(context.relBuilder.field(seqColIndex)), context))
+              .map(
+                  rex ->
+                      addWindowOrder(rex, List.of(context.relBuilder.field(seqColIndex)), context))
               .toList();
 
-      if (hasGroup && !node.isBucketNullable()) {
-        // construct groupNotNull predicate
-        List<RexNode> groupByList =
-            groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
-        List<RexNode> notNullList =
-            PlanUtils.getSelectColumns(groupByList).stream()
-                .map(context.relBuilder::field)
-                .map(context.relBuilder::isNotNull)
-                .toList();
-        RexNode groupNotNull = context.relBuilder.and(notNullList);
-
-        // wrap each expr: CASE WHEN groupNotNull THEN rawExpr ELSE CAST(NULL AS rawType) END
-        List<RexNode> wrappedOverExprs =
-            wrapWindowFunctionsWithGroupNotNull(overExpressions, groupNotNull, context);
-        context.relBuilder.projectPlus(wrappedOverExprs);
-      } else {
-        context.relBuilder.projectPlus(overExpressions);
-      }
+      projectStreamWindowExpressions(overExpressions, hasGroup, groupList, node, context);
 
       context.relBuilder.sort(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
       context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
@@ -2371,8 +2342,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private RexNode addWindowOrder(
-      RexNode rex, List<RexNode> orderKeys, CalcitePlanContext context) {
+  private void projectStreamWindowExpressions(
+      List<RexNode> overExpressions,
+      boolean hasGroup,
+      List<UnresolvedExpression> groupList,
+      StreamWindow node,
+      CalcitePlanContext context) {
+    if (hasGroup && !node.isBucketNullable()) {
+      List<RexNode> groupByList =
+          groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+      List<RexNode> notNullList =
+          PlanUtils.getSelectColumns(groupByList).stream()
+              .map(context.relBuilder::field)
+              .map(context.relBuilder::isNotNull)
+              .toList();
+      RexNode groupNotNull = context.relBuilder.and(notNullList);
+      context.relBuilder.projectPlus(
+          wrapWindowFunctionsWithGroupNotNull(overExpressions, groupNotNull, context));
+    } else {
+      context.relBuilder.projectPlus(overExpressions);
+    }
+  }
+
+  private RexNode addWindowOrder(RexNode rex, List<RexNode> orderKeys, CalcitePlanContext context) {
     if (orderKeys.isEmpty()) {
       return rex;
     }
@@ -2407,9 +2399,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private static RexFieldCollation toRexFieldCollation(RexNode node) {
     return toRexFieldCollation(
-        node,
-        RelFieldCollation.Direction.ASCENDING,
-        RelFieldCollation.NullDirection.UNSPECIFIED);
+        node, RelFieldCollation.Direction.ASCENDING, RelFieldCollation.NullDirection.UNSPECIFIED);
   }
 
   private static RexFieldCollation toRexFieldCollation(
