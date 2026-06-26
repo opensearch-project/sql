@@ -55,6 +55,7 @@ buildscript {
 
     repositories {
         mavenLocal()
+        maven { url "https://ci.opensearch.org/maven2/" }
         mavenCentral()
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     }
@@ -79,6 +80,7 @@ apply plugin: 'opensearch.java'
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
     mavenLocal()
+    maven { url "https://ci.opensearch.org/maven2/" }
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
     maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     maven { url 'https://jitpack.io' }
@@ -130,6 +132,7 @@ allprojects {
 subprojects {
     repositories {
         mavenLocal()
+        maven { url "https://ci.opensearch.org/maven2/" }
         mavenCentral()
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
