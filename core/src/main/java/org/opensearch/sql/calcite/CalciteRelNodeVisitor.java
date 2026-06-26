@@ -2297,18 +2297,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           new String[] {ROW_NUMBER_COLUMN_FOR_STREAMSTATS});
     }
 
-    List<RexNode> inputOrderKeys = deriveCollationOrderKeys(context);
-    if (!inputOrderKeys.isEmpty()) {
-      List<RexNode> overExpressions =
-          node.getWindowFunctionList().stream()
-              .map(w -> rexVisitor.analyze(w, context))
-              .map(rex -> addWindowOrder(rex, inputOrderKeys, context))
-              .toList();
-
-      projectStreamWindowExpressions(overExpressions, hasGroup, groupList, node, context);
-
-      context.relBuilder.sort(inputOrderKeys);
-    } else if (hasGroup) {
+    List<RexNode> windowOrderKeys = deriveCollationOrderKeys(context);
+    boolean useStreamSeq = windowOrderKeys.isEmpty() && hasGroup;
+    if (useStreamSeq) {
       // streamstats is order-sensitive. Materialize input order before any grouped window can
       // repartition rows, then make each window frame walk that sequence explicitly.
       RexNode streamSeq =
@@ -2320,23 +2311,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .as(ROW_NUMBER_COLUMN_FOR_STREAMSTATS);
       context.relBuilder.projectPlus(streamSeq);
       int seqColIndex = context.relBuilder.peek().getRowType().getFieldCount() - 1;
+      windowOrderKeys = List.of(context.relBuilder.field(seqColIndex));
+    }
 
-      List<RexNode> overExpressions =
-          node.getWindowFunctionList().stream()
-              .map(w -> rexVisitor.analyze(w, context))
-              .map(
-                  rex ->
-                      addWindowOrder(rex, List.of(context.relBuilder.field(seqColIndex)), context))
-              .toList();
+    List<RexNode> finalWindowOrderKeys = windowOrderKeys;
+    List<RexNode> overExpressions =
+        node.getWindowFunctionList().stream()
+            .map(w -> rexVisitor.analyze(w, context))
+            .map(rex -> addWindowOrder(rex, finalWindowOrderKeys, context))
+            .toList();
+    projectStreamWindowExpressions(overExpressions, hasGroup, groupList, node, context);
 
-      projectStreamWindowExpressions(overExpressions, hasGroup, groupList, node, context);
-
-      context.relBuilder.sort(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
+    if (!finalWindowOrderKeys.isEmpty()) {
+      context.relBuilder.sort(finalWindowOrderKeys);
+    }
+    if (useStreamSeq) {
       context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
-    } else {
-      List<RexNode> overExpressions =
-          node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
-      context.relBuilder.projectPlus(overExpressions);
     }
 
     return context.relBuilder.peek();
