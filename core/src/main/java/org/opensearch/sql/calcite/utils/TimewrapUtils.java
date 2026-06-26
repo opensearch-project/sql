@@ -28,8 +28,6 @@ import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 /** Utility methods for the timewrap command's Calcite plan construction. */
 public class TimewrapUtils {
 
-  public static final int MAX_PERIODS = 20;
-
   /** Check if the span unit is variable-length (month, quarter, year). */
   public static boolean isVariableLengthUnit(SpanUnit unit) {
     return "M".equals(unit.getName()) || "q".equals(unit.getName()) || "y".equals(unit.getName());

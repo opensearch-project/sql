@@ -334,10 +334,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         columns = pivoted.columns();
         values = pivoted.values();
       } finally {
-        CalcitePlanContext.stripNullColumns.set(false);
-        CalcitePlanContext.timewrapUnitName.set(null);
-        CalcitePlanContext.timewrapSeries.set(null);
-        CalcitePlanContext.timewrapTimeFormat.set(null);
+        CalcitePlanContext.clearTimewrapSignals();
       }
     }
 

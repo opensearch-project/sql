@@ -37,10 +37,7 @@ public final class TimewrapSignals {
     boolean active = TimewrapPivot.isTimewrap();
     String unitName = CalcitePlanContext.timewrapUnitName.get();
     String series = CalcitePlanContext.timewrapSeries.get();
-    CalcitePlanContext.stripNullColumns.set(false);
-    CalcitePlanContext.timewrapUnitName.set(null);
-    CalcitePlanContext.timewrapSeries.set(null);
-    CalcitePlanContext.timewrapTimeFormat.set(null);
+    CalcitePlanContext.clearTimewrapSignals();
     return new TimewrapSignals(active, unitName, series);
   }
 

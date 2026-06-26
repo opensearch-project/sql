@@ -184,6 +184,7 @@ public class CalcitePlanContext {
       action.run();
     } finally {
       legacyPreferredFlag.remove();
+      clearTimewrapSignals();
     }
   }
 
@@ -192,6 +193,18 @@ public class CalcitePlanContext {
    */
   public static boolean isLegacyPreferred() {
     return legacyPreferredFlag.get();
+  }
+
+  /**
+   * Resets the timewrap thread-locals set by {@code CalciteRelNodeVisitor.visitTimewrap}. Called
+   * from the query lifecycle's {@code finally} on every path (execute, explain, and exceptions) so
+   * the signals never leak onto the next query that reuses this pooled worker thread.
+   */
+  public static void clearTimewrapSignals() {
+    stripNullColumns.set(false);
+    timewrapUnitName.set(null);
+    timewrapSeries.set(null);
+    timewrapTimeFormat.set(null);
   }
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {

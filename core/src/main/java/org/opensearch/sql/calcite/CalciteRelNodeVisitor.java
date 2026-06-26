@@ -3934,11 +3934,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         referenceEpoch = nowEpochSec;
       }
       RexNode refLit = rx.makeBigintLiteral(BigDecimal.valueOf(referenceEpoch));
+      // Floor-divide (ref - maxEpoch) by span: integer DIVIDE truncates toward zero, which is wrong
+      // when the reference is below maxEpoch (e.g. align=now over future-dated data) — it would
+      // shift period labels by one across the latest/before/after boundary. Cast to DOUBLE and
+      // FLOOR
+      // to get true floor division, then back to BIGINT.
+      RelDataType doubleType = rx.getTypeFactory().createSqlType(SqlTypeName.DOUBLE);
+      RexNode refDiff = rx.makeCall(SqlStdOperatorTable.MINUS, refLit, maxEpoch);
+      RexNode refDiffDouble = rx.makeCast(doubleType, refDiff, true);
       baseOffset =
-          rx.makeCall(
-              SqlStdOperatorTable.DIVIDE,
-              rx.makeCall(SqlStdOperatorTable.MINUS, refLit, maxEpoch),
-              spanLit);
+          rx.makeCast(
+              bigintType,
+              rx.makeCall(
+                  SqlStdOperatorTable.FLOOR,
+                  rx.makeCall(SqlStdOperatorTable.DIVIDE, refDiffDouble, spanLit)),
+              true);
     }
 
     // Step 3: Project [display_timestamp, value_columns..., base_offset, period]

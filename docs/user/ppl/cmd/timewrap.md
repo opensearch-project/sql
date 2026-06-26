@@ -173,4 +173,3 @@ The `timewrap` command has the following limitations:
 * The `timewrap` command must follow a `timechart` command. Using it after any other command results in an error.
 * Only `timechart` without the `BY` clause is supported. The `BY` clause (column split) is a future enhancement.
 * Variable-length time units (`month`, `quarter`, `year`) are not yet supported. Use fixed-length units (`s`, `m`, `h`, `d`, `w`).
-* The maximum number of period columns is 20. If the data contains more than 20 periods, only the 20 most recent are shown.
