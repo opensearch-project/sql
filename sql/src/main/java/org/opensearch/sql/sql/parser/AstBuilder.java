@@ -54,13 +54,13 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   private final AstExpressionBuilder expressionBuilder;
 
   /** Parsing context stack that contains context for current query parsing. */
-  private final ParsingContext context = new ParsingContext();
+  protected final ParsingContext context = new ParsingContext();
 
   /**
    * SQL query to get original token text. This is necessary because token.getText() returns text
    * without whitespaces or other characters discarded by lexer.
    */
-  private final String query;
+  protected final String query;
 
   public AstBuilder(String query) {
     this.query = query;
