@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -49,6 +50,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -301,6 +303,51 @@ public interface PlanUtils {
                     ? c.rowsBetween(lowerBound, upperBound)
                     : c.rangeBetween(lowerBound, upperBound))
         .toRex();
+  }
+
+  static ImmutableList<RexFieldCollation> toRexFieldCollations(List<RexNode> orderKeys) {
+    ImmutableList.Builder<RexFieldCollation> orderCollationBuilder = ImmutableList.builder();
+    orderKeys.forEach(key -> orderCollationBuilder.add(toRexFieldCollation(key)));
+    return orderCollationBuilder.build();
+  }
+
+  static RexFieldCollation toRexFieldCollation(RexNode node) {
+    return toRexFieldCollation(
+        node, RelFieldCollation.Direction.ASCENDING, RelFieldCollation.NullDirection.UNSPECIFIED);
+  }
+
+  private static RexFieldCollation toRexFieldCollation(
+      RexNode node,
+      RelFieldCollation.Direction direction,
+      RelFieldCollation.NullDirection nullDirection) {
+    switch (node.getKind()) {
+      case DESCENDING:
+        return toRexFieldCollation(
+            ((RexCall) node).getOperands().getFirst(),
+            RelFieldCollation.Direction.DESCENDING,
+            nullDirection);
+      case NULLS_FIRST:
+        return toRexFieldCollation(
+            ((RexCall) node).getOperands().getFirst(),
+            direction,
+            RelFieldCollation.NullDirection.FIRST);
+      case NULLS_LAST:
+        return toRexFieldCollation(
+            ((RexCall) node).getOperands().getFirst(),
+            direction,
+            RelFieldCollation.NullDirection.LAST);
+      default:
+        Set<SqlKind> flags = EnumSet.noneOf(SqlKind.class);
+        if (direction == RelFieldCollation.Direction.DESCENDING) {
+          flags.add(SqlKind.DESCENDING);
+        }
+        if (nullDirection == RelFieldCollation.NullDirection.FIRST) {
+          flags.add(SqlKind.NULLS_FIRST);
+        } else if (nullDirection == RelFieldCollation.NullDirection.LAST) {
+          flags.add(SqlKind.NULLS_LAST);
+        }
+        return new RexFieldCollation(node, flags);
+    }
   }
 
   private static RexNode variance(
