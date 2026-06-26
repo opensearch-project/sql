@@ -111,6 +111,26 @@ public class VectorSearchIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testDuplicateNamedArgumentRejectsWith400() throws IOException {
+    // A duplicate named argument on top of all four distinct names sends five arguments to the
+    // resolver, exceeding its fixed four-arg signature. This previously crashed with an unchecked
+    // IndexOutOfBoundsException surfaced as HTTP 500; it must now be a clean 400 with a
+    // user-facing message.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='t', table='t', field='f', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertEquals(400, ex.getResponse().getStatusLine().getStatusCode());
+    // The five-argument case is caught by the repository arity guard before the resolver's
+    // duplicate-name check, so the message reports the argument-count mismatch.
+    assertThat(ex.getMessage(), containsString("Expected 4 arguments"));
+  }
+
+  @Test
   public void testInvalidFieldNameRejects() throws IOException {
     ResponseException ex =
         expectThrows(
