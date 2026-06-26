@@ -3836,7 +3836,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     CalcitePlanContext.timewrapUnitName.set(
         TimewrapUtils.unitBaseName(node.getUnit(), node.getValue()) + "|_before");
     CalcitePlanContext.timewrapSeries.set(node.getSeries());
-    CalcitePlanContext.timewrapTimeFormat.set(node.getTimeFormat());
 
     RelBuilder b = context.relBuilder;
     RexBuilder rx = context.rexBuilder;

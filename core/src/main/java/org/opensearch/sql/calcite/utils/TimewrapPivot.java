@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.utils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +64,9 @@ public final class TimewrapPivot {
       return new Result(columns, values);
     }
 
-    // Find column indices.
+    // Locate the bookkeeping and value columns. visitTimewrap always emits
+    // [display_ts, value_col(s)..., __base_offset__, __period__], so column 0 is the timestamp,
+    // __period__/__base_offset__ are bookkeeping, and every other column is a value column.
     int tsIdx = 0;
     int periodIdx = -1;
     int baseOffsetIdx = -1;
@@ -72,17 +75,7 @@ public final class TimewrapPivot {
       String name = columns.get(i).getName();
       if ("__period__".equals(name)) periodIdx = i;
       else if ("__base_offset__".equals(name)) baseOffsetIdx = i;
-      else if (i > 0 && periodIdx < 0 && baseOffsetIdx < 0) valueIdxs.add(i);
-    }
-    // Workaround: if the bookkeeping columns weren't found before the value columns, scan again.
-    if (periodIdx < 0 || baseOffsetIdx < 0) {
-      valueIdxs.clear();
-      for (int i = 0; i < columns.size(); i++) {
-        String name = columns.get(i).getName();
-        if ("__period__".equals(name)) periodIdx = i;
-        else if ("__base_offset__".equals(name)) baseOffsetIdx = i;
-        else if (i > 0) valueIdxs.add(i);
-      }
+      else if (i > 0) valueIdxs.add(i);
     }
     if (periodIdx < 0 || baseOffsetIdx < 0) {
       return new Result(columns, values);
@@ -95,7 +88,10 @@ public final class TimewrapPivot {
       baseOffset = boVal.longValue();
     }
 
-    // Collect distinct periods (sorted descending = oldest first in output).
+    // Collect distinct periods (sorted descending = oldest first in output) and precompute each
+    // period's name once. The name depends only on (period, baseOffset, unitInfo, seriesMode), so
+    // computing it inside the per-row loop would repeat the same split/parse/switch
+    // O(rows x valueCols) times.
     Set<Long> periodSet = new TreeSet<>(Collections.reverseOrder());
     for (ExprValue row : values) {
       ExprValue pv = row.tupleValue().get("__period__");
@@ -104,8 +100,12 @@ public final class TimewrapPivot {
       }
     }
     List<Long> periods = new ArrayList<>(periodSet);
+    Map<Long, String> periodNames = new HashMap<>();
+    for (long period : periods) {
+      periodNames.put(period, renameTimewrapPeriod(period, baseOffset, unitInfo, seriesMode));
+    }
 
-    // Build value column names.
+    // Value column names.
     List<String> valueColNames = new ArrayList<>();
     for (int vi : valueIdxs) {
       valueColNames.add(columns.get(vi).getName());
@@ -120,9 +120,7 @@ public final class TimewrapPivot {
 
     for (long period : periods) {
       for (int vi = 0; vi < valueColNames.size(); vi++) {
-        String prefix = valueColNames.get(vi);
-        String periodName = renameTimewrapPeriod(period, baseOffset, unitInfo, seriesMode);
-        outColNames.add(prefix + "_" + periodName);
+        outColNames.add(valueColNames.get(vi) + "_" + periodNames.get(period));
         outColTypes.add(columns.get(valueIdxs.get(vi)).getExprType());
       }
     }
@@ -150,10 +148,9 @@ public final class TimewrapPivot {
               });
 
       // Fill in the value for this period.
+      String periodName = periodNames.get(period);
       for (int vi = 0; vi < valueColNames.size(); vi++) {
-        String prefix = valueColNames.get(vi);
-        String periodName = renameTimewrapPeriod(period, baseOffset, unitInfo, seriesMode);
-        String colName = prefix + "_" + periodName;
+        String colName = valueColNames.get(vi) + "_" + periodName;
         ExprValue val = tuple.get(valueColNames.get(vi));
         if (val != null) {
           outRow.put(colName, val);
@@ -191,8 +188,9 @@ public final class TimewrapPivot {
     String mode = seriesMode == null ? "relative" : seriesMode;
 
     return switch (mode) {
-      case "short" -> "s" + absolutePeriod;
-      case "exact" -> "s" + absolutePeriod; // TODO: format with time_format
+      // series=exact (+ time_format) is not yet implemented; it intentionally falls back to the
+      // short "s<N>" naming. TODO: format the period start date with time_format.
+      case "short", "exact" -> "s" + absolutePeriod;
       default -> {
         if (absolutePeriod == 0) {
           yield "latest_" + singular;
