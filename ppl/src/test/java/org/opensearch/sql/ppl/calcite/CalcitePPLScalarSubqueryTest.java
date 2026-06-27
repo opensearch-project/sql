@@ -135,15 +135,12 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "}))], variablesSet=[[$cor0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-
-    String expectedSparkSql =
-        ""
-            + "SELECT *\n"
-            + "FROM `scott`.`EMP`\n"
-            + "WHERE `SAL` > (SELECT AVG(`EMP`.`SAL`) `AVG(SAL)`\n"
-            + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `EMP`.`SAL` = `HISAL`)";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
+    // verifyPPLToSparkSQL is intentionally omitted: SALGRADE has no SAL column, so both SAL
+    // references in the subquery bind to the outer EMP.SAL (correlated outer reference). The
+    // SQL serializer emits AVG(`EMP`.`SAL`) in the subquery aggregate — outer-column references
+    // in aggregate functions are rejected by Spark with
+    // UNSUPPORTED_SUBQUERY_EXPRESSION_CATEGORY.CORRELATED_REFERENCE. The logical plan above is
+    // the authoritative contract for this query; the Spark SQL string is not executable.
   }
 
   @Test
@@ -167,14 +164,11 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "})], SAL=[$5])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-
-    String expectedSparkSql =
-        ""
-            + "SELECT (SELECT MIN(`EMP`.`EMPNO`) `min(EMPNO)`\n"
-            + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `EMP`.`SAL` = `HISAL`) `min_empno`, `SAL`\n"
-            + "FROM `scott`.`EMP` `EMP`";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
+    // verifyPPLToSparkSQL is intentionally omitted: SALGRADE has no EMPNO or SAL column, so
+    // both references in the subquery bind to outer EMP columns (correlated outer references).
+    // The SQL serializer emits MIN(`EMP`.`EMPNO`) inside a subquery aggregate — outer-column
+    // references in aggregate functions are rejected by Spark with
+    // UNSUPPORTED_SUBQUERY_EXPRESSION_CATEGORY.CORRELATED_REFERENCE. See issue #5470.
   }
 
   @Test
@@ -361,14 +355,10 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "}))], variablesSet=[[$cor0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-
-    String expectedSparkSql =
-        ""
-            + "SELECT *\n"
-            + "FROM `scott`.`EMP`\n"
-            + "WHERE `SAL` > (SELECT AVG(`EMP`.`SAL`) `AVG(SAL)`\n"
-            + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `EMP`.`SAL` = `HISAL`)";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
+    // verifyPPLToSparkSQL is intentionally omitted: SALGRADE has no SAL column, so both SAL
+    // references in the subquery bind to the outer EMP.SAL (correlated outer reference). The
+    // SQL serializer emits AVG(`EMP`.`SAL`) in the subquery aggregate — outer-column references
+    // in aggregate functions are rejected by Spark with
+    // UNSUPPORTED_SUBQUERY_EXPRESSION_CATEGORY.CORRELATED_REFERENCE. See issue #5470.
   }
 }
