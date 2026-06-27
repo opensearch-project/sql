@@ -171,10 +171,10 @@ public class TopHitsParser implements MetricParser {
     }
     for (Map.Entry<String, List<String>> entry : fieldNameMapping.entrySet()) {
       String originalName = entry.getKey();
-      if (!map.containsKey(originalName)) {
+      Object value = map.get(originalName);
+      if (value == null && !map.containsKey(originalName)) {
         continue;
       }
-      Object value = map.get(originalName);
       List<String> outputNames = entry.getValue();
       for (String outputName : outputNames) {
         map.put(outputName, value);

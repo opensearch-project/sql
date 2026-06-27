@@ -627,7 +627,11 @@ public class AggregateAnalyzer {
         Map<String, List<String>> fieldNameMapping = new HashMap<>();
         for (Pair<RexNode, String> arg : args) {
           if (arg.getKey() instanceof RexInputRef) {
-            String originalName = helper.inferNamedField(arg.getKey()).getRootName();
+            NamedFieldExpression namedField = helper.inferNamedField(arg.getKey());
+            if (namedField == null) {
+              continue;
+            }
+            String originalName = namedField.getRootName();
             String outputName = arg.getValue();
             if (!originalName.equals(outputName)) {
               fieldNameMapping
