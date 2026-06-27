@@ -150,7 +150,7 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
       java.util.function.Function<Matcher, String> extractor) {
     try {
       Pattern compiledPattern = RegexCommonUtils.getCompiledPattern(pattern);
-      Matcher matcher = compiledPattern.matcher(text);
+      Matcher matcher = RegexCommonUtils.boundedMatcher(compiledPattern, text);
       List<String> matches = new ArrayList<>();
 
       int matchCount = 0;

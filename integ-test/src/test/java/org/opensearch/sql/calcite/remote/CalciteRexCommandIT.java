@@ -10,17 +10,42 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.opensearch.client.Request;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteRexCommandIT extends PPLIntegTestCase {
   private static final String SUGGESTION_MATCHING_CONTENT = "capture groups must be alphanumeric";
+  private static final String REDOS_INDEX = "redos_rex_guard";
 
   @Override
   public void init() throws Exception {
     super.init();
     enableCalcite();
     loadIndex(Index.ACCOUNT);
+    createReDoSIndex();
+  }
+
+  /** A single document with a long text value so a catastrophic pattern actually blows up. */
+  private void createReDoSIndex() throws IOException {
+    try {
+      client().performRequest(new Request("DELETE", "/" + REDOS_INDEX));
+    } catch (ResponseException e) {
+      // index doesn't exist yet, fine
+    }
+    Request createIndex = new Request("PUT", "/" + REDOS_INDEX);
+    createIndex.setJsonEntity(
+        "{\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0},"
+            + "\"mappings\": {\"properties\": {\"msg\": {\"type\": \"text\"}}}}");
+    client().performRequest(createIndex);
+
+    // 60 'a' chars: long enough that (?<g>(.*a){8})b would backtrack for many seconds unguarded.
+    String longValue = "a".repeat(60);
+    Request bulk = new Request("POST", "/" + REDOS_INDEX + "/_bulk?refresh=true");
+    bulk.setJsonEntity("{\"index\":{\"_id\":\"1\"}}\n" + "{\"msg\": \"" + longValue + "\"}\n");
+    client().performRequest(bulk);
   }
 
   @Test
@@ -46,6 +71,26 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
                     + " user, domain",
                 TEST_INDEX_ACCOUNT));
     assertEquals(1000, all.getJSONArray("datarows").length());
+  }
+
+  /**
+   * A pathological pattern must be rejected quickly with a client error instead of running
+   * unbounded. The 30s timeout fails the test if the bound ever regresses.
+   */
+  @Test
+  @Timeout(30)
+  public void testRexCatastrophicPatternIsRejectedQuickly() throws IOException {
+    // (?<g>(.*a){8})b over the 60-char 'a' value forces ~C(60,8) backtracking unguarded.
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=msg \\\"(?<g>(.*a){8})b\\\" | fields g", REDOS_INDEX));
+      fail("Expected the catastrophic regex to be rejected by the backtracking guard");
+    } catch (Exception e) {
+      assertTrue(
+          "Expected a ReDoS-guard error, got: " + e.getMessage(),
+          e.getMessage().contains("too many characters"));
+    }
   }
 
   @Test

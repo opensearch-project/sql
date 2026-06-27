@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.parse;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -298,5 +299,81 @@ public class RegexCommonUtilsTest {
         assertThrows(
             ErrorReport.class, () -> RegexCommonUtils.getNamedGroupCandidates(patternWithMixed));
     assertTrue(exception.getMessage().contains("Invalid capture group name 'invalid_name'"));
+  }
+
+  // --- ReDoS guard (catastrophic backtracking) ---------------------------------------------------
+
+  /** The reporter's PoC pattern: requires 8 'a'-anchored segments. */
+  private static final String CATASTROPHIC_PATTERN = "(?<g>(.*a){8})";
+
+  /** Input that can never fully match the pattern, forcing maximal backtracking. */
+  private static String catastrophicInput(int n) {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < n - 1; i++) {
+      sb.append('a');
+    }
+    sb.append('b');
+    return sb.toString();
+  }
+
+  @Test
+  public void extractNamedGroupAbortsCatastrophicBacktrackingQuickly() {
+    Pattern pattern = RegexCommonUtils.getCompiledPattern(CATASTROPHIC_PATTERN);
+    // Without the bound this input would pin a core for tens of seconds. With the bound it must
+    // fail fast. The 5s timeout is generous: the guard trips in milliseconds.
+    String input = catastrophicInput(60);
+    assertTimeoutPreemptively(
+        Duration.ofSeconds(5),
+        () ->
+            assertThrows(
+                IllegalArgumentException.class,
+                () -> RegexCommonUtils.extractNamedGroup(input, pattern, "g")));
+  }
+
+  @Test
+  public void matchesPartialAbortsCatastrophicBacktrackingQuickly() {
+    // find() semantics: (.*a){8}b against a long run of 'a' (no trailing 'b') forces catastrophic
+    // backtracking exploring every way to place the 8 'a'-anchors. (This nested-.* form still blows
+    // up on modern JDKs that optimize the simpler (a+)+$ family.) Without the bound this pins a
+    // core for ~12s on 40 chars; with it, it must fail fast.
+    String evilPattern = "(.*a){8}b";
+    String input = "a".repeat(40);
+    assertTimeoutPreemptively(
+        Duration.ofSeconds(5),
+        () ->
+            assertThrows(
+                IllegalArgumentException.class,
+                () -> RegexCommonUtils.matchesPartial(input, evilPattern)));
+  }
+
+  @Test
+  public void boundExceededErrorMessageIsClientFriendly() {
+    Pattern pattern = RegexCommonUtils.getCompiledPattern(CATASTROPHIC_PATTERN);
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RegexCommonUtils.extractNamedGroup(catastrophicInput(60), pattern, "g"));
+    assertTrue(e.getMessage().contains("too many characters"));
+    assertTrue(e.getMessage().contains("backtracking"));
+  }
+
+  @Test
+  public void legitimatePatternsStillMatchAfterGuard() {
+    // The guard must be transparent to ordinary parse/rex usage.
+    Pattern email = RegexCommonUtils.getCompiledPattern("(?<user>[^@]+)@(?<domain>.+)");
+    assertEquals("john", RegexCommonUtils.extractNamedGroup("john@example.com", email, "user"));
+    assertEquals(
+        "example.com", RegexCommonUtils.extractNamedGroup("john@example.com", email, "domain"));
+    assertTrue(RegexCommonUtils.matchesPartial("user@domain.com", ".*@domain\\.com"));
+    assertFalse(RegexCommonUtils.matchesPartial("test string", "notfound"));
+  }
+
+  @Test
+  public void legitimateLongInputDoesNotTripGuard() {
+    // A 50k-char input matched by a linear pattern reads each char a small constant number of
+    // times, far under the limit factor, so it must not trip.
+    Pattern pattern = RegexCommonUtils.getCompiledPattern("(?<all>.*)");
+    String longInput = "x".repeat(50_000);
+    assertEquals(longInput, RegexCommonUtils.extractNamedGroup(longInput, pattern, "all"));
   }
 }
