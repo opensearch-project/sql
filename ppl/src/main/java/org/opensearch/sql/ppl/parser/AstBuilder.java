@@ -87,6 +87,8 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Foreach;
+import org.opensearch.sql.ast.tree.Foreach.ForeachEvalClause;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
@@ -865,6 +867,27 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.evalClause().stream()
             .map(ct -> (Let) internalVisitExpression(ct))
             .collect(Collectors.toList()));
+  }
+
+  @Override
+  public UnresolvedPlan visitForeachCommand(OpenSearchPPLParser.ForeachCommandContext ctx) {
+    String mode =
+        ctx.foreachOption().stream()
+            .filter(option -> "mode".equalsIgnoreCase(option.ident(0).getText()))
+            .map(option -> option.ident(1).getText())
+            .findFirst()
+            .orElse("multifield");
+    List<String> patterns =
+        ctx.foreachFieldPattern().stream().map(this::getTextInQuery).collect(Collectors.toList());
+    List<ForeachEvalClause> evalClauses =
+        ctx.foreachEvalCommand().foreachEvalClause().stream()
+            .map(
+                clause ->
+                    new ForeachEvalClause(
+                        getTextInQuery(clause.target),
+                        expressionBuilder.visit(clause.logicalExpression())))
+            .collect(Collectors.toList());
+    return new Foreach(mode, patterns, evalClauses);
   }
 
   @Override

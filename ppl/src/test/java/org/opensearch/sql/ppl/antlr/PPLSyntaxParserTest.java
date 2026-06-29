@@ -90,6 +90,24 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testForeachCommandShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser()
+            .parse("source=t | foreach a* b [ eval <<FIELD>>_double = <<FIELD>> * 2 ]");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testForeachCommandWithModeShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser()
+            .parse(
+                "source=t | foreach mode=multifield value_* [ eval"
+                    + " total_<<MATCHSTR>> = <<FIELD>> + 1 ]");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
   public void testSearchFieldsCommandCrossClusterShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("search source=c:t a=1 b=2 | fields a,b");
     assertNotEquals(null, tree);

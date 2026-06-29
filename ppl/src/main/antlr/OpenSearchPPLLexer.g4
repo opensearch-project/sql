@@ -26,6 +26,7 @@ STREAMSTATS:                        'STREAMSTATS';
 DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
+FOREACH:                            'FOREACH';
 FIELDFORMAT:                        'FIELDFORMAT';
 HEAD:                               'HEAD';
 BIN:                                'BIN';

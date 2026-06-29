@@ -53,6 +53,7 @@ import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
+import org.opensearch.sql.ast.expression.ForeachPlaceholder;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
@@ -400,6 +401,19 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitQualifiedName(QualifiedName node, CalcitePlanContext context) {
     return QualifiedNameResolver.resolve(node, context);
+  }
+
+  @Override
+  public RexNode visitForeachPlaceholder(ForeachPlaceholder node, CalcitePlanContext context) {
+    String name = node.getName().toUpperCase(Locale.ROOT);
+    String value = context.getForeachBindings().get(name);
+    if (value == null) {
+      throw new SemanticCheckException("Unresolved foreach placeholder <<" + node.getName() + ">>");
+    }
+    if ("FIELD".equals(name)) {
+      return context.relBuilder.field(value);
+    }
+    return context.rexBuilder.makeLiteral(value);
   }
 
   @Override

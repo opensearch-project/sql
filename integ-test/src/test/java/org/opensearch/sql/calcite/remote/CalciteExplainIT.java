@@ -2936,6 +2936,22 @@ public class CalciteExplainIT extends ExplainIT {
         logical.contains("concat") && logical.contains("array_join"));
   }
 
+  @Test
+  public void testForeachExplain() throws IOException {
+    String query =
+        StringUtils.format(
+            "source=%s | foreach age balance [ eval <<FIELD>>_double = <<FIELD>> * 2 ] | fields"
+                + " age_double, balance_double",
+            TEST_INDEX_BANK);
+    String logical = logicalPlan(explainQueryYaml(query));
+    Assert.assertTrue(
+        "Expected logical plan to contain foreach-expanded eval fields",
+        logical.contains("age_double")
+            && logical.contains("balance_double")
+            && logical.contains("*($")
+            && logical.contains(", 2)"));
+  }
+
   /**
    * Return just the {@code logical:} section of a YAML explain result (everything before the {@code
    * physical:} key). The logical plan is deterministic across pushdown on/off, whereas the physical

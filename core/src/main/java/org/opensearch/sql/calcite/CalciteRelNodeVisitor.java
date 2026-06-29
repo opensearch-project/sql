@@ -130,6 +130,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Foreach;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
@@ -1241,6 +1242,84 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               }
             });
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitForeach(Foreach node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    if (!"multifield".equalsIgnoreCase(node.getMode())) {
+      throw new CalciteUnsupportedException(
+          "foreach mode [" + node.getMode() + "] is not supported");
+    }
+
+    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+    LinkedHashSet<String> matchingFields = new LinkedHashSet<>();
+    for (String pattern : node.getFieldPatterns()) {
+      matchingFields.addAll(WildcardUtils.expandWildcardPattern(pattern, currentFields));
+    }
+
+    for (String fieldName : matchingFields) {
+      Map<String, String> bindings = buildForeachBindings(node.getFieldPatterns(), fieldName);
+      context.pushForeachBindings(bindings);
+      try {
+        for (Foreach.ForeachEvalClause clause : node.getEvalClauses()) {
+          RexNode expr = rexVisitor.analyze(clause.getExpression(), context);
+          String alias = substituteForeachTemplate(clause.getTargetTemplate(), bindings);
+          projectPlusOverriding(
+              List.of(context.relBuilder.alias(expr, alias)), List.of(alias), context);
+        }
+      } finally {
+        context.clearForeachBindings();
+      }
+    }
+    return context.relBuilder.peek();
+  }
+
+  private Map<String, String> buildForeachBindings(List<String> patterns, String fieldName) {
+    Map<String, String> bindings = new HashMap<>();
+    bindings.put("FIELD", fieldName);
+    for (String pattern : patterns) {
+      List<String> segments = wildcardSegments(pattern, fieldName);
+      if (segments != null) {
+        bindings.put("MATCHSTR", String.join("", segments));
+        for (int i = 0; i < segments.size(); i++) {
+          bindings.put("MATCHSEG" + (i + 1), segments.get(i));
+        }
+        break;
+      }
+    }
+    return bindings;
+  }
+
+  private List<String> wildcardSegments(String pattern, String fieldName) {
+    if (!WildcardUtils.matchesWildcardPattern(pattern, fieldName)) {
+      return null;
+    }
+    if (!WildcardUtils.containsWildcard(pattern)) {
+      return List.of();
+    }
+    java.util.regex.Matcher matcher =
+        java.util.regex.Pattern.compile(WildcardUtils.convertWildcardPatternToRegex(pattern))
+            .matcher(fieldName);
+    if (!matcher.matches()) {
+      return null;
+    }
+    List<String> segments = new ArrayList<>();
+    for (int i = 1; i <= matcher.groupCount(); i++) {
+      segments.add(matcher.group(i));
+    }
+    return segments;
+  }
+
+  private String substituteForeachTemplate(String template, Map<String, String> bindings) {
+    String result = template;
+    for (Map.Entry<String, String> entry : bindings.entrySet()) {
+      result =
+          result.replaceAll(
+              "(?i)<<" + java.util.regex.Pattern.quote(entry.getKey()) + ">>",
+              java.util.regex.Matcher.quoteReplacement(entry.getValue()));
+    }
+    return result;
   }
 
   @Override
