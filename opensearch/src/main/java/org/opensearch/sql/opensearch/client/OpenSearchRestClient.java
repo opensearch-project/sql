@@ -285,8 +285,7 @@ public class OpenSearchRestClient implements OpenSearchClient {
       if (params != null && Boolean.parseBoolean(params.get("local"))) {
         request.local(true);
       }
-      ClusterHealthResponse response =
-          client.cluster().health(request, RequestOptions.DEFAULT);
+      ClusterHealthResponse response = client.cluster().health(request, RequestOptions.DEFAULT);
       return flattenHealth(response);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get cluster health", e);

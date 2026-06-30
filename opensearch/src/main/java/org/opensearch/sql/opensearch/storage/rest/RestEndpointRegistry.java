@@ -30,14 +30,13 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
 
 /**
- * The read-only endpoint allow-list expressed as data: each allow-listed, read-only endpoint maps to its transport
- * action (a read-only call on {@link OpenSearchClient}), a fixed output schema (so the Calcite plan
- * can fix its row type at plan time), the query args it accepts, and a secret-field filter.
+ * The read-only endpoint allow-list expressed as data: each allow-listed, read-only endpoint maps
+ * to its transport action (a read-only call on {@link OpenSearchClient}), a fixed output schema (so
+ * the Calcite plan can fix its row type at plan time), and the query args it accepts.
  *
- * <p>This is the single place the read-only allow-list and secret filtering are enforced.
- * Endpoints outside the registry, including every mutating endpoint, are rejected by {@link
- * #resolve} with a clear exception. Adding an endpoint is a reviewed change here, never arbitrary
- * pass-through.
+ * <p>This is the single place the read-only allow-list is enforced. Endpoints outside the registry,
+ * including every mutating endpoint, are rejected by {@link #resolve} with a clear exception.
+ * Adding an endpoint is a reviewed change here, never arbitrary pass-through.
  */
 public final class RestEndpointRegistry {
 
@@ -55,19 +54,16 @@ public final class RestEndpointRegistry {
     private final String path;
     private final LinkedHashMap<String, ExprType> schema;
     private final Set<String> allowedArgs;
-    private final Set<String> secretFields;
     private final RowFetcher fetcher;
 
     Endpoint(
         String path,
         LinkedHashMap<String, ExprType> schema,
         Set<String> allowedArgs,
-        Set<String> secretFields,
         RowFetcher fetcher) {
       this.path = path;
       this.schema = schema;
       this.allowedArgs = allowedArgs;
-      this.secretFields = secretFields;
       this.fetcher = fetcher;
     }
 
@@ -77,10 +73,6 @@ public final class RestEndpointRegistry {
       for (Map<String, Object> raw : fetcher.fetch(client, spec)) {
         LinkedHashMap<String, ExprValue> tuple = new LinkedHashMap<>();
         for (Map.Entry<String, ExprType> col : schema.entrySet()) {
-          if (secretFields.contains(col.getKey())) {
-            // Never surface a secret-bearing field, even if the action returns it.
-            continue;
-          }
           tuple.put(col.getKey(), coerce(col.getKey(), col.getValue(), raw.get(col.getKey())));
         }
         out.add(new ExprTupleValue(tuple));
@@ -112,7 +104,6 @@ public final class RestEndpointRegistry {
             "/_cluster/health",
             healthSchema,
             Set.of("local"),
-            Set.of(),
             (client, spec) -> List.of(client.clusterHealth(spec.getArgs()))));
 
     // /_cat/indices — one row per index (read-only monitor action).
@@ -128,7 +119,6 @@ public final class RestEndpointRegistry {
             "/_cat/indices",
             catSchema,
             Set.of("health"),
-            Set.of(),
             (client, spec) -> client.catIndices(spec.getArgs())));
 
     // /_cat/nodes — one row per node with resource state (read-only monitor action).
@@ -145,7 +135,6 @@ public final class RestEndpointRegistry {
             "/_cat/nodes",
             nodesSchema,
             Set.of(),
-            Set.of(),
             (client, spec) -> client.catNodes(spec.getArgs())));
 
     // /_cat/cluster_manager — single row identifying the elected cluster manager node.
@@ -160,7 +149,6 @@ public final class RestEndpointRegistry {
             "/_cat/cluster_manager",
             clusterManagerSchema,
             Set.of(),
-            Set.of(),
             (client, spec) -> client.catClusterManager(spec.getArgs())));
 
     // /_cat/plugins — one row per installed plugin per node (read-only monitor action).
@@ -173,7 +161,6 @@ public final class RestEndpointRegistry {
         new Endpoint(
             "/_cat/plugins",
             pluginsSchema,
-            Set.of(),
             Set.of(),
             (client, spec) -> client.catPlugins(spec.getArgs())));
 
@@ -190,7 +177,6 @@ public final class RestEndpointRegistry {
             "/_cat/shards",
             shardsSchema,
             Set.of(),
-            Set.of(),
             (client, spec) -> client.catShards(spec.getArgs())));
 
     // /_cluster/state — single-row cluster-state epoch (version, uuid, manager node).
@@ -205,7 +191,6 @@ public final class RestEndpointRegistry {
             "/_cluster/state",
             stateSchema,
             Set.of(),
-            Set.of(),
             (client, spec) -> List.of(client.clusterState(spec.getArgs()))));
 
     // /_cluster/settings — one row per configured setting (persistent/transient tier).
@@ -219,7 +204,6 @@ public final class RestEndpointRegistry {
             "/_cluster/settings",
             settingsSchema,
             Set.of(),
-            Set.of(),
             (client, spec) -> client.clusterSettings(spec.getArgs())));
 
     // /_resolve/index — one row per resolved index/alias/data_stream name.
@@ -232,7 +216,6 @@ public final class RestEndpointRegistry {
             "/_resolve/index",
             resolveSchema,
             Set.of("expand_wildcards"),
-            Set.of(),
             (client, spec) -> client.resolveIndex(spec.getArgs())));
 
     return m;
@@ -276,9 +259,7 @@ public final class RestEndpointRegistry {
       // cluster-manager vs client socket timeouts differ per action). Reject it with a clear
       // client error rather than silently ignoring it.
       throw new IllegalArgumentException(
-          "rest endpoint ["
-              + spec.getEndpoint()
-              + "] does not support the timeout argument yet");
+          "rest endpoint [" + spec.getEndpoint() + "] does not support the timeout argument yet");
     }
     if (spec.getArgs() != null) {
       for (String arg : spec.getArgs().keySet()) {
@@ -363,9 +344,11 @@ public final class RestEndpointRegistry {
       if (type == BOOLEAN) {
         return booleanValue(toBoolean(value));
       }
-    } catch (RuntimeException e) {
-      // Surface a clear client error (HTTP 400) instead of a raw ClassCastException /
-      // NumberFormatException (HTTP 500) when an endpoint returns an unexpected value shape.
+    } catch (IllegalArgumentException | ClassCastException e) {
+      // Surface a clear client error (HTTP 400) instead of a raw HTTP 500 when an endpoint
+      // returns an unexpected value shape. NumberFormatException extends IllegalArgumentException,
+      // so toNumber parse failures and toBoolean's "not a boolean" are both caught here; genuinely
+      // unexpected faults (NPE, etc.) are left to propagate.
       throw new IllegalArgumentException(
           "rest endpoint value for column ["
               + column
@@ -384,6 +367,9 @@ public final class RestEndpointRegistry {
       return n;
     }
     String s = String.valueOf(value).trim();
+    if (s.isEmpty()) {
+      throw new NumberFormatException("empty string");
+    }
     if (s.indexOf('.') >= 0 || s.indexOf('e') >= 0 || s.indexOf('E') >= 0) {
       return Double.parseDouble(s);
     }
@@ -396,6 +382,9 @@ public final class RestEndpointRegistry {
       return b;
     }
     String s = String.valueOf(value).trim();
+    if (s.isEmpty()) {
+      throw new IllegalArgumentException("empty string is not a boolean");
+    }
     if (s.equalsIgnoreCase("true")) {
       return true;
     }

@@ -1785,4 +1785,6 @@ searchableKeyWord
    | MAX_DEPTH
    | DEPTH_FIELD
    | EDGE
+   // rest command token, also usable as a free-text search term / identifier
+   | TIMEOUT
    ;

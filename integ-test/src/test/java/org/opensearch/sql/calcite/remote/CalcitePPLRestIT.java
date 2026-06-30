@@ -19,7 +19,8 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
  * Integration tests for the {@code rest} leading command on the Calcite path. Uses {@code
- * /_cluster/health} as the deterministic, single-row endpoint on a single-node test cluster. Also verifies that a non-allow-listed / mutating endpoint is refused.
+ * /_cluster/health} as the deterministic, single-row endpoint on a single-node test cluster. Also
+ * verifies that a non-allow-listed / mutating endpoint is refused.
  */
 public class CalcitePPLRestIT extends PPLIntegTestCase {
 
@@ -31,8 +32,7 @@ public class CalcitePPLRestIT extends PPLIntegTestCase {
 
   @Test
   public void testRestClusterHealthSchema() throws IOException {
-    JSONObject result =
-        executeQuery("| rest '/_cluster/health' | fields status, number_of_nodes");
+    JSONObject result = executeQuery("| rest '/_cluster/health' | fields status, number_of_nodes");
     verifySchema(result, schema("status", "string"), schema("number_of_nodes", "int"));
   }
 
@@ -70,13 +70,12 @@ public class CalcitePPLRestIT extends PPLIntegTestCase {
 
   /**
    * Assert a {@code rest} query is refused as a client error: HTTP 400 (not a 500 system error)
-   * with the given substring in the response body. The negative-case check for allow-list and secret-filter enforcement.
+   * with the given substring in the response body. Covers allow-list and bad-argument rejection.
    */
   private void assertRestBadRequest(String query, String expectedSubstring) {
     ResponseException e =
         org.junit.Assert.assertThrows(ResponseException.class, () -> executeQuery(query));
-    org.junit.Assert.assertEquals(
-        400, e.getResponse().getStatusLine().getStatusCode());
+    org.junit.Assert.assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
     org.junit.Assert.assertTrue(
         "expected [" + expectedSubstring + "] in response body: " + e.getMessage(),
         e.getMessage().contains(expectedSubstring));
@@ -153,8 +152,7 @@ public class CalcitePPLRestIT extends PPLIntegTestCase {
   @Test
   public void testRestClusterSettingsSchema() throws IOException {
     // Schema is registry-fixed regardless of how many settings are configured.
-    JSONObject result =
-        executeQuery("| rest '/_cluster/settings' | fields setting, value, tier");
+    JSONObject result = executeQuery("| rest '/_cluster/settings' | fields setting, value, tier");
     verifySchema(
         result, schema("setting", "string"), schema("value", "string"), schema("tier", "string"));
   }
@@ -187,8 +185,7 @@ public class CalcitePPLRestIT extends PPLIntegTestCase {
   @Test
   public void testRestCatIndicesHealthFilterReturnsNoRed() throws IOException {
     // health filters rows server-side; a healthy cluster has no red indices, so count is 0.
-    JSONObject result =
-        executeQuery("| rest '/_cat/indices' health='red' | stats count() as cnt");
+    JSONObject result = executeQuery("| rest '/_cat/indices' health='red' | stats count() as cnt");
     verifyDataRows(result, rows(0));
   }
 
