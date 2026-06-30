@@ -502,11 +502,11 @@ testClusters.analyticsEngineSecurityIT {
     plugin(getJobSchedulerPlugin())
     plugin(getArrowBasePlugin())
     plugin(getArrowFlightRpcPlugin())
+    plugin(getCompositeEnginePlugin())
     plugin(getAnalyticsEnginePlugin())
     plugin(getAnalyticsBackendLucenePlugin())
     plugin(getAnalyticsBackendDatafusionPlugin())
     plugin(getParquetDataFormatPlugin())
-    plugin(getCompositeEnginePlugin())
     plugin ":opensearch-sql-plugin"
     // Arrow Flight / streaming transport requirements
     jvmArgs '--add-opens=java.base/java.nio=ALL-UNNAMED'
