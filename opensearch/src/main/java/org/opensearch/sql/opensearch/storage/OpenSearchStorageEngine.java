@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.storage;
 
+import static org.opensearch.sql.utils.SystemIndexUtils.decodeRestSpec;
+import static org.opensearch.sql.utils.SystemIndexUtils.isRestSource;
 import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 
 import java.util.Collection;
@@ -15,6 +17,7 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.storage.rest.RestSourceTable;
 import org.opensearch.sql.opensearch.storage.system.OpenSearchSystemIndex;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
@@ -35,7 +38,9 @@ public class OpenSearchStorageEngine implements StorageEngine {
 
   @Override
   public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {
-    if (isSystemIndex(name)) {
+    if (isRestSource(name)) {
+      return new RestSourceTable(client, settings, decodeRestSpec(name));
+    } else if (isSystemIndex(name)) {
       return new OpenSearchSystemIndex(client, settings, name);
     } else {
       return new OpenSearchIndex(client, settings, name);

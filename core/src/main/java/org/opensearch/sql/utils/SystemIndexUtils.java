@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.utils;
 
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.UtilityClass;
@@ -32,6 +35,109 @@ public class SystemIndexUtils {
 
   public static Boolean isSystemIndex(String indexName) {
     return indexName.endsWith(SYS_TABLES_SUFFIX);
+  }
+
+  /**
+   * Reserved suffix marking a {@code rest} source table. Distinct from {@link #SYS_TABLES_SUFFIX}
+   * so {@link #isSystemIndex} and {@link #isRestSource} never overlap. The whole reserved name is a
+   * single Calcite identifier (REST + lowercase hex + this suffix), so it survives name resolution
+   * the same way the uppercase system-mapping names do.
+   */
+  private static final String REST_SOURCE_SUFFIX = "__REST_SOURCE";
+
+  private static final String REST_SOURCE_PREFIX = "REST";
+
+  /** True if the resolved table name is a {@code rest} source token. */
+  public static boolean isRestSource(String indexName) {
+    return indexName.endsWith(REST_SOURCE_SUFFIX);
+  }
+
+  /**
+   * Encode a validated {@link RestSpec} into a single reserved table name. Mirrors {@link
+   * #mappingTable}: structured metadata travels inside a reserved name rather than a side channel.
+   * The endpoint/args have already been allow-list-validated before this is called.
+   */
+  public static String restTable(RestSpec spec) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("endpoint=").append(spec.getEndpoint());
+    if (spec.getCount() != null) {
+      sb.append('\n').append("count=").append(spec.getCount());
+    }
+    if (spec.getTimeout() != null) {
+      sb.append('\n').append("timeout=").append(spec.getTimeout());
+    }
+    if (spec.getArgs() != null) {
+      for (Map.Entry<String, String> e : spec.getArgs().entrySet()) {
+        sb.append('\n').append("arg.").append(e.getKey()).append('=').append(e.getValue());
+      }
+    }
+    return REST_SOURCE_PREFIX + toHex(sb.toString()) + REST_SOURCE_SUFFIX;
+  }
+
+  /** Decode a reserved {@code rest} table name back into its {@link RestSpec}. */
+  public static RestSpec decodeRestSpec(String indexName) {
+    String body =
+        indexName.substring(
+            REST_SOURCE_PREFIX.length(), indexName.length() - REST_SOURCE_SUFFIX.length());
+    String decoded = fromHex(body);
+    String endpoint = null;
+    Integer count = null;
+    String timeout = null;
+    LinkedHashMap<String, String> args = new LinkedHashMap<>();
+    for (String line : decoded.split("\n")) {
+      if (line.isEmpty()) {
+        continue;
+      }
+      int eq = line.indexOf('=');
+      if (eq < 0) {
+        continue;
+      }
+      String k = line.substring(0, eq);
+      String v = line.substring(eq + 1);
+      if (k.equals("endpoint")) {
+        endpoint = v;
+      } else if (k.equals("count")) {
+        count = Integer.parseInt(v);
+      } else if (k.equals("timeout")) {
+        timeout = v;
+      } else if (k.startsWith("arg.")) {
+        args.put(k.substring("arg.".length()), v);
+      }
+    }
+    return new RestSpec(endpoint, args, count, timeout);
+  }
+
+  private static String toHex(String s) {
+    StringBuilder h = new StringBuilder();
+    for (byte b : s.getBytes(StandardCharsets.UTF_8)) {
+      h.append(Character.forDigit((b >> 4) & 0xF, 16)).append(Character.forDigit(b & 0xF, 16));
+    }
+    return h.toString();
+  }
+
+  private static String fromHex(String h) {
+    byte[] bytes = new byte[h.length() / 2];
+    for (int i = 0; i < bytes.length; i++) {
+      bytes[i] =
+          (byte)
+              ((Character.digit(h.charAt(2 * i), 16) << 4)
+                  + Character.digit(h.charAt(2 * i + 1), 16));
+    }
+    return new String(bytes, StandardCharsets.UTF_8);
+  }
+
+  /**
+   * The validated spec for a {@code rest} command: an allow-listed read-only endpoint plus optional
+   * count/timeout/query args. Lives in core so the parser (encode) and the storage engine (decode)
+   * share it without a cross-module dependency.
+   */
+  @Getter
+  @RequiredArgsConstructor
+  public static class RestSpec {
+    private final String endpoint;
+    private final Map<String, String> args;
+    private final Integer count;
+    private final String timeout;
   }
 
   /**

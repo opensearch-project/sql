@@ -18,6 +18,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
@@ -25,6 +27,7 @@ import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.action.search.*;
+import org.opensearch.cluster.health.ClusterIndexHealth;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
@@ -284,5 +287,254 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       throw new RuntimeException(
           "Error occurred while deleting PIT for internal plugin operation", e);
     }
+  }
+
+  @Override
+  public Map<String, Object> clusterHealth(Map<String, String> params) {
+    ClusterHealthRequest request = new ClusterHealthRequest();
+    if (params != null && Boolean.parseBoolean(params.get("local"))) {
+      request.local(true);
+    }
+    ClusterHealthResponse response = client.admin().cluster().health(request).actionGet();
+    return flattenHealth(response);
+  }
+
+  @Override
+  public List<Map<String, Object>> catIndices(Map<String, String> params) {
+    ClusterHealthResponse response =
+        client.admin().cluster().health(new ClusterHealthRequest()).actionGet();
+    List<Map<String, Object>> rows = new java.util.ArrayList<>();
+    for (Map.Entry<String, ClusterIndexHealth> entry : response.getIndices().entrySet()) {
+      ClusterIndexHealth health = entry.getValue();
+      Map<String, Object> row = new java.util.LinkedHashMap<>();
+      row.put("index", entry.getKey());
+      row.put("health", health.getStatus().name().toLowerCase(java.util.Locale.ROOT));
+      row.put("pri", health.getNumberOfShards());
+      row.put("rep", health.getNumberOfReplicas());
+      row.put("active_shards", health.getActiveShards());
+      rows.add(row);
+    }
+    String healthFilter = params == null ? null : params.get("health");
+    if (healthFilter != null) {
+      rows.removeIf(r -> !healthFilter.equalsIgnoreCase(String.valueOf(r.get("health"))));
+    }
+    return rows;
+  }
+
+  @Override
+  public List<Map<String, Object>> catNodes(Map<String, String> params) {
+    org.opensearch.action.admin.cluster.node.stats.NodesStatsRequest statsRequest =
+        new org.opensearch.action.admin.cluster.node.stats.NodesStatsRequest();
+    statsRequest.all();
+    org.opensearch.action.admin.cluster.node.stats.NodesStatsResponse response =
+        client.admin().cluster().nodesStats(statsRequest).actionGet();
+    List<Map<String, Object>> rows = new java.util.ArrayList<>();
+    for (org.opensearch.action.admin.cluster.node.stats.NodeStats ns : response.getNodes()) {
+      org.opensearch.cluster.node.DiscoveryNode node = ns.getNode();
+      Map<String, Object> row = new java.util.LinkedHashMap<>();
+      row.put("name", node.getName());
+      row.put("ip", node.getHostAddress());
+      row.put(
+          "node_role",
+          node.getRoles().stream()
+              .map(org.opensearch.cluster.node.DiscoveryNodeRole::roleName)
+              .sorted()
+              .collect(java.util.stream.Collectors.joining(",")));
+      row.put(
+          "heap_percent",
+          ns.getJvm() == null || ns.getJvm().getMem() == null
+              ? null
+              : (int) ns.getJvm().getMem().getHeapUsedPercent());
+      row.put(
+          "ram_percent",
+          ns.getOs() == null || ns.getOs().getMem() == null
+              ? null
+              : (int) ns.getOs().getMem().getUsedPercent());
+      row.put(
+          "cpu",
+          ns.getProcess() == null || ns.getProcess().getCpu() == null
+              ? null
+              : (int) ns.getProcess().getCpu().getPercent());
+      rows.add(row);
+    }
+    return rows;
+  }
+
+  @Override
+  public List<Map<String, Object>> catClusterManager(Map<String, String> params) {
+    org.opensearch.action.admin.cluster.state.ClusterStateResponse response =
+        client
+            .admin()
+            .cluster()
+            .state(new org.opensearch.action.admin.cluster.state.ClusterStateRequest())
+            .actionGet();
+    org.opensearch.cluster.node.DiscoveryNode cm =
+        response.getState().nodes().getClusterManagerNode();
+    List<Map<String, Object>> rows = new java.util.ArrayList<>();
+    if (cm != null) {
+      Map<String, Object> row = new java.util.LinkedHashMap<>();
+      row.put("id", cm.getId());
+      row.put("host", cm.getHostName());
+      row.put("ip", cm.getHostAddress());
+      row.put("node", cm.getName());
+      rows.add(row);
+    }
+    return rows;
+  }
+
+  @Override
+  public List<Map<String, Object>> catPlugins(Map<String, String> params) {
+    org.opensearch.action.admin.cluster.node.info.NodesInfoRequest infoRequest =
+        new org.opensearch.action.admin.cluster.node.info.NodesInfoRequest();
+    infoRequest.all();
+    org.opensearch.action.admin.cluster.node.info.NodesInfoResponse response =
+        client.admin().cluster().nodesInfo(infoRequest).actionGet();
+    List<Map<String, Object>> rows = new java.util.ArrayList<>();
+    for (org.opensearch.action.admin.cluster.node.info.NodeInfo info : response.getNodes()) {
+      org.opensearch.action.admin.cluster.node.info.PluginsAndModules plugins =
+          info.getInfo(org.opensearch.action.admin.cluster.node.info.PluginsAndModules.class);
+      if (plugins == null) {
+        continue;
+      }
+      for (org.opensearch.plugins.PluginInfo pi : plugins.getPluginInfos()) {
+        Map<String, Object> row = new java.util.LinkedHashMap<>();
+        row.put("name", info.getNode().getName());
+        row.put("component", pi.getName());
+        row.put("version", pi.getVersion());
+        rows.add(row);
+      }
+    }
+    return rows;
+  }
+
+  @Override
+  public List<Map<String, Object>> catShards(Map<String, String> params) {
+    org.opensearch.action.admin.cluster.state.ClusterStateResponse response =
+        client
+            .admin()
+            .cluster()
+            .state(new org.opensearch.action.admin.cluster.state.ClusterStateRequest())
+            .actionGet();
+    org.opensearch.cluster.node.DiscoveryNodes nodes = response.getState().nodes();
+    List<Map<String, Object>> rows = new java.util.ArrayList<>();
+    for (org.opensearch.cluster.routing.ShardRouting sr :
+        response.getState().getRoutingTable().allShards()) {
+      Map<String, Object> row = new java.util.LinkedHashMap<>();
+      row.put("index", sr.getIndexName());
+      row.put("shard", sr.id());
+      row.put("prirep", sr.primary() ? "p" : "r");
+      row.put("state", sr.state().name());
+      org.opensearch.cluster.node.DiscoveryNode n =
+          sr.currentNodeId() == null ? null : nodes.get(sr.currentNodeId());
+      row.put("node", n == null ? null : n.getName());
+      rows.add(row);
+    }
+    return rows;
+  }
+
+  @Override
+  public Map<String, Object> clusterState(Map<String, String> params) {
+    org.opensearch.action.admin.cluster.state.ClusterStateResponse response =
+        client
+            .admin()
+            .cluster()
+            .state(new org.opensearch.action.admin.cluster.state.ClusterStateRequest())
+            .actionGet();
+    Map<String, Object> row = new java.util.LinkedHashMap<>();
+    row.put("cluster_name", response.getClusterName().value());
+    row.put("state_uuid", response.getState().stateUUID());
+    row.put("version", response.getState().version());
+    org.opensearch.cluster.node.DiscoveryNode cm =
+        response.getState().nodes().getClusterManagerNode();
+    row.put("cluster_manager_node", cm == null ? null : cm.getName());
+    return row;
+  }
+
+  @Override
+  public List<Map<String, Object>> clusterSettings(Map<String, String> params) {
+    org.opensearch.action.admin.cluster.state.ClusterStateResponse response =
+        client
+            .admin()
+            .cluster()
+            .state(new org.opensearch.action.admin.cluster.state.ClusterStateRequest())
+            .actionGet();
+    List<Map<String, Object>> rows = new java.util.ArrayList<>();
+    collectSettings(response.getState().metadata().persistentSettings(), "persistent", rows);
+    collectSettings(response.getState().metadata().transientSettings(), "transient", rows);
+    return rows;
+  }
+
+  private void collectSettings(
+      org.opensearch.common.settings.Settings settings,
+      String tier,
+      List<Map<String, Object>> rows) {
+    if (settings == null) {
+      return;
+    }
+    for (String key : settings.keySet()) {
+      Map<String, Object> row = new java.util.LinkedHashMap<>();
+      row.put("setting", key);
+      row.put("value", settings.get(key));
+      row.put("tier", tier);
+      rows.add(row);
+    }
+  }
+
+  @Override
+  public List<Map<String, Object>> resolveIndex(Map<String, String> params) {
+    String expandWildcards = params == null ? null : params.get("expand_wildcards");
+    org.opensearch.action.admin.indices.resolve.ResolveIndexAction.Request request =
+        expandWildcards == null
+            ? new org.opensearch.action.admin.indices.resolve.ResolveIndexAction.Request(
+                new String[] {"*"})
+            : new org.opensearch.action.admin.indices.resolve.ResolveIndexAction.Request(
+                new String[] {"*"},
+                org.opensearch.action.support.IndicesOptions.fromParameters(
+                    expandWildcards,
+                    null,
+                    null,
+                    null,
+                    org.opensearch.action.admin.indices.resolve.ResolveIndexAction.Request
+                        .DEFAULT_INDICES_OPTIONS));
+    org.opensearch.action.admin.indices.resolve.ResolveIndexAction.Response response =
+        client
+            .execute(org.opensearch.action.admin.indices.resolve.ResolveIndexAction.INSTANCE, request)
+            .actionGet();
+    List<Map<String, Object>> rows = new java.util.ArrayList<>();
+    for (org.opensearch.action.admin.indices.resolve.ResolveIndexAction.ResolvedIndex idx :
+        response.getIndices()) {
+      rows.add(resolveRow(idx.getName(), "index"));
+    }
+    for (org.opensearch.action.admin.indices.resolve.ResolveIndexAction.ResolvedAlias alias :
+        response.getAliases()) {
+      rows.add(resolveRow(alias.getName(), "alias"));
+    }
+    for (org.opensearch.action.admin.indices.resolve.ResolveIndexAction.ResolvedDataStream ds :
+        response.getDataStreams()) {
+      rows.add(resolveRow(ds.getName(), "data_stream"));
+    }
+    return rows;
+  }
+
+  private Map<String, Object> resolveRow(String name, String type) {
+    Map<String, Object> row = new java.util.LinkedHashMap<>();
+    row.put("name", name);
+    row.put("type", type);
+    return row;
+  }
+
+  private Map<String, Object> flattenHealth(ClusterHealthResponse response) {
+    Map<String, Object> row = new java.util.LinkedHashMap<>();
+    row.put("cluster_name", response.getClusterName());
+    row.put("status", response.getStatus().name().toLowerCase(java.util.Locale.ROOT));
+    row.put("number_of_nodes", response.getNumberOfNodes());
+    row.put("number_of_data_nodes", response.getNumberOfDataNodes());
+    row.put("active_primary_shards", response.getActivePrimaryShards());
+    row.put("active_shards", response.getActiveShards());
+    row.put("relocating_shards", response.getRelocatingShards());
+    row.put("initializing_shards", response.getInitializingShards());
+    row.put("unassigned_shards", response.getUnassignedShards());
+    row.put("timed_out", response.isTimedOut());
+    return row;
   }
 }
