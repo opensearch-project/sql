@@ -14,6 +14,7 @@ public class OpenSearchIndexRules {
   private static final RelOptRule INDEX_SCAN_RULE = EnumerableIndexScanRule.DEFAULT_CONFIG.toRule();
   private static final RelOptRule SYSTEM_INDEX_SCAN_RULE =
       EnumerableSystemIndexScanRule.DEFAULT_CONFIG.toRule();
+  private static final RelOptRule REST_SCAN_RULE = EnumerableRestScanRule.DEFAULT_CONFIG.toRule();
   private static final RelOptRule NESTED_AGGREGATE_RULE =
       EnumerableNestedAggregateRule.DEFAULT_CONFIG.toRule();
   private static final RelOptRule GRAPH_LOOKUP_RULE =
@@ -27,6 +28,7 @@ public class OpenSearchIndexRules {
       ImmutableList.of(
           INDEX_SCAN_RULE,
           SYSTEM_INDEX_SCAN_RULE,
+          REST_SCAN_RULE,
           NESTED_AGGREGATE_RULE,
           GRAPH_LOOKUP_RULE,
           RELEVANCE_FUNCTION_RULE);

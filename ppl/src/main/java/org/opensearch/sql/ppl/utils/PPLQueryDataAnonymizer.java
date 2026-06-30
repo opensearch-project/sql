@@ -96,6 +96,7 @@ import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.RestRelation;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -122,6 +123,7 @@ import org.opensearch.sql.planner.logical.LogicalRareTopN;
 import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.utils.SystemIndexUtils;
 
 /** Utility class to mask sensitive information in incoming PPL queries. */
 public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> {
@@ -165,6 +167,23 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitRelation(Relation node, String context) {
+    if (node instanceof RestRelation) {
+      SystemIndexUtils.RestSpec spec =
+          SystemIndexUtils.decodeRestSpec(node.getTableQualifiedName().toString());
+      StringBuilder sb = new StringBuilder("rest ").append(spec.getEndpoint());
+      if (spec.getCount() != null) {
+        sb.append(" count=").append(MASK_LITERAL);
+      }
+      if (spec.getTimeout() != null) {
+        sb.append(" timeout=").append(MASK_LITERAL);
+      }
+      if (spec.getArgs() != null) {
+        for (String key : spec.getArgs().keySet()) {
+          sb.append(' ').append(key).append('=').append(MASK_LITERAL);
+        }
+      }
+      return sb.toString();
+    }
     if (node instanceof DescribeRelation) {
       return StringUtils.format("describe %s", MASK_TABLE);
     }
