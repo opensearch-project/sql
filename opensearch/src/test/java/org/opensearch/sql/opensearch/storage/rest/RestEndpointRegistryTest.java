@@ -107,7 +107,8 @@ class RestEndpointRegistryTest {
         IllegalArgumentException.class,
         () ->
             RestEndpointRegistry.validate(
-                new RestSpec("/_resolve/index", Map.of("expand_wildcards", "sideways"), null, null)));
+                new RestSpec(
+                    "/_resolve/index", Map.of("expand_wildcards", "sideways"), null, null)));
   }
 
   @Test

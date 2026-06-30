@@ -459,8 +459,22 @@ public class OpenSearchNodeClient implements OpenSearchClient {
             .state(new org.opensearch.action.admin.cluster.state.ClusterStateRequest())
             .actionGet();
     List<Map<String, Object>> rows = new java.util.ArrayList<>();
-    collectSettings(response.getState().metadata().persistentSettings(), "persistent", rows);
-    collectSettings(response.getState().metadata().transientSettings(), "transient", rows);
+    org.opensearch.common.settings.Settings persistent =
+        response.getState().metadata().persistentSettings();
+    org.opensearch.common.settings.Settings transientSettings =
+        response.getState().metadata().transientSettings();
+    // Mirror the native GET /_cluster/settings redaction: run both tiers through the node's
+    // SettingsFilter so Property.Filtered (and plugin-registered pattern) settings are not
+    // surfaced raw. The transport path carries no SettingsFilter of its own; the node instance is
+    // published into RestSettingsFilterHolder from SQLPlugin#getRestHandlers at startup.
+    org.opensearch.common.settings.SettingsFilter filter =
+        org.opensearch.sql.opensearch.storage.rest.RestSettingsFilterHolder.get();
+    if (filter != null) {
+      persistent = filter.filter(persistent);
+      transientSettings = filter.filter(transientSettings);
+    }
+    collectSettings(persistent, "persistent", rows);
+    collectSettings(transientSettings, "transient", rows);
     return rows;
   }
 
@@ -498,7 +512,8 @@ public class OpenSearchNodeClient implements OpenSearchClient {
                         .DEFAULT_INDICES_OPTIONS));
     org.opensearch.action.admin.indices.resolve.ResolveIndexAction.Response response =
         client
-            .execute(org.opensearch.action.admin.indices.resolve.ResolveIndexAction.INSTANCE, request)
+            .execute(
+                org.opensearch.action.admin.indices.resolve.ResolveIndexAction.INSTANCE, request)
             .actionGet();
     List<Map<String, Object>> rows = new java.util.ArrayList<>();
     for (org.opensearch.action.admin.indices.resolve.ResolveIndexAction.ResolvedIndex idx :

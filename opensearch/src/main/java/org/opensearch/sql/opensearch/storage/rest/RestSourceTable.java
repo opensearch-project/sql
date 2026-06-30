@@ -23,9 +23,9 @@ import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
 /**
  * The {@code rest} command's row source: a fixed-schema, server-side dispatch table modeled on
  * {@link org.opensearch.sql.opensearch.storage.system.OpenSearchSystemIndex}. It resolves the
- * validated endpoint spec against {@link RestEndpointRegistry} (which enforces the read-only allow-list and
- * secret filtering), exposes the endpoint's fixed schema, and produces a {@link
- * CalciteLogicalRestScan} on the Calcite path.
+ * validated endpoint spec against {@link RestEndpointRegistry} (which enforces the read-only
+ * allow-list), exposes the endpoint's fixed schema, and produces a {@link CalciteLogicalRestScan}
+ * on the Calcite path.
  */
 @Getter
 public class RestSourceTable extends AbstractOpenSearchTable {
@@ -39,7 +39,8 @@ public class RestSourceTable extends AbstractOpenSearchTable {
     this.client = client;
     this.settings = settings;
     this.spec = spec;
-    // Allow-list and secret filtering enforced here: unknown/mutating endpoints and disallowed args are rejected.
+    // Allow-list enforced here: unknown/mutating endpoints and disallowed args
+    // are rejected.
     this.endpoint = RestEndpointRegistry.resolve(spec.getEndpoint());
     RestEndpointRegistry.validate(spec);
   }
