@@ -705,7 +705,14 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                       node.getWindowFrame());
             })
         .orElseThrow(
-            () -> new CalciteUnsupportedException("Unexpected window function: " + funcName));
+            () ->
+                new CalciteUnsupportedException(
+                    "Window function '"
+                        + funcName
+                        + "' is not supported in eventstats/streamstats."
+                        + " Supported functions: avg, count, dc, distinct_count, earliest,"
+                        + " latest, max, min, row_number, stddev_pop, stddev_samp, sum,"
+                        + " var_pop, var_samp."));
   }
 
   private List<RexNode> translateOrderKeys(
