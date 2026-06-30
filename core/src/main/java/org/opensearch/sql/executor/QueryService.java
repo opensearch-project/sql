@@ -403,6 +403,7 @@ public class QueryService {
                   AnalyzeResponse response =
                       AnalyzeResponse.builder()
                           .query(query)
+                          .querySegments(querySegments)
                           .logicalPlan(logicalPlanNodes)
                           .physicalPlan(physicalPlanNodes)
                           .operator_tree(operatorTree)

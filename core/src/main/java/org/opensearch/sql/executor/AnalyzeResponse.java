@@ -15,7 +15,7 @@ import org.opensearch.sql.monitor.profile.QueryProfile;
 public class AnalyzeResponse {
 
   private final String query;
-  // private final List<QuerySegment> querySegments;
+  private final List<QuerySegment> querySegments;
   // private final String ast;
   private final List<String> logicalPlan;
   private final List<String> physicalPlan;
