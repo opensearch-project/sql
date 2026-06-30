@@ -56,6 +56,8 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.calcite.utils.CalciteUtils;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -269,10 +271,16 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   public Expression visitScoreFunction(ScoreFunction node, AnalysisContext context) {
     Literal boostArg = node.getRelevanceFieldWeight();
     if (!boostArg.getType().equals(DataType.DOUBLE)) {
-      throw new SemanticCheckException(
-          String.format(
-              "Expected boost type '%s' but got '%s'",
-              DataType.DOUBLE.name(), boostArg.getType().name()));
+      throw ErrorReport.wrap(
+              new SemanticCheckException(
+                  String.format(
+                      "Expected boost type '%s' but got '%s'",
+                      DataType.DOUBLE.name(), boostArg.getType().name())))
+          .code(ErrorCode.TYPE_ERROR)
+          .context("parameter", "boost")
+          .context("expected_type", DataType.DOUBLE.name())
+          .context("actual_type", boostArg.getType().name())
+          .build();
     }
     Double thisBoostValue = ((Double) boostArg.getValue());
 
@@ -402,8 +410,13 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     // Make CaseClause return list so it can be used in error message in determined order
     List<ExprType> resultTypes = caseClause.allResultTypes();
     if (ImmutableSet.copyOf(resultTypes).size() > 1) {
-      throw new SemanticCheckException(
-          "All result types of CASE clause must be the same, but found " + resultTypes);
+      throw ErrorReport.wrap(
+              new SemanticCheckException(
+                  "All result types of CASE clause must be the same, but found " + resultTypes))
+          .code(ErrorCode.TYPE_ERROR)
+          .context("construct", "CASE")
+          .context("result_types", resultTypes.stream().map(Object::toString).toList())
+          .build();
     }
     return caseClause;
   }
