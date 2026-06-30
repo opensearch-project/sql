@@ -104,6 +104,9 @@ public class SystemIndexUtils {
         args.put(k.substring("arg.".length()), v);
       }
     }
+    if (endpoint == null) {
+      throw new IllegalArgumentException("rest source token is missing the endpoint: " + indexName);
+    }
     return new RestSpec(endpoint, args, count, timeout);
   }
 

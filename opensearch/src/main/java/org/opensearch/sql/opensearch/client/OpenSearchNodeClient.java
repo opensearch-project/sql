@@ -469,10 +469,17 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     // published into RestSettingsFilterHolder from SQLPlugin#getRestHandlers at startup.
     org.opensearch.common.settings.SettingsFilter filter =
         org.opensearch.sql.opensearch.storage.rest.RestSettingsFilterHolder.get();
-    if (filter != null) {
-      persistent = filter.filter(persistent);
-      transientSettings = filter.filter(transientSettings);
+    if (filter == null) {
+      // Fail closed: without the redaction filter (which strips Property.Filtered and
+      // plugin-registered secret-bearing keys) the command must refuse rather than surface raw
+      // settings. In-cluster the filter is published at startup (SQLPlugin#getRestHandlers) before
+      // any query runs, so this guards only against an unexpected uninitialized state.
+      throw new IllegalStateException(
+          "cluster settings redaction filter is not initialized; refusing to return unredacted"
+              + " settings");
     }
+    persistent = filter.filter(persistent);
+    transientSettings = filter.filter(transientSettings);
     collectSettings(persistent, "persistent", rows);
     collectSettings(transientSettings, "transient", rows);
     return rows;
@@ -488,7 +495,13 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     for (String key : settings.keySet()) {
       Map<String, Object> row = new java.util.LinkedHashMap<>();
       row.put("setting", key);
-      row.put("value", settings.get(key));
+      String value = settings.get(key);
+      if (value == null) {
+        // List-valued settings return null from get(); fall back to the joined list form.
+        java.util.List<String> list = settings.getAsList(key);
+        value = list.isEmpty() ? null : String.join(",", list);
+      }
+      row.put("value", value);
       row.put("tier", tier);
       rows.add(row);
     }

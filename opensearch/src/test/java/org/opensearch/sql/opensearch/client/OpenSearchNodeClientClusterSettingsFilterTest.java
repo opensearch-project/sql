@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.client;
 
 import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.any;
@@ -86,17 +87,13 @@ class OpenSearchNodeClientClusterSettingsFilterTest {
   }
 
   @Test
-  void clusterSettingsReturnsRawWhenNoFilterPublished() {
+  void clusterSettingsFailsClosedWhenNoFilterPublished() {
     Settings persistent = Settings.builder().put("plugins.secret.token", "supersecret").build();
     OpenSearchNodeClient client = clientReturning(persistent, Settings.EMPTY);
 
-    // No filter published: confirms the SettingsFilter is the redaction mechanism (not some other
-    // code path). At runtime getRestHandlers always publishes the filter before any query.
-    Set<String> keys =
-        client.clusterSettings(Map.of()).stream()
-            .map(r -> (String) r.get("setting"))
-            .collect(toSet());
-
-    assertTrue(keys.contains("plugins.secret.token"));
+    // Fail closed: without a published SettingsFilter the command must refuse rather than leak raw
+    // (potentially secret-bearing) settings. At runtime getRestHandlers always publishes the filter
+    // before any query, so this path is unreachable in cluster.
+    assertThrows(IllegalStateException.class, () -> client.clusterSettings(Map.of()));
   }
 }
