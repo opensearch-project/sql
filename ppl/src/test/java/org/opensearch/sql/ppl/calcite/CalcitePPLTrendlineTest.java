@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertTrue;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert.SchemaSpec;
 import org.junit.Test;
@@ -20,18 +22,20 @@ public class CalcitePPLTrendlineTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(SAL=[$5], sal_trend=[CASE(>(COUNT() OVER (ROWS 1 PRECEDING), 1), /(SUM($5)"
-            + " OVER (ROWS 1 PRECEDING), CAST(COUNT($5) OVER (ROWS 1 PRECEDING)):DOUBLE NOT NULL),"
+        "LogicalProject(SAL=[$5], sal_trend=[CASE(>(COUNT() OVER (ORDER BY $0 NULLS LAST ROWS 1"
+            + " PRECEDING), 1), /(SUM($5) OVER (ORDER BY $0 NULLS LAST ROWS 1 PRECEDING),"
+            + " CAST(COUNT($5) OVER (ORDER BY $0 NULLS LAST ROWS 1 PRECEDING)):DOUBLE NOT NULL),"
             + " null:NULL)])\n"
             + "  LogicalFilter(condition=[IS NOT NULL($5)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `SAL`, CASE WHEN (COUNT(*) OVER (ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)) > 1"
-            + " THEN (SUM(`SAL`) OVER (ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)) /"
-            + " CAST(COUNT(`SAL`) OVER (ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS DOUBLE) ELSE"
-            + " NULL END `sal_trend`\n"
+        "SELECT `SAL`, CASE WHEN (COUNT(*) OVER (ORDER BY `EMPNO` NULLS LAST ROWS BETWEEN 1"
+            + " PRECEDING AND CURRENT ROW)) > 1 THEN (SUM(`SAL`) OVER (ORDER BY `EMPNO` NULLS LAST"
+            + " ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)) / CAST(COUNT(`SAL`) OVER (ORDER BY"
+            + " `EMPNO` NULLS LAST ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS DOUBLE) ELSE NULL"
+            + " END `sal_trend`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `SAL` IS NOT NULL";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -43,23 +47,36 @@ public class CalcitePPLTrendlineTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(SAL=[$5], SAL_trendline=[CASE(>(COUNT() OVER (ROWS 2 PRECEDING), 2),"
-            + " /(+(+(CAST(NTH_VALUE($5, 1) OVER (ROWS 2 PRECEDING)):DECIMAL(18, 2),"
-            + " *(NTH_VALUE($5, 2) OVER (ROWS 2 PRECEDING), 2)), *(NTH_VALUE($5, 3) OVER (ROWS 2"
-            + " PRECEDING), 3)), 6.0E0:DOUBLE), null:NULL)])\n"
+        "LogicalProject(SAL=[$5], SAL_trendline=[CASE(>(COUNT() OVER (ORDER BY $0 NULLS LAST ROWS 2"
+            + " PRECEDING), 2), /(+(+(CAST(NTH_VALUE($5, 1) OVER (ORDER BY $0 NULLS LAST ROWS 2"
+            + " PRECEDING)):DECIMAL(18, 2), *(NTH_VALUE($5, 2) OVER (ORDER BY $0 NULLS LAST ROWS 2"
+            + " PRECEDING), 2)), *(NTH_VALUE($5, 3) OVER (ORDER BY $0 NULLS LAST ROWS 2 PRECEDING),"
+            + " 3)), 6.0E0:DOUBLE), null:NULL)])\n"
             + "  LogicalFilter(condition=[IS NOT NULL($5)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `SAL`, CASE WHEN (COUNT(*) OVER (ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)) > 2"
-            + " THEN (CAST(NTH_VALUE(`SAL`, 1) OVER (ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS"
-            + " DECIMAL(18, 2)) + (NTH_VALUE(`SAL`, 2) OVER (ROWS BETWEEN 2 PRECEDING AND CURRENT"
-            + " ROW)) * 2 + (NTH_VALUE(`SAL`, 3) OVER (ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)) *"
-            + " 3) / 6.0E0 ELSE NULL END `SAL_trendline`\n"
+        "SELECT `SAL`, CASE WHEN (COUNT(*) OVER (ORDER BY `EMPNO` NULLS LAST ROWS BETWEEN 2"
+            + " PRECEDING AND CURRENT ROW)) > 2 THEN (CAST(NTH_VALUE(`SAL`, 1) OVER (ORDER BY"
+            + " `EMPNO` NULLS LAST ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS DECIMAL(18, 2)) +"
+            + " (NTH_VALUE(`SAL`, 2) OVER (ORDER BY `EMPNO` NULLS LAST ROWS BETWEEN 2 PRECEDING AND"
+            + " CURRENT ROW)) * 2 + (NTH_VALUE(`SAL`, 3) OVER (ORDER BY `EMPNO` NULLS LAST ROWS"
+            + " BETWEEN 2 PRECEDING AND CURRENT ROW)) * 3) / 6.0E0 ELSE NULL END `SAL_trendline`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `SAL` IS NOT NULL";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTrendlineWithSortOrdersWindowFrame() {
+    String ppl = "source=EMP | trendline sort - SAL sma(2, SAL) | fields SAL, SAL_trendline";
+    RelNode root = getRelNode(ppl);
+
+    String plan = root.explain();
+    assertTrue(plan.contains("LogicalSort(sort0=[$5], dir0=[DESC])"));
+    assertTrue(plan.contains("COUNT() OVER (ORDER BY $5 DESC"));
+    assertTrue(plan.contains("SUM($5) OVER (ORDER BY $5 DESC"));
   }
 
   @Test
@@ -70,24 +87,28 @@ public class CalcitePPLTrendlineTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(SAL_trendline=[CASE(>(COUNT() OVER (ROWS 1 PRECEDING), 1),"
-            + " /(+(CAST(NTH_VALUE($5, 1) OVER (ROWS 1 PRECEDING)):DECIMAL(18, 2), *(NTH_VALUE($5,"
-            + " 2) OVER (ROWS 1 PRECEDING), 2)), 3.0E0:DOUBLE), null:NULL)],"
-            + " DEPTNO_trendline=[CASE(>(COUNT() OVER (ROWS 1 PRECEDING), 1), /(SUM($7) OVER (ROWS"
-            + " 1 PRECEDING), CAST(COUNT($7) OVER (ROWS 1 PRECEDING)):DOUBLE NOT NULL),"
+        "LogicalProject(SAL_trendline=[CASE(>(COUNT() OVER (ORDER BY $0 NULLS LAST ROWS 1"
+            + " PRECEDING), 1), /(+(CAST(NTH_VALUE($5, 1) OVER (ORDER BY $0 NULLS LAST ROWS 1"
+            + " PRECEDING)):DECIMAL(18, 2), *(NTH_VALUE($5, 2) OVER (ORDER BY $0 NULLS LAST ROWS 1"
+            + " PRECEDING), 2)), 3.0E0:DOUBLE), null:NULL)], DEPTNO_trendline=[CASE(>(COUNT() OVER"
+            + " (ORDER BY $0 NULLS LAST ROWS 1 PRECEDING), 1), /(SUM($7) OVER (ORDER BY $0 NULLS"
+            + " LAST ROWS 1 PRECEDING), CAST(COUNT($7) OVER (ORDER BY $0 NULLS LAST ROWS 1"
+            + " PRECEDING)):DOUBLE NOT NULL),"
             + " null:NULL)])\n"
             + "  LogicalFilter(condition=[AND(IS NOT NULL($5), IS NOT NULL($7))])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT CASE WHEN (COUNT(*) OVER (ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)) > 1 THEN"
-            + " (CAST(NTH_VALUE(`SAL`, 1) OVER (ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS"
-            + " DECIMAL(18, 2)) + (NTH_VALUE(`SAL`, 2) OVER (ROWS BETWEEN 1 PRECEDING AND CURRENT"
-            + " ROW)) * 2) / 3.0E0 ELSE NULL END `SAL_trendline`, CASE WHEN (COUNT(*) OVER (ROWS"
-            + " BETWEEN 1 PRECEDING AND CURRENT ROW)) > 1 THEN (SUM(`DEPTNO`) OVER (ROWS BETWEEN 1"
-            + " PRECEDING AND CURRENT ROW)) / CAST(COUNT(`DEPTNO`) OVER (ROWS BETWEEN 1 PRECEDING"
-            + " AND CURRENT ROW) AS DOUBLE) ELSE NULL END `DEPTNO_trendline`\n"
+        "SELECT CASE WHEN (COUNT(*) OVER (ORDER BY `EMPNO` NULLS LAST ROWS BETWEEN 1 PRECEDING AND"
+            + " CURRENT ROW)) > 1 THEN (CAST(NTH_VALUE(`SAL`, 1) OVER (ORDER BY `EMPNO` NULLS LAST"
+            + " ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS DECIMAL(18, 2)) + (NTH_VALUE(`SAL`, 2)"
+            + " OVER (ORDER BY `EMPNO` NULLS LAST ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)) * 2) /"
+            + " 3.0E0 ELSE NULL END `SAL_trendline`, CASE WHEN (COUNT(*) OVER (ORDER BY `EMPNO`"
+            + " NULLS LAST ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)) > 1 THEN (SUM(`DEPTNO`) OVER"
+            + " (ORDER BY `EMPNO` NULLS LAST ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)) /"
+            + " CAST(COUNT(`DEPTNO`) OVER (ORDER BY `EMPNO` NULLS LAST ROWS BETWEEN 1 PRECEDING AND"
+            + " CURRENT ROW) AS DOUBLE) ELSE NULL END `DEPTNO_trendline`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `SAL` IS NOT NULL AND `DEPTNO` IS NOT NULL";
     verifyPPLToSparkSQL(root, expectedSparkSql);

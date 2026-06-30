@@ -6,6 +6,8 @@
 package org.opensearch.sql.calcite.plan.rule;
 
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
+import static org.opensearch.sql.calcite.utils.PlanUtils.collationToOrderKeys;
+import static org.opensearch.sql.calcite.utils.PlanUtils.restoreInputOrder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -185,42 +187,6 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
     relBuilder.projectExcept(rowNumberField);
     // Re-sort to restore the input order that was stripped before the window
     restoreInputOrder(relBuilder, inputCollation);
-  }
-
-  /**
-   * Convert a RelCollation to a list of RexNode order keys using the RelBuilder's field references.
-   */
-  private static List<RexNode> collationToOrderKeys(RelBuilder relBuilder, RelCollation collation) {
-    if (collation == null || collation.getFieldCollations().isEmpty()) {
-      return List.of();
-    }
-    List<RexNode> orderKeys = new ArrayList<>();
-    for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
-      RexNode fieldRef = relBuilder.field(fieldCollation.getFieldIndex());
-      if (fieldCollation.direction.isDescending()) {
-        fieldRef = relBuilder.desc(fieldRef);
-      }
-      if (fieldCollation.nullDirection == RelFieldCollation.NullDirection.LAST) {
-        fieldRef = relBuilder.nullsLast(fieldRef);
-      } else if (fieldCollation.nullDirection == RelFieldCollation.NullDirection.FIRST) {
-        fieldRef = relBuilder.nullsFirst(fieldRef);
-      }
-      orderKeys.add(fieldRef);
-    }
-    return orderKeys;
-  }
-
-  /**
-   * Re-apply a sort after dedup to restore the input order that may have been disrupted by the
-   * window operator. EnumerableWindow can re-partition data by the PARTITION BY key, destroying any
-   * upstream sort order. This explicit re-sort ensures the final output preserves the original
-   * order.
-   */
-  private static void restoreInputOrder(RelBuilder relBuilder, RelCollation inputCollation) {
-    if (inputCollation != null && !inputCollation.getFieldCollations().isEmpty()) {
-      List<RexNode> sortKeys = collationToOrderKeys(relBuilder, inputCollation);
-      relBuilder.sort(sortKeys);
-    }
   }
 
   /** Rule configuration. */

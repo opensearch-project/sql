@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -49,6 +50,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -201,9 +203,9 @@ public interface PlanUtils {
         //     sum(x) / count(x)
         return context.relBuilder.call(
             SqlStdOperatorTable.DIVIDE,
-            sumOver(context, field, partitions, rows, lowerBound, upperBound),
+            sumOver(context, field, partitions, orderKeys, rows, lowerBound, upperBound),
             context.relBuilder.cast(
-                countOver(context, field, partitions, rows, lowerBound, upperBound),
+                countOver(context, field, partitions, orderKeys, rows, lowerBound, upperBound),
                 SqlTypeName.DOUBLE));
       // stddev_pop(x) ==>
       //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / count(x), 0.5)
@@ -217,13 +219,17 @@ public interface PlanUtils {
       // var_samp(x) ==>
       //     (sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1)
       case STDDEV_POP:
-        return variance(context, field, partitions, rows, lowerBound, upperBound, true, true);
+        return variance(
+            context, field, partitions, orderKeys, rows, lowerBound, upperBound, true, true);
       case STDDEV_SAMP:
-        return variance(context, field, partitions, rows, lowerBound, upperBound, false, true);
+        return variance(
+            context, field, partitions, orderKeys, rows, lowerBound, upperBound, false, true);
       case VARPOP:
-        return variance(context, field, partitions, rows, lowerBound, upperBound, true, false);
+        return variance(
+            context, field, partitions, orderKeys, rows, lowerBound, upperBound, true, false);
       case VARSAMP:
-        return variance(context, field, partitions, rows, lowerBound, upperBound, false, false);
+        return variance(
+            context, field, partitions, orderKeys, rows, lowerBound, upperBound, false, false);
       case ROW_NUMBER:
         return withOver(
             context.relBuilder.aggregateCall(SqlStdOperatorTable.ROW_NUMBER),
@@ -255,24 +261,26 @@ public interface PlanUtils {
       CalcitePlanContext ctx,
       RexNode operation,
       List<RexNode> partitions,
+      List<RexNode> orderKeys,
       boolean rows,
       RexWindowBound lowerBound,
       RexWindowBound upperBound) {
     return withOver(
-        ctx.relBuilder.sum(operation), partitions, List.of(), rows, lowerBound, upperBound);
+        ctx.relBuilder.sum(operation), partitions, orderKeys, rows, lowerBound, upperBound);
   }
 
   private static RexNode countOver(
       CalcitePlanContext ctx,
       RexNode operation,
       List<RexNode> partitions,
+      List<RexNode> orderKeys,
       boolean rows,
       RexWindowBound lowerBound,
       RexWindowBound upperBound) {
     return withOver(
         ctx.relBuilder.count(ImmutableList.of(operation)),
         partitions,
-        List.of(),
+        orderKeys,
         rows,
         lowerBound,
         upperBound);
@@ -297,20 +305,67 @@ public interface PlanUtils {
         .toRex();
   }
 
+  static ImmutableList<RexFieldCollation> toRexFieldCollations(List<RexNode> orderKeys) {
+    ImmutableList.Builder<RexFieldCollation> orderCollationBuilder = ImmutableList.builder();
+    orderKeys.forEach(key -> orderCollationBuilder.add(toRexFieldCollation(key)));
+    return orderCollationBuilder.build();
+  }
+
+  static RexFieldCollation toRexFieldCollation(RexNode node) {
+    return toRexFieldCollation(
+        node, RelFieldCollation.Direction.ASCENDING, RelFieldCollation.NullDirection.UNSPECIFIED);
+  }
+
+  private static RexFieldCollation toRexFieldCollation(
+      RexNode node,
+      RelFieldCollation.Direction direction,
+      RelFieldCollation.NullDirection nullDirection) {
+    switch (node.getKind()) {
+      case DESCENDING:
+        return toRexFieldCollation(
+            ((RexCall) node).getOperands().getFirst(),
+            RelFieldCollation.Direction.DESCENDING,
+            nullDirection);
+      case NULLS_FIRST:
+        return toRexFieldCollation(
+            ((RexCall) node).getOperands().getFirst(),
+            direction,
+            RelFieldCollation.NullDirection.FIRST);
+      case NULLS_LAST:
+        return toRexFieldCollation(
+            ((RexCall) node).getOperands().getFirst(),
+            direction,
+            RelFieldCollation.NullDirection.LAST);
+      default:
+        Set<SqlKind> flags = EnumSet.noneOf(SqlKind.class);
+        if (direction == RelFieldCollation.Direction.DESCENDING) {
+          flags.add(SqlKind.DESCENDING);
+        }
+        if (nullDirection == RelFieldCollation.NullDirection.FIRST) {
+          flags.add(SqlKind.NULLS_FIRST);
+        } else if (nullDirection == RelFieldCollation.NullDirection.LAST) {
+          flags.add(SqlKind.NULLS_LAST);
+        }
+        return new RexFieldCollation(node, flags);
+    }
+  }
+
   private static RexNode variance(
       CalcitePlanContext ctx,
       RexNode operator,
       List<RexNode> partitions,
+      List<RexNode> orderKeys,
       boolean rows,
       RexWindowBound lowerBound,
       RexWindowBound upperBound,
       boolean biased,
       boolean sqrt) {
     RexNode argSquared = ctx.relBuilder.call(SqlStdOperatorTable.MULTIPLY, operator, operator);
-    RexNode sumArgSquared = sumOver(ctx, argSquared, partitions, rows, lowerBound, upperBound);
-    RexNode sum = sumOver(ctx, operator, partitions, rows, lowerBound, upperBound);
+    RexNode sumArgSquared =
+        sumOver(ctx, argSquared, partitions, orderKeys, rows, lowerBound, upperBound);
+    RexNode sum = sumOver(ctx, operator, partitions, orderKeys, rows, lowerBound, upperBound);
     RexNode sumSquared = ctx.relBuilder.call(SqlStdOperatorTable.MULTIPLY, sum, sum);
-    RexNode count = countOver(ctx, operator, partitions, rows, lowerBound, upperBound);
+    RexNode count = countOver(ctx, operator, partitions, orderKeys, rows, lowerBound, upperBound);
     RexNode countCast = ctx.relBuilder.cast(count, SqlTypeName.DOUBLE);
     RexNode avgSumSquared = ctx.relBuilder.call(SqlStdOperatorTable.DIVIDE, sumSquared, countCast);
     RexNode diff = ctx.relBuilder.call(SqlStdOperatorTable.MINUS, sumArgSquared, avgSumSquared);
@@ -699,6 +754,42 @@ public interface PlanUtils {
       relBuilder.push(stripped);
     }
     return outputCollation;
+  }
+
+  /**
+   * Convert a {@link RelCollation} to {@link RexNode} order keys using the current RelBuilder field
+   * references.
+   */
+  public static List<RexNode> collationToOrderKeys(
+      RelBuilder relBuilder, @Nullable RelCollation collation) {
+    if (collation == null || collation.getFieldCollations().isEmpty()) {
+      return List.of();
+    }
+    List<RexNode> orderKeys = new ArrayList<>();
+    for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+      RexNode fieldRef = relBuilder.field(fieldCollation.getFieldIndex());
+      if (fieldCollation.direction.isDescending()) {
+        fieldRef = relBuilder.desc(fieldRef);
+      }
+      if (fieldCollation.nullDirection == RelFieldCollation.NullDirection.LAST) {
+        fieldRef = relBuilder.nullsLast(fieldRef);
+      } else if (fieldCollation.nullDirection == RelFieldCollation.NullDirection.FIRST) {
+        fieldRef = relBuilder.nullsFirst(fieldRef);
+      }
+      orderKeys.add(fieldRef);
+    }
+    return orderKeys;
+  }
+
+  /**
+   * Re-apply a sort to restore input order that may have been disrupted by a window operator.
+   * EnumerableWindow can re-partition data by the PARTITION BY key, destroying upstream sort order.
+   */
+  public static void restoreInputOrder(
+      RelBuilder relBuilder, @Nullable RelCollation inputCollation) {
+    if (inputCollation != null && !inputCollation.getFieldCollations().isEmpty()) {
+      relBuilder.sort(collationToOrderKeys(relBuilder, inputCollation));
+    }
   }
 
   /**

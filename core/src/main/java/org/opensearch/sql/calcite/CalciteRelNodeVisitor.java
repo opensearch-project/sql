@@ -65,10 +65,14 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -2275,6 +2279,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .relBuilder
               .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
               .over()
+              .orderBy(deriveCollationOrderKeys(context))
               .rowsTo(RexWindowBounds.CURRENT_ROW)
               .as(ROW_NUMBER_COLUMN_FOR_STREAMSTATS);
       context.relBuilder.projectPlus(streamSeq);
@@ -2291,12 +2296,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           new String[] {ROW_NUMBER_COLUMN_FOR_STREAMSTATS});
     }
 
-    // Default: first get rawExpr
-    List<RexNode> overExpressions =
-        node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
-
-    if (hasGroup) {
-      // only build sequence when there is by condition
+    // Short-term correctness workaround: streamstats/trendline are evaluated in arrival order, and
+    // some engines can preserve that order through window partitions without an explicit ORDER BY.
+    // DataFusion and Calcite EnumerableWindow do not currently provide that guarantee for
+    // partitioned windows, so we make grouped streamstats frames walk an explicit input sequence.
+    // When the input already has an explicit Sort, materialize the sequence after that Sort instead
+    // of stripping it; this preserves "sort, then streamstats" semantics including tie arrival
+    // order. This may add a small per-partition sort cost on engines that did not need it; the
+    // long-term fix is a real streaming window operator.
+    RelCollation explicitInputCollation = PlanUtils.findInputCollation(context.relBuilder.peek());
+    List<RexNode> windowOrderKeys = deriveCollationOrderKeys(context);
+    boolean useStreamSeq =
+        hasGroup && (windowOrderKeys.isEmpty() || explicitInputCollation != null);
+    if (useStreamSeq) {
+      // streamstats is order-sensitive. Materialize input order before any grouped window can
+      // repartition rows, then make each window frame walk that sequence explicitly.
       RexNode streamSeq =
           context
               .relBuilder
@@ -2305,34 +2319,79 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .rowsTo(RexWindowBounds.CURRENT_ROW)
               .as(ROW_NUMBER_COLUMN_FOR_STREAMSTATS);
       context.relBuilder.projectPlus(streamSeq);
+      int seqColIndex = context.relBuilder.peek().getRowType().getFieldCount() - 1;
+      windowOrderKeys = List.of(context.relBuilder.field(seqColIndex));
+    }
 
-      if (!node.isBucketNullable()) {
-        // construct groupNotNull predicate
-        List<RexNode> groupByList =
-            groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
-        List<RexNode> notNullList =
-            PlanUtils.getSelectColumns(groupByList).stream()
-                .map(context.relBuilder::field)
-                .map(context.relBuilder::isNotNull)
-                .toList();
-        RexNode groupNotNull = context.relBuilder.and(notNullList);
+    List<RexNode> finalWindowOrderKeys = windowOrderKeys;
+    List<RexNode> overExpressions =
+        node.getWindowFunctionList().stream()
+            .map(w -> rexVisitor.analyze(w, context))
+            .map(rex -> addWindowOrder(rex, finalWindowOrderKeys, context))
+            .toList();
+    projectStreamWindowExpressions(overExpressions, hasGroup, groupList, node, context);
 
-        // wrap each expr: CASE WHEN groupNotNull THEN rawExpr ELSE CAST(NULL AS rawType) END
-        List<RexNode> wrappedOverExprs =
-            wrapWindowFunctionsWithGroupNotNull(overExpressions, groupNotNull, context);
-        context.relBuilder.projectPlus(wrappedOverExprs);
-      } else {
-        context.relBuilder.projectPlus(overExpressions);
-      }
-
-      // resort when there is by condition
-      context.relBuilder.sort(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
+    if (!finalWindowOrderKeys.isEmpty()) {
+      context.relBuilder.sort(finalWindowOrderKeys);
+    }
+    if (useStreamSeq) {
       context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
-    } else {
-      context.relBuilder.projectPlus(overExpressions);
     }
 
     return context.relBuilder.peek();
+  }
+
+  private void projectStreamWindowExpressions(
+      List<RexNode> overExpressions,
+      boolean hasGroup,
+      List<UnresolvedExpression> groupList,
+      StreamWindow node,
+      CalcitePlanContext context) {
+    if (hasGroup && !node.isBucketNullable()) {
+      List<RexNode> groupByList =
+          groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+      List<RexNode> notNullList =
+          PlanUtils.getSelectColumns(groupByList).stream()
+              .map(context.relBuilder::field)
+              .map(context.relBuilder::isNotNull)
+              .toList();
+      RexNode groupNotNull = context.relBuilder.and(notNullList);
+      context.relBuilder.projectPlus(
+          wrapWindowFunctionsWithGroupNotNull(overExpressions, groupNotNull, context));
+    } else {
+      context.relBuilder.projectPlus(overExpressions);
+    }
+  }
+
+  private RexNode addWindowOrder(RexNode rex, List<RexNode> orderKeys, CalcitePlanContext context) {
+    if (orderKeys.isEmpty()) {
+      return rex;
+    }
+    ImmutableList<RexFieldCollation> orderCollations = PlanUtils.toRexFieldCollations(orderKeys);
+    return rex.accept(
+        new RexShuttle() {
+          @Override
+          public RexNode visitOver(RexOver over) {
+            RexOver recursed = (RexOver) super.visitOver(over);
+            RexWindow window = recursed.getWindow();
+            if (!window.orderKeys.isEmpty()) {
+              return recursed;
+            }
+            return context.rexBuilder.makeOver(
+                recursed.getType(),
+                recursed.getAggOperator(),
+                recursed.getOperands(),
+                window.partitionKeys,
+                orderCollations,
+                window.getLowerBound(),
+                window.getUpperBound(),
+                window.isRows(),
+                true,
+                false,
+                recursed.isDistinct(),
+                recursed.ignoreNulls());
+          }
+        });
   }
 
   private List<RexNode> wrapWindowFunctionsWithGroupNotNull(
@@ -2648,6 +2707,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .relBuilder
             .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
             .over()
+            .orderBy(deriveCollationOrderKeys(context))
             .rowsTo(RexWindowBounds.CURRENT_ROW)
             .as(ROW_NUMBER_COLUMN_FOR_STREAMSTATS);
     context.relBuilder.projectPlus(rowNum);
@@ -2683,6 +2743,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .aggregateCall(
                 SqlStdOperatorTable.SUM, context.relBuilder.field("__reset_before_flag__"))
             .over()
+            .orderBy(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS))
             .rowsTo(RexWindowBounds.CURRENT_ROW)
             .toRex();
     RexNode sumAfterPrev =
@@ -2691,6 +2752,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .aggregateCall(
                 SqlStdOperatorTable.SUM, context.relBuilder.field("__reset_after_flag__"))
             .over()
+            .orderBy(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS))
             .rowsBetween(
                 RexWindowBounds.UNBOUNDED_PRECEDING,
                 RexWindowBounds.preceding(context.relBuilder.literal(1)))
@@ -3928,6 +3990,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               }
             });
 
+    // Short-term correctness workaround: streamstats/trendline are evaluated in arrival order, and
+    // some engines can preserve that order through window partitions without an explicit ORDER BY.
+    // DataFusion and Calcite EnumerableWindow do not currently provide that guarantee for every
+    // window frame, so we declare the inherited input order on the window frame. This may add a
+    // small per-partition sort cost on engines that did not need it; the long-term fix is a real
+    // streaming window operator.
+    List<RexNode> trendlineOrderKeys = deriveCollationOrderKeys(context);
+
     List<RexNode> trendlineNodes = new ArrayList<>();
     List<String> aliases = new ArrayList<>();
     node.getComputations()
@@ -3949,7 +4019,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                       null,
                       List.of(),
                       List.of(),
-                      List.of(),
+                      trendlineOrderKeys,
                       windowFrame);
               // CASE WHEN count() over (ROWS (windowSize-1) PRECEDING) > windowSize - 1
               RexNode whenConditionExpr =
@@ -3970,7 +4040,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                           field,
                           List.of(),
                           List.of(),
-                          List.of(),
+                          trendlineOrderKeys,
                           windowFrame);
                   break;
                 case TrendlineType.WMA:
@@ -3980,6 +4050,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                           field,
                           trendlineComputation.getNumberOfDataPoints(),
                           windowFrame,
+                          trendlineOrderKeys,
                           context);
                   break;
                 default:
@@ -4007,6 +4078,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       RexNode field,
       Integer numberOfDataPoints,
       WindowFrame windowFrame,
+      List<RexNode> orderKeys,
       CalcitePlanContext context) {
 
     // Divisor: 1 + 2 + 3 + ... + windowSize, aka (windowSize * (windowSize + 1) / 2)
@@ -4023,7 +4095,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               field,
               List.of(context.relBuilder.literal(i)),
               List.of(),
-              List.of(),
+              orderKeys,
               windowFrame);
       divider =
           context.relBuilder.call(
