@@ -76,6 +76,12 @@ public class SystemIndexUtils {
 
   /** Decode a reserved {@code rest} table name back into its {@link RestSpec}. */
   public static RestSpec decodeRestSpec(String indexName) {
+    // Validate the token shape before slicing it: callers gate on isRestSource today, but a
+    // public decoder must not assume its precondition, otherwise a malformed token would throw an
+    // opaque StringIndexOutOfBoundsException from substring rather than a clear input error.
+    if (!isRestSource(indexName)) {
+      throw new IllegalArgumentException("not a valid rest source token: " + indexName);
+    }
     String body =
         indexName.substring(
             REST_SOURCE_PREFIX.length(), indexName.length() - REST_SOURCE_SUFFIX.length());
