@@ -5,11 +5,15 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.PREPARED_STATEMENT;
+
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(PREPARED_STATEMENT)
 public class PreparedStatementIT extends SQLIntegTestCase {
 
   @Override

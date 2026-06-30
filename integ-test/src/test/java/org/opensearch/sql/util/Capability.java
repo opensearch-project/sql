@@ -499,7 +499,79 @@ public enum Capability {
   STREAMSTATS_SORT_NOT_HONORED(
       "streamstats computes its window over the backend scan order on the analytics-engine route,"
           + " ignoring a preceding | sort (the OVER clause has no explicit ORDER BY), so the window"
-          + " values diverge from the v2/Calcite path which honors the sort.");
+          + " values diverge from the v2/Calcite path which honors the sort."),
+
+  // Capabilities below were migrated from build.gradle analytics-engine excludes (commit 1ccf431).
+  // BACKEND layer: divergence rooted in the AE/DataFusion execution + composite/parquet storage.
+
+  /** BACKEND: kNN/vector search has no analytics-engine (DataFusion) backend. */
+  VECTOR_SEARCH(
+      "Vector/kNN search is unsupported on the analytics-engine route: DataFusion has no kNN"
+          + " backend."),
+
+  /** BACKEND: geo_point fields are not held by the composite/parquet store. */
+  GEOPOINT_TYPE(
+      "geo_point fields are unsupported on the analytics-engine route: the composite/parquet store"
+          + " does not hold the geo_point type."),
+
+  /**
+   * BACKEND: dotted index names and underscore-prefixed identifiers don't resolve on the AE route.
+   */
+  IDENTIFIER_RESOLUTION(
+      "Dotted index names and underscore-prefixed field identifiers don't resolve on the"
+          + " analytics-engine route."),
+
+  // FRONTEND layer: divergence rooted in the Calcite parser/planner replacing the V2 engine.
+
+  /** FRONTEND: CSV/raw/pretty response formatters are not wired in the Calcite path. */
+  RESPONSE_FORMAT(
+      "CSV/raw/pretty response formats are not produced by the Calcite path used by the"
+          + " analytics-engine route."),
+
+  /** FRONTEND: stateful pagination/cursor/PIT is not implemented in the Calcite path. */
+  PAGINATION_CURSOR(
+      "Pagination, cursor, and point-in-time are unsupported on the analytics-engine route: the"
+          + " Calcite path has no stateful cursor."),
+
+  /** FRONTEND: JDBC prepared statements are not implemented in the Calcite path. */
+  PREPARED_STATEMENT(
+      "Prepared statements are unsupported on the analytics-engine route (Calcite path)."),
+
+  /**
+   * FRONTEND: legacy method-query syntax (regexp_query/wildcard_query) is not in the Calcite
+   * grammar.
+   */
+  LEGACY_METHOD_QUERY(
+      "Legacy method-query syntax (regexp_query/wildcard_query/query/matchquery) is not in the"
+          + " Calcite grammar used by the analytics-engine route."),
+
+  /** FRONTEND: error/validation message text differs under the Calcite path. */
+  QUERY_ERROR_MESSAGE(
+      "Query validation and error-message text differ on the analytics-engine route (Calcite"
+          + " produces different wording for the same semantic error)."),
+
+  /** FRONTEND: explain output is a Calcite plan, not the V2 OpenSearch DSL text. */
+  EXPLAIN_FORMAT(
+      "Explain output differs on the analytics-engine route: the Calcite path emits a different"
+          + " plan shape than the V2 OpenSearch DSL text the test asserts."),
+
+  /**
+   * FRONTEND: Calcite function return types/signatures differ from V2 (CEIL, REGEXP, typeof, AVG).
+   */
+  FUNCTION_TYPE_COMPAT(
+      "Function return types and signatures differ on the analytics-engine route: Calcite uses"
+          + " standard SQL types (e.g. CEIL->double, REGEXP->boolean, typeof ANSI names, AVG"
+          + " rejects temporal) where V2 used OpenSearch-specific behavior."),
+
+  /** BACKEND: untyped NULL literal in a no-FROM query can't be serialized to Substrait. */
+  UNTYPED_NULL_LITERAL(
+      "An untyped NULL literal in a no-FROM query (SELECT NULL, NULL in operators/intervals,"
+          + " typeof(NULL)) can't be serialized to Substrait on the analytics-engine route."),
+
+  /** BACKEND: FILTER(WHERE) on aggregates can't be executed via Substrait streaming. */
+  FILTERED_AGGREGATE(
+      "FILTER(WHERE) on aggregates can't be executed on the analytics-engine route: the Substrait"
+          + " streaming path doesn't support filtered aggregates.");
 
   private final String reason;
 

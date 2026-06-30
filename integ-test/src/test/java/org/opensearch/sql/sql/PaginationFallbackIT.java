@@ -7,14 +7,17 @@ package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ONLINE;
+import static org.opensearch.sql.util.Capability.PAGINATION_CURSOR;
 import static org.opensearch.sql.util.TestUtils.verifyIsV1Cursor;
 import static org.opensearch.sql.util.TestUtils.verifyIsV2Cursor;
 
 import java.io.IOException;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 import org.opensearch.sql.util.TestUtils;
 
+@RequiresCapability(PAGINATION_CURSOR)
 public class PaginationFallbackIT extends SQLIntegTestCase {
   @Override
   public void init() throws IOException {

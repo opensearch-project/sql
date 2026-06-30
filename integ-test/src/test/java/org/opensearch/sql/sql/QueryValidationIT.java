@@ -8,6 +8,7 @@ package org.opensearch.sql.sql;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.Capability.QUERY_ERROR_MESSAGE;
 import static org.opensearch.sql.util.MatcherUtils.featureValueOf;
 
 import java.io.IOException;
@@ -22,11 +23,13 @@ import org.opensearch.client.RequestOptions;
 import org.opensearch.client.ResponseException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * The query validation IT only covers test for error cases that not doable in comparison test. For
  * all other tests, comparison test should be favored over manual written test like this.
  */
+@RequiresCapability(QUERY_ERROR_MESSAGE)
 public class QueryValidationIT extends SQLIntegTestCase {
 
   @Rule public final ExpectedException exceptionRule = ExpectedException.none();
