@@ -79,11 +79,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.RuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.RuleNode;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -100,6 +103,26 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 
 /** Expression builder to parse text to expression in AST. */
 public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedExpression> {
+
+  private final AstBuildGuard guard;
+
+  public AstExpressionBuilder() {
+    this(new AstBuildGuard());
+  }
+
+  public AstExpressionBuilder(AstBuildGuard guard) {
+    this.guard = guard;
+  }
+
+  @Override
+  public UnresolvedExpression visit(ParseTree tree) {
+    return guard.enforce(() -> super.visit(tree));
+  }
+
+  @Override
+  public UnresolvedExpression visitChildren(RuleNode node) {
+    return guard.enforce(() -> super.visitChildren(node));
+  }
 
   @Override
   public UnresolvedExpression visitTableName(TableNameContext ctx) {

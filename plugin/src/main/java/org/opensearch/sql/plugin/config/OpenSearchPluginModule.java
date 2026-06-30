@@ -106,8 +106,9 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public SQLService sqlService(QueryManager queryManager, QueryPlanFactory queryPlanFactory) {
-    return new SQLService(new SQLSyntaxParser(), queryManager, queryPlanFactory);
+  public SQLService sqlService(
+      QueryManager queryManager, QueryPlanFactory queryPlanFactory, Settings settings) {
+    return new SQLService(new SQLSyntaxParser(), queryManager, queryPlanFactory, settings);
   }
 
   /** {@link QueryPlanFactory}. */
