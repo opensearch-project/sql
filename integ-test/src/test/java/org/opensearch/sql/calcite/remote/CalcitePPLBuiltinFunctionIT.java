@@ -267,7 +267,8 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval f = mod(float_number, 2), n = -1 * short_number %% 2, nd = -1 *"
                     + " double_number %% 2 | fields f, n, nd",
                 TEST_INDEX_DATATYPE_NUMERIC));
-    verifySchema(actual, schema("f", "float"), schema("n", "int"), schema("nd", "double"));
+    // -1 * short_number widens the integer operands to bigint (overflow-safe widening).
+    verifySchema(actual, schema("f", "float"), schema("n", "bigint"), schema("nd", "double"));
     verifyDataRows(actual, closeTo(0.2, -1, -1.1));
   }
 
@@ -413,5 +414,67 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
         schema("r5", "double"),
         schema("r6", "double"));
     verifyDataRows(actual, rows(null, null, null, null, null));
+  }
+
+  /**
+   * Integer arithmetic must widen narrow operands so the result cannot overflow the (mis-)inferred
+   * SMALLINT/TINYINT result type. Historically {@code short * short} stayed SHORT, silently
+   * wrapping on the analytics-engine backend and throwing "value out of range" on the Calcite path.
+   * byte/short now widen to INT and int/long widen to BIGINT for {@code +}, {@code -}, {@code *}.
+   */
+  @Test
+  public void testIntegerArithmeticWidensResultType() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval ss = short_number * short_number, bb = byte_number *"
+                    + " byte_number, ii = integer_number * integer_number, sp = short_number +"
+                    + " short_number, sm = short_number - byte_number | fields ss, bb, ii, sp, sm",
+                TEST_INDEX_DATATYPE_NUMERIC));
+    // short/byte products widen to int; int product widens to bigint; +/- widen likewise.
+    verifySchema(
+        actual,
+        schema("ss", "int"),
+        schema("bb", "int"),
+        schema("ii", "bigint"),
+        schema("sp", "int"),
+        schema("sm", "int"));
+    // short_number=3, byte_number=4, integer_number=2.
+    verifyDataRows(actual, rows(9, 16, 4, 6, -1));
+  }
+
+  /**
+   * Regression for the reported overflow: {@code short * <large>} whose product exceeds the 16-bit
+   * SHORT range (32767) must produce the correct widened value rather than a wrapped one.
+   */
+  @Test
+  public void testShortArithmeticDoesNotOverflow() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval area = short_number * 20000 | where area > 32767 | fields area",
+                TEST_INDEX_DATATYPE_NUMERIC));
+    // 3 * 20000 = 60000, which overflows SHORT (max 32767) but is exact once widened. The INTEGER
+    // literal 20000 promotes the product to BIGINT (any int operand -> long).
+    verifySchema(actual, schema("area", "bigint"));
+    verifyDataRows(actual, rows(60000));
+  }
+
+  /**
+   * The INTEGER->BIGINT tier: {@code integer_number * <large int literal>} whose product exceeds
+   * the 32-bit INT range must widen to BIGINT and stay exact rather than wrapping i32.
+   */
+  @Test
+  public void testIntegerArithmeticDoesNotOverflow() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval big = integer_number * 2000000000 | where big > 2147483647 |"
+                    + " fields big",
+                TEST_INDEX_DATATYPE_NUMERIC));
+    // integer_number=2; 2 * 2,000,000,000 = 4,000,000,000 overflows INT (max 2,147,483,647) but is
+    // exact once widened to BIGINT.
+    verifySchema(actual, schema("big", "bigint"));
+    verifyDataRows(actual, rows(4000000000L));
   }
 }
