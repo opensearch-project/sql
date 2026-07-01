@@ -124,6 +124,7 @@ import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -159,7 +160,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   public AstBuilder(String query, Settings settings) {
-    this.expressionBuilder = new AstExpressionBuilder(this);
+    this.expressionBuilder = new AstExpressionBuilder(this, AstBuildGuard.fromSettings(settings));
     this.query = query;
     this.settings = settings;
   }

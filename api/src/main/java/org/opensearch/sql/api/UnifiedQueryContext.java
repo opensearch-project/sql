@@ -262,7 +262,7 @@ public class UnifiedQueryContext implements AutoCloseable {
     private UnifiedQueryParser<?> createParser(CalcitePlanContext planContext, Settings settings) {
       return switch (queryType) {
         case PPL -> new PPLQueryParser(settings);
-        case SQL -> new SqlV2QueryParser();
+        case SQL -> new SqlV2QueryParser(settings);
       };
     }
 

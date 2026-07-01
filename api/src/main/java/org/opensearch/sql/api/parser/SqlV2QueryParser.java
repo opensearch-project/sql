@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Not;
@@ -26,6 +27,8 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ExistsSubqueryExpressionAtomContext;
@@ -42,7 +45,11 @@ import org.opensearch.sql.sql.parser.AstStatementBuilder;
 import org.opensearch.sql.sql.parser.context.QuerySpecification;
 
 /** SQL query parser that produces {@link UnresolvedPlan} using the V2 ANTLR grammar. */
+@RequiredArgsConstructor
 public class SqlV2QueryParser implements UnifiedQueryParser<UnresolvedPlan> {
+
+  /** Settings containing execution limits and feature flags used by AST builders. */
+  private final Settings settings;
 
   /** Reusable ANTLR-based SQL syntax parser. Stateless and thread-safe. */
   private final SQLSyntaxParser syntaxParser = new SQLSyntaxParser();
@@ -52,7 +59,7 @@ public class SqlV2QueryParser implements UnifiedQueryParser<UnresolvedPlan> {
     ParseTree cst = syntaxParser.parse(query);
     AstStatementBuilder astStmtBuilder =
         new AstStatementBuilder(
-            new ExtendedAstBuilder(query),
+            new ExtendedAstBuilder(query, settings),
             AstStatementBuilder.StatementBuilderContext.builder().build());
     Statement statement = cst.accept(astStmtBuilder);
 
@@ -69,8 +76,8 @@ public class SqlV2QueryParser implements UnifiedQueryParser<UnresolvedPlan> {
    */
   private static class ExtendedAstBuilder extends AstBuilder {
 
-    ExtendedAstBuilder(String query) {
-      super(query);
+    ExtendedAstBuilder(String query, Settings settings) {
+      super(query, settings);
     }
 
     @Override
@@ -122,7 +129,7 @@ public class SqlV2QueryParser implements UnifiedQueryParser<UnresolvedPlan> {
 
     @Override
     protected AstExpressionBuilder createExpressionBuilder() {
-      return new ExtendedAstExpressionBuilder();
+      return new ExtendedAstExpressionBuilder(guard);
     }
 
     @Override
@@ -156,6 +163,10 @@ public class SqlV2QueryParser implements UnifiedQueryParser<UnresolvedPlan> {
      * enclosing {@code this} reference is not available during {@code super()} construction.
      */
     private class ExtendedAstExpressionBuilder extends AstExpressionBuilder {
+
+      ExtendedAstExpressionBuilder(AstBuildGuard guard) {
+        super(guard);
+      }
 
       @Override
       public UnresolvedExpression visitInSubqueryPredicate(InSubqueryPredicateContext ctx) {
