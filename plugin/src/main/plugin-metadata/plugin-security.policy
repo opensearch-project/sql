@@ -27,4 +27,7 @@ grant {
 
   // Deserialization filter
   permission java.io.SerializablePermission "serialFilter";
+
+  // BouncyCastle reads org.bouncycastle.* security properties during datasource credential encryption
+  permission java.security.SecurityPermission "getProperty.org.bouncycastle.*";
 };
