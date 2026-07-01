@@ -46,6 +46,7 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.NestedAllTupleFields;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
@@ -776,5 +777,103 @@ class AstBuilderTest extends AstBuilderTestBase {
     assertThrows(
         SyntaxCheckException.class,
         () -> buildAST("SELECT * FROM t WHERE EXISTS (SELECT 1 FROM t2)"));
+  }
+
+  @Test
+  public void can_build_compound_aggregate_stats() {
+    assertEquals(
+        project(
+            agg(
+                relation("test"),
+                buildCompoundAggregators("STATS"),
+                emptyList(),
+                emptyList(),
+                emptyList()),
+            buildStatsProjectColumns("STATS(age)")),
+        buildAST("SELECT STATS(age) FROM test"));
+  }
+
+  @Test
+  public void can_build_compound_aggregate_with_as_alias() {
+    assertEquals(
+        project(
+            agg(
+                relation("test"),
+                buildCompoundAggregators("STATS"),
+                emptyList(),
+                emptyList(),
+                emptyList()),
+            buildStatsProjectColumns("p")),
+        buildAST("SELECT STATS(age) AS p FROM test"));
+  }
+
+  @Test
+  public void can_build_compound_aggregate_dedupes_with_explicit_primitive() {
+    // Aggregators dedupe (5), but project keeps every SELECT-list column (6).
+    assertEquals(
+        project(
+            agg(
+                relation("test"),
+                buildCompoundAggregators("STATS"),
+                emptyList(),
+                emptyList(),
+                emptyList()),
+            alias("count(age)", aggregate("count", qualifiedName("age")), "STATS(age).count"),
+            alias("sum(age)", aggregate("sum", qualifiedName("age")), "STATS(age).sum"),
+            alias("avg(age)", aggregate("avg", qualifiedName("age")), "STATS(age).avg"),
+            alias("min(age)", aggregate("min", qualifiedName("age")), "STATS(age).min"),
+            alias("max(age)", aggregate("max", qualifiedName("age")), "STATS(age).max"),
+            alias("avg(age)", aggregate("avg", qualifiedName("age")))),
+        buildAST("SELECT STATS(age), avg(age) FROM test"));
+  }
+
+  @Test
+  public void can_build_compound_aggregate_with_group_by() {
+    UnresolvedExpression cityGroup = alias("city", qualifiedName("city"));
+    assertEquals(
+        project(
+            agg(
+                relation("test"),
+                buildCompoundAggregators("STATS"),
+                emptyList(),
+                ImmutableList.of(cityGroup),
+                emptyList()),
+            cityGroup,
+            alias("count(age)", aggregate("count", qualifiedName("age")), "STATS(age).count"),
+            alias("sum(age)", aggregate("sum", qualifiedName("age")), "STATS(age).sum"),
+            alias("avg(age)", aggregate("avg", qualifiedName("age")), "STATS(age).avg"),
+            alias("min(age)", aggregate("min", qualifiedName("age")), "STATS(age).min"),
+            alias("max(age)", aggregate("max", qualifiedName("age")), "STATS(age).max")),
+        buildAST("SELECT city, STATS(age) FROM test GROUP BY city"));
+  }
+
+  /**
+   * Builds the five primitive aggregator expressions {@code STATS(age)} expands to, all referencing
+   * the {@code age} field via source-text internal names ({@code count(age)}, {@code sum(age)}, …).
+   * Used as the {@code aggExprList} for both Project and Aggregation assertions.
+   */
+  private ImmutableList<UnresolvedExpression> buildCompoundAggregators(String compoundName) {
+    return ImmutableList.of(
+        alias("count(age)", aggregate("count", qualifiedName("age"))),
+        alias("sum(age)", aggregate("sum", qualifiedName("age"))),
+        alias("avg(age)", aggregate("avg", qualifiedName("age"))),
+        alias("min(age)", aggregate("min", qualifiedName("age"))),
+        alias("max(age)", aggregate("max", qualifiedName("age"))));
+  }
+
+  /**
+   * Project entries for {@code STATS(age)} expansion: same internal names as {@link
+   * #buildCompoundAggregators}, with display aliases formed as {@code <prefix>.<suffix>}. {@code
+   * prefix} is either the user's AS alias (e.g. {@code "p"}) or the source-text of the compound
+   * call (e.g. {@code "STATS(age)"}).
+   */
+  private UnresolvedExpression[] buildStatsProjectColumns(String prefix) {
+    return new UnresolvedExpression[] {
+      alias("count(age)", aggregate("count", qualifiedName("age")), prefix + ".count"),
+      alias("sum(age)", aggregate("sum", qualifiedName("age")), prefix + ".sum"),
+      alias("avg(age)", aggregate("avg", qualifiedName("age")), prefix + ".avg"),
+      alias("min(age)", aggregate("min", qualifiedName("age")), prefix + ".min"),
+      alias("max(age)", aggregate("max", qualifiedName("age")), prefix + ".max")
+    };
   }
 }
