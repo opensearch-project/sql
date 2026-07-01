@@ -91,6 +91,81 @@ fetched rows / total rows = 1/1
 | 3      |
 +--------+
 ```
+
+## ARRAY_TO_CSV
+
+**Usage**: `array_to_csv(array, [delimiter])`
+
+Converts an array to a comma-separated values (CSV) string representation. All array elements are converted to their string representation and joined using the specified delimiter.
+
+**Parameters**:
+
+- `array` (Required): An array expression of any supported data type to convert to CSV.
+- `delimiter` (Optional): The string to use as a separator between array elements. Defaults to comma (",").
+
+**Return type**: `STRING`
+
+#### Example
+
+The following example converts an array to CSV with the default comma delimiter:
+
+```ppl
+source=people
+| eval result = array_to_csv(array('apple', 'banana', 'cherry'))
+| fields result
+| head 1
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++-------------------------+
+| result                  |
+|-------------------------|
+| apple,banana,cherry     |
++-------------------------+
+```
+
+The following example uses a custom delimiter:
+
+```ppl
+source=people
+| eval result = array_to_csv(array('a', 'b', 'c'), '|')
+| fields result
+| head 1
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++---------+
+| result  |
+|---------|
+| a|b|c   |
++---------+
+```
+
+The following example handles mixed data types:
+
+```ppl
+source=people
+| eval result = array_to_csv(array('text', 123, 45.67), ';')
+| fields result
+| head 1
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++----------------+
+| result         |
+|----------------|
+| text;123;45.67 |
++----------------+
+```
   
 ## FORALL
 

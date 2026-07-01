@@ -1232,6 +1232,7 @@ geoipFunctionName
 collectionFunctionName
     : ARRAY
     | ARRAY_LENGTH
+    | ARRAY_TO_CSV
     | MVAPPEND
     | MVJOIN
     | MVINDEX
