@@ -269,6 +269,13 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<AnalyzeResponse> listener) {
+    if (!shouldUseCalcite(queryType)) {
+      listener.onFailure(
+          new UnsupportedOperationException(
+              "Analyze requires the Calcite engine to be enabled"
+                  + " (plugins.calcite.enabled=true) and a PPL query type"));
+      return;
+    }
     // Phase 1: Execute via the exact same path as executeWithCalcite + executionEngine.execute
     // to get identical profile timings. Use a latch to synchronize the async callback.
     // Force profiling on so executeWithCalcite activates QueryProfiling.
@@ -322,6 +329,40 @@ public class QueryService {
 
     ExecutionEngine.QueryResponse queryResponse = queryResponseRef.get();
     QueryProfile profile = profileRef.get();
+
+    // If the profile plan tree has branching (any node with >1 child), our linear
+    // operator tree logic won't work. Return a response that 'fallsback' on `profile`
+    // by only including fields mirroring the `profile` endpoint.
+    if (profile != null && profile.getPlan() != null && !isLinearPlanTree(profile)) {
+      List<AnalyzeResponse.SchemaColumn> schema = new ArrayList<>();
+      if (queryResponse.getSchema() != null) {
+        for (ExecutionEngine.Schema.Column col : queryResponse.getSchema().getColumns()) {
+          schema.add(
+              AnalyzeResponse.SchemaColumn.builder()
+                  .name(col.getName())
+                  .type(col.getExprType().typeName())
+                  .build());
+        }
+      }
+      Object[][] datarows = new Object[queryResponse.getResults().size()][];
+      int rowIdx = 0;
+      for (var exprValue : queryResponse.getResults()) {
+        datarows[rowIdx++] =
+            exprValue.tupleValue().entrySet().stream()
+                .map(e -> e.getValue().value())
+                .toArray(Object[]::new);
+      }
+      listener.onResponse(
+          AnalyzeResponse.builder()
+              // .query(query)
+              .profile(profile)
+              .schema(schema)
+              .datarows(datarows)
+              .total(datarows.length)
+              .size(datarows.length)
+              .build());
+      return;
+    }
 
     // Phase 2: Re-run with tracking to capture logical/physical plans and node mappings.
     // This run benefits from warm caches but we don't report its timings.
@@ -636,6 +677,20 @@ public class QueryService {
     }
 
     return operators;
+  }
+
+  private static boolean isLinearPlanTree(QueryProfile profile) {
+    QueryProfile.PlanNode current = (QueryProfile.PlanNode) profile.getPlan();
+    while (current != null) {
+      if (current.getChildren() != null && current.getChildren().size() > 1) {
+        return false;
+      }
+      current =
+          (current.getChildren() != null && !current.getChildren().isEmpty())
+              ? current.getChildren().get(0)
+              : null;
+    }
+    return true;
   }
 
   private static int getLinearDepth(RelNode node) {
