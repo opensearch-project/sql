@@ -452,6 +452,16 @@ public class OpenSearchNodeClient implements OpenSearchClient {
 
   @Override
   public List<Map<String, Object>> clusterSettings(Map<String, String> params) {
+    // The transport path has no SettingsFilter of its own; it is published from
+    // SQLPlugin#getRestHandlers at startup. Fail closed before fetching so we never read settings
+    // into memory when we cannot redact them, matching native GET /_cluster/settings.
+    org.opensearch.common.settings.SettingsFilter filter =
+        org.opensearch.sql.opensearch.storage.rest.RestSettingsFilterHolder.get();
+    if (filter == null) {
+      throw new IllegalStateException(
+          "cluster settings redaction filter is not initialized; refusing to return unredacted"
+              + " settings");
+    }
     org.opensearch.action.admin.cluster.state.ClusterStateResponse response =
         client
             .admin()
@@ -460,26 +470,9 @@ public class OpenSearchNodeClient implements OpenSearchClient {
             .actionGet();
     List<Map<String, Object>> rows = new java.util.ArrayList<>();
     org.opensearch.common.settings.Settings persistent =
-        response.getState().metadata().persistentSettings();
+        filter.filter(response.getState().metadata().persistentSettings());
     org.opensearch.common.settings.Settings transientSettings =
-        response.getState().metadata().transientSettings();
-    // Mirror the native GET /_cluster/settings redaction: run both tiers through the node's
-    // SettingsFilter so Property.Filtered (and plugin-registered pattern) settings are not
-    // surfaced raw. The transport path carries no SettingsFilter of its own; the node instance is
-    // published into RestSettingsFilterHolder from SQLPlugin#getRestHandlers at startup.
-    org.opensearch.common.settings.SettingsFilter filter =
-        org.opensearch.sql.opensearch.storage.rest.RestSettingsFilterHolder.get();
-    if (filter == null) {
-      // Fail closed: without the redaction filter (which strips Property.Filtered and
-      // plugin-registered secret-bearing keys) the command must refuse rather than surface raw
-      // settings. In-cluster the filter is published at startup (SQLPlugin#getRestHandlers) before
-      // any query runs, so this guards only against an unexpected uninitialized state.
-      throw new IllegalStateException(
-          "cluster settings redaction filter is not initialized; refusing to return unredacted"
-              + " settings");
-    }
-    persistent = filter.filter(persistent);
-    transientSettings = filter.filter(transientSettings);
+        filter.filter(response.getState().metadata().transientSettings());
     collectSettings(persistent, "persistent", rows);
     collectSettings(transientSettings, "transient", rows);
     return rows;
