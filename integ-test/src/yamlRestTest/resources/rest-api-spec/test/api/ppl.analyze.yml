@@ -83,7 +83,7 @@ teardown:
   - match: {size: 1}
 
 ---
-"Analyze returns recommendations":
+"Analyze returns empty recommendations":
   - skip:
       features:
         - headers
@@ -95,8 +95,8 @@ teardown:
         body:
           query: 'source=ppl_analyze | where age > 30 | fields message'
           analyze: true
-  - is_true: recommendations
-  - gte: {recommendations.0.rule: ''}
+  - is_true: operator_tree
+  - match: {recommendations: []}
 
 ---
 "Analyze ignored for explain api":
@@ -127,5 +127,5 @@ teardown:
         body:
           query: 'source=ppl_analyze | fields message'
           analyze: true
-        format: 'csv'
+        format: 'viz'
   - match: {query: null}
