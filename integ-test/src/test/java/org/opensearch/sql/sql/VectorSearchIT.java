@@ -25,6 +25,7 @@ public class VectorSearchIT extends SQLIntegTestCase {
 
   @Override
   protected void init() throws Exception {
+    super.init();
     loadIndex(Index.ACCOUNT);
   }
 

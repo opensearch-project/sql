@@ -423,7 +423,10 @@ public class OpenSearchRestClient implements OpenSearchClient {
     Map<String, Object> state =
         getJsonMap(
             "/_cluster/state/master_node,version,metadata,nodes",
-            Map.of("filter_path", "cluster_name,state_uuid,version,cluster_manager_node,nodes"));
+            // nodes.*.name resolves the manager id to a name without over-fetching node IPs.
+            Map.of(
+                "filter_path",
+                "cluster_name,state_uuid,version,cluster_manager_node,nodes.*.name"));
     Map<String, Object> row = new HashMap<>();
     row.put("cluster_name", state.get("cluster_name"));
     row.put("state_uuid", state.get("state_uuid"));
