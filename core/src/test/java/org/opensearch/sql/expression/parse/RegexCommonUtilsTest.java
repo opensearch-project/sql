@@ -371,9 +371,50 @@ public class RegexCommonUtilsTest {
   @Test
   public void legitimateLongInputDoesNotTripGuard() {
     // A 50k-char input matched by a linear pattern reads each char a small constant number of
-    // times, far under the limit factor, so it must not trip.
+    // times, far under the match limit, so it must not trip.
     Pattern pattern = RegexCommonUtils.getCompiledPattern("(?<all>.*)");
     String longInput = "x".repeat(50_000);
     assertEquals(longInput, RegexCommonUtils.extractNamedGroup(longInput, pattern, "all"));
+  }
+
+  @Test
+  public void defaultMatchLimitIsSplunkAligned() {
+    // Mirrors Splunk rex / PCRE2 match_limit default of 100000.
+    assertEquals(100_000L, RegexCommonUtils.DEFAULT_MATCH_LIMIT);
+    assertEquals(100_000L, RegexCommonUtils.getMatchLimit());
+  }
+
+  @Test
+  public void setMatchLimitChangesTheEffectiveCap() {
+    long original = RegexCommonUtils.getMatchLimit();
+    try {
+      // Lower the cap so a normally-fine linear match over long input now trips.
+      RegexCommonUtils.setMatchLimit(100L);
+      assertEquals(100L, RegexCommonUtils.getMatchLimit());
+      Pattern pattern = RegexCommonUtils.getCompiledPattern("(?<all>.*)");
+      String input = "x".repeat(1_000); // ~1000 reads > 100 cap
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> RegexCommonUtils.extractNamedGroup(input, pattern, "all"));
+      // Raise it back high; the same match now succeeds.
+      RegexCommonUtils.setMatchLimit(1_000_000L);
+      assertEquals(input, RegexCommonUtils.extractNamedGroup(input, pattern, "all"));
+    } finally {
+      RegexCommonUtils.setMatchLimit(original);
+    }
+  }
+
+  @Test
+  public void setMatchLimitIgnoresNonPositiveValues() {
+    long original = RegexCommonUtils.getMatchLimit();
+    try {
+      RegexCommonUtils.setMatchLimit(500L);
+      RegexCommonUtils.setMatchLimit(0L); // ignored — must not disable the guard
+      assertEquals(500L, RegexCommonUtils.getMatchLimit());
+      RegexCommonUtils.setMatchLimit(-1L); // ignored
+      assertEquals(500L, RegexCommonUtils.getMatchLimit());
+    } finally {
+      RegexCommonUtils.setMatchLimit(original);
+    }
   }
 }

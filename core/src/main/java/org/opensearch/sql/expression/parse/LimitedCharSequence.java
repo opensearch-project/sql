@@ -8,21 +8,27 @@ package org.opensearch.sql.expression.parse;
 import java.util.regex.Pattern;
 
 /**
- * A {@link CharSequence} that wraps another sequence and caps how many {@code charAt} accesses a
- * regex engine may perform against it. Once accesses exceed {@code limitFactor * length} the match
+ * A {@link CharSequence} that wraps another sequence and caps the total number of {@code charAt}
+ * accesses a regex engine may perform against it. Once accesses exceed {@code matchLimit} the match
  * is aborted with an {@link IllegalArgumentException}, bounding worst-case backtracking work
  * without changing the regex engine or affecting normal matches.
+ *
+ * <p>The cap is an absolute total (not scaled by input length), analogous to PCRE2's {@code
+ * match_limit} (and Splunk {@code rex}'s {@code match_limit}, default 100000), which bounds how
+ * many times the matcher's internal loop runs. A catastrophic pattern re-reads characters far past
+ * this cap and is aborted in well under a millisecond, regardless of how the attacker sizes the
+ * input.
  *
  * <p>Adapted from {@code org.opensearch.painless.api.LimitedCharSequence}; kept plugin-local to
  * avoid a {@code lang-painless} dependency.
  */
 public final class LimitedCharSequence implements CharSequence {
   private final CharSequence wrapped;
-  private final Counter counter;
+  private final long matchLimit;
+  private long count;
 
   // Retained for the error message only.
   private final Pattern pattern;
-  private final int limitFactor;
 
   static final int MAX_STR_LENGTH = 64;
   private static final String SNIPPET = "...";
@@ -30,28 +36,25 @@ public final class LimitedCharSequence implements CharSequence {
   /**
    * @param wrap the input text the regex engine will read
    * @param pattern the pattern being matched (for the error message only; may be null)
-   * @param limitFactor charAt budget as a multiple of input length; must be positive
+   * @param matchLimit absolute cap on total charAt reads before the match is aborted; must be
+   *     positive
    */
-  public LimitedCharSequence(CharSequence wrap, Pattern pattern, int limitFactor) {
-    if (limitFactor <= 0) {
-      throw new IllegalArgumentException("limitFactor must be positive");
+  public LimitedCharSequence(CharSequence wrap, Pattern pattern, long matchLimit) {
+    if (matchLimit <= 0) {
+      throw new IllegalArgumentException("matchLimit must be positive");
     }
     this.wrapped = wrap;
-    this.counter = new Counter((long) limitFactor * wrapped.length());
+    this.matchLimit = matchLimit;
     this.pattern = pattern;
-    this.limitFactor = limitFactor;
   }
 
   String details() {
     return (pattern != null ? "pattern: [" + pattern.pattern() + "], " : "")
-        + "limit factor: ["
-        + limitFactor
-        + "], "
-        + "char limit: ["
-        + counter.charAtLimit
+        + "match limit: ["
+        + matchLimit
         + "], "
         + "count: ["
-        + counter.count
+        + count
         + "], "
         + "wrapped: ["
         + snippet(MAX_STR_LENGTH)
@@ -84,13 +87,14 @@ public final class LimitedCharSequence implements CharSequence {
 
   @Override
   public char charAt(int index) {
-    counter.count++;
-    if (counter.hitLimit()) {
+    count++;
+    if (count > matchLimit) {
       throw new IllegalArgumentException(
           "Regular expression in PPL parse/rex command considered too many characters, "
               + details()
               + ". The pattern and input combination is too expensive to evaluate (possible"
-              + " catastrophic backtracking).");
+              + " catastrophic backtracking). This limit can be changed with the"
+              + " plugins.ppl.regex.match.limit setting.");
     }
     return wrapped.charAt(index);
   }
@@ -103,20 +107,5 @@ public final class LimitedCharSequence implements CharSequence {
   @Override
   public String toString() {
     return wrapped.toString();
-  }
-
-  /** Tracks charAt accesses across the wrapped sequence. */
-  private static final class Counter {
-    final long charAtLimit;
-    long count;
-
-    Counter(long charAtLimit) {
-      this.charAtLimit = charAtLimit;
-      this.count = 0;
-    }
-
-    boolean hitLimit() {
-      return count > charAtLimit;
-    }
   }
 }

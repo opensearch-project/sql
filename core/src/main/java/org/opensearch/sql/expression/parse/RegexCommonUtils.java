@@ -31,10 +31,33 @@ public class RegexCommonUtils {
   private static final Pattern ANY_NAMED_GROUP_PATTERN = Pattern.compile("\\(\\?<([^>]+)>");
 
   /**
-   * Max characters the regex engine may read per input character before a match is aborted.
-   * Generous enough never to trip legitimate matches; mirrors OpenSearch's painless regex guard.
+   * Default absolute cap on the number of characters the regex engine may read in a single match
+   * before it is aborted. Mirrors the default of PCRE2's {@code match_limit} as adopted by Splunk
+   * {@code rex} (100000): high enough never to trip legitimate matches, low enough that a
+   * catastrophic match aborts in well under a millisecond. Overridable via the {@code
+   * plugins.ppl.regex.match.limit} setting through {@link #setMatchLimit(long)}.
    */
-  private static final int REGEX_LIMIT_FACTOR = 10_000;
+  public static final long DEFAULT_MATCH_LIMIT = 100_000L;
+
+  // Node-scoped value, pushed in by the OpenSearch settings layer on register and on dynamic
+  // change. volatile so updates are visible to matching threads.
+  private static volatile long matchLimit = DEFAULT_MATCH_LIMIT;
+
+  /**
+   * Set the absolute per-match character-read cap. Called by the OpenSearch settings layer when
+   * {@code plugins.ppl.regex.match.limit} is registered or changed. Non-positive values are ignored
+   * (the previous value is kept) so a misconfiguration cannot disable the guard.
+   */
+  public static void setMatchLimit(long limit) {
+    if (limit > 0) {
+      matchLimit = limit;
+    }
+  }
+
+  /** Current absolute per-match character-read cap. */
+  public static long getMatchLimit() {
+    return matchLimit;
+  }
 
   private static final int MAX_CACHE_SIZE = 1000;
 
@@ -123,7 +146,7 @@ public class RegexCommonUtils {
    * @return a Matcher over a length-bounded view of the text
    */
   public static Matcher boundedMatcher(Pattern pattern, String text) {
-    return pattern.matcher(new LimitedCharSequence(text, pattern, REGEX_LIMIT_FACTOR));
+    return pattern.matcher(new LimitedCharSequence(text, pattern, matchLimit));
   }
 
   /**
