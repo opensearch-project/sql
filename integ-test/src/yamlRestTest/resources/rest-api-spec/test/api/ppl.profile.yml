@@ -56,6 +56,15 @@ teardown:
   - gt: {profile.phases.format.time_ms: 0.0}
   - gt: {profile.plan.time_ms: 0.0}
   - match: {profile.plan.rows: 2}
+  - match: {query: 'source=ppl_profile | fields message'}
+  - is_true: logicalPlan
+  - is_true: physicalPlan
+  - is_true: operator_tree
+  - is_true: recommendations
+  - is_true: schema
+  - is_true: datarows
+  - match: {total: 2}
+  - match: {size: 2}
 
 ---
 "Profile ignored for explain api":

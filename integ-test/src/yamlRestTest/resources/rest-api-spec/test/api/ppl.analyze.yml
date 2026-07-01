@@ -1,0 +1,131 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: ppl_analyze
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              message:
+                type: keyword
+              age:
+                type: integer
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "ppl_analyze", "_id": 1}}'
+          - '{"message": "hello", "age": 25}'
+          - '{"index": {"_index": "ppl_analyze", "_id": 2}}'
+          - '{"message": "world", "age": 35}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: ppl_analyze
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Analyze returns full response for ppl query":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=ppl_analyze | fields message'
+          analyze: true
+  - match: {query: 'source=ppl_analyze | fields message'}
+  - is_true: querySegments
+  - is_true: logicalPlan
+  - is_true: physicalPlan
+  - is_true: operator_tree
+  - is_true: recommendations
+  - is_true: profile
+  - gt: {profile.summary.total_time_ms: 0.0}
+  - gt: {profile.phases.execute.time_ms: 0.0}
+  - is_true: schema
+  - is_true: datarows
+  - match: {total: 2}
+  - match: {size: 2}
+
+---
+"Analyze returns operator tree with pushdown info":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=ppl_analyze | where age > 30 | fields message'
+          analyze: true
+  - is_true: operator_tree
+  - match: {total: 1}
+  - match: {size: 1}
+
+---
+"Analyze returns recommendations":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=ppl_analyze | where age > 30 | fields message'
+          analyze: true
+  - is_true: recommendations
+  - gte: {recommendations.0.rule: ''}
+
+---
+"Analyze ignored for explain api":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: 'source=ppl_analyze | fields message'
+          analyze: true
+  - match: {query: null}
+  - match: {operator_tree: null}
+
+---
+"Analyze ignored for non-jdbc format":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=ppl_analyze | fields message'
+          analyze: true
+        format: 'csv'
+  - match: {query: null}
