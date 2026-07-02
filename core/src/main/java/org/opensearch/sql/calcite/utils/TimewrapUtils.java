@@ -33,7 +33,12 @@ public class TimewrapUtils {
     return "M".equals(unit.getName()) || "q".equals(unit.getName()) || "y".equals(unit.getName());
   }
 
-  /** Convert a span unit and value to seconds. For variable-length units, returns approximate. */
+  /**
+   * Convert a fixed-length span unit and value to seconds. Only fixed-length units (second, minute,
+   * hour, day, week) are supported; variable-length units (month, quarter, year) have no exact
+   * second count and must use the calendar arithmetic path ({@link #calendarUnitNumber} / {@link
+   * #calendarUnitStartEpoch}) instead.
+   */
   public static long spanToSeconds(SpanUnit unit, int value) {
     return switch (unit.getName()) {
       case "s" -> value;
@@ -41,9 +46,12 @@ public class TimewrapUtils {
       case "h" -> value * 3_600L;
       case "d" -> value * 86_400L;
       case "w" -> value * 7L * 86_400L;
-      case "M" -> value * 30L * 86_400L;
-      case "q" -> value * 91L * 86_400L;
-      case "y" -> value * 365L * 86_400L;
+      case "M", "q", "y" ->
+          throw new IllegalArgumentException(
+              "Variable-length unit '"
+                  + unit.getName()
+                  + "' cannot be converted to a fixed number of seconds; use the calendar"
+                  + " arithmetic path instead");
       default ->
           throw new SemanticCheckException("Unsupported time unit in timewrap: " + unit.getName());
     };
