@@ -104,7 +104,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eval total = sum(1, 2, 3) | fields EMPNO, total";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], total=[+(1, +(2, 3))])\n"
+        "LogicalProject(EMPNO=[$0], total=[+(1, +(2:BIGINT, 3:BIGINT))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -131,7 +131,8 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eval average = avg(10, 20, 30) | fields EMPNO, average";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], average=[DIVIDE(+(10, +(20, 30)), 3.0E0:DOUBLE)])\n"
+        "LogicalProject(EMPNO=[$0], average=[DIVIDE(+(10, +(20:BIGINT, 30:BIGINT)),"
+            + " 3.0E0:DOUBLE)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -210,7 +211,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
         "LogicalProject(EMPNO=[$0], EMPNO_PLUS=[$8])\n"
             + "  LogicalSort(sort0=[$8], dir0=[DESC-nulls-last], fetch=[3])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], EMPNO_PLUS=[+($0, 1)])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], EMPNO_PLUS=[+(CAST($0):BIGINT NOT NULL, 1)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
@@ -223,7 +224,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `EMPNO`, `EMPNO_PLUS`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " `EMPNO` + 1 `EMPNO_PLUS`\n"
+            + " CAST(`EMPNO` AS BIGINT) + 1 `EMPNO_PLUS`\n"
             + "FROM `scott`.`EMP`\n"
             + "ORDER BY 9 DESC\n"
             + "LIMIT 3) `t0`";
@@ -239,7 +240,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
         "LogicalProject(EMPNO=[$0], SAL=[$7])\n"
             + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last], fetch=[3])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " COMM=[$6], DEPTNO=[$7], SAL=[+($7, 10000)])\n"
+            + " COMM=[$6], DEPTNO=[$7], SAL=[+(CAST($7):BIGINT, 10000)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
@@ -248,7 +249,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         ""
-            + "SELECT `EMPNO`, `DEPTNO` + 10000 `SAL`\n"
+            + "SELECT `EMPNO`, CAST(`DEPTNO` AS BIGINT) + 10000 `SAL`\n"
             + "FROM `scott`.`EMP`\n"
             + "ORDER BY `EMPNO` DESC\n"
             + "LIMIT 3";

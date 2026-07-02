@@ -232,6 +232,7 @@ public class ExtendedRelJson extends RelJson {
           map.put("operands", list);
           switch (node.getKind()) {
             case MINUS:
+            case CHECKED_MINUS:
             case CAST:
             case SAFE_CAST:
               map.put("type", toJson(node.getType()));

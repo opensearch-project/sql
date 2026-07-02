@@ -11,6 +11,10 @@ Arithmetic expressions are formed by combining numeric literals and binary arith
 4. `/`: Division. When [`plugins.ppl.syntax.legacy.preferred`](../admin/settings.md) is `true` (default), integer operands follow the legacy truncating result. When the setting is `false`, the operands are promoted to floating-point, preserving the fractional part. Division by zero returns `NULL`.
 5. `%`: Modulo. This operator can only be used with integers and returns the remainder of the division.
 
+### Overflow behavior
+
+Integer and long arithmetic operations (`+`, `-`, `*`) in `eval` expressions detect overflow and return an error instead of silently wrapping. For example, `eval x = int_field + 1` where `int_field` is `2147483647` (integer max) returns an error rather than `-2147483648`. Floating-point (`float`, `double`) arithmetic follows IEEE 754 and does not produce overflow errors.
+
 ### Precedence
 
 You can use parentheses to control the precedence of arithmetic operators. Otherwise, operators with higher precedence are performed first.
