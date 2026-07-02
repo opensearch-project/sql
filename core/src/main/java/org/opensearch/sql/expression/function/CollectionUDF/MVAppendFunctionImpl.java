@@ -127,12 +127,27 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
           coerced.add(EnumUtils.convert(op, elementClass));
         }
       }
+      // Pass the target element SqlTypeName so the runtime can align the elements flattened out of
+      // ARRAY operands. Calcite does not element-wise cast inside an array operand, so
+      // `mvappend(array(int_col), int_col * 2)` — where operand widening makes the result element
+      // type BIGINT while `array(int_col)` still yields Integer cells — would otherwise throw
+      // `Integer cannot be cast to Long` when the array is materialized. Scalars are already
+      // pre-cast above; the runtime coercion is a no-op for them.
+      SqlTypeName targetType = elementType == null ? null : elementType.getSqlTypeName();
       return Expressions.call(
-          Types.lookupMethod(MVAppendFunctionImpl.class, "mvappend", Object[].class),
+          Types.lookupMethod(
+              MVAppendFunctionImpl.class, "mvappendTyped", SqlTypeName.class, Object[].class),
+          Expressions.constant(targetType, SqlTypeName.class),
           Expressions.newArrayInit(Object.class, coerced));
     }
   }
 
+  /** Codegen entry point: coerces flattened elements to {@code elementType}. */
+  public static Object mvappendTyped(SqlTypeName elementType, Object... args) {
+    return MVAppendCore.collectElements(elementType, args);
+  }
+
+  /** Untyped entry point used by unit tests; performs no element coercion. */
   public static Object mvappend(Object... args) {
     return MVAppendCore.collectElements(args);
   }
