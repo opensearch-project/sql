@@ -1,0 +1,22 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$0], sort1=[$3], dir0=[ASC], dir1=[ASC], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalSort(sort0=[$0], sort1=[$3], dir0=[ASC], dir1=[ASC])
+        LogicalProject(@timestamp=[FROM_UNIXTIME(+(-(-(CAST(UNIX_TIMESTAMP(MAX($0) OVER ())):BIGINT NOT NULL, *(-(EXTRACT('DAY', MAX($0) OVER ()), 1), 86400)), +(+(*(EXTRACT('HOUR', MAX($0) OVER ()), 3600), *(EXTRACT('MINUTE', MAX($0) OVER ()), 60)), EXTRACT('SECOND', MAX($0) OVER ()))), -(CAST(UNIX_TIMESTAMP($0)):BIGINT NOT NULL, -(-(CAST(UNIX_TIMESTAMP($0)):BIGINT NOT NULL, *(-(EXTRACT('DAY', $0), 1), 86400)), +(+(*(EXTRACT('HOUR', $0), 3600), *(EXTRACT('MINUTE', $0), 60)), EXTRACT('SECOND', $0))))))], avg(cpu_usage)=[$1], __base_offset__=[-(24295, +(*(EXTRACT('YEAR', MAX($0) OVER ()), 12), EXTRACT('MONTH', MAX($0) OVER ())))], __period__=[+(-(+(*(EXTRACT('YEAR', MAX($0) OVER ()), 12), EXTRACT('MONTH', MAX($0) OVER ())), +(*(EXTRACT('YEAR', $0), 12), EXTRACT('MONTH', $0))), 1)])
+          LogicalSort(sort0=[$0], dir0=[ASC])
+            LogicalProject(@timestamp=[$0], avg(cpu_usage)=[$1])
+              LogicalAggregate(group=[{1}], avg(cpu_usage)=[AVG($0)])
+                LogicalProject(cpu_usage=[$7], @timestamp0=[SPAN($1, 1, 'd')])
+                  LogicalFilter(condition=[AND(IS NOT NULL($1), IS NOT NULL($7))])
+                    LogicalFilter(condition=[<=($1, TIMESTAMP('2024-07-03 18:00:00':VARCHAR))])
+                      CalciteLogicalIndexScan(table=[[OpenSearch, events]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableSort(sort0=[$0], sort1=[$3], dir0=[ASC], dir1=[ASC])
+        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[UNIX_TIMESTAMP($t4)], expr#6=[CAST($t5):BIGINT NOT NULL], expr#7=['DAY'], expr#8=[EXTRACT($t7, $t4)], expr#9=[1:BIGINT], expr#10=[-($t8, $t9)], expr#11=[86400:BIGINT], expr#12=[*($t10, $t11)], expr#13=[-($t6, $t12)], expr#14=['HOUR'], expr#15=[EXTRACT($t14, $t4)], expr#16=[3600:BIGINT], expr#17=[*($t15, $t16)], expr#18=['MINUTE'], expr#19=[EXTRACT($t18, $t4)], expr#20=[60:BIGINT], expr#21=[*($t19, $t20)], expr#22=[+($t17, $t21)], expr#23=['SECOND'], expr#24=[EXTRACT($t23, $t4)], expr#25=[+($t22, $t24)], expr#26=[-($t13, $t25)], expr#27=[+($t26, $t2)], expr#28=[FROM_UNIXTIME($t27)], expr#29=[24295:BIGINT], expr#30=['YEAR'], expr#31=[EXTRACT($t30, $t4)], expr#32=[12:BIGINT], expr#33=[*($t31, $t32)], expr#34=['MONTH'], expr#35=[EXTRACT($t34, $t4)], expr#36=[+($t33, $t35)], expr#37=[-($t29, $t36)], expr#38=[-($t36, $t3)], expr#39=[+($t38, $t9)], @timestamp=[$t28], avg(cpu_usage)=[$t1], __base_offset__=[$t37], __period__=[$t39])
+          EnumerableWindow(window#0=[window(aggs [MAX($0)])])
+            EnumerableCalc(expr#0..2=[{inputs}], expr#3=[0], expr#4=[=($t2, $t3)], expr#5=[null:DOUBLE], expr#6=[CASE($t4, $t5, $t1)], expr#7=[/($t6, $t2)], expr#8=[UNIX_TIMESTAMP($t0)], expr#9=[CAST($t8):BIGINT NOT NULL], expr#10=['DAY'], expr#11=[EXTRACT($t10, $t0)], expr#12=[1:BIGINT], expr#13=[-($t11, $t12)], expr#14=[86400:BIGINT], expr#15=[*($t13, $t14)], expr#16=[-($t9, $t15)], expr#17=['HOUR'], expr#18=[EXTRACT($t17, $t0)], expr#19=[3600:BIGINT], expr#20=[*($t18, $t19)], expr#21=['MINUTE'], expr#22=[EXTRACT($t21, $t0)], expr#23=[60:BIGINT], expr#24=[*($t22, $t23)], expr#25=[+($t20, $t24)], expr#26=['SECOND'], expr#27=[EXTRACT($t26, $t0)], expr#28=[+($t25, $t27)], expr#29=[-($t16, $t28)], expr#30=[-($t9, $t29)], expr#31=['YEAR'], expr#32=[EXTRACT($t31, $t0)], expr#33=[12:BIGINT], expr#34=[*($t32, $t33)], expr#35=['MONTH'], expr#36=[EXTRACT($t35, $t0)], expr#37=[+($t34, $t36)], @timestamp0=[$t0], avg(cpu_usage)=[$t7], $2=[$t30], $3=[$t37])
+              EnumerableSort(sort0=[$0], dir0=[ASC])
+                EnumerableAggregate(group=[{1}], agg#0=[$SUM0($0)], agg#1=[COUNT($0)])
+                  EnumerableCalc(expr#0..15=[{inputs}], expr#16=[1], expr#17=['d'], expr#18=[SPAN($t1, $t16, $t17)], expr#19=['2024-07-03 18:00:00':EXPR_TIMESTAMP VARCHAR], expr#20=[<=($t1, $t19)], expr#21=[IS NOT NULL($t7)], expr#22=[AND($t20, $t21)], cpu_usage=[$t7], @timestamp0=[$t18], $condition=[$t22])
+                    CalciteEnumerableIndexScan(table=[[OpenSearch, events]])

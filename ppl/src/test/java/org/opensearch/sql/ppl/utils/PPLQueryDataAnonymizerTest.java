@@ -284,6 +284,17 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testTimewrapCommand() {
+    assertEquals(
+        "source=table | timechart count() | timewrap *** align=end series=relative",
+        anonymize("source=t | timechart count() | timewrap 1day"));
+
+    assertEquals(
+        "source=table | timechart count() | timewrap *** align=now series=short",
+        anonymize("source=t | timechart count() | timewrap 1week align=now series=short"));
+  }
+
+  @Test
   public void testChartCommand() {
     assertEquals(
         "source=table | chart count(identifier) by identifier identifier",

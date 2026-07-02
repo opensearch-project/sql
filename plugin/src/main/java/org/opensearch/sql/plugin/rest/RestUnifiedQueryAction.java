@@ -244,6 +244,12 @@ public class RestUnifiedQueryAction {
                     }
                   } catch (Exception e) {
                     closingListener.onFailure(e);
+                  } finally {
+                    // visitTimewrap (run inside planner.plan) sets timewrap thread-locals on this
+                    // worker thread. execute()/executeWithProfile() capture-and-clear them on the
+                    // happy path, but a planning exception bypasses that — clear here so the
+                    // signals never leak onto the next query reusing this pooled thread.
+                    CalcitePlanContext.clearTimewrapSignals();
                   }
                 }),
             new TimeValue(0),
@@ -291,6 +297,11 @@ public class RestUnifiedQueryAction {
                     analyticsEngine.explain(plan, mode, planContext, listener);
                   } catch (Exception e) {
                     listener.onFailure(e);
+                  } finally {
+                    // explain plans a timewrap query (visitTimewrap sets thread-locals) but never
+                    // executes, so nothing captures-and-clears them — clear here to avoid leaking
+                    // onto the next query on this pooled thread.
+                    CalcitePlanContext.clearTimewrapSignals();
                   }
                 }),
             new TimeValue(0),
