@@ -8,6 +8,8 @@ package org.opensearch.sql.opensearch.client;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
@@ -114,4 +116,14 @@ public interface OpenSearchClient {
    * @param deletePitRequest Delete Point In Time request
    */
   void deletePit(DeletePitRequest deletePitRequest);
+
+  /**
+   * Execute a bulk write request (append/index documents). Used by the PPL {@code collect} write
+   * sink to drain pipeline rows into a destination index. See the collect RFC for the write-sink
+   * capability and safety model.
+   *
+   * @param bulkRequest bulk request carrying one or more index operations
+   * @return bulk response with per-item results, including partial failures
+   */
+  BulkResponse bulk(BulkRequest bulkRequest);
 }

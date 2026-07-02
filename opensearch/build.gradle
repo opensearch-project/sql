@@ -41,6 +41,8 @@ dependencies {
     compileOnly group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     implementation group: 'org.opensearch', name:'opensearch-ml-client', version: "${opensearch_build}"
     implementation group: 'org.opensearch', name:'geospatial-client', version: "${opensearch_build}"
+    // collect command streaming write engine: reuse the server-side reindex (bulk-by-scroll) action.
+    implementation group: 'org.opensearch.plugin', name: 'reindex-client', version: "${opensearch_version}"
 
     annotationProcessor 'org.immutables:value:2.8.8'
     compileOnly 'org.immutables:value-annotations:2.8.8'
