@@ -48,6 +48,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelCollation;
@@ -57,7 +58,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Spool;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalTableSpool;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -121,6 +124,7 @@ import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Collect;
 import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -798,6 +802,63 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitHead(Head node, CalcitePlanContext context) {
     visitChildren(node, context);
     context.relBuilder.limit(node.getFrom(), node.getSize());
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitCollect(Collect node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    if (node.getIndexName().startsWith(".")) {
+      throw new SemanticCheckException(
+          String.format(
+              "collect cannot write to system or hidden index [%s]; dot-prefixed indices are"
+                  + " refused",
+              node.getIndexName()));
+    }
+    // Stamp option values as literal columns below the spool so they are written and passed
+    // through.
+    boolean hasStamp =
+        node.getSource() != null
+            || node.getHost() != null
+            || node.getSourcetype() != null
+            || node.getMarker() != null;
+    if (hasStamp) {
+      List<RexNode> exprs = new ArrayList<>(context.relBuilder.fields());
+      List<String> names = new ArrayList<>(context.relBuilder.peek().getRowType().getFieldNames());
+      if (node.getSource() != null) {
+        exprs.add(context.relBuilder.literal(node.getSource()));
+        names.add("source");
+      }
+      if (node.getHost() != null) {
+        exprs.add(context.relBuilder.literal(node.getHost()));
+        names.add("host");
+      }
+      if (node.getSourcetype() != null) {
+        exprs.add(context.relBuilder.literal(node.getSourcetype()));
+        names.add("sourcetype");
+      }
+      if (node.getMarker() != null) {
+        exprs.add(context.relBuilder.literal(node.getMarker()));
+        names.add("marker");
+      }
+      context.relBuilder.project(exprs, names);
+    }
+    // testmode is a dry run: emit the stamped rows, but skip the write and destination resolution.
+    if (node.isTestmode()) {
+      return context.relBuilder.peek();
+    }
+    RelNode child = context.relBuilder.build();
+    RelOptSchema relOptSchema = context.relBuilder.getRelOptSchema();
+    RelOptTable dest = relOptSchema.getTableForMember(List.of(node.getIndexName()));
+    if (dest == null) {
+      throw new SemanticCheckException(
+          String.format(
+              "collect destination index [%s] does not exist; collect requires a pre-existing"
+                  + " destination index",
+              node.getIndexName()));
+    }
+    RelNode spool = LogicalTableSpool.create(child, Spool.Type.LAZY, Spool.Type.LAZY, dest);
+    context.relBuilder.push(spool);
     return context.relBuilder.peek();
   }
 

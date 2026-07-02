@@ -18,6 +18,9 @@ public class OpenSearchIndexRules {
       EnumerableNestedAggregateRule.DEFAULT_CONFIG.toRule();
   private static final RelOptRule GRAPH_LOOKUP_RULE =
       EnumerableGraphLookupRule.DEFAULT_CONFIG.toRule();
+  // collect: lower the pass-through write spool (LogicalTableSpool) to the OpenSearch bulk spool.
+  private static final RelOptRule COLLECT_TABLE_SPOOL_RULE =
+      EnumerableOpenSearchTableSpoolRule.DEFAULT_CONFIG.toRule();
   // Rule that always pushes down relevance functions regardless of pushdown settings
   private static final RelevanceFunctionPushdownRule RELEVANCE_FUNCTION_RULE =
       RelevanceFunctionPushdownRule.Config.DEFAULT.toRule();
@@ -29,6 +32,7 @@ public class OpenSearchIndexRules {
           SYSTEM_INDEX_SCAN_RULE,
           NESTED_AGGREGATE_RULE,
           GRAPH_LOOKUP_RULE,
+          COLLECT_TABLE_SPOOL_RULE,
           RELEVANCE_FUNCTION_RULE);
 
   private static final ProjectIndexScanRule PROJECT_INDEX_SCAN =

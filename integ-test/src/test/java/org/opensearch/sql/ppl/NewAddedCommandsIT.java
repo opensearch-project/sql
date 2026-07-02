@@ -18,6 +18,7 @@ import java.io.IOException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.util.TestUtils;
 
@@ -541,6 +542,27 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
                   "| union [search source=%s | where age < 30] [search source=%s | where age >="
                       + " 30]",
                   TEST_INDEX_BANK, TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
+
+  @Test
+  public void testCollect() throws IOException {
+    // collect requires a pre-existing destination index; create one, then append BANK rows to it.
+    String dest = "new_added_collect_dest";
+    Request createDest = new Request("PUT", "/" + dest);
+    createDest.setJsonEntity(
+        "{\"mappings\":{\"properties\":{\"firstname\":{\"type\":\"keyword\"}}}}");
+    client().performRequest(createDest);
+
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | fields firstname | collect index=%s", TEST_INDEX_BANK, dest));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }

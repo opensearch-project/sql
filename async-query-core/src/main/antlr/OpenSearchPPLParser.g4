@@ -41,6 +41,7 @@ commands
    | fieldsCommand
    | statsCommand
    | dedupCommand
+   | collectCommand
    | sortCommand
    | headCommand
    | topCommand
@@ -72,6 +73,7 @@ commandName
    | STATS
    | EVENTSTATS
    | DEDUP
+   | COLLECT
    | EXPLAIN
    | SORT
    | HEAD
@@ -94,6 +96,19 @@ searchCommand
    : (SEARCH)? fromClause                       # searchFrom
    | (SEARCH)? fromClause logicalExpression     # searchFromFilter
    | (SEARCH)? logicalExpression fromClause     # searchFilterFrom
+   ;
+
+// collect: terminal write sink — append pipeline rows to a pre-existing destination index.
+collectCommand
+   : COLLECT INDEX EQUAL tableSourceClause collectOption*
+   ;
+
+collectOption
+   : SOURCE EQUAL source = stringLiteral
+   | HOST EQUAL host = stringLiteral
+   | SOURCETYPE EQUAL sourcetype = stringLiteral
+   | MARKER EQUAL marker = stringLiteral
+   | TESTMODE EQUAL testmode = booleanLiteral
    ;
 
 fieldsummaryCommand
@@ -1082,6 +1097,10 @@ keywordsCanBeId
    // commands assist keywords
    | IN
    | SOURCE
+   | HOST
+   | SOURCETYPE
+   | MARKER
+   | TESTMODE
    | INDEX
    | DESC
    | DATASOURCES

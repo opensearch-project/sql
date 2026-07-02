@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.action.admin.cluster.settings.ClusterGetSettingsRequest;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.search.*;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
@@ -270,6 +272,15 @@ public class OpenSearchRestClient implements OpenSearchClient {
     } catch (IOException e) {
       throw new RuntimeException(
           "Error occurred while deleting PIT for internal plugin operation", e);
+    }
+  }
+
+  @Override
+  public BulkResponse bulk(BulkRequest bulkRequest) {
+    try {
+      return client.bulk(bulkRequest, RequestOptions.DEFAULT);
+    } catch (IOException e) {
+      throw new IllegalStateException("Failed to execute bulk write request", e);
     }
   }
 }
