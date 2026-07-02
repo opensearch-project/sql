@@ -33,6 +33,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -105,13 +106,29 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
 
   @Override
   public RelWriter explainTerms(RelWriter pw) {
+    // Build explain string with context and request builder info
     String explainString = String.valueOf(pushDownContext);
-    if (pw instanceof RelWriterImpl) {
-      // Only add request builder to the explain plan
-      explainString += ", " + pushDownContext.createRequestBuilder();
+    if (pw instanceof RelJsonWriter) {
+      // For JSON output, add structured items
+      super.explainTerms(pw);
+      if (!pushDownContext.isEmpty()) {
+        pw.item("PushDownContext", explainString);
+        try {
+          OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
+          pw.item("sourceBuilder", requestBuilder.getSourceBuilder().toString());
+        } catch (Exception e) {
+          // Ignore if request builder cannot be created
+        }
+      }
+      return pw;
+    } else {
+      // For text output, use original chained format
+      if (pw instanceof RelWriterImpl && !pushDownContext.isEmpty()) {
+        explainString += ", " + pushDownContext.createRequestBuilder();
+      }
+      return super.explainTerms(pw)
+          .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
     }
-    return super.explainTerms(pw)
-        .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
   }
 
   protected Integer getQuerySizeLimit() {
