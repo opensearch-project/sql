@@ -110,6 +110,7 @@ import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -828,6 +829,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitChart(Chart node, AnalysisContext context) {
     throw getOnlyForCalciteException("Chart");
+  }
+
+  @Override
+  public LogicalPlan visitXyseries(Xyseries node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Xyseries");
   }
 
   @Override
