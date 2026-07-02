@@ -109,6 +109,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.ReplacePair;
+import org.opensearch.sql.ast.tree.RestRelation;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -141,6 +142,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseCont
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
+import org.opensearch.sql.utils.SystemIndexUtils;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
@@ -250,6 +252,37 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitShowDataSourcesCommand(
       OpenSearchPPLParser.ShowDataSourcesCommandContext ctx) {
     return new DescribeRelation(qualifiedName(DATASOURCES_TABLE_NAME));
+  }
+
+  /**
+   * <b>Rest command.</b><br>
+   * Leading command that reads an allow-listed, read-only in-cluster management endpoint
+   * (cluster/cat/nodes) as rows. The validated endpoint spec is encoded into a single reserved
+   * table name via {@link org.opensearch.sql.utils.SystemIndexUtils#restTable}; that name resolves
+   * through the storage engine to a REST source table on the Calcite path, mirroring how DESCRIBE
+   * resolves to a system index. Allow-list/authorization enforcement happens at source-table
+   * construction in the storage engine (it owns the transport actions and per-endpoint schemas).
+   */
+  @Override
+  public UnresolvedPlan visitRestCommand(OpenSearchPPLParser.RestCommandContext ctx) {
+    String endpoint = StringUtils.unquoteText(ctx.stringLiteral().getText());
+    LinkedHashMap<String, String> args = new LinkedHashMap<>();
+    Integer count = null;
+    String timeout = null;
+    for (OpenSearchPPLParser.RestArgumentContext arg : ctx.restArgument()) {
+      if (arg.COUNT() != null) {
+        count = Integer.parseInt(arg.integerLiteral().getText());
+      } else if (arg.TIMEOUT() != null) {
+        timeout = StringUtils.unquoteText(arg.stringLiteral().getText());
+      } else {
+        args.put(
+            StringUtils.unquoteIdentifier(arg.ident().getText()),
+            StringUtils.unquoteText(arg.literalValue().getText()));
+      }
+    }
+    String token =
+        SystemIndexUtils.restTable(new SystemIndexUtils.RestSpec(endpoint, args, count, timeout));
+    return new RestRelation(new QualifiedName(token));
   }
 
   /** Where command. */
