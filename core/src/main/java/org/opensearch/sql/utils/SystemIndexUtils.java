@@ -125,6 +125,9 @@ public class SystemIndexUtils {
   }
 
   private static String fromHex(String h) {
+    if (h.length() % 2 != 0) {
+      throw new IllegalArgumentException("not a valid rest source token: odd-length hex body");
+    }
     byte[] bytes = new byte[h.length() / 2];
     for (int i = 0; i < bytes.length; i++) {
       bytes[i] =
