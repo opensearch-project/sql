@@ -7,6 +7,7 @@ package org.opensearch.sql.executor.execution;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -19,6 +20,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.exception.UnsupportedCursorRequestException;
+import org.opensearch.sql.executor.AnalyzeResponse;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
@@ -146,5 +148,16 @@ public class QueryPlanFactory
         node.getMode(),
         node.getFormat(),
         context.getRight());
+  }
+
+  /** Create an AnalyzePlan that produces AST node and logical plan RelNode. */
+  public AbstractPlan createAnalyzePlan(
+      String query,
+      List<AnalyzeResponse.QuerySegment> querySegments,
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener<AnalyzeResponse> listener) {
+    return new AnalyzePlan(
+        QueryId.queryId(), queryType, query, querySegments, plan, queryService, listener);
   }
 }
