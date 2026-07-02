@@ -87,6 +87,7 @@ source=accounts
 | [nomv command](cmd/nomv.md) | 3.6 | stable (since 3.6) | Converts a multivalue field to a single-value string by joining elements with newlines. |
 | [mvexpand command](cmd/mvexpand.md) | 3.6                | stable (since 3.6)       | Expand a multi-valued field into separate documents (one per value). |
 | [graphlookup command](cmd/graphlookup.md) | 3.6 | experimental (since 3.6) | Performs recursive graph traversal on a collection using a BFS algorithm.|
+| [collect command](cmd/collect.md) | 3.8 | experimental (since 3.8) | Append pipeline results to a pre-existing destination index (pass-through write). |
   
   - [Syntax](cmd/syntax.md) - PPL query structure and command syntax formatting  
 * **Functions**  

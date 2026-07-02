@@ -8,6 +8,8 @@ package org.opensearch.sql.opensearch.client;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
@@ -114,4 +116,13 @@ public interface OpenSearchClient {
    * @param deletePitRequest Delete Point In Time request
    */
   void deletePit(DeletePitRequest deletePitRequest);
+
+  /**
+   * Execute a bulk write request (used by the collect write sink). Default throws: only the
+   * node/rest clients that back an in-cluster write override it, so external implementors that do
+   * no writes are not forced to implement it.
+   */
+  default BulkResponse bulk(BulkRequest bulkRequest) {
+    throw new UnsupportedOperationException("bulk write is not supported by this client");
+  }
 }
