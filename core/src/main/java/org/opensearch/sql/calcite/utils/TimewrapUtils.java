@@ -343,10 +343,10 @@ public class TimewrapUtils {
             java.time.LocalDateTime.parse(
                 s, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         return ldt.toEpochSecond(java.time.ZoneOffset.UTC);
-      } catch (Exception e) {
+      } catch (java.time.format.DateTimeParseException e) {
         try {
           return java.time.Instant.parse(s).getEpochSecond();
-        } catch (Exception ignored) {
+        } catch (java.time.format.DateTimeParseException ignored) {
           return null;
         }
       }
