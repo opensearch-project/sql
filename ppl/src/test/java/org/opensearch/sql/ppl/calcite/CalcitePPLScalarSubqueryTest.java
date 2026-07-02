@@ -135,15 +135,12 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "}))], variablesSet=[[$cor0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-
-    String expectedSparkSql =
-        ""
-            + "SELECT *\n"
-            + "FROM `scott`.`EMP`\n"
-            + "WHERE `SAL` > (((SELECT AVG(`EMP`.`SAL`) `AVG(SAL)`\n"
-            + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `EMP`.`SAL` = `HISAL`)))";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
+    // verifyPPLToSparkSQL is intentionally omitted: SALGRADE has no SAL column, so both SAL
+    // references in the subquery bind to the outer EMP.SAL (correlated outer reference). The
+    // SQL serializer emits AVG(`EMP`.`SAL`) in the subquery aggregate — outer-column references
+    // in aggregate functions are rejected by Spark with
+    // UNSUPPORTED_SUBQUERY_EXPRESSION_CATEGORY.CORRELATED_REFERENCE. The logical plan above is
+    // the authoritative contract for this query; the Spark SQL string is not executable.
   }
 
   @Test
@@ -167,14 +164,11 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "})], SAL=[$5])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-
-    String expectedSparkSql =
-        ""
-            + "SELECT (((SELECT MIN(`EMP`.`EMPNO`) `min(EMPNO)`\n"
-            + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `EMP`.`SAL` = `HISAL`))) `min_empno`, `SAL`\n"
-            + "FROM `scott`.`EMP`";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
+    // verifyPPLToSparkSQL is intentionally omitted: SALGRADE has no EMPNO or SAL column, so
+    // both references in the subquery bind to outer EMP columns (correlated outer references).
+    // The SQL serializer emits MIN(`EMP`.`EMPNO`) inside a subquery aggregate — outer-column
+    // references in aggregate functions are rejected by Spark with
+    // UNSUPPORTED_SUBQUERY_EXPRESSION_CATEGORY.CORRELATED_REFERENCE. See issue #5470.
   }
 
   @Test
@@ -338,37 +332,6 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "GROUP BY `JOB`)))\n"
             + "GROUP BY `GRADE`\n"
             + "LIMIT 1)))";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
-  }
-
-  @Test
-  public void testCorrelatedScalarSubqueryInWhereMaxOut() {
-    String ppl =
-        """
-        source=EMP
-        | where SAL > [
-            source=SALGRADE | where SAL = HISAL | stats AVG(SAL)
-          ]
-        """;
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        ""
-            + "LogicalFilter(condition=[>($5, $SCALAR_QUERY({\n"
-            + "LogicalAggregate(group=[{}], AVG(SAL)=[AVG($0)])\n"
-            + "  LogicalProject($f0=[$cor0.SAL])\n"
-            + "    LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
-            + "      LogicalTableScan(table=[[scott, SALGRADE]])\n"
-            + "}))], variablesSet=[[$cor0]])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-
-    String expectedSparkSql =
-        ""
-            + "SELECT *\n"
-            + "FROM `scott`.`EMP`\n"
-            + "WHERE `SAL` > (((SELECT AVG(`EMP`.`SAL`) `AVG(SAL)`\n"
-            + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `EMP`.`SAL` = `HISAL`)))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
