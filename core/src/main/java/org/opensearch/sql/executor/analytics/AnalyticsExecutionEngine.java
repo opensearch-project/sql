@@ -95,15 +95,14 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
   }
 
   /**
-   * Overload that threads a {@link org.opensearch.analytics.QueryRequestContext} snapshot down to
-   * the analytics-engine's plan executor via {@link
-   * org.opensearch.analytics.exec.QueryPlanExecutor}'s opaque context slot. The snapshot is
-   * captured once at query entry so planner and executor see the same cluster state.
+   * Overload that threads a QueryRequestContext snapshot down to the analytics-engine's plan
+   * executor via {@link org.opensearch.analytics.exec.QueryPlanExecutor}'s opaque context slot. The
+   * snapshot is captured once at query entry so planner and executor see the same cluster state.
    */
   public void execute(
       RelNode plan,
       CalcitePlanContext context,
-      org.opensearch.analytics.QueryRequestContext queryCtx,
+      Object queryCtx,
       ResponseListener<QueryResponse> listener) {
     // QueryPlanExecutor became asynchronous in analytics-framework 3.7 — execution is dispatched
     // to a worker pool and results arrive on the listener. Record the execute metric in the
@@ -166,7 +165,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
   public void executeWithProfile(
       RelNode plan,
       CalcitePlanContext context,
-      org.opensearch.analytics.QueryRequestContext queryCtx,
+      Object queryCtx,
       ResponseListener<QueryResponse> listener) {
 
     ProfileContext profileCtx = QueryProfiling.current();
