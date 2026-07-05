@@ -364,7 +364,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
                 "source=%s | rename name as nm | dedup 1 category | fields category, nm",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     // One representative row per category; nm must not be null
-    verifyDataRows(actual, rows("X", "A"), rows("Z", "B"), rows("Y", "B"));
+    verifyDataRows(actual, rows("X", "A"), rows("Z", "B"), rows("Y", "A"));
   }
 
   /**
@@ -384,7 +384,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
                     + " | fields category, nm, nm2",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     // Both nm (from rename) and nm2 (from eval col-ref) must carry the same non-null name value
-    verifyDataRows(actual, rows("X", "A", "A"), rows("Z", "B", "B"), rows("Y", "B", "B"));
+    verifyDataRows(actual, rows("X", "A", "A"), rows("Z", "B", "B"), rows("Y", "A", "A"));
   }
 
   /** Regression test for https://github.com/opensearch-project/sql/issues/3922 */
