@@ -168,7 +168,8 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
     givenInvalidQuery("source = catalog.employees | eventstats rank()")
         .assertErrorType(SemanticCheckException.class)
         .assertCauseType(CalciteUnsupportedException.class)
-        .assertErrorMessageContains("Window function 'rank' is not supported in eventstats/streamstats");
+        .assertErrorMessageContains(
+            "Window function 'rank' is not supported in eventstats/streamstats");
   }
 
   @Test
