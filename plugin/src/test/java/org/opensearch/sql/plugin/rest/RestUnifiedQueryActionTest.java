@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.plugin.rest;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -22,6 +23,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.indices.IndicesService;
+import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -33,6 +35,7 @@ public class RestUnifiedQueryActionTest {
 
   private ClusterService clusterService;
   private Metadata metadata;
+  private org.opensearch.sql.common.setting.Settings pluginSettings;
   private RestUnifiedQueryAction action;
 
   @Before
@@ -46,6 +49,7 @@ public class RestUnifiedQueryActionTest {
     // path is only exercised when this returns something other than "composite".
     when(clusterService.getSettings()).thenReturn(Settings.EMPTY);
 
+    pluginSettings = mock(org.opensearch.sql.common.setting.Settings.class);
     @SuppressWarnings("unchecked")
     QueryPlanExecutor<RelNode, Iterable<Object[]>> executor = mock(QueryPlanExecutor.class);
     action =
@@ -54,7 +58,7 @@ public class RestUnifiedQueryActionTest {
             clusterService,
             executor,
             mock(EngineContextProvider.class),
-            mock(org.opensearch.sql.common.setting.Settings.class));
+            pluginSettings);
   }
 
   @Test
@@ -228,6 +232,44 @@ public class RestUnifiedQueryActionTest {
     enableClusterComposite();
     // malformed -> AE re-parses & reports
     assertTrue(action.isAnalyticsIndex("source = parquet_logs | | fields ts", QueryType.PPL));
+  }
+
+  @Test
+  public void clusterQuerySizeLimitReachesAnalyticsContext() {
+    // Regression: the AE path pinned QUERY_SIZE_LIMIT to the builder's hardcoded default (10000),
+    // silently ignoring the configured cluster value. Forwarding must carry the live value through
+    // to the plan context, since addQuerySizeLimit reads it from there.
+    when(pluginSettings.getSettingValue(
+            org.opensearch.sql.common.setting.Settings.Key.QUERY_SIZE_LIMIT))
+        .thenReturn(500);
+
+    UnifiedQueryContext context =
+        action.applyClusterOverrides(UnifiedQueryContext.builder().language(QueryType.PPL)).build();
+
+    assertEquals(
+        "Cluster plugins.query.size_limit must reach the AE plan context",
+        Integer.valueOf(500),
+        context.getPlanContext().sysLimit.querySizeLimit());
+  }
+
+  @Test
+  public void calciteEngineEnabledNotOverriddenByCluster() {
+    // CALCITE_ENGINE_ENABLED is deliberately excluded from forwarding: the unified path is
+    // Calcite-based by definition and must stay true even if the cluster disables it.
+    when(pluginSettings.getSettingValue(
+            org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED))
+        .thenReturn(false);
+
+    UnifiedQueryContext context =
+        action.applyClusterOverrides(UnifiedQueryContext.builder().language(QueryType.PPL)).build();
+
+    assertEquals(
+        "Unified path must force Calcite on regardless of the cluster setting",
+        Boolean.TRUE,
+        context
+            .getSettings()
+            .getSettingValue(
+                org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED));
   }
 
   private void enableClusterComposite() {
