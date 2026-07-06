@@ -871,14 +871,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitForeachCommand(OpenSearchPPLParser.ForeachCommandContext ctx) {
-    String mode =
-        ctx.foreachOption().stream()
-            .filter(option -> "mode".equalsIgnoreCase(option.ident(0).getText()))
-            .map(option -> option.ident(1).getText())
-            .findFirst()
-            .orElse("multifield");
+    java.util.Map<String, String> options = new LinkedHashMap<>();
+    ctx.foreachOption()
+        .forEach(
+            option ->
+                options.put(
+                    option.ident(0).getText().toLowerCase(Locale.ROOT),
+                    normalizeForeachOptionValue(option.getChild(2).getText())));
+    String mode = options.getOrDefault("mode", "multifield");
     List<String> patterns =
-        ctx.foreachFieldPattern().stream().map(this::getTextInQuery).collect(Collectors.toList());
+        ctx.foreachTarget().stream().map(this::getTextInQuery).collect(Collectors.toList());
+    UnresolvedExpression collectionExpression =
+        "multifield".equalsIgnoreCase(mode)
+            ? null
+            : buildForeachCollectionExpression(ctx.foreachTarget());
     List<ForeachEvalClause> evalClauses =
         ctx.foreachEvalCommand().foreachEvalClause().stream()
             .map(
@@ -887,7 +893,27 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                         getTextInQuery(clause.target),
                         expressionBuilder.visit(clause.logicalExpression())))
             .collect(Collectors.toList());
-    return new Foreach(mode, patterns, evalClauses);
+    return new Foreach(mode, options, patterns, collectionExpression, evalClauses);
+  }
+
+  private String normalizeForeachOptionValue(String value) {
+    if (value.startsWith("<<") && value.endsWith(">>")) {
+      return value.substring(2, value.length() - 2);
+    }
+    return value;
+  }
+
+  private UnresolvedExpression buildForeachCollectionExpression(
+      List<OpenSearchPPLParser.ForeachTargetContext> targets) {
+    if (targets.size() != 1) {
+      throw new IllegalArgumentException("foreach collection modes accept exactly one field");
+    }
+    OpenSearchPPLParser.ForeachTargetContext target = targets.get(0);
+    if (target.logicalExpression() != null) {
+      return expressionBuilder.visit(target.logicalExpression());
+    }
+    String fieldName = getTextInQuery(target);
+    return new Field(new QualifiedName(fieldName));
   }
 
   @Override

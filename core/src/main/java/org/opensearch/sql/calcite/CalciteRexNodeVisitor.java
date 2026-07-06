@@ -80,6 +80,7 @@ import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.Sort.SortOrder;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.CalcitePlanContext.ForeachBinding;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -400,20 +401,58 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   /** Resolve qualified name. Note, the name should be case-sensitive. */
   @Override
   public RexNode visitQualifiedName(QualifiedName node, CalcitePlanContext context) {
+    ForeachBinding binding = foreachBinding(node.toString(), context);
+    if (binding != null) {
+      return foreachBindingToRexNode(node.toString(), binding, context);
+    }
     return QualifiedNameResolver.resolve(node, context);
   }
 
   @Override
   public RexNode visitForeachPlaceholder(ForeachPlaceholder node, CalcitePlanContext context) {
-    String name = node.getName().toUpperCase(Locale.ROOT);
-    String value = context.getForeachBindings().get(name);
-    if (value == null) {
+    ForeachBinding binding = foreachBinding(node.getName(), context);
+    if (binding == null) {
       throw new SemanticCheckException("Unresolved foreach placeholder <<" + node.getName() + ">>");
     }
-    if ("FIELD".equals(name)) {
-      return context.relBuilder.field(value);
+    return foreachBindingToRexNode(node.getName(), binding, context);
+  }
+
+  private ForeachBinding foreachBinding(String name, CalcitePlanContext context) {
+    return context.getForeachBindings().get(name.toUpperCase(Locale.ROOT));
+  }
+
+  private RexNode foreachBindingToRexNode(
+      String name, ForeachBinding binding, CalcitePlanContext context) {
+    switch (binding.type()) {
+      case FIELD:
+        return context.relBuilder.field(binding.value());
+      case LAMBDA:
+        RexLambdaRef lambdaRef = context.getRexLambdaRefMap().get(binding.value());
+        if (lambdaRef == null) {
+          throw new SemanticCheckException("Unresolved foreach lambda placeholder " + name);
+        }
+        return lambdaRef;
+      case PAIR_ITEM:
+        return foreachPairItem(binding.value(), 0, name, context);
+      case PAIR_ITER:
+        return foreachPairItem(binding.value(), 1, name, context);
+      case LITERAL:
+      default:
+        return context.rexBuilder.makeLiteral(binding.value());
     }
-    return context.rexBuilder.makeLiteral(value);
+  }
+
+  private RexNode foreachPairItem(
+      String pairName, int index, String placeholderName, CalcitePlanContext context) {
+    RexLambdaRef pair = context.getRexLambdaRefMap().get(pairName);
+    if (pair == null) {
+      throw new SemanticCheckException("Unresolved foreach lambda placeholder " + placeholderName);
+    }
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        BuiltinFunctionName.MVINDEX,
+        pair,
+        context.rexBuilder.makeExactLiteral(BigDecimal.valueOf(index)));
   }
 
   @Override

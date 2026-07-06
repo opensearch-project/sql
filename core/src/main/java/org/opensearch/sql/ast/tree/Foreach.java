@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,9 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @RequiredArgsConstructor
 public class Foreach extends UnresolvedPlan {
   private final String mode;
+  private final Map<String, String> options;
   private final List<String> fieldPatterns;
+  private final UnresolvedExpression collectionExpression;
   private final List<ForeachEvalClause> evalClauses;
   private UnresolvedPlan child;
 

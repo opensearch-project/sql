@@ -99,6 +99,7 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
@@ -169,6 +170,8 @@ import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.CalcitePlanContext.ForeachBinding;
+import org.opensearch.sql.calcite.CalcitePlanContext.ForeachBindingType;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -1247,11 +1250,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitForeach(Foreach node, CalcitePlanContext context) {
     visitChildren(node, context);
-    if (!"multifield".equalsIgnoreCase(node.getMode())) {
-      throw new CalciteUnsupportedException(
-          "foreach mode [" + node.getMode() + "] is not supported");
+    String mode = node.getMode().toLowerCase(java.util.Locale.ROOT);
+    switch (mode) {
+      case "multifield":
+        return visitForeachMultifield(node, context);
+      case "multivalue":
+      case "json_array":
+      case "auto_collections":
+        return visitForeachCollection(node, context, mode);
+      default:
+        throw new CalciteUnsupportedException(
+            "foreach mode [" + node.getMode() + "] is not supported");
     }
+  }
 
+  private RelNode visitForeachMultifield(Foreach node, CalcitePlanContext context) {
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     LinkedHashSet<String> matchingFields = new LinkedHashSet<>();
     for (String pattern : node.getFieldPatterns()) {
@@ -1259,7 +1272,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     for (String fieldName : matchingFields) {
-      Map<String, String> bindings = buildForeachBindings(node.getFieldPatterns(), fieldName);
+      Map<String, ForeachBinding> bindings =
+          buildForeachMultifieldBindings(node.getFieldPatterns(), fieldName, node.getOptions());
       context.pushForeachBindings(bindings);
       try {
         for (Foreach.ForeachEvalClause clause : node.getEvalClauses()) {
@@ -1275,15 +1289,104 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private Map<String, String> buildForeachBindings(List<String> patterns, String fieldName) {
-    Map<String, String> bindings = new HashMap<>();
-    bindings.put("FIELD", fieldName);
+  private RelNode visitForeachCollection(
+      Foreach node, CalcitePlanContext context, String normalizedMode) {
+    if (node.getCollectionExpression() == null) {
+      throw new SemanticCheckException("foreach " + normalizedMode + " mode requires a field");
+    }
+    if (node.getFieldPatterns().size() != 1) {
+      throw new SemanticCheckException(
+          "foreach " + normalizedMode + " mode accepts exactly one field");
+    }
+    UnresolvedExpression collectionExpression =
+        collectionExpressionForMode(node.getCollectionExpression(), context, normalizedMode);
+    String itemName = option(node.getOptions(), "itemstr", "ITEM");
+    String iterName = option(node.getOptions(), "iterstr", "ITER");
+    String transformItemName = "__foreach_item";
+    String transformIterName = "__foreach_iter";
+    String pairName = "__foreach_pair";
+    Function pairedCollection =
+        new Function(
+            BuiltinFunctionName.TRANSFORM.getName().getFunctionName(),
+            List.of(
+                collectionExpression,
+                new LambdaFunction(
+                    new Function(
+                        BuiltinFunctionName.ARRAY.getName().getFunctionName(),
+                        List.of(
+                            new QualifiedName(transformItemName),
+                            new QualifiedName(transformIterName))),
+                    List.of(
+                        new QualifiedName(transformItemName),
+                        new QualifiedName(transformIterName)))));
+    Map<String, ForeachBinding> bindings = new HashMap<>();
+    putBinding(bindings, itemName, pairName, ForeachBindingType.PAIR_ITEM);
+    putBinding(bindings, "ITEM", pairName, ForeachBindingType.PAIR_ITEM);
+    putBinding(bindings, iterName, pairName, ForeachBindingType.PAIR_ITER);
+    putBinding(bindings, "ITER", pairName, ForeachBindingType.PAIR_ITER);
+
+    context.pushForeachBindings(bindings);
+    try {
+      for (Foreach.ForeachEvalClause clause : node.getEvalClauses()) {
+        String alias = substituteForeachTemplate(clause.getTargetTemplate(), bindings);
+        Function reduce =
+            new Function(
+                BuiltinFunctionName.REDUCE.getName().getFunctionName(),
+                List.of(
+                    pairedCollection,
+                    new Field(new QualifiedName(alias)),
+                    new LambdaFunction(
+                        clause.getExpression(),
+                        List.of(new QualifiedName(alias), new QualifiedName(pairName)))));
+        RexNode expr = rexVisitor.analyze(reduce, context);
+        projectPlusOverriding(
+            List.of(context.relBuilder.alias(expr, alias)), List.of(alias), context);
+      }
+    } finally {
+      context.clearForeachBindings();
+    }
+    return context.relBuilder.peek();
+  }
+
+  private UnresolvedExpression collectionExpressionForMode(
+      UnresolvedExpression collectionExpression,
+      CalcitePlanContext context,
+      String normalizedMode) {
+    if ("multivalue".equals(normalizedMode)) {
+      return collectionExpression;
+    }
+    if ("auto_collections".equals(normalizedMode)) {
+      RexNode rexNode = rexVisitor.analyze(collectionExpression, context);
+      if (rexNode.getType() instanceof ArraySqlType) {
+        return collectionExpression;
+      }
+    }
+    return new Function("foreach_json_array", List.of(collectionExpression));
+  }
+
+  private Map<String, ForeachBinding> buildForeachMultifieldBindings(
+      List<String> patterns, String fieldName, Map<String, String> options) {
+    Map<String, ForeachBinding> bindings = new HashMap<>();
+    putBinding(bindings, "FIELD", fieldName, ForeachBindingType.FIELD);
+    putBinding(bindings, option(options, "fieldstr", "FIELD"), fieldName, ForeachBindingType.FIELD);
     for (String pattern : patterns) {
       List<String> segments = wildcardSegments(pattern, fieldName);
       if (segments != null) {
-        bindings.put("MATCHSTR", String.join("", segments));
+        String matchStr = String.join("", segments);
+        putBinding(bindings, "MATCHSTR", matchStr, ForeachBindingType.LITERAL);
+        putBinding(
+            bindings,
+            option(options, "matchstr", "MATCHSTR"),
+            matchStr,
+            ForeachBindingType.LITERAL);
         for (int i = 0; i < segments.size(); i++) {
-          bindings.put("MATCHSEG" + (i + 1), segments.get(i));
+          String key = "MATCHSEG" + (i + 1);
+          putBinding(bindings, key, segments.get(i), ForeachBindingType.LITERAL);
+          putBinding(
+              bindings,
+              option(options, "matchseg" + (i + 1), key),
+              segments.get(i),
+              ForeachBindingType.LITERAL);
         }
         break;
       }
@@ -1311,13 +1414,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return segments;
   }
 
-  private String substituteForeachTemplate(String template, Map<String, String> bindings) {
+  private String option(Map<String, String> options, String name, String defaultValue) {
+    return options.getOrDefault(name, defaultValue);
+  }
+
+  private void putBinding(
+      Map<String, ForeachBinding> bindings, String name, String value, ForeachBindingType type) {
+    bindings.put(name.toUpperCase(java.util.Locale.ROOT), new ForeachBinding(value, type));
+  }
+
+  private String substituteForeachTemplate(String template, Map<String, ForeachBinding> bindings) {
     String result = template;
-    for (Map.Entry<String, String> entry : bindings.entrySet()) {
+    for (Map.Entry<String, ForeachBinding> entry : bindings.entrySet()) {
       result =
           result.replaceAll(
               "(?i)<<" + java.util.regex.Pattern.quote(entry.getKey()) + ">>",
-              java.util.regex.Matcher.quoteReplacement(entry.getValue()));
+              java.util.regex.Matcher.quoteReplacement(entry.getValue().value()));
     }
     return result;
   }

@@ -77,7 +77,7 @@ public class CalcitePlanContext {
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
-  @Getter private Map<String, String> foreachBindings = new HashMap<>();
+  @Getter private Map<String, ForeachBinding> foreachBindings = new HashMap<>();
 
   /**
    * Maps AggregateFunction AST nodes to their output field index for HAVING/post-aggregate
@@ -126,6 +126,7 @@ public class CalcitePlanContext {
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
+    this.foreachBindings = new HashMap<>(parent.foreachBindings);
   }
 
   public RexNode resolveJoinCondition(
@@ -204,13 +205,23 @@ public class CalcitePlanContext {
     timewrapSeries.set(null);
   }
 
-  public void pushForeachBindings(Map<String, String> bindings) {
+  public void pushForeachBindings(Map<String, ForeachBinding> bindings) {
     foreachBindings = new HashMap<>(bindings);
   }
 
   public void clearForeachBindings() {
     foreachBindings.clear();
   }
+
+  public enum ForeachBindingType {
+    FIELD,
+    LITERAL,
+    LAMBDA,
+    PAIR_ITEM,
+    PAIR_ITER
+  }
+
+  public record ForeachBinding(String value, ForeachBindingType type) {}
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {
     this.rexLambdaRefMap.putAll(candidateMap);

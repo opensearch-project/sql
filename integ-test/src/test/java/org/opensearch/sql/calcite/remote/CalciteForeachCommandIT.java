@@ -62,4 +62,54 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
     verifySchema(result, schema("copy_cpu", "bigint"), schema("copy_mem", "bigint"));
     verifyDataRows(result, rows(10, 20), rows(30, 40));
   }
+
+  @Test
+  public void testForeachCustomPlaceholders() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach | foreach fieldstr=F matchstr=M value_* [ eval copy_<<M>> = F ] |"
+                + " fields copy_cpu, copy_mem");
+    verifySchema(result, schema("copy_cpu", "bigint"), schema("copy_mem", "bigint"));
+    verifyDataRows(result, rows(10, 20), rows(30, 40));
+  }
+
+  @Test
+  public void testForeachMultivalueMode() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach | eval nums = array(1, 2, 3), total = 0 | foreach mode=multivalue"
+                + " itemstr=NUMBER nums [ eval total = total + NUMBER ] | fields total");
+    verifySchema(result, schema("total", "int"));
+    verifyDataRows(result, rows(6), rows(6));
+  }
+
+  @Test
+  public void testForeachMultivalueIterPlaceholder() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach | eval nums = array(10, 20, 30), total = 0 | foreach"
+                + " mode=multivalue iterstr=IDX nums [ eval total = total + IDX ] | fields total");
+    verifySchema(result, schema("total", "int"));
+    verifyDataRows(result, rows(3), rows(3));
+  }
+
+  @Test
+  public void testForeachJsonArrayMode() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach | eval total = 0 | foreach mode=json_array '[1,2,3]' [ eval total"
+                + " = total + <<ITEM>> ] | fields total");
+    verifySchema(result, schema("total", "double"));
+    verifyDataRows(result, rows(6.0), rows(6.0));
+  }
+
+  @Test
+  public void testForeachAutoCollectionsMode() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach | eval nums = array(1, 2, 3), total = 0 | foreach"
+                + " mode=auto_collections nums [ eval total = total + <<ITEM>> ] | fields total");
+    verifySchema(result, schema("total", "int"));
+    verifyDataRows(result, rows(6), rows(6));
+  }
 }

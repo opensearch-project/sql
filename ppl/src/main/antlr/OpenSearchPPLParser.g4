@@ -401,16 +401,17 @@ evalCommand
    ;
 
 foreachCommand
-   : FOREACH foreachOption* foreachFieldPattern (COMMA? foreachFieldPattern)* LT_SQR_PRTHS foreachEvalCommand RT_SQR_PRTHS
+   : FOREACH foreachOption* foreachTarget (COMMA? foreachTarget)* LT_SQR_PRTHS foreachEvalCommand RT_SQR_PRTHS
    ;
 
-foreachFieldPattern
+foreachTarget
    : wcFieldExpression
    | STAR
+   | logicalExpression
    ;
 
 foreachOption
-   : ident EQUAL ident
+   : ident EQUAL (ident | foreachPlaceholder)
    ;
 
 foreachEvalCommand

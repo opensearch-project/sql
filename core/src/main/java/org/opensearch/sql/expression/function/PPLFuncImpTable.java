@@ -75,6 +75,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.FILTER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FIRST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FORALL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FOREACH_JSON_ARRAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_UNIXTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.GET_FORMAT;
@@ -1235,6 +1236,7 @@ public class PPLFuncImpTable {
       registerOperator(FILTER, PPLBuiltinOperators.FILTER);
       registerOperator(TRANSFORM, PPLBuiltinOperators.TRANSFORM);
       registerOperator(REDUCE, PPLBuiltinOperators.REDUCE);
+      registerOperator(FOREACH_JSON_ARRAY, PPLBuiltinOperators.FOREACH_JSON_ARRAY);
 
       // Register Json function
       register(

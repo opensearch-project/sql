@@ -108,6 +108,31 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testForeachCollectionModesShouldPass() {
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "source=t | foreach mode=multivalue itemstr=<<NUMBER>> nums [ eval total = total +"
+                    + " <<NUMBER>> ]"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "source=t | foreach mode=json_array '[1,2,3]' [ eval total = total + <<ITEM>> ]"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("source=t | foreach mode=auto_collections nums [ eval total = total + ITEM ]"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "source=t | foreach mode=multivalue iterstr=IDX nums [ eval total = total + IDX"
+                    + " ]"));
+  }
+
+  @Test
   public void testSearchFieldsCommandCrossClusterShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("search source=c:t a=1 b=2 | fields a,b");
     assertNotEquals(null, tree);
