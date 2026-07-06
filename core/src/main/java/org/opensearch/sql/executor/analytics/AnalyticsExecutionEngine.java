@@ -112,6 +112,11 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     ProfileContext profileCtx = QueryProfiling.current();
     long execStart = System.nanoTime();
 
+    // Capture the timewrap pivot signals now: they live in CalcitePlanContext thread-locals set by
+    // visitTimewrap on this (planning) thread, but the result callback below runs on a different
+    // analytics worker thread. Clearing them here keeps this thread's thread-locals clean.
+    TimewrapSignals timewrap = TimewrapSignals.captureAndClear();
+
     planExecutor.execute(
         plan,
         queryCtx,
@@ -125,10 +130,12 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
                     List<RelDataTypeField> fields = plan.getRowType().getFieldList();
                     List<ExprValue> results = convertRows(rows, fields);
                     Schema schema = buildSchema(fields, results);
+                    QueryResponse response =
+                        timewrap.pivot(new QueryResponse(schema, results, Cursor.None));
                     profileCtx
                         .getOrCreateMetric(MetricName.EXECUTE)
                         .set(System.nanoTime() - execStart);
-                    listener.onResponse(new QueryResponse(schema, results, Cursor.None));
+                    listener.onResponse(response);
                   } catch (Exception e) {
                     listener.onFailure(e);
                   }
@@ -172,6 +179,9 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
     ProfileContext profileCtx = QueryProfiling.current();
     long execStart = System.nanoTime();
 
+    // See execute(): capture the timewrap pivot signals on this planning thread.
+    TimewrapSignals timewrap = TimewrapSignals.captureAndClear();
+
     planExecutor.executeWithProfile(
         plan,
         queryCtx,
@@ -182,7 +192,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
               // ProfiledResult delivers the profile on BOTH success and failure paths
               // so users get stage timing visibility even when a query partially fails.
               profileCtx.getOrCreateMetric(MetricName.EXECUTE).set(System.nanoTime() - execStart);
-              QueryResponse response = buildProfiledResponse(plan, result);
+              QueryResponse response = buildProfiledResponse(plan, result, timewrap);
               listener.onResponse(response);
             } catch (Exception e) {
               listener.onFailure(e);
@@ -196,12 +206,13 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
         });
   }
 
-  private QueryResponse buildProfiledResponse(RelNode plan, ProfiledResult result) {
+  private QueryResponse buildProfiledResponse(
+      RelNode plan, ProfiledResult result, TimewrapSignals timewrap) {
     List<RelDataTypeField> fields = plan.getRowType().getFieldList();
     List<ExprValue> results =
         result.rows() != null ? convertRows(result.rows(), fields) : List.of();
     Schema schema = buildSchema(fields, results);
-    QueryResponse response = new QueryResponse(schema, results, Cursor.None);
+    QueryResponse response = timewrap.pivot(new QueryResponse(schema, results, Cursor.None));
     response.setProfile(result.profile());
     if (!result.isSuccess()) {
       response.setError(result.failure());

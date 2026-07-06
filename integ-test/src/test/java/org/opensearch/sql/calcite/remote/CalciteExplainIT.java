@@ -566,6 +566,30 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainTimewrap() throws IOException {
+    // Pin the align=end reference with a WHERE upper bound so the base_offset literal is
+    // deterministic (otherwise it falls back to the query clock).
+    var result =
+        explainQueryYaml(
+            "source=events | where @timestamp <= '2024-07-03 18:00:00'"
+                + " | timechart span=6h avg(cpu_usage) | timewrap 1day");
+    String expected = loadExpectedPlan("explain_timewrap.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainTimewrapMonth() throws IOException {
+    // Variable-length unit (month) exercises the EXTRACT-based calendar arithmetic branch, which
+    // produces a different plan from the fixed-length epoch-based path above.
+    var result =
+        explainQueryYaml(
+            "source=events | where @timestamp <= '2024-07-03 18:00:00'"
+                + " | timechart span=1d avg(cpu_usage) | timewrap 1month");
+    String expected = loadExpectedPlan("explain_timewrap_month.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void noPushDownForAggOnWindow() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =

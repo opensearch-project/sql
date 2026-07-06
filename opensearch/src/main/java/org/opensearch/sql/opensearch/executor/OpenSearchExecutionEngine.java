@@ -44,6 +44,7 @@ import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.TimewrapPivot;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -432,6 +433,23 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       }
       columns.add(new Column(columnName, null, exprType));
     }
+    // Timewrap post-processing: pivot unpivoted rows into period columns. The pivot is shared with
+    // the analytics route (AnalyticsExecutionEngine) so both engines produce identical output.
+    if (TimewrapPivot.isTimewrap()) {
+      try {
+        TimewrapPivot.Result pivoted =
+            TimewrapPivot.pivot(
+                columns,
+                values,
+                CalcitePlanContext.timewrapUnitName.get(),
+                CalcitePlanContext.timewrapSeries.get());
+        columns = pivoted.columns();
+        values = pivoted.values();
+      } finally {
+        CalcitePlanContext.clearTimewrapSignals();
+      }
+    }
+
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
     return response;
