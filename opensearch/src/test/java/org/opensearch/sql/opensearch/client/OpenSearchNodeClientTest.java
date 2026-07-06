@@ -66,6 +66,7 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -246,11 +247,67 @@ class OpenSearchNodeClientTest {
   void get_index_mappings_with_index_patterns() {
     mockNodeClientIndicesMappings("", null);
     ErrorReport report = assertThrows(ErrorReport.class, () -> client.getIndexMappings("test*"));
-    assertTrue(
-        report.getMessage().contains("test*") && report.getMessage().contains("no such index"),
-        "expected index-not-found error message \""
-            + report.getMessage()
-            + "\" to resemble \"no such index [index]\"");
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertTrue(report.getDetails().contains("test*")),
+        () -> assertTrue(report.getDetails().contains("compatible mapping")));
+  }
+
+  @Test
+  void get_index_mappings_with_question_wildcard_returns_index_not_found_error() {
+    mockNodeClientIndicesMappings("", null);
+    ErrorReport report = assertThrows(ErrorReport.class, () -> client.getIndexMappings("test-?"));
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertTrue(report.getDetails().contains("test-?")),
+        () -> assertTrue(report.getDetails().contains("compatible mapping")));
+  }
+
+  // emptyMappingException is tested directly to avoid Mockito varargs-matching limitations
+  // that prevent the deep-stub from matching multi-argument prepareGetMappings calls.
+  @Test
+  void empty_mapping_exception_star_wildcard_produces_compatible_mapping_message() {
+    ErrorReport report = OpenSearchClient.emptyMappingException("ocsf-1.1.0*");
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertTrue(report.getDetails().contains("ocsf-1.1.0*")),
+        () -> assertTrue(report.getDetails().contains("compatible mapping")));
+  }
+
+  @Test
+  void empty_mapping_exception_question_wildcard_produces_compatible_mapping_message() {
+    ErrorReport report = OpenSearchClient.emptyMappingException("test-?");
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertTrue(report.getDetails().contains("compatible mapping")));
+  }
+
+  @Test
+  void empty_mapping_exception_multi_arg_literals_produces_index_not_found_message() {
+    ErrorReport report = OpenSearchClient.emptyMappingException("index-a", "index-b");
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertTrue(report.getDetails().contains("index-a")),
+        () -> assertTrue(report.getDetails().contains("index-b")));
+  }
+
+  @Test
+  void empty_mapping_exception_non_pattern_produces_no_index_found_message() {
+    ErrorReport report = OpenSearchClient.emptyMappingException("exact-index");
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertTrue(report.getDetails().contains("exact-index")),
+        () -> assertFalse(report.getDetails().contains("compatible mapping")));
+  }
+
+  @Test
+  void get_index_mappings_with_non_pattern_single_name_returns_index_not_found_error() {
+    mockNodeClientIndicesMappings("", null);
+    ErrorReport report =
+        assertThrows(ErrorReport.class, () -> client.getIndexMappings("exact-index"));
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertTrue(report.getDetails().contains("exact-index")));
   }
 
   @Test
