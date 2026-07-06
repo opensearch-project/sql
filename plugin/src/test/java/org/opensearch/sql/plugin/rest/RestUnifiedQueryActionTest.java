@@ -5,11 +5,15 @@
 
 package org.opensearch.sql.plugin.rest;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.plugin.rest.RestUnifiedQueryAction.FORWARDED_CLUSTER_SETTINGS;
 
+import java.util.List;
+import java.util.Map;
 import org.apache.calcite.rel.RelNode;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,6 +26,8 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.indices.IndicesService;
+import org.opensearch.sql.api.UnifiedQueryContext;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -33,6 +39,7 @@ public class RestUnifiedQueryActionTest {
 
   private ClusterService clusterService;
   private Metadata metadata;
+  private org.opensearch.sql.common.setting.Settings pluginSettings;
   private RestUnifiedQueryAction action;
 
   @Before
@@ -46,6 +53,7 @@ public class RestUnifiedQueryActionTest {
     // path is only exercised when this returns something other than "composite".
     when(clusterService.getSettings()).thenReturn(Settings.EMPTY);
 
+    pluginSettings = mock(org.opensearch.sql.common.setting.Settings.class);
     @SuppressWarnings("unchecked")
     QueryPlanExecutor<RelNode, Iterable<Object[]>> executor = mock(QueryPlanExecutor.class);
     action =
@@ -54,7 +62,7 @@ public class RestUnifiedQueryActionTest {
             clusterService,
             executor,
             mock(EngineContextProvider.class),
-            mock(org.opensearch.sql.common.setting.Settings.class),
+            pluginSettings,
             new org.opensearch.sql.executor.DirectExecutionDispatcher());
   }
 
@@ -235,6 +243,108 @@ public class RestUnifiedQueryActionTest {
     enableClusterComposite();
     // malformed -> AE re-parses & reports
     assertTrue(action.isAnalyticsIndex("source = parquet_logs | | fields ts", QueryType.PPL));
+  }
+
+  @Test
+  public void clusterQuerySizeLimitReachesAnalyticsContext() {
+    // Regression: the AE path pinned QUERY_SIZE_LIMIT to the builder's hardcoded default (10000),
+    // silently ignoring the configured cluster value. Forwarding must carry the live value through
+    // to the plan context, since addQuerySizeLimit reads it from there.
+    when(pluginSettings.getSettingValue(Key.QUERY_SIZE_LIMIT)).thenReturn(500);
+
+    assertEquals(
+        "Cluster plugins.query.size_limit must reach the AE plan context",
+        Integer.valueOf(500),
+        buildAnalyticsContext().getPlanContext().sysLimit.querySizeLimit());
+  }
+
+  @Test
+  public void calciteEngineEnabledNotOverriddenByCluster() {
+    // CALCITE_ENGINE_ENABLED is deliberately excluded from forwarding: the unified path is
+    // Calcite-based by definition and must stay true even if the cluster disables it.
+    when(pluginSettings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
+
+    assertEquals(
+        "Unified path must force Calcite on regardless of the cluster setting",
+        Boolean.TRUE,
+        buildAnalyticsContext().getSettings().getSettingValue(Key.CALCITE_ENGINE_ENABLED));
+  }
+
+  /**
+   * Planning settings {@link UnifiedQueryContext.Builder} seeds that the REST handler deliberately
+   * does not forward, each with the reason it stays hardcoded on the unified path.
+   *
+   * <ul>
+   *   <li>{@link Key#CALCITE_ENGINE_ENABLED} — the unified path is Calcite-based by definition.
+   *   <li>{@link Key#PPL_SUBSEARCH_MAXOUT} / {@link Key#PPL_JOIN_SUBSEARCH_MAXOUT} — seeded to
+   *       {@code 0} (unlimited) on purpose, to keep {@code LogicalSystemLimit} out of plans built
+   *       by external consumers of the unified query API. Whether the in-cluster path should
+   *       override that is tracked by https://github.com/opensearch-project/sql/issues/5735.
+   * </ul>
+   */
+  private static final List<Key> DELIBERATELY_NOT_FORWARDED =
+      List.of(Key.CALCITE_ENGINE_ENABLED, Key.PPL_SUBSEARCH_MAXOUT, Key.PPL_JOIN_SUBSEARCH_MAXOUT);
+
+  /**
+   * Drift guard for the defect class this forwarding exists to prevent: the builder's seed map and
+   * the handler's forward list are maintained independently, so a planning setting seeded but not
+   * forwarded silently regresses to its hardcoded default (this is how {@code
+   * plugins.query.size_limit} came to be ignored on the AE path). Every seeded key must therefore
+   * be classified — forwarded, or explicitly excluded with a reason.
+   */
+  @Test
+  public void everySeededPlanningSettingIsClassified() {
+    UnifiedQueryContext defaults = UnifiedQueryContext.builder().language(QueryType.PPL).build();
+
+    for (Object entry : defaults.getSettings().getSettings()) {
+      Key seeded = ((Map.Entry<Key, ?>) entry).getKey();
+      assertTrue(
+          "Setting "
+              + seeded.getKeyValue()
+              + " is seeded with a hardcoded default by UnifiedQueryContext.Builder but is neither"
+              + " forwarded from the cluster nor listed in DELIBERATELY_NOT_FORWARDED. Add it to"
+              + " RestUnifiedQueryAction.FORWARDED_CLUSTER_SETTINGS so the configured cluster value"
+              + " reaches the Analytics Engine, or document why it must stay hardcoded.",
+          FORWARDED_CLUSTER_SETTINGS.contains(seeded)
+              || DELIBERATELY_NOT_FORWARDED.contains(seeded));
+    }
+  }
+
+  @Test
+  public void clusterPatternSettingsReachAnalyticsContext() {
+    // patterns command defaults are read straight off the context's settings in AstBuilder, so a
+    // cluster-configured method/mode/limit must be visible there rather than the seeded default.
+    when(pluginSettings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("BRAIN");
+    when(pluginSettings.getSettingValue(Key.PATTERN_MODE)).thenReturn("AGGREGATION");
+    when(pluginSettings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(42);
+    when(pluginSettings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(60000);
+    when(pluginSettings.getSettingValue(Key.PATTERN_SHOW_NUMBERED_TOKEN)).thenReturn(true);
+
+    org.opensearch.sql.common.setting.Settings forwarded = buildAnalyticsContext().getSettings();
+
+    assertEquals("BRAIN", forwarded.getSettingValue(Key.PATTERN_METHOD));
+    assertEquals("AGGREGATION", forwarded.getSettingValue(Key.PATTERN_MODE));
+    assertEquals(Integer.valueOf(42), forwarded.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT));
+    assertEquals(Integer.valueOf(60000), forwarded.getSettingValue(Key.PATTERN_BUFFER_LIMIT));
+    assertEquals(Boolean.TRUE, forwarded.getSettingValue(Key.PATTERN_SHOW_NUMBERED_TOKEN));
+  }
+
+  @Test
+  public void clusterValuesMaxLimitReachesAnalyticsContext() {
+    // PPL_VALUES_MAX_LIMIT is not seeded at all, so without forwarding AstExpressionBuilder reads
+    // null and falls back to unlimited — the configured cap on values() never applies.
+    when(pluginSettings.getSettingValue(Key.PPL_VALUES_MAX_LIMIT)).thenReturn(100);
+
+    assertEquals(
+        Integer.valueOf(100),
+        buildAnalyticsContext().getSettings().getSettingValue(Key.PPL_VALUES_MAX_LIMIT));
+  }
+
+  /** Builds the context the AE path plans against, with the mocked cluster settings applied. */
+  private UnifiedQueryContext buildAnalyticsContext() {
+    return action
+        .applyClusterOverrides(UnifiedQueryContext.builder().language(QueryType.PPL))
+        .build();
   }
 
   private void enableClusterComposite() {
