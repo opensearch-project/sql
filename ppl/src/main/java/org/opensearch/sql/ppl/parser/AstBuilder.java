@@ -11,6 +11,8 @@ import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.calcite.utils.CalciteUtils.getOnlyForCalciteException;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CollectCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CollectOptionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DynamicSourceClauseContext;
@@ -77,6 +79,7 @@ import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.Collect;
 import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -630,6 +633,27 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Integer size = ctx.number != null ? Integer.parseInt(ctx.number.getText()) : 10;
     Integer from = ctx.from != null ? Integer.parseInt(ctx.from.getText()) : 0;
     return new Head(size, from);
+  }
+
+  /** Collect command visitor (write sink). v1 carries only the destination index. */
+  @Override
+  public UnresolvedPlan visitCollectCommand(CollectCommandContext ctx) {
+    String indexName = StringUtils.unquoteIdentifier(ctx.tableSourceClause().getText());
+    Collect collect = new Collect(indexName);
+    for (CollectOptionContext opt : ctx.collectOption()) {
+      if (opt.source != null) {
+        collect.setSource(StringUtils.unquoteText(opt.source.getText()));
+      } else if (opt.host != null) {
+        collect.setHost(StringUtils.unquoteText(opt.host.getText()));
+      } else if (opt.sourcetype != null) {
+        collect.setSourcetype(StringUtils.unquoteText(opt.sourcetype.getText()));
+      } else if (opt.marker != null) {
+        collect.setMarker(StringUtils.unquoteText(opt.marker.getText()));
+      } else if (opt.testmode != null) {
+        collect.setTestmode(Boolean.parseBoolean(opt.testmode.getText()));
+      }
+    }
+    return collect;
   }
 
   /** Bin command visitor. */

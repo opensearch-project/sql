@@ -24,6 +24,8 @@ import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.search.*;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.common.action.ActionFuture;
@@ -283,6 +285,17 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     } catch (InterruptedException e) {
       throw new RuntimeException(
           "Error occurred while deleting PIT for internal plugin operation", e);
+    }
+  }
+
+  @Override
+  public BulkResponse bulk(BulkRequest bulkRequest) {
+    try {
+      return client.bulk(bulkRequest).actionGet();
+    } catch (OpenSearchSecurityException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to execute bulk write request", e);
     }
   }
 }

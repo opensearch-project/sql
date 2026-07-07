@@ -68,6 +68,7 @@ import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.Collect;
 import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -619,6 +620,29 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     Integer size = node.getSize();
     return StringUtils.format("%s | head %d", child, size);
+  }
+
+  @Override
+  public String visitCollect(Collect node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder options = new StringBuilder();
+    // Mask option values (may carry identifiers); testmode is a non-sensitive boolean.
+    if (node.getSource() != null) {
+      options.append(" source=").append(MASK_COLUMN);
+    }
+    if (node.getHost() != null) {
+      options.append(" host=").append(MASK_COLUMN);
+    }
+    if (node.getSourcetype() != null) {
+      options.append(" sourcetype=").append(MASK_COLUMN);
+    }
+    if (node.getMarker() != null) {
+      options.append(" marker=").append(MASK_COLUMN);
+    }
+    if (node.isTestmode()) {
+      options.append(" testmode=true");
+    }
+    return StringUtils.format("%s | collect index=%s%s", child, MASK_TABLE, options);
   }
 
   @Override
