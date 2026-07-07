@@ -5,8 +5,7 @@
 
 package org.opensearch.sql.ppl.calcite;
 
-import static org.apache.calcite.test.Matchers.hasTree;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -95,7 +94,7 @@ public class CalcitePPLTrackingTest {
     withTracking.setTrackingEnabled(true);
     RelNode actual = getRelNode(ppl, withTracking);
 
-    assertThat(actual, hasTree(expected.explain()));
+    assertEquals(expected.explain().replace("\r\n", "\n"), actual.explain().replace("\r\n", "\n"));
   }
 
   @Test
@@ -215,7 +214,7 @@ public class CalcitePPLTrackingTest {
     withTracking.setTrackingEnabled(true);
     RelNode actual = getRelNode(ppl, withTracking);
 
-    assertThat(actual, hasTree(expected.explain()));
+    assertEquals(expected.explain().replace("\r\n", "\n"), actual.explain().replace("\r\n", "\n"));
   }
 
   @Test
