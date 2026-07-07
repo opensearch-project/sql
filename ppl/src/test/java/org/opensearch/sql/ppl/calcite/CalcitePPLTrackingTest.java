@@ -15,7 +15,6 @@ import static org.mockito.Mockito.mock;
 import static org.opensearch.sql.executor.QueryType.PPL;
 
 import java.util.List;
-import java.util.function.UnaryOperator;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
@@ -47,11 +46,13 @@ public class CalcitePPLTrackingTest {
     this.dataSourceService = mock(DataSourceService.class);
     this.planTransformer = new CalciteRelNodeVisitor(dataSourceService);
     this.settings = mock(Settings.class);
-    this.config = Frameworks.newConfigBuilder()
-        .defaultSchema(
-            CalciteAssert.addSchema(
-                Frameworks.createRootSchema(true), CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL))
-        .programs();
+    this.config =
+        Frameworks.newConfigBuilder()
+            .defaultSchema(
+                CalciteAssert.addSchema(
+                    Frameworks.createRootSchema(true),
+                    CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL))
+            .programs();
   }
 
   @Before
@@ -231,10 +232,7 @@ public class CalcitePPLTrackingTest {
 
     // Relation is a leaf — should produce exactly 1 RelNode (the scan)
     NodeIdMapping relationMapping =
-        mappings.stream()
-            .filter(m -> m.astNodeType().equals("Relation"))
-            .findFirst()
-            .orElseThrow();
+        mappings.stream().filter(m -> m.astNodeType().equals("Relation")).findFirst().orElseThrow();
     assertFalse(
         "Relation (leaf) should produce at least one RelNode",
         relationMapping.relNodeIds().isEmpty());
@@ -242,10 +240,7 @@ public class CalcitePPLTrackingTest {
     // Filter's subtree includes Relation beneath it, so visitChildren should
     // capture more RelNode IDs for Filter than for Relation alone.
     NodeIdMapping filterMapping =
-        mappings.stream()
-            .filter(m -> m.astNodeType().equals("Filter"))
-            .findFirst()
-            .orElseThrow();
+        mappings.stream().filter(m -> m.astNodeType().equals("Filter")).findFirst().orElseThrow();
     assertTrue(
         "Filter subtree should produce more RelNodes than Relation alone",
         filterMapping.relNodeIds().size() > relationMapping.relNodeIds().size());
