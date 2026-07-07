@@ -419,6 +419,8 @@ testClusters {
         plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
+        // Composite-default cluster: PPL queries route to the analytics engine unless excluded.
+        setting 'cluster.pluggable.dataformat', 'composite'
     }
 }
 

@@ -99,13 +99,14 @@ public class RestUnifiedQueryAction {
         .equals(
             IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(
                 clusterService.getSettings()))) {
-      // Analytics engine can't serve system catalog; SHOW/DESCRIBE fall back to default pipeline
+      // Analytics engine serves neither the system catalog nor the rest command's reserved
+      // in-cluster source; both fall back to the default (Calcite) pipeline.
       try (UnifiedQueryContext context = buildParsingContext(queryType)) {
-        boolean systemCatalog =
+        boolean defaultPipeline =
             extractIndexName(query, queryType, context)
-                .map(RestUnifiedQueryAction::isSystemCatalog)
+                .map(name -> isSystemCatalog(name) || SystemIndexUtils.isRestSource(name))
                 .orElse(false);
-        return !systemCatalog;
+        return !defaultPipeline;
       } catch (Exception e) {
         // Check legacy-syntax SHOW/DESCRIBE; otherwise let AE handle and surface the error.
         return !isLegacySystemCatalogQuery(query);
