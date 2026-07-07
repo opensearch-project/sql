@@ -69,6 +69,7 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.AutoConvertFunction;
 import org.opensearch.sql.expression.function.udf.CTimeConvertFunction;
+import org.opensearch.sql.expression.function.udf.CheckedLongNarrowFunction;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.Dur2SecConvertFunction;
 import org.opensearch.sql.expression.function.udf.MemkConvertFunction;
@@ -449,6 +450,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
   public static final SqlOperator TONUMBER = new ToNumberFunction().toUDF("TONUMBER");
   public static final SqlOperator TOSTRING = new ToStringFunction().toUDF("TOSTRING");
+  public static final SqlOperator CHECKED_LONG_NARROW =
+      new CheckedLongNarrowFunction().toUDF("CHECKED_LONG_NARROW");
 
   // PPL Convert command functions
   public static final SqlOperator AUTO = new AutoConvertFunction().toUDF("AUTO");

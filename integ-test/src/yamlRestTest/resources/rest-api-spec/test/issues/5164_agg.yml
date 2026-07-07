@@ -1,0 +1,123 @@
+# Issue: https://github.com/opensearch-project/sql/issues/5164
+# SUM/AVG over a BIGINT (long) column near 2^63 must not silently wrap to a negative value.
+#
+# The enumerable SUM accumulator for a long argument is a plain long, so a running sum past 2^63
+# wraps to a negative result (e.g. SUM(long) returned -5594372458244005145). AVG reduces to
+# SUM(field)/COUNT(field), so its intermediate long SUM wraps the same way (AVG returned a negative
+# average). SUM(long) is now accumulated in DECIMAL and cast back to BIGINT (in-memory) or checked
+# when narrowing the pushed-down double result, turning a genuine overflow into a 4xx client error
+# while keeping the bigint output type; AVG(long) is averaged in DOUBLE, which holds the true
+# average without wrapping.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: test_agg_overflow
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              long_field:
+                type: long
+  - do:
+      bulk:
+        index: test_agg_overflow
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"long_field": 9223372036854775807}'
+          - '{"index": {}}'
+          - '{"long_field": 9223372036854775807}'
+          - '{"index": {}}'
+          - '{"long_field": 9223372036854775807}'
+  - do:
+      indices.create:
+        index: test_agg_in_range
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              long_field:
+                type: long
+  - do:
+      bulk:
+        index: test_agg_in_range
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"long_field": 1000000000000}'
+          - '{"index": {}}'
+          - '{"long_field": 2000000000000}'
+          - '{"index": {}}'
+          - '{"long_field": 3000000000000}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+  - do:
+      indices.delete:
+        index: test_agg_overflow
+        ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: test_agg_in_range
+        ignore_unavailable: true
+
+---
+"SUM of large longs overflowing BIGINT throws error":
+  - skip:
+      features:
+        - headers
+  # 3 * (2^63 - 1) far exceeds the BIGINT range; historically this wrapped to a negative value.
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_agg_overflow | stats sum(long_field)
+  - match: { "$body": "/[Oo]verflow/" }
+
+---
+"AVG of large longs does not overflow or error":
+  - skip:
+      features:
+        - headers
+  # The average of three identical values is that value; averaging in DOUBLE avoids the wrap that
+  # a long intermediate SUM would cause. 9223372036854775807 is returned as a double (9.223...E18).
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_agg_overflow | stats avg(long_field)
+  - match: { total: 1 }
+  - match: { datarows: [[9.223372036854776e18]] }
+
+---
+"SUM of longs within BIGINT range does not error":
+  - skip:
+      features:
+        - headers
+  # 1e12 + 2e12 + 3e12 = 6e12, well within long range; must return the exact sum, no error.
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_agg_in_range | stats sum(long_field)
+  - match: { total: 1 }
+  - match: { datarows: [[6000000000000]] }

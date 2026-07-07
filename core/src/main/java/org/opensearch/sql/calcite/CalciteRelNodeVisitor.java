@@ -195,6 +195,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.executor.OpenSearchTypeSystem;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
@@ -1778,6 +1779,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Add aggregation results first
     List<RexNode> aggRexList =
         outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
+    // SUM(bigint) accumulates in DECIMAL (OpenSearchTypeSystem#deriveSumType) so a running sum near
+    // 2^63 cannot silently wrap to a negative long. Cast the user-visible result back to BIGINT:
+    // the cast errors (ArithmeticException -> 4xx) on genuine overflow while keeping the output
+    // type bigint. AVG is unaffected (its output stays DOUBLE and its reduced internal SUM is not
+    // surfaced here).
+    aggRexList = castBigintSumResults(context, aggExprList, aggRexList);
     List<RexNode> aliasedGroupByList =
         aggregationAttributes.getLeft().stream()
             .map(this::extractAliasLiteral)
@@ -1825,6 +1832,60 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (expr instanceof AggregateFunction af) return af;
     if (expr instanceof Alias alias) return extractAggregateFunction(alias.getDelegated());
     return null;
+  }
+
+  /**
+   * Narrow the results of {@code SUM(bigint)} aggregations back to BIGINT. {@code SUM} over a
+   * BIGINT column is accumulated in a wider type (its argument is cast to DECIMAL in {@code
+   * PPLFuncImpTable}) so a running sum near 2^63 cannot silently wrap to a negative long. This
+   * restores the declared BIGINT output type via {@link PPLBuiltinOperators#CHECKED_LONG_NARROW},
+   * which errors on a genuine overflow (surfaced as a 4xx) while saturating a value that merely
+   * rounds to 2^63 on the double-based pushdown path, so both execution paths behave identically.
+   * Non-SUM aggregations and sums whose accumulator is not the widened DECIMAL (e.g. {@code
+   * SUM(double)}, user {@code SUM(decimal)}) are returned unchanged.
+   */
+  private static List<RexNode> castBigintSumResults(
+      CalcitePlanContext context,
+      List<UnresolvedExpression> aggExprList,
+      List<RexNode> aggRexList) {
+    if (aggExprList.size() != aggRexList.size()) {
+      return aggRexList;
+    }
+    List<RexNode> result = new ArrayList<>(aggRexList.size());
+    for (int i = 0; i < aggRexList.size(); i++) {
+      RexNode aggRex = aggRexList.get(i);
+      AggregateFunction aggFunc = extractAggregateFunction(aggExprList.get(i));
+      if (aggFunc != null
+          && BuiltinFunctionName.ofAggregation(aggFunc.getFuncName())
+              .filter(name -> name == BuiltinFunctionName.SUM)
+              .isPresent()
+          && isWidenedBigintSumType(aggRex.getType())) {
+        RexNode narrowed =
+            context.rexBuilder.makeCall(PPLBuiltinOperators.CHECKED_LONG_NARROW, aggRex);
+        // Wrapping in the narrowing UDF drops the aggregate's output name; restore it so downstream
+        // projection and the result schema keep the original "sum(...)" column name.
+        result.add(
+            aggRex instanceof RexInputRef ref
+                ? context.relBuilder.alias(
+                    narrowed,
+                    context.relBuilder.peek().getRowType().getFieldNames().get(ref.getIndex()))
+                : narrowed);
+      } else {
+        result.add(aggRex);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Whether the type is the DECIMAL accumulator produced for {@code SUM(bigint)} (a scale-0 decimal
+   * at max precision, from the argument widening in {@code PPLFuncImpTable}), as opposed to a
+   * genuine user-supplied {@code SUM(decimal)} with a fractional scale.
+   */
+  private static boolean isWidenedBigintSumType(RelDataType type) {
+    return type.getSqlTypeName() == SqlTypeName.DECIMAL
+        && type.getScale() == 0
+        && type.getPrecision() == OpenSearchTypeSystem.MAX_PRECISION;
   }
 
   private static Function extractFunction(UnresolvedExpression expr) {

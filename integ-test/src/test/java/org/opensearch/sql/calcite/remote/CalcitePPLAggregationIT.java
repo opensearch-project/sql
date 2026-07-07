@@ -20,12 +20,16 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
+import static org.opensearch.sql.util.TestUtils.createIndexByRestClient;
+import static org.opensearch.sql.util.TestUtils.isIndexExist;
+import static org.opensearch.sql.util.TestUtils.performRequest;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -91,6 +95,70 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifySchema(actual, schema("sum(balance)", "bigint"));
 
     verifyDataRows(actual, rows(186973));
+  }
+
+  @Test
+  public void testSumAvgLongOverflow() throws IOException {
+    String overflowIndex = "test_sum_long_overflow";
+    if (!isIndexExist(client(), overflowIndex)) {
+      createIndexByRestClient(
+          client(), overflowIndex, "{\"mappings\":{\"properties\":{\"v\":{\"type\":\"long\"}}}}");
+      Request bulk = new Request("POST", "/" + overflowIndex + "/_bulk?refresh=true");
+      bulk.setJsonEntity(
+          "{\"index\":{}}\n"
+              + "{\"v\":9223372036854775807}\n"
+              + "{\"index\":{}}\n"
+              + "{\"v\":9223372036854775807}\n"
+              + "{\"index\":{}}\n"
+              + "{\"v\":9223372036854775807}\n");
+      performRequest(client(), bulk);
+    }
+    String inRangeIndex = "test_sum_long_in_range";
+    if (!isIndexExist(client(), inRangeIndex)) {
+      createIndexByRestClient(
+          client(), inRangeIndex, "{\"mappings\":{\"properties\":{\"v\":{\"type\":\"long\"}}}}");
+      Request bulk = new Request("POST", "/" + inRangeIndex + "/_bulk?refresh=true");
+      bulk.setJsonEntity(
+          "{\"index\":{}}\n"
+              + "{\"v\":1000000000000}\n"
+              + "{\"index\":{}}\n"
+              + "{\"v\":2000000000000}\n"
+              + "{\"index\":{}}\n"
+              + "{\"v\":3000000000000}\n");
+      performRequest(client(), bulk);
+    }
+    String boundaryIndex = "test_sum_long_boundary";
+    if (!isIndexExist(client(), boundaryIndex)) {
+      createIndexByRestClient(
+          client(), boundaryIndex, "{\"mappings\":{\"properties\":{\"v\":{\"type\":\"long\"}}}}");
+      Request bulk = new Request("POST", "/" + boundaryIndex + "/_bulk?refresh=true");
+      bulk.setJsonEntity("{\"index\":{}}\n" + "{\"v\":9223372036854775807}\n");
+      performRequest(client(), bulk);
+    }
+
+    // SUM overflows the BIGINT range (3 * (2^63 - 1)); surfaced as a client error rather than
+    // silently wrapping to a negative value.
+    Throwable error =
+        assertThrowsWithReplace(
+            RuntimeException.class,
+            () -> executeQuery(String.format("source=%s | stats sum(v)", overflowIndex)));
+    verifyErrorMessageContains(error, "verflow");
+
+    // AVG is averaged in DOUBLE, so it holds the true average (the shared value) without wrapping.
+    JSONObject avg = executeQuery(String.format("source=%s | stats avg(v)", overflowIndex));
+    verifySchema(avg, schema("avg(v)", "double"));
+    verifyDataRows(avg, rows(9.223372036854776e18));
+
+    // A sum well within the BIGINT range returns the exact value with no error.
+    JSONObject inRange = executeQuery(String.format("source=%s | stats sum(v)", inRangeIndex));
+    verifySchema(inRange, schema("sum(v)", "bigint"));
+    verifyDataRows(inRange, rows(6000000000000L));
+
+    // A single Long.MAX_VALUE is a valid (non-overflowing) sum and must not error, even though the
+    // pushed-down double result rounds to exactly 2^63 — the narrow saturates instead of erroring.
+    JSONObject boundary = executeQuery(String.format("source=%s | stats sum(v)", boundaryIndex));
+    verifySchema(boundary, schema("sum(v)", "bigint"));
+    verifyDataRows(boundary, rows(9223372036854775807L));
   }
 
   @Test

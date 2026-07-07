@@ -13,7 +13,14 @@ Arithmetic expressions are formed by combining numeric literals and binary arith
 
 ### Overflow behavior
 
-Integer and long arithmetic operations (`+`, `-`, `*`) in `eval` expressions detect overflow and return an error instead of silently wrapping. For example, `eval x = int_field + 1` where `int_field` is `2147483647` (integer max) returns an error rather than `-2147483648`. Floating-point (`float`, `double`) arithmetic follows IEEE 754 and does not produce overflow errors.
+Long (`BIGINT`) arithmetic operations (`+`, `-`, `*`) in `eval` expressions detect overflow and return an error instead of silently wrapping. Narrower integer operands are widened before arithmetic, so crossing the 32-bit integer boundary does not overflow. Floating-point (`float`, `double`) arithmetic follows IEEE 754 and does not produce overflow errors.
+
+The accumulator used by `stats sum(bigint_field)` depends on whether Calcite pushdown is enabled:
+
+- With `plugins.calcite.pushdown.enabled=true` (the default), OpenSearch computes the sum as a `double` before the result is checked and narrowed to `BIGINT`. Large in-range sums can therefore lose low-order precision. A small overflow that rounds to a signed `BIGINT` boundary can also be indistinguishable from an in-range sum and may saturate at the boundary instead of returning an error.
+- With `plugins.calcite.pushdown.enabled=false`, Calcite accumulates the sum as an exact `DECIMAL`, then narrows it to `BIGINT`. The exact result is returned when it fits; otherwise, the query returns an overflow error.
+
+For example, summing `4611686018427387904` (`2^62`) and `1` returns the exact `4611686018427387905` without pushdown. With pushdown enabled, the `double` accumulator cannot represent the low-order `1`, so the result is `4611686018427387904`.
 
 ### Precedence
 
@@ -189,4 +196,3 @@ fetched rows / total rows = 2/2
 | 28  |
 +-----+
 ```
-  

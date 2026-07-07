@@ -291,6 +291,7 @@ import javax.annotation.Nullable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -1608,10 +1609,68 @@ public class PPLFuncImpTable {
       register(functionName, handler, typeChecker);
     }
 
+    /**
+     * Registers {@code SUM} with the extra behaviour that a BIGINT (long) column is summed in
+     * DECIMAL rather than long. A running long sum near 2^63 silently wraps to a negative value
+     * (the enumerable {@code SumImplementor} generates a plain {@code long + long}); accumulating
+     * in DECIMAL is exact. {@link CalciteRelNodeVisitor} casts the DECIMAL result back to BIGINT so
+     * the output type is unchanged and a genuine overflow surfaces as a client error instead of a
+     * wrong value.
+     *
+     * <p>Only a bare BIGINT column reference is widened. Expressions like {@code sum(field + 1)}
+     * are left as-is so {@link org.opensearch.sql.calcite.plan.rule.PPLAggregateConvertRule} can
+     * still rewrite them to pushdown-friendly {@code sum(field) OP literal} form.
+     */
+    void registerSumOperator() {
+      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(SqlStdOperatorTable.SUM);
+      PPLTypeChecker typeChecker = wrapSqlOperandTypeChecker(innerTypeChecker, SUM.name(), true);
+      AggHandler handler =
+          (distinct, field, argList, ctx) -> {
+            List<RexNode> newArgList =
+                argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
+            RexNode sumField = widenBigintColumnToDecimal(field, ctx);
+            return UserDefinedFunctionUtils.makeAggregateCall(
+                SqlStdOperatorTable.SUM, List.of(sumField), newArgList, ctx.relBuilder);
+          };
+      register(SUM, handler, typeChecker);
+    }
+
+    /**
+     * If {@code field} is a bare BIGINT column reference, cast it to DECIMAL so the aggregate that
+     * consumes it accumulates exactly instead of wrapping a long. Any other expression is returned
+     * unchanged.
+     */
+    private static RexNode widenBigintColumnToDecimal(RexNode field, CalcitePlanContext ctx) {
+      if (field instanceof RexInputRef && field.getType().getSqlTypeName() == SqlTypeName.BIGINT) {
+        int maxPrecision = TYPE_FACTORY.getTypeSystem().getMaxNumericPrecision();
+        RelDataType decimalType =
+            TYPE_FACTORY.createTypeWithNullability(
+                TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, maxPrecision, 0),
+                field.getType().isNullable());
+        return ctx.rexBuilder.makeCast(decimalType, field);
+      }
+      return field;
+    }
+
+    /**
+     * If {@code field} is a bare BIGINT column reference, cast it to DOUBLE so that AVG's reduced
+     * intermediate SUM accumulates in double rather than a long that wraps near 2^63. Any other
+     * expression is returned unchanged.
+     */
+    private static RexNode widenBigintColumnToDouble(RexNode field, CalcitePlanContext ctx) {
+      if (field instanceof RexInputRef && field.getType().getSqlTypeName() == SqlTypeName.BIGINT) {
+        RelDataType doubleType =
+            TYPE_FACTORY.createTypeWithNullability(
+                TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE), field.getType().isNullable());
+        return ctx.rexBuilder.makeCast(doubleType, field);
+      }
+      return field;
+    }
+
     void populate() {
       registerOperator(MAX, SqlStdOperatorTable.MAX);
       registerOperator(MIN, SqlStdOperatorTable.MIN);
-      registerOperator(SUM, SqlStdOperatorTable.SUM);
+      registerSumOperator();
       registerOperator(VARSAMP, PPLBuiltinOperators.VAR_SAMP_NULLABLE);
       registerOperator(VARPOP, PPLBuiltinOperators.VAR_POP_NULLABLE);
       registerOperator(STDDEV_SAMP, PPLBuiltinOperators.STDDEV_SAMP_NULLABLE);
@@ -1630,7 +1689,11 @@ public class PPLFuncImpTable {
 
       register(
           AVG,
-          (distinct, field, argList, ctx) -> ctx.relBuilder.avg(distinct, null, field),
+          (distinct, field, argList, ctx) ->
+              // AVG reduces to SUM(field)/COUNT(field); over a bare BIGINT column the intermediate
+              // long SUM wraps near 2^63 (returning a wrong negative average). Averaging in DOUBLE
+              // avoids the wrap and keeps the DOUBLE output type unchanged.
+              ctx.relBuilder.avg(distinct, null, widenBigintColumnToDouble(field, ctx)),
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.AVG.getOperandTypeChecker(), AVG.name(), false));
 
