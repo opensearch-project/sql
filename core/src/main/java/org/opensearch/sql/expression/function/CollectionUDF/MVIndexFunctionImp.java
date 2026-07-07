@@ -5,17 +5,16 @@
 
 package org.opensearch.sql.expression.function.CollectionUDF;
 
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_LENGTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_SLICE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LESS;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRACT;
 
 import java.math.BigDecimal;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /**
@@ -37,6 +36,10 @@ import org.opensearch.sql.expression.function.PPLFuncImpTable;
  *   <li>Range access uses Calcite's ARRAY_SLICE operator (0-based indexing with length parameter)
  *   <li>Index conversion handles the difference between PPL's 0-based indexing and Calcite's
  *       conventions
+ *   <li>Index arithmetic uses Calcite's raw {@code PLUS}/{@code MINUS} rather than PPL's widening
+ *       {@code +}/{@code -} operators: array indices are int-domain and {@code ITEM}/{@code
+ *       ARRAY_SLICE} require an INTEGER index, so the deliberate integer-overflow widening applied
+ *       to user arithmetic must not leak into these internal, bounded computations.
  * </ul>
  */
 public class MVIndexFunctionImp implements PPLFuncImpTable.FunctionImp {
@@ -59,6 +62,16 @@ public class MVIndexFunctionImp implements PPLFuncImpTable.FunctionImp {
     }
   }
 
+  /** Non-widening integer addition for internal, int-domain array-index math. */
+  private static RexNode add(RexBuilder builder, RexNode left, RexNode right) {
+    return builder.makeCall(SqlStdOperatorTable.PLUS, left, right);
+  }
+
+  /** Non-widening integer subtraction for internal, int-domain array-index math. */
+  private static RexNode subtract(RexBuilder builder, RexNode left, RexNode right) {
+    return builder.makeCall(SqlStdOperatorTable.MINUS, left, right);
+  }
+
   /**
    * Resolves single element access: mvindex(array, index)
    *
@@ -72,11 +85,9 @@ public class MVIndexFunctionImp implements PPLFuncImpTable.FunctionImp {
     RexNode one = builder.makeExactLiteral(BigDecimal.ONE);
 
     RexNode isNegative = PPLFuncImpTable.INSTANCE.resolve(builder, LESS, startIdx, zero);
-    RexNode sumArrayLenStart =
-        PPLFuncImpTable.INSTANCE.resolve(builder, ADDFUNCTION, arrayLen, startIdx);
-    RexNode negativeCase =
-        PPLFuncImpTable.INSTANCE.resolve(builder, ADDFUNCTION, sumArrayLenStart, one);
-    RexNode positiveCase = PPLFuncImpTable.INSTANCE.resolve(builder, ADDFUNCTION, startIdx, one);
+    RexNode sumArrayLenStart = add(builder, arrayLen, startIdx);
+    RexNode negativeCase = add(builder, sumArrayLenStart, one);
+    RexNode positiveCase = add(builder, startIdx, one);
 
     RexNode normalizedStart =
         PPLFuncImpTable.INSTANCE.resolve(builder, IF, isNegative, negativeCase, positiveCase);
@@ -97,21 +108,18 @@ public class MVIndexFunctionImp implements PPLFuncImpTable.FunctionImp {
     RexNode one = builder.makeExactLiteral(BigDecimal.ONE);
 
     RexNode isStartNegative = PPLFuncImpTable.INSTANCE.resolve(builder, LESS, startIdx, zero);
-    RexNode startNegativeCase =
-        PPLFuncImpTable.INSTANCE.resolve(builder, ADDFUNCTION, arrayLen, startIdx);
+    RexNode startNegativeCase = add(builder, arrayLen, startIdx);
     RexNode normalizedStart =
         PPLFuncImpTable.INSTANCE.resolve(builder, IF, isStartNegative, startNegativeCase, startIdx);
 
     RexNode isEndNegative = PPLFuncImpTable.INSTANCE.resolve(builder, LESS, endIdx, zero);
-    RexNode endNegativeCase =
-        PPLFuncImpTable.INSTANCE.resolve(builder, ADDFUNCTION, arrayLen, endIdx);
+    RexNode endNegativeCase = add(builder, arrayLen, endIdx);
     RexNode normalizedEnd =
         PPLFuncImpTable.INSTANCE.resolve(builder, IF, isEndNegative, endNegativeCase, endIdx);
 
     // Calculate length: (normalizedEnd - normalizedStart) + 1
-    RexNode diff =
-        PPLFuncImpTable.INSTANCE.resolve(builder, SUBTRACT, normalizedEnd, normalizedStart);
-    RexNode length = PPLFuncImpTable.INSTANCE.resolve(builder, ADDFUNCTION, diff, one);
+    RexNode diff = subtract(builder, normalizedEnd, normalizedStart);
+    RexNode length = add(builder, diff, one);
 
     // Call ARRAY_SLICE(array, normalizedStart, length)
     return PPLFuncImpTable.INSTANCE.resolve(builder, ARRAY_SLICE, array, normalizedStart, length);
