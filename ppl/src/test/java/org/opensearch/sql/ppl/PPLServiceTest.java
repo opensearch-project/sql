@@ -22,7 +22,6 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
-import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
@@ -102,12 +101,12 @@ public class PPLServiceTest {
   public void testExecuteShouldPass() {
     doAnswer(
             invocation -> {
-              ResponseListener<QueryResponse> listener = invocation.getArgument(2);
+              ResponseListener<QueryResponse> listener = invocation.getArgument(3);
               listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
               return null;
             })
         .when(queryService)
-        .execute(any(), any(), any());
+        .execute(any(), any(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY),
@@ -119,12 +118,12 @@ public class PPLServiceTest {
   public void testExecuteCsvFormatShouldPass() {
     doAnswer(
             invocation -> {
-              ResponseListener<QueryResponse> listener = invocation.getArgument(2);
+              ResponseListener<QueryResponse> listener = invocation.getArgument(3);
               listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
               return null;
             })
         .when(queryService)
-        .execute(any(), any(), any());
+        .execute(any(), any(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY, "csv"),
@@ -134,15 +133,6 @@ public class PPLServiceTest {
 
   @Test
   public void testExplainShouldPass() {
-    doAnswer(
-            invocation -> {
-              ResponseListener<ExplainResponse> listener = invocation.getArgument(1);
-              listener.onResponse(new ExplainResponse(new ExplainResponseNode("test")));
-              return null;
-            })
-        .when(queryService)
-        .explain(any(), any(), any(), any());
-
     pplService.explain(
         new PPLQueryRequest("search source=t a=1", null, EXPLAIN),
         new ResponseListener<ExplainResponse>() {
@@ -173,12 +163,12 @@ public class PPLServiceTest {
   public void testPrometheusQuery() {
     doAnswer(
             invocation -> {
-              ResponseListener<QueryResponse> listener = invocation.getArgument(2);
+              ResponseListener<QueryResponse> listener = invocation.getArgument(3);
               listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
               return null;
             })
         .when(queryService)
-        .execute(any(), any(), any());
+        .execute(any(), any(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("source = prometheus.http_requests_total", null, QUERY),

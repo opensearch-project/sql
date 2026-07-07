@@ -21,7 +21,10 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.common.setting.Settings;
@@ -41,10 +44,23 @@ public class CalcitePlanContext {
   /** This thread local variable is only used to skip script encoding in script pushdown. */
   public static final ThreadLocal<Boolean> skipEncoding = ThreadLocal.withInitial(() -> false);
 
+  /** When true, the execution engine strips all-null columns from the result (used by timewrap). */
+  public static final ThreadLocal<Boolean> stripNullColumns = ThreadLocal.withInitial(() -> false);
+
+  /**
+   * Timewrap span unit name for column renaming in the execution engine. When set, the execution
+   * engine uses __base_offset__ to compute absolute period names (e.g., "501days_before").
+   */
+  public static final ThreadLocal<String> timewrapUnitName = new ThreadLocal<>();
+
+  /** Timewrap series mode: "relative", "short", or "exact". */
+  public static final ThreadLocal<String> timewrapSeries = new ThreadLocal<>();
+
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
 
+  @Getter @Setter private HighlightConfig highlightConfig;
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
   @Getter @Setter private boolean inCoalesceFunction = false;
@@ -61,6 +77,15 @@ public class CalcitePlanContext {
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
+
+  /**
+   * Maps AggregateFunction AST nodes to their output field index for HAVING/post-aggregate
+   * resolution.
+   */
+  @Getter private final Map<AggregateFunction, Integer> aggregateOutputIndex = new HashMap<>();
+
+  /** Maps GROUP BY Function AST nodes to their output field index for post-aggregate resolution. */
+  @Getter private final Map<Function, Integer> groupKeyOutputIndex = new HashMap<>();
 
   /**
    * List of captured variables from outer scope for lambda functions. When a lambda body references
@@ -96,6 +121,7 @@ public class CalcitePlanContext {
     this.relBuilder = parent.relBuilder; // Share the same relBuilder
     this.rexBuilder = parent.rexBuilder; // Share the same rexBuilder
     this.functionProperties = parent.functionProperties;
+    this.highlightConfig = parent.highlightConfig;
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
@@ -155,6 +181,7 @@ public class CalcitePlanContext {
       action.run();
     } finally {
       legacyPreferredFlag.remove();
+      clearTimewrapSignals();
     }
   }
 
@@ -163,6 +190,17 @@ public class CalcitePlanContext {
    */
   public static boolean isLegacyPreferred() {
     return legacyPreferredFlag.get();
+  }
+
+  /**
+   * Resets the timewrap thread-locals set by {@code CalciteRelNodeVisitor.visitTimewrap}. Called
+   * from the query lifecycle's {@code finally} on every path (execute, explain, and exceptions) so
+   * the signals never leak onto the next query that reuses this pooled worker thread.
+   */
+  public static void clearTimewrapSignals() {
+    stripNullColumns.set(false);
+    timewrapUnitName.set(null);
+    timewrapSeries.set(null);
   }
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {

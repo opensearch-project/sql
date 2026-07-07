@@ -1,0 +1,57 @@
+setup:
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: stream_test_null
+        body:
+          mappings:
+            properties:
+              name: { type: keyword }
+              age: { type: integer }
+              state: { type: keyword }
+              country: { type: keyword }
+              year: { type: integer }
+              month: { type: integer }
+  - do:
+      bulk:
+        index: stream_test_null
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"name": "Jake", "age": 70, "state": "California", "country": "USA", "year": 2023, "month": 4}'
+          - '{"index": {"_id": "2"}}'
+          - '{"name": "Hello", "age": 30, "state": "New York", "country": "USA", "year": 2023, "month": 4}'
+          - '{"index": {"_id": "3"}}'
+          - '{"name": "John", "age": 25, "state": "Ontario", "country": "Canada", "year": 2023, "month": 4}'
+          - '{"index": {"_id": "4"}}'
+          - '{"name": "Jane", "age": 20, "state": "Quebec", "country": "Canada", "year": 2023, "month": 4}'
+          - '{"index": {"_id": "5"}}'
+          - '{"name": null, "age": 10, "state": null, "country": "Canada", "year": 2023, "month": 4}'
+          - '{"index": {"_id": "6"}}'
+          - '{"name": "Kevin", "year": 2023, "month": 4}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Chained streamstats with window should not cause NPE (#4800)":
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=stream_test_null | streamstats window=2 avg(age) as avg_age by state, country | streamstats window=2 avg(avg_age) as avg_state_age by country'
+  - match: {"total": 6}

@@ -98,7 +98,13 @@ public class PPLService {
                 AstStatementBuilder.StatementBuilderContext.builder()
                     .isExplain(request.isExplainRequest())
                     .fetchSize(request.getFetchSize())
-                    .format(request.getFormat())
+                    .highlightConfig(request.getHighlightConfig())
+                    .format(
+                        request.getFormat() != null && !request.getFormat().isEmpty()
+                            ? org.opensearch.sql.protocol.response.format.Format.ofExplain(
+                                    request.getFormat())
+                                .orElse(null)
+                            : null)
                     .explainMode(request.getExplainMode())
                     .build()));
 

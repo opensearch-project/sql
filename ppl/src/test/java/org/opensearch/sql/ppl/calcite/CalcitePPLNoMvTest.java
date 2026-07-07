@@ -190,17 +190,21 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testNoMvNonExistentField() {
+    // After issue #5175 was fixed, missing identifiers inside COALESCE resolve to a null
+    // literal of SqlTypeName.NULL (instead of VARCHAR). This lets Calcite promote the null
+    // to the expected array type in ARRAY_COMPACT, so the plan builds successfully and the
+    // nomv column evaluates to the empty-string fallback from COALESCE.
     String ppl = "source=EMP | eval arr = array('a', 'b') | nomv does_not_exist | head 1";
+    RelNode root = getRelNode(ppl);
 
-    Exception ex = assertThrows(Exception.class, () -> getRelNode(ppl));
-
-    String msg = String.valueOf(ex.getMessage());
-    org.junit.Assert.assertTrue(
-        "Expected error message to mention missing field or type error. Actual: " + msg,
-        msg.toLowerCase().contains("does_not_exist")
-            || msg.toLowerCase().contains("field")
-            || msg.contains("ARRAY_COMPACT")
-            || msg.contains("ARRAY"));
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array('a', 'b')],"
+            + " does_not_exist=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(null:ANY ARRAY), '\n"
+            + "'), '':VARCHAR)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test

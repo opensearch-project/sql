@@ -336,4 +336,132 @@ public class ConversionFunctionsTest {
     assertEquals(1.7e308, RmunitConvertFunction.convert("1.7e308"));
     assertEquals(-1.7e308, RmunitConvertFunction.convert("-1.7e308"));
   }
+
+  // ctime() Function Tests
+  @Test
+  public void testCtimeConvertBasic() {
+    // Default format is %m/%d/%Y %H:%M:%S
+    assertEquals("10/18/2003 20:07:13", CTimeConvertFunction.convert(1066507633));
+    assertEquals("01/01/1970 00:00:00", CTimeConvertFunction.convert(0));
+    assertEquals("10/18/2003 20:07:13", CTimeConvertFunction.convert("1066507633"));
+  }
+
+  @Test
+  public void testCtimeConvertInvalid() {
+    assertNull(CTimeConvertFunction.convert("invalid"));
+    assertNull(CTimeConvertFunction.convert(null));
+    assertNull(CTimeConvertFunction.convert(""));
+    assertNull(CTimeConvertFunction.convert("abc123"));
+  }
+
+  // mktime() Function Tests
+  @Test
+  public void testMktimeConvertBasic() {
+    // Default format is %m/%d/%Y %H:%M:%S
+    assertEquals(1066507633.0, MkTimeConvertFunction.convert("10/18/2003 20:07:13"));
+    assertEquals(946684800.0, MkTimeConvertFunction.convert("01/01/2000 00:00:00"));
+    assertEquals(1066473433.0, MkTimeConvertFunction.convert(1066473433));
+    assertEquals(1066473433.0, MkTimeConvertFunction.convert("1066473433"));
+  }
+
+  @Test
+  public void testMktimeConvertInvalid() {
+    assertNull(MkTimeConvertFunction.convert("invalid"));
+    assertNull(MkTimeConvertFunction.convert(null));
+    assertNull(MkTimeConvertFunction.convert(""));
+    assertNull(MkTimeConvertFunction.convert("not-a-date"));
+  }
+
+  // mstime() Function Tests
+  @Test
+  public void testMstimeConvertBasic() {
+    assertEquals(225.0, MsTimeConvertFunction.convert("03:45"));
+    assertEquals(225.123, MsTimeConvertFunction.convert("03:45.123"));
+    assertEquals(90.5, MsTimeConvertFunction.convert("01:30.5"));
+    assertEquals(3661.0, MsTimeConvertFunction.convert("61:01"));
+
+    // SS.SSS without MM: prefix
+    assertEquals(45.123, MsTimeConvertFunction.convert("45.123"));
+    assertEquals(30.0, MsTimeConvertFunction.convert("30"));
+
+    // Test already numeric
+    assertEquals(225.0, MsTimeConvertFunction.convert(225));
+    assertEquals(225.0, MsTimeConvertFunction.convert("225"));
+  }
+
+  @Test
+  public void testMstimeConvertEdgeCases() {
+    assertEquals(0.0, MsTimeConvertFunction.convert("00:00"));
+    assertEquals(0.001, MsTimeConvertFunction.convert("00:00.001"));
+    assertEquals(59.999, MsTimeConvertFunction.convert("00:59.999"));
+  }
+
+  @Test
+  public void testMstimeConvertInvalid() {
+    assertNull(MsTimeConvertFunction.convert("invalid"));
+    assertNull(MsTimeConvertFunction.convert(null));
+    assertNull(MsTimeConvertFunction.convert(""));
+    assertNull(MsTimeConvertFunction.convert("25:70"));
+    assertNull(MsTimeConvertFunction.convert("1:2:3"));
+  }
+
+  // dur2sec() Function Tests
+  @Test
+  public void testDur2secConvertBasic() {
+    assertEquals(5025.0, Dur2SecConvertFunction.convert("01:23:45"));
+    assertEquals(3661.0, Dur2SecConvertFunction.convert("01:01:01"));
+    assertEquals(217815.0, Dur2SecConvertFunction.convert("2+12:30:15"));
+    assertEquals(90061.0, Dur2SecConvertFunction.convert("1+01:01:01"));
+    assertEquals(5025.0, Dur2SecConvertFunction.convert(5025));
+    assertEquals(5025.0, Dur2SecConvertFunction.convert("5025"));
+  }
+
+  @Test
+  public void testDur2secConvertEdgeCases() {
+    assertEquals(0.0, Dur2SecConvertFunction.convert("00:00:00"));
+    assertEquals(86400.0, Dur2SecConvertFunction.convert("1+00:00:00"));
+    assertEquals(3599.0, Dur2SecConvertFunction.convert("00:59:59"));
+  }
+
+  @Test
+  public void testDur2secConvertInvalid() {
+    assertNull(Dur2SecConvertFunction.convert("invalid"));
+    assertNull(Dur2SecConvertFunction.convert(null));
+    assertNull(Dur2SecConvertFunction.convert(""));
+    assertNull(Dur2SecConvertFunction.convert("25:70:80"));
+    assertNull(Dur2SecConvertFunction.convert("1:2"));
+    assertNull(Dur2SecConvertFunction.convert("1+2"));
+  }
+
+  // timeformat tests for mktime() and ctime()
+  @Test
+  public void testMktimeWithCustomTimeformat() {
+    // Strftime format specifiers
+    assertEquals(
+        1066507633.0,
+        MkTimeConvertFunction.convertWithFormat("18/10/2003 20:07:13", "%d/%m/%Y %H:%M:%S"));
+    assertEquals(
+        1066507633.0,
+        MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", "%Y-%m-%d %H:%M:%S"));
+    assertEquals(
+        946684800.0,
+        MkTimeConvertFunction.convertWithFormat("01/01/2000 00:00:00", "%d/%m/%Y %H:%M:%S"));
+
+    // Invalid format returns null
+    assertNull(MkTimeConvertFunction.convertWithFormat("2003-10-18 20:07:13", "invalid format"));
+
+    assertNull(MkTimeConvertFunction.convertWithFormat("10/18/2003 20:07:13", ""));
+  }
+
+  @Test
+  public void testCtimeWithCustomTimeformat() {
+    // Strftime format specifiers
+    assertEquals(
+        "2003-10-18 20:07:13",
+        CTimeConvertFunction.convertWithFormat(1066507633, "%Y-%m-%d %H:%M:%S"));
+    assertEquals("18/10/2003", CTimeConvertFunction.convertWithFormat(1066507633, "%d/%m/%Y"));
+    assertEquals("1970", CTimeConvertFunction.convertWithFormat(0, "%Y"));
+
+    assertNull(CTimeConvertFunction.convertWithFormat(1066507633, ""));
+  }
 }

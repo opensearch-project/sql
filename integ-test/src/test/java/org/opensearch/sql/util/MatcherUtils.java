@@ -24,8 +24,10 @@ import com.google.gson.JsonParser;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
@@ -38,9 +40,16 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.utils.YamlFormatter;
 
 public class MatcherUtils {
+
+  /** Absolute tolerance floor for {@link #closeTo} numeric comparisons. */
+  private static final double ABSOLUTE_TOLERANCE = 1e-10;
+
+  /** Number of ULPs tolerated by {@link #closeTo} to absorb platform-dependent rounding. */
+  private static final int ULP_TOLERANCE_FACTOR = 4;
 
   private static final Logger LOG = LogManager.getLogger();
   private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
@@ -268,6 +277,9 @@ public class MatcherUtils {
   public static TypeSafeMatcher<JSONObject> schema(
       String expectedName, String expectedAlias, String expectedType) {
     return new TypeSafeMatcher<JSONObject>() {
+      private static final Set<String> NUMERIC_TYPES = Set.of("integer", "long", "float", "double");
+      private static final Set<String> STRING_TYPES = Set.of("keyword", "text", "string");
+
       @Override
       public void describeTo(Description description) {
         description.appendText(
@@ -280,9 +292,31 @@ public class MatcherUtils {
         String actualName = (String) jsonObject.query("/name");
         String actualAlias = (String) jsonObject.query("/alias");
         String actualType = (String) jsonObject.query("/type");
+
+        if (TestUtils.AnalyticsIndexConfig.isEnabled()) {
+          // The analytics-engine route promotes the alias to the name (SQL-standard) and unifies
+          // keyword/text/string and the numeric types, so relax name and type matching for it only.
+          boolean nameMatches =
+              expectedName.equals(actualName)
+                  || (!Strings.isNullOrEmpty(expectedAlias) && expectedAlias.equals(actualName));
+          boolean typeMatches =
+              expectedType.equals(actualType) || isCompatibleType(expectedType, actualType);
+          return nameMatches && typeMatches;
+        }
+
         return expectedName.equals(actualName)
             && (Strings.isNullOrEmpty(expectedAlias) || expectedAlias.equals(actualAlias))
             && expectedType.equals(actualType);
+      }
+
+      private boolean isCompatibleType(String expected, String actual) {
+        if (expected == null || actual == null) {
+          return false;
+        }
+        String e = expected.toLowerCase();
+        String a = actual.toLowerCase();
+        return (NUMERIC_TYPES.contains(e) && NUMERIC_TYPES.contains(a))
+            || (STRING_TYPES.contains(e) && STRING_TYPES.contains(a));
       }
     };
   }
@@ -302,20 +336,27 @@ public class MatcherUtils {
   }
 
   public static TypeSafeMatcher<JSONArray> closeTo(Object... values) {
-    final double error = 1e-10;
     return new TypeSafeMatcher<JSONArray>() {
       @Override
       protected boolean matchesSafely(JSONArray item) {
         List<Object> expectedValues = new ArrayList<>(Arrays.asList(values));
         List<Object> actualValues = new ArrayList<>();
         item.iterator().forEachRemaining(v -> actualValues.add((Object) v));
-        return actualValues.stream()
-            .allMatch(
-                v ->
-                    v instanceof Number
-                        ? valuesAreClose(
-                            (Number) v, (Number) expectedValues.get(actualValues.indexOf(v)))
-                        : v.equals(expectedValues.get(actualValues.indexOf(v))));
+        if (actualValues.size() != expectedValues.size()) {
+          return false;
+        }
+        for (int i = 0; i < actualValues.size(); i++) {
+          Object actual = actualValues.get(i);
+          Object expected = expectedValues.get(i);
+          if (actual instanceof Number && expected instanceof Number) {
+            if (!valuesAreClose((Number) actual, (Number) expected)) {
+              return false;
+            }
+          } else if (!actual.equals(expected)) {
+            return false;
+          }
+        }
+        return true;
       }
 
       @Override
@@ -323,8 +364,16 @@ public class MatcherUtils {
         description.appendText(Arrays.toString(values));
       }
 
+      /**
+       * ULP-aware comparison: tolerates up to {@link #ULP_TOLERANCE_FACTOR} ULPs or {@link
+       * #ABSOLUTE_TOLERANCE}, whichever is larger.
+       */
       private boolean valuesAreClose(Number v1, Number v2) {
-        return Math.abs(v1.doubleValue() - v2.doubleValue()) <= error;
+        double d1 = v1.doubleValue();
+        double d2 = v2.doubleValue();
+        double diff = Math.abs(d1 - d2);
+        double ulpTolerance = ULP_TOLERANCE_FACTOR * Math.max(Math.ulp(d1), Math.ulp(d2));
+        return diff <= Math.max(ABSOLUTE_TOLERANCE, ulpTolerance);
       }
     };
   }
@@ -409,6 +458,29 @@ public class MatcherUtils {
     assertEquals(
         JsonParser.parseString(eliminatePid(expected)),
         JsonParser.parseString(eliminatePid(actual)));
+  }
+
+  /**
+   * Compare two {@code datarows} JSON arrays as multisets — same rows, order ignored. Use when the
+   * test only asserts that two queries return the <em>same set of rows</em> (e.g. checking that two
+   * equivalent alias syntaxes produce the same result), not that they emit them in the same order.
+   * The analytics-engine (DataFusion) route does not guarantee the same row order as the v2/Calcite
+   * route, so a plain {@link #assertJsonEquals} on the serialized datarows is order-sensitive and
+   * flaky on that route; comparing as multisets asserts the intended equivalence without depending
+   * on output order.
+   */
+  public static void assertJsonRowsEqualIgnoreOrder(String expectedRows, String actualRows) {
+    List<String> expected = new ArrayList<>();
+    new JSONArray(eliminatePid(expectedRows))
+        .iterator()
+        .forEachRemaining(o -> expected.add(o.toString()));
+    List<String> actual = new ArrayList<>();
+    new JSONArray(eliminatePid(actualRows))
+        .iterator()
+        .forEachRemaining(o -> actual.add(o.toString()));
+    expected.sort(Comparator.naturalOrder());
+    actual.sort(Comparator.naturalOrder());
+    assertEquals(expected, actual);
   }
 
   /**

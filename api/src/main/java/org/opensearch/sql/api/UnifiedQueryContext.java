@@ -5,7 +5,14 @@
 
 package org.opensearch.sql.api;
 
+import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
+import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_BUFFER_LIMIT;
+import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_MAX_SAMPLE_COUNT;
+import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_METHOD;
+import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_MODE;
+import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_SHOW_NUMBERED_TOKEN;
 import static org.opensearch.sql.common.setting.Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT;
+import static org.opensearch.sql.common.setting.Settings.Key.PPL_REX_MAX_MATCH_LIMIT;
 import static org.opensearch.sql.common.setting.Settings.Key.PPL_SUBSEARCH_MAXOUT;
 import static org.opensearch.sql.common.setting.Settings.Key.QUERY_SIZE_LIMIT;
 
@@ -13,34 +20,82 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import lombok.Value;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
+import org.opensearch.sql.api.parser.PPLQueryParser;
+import org.opensearch.sql.api.parser.SqlV2QueryParser;
+import org.opensearch.sql.api.parser.UnifiedQueryParser;
+import org.opensearch.sql.api.spec.LanguageSpec;
+import org.opensearch.sql.api.spec.UnifiedPplSpec;
+import org.opensearch.sql.api.spec.UnifiedSqlSpec;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.monitor.profile.MetricName;
+import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.QueryProfile;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 
 /**
  * A reusable abstraction shared across unified query components (planner, compiler, etc.). This
  * centralizes configuration for catalog schemas, query type, execution limits, and other settings,
  * enabling consistent behavior across all unified query operations.
  */
-@Value
+@AllArgsConstructor
+@Getter
 public class UnifiedQueryContext implements AutoCloseable {
 
   /** CalcitePlanContext containing Calcite framework configuration and query type. */
-  CalcitePlanContext planContext;
+  private final CalcitePlanContext planContext;
 
   /** Settings containing execution limits and feature flags used by parsers and planners. */
-  Settings settings;
+  private final Settings settings;
+
+  /** Query parser created eagerly from this context's configuration. */
+  private final UnifiedQueryParser<?> parser;
+
+  /** Language spec for the query's frontend (SQL or PPL). */
+  private final LanguageSpec langSpec;
+
+  /**
+   * Returns the profiling result. Call after query execution to retrieve collected metrics. Returns
+   * empty if profiling was not enabled.
+   */
+  public Optional<QueryProfile> getProfile() {
+    return Optional.ofNullable(QueryProfiling.current().finish());
+  }
+
+  /**
+   * Measures the execution time of the given action and records it as a profiling metric. When
+   * profiling is disabled, the action executes with no overhead. Use this for phases outside
+   * unified query components (e.g., execution, formatting).
+   *
+   * @param <T> the return type of the action
+   * @param metricName the metric to record
+   * @param action the action to measure
+   * @return the result of the action
+   * @throws Exception if the action throws
+   */
+  public <T> T measure(MetricName metricName, Callable<T> action) throws Exception {
+    ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(metricName);
+    long start = System.nanoTime();
+    try {
+      return action.call();
+    } finally {
+      metric.set(System.nanoTime() - start);
+    }
+  }
 
   /**
    * Closes the underlying resource managed by this context.
@@ -49,6 +104,7 @@ public class UnifiedQueryContext implements AutoCloseable {
    */
   @Override
   public void close() throws Exception {
+    QueryProfiling.clear();
     if (planContext != null && planContext.connection != null) {
       planContext.connection.close();
     }
@@ -65,17 +121,47 @@ public class UnifiedQueryContext implements AutoCloseable {
     private final Map<String, Schema> catalogs = new HashMap<>();
     private String defaultNamespace;
     private boolean cacheMetadata = false;
+    private boolean profiling = false;
 
     /**
      * Setting values with defaults from SysLimit.DEFAULT. Only includes planning-required settings
      * to avoid coupling with OpenSearchSettings.
+     *
+     * <p>{@link Settings.Key#PPL_JOIN_SUBSEARCH_MAXOUT} defaults to {@code 0} to avoid injecting
+     * {@code LogicalSystemLimit} into the logical plan, which is an OpenSearch-specific operational
+     * concern irrelevant to external consumers of the unified query API. {@link
+     * Settings.Key#PPL_SUBSEARCH_MAXOUT} is set to {@code 0} for the same reason.
+     *
+     * <p>{@link Settings.Key#CALCITE_ENGINE_ENABLED} defaults to {@code true} here because the
+     * unified query path is by definition Calcite-based — every query reaching this context flows
+     * through Calcite's planner, never the v2 engine. The PPL {@link
+     * org.opensearch.sql.api.parser.PPLQueryParser} reuses the v2 {@code AstBuilder}, which gates
+     * Calcite-only commands (e.g. {@code visitTableCommand}) on this setting; without the default,
+     * those commands fail at parse time even when the cluster setting is true.
+     *
+     * <p>{@link Settings.Key#PPL_REX_MAX_MATCH_LIMIT} defaults to {@code 10} here because {@code
+     * AstBuilder.visitRexCommand} reads it unconditionally and unboxes to {@code int} — a {@code
+     * null} return from {@code getSettingValue} NPEs the planner before any operator-level
+     * capability check runs. The value mirrors the cluster-side default of {@code 10} registered by
+     * {@code OpenSearchSettings.PPL_REX_MAX_MATCH_LIMIT_SETTING}. Cluster-side overrides reach this
+     * map via {@link #setting(String, Object)} — the REST handler reads the live value from {@code
+     * OpenSearchSettings} and routes it through that existing API, keeping {@link
+     * UnifiedQueryContext} decoupled from any specific {@link Settings} implementation.
      */
     private final Map<Settings.Key, Object> settings =
         new HashMap<Settings.Key, Object>(
-            Map.of(
-                QUERY_SIZE_LIMIT, SysLimit.DEFAULT.querySizeLimit(),
-                PPL_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.subsearchLimit(),
-                PPL_JOIN_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.joinSubsearchLimit()));
+            Map.ofEntries(
+                Map.entry(QUERY_SIZE_LIMIT, SysLimit.DEFAULT.querySizeLimit()),
+                Map.entry(PPL_SUBSEARCH_MAXOUT, SysLimit.UNLIMITED_SUBSEARCH.subsearchLimit()),
+                Map.entry(
+                    PPL_JOIN_SUBSEARCH_MAXOUT, SysLimit.UNLIMITED_SUBSEARCH.joinSubsearchLimit()),
+                Map.entry(CALCITE_ENGINE_ENABLED, true),
+                Map.entry(PPL_REX_MAX_MATCH_LIMIT, 10),
+                Map.entry(PATTERN_METHOD, "SIMPLE_PATTERN"),
+                Map.entry(PATTERN_MODE, "LABEL"),
+                Map.entry(PATTERN_MAX_SAMPLE_COUNT, 10),
+                Map.entry(PATTERN_BUFFER_LIMIT, 100000),
+                Map.entry(PATTERN_SHOW_NUMBERED_TOKEN, false)));
 
     /**
      * Sets the query language frontend to be used.
@@ -125,6 +211,18 @@ public class UnifiedQueryContext implements AutoCloseable {
     }
 
     /**
+     * Enables or disables query profiling. When enabled, profiling metrics are collected during
+     * query planning and execution, retrievable via {@link UnifiedQueryContext#getProfile()}.
+     *
+     * @param enabled whether to enable profiling
+     * @return this builder instance
+     */
+    public Builder profiling(boolean enabled) {
+      this.profiling = enabled;
+      return this;
+    }
+
+    /**
      * Sets a specific setting value by name.
      *
      * @param name the setting key name (e.g., "plugins.query.size_limit")
@@ -147,11 +245,25 @@ public class UnifiedQueryContext implements AutoCloseable {
     public UnifiedQueryContext build() {
       Objects.requireNonNull(queryType, "Must specify language before build");
 
+      LanguageSpec langSpec =
+          switch (queryType) {
+            case SQL -> UnifiedSqlSpec.extended();
+            case PPL -> UnifiedPplSpec.create();
+          };
       Settings settings = buildSettings();
       CalcitePlanContext planContext =
           CalcitePlanContext.create(
-              buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-      return new UnifiedQueryContext(planContext, settings);
+              buildFrameworkConfig(langSpec), SysLimit.fromSettings(settings), queryType);
+      QueryProfiling.activate(profiling);
+      return new UnifiedQueryContext(
+          planContext, settings, createParser(planContext, settings), langSpec);
+    }
+
+    private UnifiedQueryParser<?> createParser(CalcitePlanContext planContext, Settings settings) {
+      return switch (queryType) {
+        case PPL -> new PPLQueryParser(settings);
+        case SQL -> new SqlV2QueryParser(settings);
+      };
     }
 
     private Settings buildSettings() {
@@ -170,16 +282,21 @@ public class UnifiedQueryContext implements AutoCloseable {
     }
 
     @SuppressWarnings({"rawtypes"})
-    private FrameworkConfig buildFrameworkConfig() {
+    private FrameworkConfig buildFrameworkConfig(LanguageSpec langSpec) {
       SchemaPlus rootSchema = CalciteSchema.createRootSchema(true, cacheMetadata).plus();
       catalogs.forEach(rootSchema::add);
 
       SchemaPlus defaultSchema = findSchemaByPath(rootSchema, defaultNamespace);
-      return Frameworks.newConfigBuilder()
-          .parserConfig(SqlParser.Config.DEFAULT)
-          .defaultSchema(defaultSchema)
-          .traitDefs((List<RelTraitDef>) null)
-          .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
+      Frameworks.ConfigBuilder builder =
+          Frameworks.newConfigBuilder()
+              .defaultSchema(defaultSchema)
+              .traitDefs((List<RelTraitDef>) null)
+              .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE));
+
+      return builder
+          .parserConfig(langSpec.parserConfig())
+          .sqlValidatorConfig(langSpec.validatorConfig())
+          .operatorTable(langSpec.operatorTable())
           .build();
     }
 

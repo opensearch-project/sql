@@ -22,6 +22,7 @@ import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.RuleNode;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
@@ -31,6 +32,7 @@ import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -95,8 +97,25 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   private final AstBuilder astBuilder;
 
+  private final AstBuildGuard guard;
+
   public AstExpressionBuilder(AstBuilder astBuilder) {
+    this(astBuilder, new AstBuildGuard());
+  }
+
+  public AstExpressionBuilder(AstBuilder astBuilder, AstBuildGuard guard) {
     this.astBuilder = astBuilder;
+    this.guard = guard;
+  }
+
+  @Override
+  public UnresolvedExpression visit(ParseTree tree) {
+    return guard.enforce(() -> super.visit(tree));
+  }
+
+  @Override
+  public UnresolvedExpression visitChildren(RuleNode node) {
+    return guard.enforce(() -> super.visitChildren(node));
   }
 
   /** Eval clause. */
@@ -213,6 +232,18 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     String operator = ctx.comparisonOperator().getText();
     if ("==".equals(operator)) {
       operator = EQUAL.getName().getFunctionName();
+    } else if ("contains".equalsIgnoreCase(operator)) {
+      UnresolvedExpression left = visit(ctx.left);
+      UnresolvedExpression right = visit(ctx.right);
+      if (!(right instanceof Literal) || ((Literal) right).getType() != DataType.STRING) {
+        throw new SemanticCheckException(
+            "The right-hand side of 'contains' must be a string literal");
+      }
+      String raw = ((Literal) right).getValue().toString();
+      String escaped = raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+      String wrapped = "%" + escaped + "%";
+      return new Compare(
+          ILIKE.getName().getFunctionName(), left, new Literal(wrapped, DataType.STRING));
     } else if (LIKE.getName().getFunctionName().equalsIgnoreCase(operator)
         && UnresolvedPlanHelper.isCalciteEnabled(astBuilder.getSettings())) {
       operator =
@@ -235,6 +266,15 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
                 .map(this::visitLiteralValue)
                 .collect(Collectors.toList()));
     return ctx.NOT() != null ? new Not(expr) : expr;
+  }
+
+  @Override
+  public UnresolvedExpression visitIsNullPredicate(OpenSearchPPLParser.IsNullPredicateContext ctx) {
+    return new Function(
+        ctx.nullNotnull().NOT() == null
+            ? IS_NULL.getName().getFunctionName()
+            : IS_NOT_NULL.getName().getFunctionName(),
+        Arrays.asList(visit(ctx.expression())));
   }
 
   /** Value Expression. */
@@ -288,18 +328,20 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitPrefixSortField(OpenSearchPPLParser.PrefixSortFieldContext ctx) {
-    return buildSortField(ctx.sortFieldExpression(), ctx);
+    boolean ascending = ctx.MINUS() == null;
+    return buildSortField(ctx.sortFieldExpression(), ascending);
   }
 
   @Override
   public UnresolvedExpression visitSuffixSortField(OpenSearchPPLParser.SuffixSortFieldContext ctx) {
-    return buildSortField(ctx.sortFieldExpression(), ctx);
+    boolean ascending = (ctx.DESC() == null && ctx.D() == null);
+    return buildSortField(ctx.sortFieldExpression(), ascending);
   }
 
   @Override
   public UnresolvedExpression visitDefaultSortField(
       OpenSearchPPLParser.DefaultSortFieldContext ctx) {
-    return buildSortField(ctx.sortFieldExpression(), ctx);
+    return buildSortField(ctx.sortFieldExpression(), true);
   }
 
   @Override
@@ -322,8 +364,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   private Field buildSortField(
-      OpenSearchPPLParser.SortFieldExpressionContext sortFieldExpr,
-      OpenSearchPPLParser.SortFieldContext parentCtx) {
+      OpenSearchPPLParser.SortFieldExpressionContext sortFieldExpr, boolean ascending) {
     UnresolvedExpression fieldExpression = visit(sortFieldExpr.fieldExpression().qualifiedName());
 
     if (sortFieldExpr.IP() != null) {
@@ -334,7 +375,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       fieldExpression = new Cast(fieldExpression, AstDSL.stringLiteral("string"));
     }
     // AUTO() case uses the field expression as-is
-    return new Field(fieldExpression, ArgumentFactory.getArgumentList(parentCtx));
+
+    List<Argument> arguments =
+        Arrays.asList(
+            ArgumentFactory.createSortDirectionArgument(ascending),
+            ArgumentFactory.getTypeArgument(sortFieldExpr));
+    return new Field(fieldExpression, arguments);
   }
 
   @Override
@@ -876,11 +922,21 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   public QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
-    return new QualifiedName(
+    List<String> parts =
         ctx.stream()
             .map(RuleContext::getText)
             .map(StringUtils::unquoteIdentifier)
-            .collect(Collectors.toList()));
+            .collect(Collectors.toList());
+
+    // Capture source position from the first identifier for error reporting
+    if (!ctx.isEmpty()) {
+      ParserRuleContext first = ctx.get(0);
+      int line = first.getStart().getLine();
+      int column = first.getStart().getCharPositionInLine();
+      return new QualifiedName(parts, line, column);
+    }
+
+    return new QualifiedName(parts);
   }
 
   private List<UnresolvedExpression> singleFieldRelevanceArguments(

@@ -9,10 +9,15 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
+import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -35,6 +40,32 @@ public interface JoinAndLookupUtils {
       default:
         return JoinRelType.INNER;
     }
+  }
+
+  /**
+   * Collects the names of bare single-part-field join criteria (e.g. {@code on a AND b} -> {@code
+   * Optional.of(["a","b"])}). Returns empty for anything else (qualified field, comparison, OR).
+   * The list is only constructed when every node in the AND-tree is a bare field.
+   */
+  static Optional<List<String>> collectBareFields(UnresolvedExpression expr) {
+    if (expr instanceof And and) {
+      return collectBareFields(and.getLeft())
+          .flatMap(
+              left ->
+                  collectBareFields(and.getRight())
+                      .map(
+                          right -> {
+                            List<String> merged = new ArrayList<>(left);
+                            merged.addAll(right);
+                            return merged;
+                          }));
+    }
+    if (expr instanceof Field field
+        && field.getField() instanceof QualifiedName qn
+        && qn.getPrefix().isEmpty()) {
+      return Optional.of(new ArrayList<>(List.of(qn.getSuffix())));
+    }
+    return Optional.empty();
   }
 
   /* ------For Lookup------ */

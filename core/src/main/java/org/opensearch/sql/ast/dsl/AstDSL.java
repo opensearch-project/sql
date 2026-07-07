@@ -48,6 +48,8 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
@@ -60,6 +62,7 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.MvCombine;
@@ -81,6 +84,7 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -756,5 +760,30 @@ public class AstDSL {
   /** Get a reference to the implicit timestamp field {@code @timestamp} */
   public static Field implicitTimestampField() {
     return AstDSL.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
+  }
+
+  public static UnresolvedPlan join(
+      UnresolvedPlan right, Join.JoinType joinType, Optional<UnresolvedExpression> condition) {
+    return new Join(
+        right,
+        Optional.empty(),
+        Optional.empty(),
+        joinType,
+        condition,
+        new Join.JoinHint(),
+        Optional.empty(),
+        Argument.ArgumentMap.empty());
+  }
+
+  public static InSubquery inSubquery(UnresolvedPlan query, UnresolvedExpression... values) {
+    return new InSubquery(List.of(values), query);
+  }
+
+  public static ExistsSubquery existsSubquery(UnresolvedPlan query) {
+    return new ExistsSubquery(query);
+  }
+
+  public static Union union(List<UnresolvedPlan> datasets) {
+    return new Union(datasets);
   }
 }

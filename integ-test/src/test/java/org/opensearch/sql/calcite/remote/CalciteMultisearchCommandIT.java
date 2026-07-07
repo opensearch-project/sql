@@ -5,17 +5,22 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.Assume.assumeFalse;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.MULTISEARCH_COLUMN_ORDER;
+import static org.opensearch.sql.util.Capability.MULTISEARCH_SAME_INDEX_CONFLATION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
@@ -28,6 +33,7 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
     loadIndex(Index.TIME_TEST_DATA);
     loadIndex(Index.TIME_TEST_DATA2);
     loadIndex(Index.LOCATIONS_TYPE_CONFLICT);
+    loadIndex(Index.DATA_TYPE_ALIAS);
   }
 
   @Test
@@ -64,6 +70,7 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTISEARCH_SAME_INDEX_CONFLATION)
   public void testMultisearchWithThreeSubsearches() throws IOException {
     JSONObject result =
         executeQuery(
@@ -80,6 +87,7 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTISEARCH_SAME_INDEX_CONFLATION)
   public void testMultisearchWithComplexAggregation() throws IOException {
     JSONObject result =
         executeQuery(
@@ -142,6 +150,7 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTISEARCH_COLUMN_ORDER)
   public void testMultisearchWithTimestampInterleaving() throws IOException {
     JSONObject result =
         executeQuery(
@@ -152,10 +161,10 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
     verifySchema(
         result,
-        schema("@timestamp", null, "string"),
+        schema("@timestamp", null, "timestamp"),
         schema("category", null, "string"),
         schema("value", null, "int"),
-        schema("timestamp", null, "string"));
+        schema("timestamp", null, "timestamp"));
 
     verifyDataRows(
         result,
@@ -325,8 +334,10 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "| multisearch "
-                    + "[search source=%s | fields firstname, balance | head 2] "
-                    + "[search source=%s | fields description, place_id | head 2]",
+                    + "[search source=%s | sort account_number | fields firstname, balance"
+                    + " | head 2] "
+                    + "[search source=%s | sort place_id | fields description, place_id"
+                    + " | head 2]",
                 TEST_INDEX_ACCOUNT, TEST_INDEX_LOCATIONS_TYPE_CONFLICT));
 
     verifySchema(
@@ -338,10 +349,100 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         result,
+        rows("Bradshaw", 16623L, null, null),
         rows("Amber", 39225L, null, null),
-        rows("Hattie", 5686L, null, null),
         rows(null, null, "Central Park", 1001),
         rows(null, null, "Times Square", 1002));
+  }
+
+  // ========================================================================
+  // Reproduction tests for GitHub issues #5145, #5146, #5147
+  // ========================================================================
+
+  /** Reproduce #5145: multisearch without further processing should return all rows. */
+  @Test
+  @RequiresCapability(MULTISEARCH_SAME_INDEX_CONFLATION)
+  public void testMultisearchWithoutFurtherProcessing() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="
+                + " \\\"A\\\"] [search source=opensearch-sql_test_index_time_data | where category"
+                + " = \\\"B\\\"]");
+
+    verifySchema(
+        result,
+        schema("@timestamp", null, "timestamp"),
+        schema("category", null, "string"),
+        schema("value", null, "int"),
+        schema("timestamp", null, "timestamp"));
+
+    // category A has 26 rows, category B has 25 rows = 51 total
+    assertEquals(51, result.getInt("total"));
+  }
+
+  /** Reproduce #5146: span expression used after multisearch should work. */
+  @Test
+  public void testMultisearchWithSpanExpression() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="
+                + " \\\"A\\\"] [search source=opensearch-sql_test_index_time_data2 | where category"
+                + " = \\\"E\\\"] | stats count() by span(@timestamp, 1d)");
+
+    verifySchema(
+        result,
+        schema("count()", null, "bigint"),
+        schema("span(@timestamp,1d)", null, "timestamp"));
+
+    // Category A: 26 rows spanning Jul 28 – Aug 1; Category E: 10 rows spanning Jul 30 – Aug 1
+    verifyDataRows(
+        result,
+        rows(7L, "2025-07-28 00:00:00"),
+        rows(6L, "2025-07-29 00:00:00"),
+        rows(8L, "2025-07-30 00:00:00"),
+        rows(12L, "2025-07-31 00:00:00"),
+        rows(3L, "2025-08-01 00:00:00"));
+  }
+
+  /** Reproduce #5147: bin command after multisearch should produce non-null @timestamp. */
+  @Test
+  public void testMultisearchBinTimestamp() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="
+                + " \\\"A\\\"] [search source=opensearch-sql_test_index_time_data2 | where category"
+                + " = \\\"E\\\"] | fields @timestamp, category, value | bin @timestamp span=1d");
+
+    verifySchema(
+        result,
+        schema("category", null, "string"),
+        schema("value", null, "int"),
+        schema("@timestamp", null, "timestamp"));
+
+    // bin floors @timestamp to 1-day boundaries; 26 A-rows + 10 E-rows = 36 total
+    assertEquals(36, result.getInt("total"));
+  }
+
+  /** Reproduce #5147 full pattern: bin + stats after multisearch. */
+  @Test
+  public void testMultisearchBinAndStats() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| multisearch [search source=opensearch-sql_test_index_time_data | where category ="
+                + " \\\"A\\\"] [search source=opensearch-sql_test_index_time_data2 | where category"
+                + " = \\\"E\\\"] | bin @timestamp span=1d | stats count() by @timestamp");
+
+    verifySchema(
+        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
+
+    // Category A: 26 rows spanning Jul 28 – Aug 1; Category E: 10 rows spanning Jul 30 – Aug 1
+    verifyDataRows(
+        result,
+        rows(7L, "2025-07-28 00:00:00"),
+        rows(6L, "2025-07-29 00:00:00"),
+        rows(8L, "2025-07-30 00:00:00"),
+        rows(12L, "2025-07-31 00:00:00"),
+        rows(3L, "2025-08-01 00:00:00"));
   }
 
   @Test
@@ -363,5 +464,43 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         exception
             .getMessage()
             .contains("Unable to process column 'age' due to incompatible types:"));
+  }
+
+  /**
+   * Regression test for GitHub issue #5533. When {@code @timestamp} is defined as a field-type
+   * alias in the index mapping, multisearch used to throw:
+   *
+   * <pre>ClassCastException: RelCompositeTrait cannot be cast to RelCollation</pre>
+   *
+   * <p>Root cause: {@code reIndexCollations()} and {@code pushDownSort()} both used {@code
+   * RelTraitSet.plus()} which composes collation traits into a {@link
+   * org.apache.calcite.rel.RelCompositeTrait} when a collation is already present. Calcite's {@code
+   * RelTraitSet.getCollation()} then fails with a ClassCastException. Fixed by using {@code
+   * RelTraitSet.replace()} instead to always replace the collation trait.
+   */
+  @Test
+  public void testMultisearchWithTimestampAliasFieldDoesNotThrow() throws IOException {
+    // alias-typed fields are stripped when loading indices in analytics-engine parquet mode,
+    // so @timestamp does not exist in TEST_INDEX_ALIAS on that route.
+    assumeFalse(
+        "alias-typed fields are stripped in analytics-engine parquet mode;"
+            + " @timestamp won't exist in TEST_INDEX_ALIAS on that route.",
+        isAnalyticsParquetIndicesEnabled());
+    // TEST_INDEX_ALIAS has @timestamp defined as an alias field pointing to original_date.
+    // Running multisearch on such an index used to crash with ClassCastException.
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "| multisearch "
+                    + "[search source=%s | where original_col > 1 | fields original_col,"
+                    + " @timestamp] "
+                    + "[search source=%s | where original_col = 1 | fields original_col,"
+                    + " @timestamp]",
+                TEST_INDEX_ALIAS, TEST_INDEX_ALIAS));
+
+    verifySchemaInOrder(
+        result, schema("original_col", null, "int"), schema("@timestamp", null, "timestamp"));
+    // 2 rows from original_col > 1, 1 row from original_col = 1
+    assertEquals(3, result.getInt("total"));
   }
 }

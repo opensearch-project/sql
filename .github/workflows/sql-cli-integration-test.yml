@@ -42,7 +42,7 @@ jobs:
 
     steps:
       - name: Checkout SQL CLI repository (latest main)
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: opensearch-project/sql-cli
           path: sql-cli
@@ -53,12 +53,12 @@ jobs:
         run: mkdir remote
 
       - name: Checkout SQL repository (current changes)
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           path: sql-cli/remote/sql
 
       - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
@@ -69,6 +69,7 @@ jobs:
           echo "Building SQL modules from current branch..."
           ./gradlew publishToMavenLocal -x test -x integTest
           echo "SQL modules published to Maven Local"
+          ./gradlew clean
 
       - name: Run SQL CLI tests with local SQL modules
         working-directory: sql-cli
@@ -78,7 +79,7 @@ jobs:
 
       - name: Upload SQL CLI test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         continue-on-error: true
         with:
           name: sql-cli-test-reports-java-${{ matrix.java }}

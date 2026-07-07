@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,16 +44,32 @@ class ResourceMonitorPlanTest {
 
   @Test
   void openExceedResourceLimit() {
-    when(resourceMonitor.isHealthy()).thenReturn(false);
+    when(resourceMonitor.getStatus())
+        .thenReturn(
+            org.opensearch.sql.monitor.ResourceStatus.builder()
+                .healthy(false)
+                .type(org.opensearch.sql.monitor.ResourceStatus.ResourceType.MEMORY)
+                .currentUsage(900L * 1024 * 1024) // 900MB
+                .maxLimit(850L * 1024 * 1024) // 850MB
+                .description("Memory usage exceeds limit")
+                .build());
 
     IllegalStateException exception =
         assertThrows(IllegalStateException.class, () -> monitorPlan.open());
-    assertEquals("insufficient resources to run the query, quit.", exception.getMessage());
+    assertTrue(
+        exception.getMessage().contains("Insufficient resources to start query"),
+        "Expected enriched error message, got: " + exception.getMessage());
+    assertTrue(
+        exception.getMessage().contains("plugins.query.memory_limit"),
+        "Expected config suggestion in message");
   }
 
   @Test
   void openSuccess() {
-    when(resourceMonitor.isHealthy()).thenReturn(true);
+    when(resourceMonitor.getStatus())
+        .thenReturn(
+            org.opensearch.sql.monitor.ResourceStatus.healthy(
+                org.opensearch.sql.monitor.ResourceStatus.ResourceType.MEMORY));
 
     monitorPlan.open();
     verify(plan, times(1)).open();
@@ -60,18 +77,29 @@ class ResourceMonitorPlanTest {
 
   @Test
   void nextSuccess() {
-    when(resourceMonitor.isHealthy()).thenReturn(true);
+    when(resourceMonitor.getStatus())
+        .thenReturn(
+            org.opensearch.sql.monitor.ResourceStatus.healthy(
+                org.opensearch.sql.monitor.ResourceStatus.ResourceType.MEMORY));
 
     for (int i = 1; i <= 1000; i++) {
       monitorPlan.next();
     }
-    verify(resourceMonitor, times(1)).isHealthy();
+    verify(resourceMonitor, times(1)).getStatus();
     verify(plan, times(1000)).next();
   }
 
   @Test
   void nextExceedResourceLimit() {
-    when(resourceMonitor.isHealthy()).thenReturn(false);
+    when(resourceMonitor.getStatus())
+        .thenReturn(
+            org.opensearch.sql.monitor.ResourceStatus.builder()
+                .healthy(false)
+                .type(org.opensearch.sql.monitor.ResourceStatus.ResourceType.MEMORY)
+                .currentUsage(900L * 1024 * 1024) // 900MB
+                .maxLimit(850L * 1024 * 1024) // 850MB
+                .description("Memory usage exceeds limit")
+                .build());
 
     for (int i = 1; i < 1000; i++) {
       monitorPlan.next();
@@ -79,7 +107,14 @@ class ResourceMonitorPlanTest {
 
     IllegalStateException exception =
         assertThrows(IllegalStateException.class, () -> monitorPlan.next());
-    assertEquals("insufficient resources to load next row, quit.", exception.getMessage());
+    assertTrue(
+        exception.getMessage().contains("Insufficient resources to continue processing"),
+        "Expected enriched error message, got: " + exception.getMessage());
+    assertTrue(
+        exception.getMessage().contains("Rows processed: 1000"), "Expected row count in message");
+    assertTrue(
+        exception.getMessage().contains("plugins.query.memory_limit"),
+        "Expected config suggestion in message");
   }
 
   @Test

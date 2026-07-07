@@ -467,15 +467,15 @@ DAMAGE.
 
 ------
 
-** ANTLR; version 4.7.1 -- https://github.com/antlr/antlr4
+** ANTLR; version 4.13.2 -- https://github.com/antlr/antlr4
 /*
- * Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
+ * Copyright (c) 2012-2024 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
  */
 
 [The "BSD 3-clause license"]
-Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
+Copyright (c) 2012-2024 The ANTLR Project. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions

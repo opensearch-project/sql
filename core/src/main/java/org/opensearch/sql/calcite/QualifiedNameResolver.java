@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -16,6 +17,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
@@ -56,7 +60,7 @@ public class QualifiedNameResolver {
 
     return resolveFieldWithAlias(nameNode, context, 2)
         .or(() -> resolveFieldWithoutAlias(nameNode, context, 2))
-        .orElseThrow(() -> getNotFoundException(nameNode));
+        .orElseThrow(() -> getNotFoundException(nameNode, context));
   }
 
   /** Resolves qualified name in non-join condition context. */
@@ -89,7 +93,7 @@ public class QualifiedNameResolver {
 
     return resolveCorrelationField(nameNode, context)
         .or(() -> replaceWithNullLiteralInCoalesce(context))
-        .orElseThrow(() -> getNotFoundException(nameNode));
+        .orElseThrow(() -> getNotFoundException(nameNode, context));
   }
 
   private static String joinParts(List<String> parts, int start, int length) {
@@ -315,14 +319,37 @@ public class QualifiedNameResolver {
   private static Optional<RexNode> replaceWithNullLiteralInCoalesce(CalcitePlanContext context) {
     log.debug("replaceWithNullLiteralInCoalesce() called");
     if (context.isInCoalesceFunction()) {
+      // Use SqlTypeName.NULL so the resulting literal does not bias the least-restrictive
+      // common-type computation toward VARCHAR. See issue #5175: previously VARCHAR was used,
+      // which caused COALESCE(null, 42) to be inferred as VARCHAR and returned as "42".
       return Optional.of(
           context.rexBuilder.makeNullLiteral(
-              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR)));
+              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.NULL)));
     }
     return Optional.empty();
   }
 
-  private static RuntimeException getNotFoundException(QualifiedName node) {
-    return new IllegalArgumentException(String.format("Field [%s] not found.", node.toString()));
+  private static ErrorReport getNotFoundException(QualifiedName node, CalcitePlanContext context) {
+    // Collect all available fields from the current context
+    List<String> availableFields = context.relBuilder.peek().getRowType().getFieldNames();
+
+    ErrorReport.Builder builder =
+        ErrorReport.wrap(
+                new IllegalArgumentException(
+                    String.format("Field [%s] not found.", node.toString())))
+            .code(ErrorCode.FIELD_NOT_FOUND)
+            .context("requested_field", node.toString())
+            .context("available_fields", availableFields);
+
+    // Add a suggestion based on Levenshtein distance
+    StringUtils.findClosestMatch(node.toString(), availableFields)
+        .ifPresent(suggestion -> builder.suggestion("Did you mean: " + suggestion));
+
+    // Add source position if available (populated by PPL parser)
+    if (node.getLine() != null && node.getColumn() != null) {
+      builder.context("query_pos", Map.of("line", node.getLine(), "column", node.getColumn()));
+    }
+
+    return builder.build();
   }
 }

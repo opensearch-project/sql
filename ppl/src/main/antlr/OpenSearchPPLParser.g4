@@ -48,6 +48,8 @@ pplCommands
    | showDataSourcesCommand
    | searchCommand
    | multisearchCommand
+   | graphLookupCommand
+   | unionCommand
    ;
 
 commands
@@ -96,6 +98,8 @@ commands
    | fieldformatCommand
    | nomvCommand
    | graphLookupCommand
+   | unionCommand
+   | timewrapCommand
    ;
 
 commandName
@@ -140,6 +144,7 @@ commandName
    | ADDCOLTOTALS
    | APPEND
    | MULTISEARCH
+   | UNION
    | REX
    | APPENDPIPE
    | REPLACE
@@ -147,6 +152,7 @@ commandName
    | NOMV
    | TRANSPOSE
    | GRAPHLOOKUP
+   | TIMEWRAP
    ;
 
 searchCommand
@@ -231,7 +237,7 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA? renameClasue)*
+   : RENAME renameClause (COMMA? renameClause)*
    ;
 
 replaceCommand
@@ -353,6 +359,27 @@ transposeParameter
    | (COLUMN_NAME EQUAL stringLiteral)
    ;
 
+timewrapCommand
+   : TIMEWRAP spanLiteral timewrapParameter*
+   ;
+
+timewrapParameter
+   : ALIGN EQUAL timewrapAlign
+   | SERIES EQUAL timewrapSeries
+   | TIME_FORMAT EQUAL stringLiteral
+   ;
+
+timewrapAlign
+   : NOW
+   | END
+   ;
+
+timewrapSeries
+   : RELATIVE
+   | SHORT
+   | EXACT
+   ;
+
 
 timechartParameter
    : LIMIT EQUAL integerLiteral
@@ -378,7 +405,7 @@ fieldformatCommand
    ;
 
 headCommand
-   : HEAD (number = integerLiteral)? (FROM from = integerLiteral)?
+   : HEAD ((LIMIT EQUAL)? number = integerLiteral)? (FROM from = integerLiteral)?
    ;
 
 binCommand
@@ -410,7 +437,7 @@ logSpanValue
    ;
 
 rareTopCommand
-   : (TOP | RARE) (number = integerLiteral)? rareTopOption* fieldList (byClause)?
+   : (TOP | RARE) ((LIMIT EQUAL)? number = integerLiteral)? rareTopOption* fieldList (byClause)?
    ;
 
 rareTopOption
@@ -545,7 +572,7 @@ replacementPair
    ;
 
 convertCommand
-   : CONVERT convertFunction (COMMA? convertFunction)*
+   : CONVERT (TIMEFORMAT EQUAL timeFormat=stringLiteral)? convertFunction (COMMA? convertFunction)*
    ;
 
 convertFunction
@@ -595,6 +622,19 @@ appendCommand
 
 multisearchCommand
    : MULTISEARCH (LT_SQR_PRTHS subSearch RT_SQR_PRTHS)+
+   ;
+
+unionCommand
+   : UNION subsearchOptions? unionDataset (COMMA? unionDataset)*
+   ;
+
+subsearchOptions
+   : (MAXOUT EQUAL maxout=integerLiteral)?
+   ;
+
+unionDataset
+   : LT_SQR_PRTHS subSearch RT_SQR_PRTHS
+   | tableSource
    ;
 
 kmeansCommand
@@ -682,7 +722,9 @@ graphLookupCommand
    ;
 
 startClause
-   : START EQUAL startField = fieldExpression
+   : START EQUAL valueList
+   | START EQUAL startField = fieldExpression
+   | START EQUAL startValue = literalValue
    ;
 
 edgeClause
@@ -727,13 +769,14 @@ sourceReference
 
 sourceFilterArg
    : ident EQUAL literalValue
-   | ident IN valueList
+   | ident IN LT_PRTHS valueList RT_PRTHS
    ;
 
 // join
 joinCommand
-   : JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
-   | sqlLikeJoinType? JOIN (joinOption)* sideAlias joinHintList? joinCriteria right = tableOrSubqueryClause
+   // Criteria alt listed first - so `join on a` reads `on` as the criteria keyword, not a field.
+   : sqlLikeJoinType? JOIN (joinOption)* sideAlias joinHintList? joinCriteria right = tableOrSubqueryClause
+   | JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
    ;
 
 sqlLikeJoinType
@@ -780,7 +823,7 @@ joinOption
    | MAX EQUAL integerLiteral                           # maxOption
    ;
 
-renameClasue
+renameClause
    : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
@@ -928,8 +971,13 @@ expression
    : valueExpression                                            # valueExpr
    | relevanceExpression                                        # relevanceExpr
    | left = expression comparisonOperator right = expression    # compareExpr
-   | expression NOT? IN valueList                               # inExpr
+   | expression NOT? IN LT_PRTHS valueList RT_PRTHS             # inExpr
    | expression NOT? BETWEEN expression AND expression          # between
+   | expression IS nullNotnull                                  # isNullPredicate
+   ;
+
+nullNotnull
+   : NOT? NULL
    ;
 
 
@@ -1470,6 +1518,7 @@ positionFunctionName
    | REGEXP
    | LIKE
    | ILIKE
+   | CONTAINS
    ;
 
 singleFieldRelevanceFunctionName
@@ -1571,7 +1620,7 @@ intervalUnit
    ;
 
 valueList
-   : LT_PRTHS literalValue (COMMA literalValue)* RT_PRTHS
+   : literalValue (COMMA literalValue)*
    ;
 
 qualifiedName
@@ -1611,6 +1660,8 @@ wildcard
 keywordsCanBeId
    : searchableKeyWord
    | IN
+   | IS
+   | NULL
    ;
 
 searchableKeyWord
@@ -1634,6 +1685,7 @@ searchableKeyWord
    | ELSE
    | ARROW
    | BETWEEN
+   | CONTAINS
    | EXISTS
    | SOURCE
    | INDEX
@@ -1649,6 +1701,7 @@ searchableKeyWord
    | FREQUENCY_THRESHOLD_PERCENTAGE
    | MAX_SAMPLE_COUNT
    | BUFFER_LIMIT
+   | LIMIT
    | SHOW_NUMBERED_TOKEN
    | WITH
    | REGEX
@@ -1699,6 +1752,7 @@ searchableKeyWord
    | ANOMALY_SCORE_THRESHOLD
    | COUNTFIELD
    | SHOWCOUNT
+   | MAXOUT
    | PATH
    | INPUT
    | OUTPUT

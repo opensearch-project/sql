@@ -174,20 +174,80 @@ class FilterQueryBuilderTest {
   }
 
   @Test
-  void should_build_script_query_for_unsupported_lucene_query() {
+  void should_build_exists_query_for_is_not_null() {
+    assertJsonEquals(
+        "{\n"
+            + "  \"exists\" : {\n"
+            + "    \"field\" : \"age\",\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        buildQuery(DSL.isnotnull(ref("age", INTEGER))));
+  }
+
+  @Test
+  void should_build_must_not_exists_query_for_is_null() {
+    assertJsonEquals(
+        "{\n"
+            + "  \"bool\" : {\n"
+            + "    \"must_not\" : [\n"
+            + "      {\n"
+            + "        \"exists\" : {\n"
+            + "          \"field\" : \"age\",\n"
+            + "          \"boost\" : 1.0\n"
+            + "        }\n"
+            + "      }\n"
+            + "    ],\n"
+            + "    \"adjust_pure_negative\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        buildQuery(DSL.is_null(ref("age", INTEGER))));
+  }
+
+  @Test
+  void should_fallback_to_script_for_nested_is_not_null() {
+    // Nested IS_NOT_NULL must NOT route through NestedQuery.buildNested(): that path reads
+    // arg[1] and unary IS_NOT_NULL only has arg[0]. ExistsQuery.isNestedPredicate() returns
+    // false precisely to force the script fallback here.
     mockToStringSerializer();
     assertJsonEquals(
         "{\n"
             + "  \"script\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"is not"
-            + " null(age)\\\"}\",\n"
+            + "      \"source\" :"
+            + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"is"
+            + " not null(FunctionExpression(functionName=nested, arguments=[message.info,"
+            + " message]))\\\"}\",\n"
             + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"boost\" : 1.0\n"
             + "  }\n"
             + "}",
-        buildQuery(DSL.isnotnull(ref("age", INTEGER))));
+        buildQuery(
+            DSL.isnotnull(
+                DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)))));
+  }
+
+  @Test
+  void should_fallback_to_script_for_nested_is_null() {
+    // Symmetric to the IS_NOT_NULL case: must not crash with an arg[1] lookup via NestedQuery.
+    mockToStringSerializer();
+    assertJsonEquals(
+        "{\n"
+            + "  \"script\" : {\n"
+            + "    \"script\" : {\n"
+            + "      \"source\" :"
+            + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"is"
+            + " null(FunctionExpression(functionName=nested, arguments=[message.info,"
+            + " message]))\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
+            + "    },\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            DSL.is_null(DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)))));
   }
 
   @Test

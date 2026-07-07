@@ -63,7 +63,7 @@ public class AddSubDateFunction extends ImplementorUDF {
     return opBinding -> {
       RelDataType temporalType = opBinding.getOperandType(0);
       RelDataType temporalDeltaType = opBinding.getOperandType(1);
-      if (OpenSearchTypeFactory.convertRelDataTypeToExprType(temporalType) == ExprCoreType.DATE
+      if (OpenSearchTypeFactory.isDateExprType(temporalType)
           && SqlTypeFamily.NUMERIC.contains(temporalDeltaType)) {
         return NULLABLE_DATE_UDT;
       } else {

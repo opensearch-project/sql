@@ -1,0 +1,271 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.plugin.rest;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
+import java.io.IOException;
+import org.json.JSONObject;
+import org.junit.Before;
+import org.junit.Test;
+import org.opensearch.OpenSearchStatusException;
+import org.opensearch.common.io.stream.BytesStreamOutput;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.MediaType;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
+import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
+import org.opensearch.sql.ppl.autocomplete.GrammarBundle;
+import org.opensearch.test.rest.FakeRestRequest;
+import org.opensearch.transport.client.node.NodeClient;
+
+/** Unit tests for {@link RestPPLGrammarAction}. */
+public class RestPPLGrammarActionTest {
+
+  private RestPPLGrammarAction action;
+  private NodeClient client;
+
+  @Before
+  public void setUp() {
+    action =
+        new RestPPLGrammarAction() {
+          @Override
+          protected void authorizeRequest(
+              NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
+            listener.onResponse(new TransportPPLQueryResponse("{}"));
+          }
+        };
+    client = mock(NodeClient.class);
+  }
+
+  @Test
+  public void testName() {
+    assertEquals("ppl_grammar_action", action.getName());
+  }
+
+  @Test
+  public void testRoutes() {
+    assertEquals(1, action.routes().size());
+    assertEquals(RestRequest.Method.GET, action.routes().get(0).getMethod());
+    assertEquals("/_plugins/_ppl/_grammar", action.routes().get(0).getPath());
+  }
+
+  @Test
+  public void testGetGrammar_ReturnsBundle() throws Exception {
+    FakeRestRequest request = newGrammarGetRequest();
+
+    MockRestChannel channel = new MockRestChannel(request, true);
+    action.handleRequest(request, channel, client);
+
+    RestResponse response = channel.getResponse();
+    assertNotNull("Response should not be null", response);
+    assertEquals("Should return 200 OK", RestStatus.OK, response.status());
+
+    String content = response.content().utf8ToString();
+    JSONObject json = new JSONObject(content);
+
+    // Identity & versioning
+    assertEquals("1.0", json.getString("bundleVersion"));
+    assertTrue(
+        "antlrVersion should be a version string",
+        json.getString("antlrVersion").matches("\\d+\\.\\d+.*"));
+    assertTrue(
+        "grammarHash should start with sha256:",
+        json.getString("grammarHash").startsWith("sha256:"));
+    assertEquals(0, json.getInt("startRuleIndex"));
+
+    // Lexer ATN & metadata (non-empty arrays)
+    assertTrue(json.getJSONArray("lexerSerializedATN").length() > 0);
+    assertTrue(json.getJSONArray("lexerRuleNames").length() > 0);
+    assertTrue(json.getJSONArray("channelNames").length() > 0);
+    assertTrue(json.getJSONArray("modeNames").length() > 0);
+
+    // Parser ATN & metadata (non-empty arrays)
+    assertTrue(json.getJSONArray("parserSerializedATN").length() > 0);
+    assertTrue(json.getJSONArray("parserRuleNames").length() > 0);
+
+    // Vocabulary (non-empty arrays)
+    assertTrue(json.getJSONArray("literalNames").length() > 0);
+    assertTrue(json.getJSONArray("symbolicNames").length() > 0);
+
+    // Autocomplete configuration
+    assertTrue(json.getJSONObject("tokenDictionary").length() > 0);
+    assertTrue(json.getJSONArray("ignoredTokens").length() > 0);
+    assertTrue(json.getJSONArray("rulesToVisit").length() > 0);
+  }
+
+  @Test
+  public void testGetGrammar_UsesBundleProvider() throws Exception {
+    int[] calls = {0};
+    RestPPLGrammarAction providerAction =
+        new RestPPLGrammarAction() {
+          @Override
+          protected void authorizeRequest(
+              NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
+            listener.onResponse(new TransportPPLQueryResponse("{}"));
+          }
+
+          @Override
+          protected GrammarBundle getBundle() {
+            calls[0]++;
+            return super.getBundle();
+          }
+        };
+
+    FakeRestRequest request1 = newGrammarGetRequest();
+    MockRestChannel channel1 = new MockRestChannel(request1, true);
+    providerAction.handleRequest(request1, channel1, client);
+
+    FakeRestRequest request2 = newGrammarGetRequest();
+    MockRestChannel channel2 = new MockRestChannel(request2, true);
+    providerAction.handleRequest(request2, channel2, client);
+
+    assertEquals("Bundle provider should be invoked once per request", 2, calls[0]);
+  }
+
+  @Test
+  public void testGetGrammar_ErrorPath_Returns500() throws Exception {
+    RestPPLGrammarAction failingAction =
+        new RestPPLGrammarAction() {
+          @Override
+          protected void authorizeRequest(
+              NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
+            listener.onResponse(new TransportPPLQueryResponse("{}"));
+          }
+
+          @Override
+          protected GrammarBundle getBundle() {
+            throw new RuntimeException("simulated build failure");
+          }
+        };
+
+    FakeRestRequest request = newGrammarGetRequest();
+    MockRestChannel channel = new MockRestChannel(request, true);
+    failingAction.handleRequest(request, channel, client);
+
+    assertEquals(RestStatus.INTERNAL_SERVER_ERROR, channel.getResponse().status());
+  }
+
+  @Test
+  public void testGetGrammar_NullBundle_Returns500() throws Exception {
+    RestPPLGrammarAction nullBundleAction =
+        new RestPPLGrammarAction() {
+          @Override
+          protected void authorizeRequest(
+              NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
+            listener.onResponse(new TransportPPLQueryResponse("{}"));
+          }
+
+          @Override
+          protected GrammarBundle getBundle() {
+            return null;
+          }
+        };
+
+    FakeRestRequest request = newGrammarGetRequest();
+    MockRestChannel channel = new MockRestChannel(request, true);
+    nullBundleAction.handleRequest(request, channel, client);
+
+    assertEquals(RestStatus.INTERNAL_SERVER_ERROR, channel.getResponse().status());
+  }
+
+  @Test
+  public void testGetGrammar_AuthorizationFailure_Returns403() throws Exception {
+    RestPPLGrammarAction unauthorizedAction =
+        new RestPPLGrammarAction() {
+          @Override
+          protected void authorizeRequest(
+              NodeClient client, ActionListener<TransportPPLQueryResponse> listener) {
+            listener.onFailure(new OpenSearchStatusException("forbidden", RestStatus.FORBIDDEN));
+          }
+        };
+
+    FakeRestRequest request = newGrammarGetRequest();
+    MockRestChannel channel = new MockRestChannel(request, true);
+    unauthorizedAction.handleRequest(request, channel, client);
+
+    assertEquals(RestStatus.FORBIDDEN, channel.getResponse().status());
+  }
+
+  private static FakeRestRequest newGrammarGetRequest() {
+    return new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+        .withMethod(RestRequest.Method.GET)
+        .withPath("/_plugins/_ppl/_grammar")
+        .build();
+  }
+
+  /** Mock RestChannel to capture responses */
+  private static class MockRestChannel implements RestChannel {
+    private final RestRequest request;
+    private final boolean detailedErrorsEnabled;
+    private RestResponse response;
+
+    MockRestChannel(RestRequest request, boolean detailedErrorsEnabled) {
+      this.request = request;
+      this.detailedErrorsEnabled = detailedErrorsEnabled;
+    }
+
+    @Override
+    public void sendResponse(RestResponse response) {
+      this.response = response;
+    }
+
+    public RestResponse getResponse() {
+      return response;
+    }
+
+    @Override
+    public RestRequest request() {
+      return request;
+    }
+
+    @Override
+    public boolean detailedErrorsEnabled() {
+      return detailedErrorsEnabled;
+    }
+
+    @Override
+    public boolean detailedErrorStackTraceEnabled() {
+      return false;
+    }
+
+    @Override
+    public XContentBuilder newBuilder() throws IOException {
+      return XContentBuilder.builder(XContentType.JSON.xContent());
+    }
+
+    @Override
+    public XContentBuilder newErrorBuilder() throws IOException {
+      return XContentBuilder.builder(XContentType.JSON.xContent());
+    }
+
+    @Override
+    public XContentBuilder newBuilder(MediaType mediaType, boolean useFiltering)
+        throws IOException {
+      return XContentBuilder.builder(XContentType.JSON.xContent());
+    }
+
+    @Override
+    public XContentBuilder newBuilder(
+        MediaType requestContentType, MediaType responseContentType, boolean useFiltering)
+        throws IOException {
+      return XContentBuilder.builder(XContentType.JSON.xContent());
+    }
+
+    @Override
+    public BytesStreamOutput bytesOutput() {
+      return new BytesStreamOutput();
+    }
+  }
+}

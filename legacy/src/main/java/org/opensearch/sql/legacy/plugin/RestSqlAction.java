@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.legacy.plugin;
 
-import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
-import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.core.rest.RestStatus.OK;
 
 import com.alibaba.druid.sql.parser.ParserException;
@@ -19,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
@@ -33,6 +32,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -83,10 +83,21 @@ public class RestSqlAction extends BaseRestHandler {
   /** New SQL query request handler. */
   private final RestSQLQueryAction newSqlQueryHandler;
 
-  public RestSqlAction(Settings settings, Injector injector) {
+  /**
+   * Analytics router. Called before the normal SQL engine. Accepts the request and channel, returns
+   * {@code true} if it handled the request (analytics index), {@code false} to fall through to
+   * normal SQL engine.
+   */
+  private final BiFunction<SQLQueryRequest, RestChannel, Boolean> analyticsRouter;
+
+  public RestSqlAction(
+      Settings settings,
+      Injector injector,
+      BiFunction<SQLQueryRequest, RestChannel, Boolean> analyticsRouter) {
     super();
     this.allowExplicitIndex = MULTI_ALLOW_EXPLICIT_INDEX.get(settings);
     this.newSqlQueryHandler = new RestSQLQueryAction(injector);
+    this.analyticsRouter = analyticsRouter;
   }
 
   @Override
@@ -134,7 +145,6 @@ public class RestSqlAction extends BaseRestHandler {
 
       Format format = SqlRequestParam.getFormat(request.params());
 
-      // Route request to new query engine if it's supported already
       SQLQueryRequest newSqlRequest =
           new SQLQueryRequest(
               sqlRequest.getJsonContent(),
@@ -142,40 +152,81 @@ public class RestSqlAction extends BaseRestHandler {
               request.path(),
               request.params(),
               sqlRequest.cursor());
-      return newSqlQueryHandler.prepareRequest(
-          newSqlRequest,
-          (restChannel, exception) -> {
-            try {
-              if (newSqlRequest.isExplainRequest()) {
-                LOG.info(
-                    "Request is falling back to old SQL engine due to: " + exception.getMessage());
-              }
-              LOG.info(
-                  "[{}] Request {} is not supported and falling back to old SQL engine",
-                  QueryContext.getRequestId(),
-                  newSqlRequest);
-              LOG.info("Request Query: {}", QueryDataAnonymizer.anonymizeData(sqlRequest.getSql()));
-              QueryAction queryAction = explainRequest(client, sqlRequest, format);
-              executeSqlRequest(request, queryAction, client, restChannel);
-            } catch (Exception e) {
-              handleException(restChannel, e);
-            }
-          },
-          this::handleException);
+
+      // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
+      // The router returns true and sends the response directly if it handled the request.
+      final SQLQueryRequest finalRequest = newSqlRequest;
+      return channel -> {
+        if (!analyticsRouter.apply(finalRequest, channel)) {
+          delegateToV2Engine(request, client, sqlRequest, finalRequest, format, channel);
+        }
+      };
     } catch (Exception e) {
       return channel -> handleException(channel, e);
     }
   }
 
-  private void handleException(RestChannel restChannel, Exception exception) {
-    logAndPublishMetrics(exception);
-    if (exception instanceof OpenSearchException) {
-      OpenSearchException openSearchException = (OpenSearchException) exception;
-      reportError(restChannel, openSearchException, openSearchException.status());
-    } else {
-      reportError(
-          restChannel, exception, isClientError(exception) ? BAD_REQUEST : INTERNAL_SERVER_ERROR);
+  /** Delegate a SQL query to the V2 engine with legacy fallback. */
+  private void delegateToV2Engine(
+      RestRequest request,
+      NodeClient client,
+      SqlRequest sqlRequest,
+      SQLQueryRequest sqlQueryRequest,
+      Format format,
+      RestChannel channel) {
+    try {
+      newSqlQueryHandler
+          .prepareRequest(
+              sqlQueryRequest,
+              (restChannel, exception) -> {
+                try {
+                  if (sqlQueryRequest.isExplainRequest()) {
+                    LOG.info(
+                        "Request is falling back to old SQL engine due to: "
+                            + exception.getMessage());
+                  }
+                  LOG.info(
+                      "[{}] Request {} is not supported and falling back to old SQL engine",
+                      QueryContext.getRequestId(),
+                      sqlQueryRequest);
+                  LOG.info(
+                      "Request Query: {}", QueryDataAnonymizer.anonymizeData(sqlRequest.getSql()));
+                  QueryAction queryAction = explainRequest(client, sqlRequest, format);
+                  executeSqlRequest(request, queryAction, client, restChannel);
+                } catch (Exception e) {
+                  handleException(restChannel, e);
+                }
+              },
+              RestSqlAction::handleException)
+          .accept(channel);
+    } catch (Exception e) {
+      handleException(channel, e);
     }
+  }
+
+  public static void handleException(RestChannel restChannel, Exception exception) {
+    RestStatus status = getRestStatus(exception);
+    logAndPublishMetrics(status, exception);
+    reportError(restChannel, exception, status);
+  }
+
+  public static RestStatus getRestStatus(Exception ex) {
+    int code = getRawErrorCode(ex);
+    return RestStatus.fromCode(code);
+  }
+
+  private static int getRawErrorCode(Exception ex) {
+    // Recursively unwrap ErrorReport to get to the underlying cause
+    if (ex instanceof ErrorReport) {
+      return getRawErrorCode(((ErrorReport) ex).getCause());
+    }
+    if (ex instanceof OpenSearchException) {
+      return ((OpenSearchException) ex).status().getStatus();
+    }
+    if (isClientError(ex)) {
+      return 400;
+    }
+    return 500;
   }
 
   /**
@@ -208,13 +259,15 @@ public class RestSqlAction extends BaseRestHandler {
     cursorRestExecutor.execute(client, request.params(), channel);
   }
 
-  private static void logAndPublishMetrics(final Exception e) {
-    if (isClientError(e)) {
+  private static void logAndPublishMetrics(final RestStatus status, final Exception e) {
+    if (400 <= status.getStatus() && status.getStatus() < 500) {
       LOG.error(QueryContext.getRequestId() + " Client side error during query execution", e);
       Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
-    } else {
+    } else if (500 <= status.getStatus() && status.getStatus() < 600) {
       LOG.error(QueryContext.getRequestId() + " Server side error during query execution", e);
       Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+    } else {
+      LOG.warn("Got an exception returning non-error status {}", status, e);
     }
   }
 
@@ -284,12 +337,13 @@ public class RestSqlAction extends BaseRestHandler {
         || e instanceof ExpressionEvaluationException;
   }
 
-  private void sendResponse(
+  private static void sendResponse(
       final RestChannel channel, final String message, final RestStatus status) {
     channel.sendResponse(new BytesRestResponse(status, message));
   }
 
-  private void reportError(final RestChannel channel, final Exception e, final RestStatus status) {
+  private static void reportError(
+      final RestChannel channel, final Exception e, final RestStatus status) {
     sendResponse(
         channel, ErrorMessageFactory.createErrorMessage(e, status.getStatus()).toString(), status);
   }

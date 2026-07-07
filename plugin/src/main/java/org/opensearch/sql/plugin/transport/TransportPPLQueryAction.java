@@ -10,12 +10,18 @@ import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse.normal
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.apache.calcite.rel.RelNode;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
+import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Inject;
@@ -28,11 +34,17 @@ import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
+import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
+import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
+import org.opensearch.sql.plugin.rest.AnalyticsEngineFormatSupport;
+import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
+import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -52,11 +64,19 @@ import org.opensearch.transport.client.node.NodeClient;
 public class TransportPPLQueryAction
     extends HandledTransportAction<ActionRequest, TransportPPLQueryResponse> {
 
+  private static final Logger LOG = LogManager.getLogger(TransportPPLQueryAction.class);
+
   private final Injector injector;
 
   private final Supplier<Boolean> pplEnabled;
 
-  /** Constructor of TransportPPLQueryAction. */
+  /** Null when analytics-engine plugin is absent; set via {@link #setQueryPlanExecutor}. */
+  private volatile RestUnifiedQueryAction unifiedQueryHandler;
+
+  private final NodeClient clientRef;
+  private final ClusterService clusterServiceRef;
+  private final org.opensearch.sql.common.setting.Settings pluginSettingsRef;
+
   @Inject
   public TransportPPLQueryAction(
       TransportService transportService,
@@ -64,16 +84,21 @@ public class TransportPPLQueryAction
       NodeClient client,
       ClusterService clusterService,
       DataSourceServiceImpl dataSourceService,
-      org.opensearch.common.settings.Settings clusterSettings) {
+      org.opensearch.common.settings.Settings clusterSettings,
+      EngineExtensionsHolder extensionsHolder) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
+    this.clientRef = client;
+    this.clusterServiceRef = clusterService;
 
     ModulesBuilder modules = new ModulesBuilder();
-    modules.add(new OpenSearchPluginModule());
+    modules.add(new OpenSearchPluginModule(extensionsHolder.engines()));
+    org.opensearch.sql.common.setting.Settings pluginSettings =
+        new OpenSearchSettings(clusterService.getClusterSettings());
+    this.pluginSettingsRef = pluginSettings;
     modules.add(
         b -> {
           b.bind(NodeClient.class).toInstance(client);
-          b.bind(org.opensearch.sql.common.setting.Settings.class)
-              .toInstance(new OpenSearchSettings(clusterService.getClusterSettings()));
+          b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
         });
     this.injector = Guice.createInjector(modules);
@@ -84,6 +109,34 @@ public class TransportPPLQueryAction
                     injector
                         .getInstance(org.opensearch.sql.common.setting.Settings.class)
                         .getSettingValue(Settings.Key.PPL_ENABLED);
+  }
+
+  /** Invoked by Guice iff analytics-engine bound {@code QueryPlanExecutor}. */
+  @Inject(optional = true)
+  public void setQueryPlanExecutor(
+      QueryPlanExecutor<RelNode, Iterable<Object[]>> queryPlanExecutor) {
+    AnalyticsExecutorHolder.set(queryPlanExecutor);
+    // Build the SQL router once both bridges are populated (engine context might arrive
+    // first or last depending on Guice ordering). buildUnifiedQueryHandler is idempotent.
+    buildUnifiedQueryHandlerIfReady();
+  }
+
+  /** Invoked by Guice iff analytics-engine bound {@code EngineContextProvider}. */
+  @Inject(optional = true)
+  public void setEngineContext(org.opensearch.analytics.EngineContextProvider contextProvider) {
+    org.opensearch.sql.plugin.rest.EngineContextProviderHolder.set(contextProvider);
+    buildUnifiedQueryHandlerIfReady();
+  }
+
+  private void buildUnifiedQueryHandlerIfReady() {
+    QueryPlanExecutor<RelNode, Iterable<Object[]>> executor = AnalyticsExecutorHolder.get();
+    org.opensearch.analytics.EngineContextProvider contextProvider =
+        org.opensearch.sql.plugin.rest.EngineContextProviderHolder.get();
+    if (executor != null && contextProvider != null) {
+      this.unifiedQueryHandler =
+          new RestUnifiedQueryAction(
+              clientRef, clusterServiceRef, executor, contextProvider, pluginSettingsRef);
+    }
   }
 
   /**
@@ -100,17 +153,60 @@ public class TransportPPLQueryAction
                   + " false"));
       return;
     }
+
+    TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
+    if (transportRequest.isGrammarRequest()) {
+      // Authorization is enforced by this transport action before returning grammar metadata in
+      // REST.
+      listener.onResponse(new TransportPPLQueryResponse("{}"));
+      return;
+    }
+
+    if (task instanceof PPLQueryTask pplQueryTask) {
+      OpenSearchQueryManager.setCancellableTask(pplQueryTask);
+    }
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
 
     QueryContext.addRequestId();
 
-    PPLService pplService = injector.getInstance(PPLService.class);
-    TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
     QueryContext.setProfile(transformedRequest.profile());
     ActionListener<TransportPPLQueryResponse> clearingListener = wrapWithProfilingClear(listener);
+
+    // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
+    if (unifiedQueryHandler != null
+        && unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
+      LOG.info("[{}] Routing PPL query to analytics engine", QueryContext.getRequestId());
+      // Pass this PPL task so the analytics engine links its query task to it for cancellation.
+      if (transformedRequest.isExplainRequest()) {
+        unifiedQueryHandler.explain(
+            transformedRequest.getRequest(),
+            QueryType.PPL,
+            transformedRequest.mode(),
+            task,
+            createExplainResponseListener(transformedRequest, clearingListener));
+      } else {
+        // Analytics route only emits JSON; reject unsupported formats (e.g. csv) with a 4xx.
+        try {
+          AnalyticsEngineFormatSupport.validateFormat(format(transformedRequest));
+        } catch (Exception e) {
+          clearingListener.onFailure(e);
+          return;
+        }
+        unifiedQueryHandler.execute(
+            transformedRequest.getRequest(),
+            QueryType.PPL,
+            transformedRequest.profile(),
+            transformedRequest.getFetchSize(),
+            task,
+            clearingListener);
+      }
+      return;
+    }
+
+    PPLService pplService = injector.getInstance(PPLService.class);
 
     if (transformedRequest.isExplainRequest()) {
       pplService.explain(
@@ -149,6 +245,18 @@ public class TransportPPLQueryAction
               new JsonResponseFormatter<>(PRETTY) {
                 @Override
                 protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
+                  // For json_tree format, use parsed tree objects instead of strings
+                  if (response.getCalcite() != null
+                      && response.getCalcite().getLogicalTree() != null) {
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    Map<String, Object> calcite = new LinkedHashMap<>();
+                    calcite.put("logical", response.getCalcite().getLogicalTree());
+                    if (response.getCalcite().getPhysicalTree() != null) {
+                      calcite.put("physical", response.getCalcite().getPhysicalTree());
+                    }
+                    result.put("calcite", calcite);
+                    return result;
+                  }
                   return response;
                 }
               };

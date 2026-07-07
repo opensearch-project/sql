@@ -427,6 +427,7 @@ public enum BuiltinFunctionName {
           .put("distinct_count", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .put("cluster_label", BuiltinFunctionName.INTERNAL_CLUSTER_LABEL)
+          .put("row_number", BuiltinFunctionName.ROW_NUMBER)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

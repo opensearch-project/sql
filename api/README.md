@@ -8,7 +8,8 @@ This module provides components organized into two main areas aligned with the [
 
 ### Unified Language Specification
 
-- **`UnifiedQueryPlanner`**: Accepts PPL (Piped Processing Language) queries and returns Calcite `RelNode` logical plans as intermediate representation.
+- **`UnifiedQueryParser`**: Parses PPL (Piped Processing Language) or SQL queries and returns the native parse result (`UnresolvedPlan` for PPL, `SqlNode` for Calcite SQL).
+- **`UnifiedQueryPlanner`**: Accepts PPL or SQL queries and returns Calcite `RelNode` logical plans as intermediate representation.
 - **`UnifiedQueryTranspiler`**: Converts Calcite logical plans (`RelNode`) into SQL strings for various target databases using different SQL dialects.
 
 ### Unified Execution Runtime
@@ -17,7 +18,7 @@ This module provides components organized into two main areas aligned with the [
 - **`UnifiedFunction`**: Engine-agnostic function interface that enables functions to be evaluated across different execution engines without engine-specific code duplication.
 - **`UnifiedFunctionRepository`**: Repository for discovering and loading functions as `UnifiedFunction` instances, providing a bridge between function definitions and external execution engines.
 
-Together, these components enable complete workflows: parse PPL queries into logical plans, transpile those plans into target database SQL, compile and execute queries directly, or export PPL functions for use in external execution engines.
+Together, these components enable complete workflows: parse PPL or SQL queries into logical plans, transpile those plans into target database SQL, compile and execute queries directly, or export PPL functions for use in external execution engines.
 
 ### Experimental API Design
 
@@ -33,7 +34,7 @@ Create a context with catalog configuration, query type, and optional settings:
 
 ```java
 UnifiedQueryContext context = UnifiedQueryContext.builder()
-    .language(QueryType.PPL)
+    .language(QueryType.PPL)       // or QueryType.SQL for SQL
     .catalog("opensearch", opensearchSchema)
     .catalog("spark_catalog", sparkSchema)
     .defaultNamespace("opensearch")
@@ -42,9 +43,23 @@ UnifiedQueryContext context = UnifiedQueryContext.builder()
     .build();
 ```
 
+### UnifiedQueryParser
+
+Use `UnifiedQueryParser` to parse queries into their native parse tree. The parser is owned by `UnifiedQueryContext` and returns the native parse result for each language.
+
+```java
+// PPL parsing
+UnresolvedPlan ast = (UnresolvedPlan) context.getParser().parse("source = logs | where status = 200");
+
+// SQL parsing (with QueryType.SQL context)
+SqlNode sqlNode = (SqlNode) sqlContext.getParser().parse("SELECT * FROM logs WHERE status = 200");
+```
+
+Callers can then use each language's native visitor infrastructure (`AbstractNodeVisitor` for PPL, `SqlBasicVisitor` for Calcite SQL) on the typed result for further analysis.
+
 ### UnifiedQueryPlanner
 
-Use `UnifiedQueryPlanner` to parse and analyze PPL queries into Calcite logical plans. The planner accepts a `UnifiedQueryContext` and can be reused for multiple queries.
+Use `UnifiedQueryPlanner` to parse and analyze PPL or SQL queries into Calcite logical plans. The planner accepts a `UnifiedQueryContext` and can be reused for multiple queries.
 
 ```java
 // Create planner with context
@@ -53,6 +68,9 @@ UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 // Plan multiple queries (context is reused)
 RelNode plan1 = planner.plan("source = logs | where status = 200");
 RelNode plan2 = planner.plan("source = metrics | stats avg(cpu)");
+
+// SQL queries are also supported (with QueryType.SQL context)
+RelNode plan3 = planner.plan("SELECT * FROM logs WHERE status = 200");
 ```
 
 ### UnifiedQueryTranspiler
@@ -176,6 +194,59 @@ try (UnifiedQueryContext context = UnifiedQueryContext.builder()
 }
 ```
 
+## Profiling
+
+The unified query API supports the same [profiling capability](../docs/user/ppl/interfaces/endpoint.md#profile-experimental) as the PPL REST endpoint. When enabled, each unified query component automatically collects per-phase timing metrics. For code outside unified query components (e.g., `PreparedStatement.executeQuery()` or response formatting), `context.measure()` records custom phases into the same profile.
+
+```java
+try (UnifiedQueryContext context = UnifiedQueryContext.builder()
+    .language(QueryType.PPL)
+    .catalog("catalog", schema)
+    .defaultNamespace("catalog")
+    .profiling(true)
+    .build()) {
+
+  // Auto-profiled: ANALYZE
+  RelNode plan = new UnifiedQueryPlanner(context).plan(query);
+
+  // Auto-profiled: OPTIMIZE
+  PreparedStatement stmt = new UnifiedQueryCompiler(context).compile(plan);
+
+  // User-profiled via measure()
+  ResultSet rs = context.measure(MetricName.EXECUTE, stmt::executeQuery);
+  String json = context.measure(MetricName.FORMAT, () -> formatter.format(result));
+
+  // Retrieve profile snapshot
+  QueryProfile profile = context.getProfile();
+}
+```
+
+The returned `QueryProfile` follows the same JSON structure as the REST API:
+
+```json
+{
+  "summary": {
+    "total_time_ms": 33.34
+  },
+  "phases": {
+    "analyze": { "time_ms": 8.68 },
+    "optimize": { "time_ms": 18.2 },
+    "execute": { "time_ms": 4.87 },
+    "format": { "time_ms": 0.05 }
+  },
+  "plan": {
+    "node": "EnumerableCalc",
+    "time_ms": 4.82,
+    "rows": 2,
+    "children": [
+      { "node": "CalciteEnumerableIndexScan", "time_ms": 4.12, "rows": 2 }
+    ]
+  }
+}
+```
+
+When profiling is disabled (the default), all components execute with zero overhead.
+
 ## Development & Testing
 
 A set of unit tests is provided to validate planner behavior.
@@ -226,5 +297,4 @@ public class MySchema extends AbstractSchema {
 
 ## Future Work
 
-- Expand support to SQL language.
 - Extend planner to generate optimized physical plans using Calcite's optimization frameworks.

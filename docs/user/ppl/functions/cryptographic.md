@@ -1,16 +1,20 @@
-# PPL Cryptographic Functions  
+# Cryptographic functions
 
-## MD5  
+The following cryptographic functions are supported in PPL.
 
-### Description  
+## MD5
 
-Version: 3.1.0  
-Usage: `md5(str)` calculates the MD5 digest and returns the value as a 32-character hex string.  
+**Usage**: `MD5(str)`
 
-**Argument type:** `STRING`  
-**Return type:** `STRING`  
+Calculates the MD5 digest and returns the value as a 32-character hex string.
 
-### Example  
+**Parameters**:
+
+- `str` (Required): The string for which to calculate the MD5 digest.
+
+**Return type**: `STRING`
+
+#### Example
   
 ```ppl
 source=people
@@ -18,7 +22,7 @@ source=people
 | fields `MD5('hello')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -29,17 +33,19 @@ fetched rows / total rows = 1/1
 +----------------------------------+
 ```
   
-## SHA1  
+## SHA1
 
-### Description  
+**Usage**: `SHA1(str)`
 
-Version: 3.1.0  
-Usage: `sha1(str)` returns the hex string result of SHA-1.  
+Returns the SHA-1 hash as a hex string.
 
-**Argument type:** `STRING`  
-**Return type:** `STRING`  
+**Parameters**:
 
-### Example  
+- `str` (Required): The string for which to calculate the SHA-1 hash.
+
+**Return type**: `STRING`
+
+#### Example
   
 ```ppl
 source=people
@@ -47,7 +53,7 @@ source=people
 | fields `SHA1('hello')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -58,18 +64,20 @@ fetched rows / total rows = 1/1
 +------------------------------------------+
 ```
   
-## SHA2  
+## SHA2
 
-### Description  
+**Usage**: `SHA2(str, numBits)`
 
-Version: 3.1.0  
-Usage: `sha2(str, numBits)` returns the hex string result of SHA-2 family of hash functions (SHA-224, SHA-256, SHA-384, and SHA-512).  
-The numBits indicates the desired bit length of the result, which must have a value of 224, 256, 384, or 512.  
+Returns the result of SHA-2 family hash functions (SHA-224, SHA-256, SHA-384, and SHA-512) as a hex string.
 
-**Argument type:** `STRING`, `INTEGER`  
-**Return type:** `STRING`  
+**Parameters**:
 
-### Example  
+- `str` (Required): The string for which to calculate the SHA-2 hash.
+- `numBits` (Required): The desired bit length of the result, which must be `224`, `256`, `384`, or `512`.
+
+**Return type**: `STRING`
+
+#### Example: SHA-256 hash
   
 ```ppl
 source=people
@@ -77,7 +85,7 @@ source=people
 | fields `SHA2('hello',256)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -87,6 +95,8 @@ fetched rows / total rows = 1/1
 | 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 |
 +------------------------------------------------------------------+
 ```
+
+#### Example: SHA-512 hash
   
 ```ppl
 source=people
@@ -94,7 +104,7 @@ source=people
 | fields `SHA2('hello',512)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1

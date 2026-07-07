@@ -23,6 +23,8 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 /** Highlight Expression. */
 @Getter
 public class HighlightExpression extends FunctionExpression {
+  public static final String HIGHLIGHT_FIELD = "_highlight";
+
   private final Expression highlightField;
   private final ExprType type;
 

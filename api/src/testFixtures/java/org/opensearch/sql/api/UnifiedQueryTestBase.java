@@ -31,7 +31,7 @@ import org.junit.Before;
 import org.opensearch.sql.executor.QueryType;
 
 /** Base class for unified query tests providing common test schema and utilities. */
-public abstract class UnifiedQueryTestBase {
+public abstract class UnifiedQueryTestBase implements QueryPlanAssertion {
 
   /** Default catalog name */
   protected static final String DEFAULT_CATALOG = "catalog";
@@ -55,12 +55,23 @@ public abstract class UnifiedQueryTestBase {
           }
         };
 
-    context =
-        UnifiedQueryContext.builder()
-            .language(QueryType.PPL)
-            .catalog(DEFAULT_CATALOG, testSchema)
-            .build();
+    context = contextBuilder().build();
     planner = new UnifiedQueryPlanner(context);
+  }
+
+  /**
+   * Returns the query type for this test class. Subclasses override to test different languages.
+   */
+  protected QueryType queryType() {
+    return QueryType.PPL;
+  }
+
+  /**
+   * Creates a pre-configured context builder with test schema. Subclasses can override to customize
+   * context configuration (e.g., enable profiling).
+   */
+  protected UnifiedQueryContext.Builder contextBuilder() {
+    return UnifiedQueryContext.builder().language(queryType()).catalog(DEFAULT_CATALOG, testSchema);
   }
 
   @After
@@ -126,6 +137,21 @@ public abstract class UnifiedQueryTestBase {
         SqlNode parent,
         org.apache.calcite.config.CalciteConnectionConfig config) {
       return false;
+    }
+  }
+
+  /** Fluent helper for asserting query plan results. */
+  protected QueryAssert givenQuery(String query) {
+    return new QueryAssert(planner.plan(query));
+  }
+
+  /** Fluent helper for asserting query planning errors. */
+  protected QueryErrorAssert givenInvalidQuery(String query) {
+    try {
+      planner.plan(query);
+      throw new AssertionError("Expected query to fail: " + query);
+    } catch (Exception e) {
+      return new QueryErrorAssert(e);
     }
   }
 }

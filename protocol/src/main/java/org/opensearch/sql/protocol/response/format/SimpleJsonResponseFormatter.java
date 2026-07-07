@@ -54,6 +54,7 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
     response.columnNameTypes().forEach((name, type) -> json.column(new Column(name, type)));
 
     json.datarows(fetchDataRows(response));
+
     formatMetric.set(System.nanoTime() - formatTime);
 
     json.profile(QueryProfiling.current().finish());

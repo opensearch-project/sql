@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.monitor;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -19,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.monitor.ResourceStatus;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchResourceMonitorTest {
@@ -34,7 +36,7 @@ class OpenSearchResourceMonitorTest {
   }
 
   @Test
-  void isHealthy() {
+  void testIsHealthy() {
     when(memoryMonitor.isMemoryHealthy(anyLong())).thenReturn(true);
 
     OpenSearchResourceMonitor resourceMonitor =
@@ -43,7 +45,7 @@ class OpenSearchResourceMonitorTest {
   }
 
   @Test
-  void notHealthyFastFailure() {
+  void testNotHealthyFastFailure() {
     when(memoryMonitor.isMemoryHealthy(anyLong()))
         .thenThrow(OpenSearchMemoryHealthy.MemoryUsageExceedFastFailureException.class);
 
@@ -54,7 +56,7 @@ class OpenSearchResourceMonitorTest {
   }
 
   @Test
-  void notHealthyWithRetry() {
+  void testNotHealthyWithRetry() {
     when(memoryMonitor.isMemoryHealthy(anyLong()))
         .thenThrow(OpenSearchMemoryHealthy.MemoryUsageExceedException.class);
 
@@ -65,7 +67,7 @@ class OpenSearchResourceMonitorTest {
   }
 
   @Test
-  void healthyWithRetry() {
+  void testHealthyWithRetry() {
 
     when(memoryMonitor.isMemoryHealthy(anyLong()))
         .thenThrow(OpenSearchMemoryHealthy.MemoryUsageExceedException.class)
@@ -75,5 +77,69 @@ class OpenSearchResourceMonitorTest {
         new OpenSearchResourceMonitor(settings, memoryMonitor);
     assertTrue(resourceMonitor.isHealthy());
     verify(memoryMonitor, times(2)).isMemoryHealthy(anyLong());
+  }
+
+  @Test
+  void testGetStatusHealthy() {
+    ResourceStatus healthyStatus =
+        ResourceStatus.builder()
+            .healthy(true)
+            .type(ResourceStatus.ResourceType.MEMORY)
+            .description("Memory is healthy")
+            .build();
+    when(memoryMonitor.getMemoryStatus(anyLong())).thenReturn(healthyStatus);
+
+    OpenSearchResourceMonitor resourceMonitor =
+        new OpenSearchResourceMonitor(settings, memoryMonitor);
+    ResourceStatus status = resourceMonitor.getStatus();
+    assertTrue(status.isHealthy());
+    assertEquals("Memory is healthy", status.getDescription());
+    verify(memoryMonitor, times(1)).getMemoryStatus(anyLong());
+  }
+
+  @Test
+  void testGetStatusUnhealthyWithRetry() {
+    ResourceStatus unhealthyStatus =
+        ResourceStatus.builder()
+            .healthy(false)
+            .type(ResourceStatus.ResourceType.MEMORY)
+            .description("Memory usage exceeds limit")
+            .build();
+    when(memoryMonitor.getMemoryStatus(anyLong())).thenReturn(unhealthyStatus);
+
+    OpenSearchResourceMonitor resourceMonitor =
+        new OpenSearchResourceMonitor(settings, memoryMonitor);
+    ResourceStatus status = resourceMonitor.getStatus();
+    assertFalse(status.isHealthy());
+    assertEquals("Memory usage exceeds limit", status.getDescription());
+    // Should retry 3 times when status is unhealthy
+    verify(memoryMonitor, times(3)).getMemoryStatus(anyLong());
+  }
+
+  @Test
+  void testGetStatusBecomesHealthyAfterRetry() {
+    ResourceStatus unhealthyStatus =
+        ResourceStatus.builder()
+            .healthy(false)
+            .type(ResourceStatus.ResourceType.MEMORY)
+            .description("Memory usage exceeds limit")
+            .build();
+    ResourceStatus healthyStatus =
+        ResourceStatus.builder()
+            .healthy(true)
+            .type(ResourceStatus.ResourceType.MEMORY)
+            .description("Memory is healthy")
+            .build();
+    when(memoryMonitor.getMemoryStatus(anyLong()))
+        .thenReturn(unhealthyStatus)
+        .thenReturn(healthyStatus);
+
+    OpenSearchResourceMonitor resourceMonitor =
+        new OpenSearchResourceMonitor(settings, memoryMonitor);
+    ResourceStatus status = resourceMonitor.getStatus();
+    assertTrue(status.isHealthy());
+    assertEquals("Memory is healthy", status.getDescription());
+    // Should call twice: first unhealthy, then healthy
+    verify(memoryMonitor, times(2)).getMemoryStatus(anyLong());
   }
 }

@@ -1,22 +1,25 @@
-# Date and Time Functions  
+# Date and time functions
 
-    All PPL date and time functions use the UTC time zone. Both input and output values are interpreted as UTC.
-    For instance, an input timestamp literal like '2020-08-26 01:01:01' is assumed to be in UTC, and the now()
-    function also returns the current date and time in UTC.  
+All PPL date and time functions use the UTC time zone. Both input and output values are interpreted as UTC. For example, an input timestamp literal such as `'2020-08-26 01:01:01'` is assumed to be in UTC, and the `now()` function also returns the current date and time in UTC.
 
-## ADDDATE  
+The following date and time functions are supported in PPL.
 
-### Description  
+## ADDDATE
 
-Usage: `adddate(date, INTERVAL expr unit)` / adddate(date, days) adds the interval of second argument to date; adddate(date, days) adds the second argument as integer number of days to date.
-If first argument is TIME, today's date is used; if first argument is DATE, time at midnight is used.
-**Argument type:** `DATE/TIMESTAMP/TIME, INTERVAL/LONG`
-Return type map:
-(DATE/TIMESTAMP/TIME, INTERVAL) -> TIMESTAMP
-(DATE, LONG) -> DATE
-(TIMESTAMP/TIME, LONG) -> TIMESTAMP
-Synonyms: [DATE_ADD](#date_add) when invoked with the INTERVAL form of the second argument.
-Antonyms: [SUBDATE](#subdate)
+**Usage**: `ADDDATE(date, INTERVAL expr unit)`, `ADDDATE(date, days)`
+
+Adds the interval or number of days to the date. The first form adds an interval to the date, the second form adds the specified number of days as an integer to the date. If the first argument is `TIME`, today's date is used. If the first argument is `DATE`, the time at midnight is used.
+
+**Parameters**:
+
+- `date` (Required): The date, timestamp, or time value to modify.
+- `INTERVAL expr unit` (Required in first form): The interval to add to the date.
+- `days` (Required in second form): The number of days to add as an integer.
+
+**Return type**: `TIMESTAMP` for the interval form, `DATE` for the integer days form when the input is `DATE`, `TIMESTAMP` when the input is `TIMESTAMP` or `TIME`.
+
+Synonyms: [`DATE_ADD`](#date_add) (when used in interval form)
+
 ### Example
   
 ```ppl
@@ -25,7 +28,7 @@ source=people
 | fields `'2020-08-26' + 1h`, `'2020-08-26' + 1`, `ts '2020-08-26 01:01:01' + 1`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -36,25 +39,30 @@ fetched rows / total rows = 1/1
 +---------------------+------------------+------------------------------+
 ```
   
-## ADDTIME  
+## ADDTIME
 
-### Description  
+**Usage**: `ADDTIME(expr1, expr2)`
 
-Usage: `addtime(expr1, expr2)` adds expr2 to expr1 and returns the result. If argument is TIME, today's date is used; if argument is DATE, time at midnight is used.
-**Argument type:** `DATE/TIMESTAMP/TIME, DATE/TIMESTAMP/TIME`
-Return type map:
-(DATE/TIMESTAMP, DATE/TIMESTAMP/TIME) -> TIMESTAMP
-(TIME, DATE/TIMESTAMP/TIME) -> TIME
-Antonyms: [SUBTIME](#subtime)
-### Example
-  
+Adds the second expression to the first expression and returns the result. If an argument is `TIME`, today's date is used. If an argument is `DATE`, the time at midnight is used.
+
+**Parameters**:
+
+- `expr1` (Required): The base date, timestamp, or time value.
+- `expr2` (Required): The date, timestamp, or time value to add to the first expression.
+
+**Return type**: `TIMESTAMP` when the first argument is `DATE` or `TIMESTAMP`, `TIME` when the first argument is `TIME`.
+
+#### Examples
+
+The following example shows adding two DATE values:
+
 ```ppl
 source=people
 | eval `'2008-12-12' + 0` = ADDTIME(DATE('2008-12-12'), DATE('2008-11-15'))
 | fields `'2008-12-12' + 0`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -64,6 +72,8 @@ fetched rows / total rows = 1/1
 | 2008-12-12 00:00:00 |
 +---------------------+
 ```
+
+The following example shows adding TIME and DATE values:
   
 ```ppl
 source=people
@@ -71,7 +81,7 @@ source=people
 | fields `'23:59:59' + 0`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -81,6 +91,8 @@ fetched rows / total rows = 1/1
 | 23:59:59       |
 +----------------+
 ```
+
+The following example shows combining DATE and TIME into a timestamp:
   
 ```ppl
 source=people
@@ -88,7 +100,7 @@ source=people
 | fields `'2004-01-01' + '23:59:59'`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -98,6 +110,8 @@ fetched rows / total rows = 1/1
 | 2004-01-01 23:59:59       |
 +---------------------------+
 ```
+
+The following example shows adding two TIME values:
   
 ```ppl
 source=people
@@ -105,7 +119,7 @@ source=people
 | fields `'10:20:30' + '00:05:42'`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -115,6 +129,8 @@ fetched rows / total rows = 1/1
 | 10:26:12                |
 +-------------------------+
 ```
+
+The following example shows adding two TIMESTAMP values:
   
 ```ppl
 source=people
@@ -122,7 +138,7 @@ source=people
 | fields `'2007-02-28 10:20:30' + '20:40:50'`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -133,23 +149,29 @@ fetched rows / total rows = 1/1
 +------------------------------------+
 ```
   
-## CONVERT_TZ  
+## CONVERT_TZ
 
-### Description  
+**Usage**: `CONVERT_TZ(timestamp, from_timezone, to_timezone)`
 
-Usage: `convert_tz(timestamp, from_timezone, to_timezone)` constructs a local timestamp converted from the from_timezone to the to_timezone. CONVERT_TZ returns null when any of the three function arguments are invalid, i.e. timestamp is not in the format yyyy-MM-dd HH:mm:ss or the timezone is not in (+/-)HH:mm. It also is invalid for invalid dates, such as February 30th and invalid timezones, which are ones outside of -13:59 and +14:00.
-**Argument type:** `TIMESTAMP/STRING, STRING, STRING`
-**Return type:** `TIMESTAMP`
-Conversion from +00:00 timezone to +10:00 timezone. Returns the timestamp argument converted from +00:00 to +10:00
-### Example
-  
+Constructs a local timestamp converted from the source time zone to the target time zone. Returns `NULL` when any of the three function arguments is invalid: the timestamp is not in the format `yyyy-MM-dd HH:mm:ss`, a time zone is not in `(+/-)HH:mm` format, dates are invalid (such as February 30th), or time zones are outside the valid range of -13:59 to +14:00.
+
+**Parameters**:
+
+- `timestamp` (Required): The timestamp or string to convert in `yyyy-MM-dd HH:mm:ss` format.
+- `from_timezone` (Required): The source time zone in `(+/-)HH:mm` format.
+- `to_timezone` (Required): The target time zone in `(+/-)HH:mm` format.
+
+**Return type**: `TIMESTAMP`
+
+#### Examples
+
 ```ppl
 source=people
 | eval `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')` = convert_tz('2008-05-15 12:00:00','+00:00','+10:00')
 | fields `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -160,8 +182,7 @@ fetched rows / total rows = 1/1
 +-----------------------------------------------------+
 ```
   
-The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range, such as +15:00 in this example will return null.
-### Example
+The valid time zone range for `convert_tz` is (-13:59, +14:00) inclusive. Time zones outside of the range, such as +15:00 in this example, return `NULL`:
   
 ```ppl
 source=people
@@ -169,7 +190,7 @@ source=people
 | fields `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -180,8 +201,7 @@ fetched rows / total rows = 1/1
 +-----------------------------------------------------+
 ```
   
-Conversion from a positive timezone to a negative timezone that goes over date line.
-### Example
+The following example shows conversion from a positive time zone to a negative time zone that crosses the date line:
   
 ```ppl
 source=people
@@ -189,7 +209,7 @@ source=people
 | fields `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -200,8 +220,7 @@ fetched rows / total rows = 1/1
 +-----------------------------------------------------+
 ```
   
-Valid dates are required in convert_tz, invalid dates such as April 31st (not a date in the Gregorian calendar) will result in null.
-### Example
+Valid dates are required in `convert_tz`. For invalid dates such as April 31st (not a date in the Gregorian calendar), `NULL` is returned:
   
 ```ppl
 source=people
@@ -209,7 +228,7 @@ source=people
 | fields `convert_tz('2008-04-31 12:00:00','+03:30','-10:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -220,8 +239,7 @@ fetched rows / total rows = 1/1
 +-----------------------------------------------------+
 ```
   
-Valid dates are required in convert_tz, invalid dates such as February 30th (not a date in the Gregorian calendar) will result in null.
-### Example
+The following example shows that February 30th also returns `NULL`:
   
 ```ppl
 source=people
@@ -229,7 +247,7 @@ source=people
 | fields `convert_tz('2008-02-30 12:00:00','+03:30','-10:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -240,8 +258,7 @@ fetched rows / total rows = 1/1
 +-----------------------------------------------------+
 ```
   
-February 29th 2008 is a valid date because it is a leap year.
-### Example
+February 29th 2008 is a valid date because it is a leap year:
   
 ```ppl
 source=people
@@ -249,7 +266,7 @@ source=people
 | fields `convert_tz('2008-02-29 12:00:00','+03:30','-10:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -260,8 +277,7 @@ fetched rows / total rows = 1/1
 +-----------------------------------------------------+
 ```
   
-Valid dates are required in convert_tz, invalid dates such as February 29th 2007 (2007 is not a leap year) will result in null.
-### Example
+The following example shows that February 29th 2007 returns `NULL` because 2007 is not a leap year:
   
 ```ppl
 source=people
@@ -269,7 +285,7 @@ source=people
 | fields `convert_tz('2007-02-29 12:00:00','+03:30','-10:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -280,8 +296,7 @@ fetched rows / total rows = 1/1
 +-----------------------------------------------------+
 ```
   
-The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range, such as +14:01 in this example will return null.
-### Example
+The valid time zone range for `convert_tz` is [-13:59, +14:00] inclusive. Time zones outside of the range, such as +14:01 in this example, return `NULL`:
   
 ```ppl
 source=people
@@ -289,7 +304,7 @@ source=people
 | fields `convert_tz('2008-02-01 12:00:00','+14:01','+00:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -300,8 +315,7 @@ fetched rows / total rows = 1/1
 +-----------------------------------------------------+
 ```
   
-The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range, such as +14:00 in this example will return a correctly converted date time object.
-### Example
+The valid time zone range for `convert_tz` is (-13:59, +14:00) inclusive. Time zones within the range, such as +14:00 in this example, return a correctly converted date time object:
   
 ```ppl
 source=people
@@ -309,7 +323,7 @@ source=people
 | fields `convert_tz('2008-02-01 12:00:00','+14:00','+00:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -320,8 +334,7 @@ fetched rows / total rows = 1/1
 +-----------------------------------------------------+
 ```
   
-The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range, such as -14:00 will result in null
-### Example
+The following example shows that -14:00 (outside the valid range) returns `NULL`:
   
 ```ppl
 source=people
@@ -329,7 +342,7 @@ source=people
 | fields `convert_tz('2008-02-01 12:00:00','-14:00','+00:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -340,8 +353,7 @@ fetched rows / total rows = 1/1
 +-----------------------------------------------------+
 ```
   
-The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. This timezone is within range so it is valid and will convert the time.
-### Example
+The valid time zone range for `convert_tz` is [-13:59, +14:00] inclusive. Time zones at the lower boundary of the range, such as -13:59, are valid and return converted results:
   
 ```ppl
 source=people
@@ -349,7 +361,7 @@ source=people
 | fields `convert_tz('2008-02-01 12:00:00','-13:59','+00:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -360,14 +372,16 @@ fetched rows / total rows = 1/1
 +-----------------------------------------------------+
 ```
   
-## CURDATE  
+## CURDATE
 
-### Description  
+**Usage**: `CURDATE()`
 
-Returns the current date as a value in 'YYYY-MM-DD' format.
-CURDATE() returns the current date in UTC at the time the statement is executed.
-**Return type:** `DATE`
-Specification: CURDATE() -> DATE
+Returns the current date as a value in `YYYY-MM-DD` format. The function returns the current date in UTC at the time when the statement is executed.
+
+**Parameters**: None
+
+**Return type**: `DATE`
+
 ### Example
   
 ```ppl ignore
@@ -376,7 +390,7 @@ source=people
 | fields `CURDATE()`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -387,11 +401,16 @@ fetched rows / total rows = 1/1
 +------------+
 ```
   
-## CURRENT_DATE  
+## CURRENT_DATE
 
-### Description  
+**Usage**: `CURRENT_DATE()`
 
-`CURRENT_DATE()` is a synonym for [CURDATE()](#curdate).
+A synonym for `CURDATE()`.
+
+**Parameters**: None
+
+**Return type**: `DATE`
+
 ### Example
   
 ```ppl ignore
@@ -400,7 +419,7 @@ source=people
 | fields `CURRENT_DATE()`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -411,11 +430,16 @@ fetched rows / total rows = 1/1
 +------------------+
 ```
   
-## CURRENT_TIME  
+## CURRENT_TIME
 
-### Description  
+**Usage**: `CURRENT_TIME()`
 
-`CURRENT_TIME()` is a synonym for [CURTIME()](#curtime).
+A synonym for `CURTIME()`.
+
+**Parameters**: None
+
+**Return type**: `TIME`
+
 ### Example
   
 ```ppl ignore
@@ -424,7 +448,7 @@ source=people
 | fields `CURRENT_TIME()`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -435,11 +459,16 @@ fetched rows / total rows = 1/1
 +------------------+
 ```
   
-## CURRENT_TIMESTAMP  
+## CURRENT_TIMESTAMP
 
-### Description  
+**Usage**: `CURRENT_TIMESTAMP()`
 
-`CURRENT_TIMESTAMP()` is a synonym for [NOW()](#now).
+A synonym for `NOW()`.
+
+**Parameters**: None
+
+**Return type**: `TIMESTAMP`
+
 ### Example
   
 ```ppl ignore
@@ -448,7 +477,7 @@ source=people
 | fields `CURRENT_TIMESTAMP()`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -459,23 +488,25 @@ fetched rows / total rows = 1/1
 +-----------------------+
 ```
   
-## CURTIME  
+## CURTIME
 
-### Description  
+**Usage**: `CURTIME()`
 
-Returns the current time as a value in 'hh:mm:ss' format in the UTC time zone.
-CURTIME() returns the time at which the statement began to execute as [NOW()](#now) does.
-**Return type:** `TIME`
-Specification: CURTIME() -> TIME
-### Example
-  
+Returns the current time as a value in the `hh:mm:ss` format in the UTC time zone. `CURTIME()` returns the time at which the statement began to execute, as [`NOW()`](#now) does.
+
+**Parameters**: None
+
+**Return type**: `TIME`
+
+#### Example
+
 ```ppl ignore
 source=people
 | eval `value_1` = CURTIME(), `value_2` = CURTIME()
 | fields `value_1`, `value_2`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -486,22 +517,28 @@ fetched rows / total rows = 1/1
 +----------+----------+
 ```
   
-## DATE  
+## DATE
 
-### Description  
+**Usage**: `DATE(expr)`
 
-Usage: `date(expr)` constructs a date type with the input string expr as a date. If the argument is of date/timestamp, it extracts the date value part from the expression.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `DATE`
-### Example
-  
+Constructs a date type from the input string `expr`. If the argument is a date or timestamp, it extracts the date value part from the expression.
+
+**Parameters**:
+- `expr` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `DATE`
+
+#### Examples
+
+The following example extracts a date from a string:
+
 ```ppl
 source=people
 | eval `DATE('2020-08-26')` = DATE('2020-08-26')
 | fields `DATE('2020-08-26')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -511,6 +548,8 @@ fetched rows / total rows = 1/1
 | 2020-08-26         |
 +--------------------+
 ```
+
+The following example extracts the date from a timestamp:
   
 ```ppl
 source=people
@@ -518,7 +557,7 @@ source=people
 | fields `DATE(TIMESTAMP('2020-08-26 13:49:00'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -528,6 +567,8 @@ fetched rows / total rows = 1/1
 | 2020-08-26                             |
 +----------------------------------------+
 ```
+
+The following example extracts the date from a string containing both date and time:
   
 ```ppl
 source=people
@@ -535,7 +576,7 @@ source=people
 | fields `DATE('2020-08-26 13:49')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -546,33 +587,22 @@ fetched rows / total rows = 1/1
 +--------------------------+
 ```
   
-```ppl
-source=people
-| eval `DATE('2020-08-26 13:49')` = DATE('2020-08-26 13:49')
-| fields `DATE('2020-08-26 13:49')`
-```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 1/1
-+--------------------------+
-| DATE('2020-08-26 13:49') |
-|--------------------------|
-| 2020-08-26               |
-+--------------------------+
-```
-  
-## DATE_ADD  
+## DATE_ADD
 
-### Description  
+**Usage**: `DATE_ADD(date, INTERVAL expr unit)`
 
-Usage: `date_add(date, INTERVAL expr unit)` adds the interval expr to date. If first argument is TIME, today's date is used; if first argument is DATE, time at midnight is used.
-**Argument type:** `DATE/TIMESTAMP/TIME, INTERVAL`
-**Return type:** `TIMESTAMP`
-Synonyms: [ADDDATE](#adddate)
-Antonyms: [DATE_SUB](#date_sub)
-### Example
+Adds the interval `expr` to `date`. If the first argument is `TIME`, today's date is used. If the first argument is `DATE`, the time at midnight is used.
+
+**Parameters**:
+- `date` (Required): A `DATE`, `TIMESTAMP`, or `TIME` value.
+- `INTERVAL expr unit` (Required): An `INTERVAL` expression.
+
+**Return type**: `TIMESTAMP`
+
+Synonyms: [`ADDDATE`](#adddate)
+Antonyms: [`DATE_SUB`](#date_sub)
+
+#### Example
   
 ```ppl
 source=people
@@ -580,7 +610,7 @@ source=people
 | fields `'2020-08-26' + 1h`, `ts '2020-08-26 01:01:01' + 1d`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -591,56 +621,57 @@ fetched rows / total rows = 1/1
 +---------------------+-------------------------------+
 ```
   
-## DATE_FORMAT  
+## DATE_FORMAT
 
-### Description  
+**Usage**: `DATE_FORMAT(date, format)`
 
-Usage: `date_format(date, format)` formats the date argument using the specifiers in the format argument.
-If an argument of type TIME is provided, the local date is used.
-The following table describes the available specifier arguments.
+Formats the `date` argument using the specifiers in the `format` argument. If an argument of type `TIME` is provided, the local date is used.
 
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, `TIME`, or `TIMESTAMP` value.
+- `format` (Required): A `STRING` containing format specifiers.
+
+**Return type**: `STRING`
+
+The following table describes the available format specifiers.
 
 | Specifier | Description |
 | --- | --- |
-| %a | Abbreviated weekday name (Sun..Sat) |
-| %b | Abbreviated month name (Jan..Dec) |
-| %c | Month, numeric (0..12) |
-| %D | Day of the month with English suffix (0th, 1st, 2nd, 3rd, ...) |
-| %d | Day of the month, numeric (00..31) |
-| %e | Day of the month, numeric (0..31) |
-| %f | Microseconds (000000..999999) |
-| %H | Hour (00..23) |
-| %h | Hour (01..12) |
-| %I | Hour (01..12) |
-| %i | Minutes, numeric (00..59) |
-| %j | Day of year (001..366) |
-| %k | Hour (0..23) |
-| %l | Hour (1..12) |
-| %M | Month name (January..December) |
-| %m | Month, numeric (00..12) |
-| %p | AM or PM |
-| %r | Time, 12-hour (hh:mm:ss followed by AM or PM) |
-| %S | Seconds (00..59) |
-| %s | Seconds (00..59) |
-| %T | Time, 24-hour (hh:mm:ss) |
-| %U | Week (00..53), where Sunday is the first day of the week; WEEK() mode 0 |
-| %u | Week (00..53), where Monday is the first day of the week; WEEK() mode 1 |
-| %V | Week (01..53), where Sunday is the first day of the week; WEEK() mode 2; used with %X |
-| %v | Week (01..53), where Monday is the first day of the week; WEEK() mode 3; used with %x |
-| %W | Weekday name (Sunday..Saturday) |
-| %w | Day of the week (0=Sunday..6=Saturday) |
-| %X | Year for the week where Sunday is the first day of the week, numeric, four digits; used with %V |
-| %x | Year for the week, where Monday is the first day of the week, numeric, four digits; used with %v |
-| %Y | Year, numeric, four digits |
-| %y | Year, numeric (two digits) |
-| %% | A literal % character |
-| %x | x, for any “x” not listed above |
-| x | x, for any smallcase/uppercase alphabet except [aydmshiHIMYDSEL] |
-  
+| `%a` | Abbreviated weekday name (Sun..Sat) |
+| `%b` | Abbreviated month name (Jan..Dec) |
+| `%c` | Month, numeric (0..12) |
+| `%D` | Day of the month with English suffix (0th, 1st, 2nd, 3rd, ...) |
+| `%d` | Day of the month, numeric (00..31) |
+| `%e` | Day of the month, numeric (0..31) |
+| `%f` | Microseconds (000000..999999) |
+| `%H` | Hour (00..23) |
+| `%h` | Hour (01..12) |
+| `%I` | Hour (01..12) |
+| `%i` | Minutes, numeric (00..59) |
+| `%j` | Day of year (001..366) |
+| `%k` | Hour (0..23) |
+| `%l` | Hour (1..12) |
+| `%M` | Month name (January..December) |
+| `%m` | Month, numeric (00..12) |
+| `%p` | AM or PM |
+| `%r` | Time, 12-hour (hh:mm:ss followed by AM or PM) |
+| `%S` | Seconds (00..59) |
+| `%s` | Seconds (00..59) |
+| `%T` | Time, 24-hour (hh:mm:ss) |
+| `%U` | Week (00..53), where Sunday is the first day of the week; WEEK() mode 0 |
+| `%u` | Week (00..53), where Monday is the first day of the week; WEEK() mode 1 |
+| `%V` | Week (01..53), where Sunday is the first day of the week; WEEK() mode 2; used with `%X` |
+| `%v` | Week (01..53), where Monday is the first day of the week; WEEK() mode 3; used with `%x` |
+| `%W` | Weekday name (Sunday..Saturday) |
+| `%w` | Day of the week (0=Sunday..6=Saturday) |
+| `%X` | Year for the week where Sunday is the first day of the week, numeric, four digits; used with `%V` |
+| `%x` | Year for the week, where Monday is the first day of the week, numeric, four digits; used with `%v` |
+| `%Y` | Year, numeric, four digits |
+| `%y` | Year, numeric (two digits) |
+| `%%` | A literal % character |
+| `x` | x, for any lowercase/uppercase alphabet except [aydmshiHIMYDSEL] |
 
-**Argument type:** `STRING/DATE/TIME/TIMESTAMP, STRING`
-**Return type:** `STRING`
-### Example
+#### Example
   
 ```ppl
 source=people
@@ -648,7 +679,7 @@ source=people
 | fields `DATE_FORMAT('1998-01-31 13:14:15.012345', '%T.%f')`, `DATE_FORMAT(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -659,25 +690,29 @@ fetched rows / total rows = 1/1
 +----------------------------------------------------+---------------------------------------------------------------------+
 ```
   
-## DATETIME  
+## DATETIME
 
-### Description  
+**Usage**: `DATETIME(timestamp)` or `DATETIME(date, to_timezone)`
 
-Usage: `DATETIME(timestamp)`/ DATETIME(date, to_timezone) Converts the datetime to a new timezone
-**Argument type:** `timestamp/STRING`
-Return type map:
-(TIMESTAMP, STRING) -> TIMESTAMP
-(TIMESTAMP) -> TIMESTAMP
-Converting timestamp with timezone to the second argument timezone.
-### Example
-  
+Converts the datetime to a new time zone.
+
+**Parameters**:
+- `timestamp` (Required): A `TIMESTAMP` or `STRING` value.
+- `to_timezone` (Optional): A `STRING` time zone value.
+
+**Return type**: `TIMESTAMP`
+
+#### Examples
+
+The following example converts a datetime to a different time zone:
+
 ```ppl
 source=people
 | eval `DATETIME('2004-02-28 23:00:00-10:00', '+10:00')` = DATETIME('2004-02-28 23:00:00-10:00', '+10:00')
 | fields `DATETIME('2004-02-28 23:00:00-10:00', '+10:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -688,8 +723,7 @@ fetched rows / total rows = 1/1
 +-------------------------------------------------+
 ```
   
-The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
-### Example
+The valid time zone range is (-13:59, +14:00) inclusive. The following example shows that time zones outside of this range return `NULL`:
   
 ```ppl
 source=people
@@ -697,7 +731,7 @@ source=people
 | fields `DATETIME('2008-01-01 02:00:00', '-14:00')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -708,16 +742,22 @@ fetched rows / total rows = 1/1
 +-------------------------------------------+
 ```
   
-## DATE_SUB  
+## DATE_SUB
 
-### Description  
+**Usage**: `DATE_SUB(date, INTERVAL expr unit)`
 
-Usage: `date_sub(date, INTERVAL expr unit)` subtracts the interval expr from date. If first argument is TIME, today's date is used; if first argument is DATE, time at midnight is used.
-**Argument type:** `DATE/TIMESTAMP/TIME, INTERVAL`
-**Return type:** `TIMESTAMP`
-Synonyms: [SUBDATE](#subdate)
-Antonyms: [DATE_ADD](#date_add)
-### Example
+Subtracts the interval `expr` from `date`. If the first argument is `TIME`, today's date is used. If the first argument is `DATE`, the time at midnight is used.
+
+**Parameters**:
+- `date` (Required): A `DATE`, `TIMESTAMP`, or `TIME` value.
+- `INTERVAL expr unit` (Required): An `INTERVAL` expression.
+
+**Return type**: `TIMESTAMP`
+
+Synonyms: [`SUBDATE`](#subdate)
+Antonyms: [`DATE_ADD`](#date_add)
+
+#### Example
   
 ```ppl
 source=people
@@ -725,7 +765,7 @@ source=people
 | fields `'2008-01-02' - 31d`, `ts '2020-08-26 01:01:01' + 1h`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -736,12 +776,18 @@ fetched rows / total rows = 1/1
 +---------------------+-------------------------------+
 ```
   
-## DATEDIFF  
+## DATEDIFF
 
-Usage: Calculates the difference of date parts of given values. If the first argument is time, today's date is used.
-**Argument type:** `DATE/TIMESTAMP/TIME, DATE/TIMESTAMP/TIME`
-**Return type:** `LONG`
-### Example
+**Usage**: `DATEDIFF(date1, date2)`
+Calculates the difference of the date parts of given values. If the first argument is `TIME`, today's date is used.
+
+**Parameters**:
+- `date1` (Required): A `DATE`, `TIMESTAMP`, or `TIME` value.
+- `date2` (Required): A `DATE`, `TIMESTAMP`, or `TIME` value.
+
+**Return type**: `LONG`
+
+#### Example
   
 ```ppl
 source=people
@@ -749,7 +795,7 @@ source=people
 | fields `'2000-01-02' - '2000-01-01'`, `'2001-02-01' - '2004-01-01'`, `today - today`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -760,15 +806,20 @@ fetched rows / total rows = 1/1
 +-----------------------------+-----------------------------+---------------+
 ```
   
-## DAY  
+## DAY
 
-### Description  
+**Usage**: `DAY(date)`
 
-Usage: `day(date)` extracts the day of the month for date, in the range 1 to 31.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [DAYOFMONTH](#dayofmonth), [DAY_OF_MONTH](#day_of_month)
-### Example
+Extracts the day of the month for `date`, in the range 1 to 31.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`DAYOFMONTH`](#dayofmonth), [`DAY_OF_MONTH`](#day_of_month)
+
+#### Example
   
 ```ppl
 source=people
@@ -776,7 +827,7 @@ source=people
 | fields `DAY(DATE('2020-08-26'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -787,14 +838,18 @@ fetched rows / total rows = 1/1
 +-------------------------+
 ```
   
-## DAYNAME  
+## DAYNAME
 
-### Description  
+**Usage**: `DAYNAME(date)`
 
-Usage: `dayname(date)` returns the name of the weekday for date, including Monday, Tuesday, Wednesday, Thursday, Friday, Saturday and Sunday.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `STRING`
-### Example
+Returns the name of the weekday for `date`.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `STRING`
+
+#### Example
   
 ```ppl
 source=people
@@ -802,7 +857,7 @@ source=people
 | fields `DAYNAME(DATE('2020-08-26'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -813,15 +868,20 @@ fetched rows / total rows = 1/1
 +-----------------------------+
 ```
   
-## DAYOFMONTH  
+## DAYOFMONTH
 
-### Description  
+**Usage**: `DAYOFMONTH(date)`
 
-Usage: `dayofmonth(date)` extracts the day of the month for date, in the range 1 to 31.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [DAY](#day), [DAY_OF_MONTH](#day_of_month)
-### Example
+Extracts the day of the month for `date`, in the range 1 to 31.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`DAY`](#day), [`DAY_OF_MONTH`](#day_of_month)
+
+#### Example
   
 ```ppl
 source=people
@@ -829,7 +889,7 @@ source=people
 | fields `DAYOFMONTH(DATE('2020-08-26'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -840,15 +900,20 @@ fetched rows / total rows = 1/1
 +--------------------------------+
 ```
   
-## DAY_OF_MONTH  
+## DAY_OF_MONTH
 
-### Description  
+**Usage**: `DAY_OF_MONTH(date)`
 
-Usage: `day_of_month(date)` extracts the day of the month for date, in the range 1 to 31.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [DAY](#day), [DAYOFMONTH](#dayofmonth)
-### Example
+Extracts the day of the month for `date`, in the range 1 to 31.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`DAY`](#day), [`DAYOFMONTH`](#dayofmonth)
+
+#### Example
   
 ```ppl
 source=people
@@ -856,7 +921,7 @@ source=people
 | fields `DAY_OF_MONTH(DATE('2020-08-26'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -867,15 +932,20 @@ fetched rows / total rows = 1/1
 +----------------------------------+
 ```
   
-## DAYOFWEEK  
+## DAYOFWEEK
 
-### Description  
+**Usage**: `DAYOFWEEK(date)`
 
-Usage: `dayofweek(date)` returns the weekday index for date (1 = Sunday, 2 = Monday, ..., 7 = Saturday).
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [DAY_OF_WEEK](#day_of_week)
-### Example
+Returns the weekday index for `date` (1 = Sunday, 2 = Monday, ..., 7 = Saturday).
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`DAY_OF_WEEK`](#day_of_week)
+
+#### Example
   
 ```ppl
 source=people
@@ -883,7 +953,7 @@ source=people
 | fields `DAYOFWEEK(DATE('2020-08-26'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -894,15 +964,20 @@ fetched rows / total rows = 1/1
 +-------------------------------+
 ```
   
-## DAY_OF_WEEK  
+## DAY_OF_WEEK
 
-### Description  
+**Usage**: `DAY_OF_WEEK(date)`
 
-Usage: `day_of_week(date)` returns the weekday index for date (1 = Sunday, 2 = Monday, ..., 7 = Saturday).
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [DAYOFWEEK](#dayofweek)
-### Example
+Returns the weekday index for `date` (1 = Sunday, 2 = Monday, ..., 7 = Saturday).
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`DAYOFWEEK`](#dayofweek)
+
+#### Example
   
 ```ppl
 source=people
@@ -910,7 +985,7 @@ source=people
 | fields `DAY_OF_WEEK(DATE('2020-08-26'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -921,15 +996,20 @@ fetched rows / total rows = 1/1
 +---------------------------------+
 ```
   
-## DAYOFYEAR  
+## DAYOFYEAR
 
-### Description  
+**Usage**: `DAYOFYEAR(date)`
 
-Usage:  dayofyear(date) returns the day of the year for date, in the range 1 to 366.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [DAY_OF_YEAR](#day_of_year)
-### Example
+Returns the day of the year for `date`, in the range 1 to 366.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`DAY_OF_YEAR`](#day_of_year)
+
+#### Example
   
 ```ppl
 source=people
@@ -937,7 +1017,7 @@ source=people
 | fields `DAYOFYEAR(DATE('2020-08-26'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -948,15 +1028,20 @@ fetched rows / total rows = 1/1
 +-------------------------------+
 ```
   
-## DAY_OF_YEAR  
+## DAY_OF_YEAR
 
-### Description  
+**Usage**: `DAY_OF_YEAR(date)`
 
-Usage:  day_of_year(date) returns the day of the year for date, in the range 1 to 366.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [DAYOFYEAR](#dayofyear)
-### Example
+Returns the day of the year for `date`, in the range 1 to 366.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`DAYOFYEAR`](#dayofyear)
+
+#### Example
   
 ```ppl
 source=people
@@ -964,7 +1049,7 @@ source=people
 | fields `DAY_OF_YEAR(DATE('2020-08-26'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -975,42 +1060,44 @@ fetched rows / total rows = 1/1
 +---------------------------------+
 ```
   
-## EXTRACT  
+## EXTRACT
 
-### Description  
+**Usage**: `EXTRACT(part FROM date)`
 
-Usage: `extract(part FROM date)` returns a LONG with digits in order according to the given 'part' arguments.
-The specific format of the returned long is determined by the table below.
-**Argument type:** `PART, where PART is one of the following tokens in the table below.`
-The format specifiers found in this table are the same as those found in the [DATE_FORMAT](#date_format) function.
-The following table describes the mapping of a 'part' to a particular format.
+Returns a `LONG` containing digits in order according to the given `part` argument. The specific format of the returned `LONG` is determined by the following table.
+
+**Parameters**:
+- `part` (Required): A part token (see following table).
+- `date` (Required): A `STRING`, `DATE`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `LONG`
+
+The format specifiers found in this table are the same as those found in the [`DATE_FORMAT`](#date_format) function. The following table describes the mapping of a `part` to a particular format.
 
 
-| Part | Format |
+| `part` | Format |
 | --- | --- |
-| MICROSECOND | %f |
-| SECOND | %s |
-| MINUTE | %i |
-| HOUR | %H |
-| DAY | %d |
-| WEEK | %X |
-| MONTH | %m |
-| YEAR | %V |
-| SECOND_MICROSECOND | %s%f |
-| MINUTE_MICROSECOND | %i%s%f |
-| MINUTE_SECOND | %i%s |
-| HOUR_MICROSECOND | %H%i%s%f |
-| HOUR_SECOND | %H%i%s |
-| HOUR_MINUTE | %H%i |
-| DAY_MICROSECOND | %d%H%i%s%f |
-| DAY_SECOND | %d%H%i%s |
-| DAY_MINUTE | %d%H%i |
-| DAY_HOUR | %d%H% |
-| YEAR_MONTH | %V%m |
-  
+| `MICROSECOND` | `%f` |
+| `SECOND` | `%s` |
+| `MINUTE` | `%i` |
+| `HOUR` | `%H` |
+| `DAY` | `%d` |
+| `WEEK` | `%X` |
+| `MONTH` | `%m` |
+| `YEAR` | `%V` |
+| `SECOND_MICROSECOND` | `%s%f` |
+| `MINUTE_MICROSECOND` | `%i%s%f` |
+| `MINUTE_SECOND` | `%i%s` |
+| `HOUR_MICROSECOND` | `%H%i%s%f` |
+| `HOUR_SECOND` | `%H%i%s` |
+| `HOUR_MINUTE` | `%H%i` |
+| `DAY_MICROSECOND` | `%d%H%i%s%f` |
+| `DAY_SECOND` | `%d%H%i%s` |
+| `DAY_MINUTE` | `%d%H%i` |
+| `DAY_HOUR` | `%d%H%` |
+| `YEAR_MONTH` | `%V%m` |
 
-**Return type:** `LONG`
-### Example
+#### Example
   
 ```ppl
 source=people
@@ -1018,7 +1105,7 @@ source=people
 | fields `extract(YEAR_MONTH FROM "2023-02-07 10:11:12")`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1029,14 +1116,18 @@ fetched rows / total rows = 1/1
 +------------------------------------------------+
 ```
   
-## FROM_DAYS  
+## FROM_DAYS
 
-### Description  
+**Usage**: `FROM_DAYS(N)`
 
-Usage: `from_days(N)` returns the date value given the day number N.
-**Argument type:** `INTEGER/LONG`
-**Return type:** `DATE`
-### Example
+Returns the date value given the day number `N`.
+
+**Parameters**:
+- `N` (Required): An `INTEGER` or `LONG` value.
+
+**Return type**: `DATE`
+
+#### Example
   
 ```ppl
 source=people
@@ -1044,7 +1135,7 @@ source=people
 | fields `FROM_DAYS(733687)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1055,18 +1146,19 @@ fetched rows / total rows = 1/1
 +-------------------+
 ```
   
-## FROM_UNIXTIME  
+## FROM_UNIXTIME
 
-### Description  
+**Usage**: `FROM_UNIXTIME(timestamp)` or `FROM_UNIXTIME(timestamp, format)`
 
-Usage: Returns a representation of the argument given as a timestamp or character string value. Perform reverse conversion for [UNIX_TIMESTAMP](#unix_timestamp) function.
-If second argument is provided, it is used to format the result in the same way as the format string used for the [DATE_FORMAT](#date_format) function.
-If timestamp is outside of range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), function returns NULL.
-**Argument type:** `DOUBLE, STRING`
-Return type map:
-DOUBLE -> TIMESTAMP
-DOUBLE, STRING -> STRING
-Examples
+Returns a representation of the argument as a timestamp or character string value. Performs the reverse conversion for the [`UNIX_TIMESTAMP`](#unix_timestamp) function. If the second argument is provided, it is used to format the result in the same way as the format string used for the [`DATE_FORMAT`](#date_format) function. If the timestamp is outside the range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), the function returns `NULL`.
+
+**Parameters**:
+- `timestamp` (Required): A `DOUBLE` value representing Unix timestamp.
+- `format` (Optional): A `STRING` format specifier.
+
+**Return type**: `TIMESTAMP` (without format), `STRING` (with format)
+
+**Examples**
   
 ```ppl
 source=people
@@ -1074,7 +1166,7 @@ source=people
 | fields `FROM_UNIXTIME(1220249547)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1091,7 +1183,7 @@ source=people
 | fields `FROM_UNIXTIME(1220249547, '%T')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1102,14 +1194,19 @@ fetched rows / total rows = 1/1
 +---------------------------------+
 ```
   
-## GET_FORMAT  
+## GET_FORMAT
 
-### Description  
+**Usage**: `GET_FORMAT(type, format)`
 
-Usage: Returns a string value containing string format specifiers based on the input arguments.
-**Argument type:** `TYPE, STRING, where TYPE must be one of the following tokens: [DATE, TIME, TIMESTAMP], and`
-STRING must be one of the following tokens: ["USA", "JIS", "ISO", "EUR", "INTERNAL"] (" can be replaced by ').
-Examples
+Returns a string value containing string format specifiers based on the input arguments.
+
+**Parameters**:
+- `type` (Required): One of the following tokens: `DATE`, `TIME`, `TIMESTAMP`.
+- `format` (Required): A `STRING` that must be one of: `USA`, `JIS`, `ISO`, `EUR`, `INTERNAL`.
+
+**Return type**: `STRING`
+
+**Examples**
   
 ```ppl
 source=people
@@ -1117,7 +1214,7 @@ source=people
 | fields `GET_FORMAT(DATE, 'USA')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1128,15 +1225,20 @@ fetched rows / total rows = 1/1
 +-------------------------+
 ```
   
-## HOUR  
+## HOUR
 
-### Description  
+**Usage**: `HOUR(time)`
 
-Usage: `hour(time)` extracts the hour value for time. Different from the time of day value, the time value has a large range and can be greater than 23, so the return value of hour(time) can be also greater than 23.
-**Argument type:** `STRING/TIME/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [HOUR_OF_DAY](#hour_of_day)
-### Example
+Extracts the hour value for `time`. Different from a time of day value, the time value has a large range and can be greater than 23, so the return value of `HOUR(time)` can also be greater than 23.
+
+**Parameters**:
+- `time` (Required): A `STRING`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`HOUR_OF_DAY`](#hour_of_day)
+
+#### Example
   
 ```ppl
 source=people
@@ -1144,7 +1246,7 @@ source=people
 | fields `HOUR(TIME('01:02:03'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1155,15 +1257,20 @@ fetched rows / total rows = 1/1
 +------------------------+
 ```
   
-## HOUR_OF_DAY  
+## HOUR_OF_DAY
 
-### Description  
+**Usage**: `HOUR_OF_DAY(time)`
 
-Usage: `hour_of_day(time)` extracts the hour value for time. Different from the time of day value, the time value has a large range and can be greater than 23, so the return value of hour_of_day(time) can be also greater than 23.
-**Argument type:** `STRING/TIME/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [HOUR](#hour)
-### Example
+Extracts the hour value for `time`. Different from a time of day value, the time value has a large range and can be greater than 23, so the return value of `HOUR_OF_DAY(time)` can also be greater than 23.
+
+**Parameters**:
+- `time` (Required): A `STRING`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`HOUR`](#hour)
+
+#### Example
   
 ```ppl
 source=people
@@ -1171,7 +1278,7 @@ source=people
 | fields `HOUR_OF_DAY(TIME('01:02:03'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1184,10 +1291,16 @@ fetched rows / total rows = 1/1
   
 ## LAST_DAY  
 
-Usage: Returns the last day of the month as a DATE for a valid argument.
-**Argument type:** `DATE/STRING/TIMESTAMP/TIME`
-**Return type:** `DATE`
-### Example
+**Usage**: `LAST_DAY(date)`
+
+Returns the last day of the month as a `DATE` for a valid argument.
+
+**Parameters**:
+- `date` (Required): A `DATE`, `STRING`, `TIMESTAMP`, or `TIME` value.
+
+**Return type**: `DATE`
+
+#### Example
   
 ```ppl
 source=people
@@ -1195,7 +1308,7 @@ source=people
 | fields `last_day('2023-02-06')`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1206,12 +1319,17 @@ fetched rows / total rows = 1/1
 +------------------------+
 ```
   
-## LOCALTIMESTAMP  
+## LOCALTIMESTAMP
 
-### Description  
+**Usage**: `LOCALTIMESTAMP()`
 
-`LOCALTIMESTAMP()` are synonyms for [NOW()](#now).
-### Example
+`LOCALTIMESTAMP()` is a synonym for [`NOW()`](#now).
+
+**Parameters**: None
+
+**Return type**: `TIMESTAMP`
+
+#### Example
   
 ```ppl ignore
 source=people
@@ -1219,7 +1337,7 @@ source=people
 | fields `LOCALTIMESTAMP()`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1230,12 +1348,17 @@ fetched rows / total rows = 1/1
 +---------------------+
 ```
   
-## LOCALTIME  
+## LOCALTIME
 
-### Description  
+**Usage**: `LOCALTIME()`
 
-`LOCALTIME()` are synonyms for [NOW()](#now).
-### Example
+`LOCALTIME()` is a synonym for [`NOW()`](#now).
+
+**Parameters**: None
+
+**Return type**: `TIMESTAMP`
+
+#### Example
   
 ```ppl ignore
 source=people
@@ -1243,7 +1366,7 @@ source=people
 | fields `LOCALTIME()`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text ignore
 fetched rows / total rows = 1/1
@@ -1254,24 +1377,25 @@ fetched rows / total rows = 1/1
 +---------------------+
 ```
   
-## MAKEDATE  
+## MAKEDATE
 
-### Description  
+**Usage**: `MAKEDATE(year, dayofyear)`
 
-Returns a date, given `year` and `day-of-year` values. `dayofyear` must be greater than 0 or the result is `NULL`. The result is also `NULL` if either argument is `NULL`.
-Arguments are rounded to an integer.
+Returns a date, given `year` and `day-of-year` values. `dayofyear` must be greater than 0, otherwise the result is `NULL`. The result is also `NULL` if either argument is `NULL`. Arguments are rounded to an integer.
+
+**Parameters**:
+- `year` (Required): A `DOUBLE` value for the year.
+- `dayofyear` (Required): A `DOUBLE` value for the day of year.
+
+**Return type**: `DATE`
+
 Limitations:
-- Zero `year` interpreted as 2000;  
-- Negative `year` is not accepted;  
-- `day-of-year` should be greater than zero;  
-- `day-of-year` could be greater than 365/366, calculation switches to the next year(s) (see example).  
-  
-Specifications:
-1. MAKEDATE(DOUBLE, DOUBLE) -> DATE  
-  
-**Argument type:** `DOUBLE`
-**Return type:** `DATE`
-### Example
+- A zero `year` is interpreted as 2000
+- A negative `year` is not accepted
+- `day-of-year` should be greater than zero
+- `day-of-year` can be greater than 365/366, and the calculation switches to the next year(s) (see example)
+
+#### Example
   
 ```ppl
 source=people
@@ -1279,7 +1403,7 @@ source=people
 | fields `MAKEDATE(1945, 5.9)`, `MAKEDATE(1984, 1984)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1290,22 +1414,24 @@ fetched rows / total rows = 1/1
 +---------------------+----------------------+
 ```
   
-## MAKETIME  
+## MAKETIME
 
-### Description  
+**Usage**: `MAKETIME(hour, minute, second)`
 
-Returns a time value calculated from the hour, minute, and second arguments. Returns `NULL` if any of its arguments are `NULL`.
-The second argument can have a fractional part, rest arguments are rounded to an integer.
+Returns a time value calculated from the hour, minute, and second arguments. Returns `NULL` if any of its arguments are `NULL`. The second argument can have a fractional part, and the rest of the arguments are rounded to an integer.
+
+**Parameters**:
+- `hour` (Required): A `DOUBLE` value for the hour.
+- `minute` (Required): A `DOUBLE` value for the minute.
+- `second` (Required): A `DOUBLE` value for the second.
+
+**Return type**: `TIME`
+
 Limitations:
-- 24-hour clock is used, available time range is [00:00:00.0 - 23:59:59.(9)];  
-- Up to 9 digits of second fraction part is taken (nanosecond precision).  
-  
-Specifications:
-1. MAKETIME(DOUBLE, DOUBLE, DOUBLE) -> TIME  
-  
-**Argument type:** `DOUBLE`
-**Return type:** `TIME`
-### Example
+- A 24-hour clock is used, and the available time range is [00:00:00.0 - 23:59:59.(9)]
+- Up to 9 digits of the second fraction part are taken (nanosecond precision)
+
+#### Example
   
 ```ppl
 source=people
@@ -1313,7 +1439,7 @@ source=people
 | fields `MAKETIME(20, 30, 40)`, `MAKETIME(20.2, 49.5, 42.100502)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1324,14 +1450,18 @@ fetched rows / total rows = 1/1
 +----------------------+---------------------------------+
 ```
   
-## MICROSECOND  
+## MICROSECOND
 
-### Description  
+**Usage**: `MICROSECOND(expr)`
 
-Usage: `microsecond(expr)` returns the microseconds from the time or timestamp expression expr as a number in the range from 0 to 999999.
-**Argument type:** `STRING/TIME/TIMESTAMP`
-**Return type:** `INTEGER`
-### Example
+Returns the microseconds from the time or timestamp expression `expr` as a number in the range from 0 to 999999.
+
+**Parameters**:
+- `expr` (Required): A `STRING`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+#### Example
   
 ```ppl
 source=people
@@ -1339,7 +1469,7 @@ source=people
 | fields `MICROSECOND(TIME('01:02:03.123456'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1350,15 +1480,20 @@ fetched rows / total rows = 1/1
 +--------------------------------------+
 ```
   
-## MINUTE  
+## MINUTE
 
-### Description  
+**Usage**: `MINUTE(time)`
 
-Usage: `minute(time)` returns the minute for time, in the range 0 to 59.
-**Argument type:** `STRING/TIME/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [MINUTE_OF_HOUR](#minute_of_hour)
-### Example
+Returns the minute for `time`, in the range 0 to 59.
+
+**Parameters**:
+- `time` (Required): A `STRING`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`MINUTE_OF_HOUR`](#minute_of_hour)
+
+#### Example
   
 ```ppl
 source=people
@@ -1366,7 +1501,7 @@ source=people
 | fields `MINUTE(TIME('01:02:03'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1377,14 +1512,18 @@ fetched rows / total rows = 1/1
 +--------------------------+
 ```
   
-## MINUTE_OF_DAY  
+## MINUTE_OF_DAY
 
-### Description  
+**Usage**: `MINUTE_OF_DAY(time)`
 
-Usage: `minute(time)` returns the amount of minutes in the day, in the range of 0 to 1439.
-**Argument type:** `STRING/TIME/TIMESTAMP`
-**Return type:** `INTEGER`
-### Example
+Returns the amount of minutes in the day, in the range of 0 to 1439.
+
+**Parameters**:
+- `time` (Required): A `STRING`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+#### Example
   
 ```ppl
 source=people
@@ -1392,7 +1531,7 @@ source=people
 | fields `MINUTE_OF_DAY(TIME('01:02:03'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1403,15 +1542,20 @@ fetched rows / total rows = 1/1
 +---------------------------------+
 ```
   
-## MINUTE_OF_HOUR  
+## MINUTE_OF_HOUR
 
-### Description  
+**Usage**: `MINUTE_OF_HOUR(time)`
 
-Usage: `minute(time)` returns the minute for time, in the range 0 to 59.
-**Argument type:** `STRING/TIME/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [MINUTE](#minute)
-### Example
+Returns the minute for `time`, in the range 0 to 59.
+
+**Parameters**:
+- `time` (Required): A `STRING`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`MINUTE`](#minute)
+
+#### Example
   
 ```ppl
 source=people
@@ -1419,7 +1563,7 @@ source=people
 | fields `MINUTE_OF_HOUR(TIME('01:02:03'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1430,15 +1574,20 @@ fetched rows / total rows = 1/1
 +----------------------------------+
 ```
   
-## MONTH  
+## MONTH
 
-### Description  
+**Usage**: `MONTH(date)`
 
-Usage: `month(date)` returns the month for date, in the range 1 to 12 for January to December.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [MONTH_OF_YEAR](#month_of_year)
-### Example
+Returns the month for `date`, in the range 1 to 12 for January to December.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`MONTH_OF_YEAR`](#month_of_year)
+
+#### Example
   
 ```ppl
 source=people
@@ -1446,7 +1595,7 @@ source=people
 | fields `MONTH(DATE('2020-08-26'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1457,15 +1606,20 @@ fetched rows / total rows = 1/1
 +---------------------------+
 ```
   
-## MONTH_OF_YEAR  
+## MONTH_OF_YEAR
 
-### Description  
+**Usage**: `MONTH_OF_YEAR(date)`
 
-Usage: `month_of_year(date)` returns the month for date, in the range 1 to 12 for January to December.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [MONTH](#month)
-### Example
+Returns the month for `date`, in the range 1 to 12 for January to December.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`MONTH`](#month)
+
+#### Example
   
 ```ppl
 source=people
@@ -1473,7 +1627,7 @@ source=people
 | fields `MONTH_OF_YEAR(DATE('2020-08-26'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1484,14 +1638,18 @@ fetched rows / total rows = 1/1
 +-----------------------------------+
 ```
   
-## MONTHNAME  
+## MONTHNAME
 
-### Description  
+**Usage**: `MONTHNAME(date)`
 
-Usage: `monthname(date)` returns the full name of the month for date.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `STRING`
-### Example
+Returns the full name of the month for `date`.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `STRING`
+
+#### Example
   
 ```ppl
 source=people
@@ -1499,7 +1657,7 @@ source=people
 | fields `MONTHNAME(DATE('2020-08-26'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1510,15 +1668,17 @@ fetched rows / total rows = 1/1
 +-------------------------------+
 ```
   
-## NOW  
+## NOW
 
-### Description  
+**Usage**: `NOW()`
 
-Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss' format. The value is expressed in the UTC time zone.
-`NOW()` returns a constant time that indicates the time at which the statement began to execute. This differs from the behavior for [SYSDATE()](#sysdate), which returns the exact time at which it executes.
-**Return type:** `TIMESTAMP`
-Specification: NOW() -> TIMESTAMP
-### Example
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss' format. The value is expressed in the UTC time zone. `NOW()` returns a constant time that indicates the time at which the statement began to execute. This differs from the behavior for [`SYSDATE()`](#sysdate), which returns the exact time at which it executes.
+
+**Parameters**: None
+
+**Return type**: `TIMESTAMP`
+
+#### Example
   
 ```ppl ignore
 source=people
@@ -1526,7 +1686,7 @@ source=people
 | fields `value_1`, `value_2`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1537,14 +1697,19 @@ fetched rows / total rows = 1/1
 +---------------------+---------------------+
 ```
   
-## PERIOD_ADD  
+## PERIOD_ADD
 
-### Description  
+**Usage**: `PERIOD_ADD(P, N)`
 
-Usage: `period_add(P, N)` add N months to period P (in the format YYMM or YYYYMM). Returns a value in the format YYYYMM.
-**Argument type:** `INTEGER, INTEGER`
-**Return type:** `INTEGER`
-### Example
+Adds `N` months to period `P` (in the format YYMM or YYYYMM). Returns a value in the format YYYYMM.
+
+**Parameters**:
+- `P` (Required): An `INTEGER` value representing a period in YYMM or YYYYMM format.
+- `N` (Required): An `INTEGER` number of months to add.
+
+**Return type**: `INTEGER`
+
+#### Example
   
 ```ppl
 source=people
@@ -1552,7 +1717,7 @@ source=people
 | fields `PERIOD_ADD(200801, 2)`, `PERIOD_ADD(200801, -12)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1563,14 +1728,19 @@ fetched rows / total rows = 1/1
 +-----------------------+-------------------------+
 ```
   
-## PERIOD_DIFF  
+## PERIOD_DIFF
 
-### Description  
+**Usage**: `PERIOD_DIFF(P1, P2)`
 
-Usage: `period_diff(P1, P2)` returns the number of months between periods P1 and P2 given in the format YYMM or YYYYMM.
-**Argument type:** `INTEGER, INTEGER`
-**Return type:** `INTEGER`
-### Example
+Returns the number of months between periods `P1` and `P2` given in the format YYMM or YYYYMM.
+
+**Parameters**:
+- `P1` (Required): An `INTEGER` value representing a period in YYMM or YYYYMM format.
+- `P2` (Required): An `INTEGER` value representing a period in YYMM or YYYYMM format.
+
+**Return type**: `INTEGER`
+
+#### Example
   
 ```ppl
 source=people
@@ -1578,7 +1748,7 @@ source=people
 | fields `PERIOD_DIFF(200802, 200703)`, `PERIOD_DIFF(200802, 201003)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1589,14 +1759,18 @@ fetched rows / total rows = 1/1
 +-----------------------------+-----------------------------+
 ```
   
-## QUARTER  
+## QUARTER
 
-### Description  
+**Usage**: `QUARTER(date)`
 
-Usage: `quarter(date)` returns the quarter of the year for date, in the range 1 to 4.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `INTEGER`
-### Example
+Returns the quarter of the year for `date`, in the range 1 to 4.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+#### Example
   
 ```ppl
 source=people
@@ -1604,7 +1778,7 @@ source=people
 | fields `QUARTER(DATE('2020-08-26'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1615,17 +1789,18 @@ fetched rows / total rows = 1/1
 +-----------------------------+
 ```
   
-## SEC_TO_TIME  
+## SEC_TO_TIME
 
-### Description  
+**Usage**: `SEC_TO_TIME(number)`
 
-Usage: `sec_to_time(number)` returns the time in HH:mm:ssss[.nnnnnn] format.
-Note that the function returns a time between 00:00:00 and 23:59:59.
-If an input value is too large (greater than 86399), the function will wrap around and begin returning outputs starting from 00:00:00.
-If an input value is too small (less than 0), the function will wrap around and begin returning outputs counting down from 23:59:59.
-**Argument type:** `INTEGER, LONG, DOUBLE, FLOAT`
-**Return type:** `TIME`
-### Example
+Returns the time in HH:mm:ss[.nnnnnn] format. Note that the function returns a time between 00:00:00 and 23:59:59. If the input value is too large (greater than 86399), the function will wrap around and begin returning outputs starting from 00:00:00. If the input value is too small (less than 0), the function will wrap around and begin returning outputs counting down from 23:59:59.
+
+**Parameters**:
+- `number` (Required): An `INTEGER`, `LONG`, `DOUBLE`, or `FLOAT` value.
+
+**Return type**: `TIME`
+
+#### Example
   
 ```ppl
 source=people
@@ -1634,7 +1809,7 @@ source=people
 | fields `SEC_TO_TIME(3601)`, `SEC_TO_TIME(1234.123)`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1645,15 +1820,20 @@ fetched rows / total rows = 1/1
 +-------------------+-----------------------+
 ```
   
-## SECOND  
+## SECOND
 
-### Description  
+**Usage**: `SECOND(time)`
 
-Usage: `second(time)` returns the second for time, in the range 0 to 59.
-**Argument type:** `STRING/TIME/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [SECOND_OF_MINUTE](#second_of_minute)
-### Example
+Returns the second for `time`, in the range 0 to 59.
+
+**Parameters**:
+- `time` (Required): A `STRING`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`SECOND_OF_MINUTE`](#second_of_minute)
+
+#### Example
   
 ```ppl
 source=people
@@ -1661,7 +1841,7 @@ source=people
 | fields `SECOND(TIME('01:02:03'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1672,15 +1852,20 @@ fetched rows / total rows = 1/1
 +--------------------------+
 ```
   
-## SECOND_OF_MINUTE  
+## SECOND_OF_MINUTE
 
-### Description  
+**Usage**: `SECOND_OF_MINUTE(time)`
 
-Usage: `second_of_minute(time)` returns the second for time, in the range 0 to 59.
-**Argument type:** `STRING/TIME/TIMESTAMP`
-**Return type:** `INTEGER`
-Synonyms: [SECOND](#second)
-### Example
+Returns the second for `time`, in the range 0 to 59.
+
+**Parameters**:
+- `time` (Required): A `STRING`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+Synonyms: [`SECOND`](#second)
+
+#### Example
   
 ```ppl
 source=people
@@ -1688,7 +1873,7 @@ source=people
 | fields `SECOND_OF_MINUTE(TIME('01:02:03'))`
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -1699,68 +1884,71 @@ fetched rows / total rows = 1/1
 +------------------------------------+
 ```
   
-## STRFTIME  
+## STRFTIME
 
-**Version: 3.3.0**
-### Description  
+**Usage**: `STRFTIME(time, format)`
 
-Usage: `strftime(time, format)` takes a UNIX timestamp (in seconds) and renders it as a string using the format specified. For numeric inputs, the UNIX time must be in seconds. Values greater than 100000000000 are automatically treated as milliseconds and converted to seconds.
-You can use time format variables with the strftime function. This function performs the reverse operation of [UNIX_TIMESTAMP](#unix_timestamp) and is similar to [FROM_UNIXTIME](#from_unixtime) but with POSIX-style format specifiers.
-    - **Available only when Calcite engine is enabled**  
+Takes a UNIX timestamp (in seconds) and renders it as a string using the format specified. For numeric inputs, the UNIX time must be in seconds. Values greater than 100000000000 are automatically treated as milliseconds and converted to seconds. You can use time format variables with the strftime function. This function performs the reverse operation of [`UNIX_TIMESTAMP`](#unix_timestamp) and is similar to [`FROM_UNIXTIME`](#from_unixtime) but with POSIX-style format specifiers.
+
+**Parameters**:
+- `time` (Required): An `INTEGER`, `LONG`, `DOUBLE`, or `TIMESTAMP` value.
+- `format` (Required): A `STRING` format specifier.
+
+**Return type**: `STRING`
+
+**Notes**:
+- Available only when Calcite engine is enabled
     - All timestamps are interpreted as UTC timezone  
     - Text formatting uses language-neutral Locale.ROOT (weekday and month names appear in abbreviated form)  
     - String inputs are NOT supported - use `unix_timestamp()` to convert strings first  
     - Functions that return date/time values (like `date()`, `now()`, `timestamp()`) are supported  
   
-**Argument type:** `INTEGER/LONG/DOUBLE/TIMESTAMP, STRING`
-**Return type:** `STRING`
-Format specifiers:
-The following table describes the available specifier arguments.
+The following table describes the available specifier arguments:
 
 
 | Specifier | Description |
 | --- | --- |
-| %a | Abbreviated weekday name (Mon..Sun) |
-| %A | Weekday name (Mon..Sun) - Note: Locale.ROOT uses abbreviated form |
-| %b | Abbreviated month name (Jan..Dec) |
-| %B | Month name (Jan..Dec) - Note: Locale.ROOT uses abbreviated form |
-| %c | Date and time (e.g., Mon Jul 18 09:30:00 2019) |
-| %C | Century as 2-digit decimal number |
-| %d | Day of the month, zero-padded (01..31) |
-| %e | Day of the month, space-padded ( 1..31) |
-| %Ez | Timezone offset in minutes from UTC (e.g., +0 for UTC, +330 for IST, -300 for EST) |
-| %f | Microseconds as decimal number (000000..999999) |
-| %F | ISO 8601 date format (%Y-%m-%d) |
-| %g | ISO 8601 year without century (00..99) |
-| %G | ISO 8601 year with century |
-| %H | Hour (24-hour clock) (00..23) |
-| %I | Hour (12-hour clock) (01..12) |
-| %j | Day of year (001..366) |
-| %k | Hour (24-hour clock), space-padded ( 0..23) |
-| %m | Month as decimal number (01..12) |
-| %M | Minute (00..59) |
-| %N | Subsecond digits (default %9N = nanoseconds). Accepts any precision value from 1-9 (e.g., %3N = 3 digits, %5N = 5 digits, %9N = 9 digits). The precision directly controls the number of digits displayed |
-| %p | AM or PM |
-| %Q | Subsecond component (default milliseconds). Can specify precision: %3Q = milliseconds, %6Q = microseconds, %9Q = nanoseconds. Other precision values (e.g., %5Q) default to %3Q |
-| %s | UNIX Epoch timestamp in seconds |
-| %S | Second (00..59) |
-| %T | Time in 24-hour notation (%H:%M:%S) |
-| %U | Week of year starting from 0 (00..53) |
-| %V | ISO week number (01..53) |
-| %w | Weekday as decimal (0=Sunday..6=Saturday) |
-| %x | Date in MM/dd/yyyy format (e.g., 07/13/2019) |
-| %X | Time in HH:mm:ss format (e.g., 09:30:00) |
-| %y | Year without century (00..99) |
-| %Y | Year with century |
-| %z | Timezone offset (+hhmm or -hhmm) |
-| %:z | Timezone offset with colon (+hh:mm or -hh:mm) |
-| %::z | Timezone offset with colons (+hh:mm:ss) |
-| %:::z | Timezone offset hour only (+hh or -hh) |
-| %Z | Timezone abbreviation (e.g., EST, PDT) |
-| %% | Literal % character |
+| `%a` | Abbreviated weekday name (Mon..Sun) |
+| `%A` | Weekday name (Mon..Sun) - Note: Locale.ROOT uses abbreviated form |
+| `%b` | Abbreviated month name (Jan..Dec) |
+| `%B` | Month name (Jan..Dec) - Note: Locale.ROOT uses abbreviated form |
+| `%c` | Date and time (e.g., Mon Jul 18 09:30:00 2019) |
+| `%C` | Century as 2-digit decimal number |
+| `%d` | Day of the month, zero-padded (01..31) |
+| `%e` | Day of the month, space-padded ( 1..31) |
+| `%Ez` | Timezone offset in minutes from UTC (e.g., +0 for UTC, +330 for IST, -300 for EST) |
+| `%f` | Microseconds as decimal number (000000..999999) |
+| `%F` | ISO 8601 date format (`%Y-%m-%d`) |
+| `%g` | ISO 8601 year without century (00..99) |
+| `%G` | ISO 8601 year with century |
+| `%H` | Hour (24-hour clock) (00..23) |
+| `%I` | Hour (12-hour clock) (01..12) |
+| `%j` | Day of year (001..366) |
+| `%k` | Hour (24-hour clock), space-padded ( 0..23) |
+| `%m` | Month as decimal number (01..12) |
+| `%M` | Minute (00..59) |
+| `%N` | Subsecond digits (default `%9N` = nanoseconds). Accepts any precision value from 1-9 (e.g., `%3N` = 3 digits, `%5N` = 5 digits, `%9N` = 9 digits). The precision directly controls the number of digits displayed |
+| `%p` | AM or PM |
+| `%Q` | Subsecond component (default milliseconds). Can specify precision: `%3Q` = milliseconds, `%6Q` = microseconds, `%9Q` = nanoseconds. Other precision values (e.g., `%5Q`) default to `%3Q` |
+| `%s` | UNIX Epoch timestamp in seconds |
+| `%S` | Second (00..59) |
+| `%T` | Time in 24-hour notation (`%H:%M:%S`) |
+| `%U` | Week of year starting from 0 (00..53) |
+| `%V` | ISO week number (01..53) |
+| `%w` | Weekday as decimal (0=Sunday..6=Saturday) |
+| `%x` | Date in MM/dd/yyyy format (e.g., 07/13/2019) |
+| `%X` | Time in HH:mm:ss format (e.g., 09:30:00) |
+| `%y` | Year without century (00..99) |
+| `%Y` | Year with century |
+| `%z` | Timezone offset (+hhmm or -hhmm) |
+| `%:z` | Timezone offset with colon (+hh:mm or -hh:mm) |
+| `%::z` | Timezone offset with colons (+hh:mm:ss) |
+| `%:::z` | Timezone offset hour only (+hh or -hh) |
+| `%Z` | Timezone abbreviation (e.g., EST, PDT) |
+| `%%` | Literal % character |
   
 
-Examples
+**Examples**
   
 ```ppl ignore
 source=people | eval `strftime(1521467703, "%Y-%m-%dT%H:%M:%S")` = strftime(1521467703, "%Y-%m-%dT%H:%M:%S") | fields `strftime(1521467703, "%Y-%m-%dT%H:%M:%S")`
@@ -1861,15 +2049,17 @@ fetched rows / total rows = 1/1
 ```
 ## STR_TO_DATE
 
-### Description
+**Usage**: `STR_TO_DATE(string, format)`
 
-Usage: `str_to_date(string, string)` is used to extract a TIMESTAMP from the first argument string using the formats specified in the second argument string.
-The input argument must have enough information to be parsed as a DATE, TIMESTAMP, or TIME.
-Acceptable string format specifiers are the same as those used in the [DATE_FORMAT](#date_format) function.
-It returns NULL when a statement cannot be parsed due to an invalid pair of arguments, and when 0 is provided for any DATE field. Otherwise, it will return a TIMESTAMP with the parsed values (as well as default values for any field that was not parsed).
-**Argument type:** `STRING, STRING`
-**Return type:** `TIMESTAMP`
-### Example
+Extracts a `TIMESTAMP` from the first argument string using the formats specified in the second argument string. The input argument must have enough information to be parsed as a `DATE`, `TIMESTAMP`, or `TIME`. Acceptable string format specifiers are the same as those used in the [`DATE_FORMAT`](#date_format) function. Returns `NULL` when the statement cannot be parsed due to an invalid pair of arguments, and when 0 is provided for any `DATE` field. Otherwise, returns a `TIMESTAMP` with the parsed values (as well as default values for any field that was not parsed).
+
+**Parameters**:
+- `string` (Required): A `STRING` value to parse.
+- `format` (Required): A `STRING` format specifier.
+
+**Return type**: `TIMESTAMP`
+
+#### Example
 
 ```ppl
   
@@ -1879,7 +2069,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -1895,18 +2085,20 @@ fetched rows / total rows = 1/1
   
 ## SUBDATE
 
-### Description
+**Usage**: `SUBDATE(date, INTERVAL expr unit)` or `SUBDATE(date, days)`
 
-Usage: `subdate(date, INTERVAL expr unit)` / subdate(date, days) subtracts the interval expr from date; subdate(date, days) subtracts the second argument as integer number of days from date.
-If first argument is TIME, today's date is used; if first argument is DATE, time at midnight is used.
-**Argument type:** `DATE/TIMESTAMP/TIME, INTERVAL/LONG`
-Return type map:
-(DATE/TIMESTAMP/TIME, INTERVAL) -> TIMESTAMP
-(DATE, LONG) -> DATE
-(TIMESTAMP/TIME, LONG) -> TIMESTAMP
-Synonyms: [DATE_SUB](#date_sub) when invoked with the INTERVAL form of the second argument.
-Antonyms: [ADDDATE](#adddate)
-### Example
+Subtracts the interval `expr` from `date`, or subtracts the second argument as an integer number of days from `date`. If the first argument is `TIME`, today's date is used. If the first argument is `DATE`, the time at midnight is used.
+
+**Parameters**:
+- `date` (Required): A `DATE`, `TIMESTAMP`, or `TIME` value.
+- `expr` (Required): Either an `INTERVAL` expression or a `LONG` number of days.
+
+**Return type**: `TIMESTAMP` (with INTERVAL), `DATE` (DATE with LONG), `TIMESTAMP` (TIMESTAMP/TIME with LONG)
+
+Synonyms: [`DATE_SUB`](#date_sub) when invoked with the INTERVAL form of the second argument
+Antonyms: [`ADDDATE`](#adddate)
+
+#### Example
 
 ```ppl
   
@@ -1916,7 +2108,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -1932,15 +2124,19 @@ fetched rows / total rows = 1/1
   
 ## SUBTIME
 
-### Description
+**Usage**: `SUBTIME(expr1, expr2)`
 
-Usage: `subtime(expr1, expr2)` subtracts expr2 from expr1 and returns the result. If argument is TIME, today's date is used; if argument is DATE, time at midnight is used.
-**Argument type:** `DATE/TIMESTAMP/TIME, DATE/TIMESTAMP/TIME`
-Return type map:
-(DATE/TIMESTAMP, DATE/TIMESTAMP/TIME) -> TIMESTAMP
-(TIME, DATE/TIMESTAMP/TIME) -> TIME
-Antonyms: [ADDTIME](#addtime)
-### Example
+Subtracts `expr2` from `expr1` and returns the result. If an argument is `TIME`, today's date is used. If an argument is `DATE`, the time at midnight is used.
+
+**Parameters**:
+- `expr1` (Required): A `DATE`, `TIMESTAMP`, or `TIME` value.
+- `expr2` (Required): A `DATE`, `TIMESTAMP`, or `TIME` value.
+
+**Return type**: `TIMESTAMP` (DATE/TIMESTAMP with DATE/TIMESTAMP/TIME), `TIME` (TIME with DATE/TIMESTAMP/TIME)
+
+Antonyms: [`ADDTIME`](#addtime)
+
+#### Example
 
 ```ppl
   
@@ -1950,7 +2146,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -1972,7 +2168,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -1994,7 +2190,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2016,7 +2212,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2038,7 +2234,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2054,15 +2250,16 @@ fetched rows / total rows = 1/1
   
 ## SYSDATE
 
-### Description
+**Usage**: `SYSDATE()` or `SYSDATE(precision)`
 
-Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss[.nnnnnn]'.
-SYSDATE() returns the date and time at which it executes in UTC. This differs from the behavior for [NOW()](#now), which returns a constant time that indicates the time at which the statement began to execute.
-If an argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
-Optional argument type: INTEGER
-**Return type:** `TIMESTAMP`
-Specification: SYSDATE([INTEGER]) -> TIMESTAMP
-### Example
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss[.nnnnnn]'. `SYSDATE()` returns the date and time at which it executes in UTC. This differs from the behavior for [`NOW()`](#now), which returns a constant time that indicates the time at which the statement began to execute. If an argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
+
+**Parameters**:
+- `precision` (Optional): An `INTEGER` value from 0 to 6 for fractional seconds precision.
+
+**Return type**: `TIMESTAMP`
+
+#### Example
 
 ```ppl ignore
   
@@ -2072,7 +2269,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2088,12 +2285,16 @@ fetched rows / total rows = 1/1
   
 ## TIME
 
-### Description
+**Usage**: `TIME(expr)`
 
-Usage: `time(expr)` constructs a time type with the input string expr as a time. If the argument is of date/time/timestamp, it extracts the time value part from the expression.
-**Argument type:** `STRING/DATE/TIME/TIMESTAMP`
-**Return type:** `TIME`
-### Example
+Constructs a time type with the input string `expr` as a time. If the argument is of date/time/timestamp, it extracts the time value part from the expression.
+
+**Parameters**:
+- `expr` (Required): A `STRING`, `DATE`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `TIME`
+
+#### Example
 
 ```ppl
   
@@ -2103,7 +2304,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2125,7 +2326,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2147,7 +2348,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2169,7 +2370,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2185,33 +2386,32 @@ fetched rows / total rows = 1/1
   
 ## TIME_FORMAT
 
-### Description
+**Usage**: `TIME_FORMAT(time, format)`
 
-Usage: `time_format(time, format)` formats the time argument using the specifiers in the format argument.
-This supports a subset of the time format specifiers available for the [date_format](#date_format) function.
-Using date format specifiers supported by [date_format](#date_format) will return 0 or null.
-Acceptable format specifiers are listed in the table below.
-If an argument of type DATE is passed in, it is treated as a TIMESTAMP at midnight (i.e., 00:00:00).
-The following table describes the available specifier arguments.
+Formats the `time` argument using the specifiers in the `format` argument. This supports a subset of the time format specifiers available for the [`DATE_FORMAT`](#date_format) function. Using date format specifiers supported by [`DATE_FORMAT`](#date_format) will return 0 or `NULL`. Acceptable format specifiers are listed in the following table. If an argument of type `DATE` is passed in, it is treated as a `TIMESTAMP` at midnight (i.e., 00:00:00).
 
+**Parameters**:
+- `time` (Required): A `STRING`, `DATE`, `TIME`, or `TIMESTAMP` value.
+- `format` (Required): A `STRING` format specifier.
+
+**Return type**: `STRING`
+
+The following table describes the available specifier arguments:
 
 | Specifier | Description |
 | --- | --- |
-| %f | Microseconds (000000..999999) |
-| %H | Hour (00..23) |
-| %h | Hour (01..12) |
-| %I | Hour (01..12) |
-| %i | Minutes, numeric (00..59) |
-| %p | AM or PM |
-| %r | Time, 12-hour (hh:mm:ss followed by AM or PM) |
-| %S | Seconds (00..59) |
-| %s | Seconds (00..59) |
-| %T | Time, 24-hour (hh:mm:ss) |
-  
+| `%f` | Microseconds (000000..999999) |
+| `%H` | Hour (00..23) |
+| `%h` | Hour (01..12) |
+| `%I` | Hour (01..12) |
+| `%i` | Minutes, numeric (00..59) |
+| `%p` | `AM` or `PM` |
+| `%r` | Time, 12-hour (hh:mm:ss followed by `AM` or `PM`) |
+| `%S` | Seconds (00..59) |
+| `%s` | Seconds (00..59) |
+| `%T` | Time, 24-hour (hh:mm:ss) |
 
-**Argument type:** `STRING/DATE/TIME/TIMESTAMP, STRING`
-**Return type:** `STRING`
-### Example
+#### Example
 
 ```ppl
   
@@ -2221,7 +2421,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2237,12 +2437,16 @@ fetched rows / total rows = 1/1
   
 ## TIME_TO_SEC
 
-### Description
+**Usage**: `TIME_TO_SEC(time)`
 
-Usage: `time_to_sec(time)` returns the time argument, converted to seconds.
-**Argument type:** `STRING/TIME/TIMESTAMP`
-**Return type:** `LONG`
-### Example
+Returns the `time` argument, converted to seconds.
+
+**Parameters**:
+- `time` (Required): A `STRING`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `LONG`
+
+#### Example
 
 ```ppl
   
@@ -2252,7 +2456,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2268,12 +2472,17 @@ fetched rows / total rows = 1/1
   
 ## TIMEDIFF
 
-### Description
+**Usage**: `TIMEDIFF(time1, time2)`
 
-Usage: returns the difference between two time expressions as a time.
-**Argument type:** `TIME, TIME`
-**Return type:** `TIME`
-### Example
+Returns the difference between two time expressions as a time.
+
+**Parameters**:
+- `time1` (Required): A `TIME` value.
+- `time2` (Required): A `TIME` value.
+
+**Return type**: `TIME`
+
+#### Example
 
 ```ppl
   
@@ -2283,7 +2492,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2299,15 +2508,17 @@ fetched rows / total rows = 1/1
   
 ## TIMESTAMP
 
-### Description
+**Usage**: `TIMESTAMP(expr)` or `TIMESTAMP(expr1, expr2)`
 
-Usage: `timestamp(expr)` constructs a timestamp type with the input string `expr` as an timestamp. If the argument is not a string, it casts `expr` to timestamp type with default timezone UTC. If argument is a time, it applies today's date before cast.
-With two arguments `timestamp(expr1, expr2)` adds the time expression `expr2` to the date or timestamp expression `expr1` and returns the result as a timestamp value.
-**Argument type:** `STRING/DATE/TIME/TIMESTAMP`
-Return type map:
-(STRING/DATE/TIME/TIMESTAMP) -> TIMESTAMP
-(STRING/DATE/TIME/TIMESTAMP, STRING/DATE/TIME/TIMESTAMP) -> TIMESTAMP
-### Example
+Constructs a timestamp type with the input string `expr` as a timestamp. If the argument is not a string, it casts `expr` to a timestamp type with the default time zone UTC. If the argument is a time, it applies today's date before the cast. With two arguments, adds the time expression `expr2` to the date or timestamp expression `expr1` and returns the result as a timestamp value.
+
+**Parameters**:
+- `expr` (Required): A `STRING`, `DATE`, `TIME`, or `TIMESTAMP` value.
+- `expr2` (Optional): A `STRING`, `DATE`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `TIMESTAMP`
+
+#### Example
 
 ```ppl
   
@@ -2317,7 +2528,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2333,14 +2544,18 @@ fetched rows / total rows = 1/1
   
 ## TIMESTAMPADD
 
-### Description
+**Usage**: `TIMESTAMPADD(interval, count, datetime)`
 
-Usage: Returns a TIMESTAMP value based on a passed in DATE/TIME/TIMESTAMP/STRING argument and an INTERVAL and INTEGER argument which determine the amount of time to be added.
-If the third argument is a STRING, it must be formatted as a valid TIMESTAMP. If only a TIME is provided, a TIMESTAMP is still returned with the DATE portion filled in using the current date.
-If the third argument is a DATE, it will be automatically converted to a TIMESTAMP.
-**Argument type:** `INTERVAL, INTEGER, DATE/TIME/TIMESTAMP/STRING`
-INTERVAL must be one of the following tokens: [MICROSECOND, SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, YEAR]
-Examples
+Returns a `TIMESTAMP` value based on a passed-in `DATE`/`TIME`/`TIMESTAMP`/`STRING` argument and an `INTERVAL` and `INTEGER` argument which determine the amount of time to be added. If the third argument is a `STRING`, it must be formatted as a valid `TIMESTAMP`. If only a `TIME` is provided, a `TIMESTAMP` is still returned with the `DATE` portion filled in using the current date. If the third argument is a `DATE`, it will be automatically converted to a `TIMESTAMP`.
+
+**Parameters**:
+- `interval` (Required): One of: `MICROSECOND`, `SECOND`, `MINUTE`, `HOUR`, `DAY`, `WEEK`, `MONTH`, `QUARTER`, `YEAR`.
+- `count` (Required): An `INTEGER` number of intervals to add.
+- `datetime` (Required): A `DATE`, `TIME`, `TIMESTAMP`, or `STRING` value.
+
+**Return type**: `TIMESTAMP`
+
+**Examples**
 
 ```ppl
   
@@ -2351,7 +2566,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2367,15 +2582,18 @@ fetched rows / total rows = 1/1
   
 ## TIMESTAMPDIFF
 
-### Description
+**Usage**: `TIMESTAMPDIFF(interval, start, end)`
 
-Usage: `TIMESTAMPDIFF(interval, start, end)` returns the difference between the start and end date/times in interval units.
-If a TIME is provided as an argument, it will be converted to a TIMESTAMP with the DATE portion filled in using the current date.
-Arguments will be automatically converted to a TIME/TIMESTAMP when appropriate.
-Any argument that is a STRING must be formatted as a valid TIMESTAMP.
-**Argument type:** `INTERVAL, DATE/TIME/TIMESTAMP/STRING, DATE/TIME/TIMESTAMP/STRING`
-INTERVAL must be one of the following tokens: [MICROSECOND, SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, YEAR]
-Examples
+Returns the difference between the start and end date/times in interval units. If a `TIME` is provided as an argument, it will be converted to a `TIMESTAMP` with the `DATE` portion filled in using the current date. Arguments will be automatically converted to a `TIME`/`TIMESTAMP` when appropriate. Any argument that is a `STRING` must be formatted as a valid `TIMESTAMP`.
+
+**Parameters**:
+- `interval` (Required): One of: `MICROSECOND`, `SECOND`, `MINUTE`, `HOUR`, `DAY`, `WEEK`, `MONTH`, `QUARTER`, `YEAR`.
+- `start` (Required): A `DATE`, `TIME`, `TIMESTAMP`, or `STRING` value.
+- `end` (Required): A `DATE`, `TIME`, `TIMESTAMP`, or `STRING` value.
+
+**Return type**: `LONG`
+
+**Examples**
 
 ```ppl
   
@@ -2386,7 +2604,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2402,12 +2620,16 @@ fetched rows / total rows = 1/1
   
 ## TO_DAYS
 
-### Description
+**Usage**: `TO_DAYS(date)`
 
-Usage: `to_days(date)` returns the day number (the number of days since year 0) of the given date. Returns NULL if date is invalid.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `LONG`
-### Example
+Returns the day number (the number of days since year 0) of the given date. Returns `NULL` if date is invalid.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `LONG`
+
+#### Example
 
 ```ppl
   
@@ -2417,7 +2639,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2433,13 +2655,16 @@ fetched rows / total rows = 1/1
   
 ## TO_SECONDS
 
-### Description
+**Usage**: `TO_SECONDS(date)`
 
-Usage: `to_seconds(date)` returns the number of seconds since the year 0 of the given value. Returns NULL if value is invalid.
-An argument of a LONG type can be used. It must be formatted as YMMDD, YYMMDD, YYYMMDD or YYYYMMDD. Note that a LONG type argument cannot have leading 0s as it will be parsed using an octal numbering system.
-**Argument type:** `STRING/LONG/DATE/TIME/TIMESTAMP`
-**Return type:** `LONG`
-### Example
+Returns the number of seconds since the year 0 of the given value. Returns `NULL` if value is invalid. An argument of a `LONG` type can be used. It must be formatted as YMMDD, YYMMDD, YYYMMDD, or YYYYMMDD. Note that a `LONG` type argument cannot have leading 0s as it will be parsed using an octal numbering system.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `LONG`, `DATE`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `LONG`
+
+#### Example
 
 ```ppl
   
@@ -2450,7 +2675,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2466,15 +2691,16 @@ fetched rows / total rows = 1/1
   
 ## UNIX_TIMESTAMP
 
-### Description
+**Usage**: `UNIX_TIMESTAMP()` or `UNIX_TIMESTAMP(date)`
 
-Usage: Converts given argument to Unix time (seconds since Epoch - very beginning of year 1970). If no argument given, it returns the current Unix time.
-The date argument may be a DATE, or TIMESTAMP string, or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format. If the argument includes a time part, it may optionally include a fractional seconds part.
-If argument is in invalid format or outside of range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), function returns NULL.
-You can use [FROM_UNIXTIME](#from_unixtime) to do reverse conversion.
-**Argument type:** `\<NONE\>/DOUBLE/DATE/TIMESTAMP`
-**Return type:** `DOUBLE`
-### Example
+Converts the given argument to Unix time (seconds since Epoch - the very beginning of the year 1970). If no argument is given, it returns the current Unix time. The date argument may be a `DATE`, or `TIMESTAMP` string, or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format. If the argument includes a time part, it may optionally include a fractional seconds part. If the argument is in an invalid format or outside the range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), the function returns `NULL`. You can use [`FROM_UNIXTIME`](#from_unixtime) to perform the reverse conversion.
+
+**Parameters**:
+- `date` (Optional): A `DOUBLE`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `DOUBLE`
+
+#### Example
 
 ```ppl
   
@@ -2484,7 +2710,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2500,12 +2726,15 @@ fetched rows / total rows = 1/1
   
 ## UTC_DATE
 
-### Description
+**Usage**: `UTC_DATE()`
 
-Returns the current UTC date as a value in 'YYYY-MM-DD'.
-**Return type:** `DATE`
-Specification: UTC_DATE() -> DATE
-### Example
+Returns the current UTC date as a value in `YYYY-MM-DD` format.
+
+**Parameters**: None
+
+**Return type**: `DATE`
+
+#### Example
 
 ```ppl ignore
   
@@ -2515,7 +2744,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2531,12 +2760,15 @@ fetched rows / total rows = 1/1
   
 ## UTC_TIME
 
-### Description
+**Usage**: `UTC_TIME()`
 
 Returns the current UTC time as a value in 'hh:mm:ss'.
-**Return type:** `TIME`
-Specification: UTC_TIME() -> TIME
-### Example
+
+**Parameters**: None
+
+**Return type**: `TIME`
+
+#### Example
 
 ```ppl ignore
   
@@ -2546,7 +2778,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2562,12 +2794,15 @@ fetched rows / total rows = 1/1
   
 ## UTC_TIMESTAMP
 
-### Description
+**Usage**: `UTC_TIMESTAMP()`
 
 Returns the current UTC timestamp as a value in 'YYYY-MM-DD hh:mm:ss'.
-**Return type:** `TIMESTAMP`
-Specification: UTC_TIMESTAMP() -> TIMESTAMP
-### Example
+
+**Parameters**: None
+
+**Return type**: `TIMESTAMP`
+
+#### Example
 
 ```ppl ignore
   
@@ -2577,7 +2812,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2593,11 +2828,19 @@ fetched rows / total rows = 1/1
   
 ## WEEK
 
-### Description
+**Usage**: `WEEK(date)` or `WEEK(date, mode)`
 
-Usage: `week(date[, mode])` returns the week number for date. If the mode argument is omitted, the default mode 0 is used.
-The following table describes how the mode argument works.
+Returns the week number for `date`. If the mode argument is omitted, the default mode 0 is used.
 
+**Parameters**:
+- `date` (Required): A `DATE`, `TIMESTAMP`, or `STRING` value.
+- `mode` (Optional): An `INTEGER` mode value (0-7).
+
+**Return type**: `INTEGER`
+
+Synonyms: [`WEEK_OF_YEAR`](#week_of_year)
+
+The following table describes how the `mode` parameter works.
 
 | Mode | First day of week | Range | Week 1 is the first week ... |
 | --- | --- | --- | --- |
@@ -2609,12 +2852,8 @@ The following table describes how the mode argument works.
 | 5 | Monday | 0-53 | with a Monday in this year |
 | 6 | Sunday | 1-53 | with 4 or more days this year |
 | 7 | Monday | 1-53 | with a Monday in this year |
-  
 
-**Argument type:** `DATE/TIMESTAMP/STRING`
-**Return type:** `INTEGER`
-Synonyms: [WEEK_OF_YEAR](#week_of_year)
-### Example
+#### Example
 
 ```ppl
   
@@ -2624,7 +2863,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2640,13 +2879,16 @@ fetched rows / total rows = 1/1
   
 ## WEEKDAY
 
-### Description
+**Usage**: `WEEKDAY(date)`
 
-Usage: `weekday(date)` returns the weekday index for date (0 = Monday, 1 = Tuesday, ..., 6 = Sunday).
-It is similar to the [dayofweek](#dayofweek) function, but returns different indexes for each day.
-**Argument type:** `STRING/DATE/TIME/TIMESTAMP`
-**Return type:** `INTEGER`
-### Example
+Returns the weekday index for `date` (0 = Monday, 1 = Tuesday, ..., 6 = Sunday). It is similar to the [`DAYOFWEEK`](#dayofweek) function, but returns different indexes for each day.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, `TIME`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+#### Example
 
 ```ppl
   
@@ -2657,7 +2899,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2673,11 +2915,19 @@ fetched rows / total rows = 1/1
   
 ## WEEK_OF_YEAR
 
-### Description
+**Usage**: `WEEK_OF_YEAR(date)` or `WEEK_OF_YEAR(date, mode)`
 
-Usage: `week_of_year(date[, mode])` returns the week number for date. If the mode argument is omitted, the default mode 0 is used.
-The following table describes how the mode argument works.
+Returns the week number for `date`. If the mode argument is omitted, the default mode 0 is used.
 
+**Parameters**:
+- `date` (Required): A `DATE`, `TIMESTAMP`, or `STRING` value.
+- `mode` (Optional): An `INTEGER` mode value (0-7).
+
+**Return type**: `INTEGER`
+
+Synonyms: [`WEEK`](#week)
+
+The following table describes how the mode argument works:
 
 | Mode | First day of week | Range | Week 1 is the first week ... |
 | --- | --- | --- | --- |
@@ -2689,12 +2939,8 @@ The following table describes how the mode argument works.
 | 5 | Monday | 0-53 | with a Monday in this year |
 | 6 | Sunday | 1-53 | with 4 or more days this year |
 | 7 | Monday | 1-53 | with a Monday in this year |
-  
 
-**Argument type:** `DATE/TIMESTAMP/STRING`
-**Return type:** `INTEGER`
-Synonyms: [WEEK](#week)
-### Example
+#### Example
 
 ```ppl
   
@@ -2704,7 +2950,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2720,12 +2966,16 @@ fetched rows / total rows = 1/1
   
 ## YEAR
 
-### Description
+**Usage**: `YEAR(date)`
 
-Usage: `year(date)` returns the year for date, in the range 1000 to 9999, or 0 for the “zero” date.
-**Argument type:** `STRING/DATE/TIMESTAMP`
-**Return type:** `INTEGER`
-### Example
+Returns the year for `date`, in the range 1000 to 9999, or 0 for the "zero" date.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, or `TIMESTAMP` value.
+
+**Return type**: `INTEGER`
+
+#### Example
 
 ```ppl
   
@@ -2735,7 +2985,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   
@@ -2751,12 +3001,17 @@ fetched rows / total rows = 1/1
   
 ## YEARWEEK
 
-### Description
+**Usage**: `YEARWEEK(date)` or `YEARWEEK(date, mode)`
 
-Usage: `yearweek(date[, mode])` returns the year and week for date as an integer. It accepts and optional mode arguments aligned with those available for the [WEEK](#week) function.
-**Argument type:** `STRING/DATE/TIME/TIMESTAMP`
-**Return type:** `INTEGER`
-### Example
+Returns the year and week for `date` as an integer. It accepts an optional mode argument aligned with those available for the [`WEEK`](#week) function.
+
+**Parameters**:
+- `date` (Required): A `STRING`, `DATE`, `TIME`, or `TIMESTAMP` value.
+- `mode` (Optional): An `INTEGER` mode value (0-7).
+
+**Return type**: `INTEGER`
+
+#### Example
 
 ```ppl
   
@@ -2767,7 +3022,7 @@ source=people
   
 ```
   
-Expected output:
+The query returns the following results:
 
 ```text
   

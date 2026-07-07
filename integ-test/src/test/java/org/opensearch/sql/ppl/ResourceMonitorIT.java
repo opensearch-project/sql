@@ -30,9 +30,8 @@ public class ResourceMonitorIT extends PPLIntegTestCase {
         new ClusterSetting("persistent", Settings.Key.QUERY_MEMORY_LIMIT.getKeyValue(), "1%"));
     ResponseException exception = expectThrows(ResponseException.class, this::executeQuery);
     assertEquals(500, exception.getResponse().getStatusLine().getStatusCode());
-    assertThat(
-        exception.getMessage(),
-        Matchers.containsString("insufficient resources to run the query, quit."));
+    assertThat(exception.getMessage(), Matchers.containsString("Insufficient resources to"));
+    assertThat(exception.getMessage(), Matchers.containsString("plugins.query.memory_limit"));
 
     // update plugins.ppl.query.memory_limit to default value 85%
     updateClusterSettings(

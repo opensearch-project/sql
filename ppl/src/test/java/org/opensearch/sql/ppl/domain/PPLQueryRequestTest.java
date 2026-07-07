@@ -6,12 +6,17 @@
 package org.opensearch.sql.ppl.domain;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import java.util.List;
 import org.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.protocol.response.format.Format;
 
 public class PPLQueryRequestTest {
@@ -91,5 +96,190 @@ public class PPLQueryRequestTest {
     JSONObject json = new JSONObject("{\"query\": \"source=t\", \"fetch_size\": 15000}");
     PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
     assertEquals(15000, request.getFetchSize());
+  }
+
+  @Test
+  public void testGetHighlightConfigReturnsNullWhenJsonContentIsNull() {
+    PPLQueryRequest request = new PPLQueryRequest("source=t", null, "/_plugins/_ppl");
+    assertNull(request.getHighlightConfig());
+  }
+
+  @Test
+  public void testGetHighlightConfigReturnsNullWhenNotSpecified() {
+    JSONObject json = new JSONObject("{\"query\": \"source=t\"}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    assertNull(request.getHighlightConfig());
+  }
+
+  @Test
+  public void testGetHighlightConfigSimpleArrayWildcard() {
+    JSONObject json = new JSONObject("{\"query\": \"source=t\", \"highlight\": [\"*\"]}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    HighlightConfig config = request.getHighlightConfig();
+    assertNotNull(config);
+    assertEquals(List.of("*"), config.fieldNames());
+    assertNull(config.preTags());
+    assertNull(config.postTags());
+    assertNull(config.fragmentSize());
+  }
+
+  @Test
+  public void testGetHighlightConfigSimpleArrayMultipleTerms() {
+    JSONObject json =
+        new JSONObject("{\"query\": \"source=t\", \"highlight\": [\"error\", \"login\"]}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    HighlightConfig config = request.getHighlightConfig();
+    assertNotNull(config);
+    assertEquals(List.of("error", "login"), config.fieldNames());
+    assertNull(config.preTags());
+    assertNull(config.postTags());
+    assertNull(config.fragmentSize());
+  }
+
+  @Test
+  public void testGetHighlightConfigOsdObjectFormatAllFields() {
+    JSONObject json =
+        new JSONObject(
+            "{\"query\": \"source=t\", \"highlight\": {"
+                + "\"pre_tags\": [\"<b>\"], \"post_tags\": [\"</b>\"],"
+                + "\"fields\": {\"*\": {}}, \"fragment_size\": 2147483647}}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    HighlightConfig config = request.getHighlightConfig();
+    assertNotNull(config);
+    assertEquals(List.of("*"), config.fieldNames());
+    assertEquals(List.of("<b>"), config.preTags());
+    assertEquals(List.of("</b>"), config.postTags());
+    assertEquals(Integer.valueOf(2147483647), config.fragmentSize());
+  }
+
+  @Test
+  public void testGetHighlightConfigOsdObjectFormatMultipleTags() {
+    JSONObject json =
+        new JSONObject(
+            "{\"query\": \"source=t\", \"highlight\": {"
+                + "\"pre_tags\": [\"<em>\", \"<b>\"], \"post_tags\": [\"</em>\", \"</b>\"],"
+                + "\"fields\": {\"title\": {}, \"body\": {}}}}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    HighlightConfig config = request.getHighlightConfig();
+    assertNotNull(config);
+    assertEquals(2, config.fields().size());
+    assertTrue(config.fields().containsKey("title"));
+    assertTrue(config.fields().containsKey("body"));
+    assertEquals(List.of("<em>", "<b>"), config.preTags());
+    assertEquals(List.of("</em>", "</b>"), config.postTags());
+    assertNull(config.fragmentSize());
+  }
+
+  @Test
+  public void testGetHighlightConfigOsdObjectFormatFieldsOnly() {
+    // Object format with only fields, no tags or fragment_size
+    JSONObject json =
+        new JSONObject("{\"query\": \"source=t\", \"highlight\": {\"fields\": {\"*\": {}}}}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    HighlightConfig config = request.getHighlightConfig();
+    assertNotNull(config);
+    assertEquals(List.of("*"), config.fieldNames());
+    assertNull(config.preTags());
+    assertNull(config.postTags());
+    assertNull(config.fragmentSize());
+  }
+
+  @Test
+  public void testGetHighlightConfigPerFieldOptions() {
+    JSONObject json =
+        new JSONObject(
+            "{\"query\": \"source=t\", \"highlight\": {"
+                + "\"fields\": {\"title\": {\"fragment_size\": 200, \"number_of_fragments\": 3},"
+                + " \"body\": {\"type\": \"plain\"}}}}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    HighlightConfig config = request.getHighlightConfig();
+    assertNotNull(config);
+    assertEquals(2, config.fields().size());
+    assertEquals(200, config.fields().get("title").get("fragment_size"));
+    assertEquals(3, config.fields().get("title").get("number_of_fragments"));
+    assertEquals("plain", config.fields().get("body").get("type"));
+  }
+
+  @Test
+  public void testGetHighlightConfigEmptyFieldNameThrows() {
+    JSONObject json = new JSONObject("{\"query\": \"source=t\", \"highlight\": [\"\"]}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
+    assertTrue(e.getMessage().contains("non-empty"));
+  }
+
+  @Test
+  public void testGetHighlightConfigNegativeFragmentSizeThrows() {
+    JSONObject json =
+        new JSONObject(
+            "{\"query\": \"source=t\", \"highlight\": {"
+                + "\"fields\": {\"*\": {}}, \"fragment_size\": -1}}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
+    assertTrue(e.getMessage().contains("fragment_size must be a positive integer"));
+  }
+
+  @Test
+  public void testGetHighlightConfigZeroFragmentSizeThrows() {
+    JSONObject json =
+        new JSONObject(
+            "{\"query\": \"source=t\", \"highlight\": {"
+                + "\"fields\": {\"*\": {}}, \"fragment_size\": 0}}");
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
+    assertTrue(e.getMessage().contains("fragment_size must be a positive integer"));
+  }
+
+  @Test
+  public void testGetHighlightConfigExceedMaxFieldsArrayThrows() {
+    // Build an array with 101 fields
+    StringBuilder sb = new StringBuilder("{\"query\": \"source=t\", \"highlight\": [");
+    for (int i = 0; i < 101; i++) {
+      if (i > 0) sb.append(",");
+      sb.append("\"field").append(i).append("\"");
+    }
+    sb.append("]}");
+    JSONObject json = new JSONObject(sb.toString());
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
+    assertTrue(e.getMessage().contains("fields count exceeds maximum"));
+  }
+
+  @Test
+  public void testGetHighlightConfigExceedMaxFieldsObjectThrows() {
+    // Build an object with 101 fields
+    StringBuilder sb = new StringBuilder("{\"query\": \"source=t\", \"highlight\": {\"fields\": {");
+    for (int i = 0; i < 101; i++) {
+      if (i > 0) sb.append(",");
+      sb.append("\"field").append(i).append("\": {}");
+    }
+    sb.append("}}}");
+    JSONObject json = new JSONObject(sb.toString());
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
+    assertTrue(e.getMessage().contains("fields count exceeds maximum"));
+  }
+
+  @Test
+  public void testGetHighlightConfigExceedMaxTagsThrows() {
+    // Build pre_tags array with 11 entries
+    StringBuilder sb =
+        new StringBuilder(
+            "{\"query\": \"source=t\", \"highlight\": {\"fields\": {\"*\": {}}, \"pre_tags\": [");
+    for (int i = 0; i < 11; i++) {
+      if (i > 0) sb.append(",");
+      sb.append("\"tag").append(i).append("\"");
+    }
+    sb.append("]}}");
+    JSONObject json = new JSONObject(sb.toString());
+    PPLQueryRequest request = new PPLQueryRequest("source=t", json, "/_plugins/_ppl");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
+    assertTrue(e.getMessage().contains("pre_tags count exceeds maximum"));
   }
 }

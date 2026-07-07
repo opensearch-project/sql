@@ -80,8 +80,7 @@ Explain::
 	    "includes" : [
 	      "account_number",
 	      "address"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
@@ -150,8 +149,7 @@ Explain::
 	    "includes" : [
 	      "account_number",
 	      "address"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
@@ -230,8 +228,7 @@ Explain::
 	    "includes" : [
 	      "firstname",
 	      "lastname"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
@@ -311,8 +308,7 @@ Explain::
 	    "includes" : [
 	      "account_number",
 	      "address"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
@@ -386,8 +382,7 @@ Explain::
 	    "includes" : [
 	      "account_number",
 	      "address"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  }
 	}
 
@@ -492,8 +487,7 @@ Explain::
 	      "account_number",
 	      "address",
 	      "_score"
-	    ],
-	    "excludes" : [ ]
+	    ]
 	  },
 	  "sort" : [
 	    {

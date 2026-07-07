@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMER
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
+import static org.opensearch.sql.util.Capability.FLOAT_ARITHMETIC_PRECISION;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -21,6 +22,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   @Override
@@ -255,6 +257,9 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = FLOAT_ARITHMETIC_PRECISION,
+      note = "float modulo keeps 32-bit precision on AE; v2 widens to double.")
   public void testModFloatAndNegative() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -267,6 +272,9 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = FLOAT_ARITHMETIC_PRECISION,
+      note = "float modulo keeps 32-bit precision on AE; v2 widens to double.")
   public void testModShouldReturnWiderTypes() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -347,6 +355,9 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = FLOAT_ARITHMETIC_PRECISION,
+      note = "float/half_float division keeps 32-bit precision on AE; v2 widens to double.")
   public void testDivide() throws IOException {
     JSONObject actual =
         executeQuery(

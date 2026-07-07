@@ -8,6 +8,8 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
+import static org.opensearch.sql.util.Capability.HEAD_WITHOUT_STABLE_SORT;
+import static org.opensearch.sql.util.Capability.IP_UDT_BINARY_REPRESENTATION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -22,6 +24,7 @@ import org.junit.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
   @Override
@@ -195,6 +198,11 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = HEAD_WITHOUT_STABLE_SORT,
+      note =
+          "head 5 over the two-branch append has no globally-unique sort key, so the"
+              + " surviving/ordered rows diverge on the AE route (HEAD_WITHOUT_STABLE_SORT).")
   public void testAppendWithMergedColumn() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -253,11 +261,16 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
         schema("account_number", "bigint"),
         schema("firstname", "string"),
         schema("age", "int"),
-        schema("birthdate", "string"));
+        schema("birthdate", "timestamp"));
     verifyDataRows(actual, rows(32, null, 34, "2018-08-11 00:00:00"));
   }
 
   @Test
+  @RequiresCapability(
+      value = IP_UDT_BINARY_REPRESENTATION,
+      note =
+          "cidrmatch over an appended IP column hits the IP-UDT-as-byte[] gap on the AE route"
+              + " (IP_UDT_BINARY_REPRESENTATION).")
   public void testAppendSchemaMergeWithIpUDT() throws IOException {
     JSONObject actual =
         executeQuery(

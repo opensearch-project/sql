@@ -52,15 +52,15 @@ class QueryPlanTest {
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
     query.execute();
 
-    verify(queryService, times(1)).execute(any(), any(), any());
+    verify(queryService, times(1)).execute(any(), any(), any(), any());
   }
 
   @Test
   public void explain_no_page_size() {
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
-    query.explain(explainListener, mode);
+    query.explain(explainListener, mode, null);
 
-    verify(queryService, times(1)).explain(plan, queryType, explainListener, mode);
+    verify(queryService, times(1)).explain(plan, queryType, null, explainListener, mode, null);
   }
 
   @Test

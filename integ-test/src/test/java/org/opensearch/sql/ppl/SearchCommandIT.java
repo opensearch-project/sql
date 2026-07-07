@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.DOC_MUTATION;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class SearchCommandIT extends PPLIntegTestCase {
   private static final DateTimeFormatter PPL_TIMESTAMP_FORMATTER =
@@ -1052,6 +1054,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testSearchTimeModifierWithSnappedWeek() throws IOException {
     // Test whether alignment to weekday works
 
@@ -1140,6 +1143,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testSearchWithRelativeTimeModifiers() throws IOException {
     final int docId = 101;
 
@@ -1188,6 +1192,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testSearchWithTimeUnitSnapping() throws IOException {
     final int docId = 101;
 
@@ -1236,6 +1241,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testSearchWithQuarterlyModifiers() throws IOException {
     final int docId = 101;
 

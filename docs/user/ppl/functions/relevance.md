@@ -1,26 +1,41 @@
-# Relevance Functions  
+# Relevance functions
 
-The relevance based functions enable users to search the index for documents by the relevance of the input query. The functions are built on the top of the search queries of the OpenSearch engine, but in memory execution within the plugin is not supported. These functions are able to perform the global filter of a query, for example the condition expression in a `WHERE` clause or in a `HAVING` clause. For more details of the relevance based search, check out the design here: [Relevance Based Search With SQL/PPL Query Engine](https://github.com/opensearch-project/sql/issues/182)
-## MATCH  
+Relevance-based functions enable users to search an index for documents based on query relevance. These functions are built on top of OpenSearch engine search queries, but in-memory execution within the plugin is not supported.
 
-### Description  
+You can use these functions for global query filtering, such as in condition expressions within `WHERE` or `HAVING` clauses. For more details about relevance-based search, see [Relevance Based Search With SQL/PPL Query Engine](https://github.com/opensearch-project/sql/issues/182).
 
-`match(field_expression, query_expression[, option=<option_value>]*)`
-The match function maps to the match query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field. Available parameters include:
-- analyzer  
-- auto_generate_synonyms_phrase  
-- fuzziness  
-- max_expansions  
-- prefix_length  
-- fuzzy_transpositions  
-- fuzzy_rewrite  
-- lenient  
-- operator  
-- minimum_should_match  
-- zero_terms_query  
-- boost  
-  
-Example with only `field` and `query` expressions, and all other parameters are set default values
+## MATCH
+
+**Usage**: `MATCH(<field_expression>, <query_expression>[, <option>=<option_value>]*)`
+
+Maps to the `match` query in the OpenSearch engine. Returns documents in which the specified field matches the provided text, number, date, or Boolean value.
+
+**Parameters**:
+
+- `<field_expression>` (Required): The field to search in.
+- `<query_expression>` (Required): The text, number, date, or Boolean value to match.
+- `<option>` (Optional): Additional options specified as `<option>=<option_value>` pairs.
+
+  The following options are available:
+
+  - `analyzer`: Specifies which analyzer to use for the query.
+  - `auto_generate_synonyms_phrase`: Whether to auto-generate synonym phrase queries.
+  - `fuzziness`: Controls fuzzy matching behavior.
+  - `max_expansions`: The maximum number of terms the query can expand to.
+  - `prefix_length`: The number of beginning characters left unchanged for fuzzy matching.
+  - `fuzzy_transpositions`: Whether fuzzy matching includes transpositions of two adjacent characters.
+  - `fuzzy_rewrite`: The method used to rewrite the query.
+  - `lenient`: Whether format-based failures should be ignored.
+  - `operator`: The Boolean logic used to interpret text in the query value.
+  - `minimum_should_match`: The minimum number of clauses that must match.
+  - `zero_terms_query`: What to return when the analyzer removes all tokens.
+  - `boost`: A floating-point value used to decrease or increase relevance scores.
+
+**Return type**: `BOOLEAN`
+
+#### Examples
+
+The following example uses only the required parameters, with all optional parameters set to default values:
   
 ```ppl
 source=accounts
@@ -28,7 +43,7 @@ source=accounts
 | fields lastname, address
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -40,7 +55,7 @@ fetched rows / total rows = 2/2
 +----------+--------------------+
 ```
   
-Another example to show how to set custom values for the optional parameters
+The following example shows how to set custom values for the optional parameters:
   
 ```ppl
 source=accounts
@@ -48,7 +63,7 @@ source=accounts
 | fields lastname
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -59,18 +74,31 @@ fetched rows / total rows = 1/1
 +----------+
 ```
   
-## MATCH_PHRASE  
+## MATCH_PHRASE
 
-### Description  
+**Usage**: `MATCH_PHRASE(<field_expression>, <query_expression>[, <option>=<option_value>]*)`
 
-`match_phrase(field_expression, query_expression[, option=<option_value>]*)`
-The match_phrase function maps to the match_phrase query used in search engine, to return the documents that match a provided text with a given field. Available parameters include:
-- analyzer  
-- slop  
-- zero_terms_query  
-  
-For backward compatibility, matchphrase is also supported and mapped to match_phrase query as well.
-Example with only `field` and `query` expressions, and all other parameters are set default values
+Maps to the `match_phrase` query in the OpenSearch engine. Returns documents in which the specified field matches the provided text as a phrase.
+
+**Parameters**:
+
+- `<field_expression>` (Required): The field to search in.
+- `<query_expression>` (Required): The text to match as a phrase.
+- `<option>` (Optional): Additional options specified as `<option>=<option_value>` pairs.
+
+  The following options are available:
+
+  - `analyzer`: Specifies which analyzer to use for the query.
+  - `slop`: The maximum number of positions between matching terms.
+  - `zero_terms_query`: What to return when the analyzer removes all tokens.
+
+**Return type**: `BOOLEAN`
+
+For backward compatibility, `matchphrase` is also supported and mapped to the `match_phrase` query.
+
+#### Examples
+
+The following example uses only the required parameters, with all optional parameters set to default values:
   
 ```ppl
 source=books
@@ -78,7 +106,7 @@ source=books
 | fields author, title
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -90,7 +118,7 @@ fetched rows / total rows = 2/2
 +----------------------+--------------------------+
 ```
   
-Another example to show how to set custom values for the optional parameters
+The following example shows how to set custom values for the optional parameters:
   
 ```ppl
 source=books
@@ -98,7 +126,7 @@ source=books
 | fields author, title
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -110,19 +138,31 @@ fetched rows / total rows = 2/2
 +----------------------+--------------------------+
 ```
   
-## MATCH_PHRASE_PREFIX  
+## MATCH_PHRASE_PREFIX
 
-### Description  
+**Usage**: `MATCH_PHRASE_PREFIX(<field_expression>, <query_expression>[, <option>=<option_value>]*)`
 
-`match_phrase_prefix(field_expression, query_expression[, option=<option_value>]*)`
-The match_phrase_prefix function maps to the match_phrase_prefix query used in search engine, to return the documents that match a provided text with a given field. Available parameters include:
-- analyzer  
-- slop  
-- max_expansions  
-- boost  
-- zero_terms_query  
-  
-Example with only `field` and `query` expressions, and all other parameters are set default values
+Maps to the `match_phrase_prefix` query in the OpenSearch engine. Returns documents in which the specified field matches the provided text using prefix matching on the last term.
+
+**Parameters**:
+
+- `<field_expression>` (Required): The field to search in.
+- `<query_expression>` (Required): The text to match using prefix matching on the last term.
+- `<option>` (Optional): Additional options specified as `<option>=<option_value>` pairs.
+
+  The following options are available:
+
+  - `analyzer`: Specifies which analyzer to use for the query.
+  - `slop`: The maximum number of positions between matching terms.
+  - `max_expansions`: The maximum number of terms the last provided term can expand to.
+  - `boost`: A floating-point value used to decrease or increase relevance scores.
+  - `zero_terms_query`: What to return when the analyzer removes all tokens.
+
+**Return type**: `BOOLEAN`
+
+#### Examples
+
+The following example uses only the required parameters, with all optional parameters set to default values:
   
 ```ppl
 source=books
@@ -130,7 +170,7 @@ source=books
 | fields author, title
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -142,7 +182,7 @@ fetched rows / total rows = 2/2
 +----------------------+--------------------------+
 ```
   
-Another example to show how to set custom values for the optional parameters
+The following example shows how to set custom values for the optional parameters:
   
 ```ppl
 source=books
@@ -150,7 +190,7 @@ source=books
 | fields author, title
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -162,39 +202,53 @@ fetched rows / total rows = 2/2
 +----------------------+--------------------------+
 ```
   
-## MULTI_MATCH  
+## MULTI_MATCH
 
-### Description  
+**Usage**:
+- `MULTI_MATCH([<field_expression+>], <query_expression>[, <option>=<option_value>]*)`.
+- `MULTI_MATCH(<query_expression>[, <option>=<option_value>]*)`.
 
-`multi_match([field_expression+], query_expression[, option=<option_value>]*)`
-`multi_match(query_expression[, option=<option_value>]*)`
-The multi_match function maps to the multi_match query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
-**Two syntax forms are supported:**
-1. **With explicit fields** (classic syntax): `multi_match([field_list], query, ...)`  
-2. **Without fields** (search default fields): `multi_match(query, ...)`  
-  
+Maps to the `multi_match query` in the OpenSearch engine. Returns documents in which one or more specified fields match the provided text, number, date, or Boolean value.
+
+**Two syntax forms are supported**:
+1. **With explicit fields** (classic syntax): `multi_match([field_list], query, ...)`
+2. **Without fields** (search default fields): `multi_match(query, ...)`
+
 When fields are omitted, the query searches in the fields specified by the `index.query.default_field` setting.
-The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes, single quotes, in backtick or even without any wrap. All fields search using star `"*"` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name, it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
-``multi_match(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
-`multi_match(["*"], ...)`
-`multi_match("search text", ...)` (searches default fields)
-Available parameters include:
-- analyzer  
-- auto_generate_synonyms_phrase  
-- cutoff_frequency  
-- fuzziness  
-- fuzzy_transpositions  
-- lenient  
-- max_expansions  
-- minimum_should_match  
-- operator  
-- prefix_length  
-- tie_breaker  
-- type  
-- slop  
-- boost  
-  
-Example with only `fields` and `query` expressions, and all other parameters are set default values
+
+You can boost specific fields using the `^` symbol. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. You can specify fields using double quotation marks, single quotation marks, backticks, or without quotation marks. You can also search all fields using `"*"` (the star symbol must be enclosed in quotation marks). The boost value is optional and should be specified after the field name, separated by the `^` character or white space:
+- `multi_match(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)`.
+- `multi_match(["*"], ...)`.
+- `multi_match("search text", ...)` (searches default fields).
+
+**Parameters**:
+
+- `<field_expression+>` (Optional): List of fields to search in, with optional boost values.
+- `<query_expression>` (Required): The text, number, date, or Boolean value to match.
+- `<option>` (Optional): Additional options specified as `<option>=<option_value>` pairs.
+
+  The following options are available:
+
+  - `analyzer`: Specifies which analyzer to use for the query.
+  - `auto_generate_synonyms_phrase`: Whether to auto-generate synonym phrase queries.
+  - `cutoff_frequency`: Allows high frequency terms to be put into a query.
+  - `fuzziness`: Controls fuzzy matching behavior.
+  - `fuzzy_transpositions`: Whether fuzzy matching includes transpositions of two adjacent characters.
+  - `lenient`: Whether format-based failures should be ignored.
+  - `max_expansions`: The maximum number of terms the query can expand to.
+  - `minimum_should_match`: The minimum number of clauses that must match.
+  - `operator`: The Boolean logic used to interpret text in the query value.
+  - `prefix_length`: The number of beginning characters left unchanged for fuzzy matching.
+  - `tie_breaker`: A value between 0.0 and 1.0 to use as a tiebreaker for fields with the same relevance.
+  - `type`: How the multi_match query should be executed internally.
+  - `slop`: The maximum number of positions between matching terms (for phrase queries).
+  - `boost`: A floating-point value used to decrease or increase relevance scores.
+
+**Return type**: `BOOLEAN`
+
+#### Examples
+
+The following example uses explicit field specification with required parameters only:
   
 ```ppl
 source=books
@@ -202,7 +256,7 @@ source=books
 | fields id, title, author
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -214,7 +268,7 @@ fetched rows / total rows = 2/2
 +----+--------------------------+----------------------+
 ```
   
-Another example to show how to set custom values for the optional parameters
+The following example shows explicit field specification with optional parameters:
   
 ```ppl
 source=books
@@ -222,7 +276,7 @@ source=books
 | fields id, title, author
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -233,7 +287,7 @@ fetched rows / total rows = 1/1
 +----+--------------------------+----------------------+
 ```
   
-Example using the new syntax without specifying fields (searches in index.query.default_field)
+The following example uses the default field syntax without explicit field specification:
   
 ```ppl
 source=books
@@ -241,7 +295,7 @@ source=books
 | fields id, title, author
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -253,38 +307,52 @@ fetched rows / total rows = 2/2
 +----+--------------------------+----------------------+
 ```
   
-## SIMPLE_QUERY_STRING  
+## SIMPLE_QUERY_STRING
 
-### Description  
+**Usage**:
+- `SIMPLE_QUERY_STRING([<field_expression+>], <query_expression>[, <option>=<option_value>]*)`.
+- `SIMPLE_QUERY_STRING(<query_expression>[, <option>=<option_value>]*)`.
 
-`simple_query_string([field_expression+], query_expression[, option=<option_value>]*)`
-`simple_query_string(query_expression[, option=<option_value>]*)`
-The simple_query_string function maps to the simple_query_string query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
-**Two syntax forms are supported:**
-1. **With explicit fields** (classic syntax): `simple_query_string([field_list], query, ...)`  
-2. **Without fields** (search default fields): `simple_query_string(query, ...)`  
-  
+Maps to the `simple_query_string` query in the OpenSearch engine. Returns documents in which one or more specified fields match the provided text, number, date, or Boolean value.
+
+**Two syntax forms are supported**:
+1. **With explicit fields** (classic syntax): `simple_query_string([field_list], query, ...)`
+2. **Without fields** (search default fields): `simple_query_string(query, ...)`
+
 When fields are omitted, the query searches in the fields specified by the `index.query.default_field` setting.
-The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes, single quotes, in backtick or even without any wrap. All fields search using star `"*"` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name, it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
-``simple_query_string(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
-`simple_query_string(["*"], ...)`
-`simple_query_string("search text", ...)` (searches default fields)
-Available parameters include:
-- analyze_wildcard  
-- analyzer  
-- auto_generate_synonyms_phrase  
-- flags  
-- fuzziness  
-- fuzzy_max_expansions  
-- fuzzy_prefix_length  
-- fuzzy_transpositions  
-- lenient  
-- default_operator  
-- minimum_should_match  
-- quote_field_suffix  
-- boost  
-  
-Example with only `fields` and `query` expressions, and all other parameters are set default values
+
+You can boost specific fields using the `^` symbol. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. You can specify fields using double quotation marks, single quotation marks, backticks, or without quotation marks. You can also search all fields using `"*"` (the star symbol must be enclosed in quotation marks). The boost value is optional and should be specified after the field name, separated by the `^` character or white space:
+- `simple_query_string(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)`.
+- `simple_query_string(["*"], ...)`.
+- `simple_query_string("search text", ...)` (searches default fields).
+
+**Parameters**:
+
+- `<field_expression+>` (Optional): List of fields to search in, with optional boost values.
+- `<query_expression>` (Required): The text, number, date, or Boolean value to match.
+- `<option>` (Optional): Additional options specified as `<option>=<option_value>` pairs.
+
+  The following options are available:
+
+  - `analyze_wildcard`: Whether to analyze wildcard and prefix queries.
+  - `analyzer`: Specifies which analyzer to use for the query.
+  - `auto_generate_synonyms_phrase`: Whether to auto-generate synonym phrase queries.
+  - `flags`: Simple query string flags to enable operators.
+  - `fuzziness`: Controls fuzzy matching behavior.
+  - `fuzzy_max_expansions`: The maximum number of terms fuzzy queries can expand to.
+  - `fuzzy_prefix_length`: The number of beginning characters left unchanged for fuzzy matching.
+  - `fuzzy_transpositions`: Whether fuzzy matching includes transpositions of two adjacent characters.
+  - `lenient`: Whether format-based failures should be ignored.
+  - `default_operator`: The default Boolean logic used to interpret text in the query.
+  - `minimum_should_match`: The minimum number of clauses that must match.
+  - `quote_field_suffix`: The suffix to append to quoted text in the query string.
+  - `boost`: A floating-point value used to decrease or increase relevance scores.
+
+**Return type**: `BOOLEAN`
+
+#### Examples
+
+The following example uses explicit field specification with required parameters only:
   
 ```ppl
 source=books
@@ -292,7 +360,7 @@ source=books
 | fields id, title, author
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -304,7 +372,7 @@ fetched rows / total rows = 2/2
 +----+--------------------------+----------------------+
 ```
   
-Another example to show how to set custom values for the optional parameters
+The following example shows explicit field specification with optional parameters:
   
 ```ppl
 source=books
@@ -312,7 +380,7 @@ source=books
 | fields id, title, author
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -323,7 +391,7 @@ fetched rows / total rows = 1/1
 +----+--------------------------+----------------------+
 ```
   
-Example using the new syntax without specifying fields (searches in index.query.default_field)
+The following example uses the default field syntax without explicit field specification:
   
 ```ppl
 source=books
@@ -331,7 +399,7 @@ source=books
 | fields id, title, author
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -343,23 +411,35 @@ fetched rows / total rows = 2/2
 +----+--------------------------+----------------------+
 ```
   
-## MATCH_BOOL_PREFIX  
+## MATCH_BOOL_PREFIX
 
-### Description  
+**Usage**: `MATCH_BOOL_PREFIX(<field_expression>, <query_expression>[, <option>=<option_value>]*)`
 
-`match_bool_prefix(field_expression, query_expression)`
-The match_bool_prefix function maps to the match_bool_prefix query in the search engine. match_bool_prefix creates a match query from all but the last term in the query string. The last term is used to create a prefix query.
-- analyzer  
-- fuzziness  
-- max_expansions  
-- prefix_length  
-- fuzzy_transpositions  
-- operator  
-- fuzzy_rewrite  
-- minimum_should_match  
-- boost  
-  
-Example with only `field` and `query` expressions, and all other parameters are set default values
+Maps to the `match_bool_prefix` query in the OpenSearch engine. Returns documents in which the specified field matches the provided text, where all terms except the last are matched exactly and the last term is treated as a prefix.
+
+**Parameters**:
+
+- `<field_expression>` (Required): The field to search in.
+- `<query_expression>` (Required): The text to match, where the last term is treated as a prefix.
+- `<option>` (Optional): Additional options specified as `<option>=<option_value>` pairs.
+
+  The following options are available:
+
+  - `analyzer`: Specifies which analyzer to use for the query.
+  - `fuzziness`: Controls fuzzy matching behavior.
+  - `max_expansions`: The maximum number of terms the query can expand to.
+  - `prefix_length`: The number of beginning characters left unchanged for fuzzy matching.
+  - `fuzzy_transpositions`: Whether fuzzy matching includes transpositions of two adjacent characters.
+  - `operator`: The Boolean logic used to interpret text in the query value.
+  - `fuzzy_rewrite`: The method used to rewrite the query.
+  - `minimum_should_match`: The minimum number of clauses that must match.
+  - `boost`: A floating-point value used to decrease or increase relevance scores.
+
+**Return type**: `BOOLEAN`
+
+#### Examples
+
+The following example uses only the required parameters, with all optional parameters set to default values:
   
 ```ppl
 source=accounts
@@ -367,7 +447,7 @@ source=accounts
 | fields firstname, address
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -379,7 +459,7 @@ fetched rows / total rows = 2/2
 +-----------+--------------------+
 ```
   
-Another example to show how to set custom values for the optional parameters
+The following example shows setting optional parameters:
   
 ```ppl
 source=accounts
@@ -387,7 +467,7 @@ source=accounts
 | fields firstname, address
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -398,50 +478,62 @@ fetched rows / total rows = 1/1
 +-----------+--------------------+
 ```
   
-## QUERY_STRING  
+## QUERY_STRING
 
-### Description  
+**Usage**:
+- `QUERY_STRING([<field_expression+>], <query_expression>[, <option>=<option_value>]*)`.
+- `QUERY_STRING(<query_expression>[, <option>=<option_value>]*)`.
 
-`query_string([field_expression+], query_expression[, option=<option_value>]*)`
-`query_string(query_expression[, option=<option_value>]*)`
-The query_string function maps to the query_string query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
-**Two syntax forms are supported:**
-1. **With explicit fields** (classic syntax): `query_string([field_list], query, ...)`  
-2. **Without fields** (search default fields): `query_string(query, ...)`  
-  
+Maps to the `query_string` query in the OpenSearch engine. Returns documents in which one or more specified fields match the provided text, number, date, or Boolean value.
+
+**Two syntax forms are supported**:
+1. **With explicit fields** (classic syntax): `query_string([field_list], query, ...)`
+2. **Without fields** (search default fields): `query_string(query, ...)`
+
 When fields are omitted, the query searches in the fields specified by the `index.query.default_field` setting.
-The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes,
-single quotes, in backtick or even without any wrap. All fields search using star `"*"` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name,
-it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
-``query_string(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
-`query_string(["*"], ...)`
-`query_string("search text", ...)` (searches default fields)
-Available parameters include:
-- analyzer  
-- escape  
-- allow_leading_wildcard  
-- analyze_wildcard  
-- auto_generate_synonyms_phrase_query  
-- boost  
-- default_operator  
-- enable_position_increments  
-- fuzziness  
-- fuzzy_max_expansions  
-- fuzzy_prefix_length  
-- fuzzy_transpositions  
-- fuzzy_rewrite  
-- tie_breaker  
-- lenient  
-- type  
-- max_determinized_states  
-- minimum_should_match  
-- quote_analyzer  
-- phrase_slop  
-- quote_field_suffix  
-- rewrite  
-- time_zone  
-  
-Example with only `fields` and `query` expressions, and all other parameters are set default values
+
+You can boost specific fields using the `^` symbol. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. You can specify fields using double quotation marks, single quotation marks, backticks, or without quotation marks. You can also search all fields using `"*"` (the star symbol must be enclosed in quotation marks). The boost value is optional and should be specified after the field name, separated by the `^` character or white space:
+- `query_string(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)`.
+- `query_string(["*"], ...)`.
+- `query_string("search text", ...)` (searches default fields).
+
+**Parameters**:
+
+- `<field_expression+>` (Optional): List of fields to search in, with optional boost values.
+- `<query_expression>` (Required): The text, number, date, or Boolean value to match.
+- `<option>` (Optional): Additional options specified as `<option>=<option_value>` pairs.
+
+  The following options are available:
+
+  - `analyzer`: Specifies which analyzer to use for the query.
+  - `escape`: Whether to escape special characters in the query string.
+  - `allow_leading_wildcard`: Whether to allow leading wildcards.
+  - `analyze_wildcard`: Whether to analyze wildcard and prefix queries.
+  - `auto_generate_synonyms_phrase_query`: Whether to auto-generate synonym phrase queries.
+  - `boost`: A floating-point value used to decrease or increase relevance scores.
+  - `default_operator`: The default Boolean logic used to interpret text in the query.
+  - `enable_position_increments`: Whether to enable position increments in result queries.
+  - `fuzziness`: Controls fuzzy matching behavior.
+  - `fuzzy_max_expansions`: The maximum number of terms fuzzy queries can expand to.
+  - `fuzzy_prefix_length`: The number of beginning characters left unchanged for fuzzy matching.
+  - `fuzzy_transpositions`: Whether fuzzy matching includes transpositions of two adjacent characters.
+  - `fuzzy_rewrite`: The method used to rewrite fuzzy queries.
+  - `tie_breaker`: A value between 0.0 and 1.0 to use as a tiebreaker for fields with the same relevance.
+  - `lenient`: Whether format-based failures should be ignored.
+  - `type`: How the query_string query should be executed internally.
+  - `max_determinized_states`: The maximum number of automaton states for regexp or fuzzy queries.
+  - `minimum_should_match`: The minimum number of clauses that must match.
+  - `quote_analyzer`: The analyzer to use for quoted text in the query string.
+  - `phrase_slop`: The default slop for phrase queries built from the query string.
+  - `quote_field_suffix`: The suffix to append to quoted text in the query string.
+  - `rewrite`: The method used to rewrite the query.
+  - `time_zone`: The time zone to use for date range queries.
+
+**Return type**: `BOOLEAN`
+
+#### Examples
+
+The following example uses explicit field specification with required parameters only:
   
 ```ppl
 source=books
@@ -449,7 +541,7 @@ source=books
 | fields id, title, author
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -461,7 +553,7 @@ fetched rows / total rows = 2/2
 +----+--------------------------+----------------------+
 ```
   
-Another example to show how to set custom values for the optional parameters
+The following example shows explicit field specification with optional parameters:
   
 ```ppl
 source=books
@@ -469,7 +561,7 @@ source=books
 | fields id, title, author
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -480,7 +572,7 @@ fetched rows / total rows = 1/1
 +----+--------------------------+----------------------+
 ```
   
-Example using the new syntax without specifying fields (searches in index.query.default_field)
+The following example uses the default field syntax without explicit field specification:
   
 ```ppl
 source=books
@@ -488,7 +580,7 @@ source=books
 | fields id, title, author
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -500,6 +592,32 @@ fetched rows / total rows = 2/2
 +----+--------------------------+----------------------+
 ```
   
-### Limitations  
+## Limitations
 
-The relevance functions are available to execute only in OpenSearch DSL but not in memory as of now, so the relevance search might fail for queries that are too complex to translate into DSL if the relevance function is following after a complex PPL query. To make your queries always work-able, it is recommended to place the relevance commands as close to the search command as possible, to ensure the relevance functions are eligible to push down. For example, a complex query like `search source = people | rename firstname as name | dedup account_number | fields name, account_number, balance, employer | where match(employer, 'Open Search') | stats count() by city` could fail because it is difficult to translate to DSL, but it would be better if we rewrite it to an equivalent query as `search source = people | where match(employer, 'Open Search') | rename firstname as name | dedup account_number | fields name, account_number, balance, employer | stats count() by city` by moving the where command with relevance function to the second command right after the search command, and the relevance would be optimized and executed smoothly in OpenSearch DSL. See [Optimization](../../optimization/optimization.rst) to get more details about the query engine optimization.
+Relevance functions execute only in the OpenSearch query DSL, not in memory. Relevance searches can fail if a query is too complex to translate into DSL, particularly when a relevance function follows complex PPL operations.
+
+To ensure correct execution, place relevance functions as close to the `search` command as possible. This increases the likelihood that the functions are eligible for push-down optimization.
+
+**Example of problematic query structure**:
+```sql
+search source = people
+| rename firstname as name
+| dedup account_number
+| fields name, account_number, balance, employer
+| where match(employer, 'Open Search')
+| stats count() by city
+```
+
+Place the `where` command containing the relevance function immediately after the `search` command so that the function can be optimized and executed in the OpenSearch DSL.
+
+**Recommended query structure**:
+```sql
+search source = people
+| where match(employer, 'Open Search')
+| rename firstname as name
+| dedup account_number
+| fields name, account_number, balance, employer
+| stats count() by city
+```
+
+See [Optimization](../../optimization/optimization.rst) to get more details about the query engine optimization.

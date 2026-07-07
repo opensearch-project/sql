@@ -36,12 +36,12 @@ public class ExplainPlanTest {
 
   @Test
   public void execute() {
-    doNothing().when(queryPlan).explain(any(), any());
+    doNothing().when(queryPlan).explain(any(), any(), any());
 
     ExplainPlan explainPlan = new ExplainPlan(queryId, queryType, queryPlan, mode, explainListener);
     explainPlan.execute();
 
-    verify(queryPlan, times(1)).explain(explainListener, mode);
+    verify(queryPlan, times(1)).explain(explainListener, mode, null);
   }
 
   @Test

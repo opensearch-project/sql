@@ -66,9 +66,9 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
    * @param cluster Cluster
    * @param traitSet Trait set (must include EnumerableConvention)
    * @param source Source table RelNode
-   * @param lookup Lookup table RelNode // * @param lookupIndex OpenSearchIndex for the lookup table
-   *     (extracted from lookup RelNode)
-   * @param startField Field name for start entities
+   * @param lookup Lookup table RelNode
+   * @param startField Field name for start entities (null in literal start mode)
+   * @param startValues Literal start values for top-level graphLookup (null in piped mode)
    * @param fromField Field name for outgoing edges
    * @param toField Field name for incoming edges
    * @param outputField Name of the output array field
@@ -85,7 +85,8 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       RelTraitSet traitSet,
       RelNode source,
       RelNode lookup,
-      String startField,
+      @Nullable String startField,
+      @Nullable List<Object> startValues,
       String fromField,
       String toField,
       String outputField,
@@ -102,6 +103,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         source,
         lookup,
         startField,
+        startValues,
         fromField,
         toField,
         outputField,
@@ -122,6 +124,7 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
         inputs.get(0),
         inputs.get(1),
         startField,
+        startValues,
         fromField,
         toField,
         outputField,
@@ -180,12 +183,13 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
     private final CalciteEnumerableIndexScan lookupScan;
     private final Enumerator<@Nullable Object> sourceEnumerator;
     private final List<String> lookupFields;
-    private final int startFieldIndex;
+    private int startFieldIndex;
     private final int fromFieldIdx;
     private final int toFieldIdx;
 
     private Object[] current = null;
     private boolean batchModeCompleted = false;
+    private boolean literalStartCompleted = false;
 
     @SuppressWarnings("unchecked")
     GraphLookupEnumerator(CalciteEnumerableGraphLookup graphLookup) {
@@ -203,8 +207,11 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       }
       // When usePIT is true, no limit is set, allowing PIT-based pagination for complete results
 
-      // Get the source enumerator
-      if (graphLookup.getSource() instanceof Scannable scannable) {
+      // Get the source enumerator (null for literal start mode)
+      if (graphLookup.getStartValues() != null) {
+        this.sourceEnumerator = null;
+        this.startFieldIndex = -1;
+      } else if (graphLookup.getSource() instanceof Scannable scannable) {
         Enumerable<?> sourceEnum = scannable.scan();
         this.sourceEnumerator = (Enumerator<@Nullable Object>) sourceEnum.enumerator();
       } else {
@@ -213,11 +220,14 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
       }
 
       try {
-        List<String> sourceFields = graphLookup.getSource().getRowType().getFieldNames();
         this.lookupFields = graphLookup.getLookup().getRowType().getFieldNames();
-        this.startFieldIndex = sourceFields.indexOf(graphLookup.getStartField());
         this.fromFieldIdx = lookupFields.indexOf(graphLookup.fromField);
         this.toFieldIdx = lookupFields.indexOf(graphLookup.toField);
+
+        if (graphLookup.getStartValues() == null) {
+          List<String> sourceFields = graphLookup.getSource().getRowType().getFieldNames();
+          this.startFieldIndex = sourceFields.indexOf(graphLookup.getStartField());
+        }
 
         // Push down user-specified filter to the lookup scan
         if (graphLookup.filter != null) {
@@ -236,24 +246,49 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
           }
         }
       } catch (Exception e) {
-        sourceEnumerator.close();
+        if (sourceEnumerator != null) {
+          sourceEnumerator.close();
+        }
         throw e;
       }
     }
 
     @Override
     public Object current() {
+      // Literal start mode: single column output, Calcite expects scalar value
+      if (graphLookup.getStartValues() != null) {
+        return current[0];
+      }
       // source fields + output array (normal mode) or [source array, lookup array] (batch mode)
       return current;
     }
 
     @Override
     public boolean moveNext() {
-      if (graphLookup.batchMode) {
+      if (graphLookup.getStartValues() != null) {
+        return moveNextLiteralStartMode();
+      } else if (graphLookup.batchMode) {
         return moveNextBatchMode();
       } else {
         return moveNextNormalMode();
       }
+    }
+
+    /**
+     * Literal start mode: perform single BFS seeded with all literal start values, return one row.
+     */
+    private boolean moveNextLiteralStartMode() {
+      if (literalStartCompleted) {
+        return false;
+      }
+      literalStartCompleted = true;
+
+      // Perform single BFS seeded with all literal start values
+      List<Object> bfsResults = performBfs(graphLookup.getStartValues());
+
+      // Output single row: just the hierarchy array
+      current = new Object[] {bfsResults};
+      return true;
     }
 
     /**
@@ -541,13 +576,18 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
     @Override
     public void reset() {
-      sourceEnumerator.reset();
+      if (sourceEnumerator != null) {
+        sourceEnumerator.reset();
+      }
       current = null;
+      literalStartCompleted = false;
     }
 
     @Override
     public void close() {
-      sourceEnumerator.close();
+      if (sourceEnumerator != null) {
+        sourceEnumerator.close();
+      }
     }
   }
 }

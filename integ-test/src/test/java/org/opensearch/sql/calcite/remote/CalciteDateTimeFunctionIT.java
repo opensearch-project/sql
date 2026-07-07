@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
+import static org.opensearch.sql.util.Capability.DATETIME_FORMAT_RENDERING;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -17,6 +18,7 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.DateTimeFunctionIT;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteDateTimeFunctionIT extends DateTimeFunctionIT {
   @Override
@@ -73,6 +75,9 @@ public class CalciteDateTimeFunctionIT extends DateTimeFunctionIT {
   }
 
   @Test
+  @RequiresCapability(
+      value = DATETIME_FORMAT_RENDERING,
+      note = "strftime renders sub-second precision differently on the AE route.")
   public void testStrftimeWithDateFields() throws IOException {
     // Test strftime with different date field types from indices
     loadIndex(Index.DATE_FORMATS);

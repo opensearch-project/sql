@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -27,6 +28,7 @@ import org.opensearch.search.aggregations.bucket.composite.DateHistogramValuesSo
 import org.opensearch.search.aggregations.bucket.composite.HistogramValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.DateHistogramInterval;
 import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
@@ -49,7 +51,6 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 public class AggPushDownAction implements OSRequestBuilderAction {
   private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser;
   private final Map<String, OpenSearchDataType> extendedTypeMapping;
-  private final long scriptCount;
   // Record the output field names of all buckets as the sequence of buckets
   private List<String> bucketNames;
 
@@ -59,12 +60,10 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       List<String> bucketNames) {
     this.builderAndParser = builderAndParser;
     this.extendedTypeMapping = extendedTypeMapping;
-    this.scriptCount =
-        builderAndParser.getLeft().stream().mapToInt(AggPushDownAction::getScriptCount).sum();
     this.bucketNames = bucketNames;
   }
 
-  private static int getScriptCount(AggregationBuilder aggBuilder) {
+  static int getScriptCount(AggregationBuilder aggBuilder) {
     if (aggBuilder instanceof NestedAggregationBuilder) {
       aggBuilder = aggBuilder.getSubAggregations().iterator().next();
     }
@@ -83,6 +82,25 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       return sourceScriptCount + subAggScriptCount;
     }
     return 0;
+  }
+
+  private static AggregatorFactories.Builder copySubAggregations(AggregationBuilder source) {
+    AggregatorFactories.Builder copiedFactories = new AggregatorFactories.Builder();
+    source.getSubAggregations().forEach(copiedFactories::addAggregator);
+    source.getPipelineAggregations().forEach(copiedFactories::addPipelineAggregator);
+    return copiedFactories;
+  }
+
+  private void replaceRootBuilder(
+      AggregationBuilder originalRoot, AggregationBuilder newInnerBuilder) {
+    AggregationBuilder finalBuilder = newInnerBuilder;
+    if (originalRoot instanceof NestedAggregationBuilder nested) {
+      finalBuilder =
+          AggregationBuilders.nested(nested.getName(), nested.path())
+              .subAggregation(newInnerBuilder);
+    }
+    builderAndParser =
+        Pair.of(Collections.singletonList(finalBuilder), builderAndParser.getRight());
   }
 
   @Override
@@ -257,24 +275,74 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   }
 
   /** Build a {@link DateHistogramAggregationBuilder} by {@link DateHistogramValuesSourceBuilder} */
+  private static void copyDateHistogramInterval(
+      DateHistogramValuesSourceBuilder source,
+      Consumer<DateHistogramInterval> fixedIntervalSetter,
+      Consumer<DateHistogramInterval> calendarIntervalSetter) {
+    try {
+      fixedIntervalSetter.accept(source.getIntervalAsFixed());
+      return;
+    } catch (IllegalArgumentException | IllegalStateException ignored) {
+      // Fallback to calendar interval.
+    }
+    try {
+      calendarIntervalSetter.accept(source.getIntervalAsCalendar());
+      return;
+    } catch (IllegalArgumentException | IllegalStateException ignored) {
+      throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+          "Cannot copy interval for date histogram bucket " + source.name());
+    }
+  }
+
+  private static void copyDateHistogramBucketOptions(
+      DateHistogramValuesSourceBuilder source, DateHistogramAggregationBuilder target) {
+    if (source.field() != null) {
+      target.field(source.field());
+    }
+    if (source.script() != null) {
+      target.script(source.script());
+    }
+    copyDateHistogramInterval(source, target::fixedInterval, target::calendarInterval);
+    if (source.userValuetypeHint() != null) {
+      target.userValueTypeHint(source.userValuetypeHint());
+    }
+    if (source.timeZone() != null) {
+      target.timeZone(source.timeZone());
+    }
+    if (source.offset() != 0) {
+      target.offset(source.offset());
+    }
+    if (source.format() != null) {
+      target.format(source.format());
+    }
+    // Composite group-by only returns buckets with documents. Preserve that when rewriting.
+    target.minDocCount(1);
+  }
+
+  private static void copyHistogramBucketOptions(
+      HistogramValuesSourceBuilder source, HistogramAggregationBuilder target) {
+    if (source.field() != null) {
+      target.field(source.field());
+    }
+    if (source.script() != null) {
+      target.script(source.script());
+    }
+    target.interval(source.interval());
+    if (source.userValuetypeHint() != null) {
+      target.userValueTypeHint(source.userValuetypeHint());
+    }
+    if (source.format() != null) {
+      target.format(source.format());
+    }
+    // Composite group-by only returns buckets with documents. Preserve that when rewriting.
+    target.minDocCount(1);
+  }
+
   private DateHistogramAggregationBuilder buildDateHistogramAggregationBuilder(
       DateHistogramValuesSourceBuilder dateHisto, BucketOrder bucketOrder) {
     DateHistogramAggregationBuilder dateHistoBuilder =
         new DateHistogramAggregationBuilder(dateHisto.name());
-    if (dateHisto.field() != null) {
-      dateHistoBuilder.field(dateHisto.field());
-    }
-    if (dateHisto.script() != null) {
-      dateHistoBuilder.script(dateHisto.script());
-    }
-    try {
-      dateHistoBuilder.fixedInterval(dateHisto.getIntervalAsFixed());
-    } catch (IllegalArgumentException e) {
-      dateHistoBuilder.calendarInterval(dateHisto.getIntervalAsCalendar());
-    }
-    if (dateHisto.userValuetypeHint() != null) {
-      dateHistoBuilder.userValueTypeHint(dateHisto.userValuetypeHint());
-    }
+    copyDateHistogramBucketOptions(dateHisto, dateHistoBuilder);
     dateHistoBuilder.order(bucketOrder);
     return dateHistoBuilder;
   }
@@ -283,16 +351,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   private HistogramAggregationBuilder buildHistogramAggregationBuilder(
       HistogramValuesSourceBuilder histo, BucketOrder bucketOrder) {
     HistogramAggregationBuilder histoBuilder = new HistogramAggregationBuilder(histo.name());
-    if (histo.field() != null) {
-      histoBuilder.field(histo.field());
-    }
-    if (histo.script() != null) {
-      histoBuilder.script(histo.script());
-    }
-    histoBuilder.interval(histo.interval());
-    if (histo.userValuetypeHint() != null) {
-      histoBuilder.userValueTypeHint(histo.userValuetypeHint());
-    }
+    copyHistogramBucketOptions(histo, histoBuilder);
     histoBuilder.order(bucketOrder);
     return histoBuilder;
   }
@@ -408,35 +467,17 @@ public class AggPushDownAction implements OSRequestBuilderAction {
                 newBuckets.add(buckets.get(bucketNames.indexOf(name)));
                 newBucketNames.add(name);
               });
-      AggregatorFactories.Builder newAggBuilder = new AggregatorFactories.Builder();
-      compositeAggBuilder.getSubAggregations().forEach(newAggBuilder::addAggregator);
       AggregationBuilder finalBuilder =
-          AggregationBuilders.composite("composite_buckets", newBuckets)
-              .subAggregations(newAggBuilder)
+          AggregationBuilders.composite(compositeAggBuilder.getName(), newBuckets)
+              .subAggregations(copySubAggregations(compositeAggBuilder))
               .size(compositeAggBuilder.size());
-      if (original instanceof NestedAggregationBuilder nested) {
-        finalBuilder =
-            AggregationBuilders.nested(nested.getName(), nested.path())
-                .subAggregation(finalBuilder);
-      }
-      builderAndParser =
-          Pair.of(Collections.singletonList(finalBuilder), builderAndParser.getRight());
+      replaceRootBuilder(original, finalBuilder);
       bucketNames = newBucketNames;
     }
     if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
       termsAggBuilder.order(BucketOrder.key(!collations.getFirst().getDirection().isDescending()));
     }
     // TODO for MultiTermsAggregationBuilder
-  }
-
-  public boolean isCompositeAggregation() {
-    return builderAndParser.getLeft().stream()
-        .anyMatch(
-            builder ->
-                builder instanceof CompositeAggregationBuilder
-                    || (builder instanceof NestedAggregationBuilder
-                        && builder.getSubAggregations().iterator().next()
-                            instanceof CompositeAggregationBuilder));
   }
 
   /**

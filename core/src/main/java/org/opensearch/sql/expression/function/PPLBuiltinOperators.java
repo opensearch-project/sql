@@ -32,6 +32,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.udf.udaf.ClusterLabelAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.DistinctCountApproxLogicalAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.FirstAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LastAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.ListAggFunction;
@@ -66,8 +67,12 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.AutoConvertFunction;
+import org.opensearch.sql.expression.function.udf.CTimeConvertFunction;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
+import org.opensearch.sql.expression.function.udf.Dur2SecConvertFunction;
 import org.opensearch.sql.expression.function.udf.MemkConvertFunction;
+import org.opensearch.sql.expression.function.udf.MkTimeConvertFunction;
+import org.opensearch.sql.expression.function.udf.MsTimeConvertFunction;
 import org.opensearch.sql.expression.function.udf.NumConvertFunction;
 import org.opensearch.sql.expression.function.udf.ParseFunction;
 import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
@@ -82,6 +87,7 @@ import org.opensearch.sql.expression.function.udf.ToStringFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
 import org.opensearch.sql.expression.function.udf.condition.EnhancedCoalesceFunction;
 import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
+import org.opensearch.sql.expression.function.udf.conversion.BinaryFunction;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DateAddSubFunction;
@@ -177,6 +183,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   // Condition function
   public static final SqlOperator EARLIEST = new EarliestFunction().toUDF("EARLIEST");
   public static final SqlOperator LATEST = new LatestFunction().toUDF("LATEST");
+
+  // VARBINARY conversion (placeholder for ip/binary fields rewritten by analytics backend adapter)
+  public static final SqlOperator BINARY = new BinaryFunction().toUDF("BINARY");
 
   // Datetime function
   public static final SqlOperator TIMESTAMP = new TimestampFunction().toUDF("TIMESTAMP");
@@ -423,6 +432,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string", false);
   public static final SqlOperator MULTI_MATCH =
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
+  public static final SqlOperator QUERY = RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query");
+  public static final SqlOperator WILDCARD_QUERY =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("wildcard_query");
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
   public static final SqlOperator TONUMBER = new ToNumberFunction().toUDF("TONUMBER");
@@ -434,6 +446,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator RMCOMMA = new RmcommaConvertFunction().toUDF("RMCOMMA");
   public static final SqlOperator RMUNIT = new RmunitConvertFunction().toUDF("RMUNIT");
   public static final SqlOperator MEMK = new MemkConvertFunction().toUDF("MEMK");
+  public static final SqlOperator CTIME = new CTimeConvertFunction().toUDF("CTIME");
+  public static final SqlOperator MKTIME = new MkTimeConvertFunction().toUDF("MKTIME");
+  public static final SqlOperator MSTIME = new MsTimeConvertFunction().toUDF("MSTIME");
+  public static final SqlOperator DUR2SEC = new Dur2SecConvertFunction().toUDF("DUR2SEC");
 
   public static final SqlOperator WIDTH_BUCKET =
       new org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction()
@@ -505,6 +521,23 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           "VALUES",
           PPLReturnTypes.STRING_ARRAY,
           PPLOperandTypes.ANY_SCALAR_OPTIONAL_INTEGER);
+
+  /**
+   * Logical marker for {@code DISTINCT_COUNT_APPROX} (also exposed as {@code dc} and {@code
+   * distinct_count} aliases). PPL parser uses this to produce a RelNode; backends override or
+   * rewrite it before execution. {@code OpenSearchExecutionEngine} registers a real HyperLogLog++
+   * implementation in the external registry of {@code PPLFuncImpTable}, which has lookup precedence
+   * and serves the OpenSearch V3 path. Other backends (DataFusion / analytics-engine) rewrite the
+   * operator on their own. Operand metadata is {@code null} to match the existing external
+   * registration's permissive policy and avoid introducing new type rejections.
+   */
+  public static final SqlAggFunction DISTINCT_COUNT_APPROX =
+      createUserDefinedAggFunction(
+          DistinctCountApproxLogicalAggFunction.class,
+          // Substrait-standard name the analytics-engine backend resolves by (V3 overrides it).
+          "APPROX_COUNT_DISTINCT",
+          ReturnTypes.BIGINT_FORCE_NULLABLE,
+          null);
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");

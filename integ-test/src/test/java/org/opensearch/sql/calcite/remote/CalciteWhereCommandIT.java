@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CASCADED_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
+import static org.opensearch.sql.util.Capability.NESTED_FIELDS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -21,14 +22,21 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.WhereCommandIT;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteWhereCommandIT extends WhereCommandIT {
+
   @Override
   public void init() throws Exception {
     super.init();
     enableCalcite();
     loadIndex(Index.NESTED_SIMPLE);
-    loadIndex(Index.DEEP_NESTED);
+    // deep_nested has a multi-value array for the scalar-mapped `accounts.id` field, which the
+    // parquet store rejects at bulk load; skip it on the AE route so it doesn't abort init(). The
+    // only test that queries deep_nested is already excluded on the AE route (nested fields).
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.DEEP_NESTED);
+    }
     loadIndex(Index.CASCADED_NESTED);
   }
 
@@ -39,6 +47,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void testFilterOnComputedNestedFields() throws IOException {
     JSONObject result =
         executeQuery(
@@ -51,6 +60,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void testFilterOnNestedAndRootFields() throws IOException {
     JSONObject result =
         executeQuery(
@@ -63,6 +73,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void testFilterOnNestedFields() throws IOException {
     // address is a nested object
     JSONObject result1 =
@@ -82,6 +93,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void testFilterOnMultipleCascadedNestedFields() throws IOException {
     // SQL's static type system does not allow returning list[int] in place of int
     enabledOnlyWhenPushdownIsEnabled();
@@ -125,6 +137,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void testScriptFilterOnDifferentNestedHierarchyShouldThrow() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     Throwable t =
@@ -143,6 +156,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
   }
 
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void testAggFilterOnNestedFields() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     JSONObject result =

@@ -6,12 +6,14 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS_WITH_NULL;
+import static org.opensearch.sql.util.Capability.INVALID_DATETIME_ERROR_SHAPE;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase {
   @Override
@@ -216,6 +218,11 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
   }
 
   @Test
+  @RequiresCapability(
+      value = INVALID_DATETIME_ERROR_SHAPE,
+      note =
+          "dayname/monthname over an invalid datetime literal throws a different error-message"
+              + " shape on the AE route (INVALID_DATETIME_ERROR_SHAPE).")
   public void testDAYNAMEInvalid() {
 
     Throwable e1 =
@@ -760,6 +767,11 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
   }
 
   @Test
+  @RequiresCapability(
+      value = INVALID_DATETIME_ERROR_SHAPE,
+      note =
+          "dayname/monthname over an invalid datetime literal throws a different error-message"
+              + " shape on the AE route (INVALID_DATETIME_ERROR_SHAPE).")
   public void testMONTHNAMEInvalid() {
 
     Throwable e1 =

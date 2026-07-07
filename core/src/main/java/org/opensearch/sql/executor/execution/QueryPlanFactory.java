@@ -122,7 +122,12 @@ public class QueryPlanFactory
       }
     } else {
       return new QueryPlan(
-          QueryId.queryId(), node.getQueryType(), node.getPlan(), queryService, context.getLeft());
+          QueryId.queryId(),
+          node.getQueryType(),
+          node.getPlan(),
+          queryService,
+          context.getLeft(),
+          node.getHighlightConfig());
     }
   }
 
@@ -139,6 +144,7 @@ public class QueryPlanFactory
         node.getQueryType(),
         create(node.getStatement(), NO_CONSUMER_RESPONSE_LISTENER, context.getRight()),
         node.getMode(),
+        node.getFormat(),
         context.getRight());
   }
 }

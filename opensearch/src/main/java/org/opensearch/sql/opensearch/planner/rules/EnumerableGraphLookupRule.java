@@ -93,6 +93,7 @@ public class EnumerableGraphLookupRule extends ConverterRule {
         convertedSource,
         convertedLookup,
         graphLookup.getStartField(),
+        graphLookup.getStartValues(),
         graphLookup.getFromField(),
         graphLookup.getToField(),
         graphLookup.getOutputField(),

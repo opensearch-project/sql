@@ -413,6 +413,7 @@ REDUCE:                             'REDUCE';
 
 // BOOL FUNCTIONS
 LIKE:                               'LIKE';
+CONTAINS:                           'CONTAINS';
 ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 BETWEEN:                            'BETWEEN';

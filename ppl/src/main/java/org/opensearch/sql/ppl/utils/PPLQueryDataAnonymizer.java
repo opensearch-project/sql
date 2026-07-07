@@ -105,8 +105,10 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timewrap;
 import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
@@ -230,11 +232,26 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitGraphLookup(GraphLookup node, String context) {
-    String child = node.getChild().get(0).accept(this, context);
     StringBuilder command = new StringBuilder();
-    command.append(child).append(" | graphlookup ").append(MASK_TABLE);
-    if (node.getStartField() != null) {
-      command.append(" start=").append(MASK_COLUMN);
+    if (node.getStartValues() != null) {
+      // Top-level mode: no child/pipe prefix
+      command.append("graphlookup ").append(MASK_TABLE);
+      if (node.getStartValues().size() == 1) {
+        command.append(" start=").append(MASK_LITERAL);
+      } else {
+        command.append(" start=");
+        for (int i = 0; i < node.getStartValues().size(); i++) {
+          if (i > 0) command.append(", ");
+          command.append(MASK_LITERAL);
+        }
+      }
+    } else {
+      // Piped mode: has child
+      String child = node.getChild().get(0).accept(this, context);
+      command.append(child).append(" | graphlookup ").append(MASK_TABLE);
+      if (node.getStartField() != null) {
+        command.append(" start=").append(MASK_COLUMN);
+      }
     }
     String arrow = node.getDirection() == GraphLookup.Direction.BI ? "<->" : "-->";
     command.append(" edge=").append(MASK_COLUMN).append(arrow).append(MASK_COLUMN);
@@ -527,7 +544,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
                   return StringUtils.format("%s(%s)%s", functionName, fields, asClause);
                 })
             .collect(Collectors.joining(","));
-    return StringUtils.format("%s | convert %s", child, conversions);
+    String timeformatClause =
+        node.getTimeFormat() != null
+            ? StringUtils.format("timeformat=\"%s\" ", node.getTimeFormat())
+            : "";
+    return StringUtils.format("%s | convert %s%s", child, timeformatClause, conversions);
   }
 
   @Override
@@ -604,6 +625,25 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitReverse(Reverse node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     return StringUtils.format("%s | reverse", child);
+  }
+
+  @Override
+  public String visitTimewrap(Timewrap node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder command = new StringBuilder();
+    // span magnitude is masked like other span literals (see visitChart); align/series are
+    // constrained keywords, not user data, so they are rendered verbatim.
+    command.append(" | timewrap ").append(MASK_LITERAL);
+    if (node.getAlign() != null) {
+      command.append(" align=").append(node.getAlign());
+    }
+    if (node.getSeries() != null) {
+      command.append(" series=").append(node.getSeries());
+    }
+    if (node.getTimeFormat() != null) {
+      command.append(" time_format=").append(MASK_LITERAL);
+    }
+    return StringUtils.format("%s%s", child, command);
   }
 
   @Override
@@ -778,32 +818,37 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitMultisearch(Multisearch node, String context) {
+    return anonymizeSubsearchCommand("multisearch", node.getSubsearches());
+  }
+
+  @Override
+  public String visitUnion(Union node, String context) {
+    return anonymizeSubsearchCommand("union", node.getDatasets());
+  }
+
+  private String anonymizeSubsearchCommand(String commandName, List<UnresolvedPlan> subsearches) {
+    String keywords =
+        "source|fields|where|stats|head|tail|sort|eval|rename|"
+            + commandName
+            + "|search|table|identifier|\\*\\*\\*";
     List<String> anonymizedSubsearches = new ArrayList<>();
 
-    for (UnresolvedPlan subsearch : node.getSubsearches()) {
+    for (UnresolvedPlan subsearch : subsearches) {
       String anonymizedSubsearch = anonymizeData(subsearch);
       anonymizedSubsearch = "search " + anonymizedSubsearch;
       anonymizedSubsearch =
           anonymizedSubsearch
-              .replaceAll("\\bsource=\\w+", "source=table") // Replace table names after source=
+              .replaceAll("\\bsource=\\w+", "source=table")
+              .replaceAll("\\b(?!" + keywords + ")\\w+(?=\\s*[<>=!])", "identifier")
+              .replaceAll("\\b(?!" + keywords + ")\\w+(?=\\s*,)", "identifier")
+              .replaceAll("fields \\+\\s*\\b(?!" + keywords + ")\\w+", "fields + identifier")
               .replaceAll(
-                  "\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+(?=\\s*[<>=!])",
-                  "identifier") // Replace field names before operators
-              .replaceAll(
-                  "\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+(?=\\s*,)",
-                  "identifier") // Replace field names before commas
-              .replaceAll(
-                  "fields"
-                      + " \\+\\s*\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+",
-                  "fields + identifier") // Replace field names after 'fields +'
-              .replaceAll(
-                  "fields"
-                      + " \\+\\s*identifier,\\s*\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+",
-                  "fields + identifier,identifier"); // Handle multiple fields
+                  "fields \\+\\s*identifier,\\s*\\b(?!" + keywords + ")\\w+",
+                  "fields + identifier,identifier");
       anonymizedSubsearches.add(StringUtils.format("[%s]", anonymizedSubsearch));
     }
 
-    return StringUtils.format("| multisearch %s", String.join(" ", anonymizedSubsearches));
+    return StringUtils.format("| %s %s", commandName, String.join(" ", anonymizedSubsearches));
   }
 
   @Override

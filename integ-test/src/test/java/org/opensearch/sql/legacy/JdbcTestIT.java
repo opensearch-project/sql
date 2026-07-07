@@ -7,6 +7,8 @@ package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.sql.util.Capability.DATETIME_FORMAT_RENDERING;
+import static org.opensearch.sql.util.Capability.PERCENTILE_APPROXIMATE;
 
 import java.io.IOException;
 import org.json.JSONArray;
@@ -14,6 +16,7 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class JdbcTestIT extends SQLIntegTestCase {
 
@@ -25,6 +28,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
     loadIndex(Index.WEBLOG);
   }
 
+  @RequiresCapability(PERCENTILE_APPROXIMATE)
   public void testPercentilesQuery() {
     JSONObject response =
         executeJdbcRequest(
@@ -43,6 +47,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
 
   // https://github.com/opensearch-project/sql/issues/537
   @Test
+  @RequiresCapability(PERCENTILE_APPROXIMATE)
   public void testSlowQuery() throws IOException {
     // set slow log threshold = 0s
     updateClusterSettings(new ClusterSetting(PERSISTENT, "plugins.sql.slowlog", "0"));
@@ -89,6 +94,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
     assertThat(response.getJSONArray("datarows").getJSONArray(0).getDouble(0), equalTo(16827.0));
   }
 
+  @RequiresCapability(DATETIME_FORMAT_RENDERING)
   public void testGroupByInQuery() {
     JSONObject response =
         executeJdbcRequest(

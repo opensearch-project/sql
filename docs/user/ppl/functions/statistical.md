@@ -1,15 +1,18 @@
-# Statistical Functions  
+# Statistical functions
 
-## MAX  
+The following statistical functions are supported in PPL.
 
-### Description  
+## MAX
 
-Usage: `max(x, y, ...)` returns the maximum value from all provided arguments. Strings are treated as greater than numbers, so if provided both strings and numbers, it will return the maximum string value (lexicographically ordered).
+**Usage**: `MAX(x, y, ...)`
 
-Note: This function is only available in the eval command context.
+Returns the largest value among the provided arguments. When both strings and numbers are supplied, strings are considered greater than numbers, and the function returns the lexicographically greatest string. This function is available only in the `eval` command.
 
-**Argument type:** Variable number of `INTEGER`/`LONG`/`FLOAT`/`DOUBLE`/`STRING` arguments  
-**Return type:** Type of the selected argument  
+**Parameters**:
+
+- `x, y, ...` (Required): Variable number of arguments of type `INTEGER`, `LONG`, `FLOAT`, `DOUBLE`, or `STRING`.
+
+**Return type**: Type of the selected argument
 
 ### Example
   
@@ -19,7 +22,7 @@ source=accounts
 | fields age, max_val
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -39,7 +42,7 @@ source=accounts
 | fields firstname, result
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -59,7 +62,7 @@ source=accounts
 | fields age, firstname, result
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -73,16 +76,17 @@ fetched rows / total rows = 4/4
 +-----+-----------+---------+
 ```
   
-## MIN  
+## MIN
 
-### Description  
+**Usage**: `MIN(x, y, ...)`
 
-Usage: `min(x, y, ...)` returns the minimum value from all provided arguments. Strings are treated as greater than numbers, so if provided both strings and numbers, it will return the minimum numeric value.
+Returns the smallest value among the provided arguments. When both strings and numbers are supplied, numbers are considered smaller than strings, and the function returns the minimum numeric value. This function is available only in the `eval` command.
 
-Note: This function is only available in the eval command context.
+**Parameters**:
 
-**Argument type:** Variable number of `INTEGER`/`LONG`/`FLOAT`/`DOUBLE`/`STRING` arguments  
-**Return type:** Type of the selected argument  
+- `x, y, ...` (Required): Variable number of arguments of type `INTEGER`, `LONG`, `FLOAT`, `DOUBLE`, or `STRING`.
+
+**Return type**: Type of the selected argument
 
 ### Example
   
@@ -92,7 +96,7 @@ source=accounts
 | fields age, min_val
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -112,7 +116,7 @@ source=accounts
 | fields firstname, result
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -132,7 +136,7 @@ source=accounts
 | fields age, firstname, result
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4

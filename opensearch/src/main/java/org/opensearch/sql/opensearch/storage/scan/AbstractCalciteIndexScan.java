@@ -33,6 +33,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -45,20 +46,21 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.ScriptSortBuilder.ScriptSortType;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.context.AbstractAction;
-import org.opensearch.sql.opensearch.storage.scan.context.AggPushDownAction;
-import org.opensearch.sql.opensearch.storage.scan.context.AggregationBuilderAction;
 import org.opensearch.sql.opensearch.storage.scan.context.FilterDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
@@ -104,13 +106,29 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
 
   @Override
   public RelWriter explainTerms(RelWriter pw) {
+    // Build explain string with context and request builder info
     String explainString = String.valueOf(pushDownContext);
-    if (pw instanceof RelWriterImpl) {
-      // Only add request builder to the explain plan
-      explainString += ", " + pushDownContext.createRequestBuilder();
+    if (pw instanceof RelJsonWriter) {
+      // For JSON output, add structured items
+      super.explainTerms(pw);
+      if (!pushDownContext.isEmpty()) {
+        pw.item("PushDownContext", explainString);
+        try {
+          OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
+          pw.item("sourceBuilder", requestBuilder.getSourceBuilder().toString());
+        } catch (Exception e) {
+          // Ignore if request builder cannot be created
+        }
+      }
+      return pw;
+    } else {
+      // For text output, use original chained format
+      if (pw instanceof RelWriterImpl && !pushDownContext.isEmpty()) {
+        explainString += ", " + pushDownContext.createRequestBuilder();
+      }
+      return super.explainTerms(pw)
+          .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
     }
-    return super.explainTerms(pw)
-        .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
   }
 
   protected Integer getQuerySizeLimit() {
@@ -130,7 +148,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
             (rowCount, operation) ->
                 switch (operation.type()) {
                   case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
-                  case PROJECT, SORT, SORT_EXPR -> rowCount;
+                  case PROJECT, SORT, SORT_EXPR, HIGHLIGHT -> rowCount;
                   case SORT_AGG_METRICS ->
                       NumberUtil.min(rowCount, osIndex.getQueryBucketSize().doubleValue());
                   // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
@@ -174,10 +192,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
       switch (operation.type()) {
         case AGGREGATION -> {
           dRows = mq.getRowCount((RelNode) operation.digest());
-          dCpu += dRows * getAggMultiplier(operation);
+          dCpu += dRows * getAggMultiplier(operation, pushDownContext);
         }
-        // Ignored Project in cost accumulation, but it will affect the external cost
-        case PROJECT -> {}
+        // Ignored Project and Highlight in cost accumulation, but they affect the external cost
+        case PROJECT, HIGHLIGHT -> {}
         case SORT -> dCpu += dRows;
         case SORT_AGG_METRICS -> {
           dRows = dRows * .9 / 10; // *.9 because always bucket IS_NOT_NULL
@@ -233,7 +251,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
   }
 
   /** See source in {@link org.apache.calcite.rel.core.Aggregate::computeSelfCost} */
-  private static float getAggMultiplier(PushDownOperation operation) {
+  private static float getAggMultiplier(
+      PushDownOperation operation, PushDownContext pushDownContext) {
     // START CALCITE
     List<AggregateCall> aggCalls = ((Aggregate) operation.digest()).getAggCallList();
     float multiplier = 1f + (float) aggCalls.size() * 0.125f;
@@ -248,7 +267,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
 
     // For script aggregation, we need to multiply the multiplier by 1.1 to make up the cost. As we
     // prefer to have non-script agg push down after optimized by {@link PPLAggregateConvertRule}
-    multiplier *= (float) Math.pow(1.1f, ((AggPushDownAction) operation.action()).getScriptCount());
+    long scriptCount =
+        pushDownContext.getAggSpec() == null ? 0 : pushDownContext.getAggSpec().getScriptCount();
+    multiplier *= (float) Math.pow(1.1f, scriptCount);
     return multiplier;
   }
 
@@ -319,16 +340,17 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
         // aggregators.
         return null;
       }
-      RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(collations));
+      RelTraitSet traitsWithCollations = getTraitSet().replace(RelCollations.of(collations));
       PushDownContext pushDownContextWithoutSort = this.pushDownContext.cloneWithoutSort();
       AbstractAction<?> action;
       Object digest;
       if (pushDownContext.isAggregatePushed()) {
         // Push down the sort into the aggregation bucket
-        action =
-            (AggregationBuilderAction)
-                aggAction ->
-                    aggAction.pushDownSortIntoAggBucket(collations, getRowType().getFieldNames());
+        pushDownContextWithoutSort.setAggSpec(
+            pushDownContextWithoutSort
+                .getAggSpec()
+                .withBucketSort(collations, getRowType().getFieldNames()));
+        action = (OSRequestBuilderAction) requestBuilder -> {};
         digest = collations;
         pushDownContextWithoutSort.add(PushDownType.SORT, digest, action);
         return buildScan(
@@ -494,5 +516,68 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
 
   public boolean isProjectPushed() {
     return this.getPushDownContext().isProjectPushed();
+  }
+
+  protected static void applyHighlightPushDown(
+      OpenSearchRequestBuilder requestBuilder, HighlightConfig highlightConfig) {
+    if (highlightConfig == null
+        || highlightConfig.fields() == null
+        || highlightConfig.fields().isEmpty()) {
+      return;
+    }
+    HighlightBuilder hb = new HighlightBuilder();
+    for (Map.Entry<String, Map<String, Object>> entry : highlightConfig.fields().entrySet()) {
+      HighlightBuilder.Field field = new HighlightBuilder.Field(entry.getKey());
+      applyPerFieldOptions(field, entry.getValue());
+      hb.field(field);
+    }
+
+    // Apply global pre_tags / post_tags if provided
+    if (highlightConfig.preTags() != null && !highlightConfig.preTags().isEmpty()) {
+      hb.preTags(highlightConfig.preTags().toArray(new String[0]));
+    }
+    if (highlightConfig.postTags() != null && !highlightConfig.postTags().isEmpty()) {
+      hb.postTags(highlightConfig.postTags().toArray(new String[0]));
+    }
+
+    // Apply global fragment_size only when explicitly specified
+    if (highlightConfig.fragmentSize() != null) {
+      hb.fragmentSize(highlightConfig.fragmentSize());
+    }
+
+    requestBuilder.getSourceBuilder().highlighter(hb);
+  }
+
+  @SuppressWarnings(
+      "unchecked") // values are trusted types from PPLQueryRequest.parsePerFieldOptions
+  private static void applyPerFieldOptions(
+      HighlightBuilder.Field field, Map<String, Object> options) {
+    if (options == null || options.isEmpty()) {
+      return;
+    }
+    if (options.containsKey("fragment_size")) {
+      field.fragmentSize(((Number) options.get("fragment_size")).intValue());
+    }
+    if (options.containsKey("number_of_fragments")) {
+      field.numOfFragments(((Number) options.get("number_of_fragments")).intValue());
+    }
+    if (options.containsKey("type")) {
+      field.highlighterType((String) options.get("type"));
+    }
+    if (options.containsKey("pre_tags")) {
+      field.preTags(((List<String>) options.get("pre_tags")).toArray(new String[0]));
+    }
+    if (options.containsKey("post_tags")) {
+      field.postTags(((List<String>) options.get("post_tags")).toArray(new String[0]));
+    }
+    if (options.containsKey("require_field_match")) {
+      field.requireFieldMatch((Boolean) options.get("require_field_match"));
+    }
+    if (options.containsKey("no_match_size")) {
+      field.noMatchSize(((Number) options.get("no_match_size")).intValue());
+    }
+    if (options.containsKey("order")) {
+      field.order((String) options.get("order"));
+    }
   }
 }

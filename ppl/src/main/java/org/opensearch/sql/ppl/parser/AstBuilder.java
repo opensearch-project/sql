@@ -64,6 +64,7 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.SearchAnd;
 import org.opensearch.sql.ast.expression.SearchExpression;
 import org.opensearch.sql.ast.expression.SearchGroup;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
@@ -118,11 +119,14 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timewrap;
 import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -158,7 +162,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   public AstBuilder(String query, Settings settings) {
-    this.expressionBuilder = new AstExpressionBuilder(this);
+    this.expressionBuilder = new AstExpressionBuilder(this, AstBuildGuard.fromSettings(settings));
     this.query = query;
     this.settings = settings;
   }
@@ -325,6 +329,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (ctx.fieldList() != null) {
       joinFields = Optional.of(getFieldList(ctx.fieldList()));
     }
+    // Keep a bare `on <field>` criteria verbatim; the planner expands it to an equi-join. Folding
+    // it into joinFields here would instead merge the key into one column.
     return new Join(
         projectExceptMeta(right),
         leftAlias,
@@ -429,7 +435,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitRenameCommand(RenameCommandContext ctx) {
     return new Rename(
-        ctx.renameClasue().stream()
+        ctx.renameClause().stream()
             .map(
                 ct ->
                     new Map(
@@ -817,6 +823,39 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .columnSplit(byField)
         .arguments(arguments)
         .build();
+  }
+
+  /** Timewrap command. */
+  @Override
+  public UnresolvedPlan visitTimewrapCommand(OpenSearchPPLParser.TimewrapCommandContext ctx) {
+    Literal spanLiteral = (Literal) expressionBuilder.visit(ctx.spanLiteral());
+    String spanText = spanLiteral.getValue().toString();
+    String valueStr = spanText.replaceAll("[^0-9]", "");
+    String unitStr = spanText.replaceAll("[0-9]", "");
+    int value = valueStr.isEmpty() ? 1 : Integer.parseInt(valueStr);
+    SpanUnit unit = SpanUnit.of(unitStr);
+    if (unit == SpanUnit.UNKNOWN || unit == SpanUnit.NONE) {
+      throw new SemanticCheckException("Invalid timewrap span unit: " + unitStr);
+    }
+    String align = "end";
+    String series = "relative";
+    String timeFormat = null;
+    for (var param : ctx.timewrapParameter()) {
+      if (param.timewrapAlign() != null) {
+        align = param.timewrapAlign().getText().toLowerCase();
+      } else if (param.timewrapSeries() != null) {
+        series = param.timewrapSeries().getText().toLowerCase();
+      } else if (param.TIME_FORMAT() != null) {
+        timeFormat = param.stringLiteral().getText();
+        // Strip surrounding quotes
+        if (timeFormat.length() >= 2
+            && ((timeFormat.startsWith("\"") && timeFormat.endsWith("\""))
+                || (timeFormat.startsWith("'") && timeFormat.endsWith("'")))) {
+          timeFormat = timeFormat.substring(1, timeFormat.length() - 1);
+        }
+      }
+    }
+    return new Timewrap(unit, value, align, series, timeFormat, spanLiteral);
   }
 
   /** Eval command. */
@@ -1247,12 +1286,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             .map(this::buildConversion)
             .filter(conversion -> conversion != null)
             .collect(Collectors.toList());
-    return new Convert(conversions);
+
+    String timeFormat = null;
+    if (ctx.timeFormat != null) {
+      timeFormat = StringUtils.unquoteText(ctx.timeFormat.getText());
+    }
+
+    return new Convert(conversions, timeFormat);
   }
 
   /** Supported PPL convert function names (case-insensitive). */
   private static final Set<String> SUPPORTED_CONVERSION_FUNCTIONS =
-      Set.of("auto", "num", "rmcomma", "rmunit", "memk", "none");
+      Set.of(
+          "auto", "num", "rmcomma", "rmunit", "memk", "none", "ctime", "mktime", "dur2sec",
+          "mstime");
 
   private Let buildConversion(OpenSearchPPLParser.ConvertFunctionContext funcCtx) {
     if (funcCtx.fieldExpression().isEmpty()) {
@@ -1372,6 +1419,37 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     return new Multisearch(subsearches);
+  }
+
+  @Override
+  public UnresolvedPlan visitUnionCommand(OpenSearchPPLParser.UnionCommandContext ctx) {
+    List<UnresolvedPlan> datasets = new ArrayList<>();
+
+    Integer maxout = null;
+    if (ctx.subsearchOptions() != null) {
+      OpenSearchPPLParser.SubsearchOptionsContext opts = ctx.subsearchOptions();
+      if (opts.maxout != null) {
+        maxout = Integer.parseInt(opts.maxout.getText());
+      }
+    }
+
+    for (OpenSearchPPLParser.UnionDatasetContext datasetCtx : ctx.unionDataset()) {
+      if (datasetCtx.subSearch() != null) {
+        datasets.add(visitSubSearch(datasetCtx.subSearch()));
+      } else if (datasetCtx.tableSource() != null) {
+        datasets.add(
+            new Relation(
+                Collections.singletonList(internalVisitExpression(datasetCtx.tableSource()))));
+      }
+    }
+
+    // Allow 1+ here; total count (including implicit upstream) validated during planning
+    if (datasets.isEmpty()) {
+      throw new SyntaxCheckException(
+          "Union command requires at least one dataset. Provided: " + datasets.size());
+    }
+
+    return new Union(datasets, maxout);
   }
 
   @Override
@@ -1605,7 +1683,22 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     // Parse required base: start and edge
     OpenSearchPPLParser.StartClauseContext startCtx = ctx.startClause();
-    Field startField = (Field) internalVisitExpression(startCtx.startField);
+    Field startField = null;
+    List<Literal> startValues = null;
+    if (startCtx.startField != null) {
+      // Piped mode: start=fieldExpression
+      startField = (Field) internalVisitExpression(startCtx.startField);
+    } else if (startCtx.startValue != null) {
+      // Top-level mode: single literal e.g. start="Jack"
+      startValues = List.of((Literal) internalVisitExpression(startCtx.startValue));
+    } else if (startCtx.valueList() != null) {
+      // Top-level mode: literal list e.g. start="Jack", "Eliot"
+      OpenSearchPPLParser.ValueListContext listCtx = startCtx.valueList();
+      startValues = new ArrayList<>();
+      for (OpenSearchPPLParser.LiteralValueContext lit : listCtx.literalValue()) {
+        startValues.add((Literal) internalVisitExpression(lit));
+      }
+    }
     // Parse edge clause from EDGE_CLAUSE token (e.g., "edge=manager-->name")
     OpenSearchPPLParser.EdgeClauseContext edgeCtx = ctx.edgeClause();
     String edgeClauseText = edgeCtx.edgeClauseToken.getText();
@@ -1665,6 +1758,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .as(as)
         .maxDepth(maxDepth)
         .startField(startField)
+        .startValues(startValues)
         .depthField(depthField)
         .direction(direction)
         .supportArray(supportArray)

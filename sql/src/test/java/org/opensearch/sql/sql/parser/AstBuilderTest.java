@@ -6,7 +6,10 @@
 package org.opensearch.sql.sql.parser;
 
 import static java.util.Collections.emptyList;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
@@ -20,6 +23,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.highlight;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.join;
 import static org.opensearch.sql.ast.dsl.AstDSL.limit;
 import static org.opensearch.sql.ast.dsl.AstDSL.project;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
@@ -33,14 +37,25 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.NestedAllTupleFields;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 
 class AstBuilderTest extends AstBuilderTestBase {
 
@@ -129,6 +144,142 @@ class AstBuilderTest extends AstBuilderTestBase {
             filter(relation("test", "t"), function("=", qualifiedName("t", "age"), intLiteral(30))),
             alias("`t`.name", qualifiedName("t", "name"))),
         buildAST("SELECT `t`.name FROM test `t` WHERE `t`.age = 30"));
+  }
+
+  @Test
+  public void can_build_from_table_function() {
+    assertEquals(
+        project(
+            new SubqueryAlias(
+                "v",
+                new TableFunction(
+                    qualifiedName("vectorSearch"),
+                    ImmutableList.of(
+                        new UnresolvedArgument("table", stringLiteral("products")),
+                        new UnresolvedArgument("field", stringLiteral("embedding")),
+                        new UnresolvedArgument("vector", stringLiteral("[0.1,0.2]")),
+                        new UnresolvedArgument("option", stringLiteral("k=10"))))),
+            AllFields.of()),
+        buildAST(
+            "SELECT * FROM vectorSearch("
+                + "table='products', field='embedding', "
+                + "vector='[0.1,0.2]', option='k=10') AS v"));
+  }
+
+  @Test
+  public void can_build_from_table_function_with_where_order_limit() {
+    assertEquals(
+        project(
+            limit(
+                sort(
+                    filter(
+                        new SubqueryAlias(
+                            "s",
+                            new TableFunction(
+                                qualifiedName("vectorSearch"),
+                                ImmutableList.of(
+                                    new UnresolvedArgument("table", stringLiteral("products")),
+                                    new UnresolvedArgument("field", stringLiteral("embedding")),
+                                    new UnresolvedArgument("vector", stringLiteral("[0.1,0.2]")),
+                                    new UnresolvedArgument("option", stringLiteral("k=10"))))),
+                        function("=", qualifiedName("s", "category"), stringLiteral("shoes"))),
+                    field(qualifiedName("s", "_score"), argument("asc", booleanLiteral(false)))),
+                5,
+                0),
+            alias("s.title", qualifiedName("s", "title")),
+            alias("s._score", qualifiedName("s", "_score"))),
+        buildAST(
+            "SELECT s.title, s._score FROM vectorSearch("
+                + "table='products', field='embedding', "
+                + "vector='[0.1,0.2]', option='k=10') AS s "
+                + "WHERE s.category = 'shoes' "
+                + "ORDER BY s._score DESC "
+                + "LIMIT 5"));
+  }
+
+  @Test
+  public void table_function_args_are_resolved_by_name_not_position() {
+    assertEquals(
+        project(
+            new SubqueryAlias(
+                "v",
+                new TableFunction(
+                    qualifiedName("vectorSearch"),
+                    ImmutableList.of(
+                        new UnresolvedArgument("option", stringLiteral("k=10")),
+                        new UnresolvedArgument("field", stringLiteral("embedding")),
+                        new UnresolvedArgument("table", stringLiteral("products")),
+                        new UnresolvedArgument("vector", stringLiteral("[0.1,0.2]"))))),
+            AllFields.of()),
+        buildAST(
+            "SELECT * FROM vectorSearch("
+                + "option='k=10', field='embedding', "
+                + "table='products', vector='[0.1,0.2]') AS v"));
+  }
+
+  @Test
+  public void table_function_arg_names_are_canonicalized() {
+    assertEquals(
+        project(
+            new SubqueryAlias(
+                "v",
+                new TableFunction(
+                    qualifiedName("vectorSearch"),
+                    ImmutableList.of(
+                        new UnresolvedArgument("table", stringLiteral("products")),
+                        new UnresolvedArgument("field", stringLiteral("embedding")),
+                        new UnresolvedArgument("vector", stringLiteral("[0.1,0.2]")),
+                        new UnresolvedArgument("option", stringLiteral("k=10"))))),
+            AllFields.of()),
+        buildAST(
+            "SELECT * FROM vectorSearch("
+                + "TABLE='products', FIELD='embedding', "
+                + "VECTOR='[0.1,0.2]', OPTION='k=10') AS v"));
+  }
+
+  @Test
+  public void table_function_allows_alias_without_as_keyword() {
+    assertEquals(
+        project(
+            new SubqueryAlias(
+                "v",
+                new TableFunction(
+                    qualifiedName("vectorSearch"),
+                    ImmutableList.of(
+                        new UnresolvedArgument("table", stringLiteral("products")),
+                        new UnresolvedArgument("vector", stringLiteral("[0.1]"))))),
+            AllFields.of()),
+        buildAST("SELECT * FROM vectorSearch(table='products', vector='[0.1]') v"));
+  }
+
+  @Test
+  public void table_function_relation_requires_alias() {
+    SemanticCheckException ex =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                buildAST(
+                    "SELECT * FROM vectorSearch("
+                        + "table='products', field='embedding', "
+                        + "vector='[0.1,0.2]', option='k=10')"));
+    assertThat(ex.getMessage(), containsString("requires a table alias"));
+    assertThat(ex.getMessage(), containsString("vectorSearch"));
+  }
+
+  @Test
+  public void table_function_relation_rejects_positional_argument() {
+    // Grammar accepts both `ident=value` and bare `value` for each table function argument so
+    // the real positional shape reaches the V2 AstBuilder. The AstBuilder must reject it with a
+    // SemanticCheckException rather than let the request fall back to the legacy engine.
+    SemanticCheckException ex =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                buildAST(
+                    "SELECT * FROM vectorSearch('products', field='embedding', "
+                        + "vector='[0.1,0.2]', option='k=10') AS v"));
+    org.junit.jupiter.api.Assertions.assertTrue(
+        ex.getMessage().contains("requires named arguments"));
   }
 
   @Test
@@ -586,5 +737,70 @@ class AstBuilderTest extends AstBuilderTestBase {
             relation("test"),
             alias("highlight(\"fieldA\")", highlight(AstDSL.stringLiteral("fieldA"), args))),
         buildAST("SELECT highlight(\"fieldA\") FROM test"));
+  }
+
+  @Test
+  public void join_throws_syntax_check_exception() {
+    assertThrows(
+        SyntaxCheckException.class, () -> buildAST("SELECT * FROM t1 JOIN t2 ON t1.id = t2.id"));
+  }
+
+  @Test
+  public void join_iteration_in_from_clause_dispatches_to_visit_join_clause() {
+    // Covers the join iteration loop body in visitFromClause for test coverage
+    String query = "SELECT * FROM t1 JOIN t2 ON t1.id = t2.id";
+    AstBuilder builder =
+        new AstBuilder(query) {
+          @Override
+          public UnresolvedPlan visitJoinClause(OpenSearchSQLParser.JoinClauseContext ctx) {
+            return join(visit(ctx.relation()), Join.JoinType.INNER, Optional.empty());
+          }
+        };
+    assertNotNull(new SQLSyntaxParser().parse(query).accept(builder));
+  }
+
+  @Test
+  public void union_throws_syntax_check_exception() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildAST("SELECT name FROM t1 UNION ALL SELECT name FROM t2"));
+  }
+
+  @Test
+  public void in_subquery_throws_syntax_check_exception() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildAST("SELECT * FROM t WHERE age IN (SELECT age FROM t2)"));
+  }
+
+  @Test
+  public void exists_subquery_throws_syntax_check_exception() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildAST("SELECT * FROM t WHERE EXISTS (SELECT 1 FROM t2)"));
+  }
+
+  @Test
+  public void configured_max_expression_depth_from_settings_is_applied() {
+    Settings settings =
+        new Settings() {
+          @Override
+          public <T> T getSettingValue(Key key) {
+            return (T) Integer.valueOf(5);
+          }
+
+          @Override
+          public List<?> getSettings() {
+            return List.of();
+          }
+        };
+    StringBuilder where = new StringBuilder("a = 1");
+    for (int i = 2; i <= 20; i++) {
+      where.append(" OR a = ").append(i);
+    }
+    String query = "SELECT * FROM t WHERE " + where;
+    AstBuilder builder = new AstBuilder(query, settings);
+    assertThrows(
+        IllegalArgumentException.class, () -> new SQLSyntaxParser().parse(query).accept(builder));
   }
 }

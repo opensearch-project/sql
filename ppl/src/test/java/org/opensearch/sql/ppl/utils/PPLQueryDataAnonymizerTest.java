@@ -284,6 +284,17 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testTimewrapCommand() {
+    assertEquals(
+        "source=table | timechart count() | timewrap *** align=end series=relative",
+        anonymize("source=t | timechart count() | timewrap 1day"));
+
+    assertEquals(
+        "source=table | timechart count() | timewrap *** align=now series=short",
+        anonymize("source=t | timechart count() | timewrap 1week align=now series=short"));
+  }
+
+  @Test
   public void testChartCommand() {
     assertEquals(
         "source=table | chart count(identifier) by identifier identifier",
@@ -620,6 +631,28 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testJoinWithImplicitField() {
+    // The AST keeps the bare field, so the anonymized query shows `on identifier`, not a rewrite.
+    assertEquals(
+        "source=table | inner join max=*** on identifier table | fields + identifier",
+        anonymize("source=t | inner join on id s | fields id"));
+    assertEquals(
+        "source=table as identifier | inner join max=*** left = identifier right = identifier on"
+            + " identifier table as identifier | fields + identifier",
+        anonymize("source=t | join left = l right = r on id s | fields id"));
+    assertEquals(
+        "source=table | inner join max=*** on identifier and identifier table | fields +"
+            + " identifier",
+        anonymize("source=t | inner join on id AND uid s | fields id"));
+    assertEquals(
+        "source=table | inner join max=*** on identifier table | fields + identifier",
+        anonymize("source=t | inner join where id s | fields id"));
+    assertEquals(
+        "source=table | inner join max=*** on identifier table | fields + identifier",
+        anonymize("source=t | join on id s | fields id"));
+  }
+
+  @Test
   public void testLookup() {
     assertEquals(
         "source=table | lookup table DEPTNO replace LOC",
@@ -708,6 +741,27 @@ public class PPLQueryDataAnonymizerTest {
         anonymize(
             "source=t | graphLookup employees start=reportsTo edge=manager-->name"
                 + " filter=(status = 'active' AND id > 2) as reportingHierarchy"));
+  }
+
+  @Test
+  public void testGraphLookupTopLevel() {
+    // Top-level graphLookup with single literal
+    assertEquals(
+        "graphlookup table start=*** edge=identifier-->identifier as identifier",
+        anonymize(
+            "graphLookup employees start=\"Jack\" edge=manager-->name" + " as reportingHierarchy"));
+    // Top-level graphLookup with literal list
+    assertEquals(
+        "graphlookup table start=***, *** edge=identifier-->identifier as identifier",
+        anonymize(
+            "graphLookup employees start=\"Jack\", \"Eliot\" edge=manager-->name"
+                + " as reportingHierarchy"));
+    // Top-level graphLookup with maxDepth
+    assertEquals(
+        "graphlookup table start=*** edge=identifier-->identifier maxDepth=*** as identifier",
+        anonymize(
+            "graphLookup employees start=\"Jack\" edge=manager-->name"
+                + " maxDepth=3 as reportingHierarchy"));
   }
 
   @Test
@@ -1146,6 +1200,26 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | convert (identifier) AS identifier",
         anonymize("source=t | convert none(empno) AS empno_same"));
+    assertEquals(
+        "source=table | convert dur2sec(identifier)",
+        anonymize("source=t | convert dur2sec(duration)"));
+    assertEquals(
+        "source=table | convert mstime(identifier)",
+        anonymize("source=t | convert mstime(elapsed)"));
+    assertEquals(
+        "source=table | convert memk(identifier) AS identifier",
+        anonymize("source=t | convert memk(virt) AS virt_kb"));
+  }
+
+  @Test
+  public void testConvertCommandWithTimeformat() {
+    assertEquals(
+        "source=table | convert timeformat=\"%Y-%m-%d\" mktime(identifier)",
+        anonymize("source=t | convert timeformat=\"%Y-%m-%d\" mktime(date_str)"));
+    assertEquals(
+        "source=table | convert timeformat=\"%m/%d/%Y %H:%M:%S\" ctime(identifier) AS identifier",
+        anonymize(
+            "source=t | convert timeformat=\"%m/%d/%Y %H:%M:%S\" ctime(ts) AS formatted_time"));
   }
 
   @Test
@@ -1158,5 +1232,29 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | mvexpand identifier limit=***",
         anonymize("source=t | mvexpand skills limit=5"));
+  }
+
+  @Test
+  public void testUnion() {
+    assertEquals(
+        "| union [search source=table | where identifier < ***] [search source=table |"
+            + " where identifier >= ***]",
+        anonymize(
+            "| union [search source=accounts | where age < 30] [search source=accounts"
+                + " | where age >= 30]"));
+
+    assertEquals(
+        "| union [search source=table | where identifier > ***] [search source=table |"
+            + " where identifier = ***]",
+        anonymize(
+            "| union [search source=accounts | where balance > 20000] [search"
+                + " source=accounts | where state = 'CA']"));
+
+    assertEquals(
+        "| union [search source=table | fields + identifier,identifier] [search"
+            + " source=table | where identifier = ***]",
+        anonymize(
+            "| union [search source=accounts | fields firstname, lastname] [search"
+                + " source=accounts | where age = 25]"));
   }
 }

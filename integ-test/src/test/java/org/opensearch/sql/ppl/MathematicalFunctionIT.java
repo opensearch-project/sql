@@ -7,6 +7,8 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
+import static org.opensearch.sql.util.Capability.FUNCTION_TYPE_COMPAT;
+import static org.opensearch.sql.util.Capability.RAND_SEED_UNSUPPORTED;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -17,6 +19,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySome;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class MathematicalFunctionIT extends PPLIntegTestCase {
 
@@ -69,6 +72,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testCeil() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = ceil(age) | fields f", TEST_INDEX_BANK));
@@ -429,6 +433,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = RAND_SEED_UNSUPPORTED,
+      note = "rand(seed) is rejected on the AE route (RAND_SEED_UNSUPPORTED).")
   public void testRand() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = rand() | fields f", TEST_INDEX_BANK));

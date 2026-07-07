@@ -21,31 +21,13 @@ import org.apache.calcite.rex.RexNode;
 @Getter
 public class LogicalGraphLookup extends GraphLookup {
 
-  /**
-   * Creates a LogicalGraphLookup.
-   *
-   * @param cluster Cluster
-   * @param traitSet Trait set
-   * @param source Source table RelNode
-   * @param lookup Lookup table RelNode
-   * @param startField Field name for start entities
-   * @param fromField Field name for outgoing edges
-   * @param toField Field name for incoming edges
-   * @param outputField Name of the output array field
-   * @param depthField Name of the depth field
-   * @param maxDepth Maximum traversal depth (-1 for unlimited)
-   * @param bidirectional Whether to traverse edges in both directions
-   * @param supportArray Whether to support array-typed fields
-   * @param batchMode Whether to batch all source start values into a single unified BFS
-   * @param usePIT Whether to use PIT (Point In Time) search for complete results
-   * @param filter Optional filter condition for lookup table documents
-   */
   protected LogicalGraphLookup(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode source,
       RelNode lookup,
-      String startField,
+      @Nullable String startField,
+      @Nullable List<Object> startValues,
       String fromField,
       String toField,
       String outputField,
@@ -62,6 +44,7 @@ public class LogicalGraphLookup extends GraphLookup {
         source,
         lookup,
         startField,
+        startValues,
         fromField,
         toField,
         outputField,
@@ -74,28 +57,11 @@ public class LogicalGraphLookup extends GraphLookup {
         filter);
   }
 
-  /**
-   * Creates a LogicalGraphLookup with Convention.NONE.
-   *
-   * @param source Source table RelNode
-   * @param lookup Lookup table RelNode
-   * @param startField Field name for start entities
-   * @param fromField Field name for outgoing edges
-   * @param toField Field name for incoming edges
-   * @param outputField Name of the output array field
-   * @param depthField Named of the output depth field
-   * @param maxDepth Maximum traversal depth (-1 for unlimited)
-   * @param bidirectional Whether to traverse edges in both directions
-   * @param supportArray Whether to support array-typed fields
-   * @param batchMode Whether to batch all source start values into a single unified BFS
-   * @param usePIT Whether to use PIT (Point In Time) search for complete results
-   * @param filter Optional filter condition for lookup table documents
-   * @return A new LogicalGraphLookup instance
-   */
   public static LogicalGraphLookup create(
       RelNode source,
       RelNode lookup,
-      String startField,
+      @Nullable String startField,
+      @Nullable List<Object> startValues,
       String fromField,
       String toField,
       String outputField,
@@ -114,6 +80,7 @@ public class LogicalGraphLookup extends GraphLookup {
         source,
         lookup,
         startField,
+        startValues,
         fromField,
         toField,
         outputField,
@@ -134,6 +101,7 @@ public class LogicalGraphLookup extends GraphLookup {
         inputs.get(0),
         inputs.get(1),
         startField,
+        startValues,
         fromField,
         toField,
         outputField,

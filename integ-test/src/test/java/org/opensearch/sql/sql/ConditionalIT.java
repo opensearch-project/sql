@@ -11,6 +11,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.util.Capability.UNTYPED_NULL_LITERAL;
 import static org.opensearch.sql.util.MatcherUtils.hitAny;
 import static org.opensearch.sql.util.MatcherUtils.kvInt;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -18,7 +19,6 @@ import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,11 +28,12 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class ConditionalIT extends SQLIntegTestCase {
 
@@ -47,15 +48,12 @@ public class ConditionalIT extends SQLIntegTestCase {
   public void ifnullShouldPassJDBC() throws IOException {
     JSONObject response =
         executeJdbcRequest(
-            "SELECT IFNULL(lastname, 'unknown') AS name FROM "
-                + TEST_INDEX_ACCOUNT
-                + " GROUP BY name");
-    assertEquals("IFNULL(lastname, 'unknown')", response.query("/schema/0/name"));
-    assertEquals("name", response.query("/schema/0/alias"));
-    assertEquals("keyword", response.query("/schema/0/type"));
+            "SELECT IFNULL(lastname, 'unknown') FROM " + TEST_INDEX_ACCOUNT + " GROUP BY 1");
+    verifySchema(response, schema("IFNULL(lastname, 'unknown')", null, "keyword"));
   }
 
   @Test
+  @RequiresCapability(UNTYPED_NULL_LITERAL)
   public void ifnullWithNullInputTest() {
     JSONObject response =
         new JSONObject(
@@ -110,9 +108,7 @@ public class ConditionalIT extends SQLIntegTestCase {
   public void nullifShouldPassJDBC() throws IOException {
     JSONObject response =
         executeJdbcRequest("SELECT NULLIF(lastname, 'unknown') AS name FROM " + TEST_INDEX_ACCOUNT);
-    assertEquals("NULLIF(lastname, 'unknown')", response.query("/schema/0/name"));
-    assertEquals("name", response.query("/schema/0/alias"));
-    assertEquals("keyword", response.query("/schema/0/type"));
+    verifySchema(response, schema("NULLIF(lastname, 'unknown')", "name", "keyword"));
   }
 
   @Test
@@ -153,9 +149,7 @@ public class ConditionalIT extends SQLIntegTestCase {
   public void isnullShouldPassJDBC() throws IOException {
     JSONObject response =
         executeJdbcRequest("SELECT ISNULL(lastname) AS name FROM " + TEST_INDEX_ACCOUNT);
-    assertEquals("ISNULL(lastname)", response.query("/schema/0/name"));
-    assertEquals("name", response.query("/schema/0/alias"));
-    assertEquals("boolean", response.query("/schema/0/type"));
+    verifySchema(response, schema("ISNULL(lastname)", "name", "boolean"));
   }
 
   @Ignore(
@@ -209,9 +203,7 @@ public class ConditionalIT extends SQLIntegTestCase {
   public void ifShouldPassJDBC() throws IOException {
     JSONObject response =
         executeJdbcRequest("SELECT IF(2 > 0, 'hello', 'world') AS name FROM " + TEST_INDEX_ACCOUNT);
-    assertEquals("IF(2 > 0, 'hello', 'world')", response.query("/schema/0/name"));
-    assertEquals("name", response.query("/schema/0/alias"));
-    assertEquals("keyword", response.query("/schema/0/type"));
+    verifySchema(response, schema("IF(2 > 0, 'hello', 'world')", "name", "keyword"));
   }
 
   @Test
@@ -283,10 +275,8 @@ public class ConditionalIT extends SQLIntegTestCase {
     final String rsp = executeQueryWithStringOutput(query);
 
     final XContentParser parser =
-        new JsonXContentParser(
-            NamedXContentRegistry.EMPTY,
-            LoggingDeprecationHandler.INSTANCE,
-            new JsonFactory().createParser(rsp));
+        JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, rsp);
     return SearchResponse.fromXContent(parser).getHits();
   }
 }
