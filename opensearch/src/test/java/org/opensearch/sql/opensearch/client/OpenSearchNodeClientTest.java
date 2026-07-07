@@ -307,11 +307,21 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void empty_mapping_exception_comma_separated_single_string_produces_compatible_mapping_hint() {
+  void empty_mapping_exception_comma_separated_single_string_produces_no_index_found_message() {
+    // A comma inside a single string element is not a wildcard pattern — report plain not-found
     ErrorReport report = OpenSearchClient.emptyMappingException("index1,index2");
     assertAll(
         () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
-        () -> assertTrue(report.getDetails().contains("compatible mapping")));
+        () -> assertFalse(report.getDetails().contains("compatible mapping")),
+        () -> assertTrue(report.getDetails().contains("index1,index2")));
+  }
+
+  @Test
+  void empty_mapping_exception_empty_array_produces_no_index_expression_message() {
+    ErrorReport report = OpenSearchClient.emptyMappingException(new String[0]);
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertTrue(report.getDetails().contains("No index expression was provided")));
   }
 
   @Test

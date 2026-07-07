@@ -133,17 +133,25 @@ public interface OpenSearchClient {
   static ErrorReport emptyMappingException(String... indexExpression) {
     String[] exprs = indexExpression != null ? indexExpression : new String[0];
     String joined = String.join(",", exprs);
+    if (joined.isEmpty()) {
+      return ErrorReport.wrap(new IndexNotFoundException("(none)"))
+          .code(ErrorCode.INDEX_NOT_FOUND)
+          .location("while fetching index mappings")
+          .context("index_pattern", "(none)")
+          .details("No index expression was provided.")
+          .build();
+    }
     boolean isPattern =
-        Arrays.stream(exprs)
-            .filter(e -> e != null)
-            .anyMatch(
-                e ->
-                    e.contains("*")
-                        || e.contains("?")
-                        || e.contains(",")
-                        || e.startsWith("<")
-                        || e.startsWith("-")
-                        || e.equals("_all"));
+        exprs.length > 1
+            || Arrays.stream(exprs)
+                .filter(e -> e != null)
+                .anyMatch(
+                    e ->
+                        e.contains("*")
+                            || e.contains("?")
+                            || e.startsWith("<")
+                            || e.startsWith("-")
+                            || e.equals("_all"));
     String details =
         isPattern
             ? String.format(
