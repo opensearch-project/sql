@@ -301,6 +301,20 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
+  void empty_mapping_exception_null_array_does_not_throw() {
+    ErrorReport report = OpenSearchClient.emptyMappingException((String[]) null);
+    assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode());
+  }
+
+  @Test
+  void empty_mapping_exception_comma_separated_single_string_produces_compatible_mapping_hint() {
+    ErrorReport report = OpenSearchClient.emptyMappingException("index1,index2");
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertTrue(report.getDetails().contains("compatible mapping")));
+  }
+
+  @Test
   void get_index_mappings_with_non_pattern_single_name_returns_index_not_found_error() {
     mockNodeClientIndicesMappings("", null);
     ErrorReport report =

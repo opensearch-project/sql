@@ -131,14 +131,16 @@ public interface OpenSearchClient {
    * @return an {@link ErrorReport} with {@link ErrorCode#INDEX_NOT_FOUND}
    */
   static ErrorReport emptyMappingException(String... indexExpression) {
-    String joined = String.join(",", indexExpression);
+    String[] exprs = indexExpression != null ? indexExpression : new String[0];
+    String joined = String.join(",", exprs);
     boolean isPattern =
-        Arrays.stream(indexExpression)
+        Arrays.stream(exprs)
             .filter(e -> e != null)
             .anyMatch(
                 e ->
                     e.contains("*")
                         || e.contains("?")
+                        || e.contains(",")
                         || e.startsWith("<")
                         || e.startsWith("-")
                         || e.equals("_all"));
