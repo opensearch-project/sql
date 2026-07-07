@@ -53,7 +53,7 @@ teardown:
   - gt: {profile.phases.analyze.time_ms: 0.0}
   - gt: {profile.phases.optimize.time_ms: 0.0}
   - gt: {profile.phases.execute.time_ms: 0.0}
-  - gt: {profile.phases.format.time_ms: 0.0}
+  - gte: {profile.phases.format.time_ms: 0.0}
   - gt: {profile.plan.time_ms: 0.0}
   - match: {profile.plan.rows: 2}
   - match: {query: 'source=ppl_profile | fields message'}

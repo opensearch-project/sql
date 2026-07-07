@@ -227,7 +227,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       int idBefore = context.relBuilder.size() > 0 ? context.relBuilder.peek().getId() : -1;
       RelNode result = unresolved.accept(this, context);
       int idAfter = context.relBuilder.peek().getId();
-      java.util.List<Integer> producedIds = new java.util.ArrayList<>();
+      List<Integer> producedIds = new ArrayList<>();
       for (int id = idBefore + 1; id <= idAfter; id++) {
         producedIds.add(id);
       }
@@ -242,7 +242,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (context.isTrackingEnabled() && node instanceof UnresolvedPlan) {
       // Track each child's total contribution (the subtree it produces)
       RelNode result = null;
-      for (org.opensearch.sql.ast.Node child : node.getChild()) {
+      for (Node child : node.getChild()) {
         int idBefore = context.relBuilder.size() > 0 ? context.relBuilder.peek().getId() : -1;
         RelNode childResult = child.accept(this, context);
         result = childResult;
@@ -250,7 +250,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         // so all RelNodes produced by that child (including ITS children) are on the stack.
         int idAfter = context.relBuilder.peek().getId();
         if (child instanceof UnresolvedPlan) {
-          java.util.List<Integer> producedIds = new java.util.ArrayList<>();
+          List<Integer> producedIds = new ArrayList<>();
           for (int id = idBefore + 1; id <= idAfter; id++) {
             producedIds.add(id);
           }
