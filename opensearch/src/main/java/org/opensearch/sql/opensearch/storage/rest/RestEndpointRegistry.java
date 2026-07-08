@@ -69,15 +69,47 @@ public final class RestEndpointRegistry {
 
     /** Dispatch the read-only call and shape the response into fixed-schema rows. */
     public List<ExprValue> toRows(OpenSearchClient client, RestSpec spec) {
+      return toRows(client, spec, false);
+    }
+
+    /**
+     * Shape the response into fixed-schema rows, masking network identifiers when redaction is
+     * enabled. {@code /_cat/*} cells are fully masked and the {@code /_cluster/settings} value
+     * column is zone-masked. Off by default.
+     */
+    public List<ExprValue> toRows(OpenSearchClient client, RestSpec spec, boolean redact) {
+      boolean redactCat = redact && path.startsWith("/_cat");
+      boolean redactSettingsValue = redact && "/_cluster/settings".equals(path);
       List<ExprValue> out = new ArrayList<>();
       for (Map<String, Object> raw : fetcher.fetch(client, spec)) {
         LinkedHashMap<String, ExprValue> tuple = new LinkedHashMap<>();
         for (Map.Entry<String, ExprType> col : schema.entrySet()) {
-          tuple.put(col.getKey(), coerce(col.getKey(), col.getValue(), raw.get(col.getKey())));
+          ExprValue value = coerce(col.getKey(), col.getValue(), raw.get(col.getKey()));
+          tuple.put(
+              col.getKey(),
+              maskCell(col.getKey(), col.getValue(), value, redactCat, redactSettingsValue));
         }
         out.add(new ExprTupleValue(tuple));
       }
       return out;
+    }
+
+    private static ExprValue maskCell(
+        String column,
+        ExprType type,
+        ExprValue value,
+        boolean redactCat,
+        boolean redactSettingsValue) {
+      if (type != STRING || value.isNull()) {
+        return value;
+      }
+      if (redactCat) {
+        return stringValue(RestResponseRedactor.redact(value.stringValue()));
+      }
+      if (redactSettingsValue && "value".equals(column)) {
+        return stringValue(RestResponseRedactor.maskAvailabilityZone(value.stringValue()));
+      }
+      return value;
     }
   }
 
