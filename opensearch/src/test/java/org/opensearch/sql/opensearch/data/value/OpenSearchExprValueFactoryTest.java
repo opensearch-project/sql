@@ -374,13 +374,7 @@ class OpenSearchExprValueFactoryTest {
         new ExprTimestampValue("2015-01-01 12:10:30"),
         constructFromObject("customFormatV", "2015-01-01-12-10-30"));
 
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> constructFromObject("customFormatV", "2015-01-01 12-10-30"));
-    assertEquals(
-        "Construct TIMESTAMP from \"2015-01-01 12-10-30\" failed, unsupported format.",
-        exception.getMessage());
+    assertEquals(nullValue(), constructFromObject("customFormatV", "2015-01-01 12-10-30"));
 
     assertEquals(
         new ExprTimestampValue("2015-01-01 12:10:30"),
@@ -388,52 +382,21 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void constructDatetimeFromUnsupportedFormat_ThrowIllegalArgumentException() {
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> constructFromObject("timestampV", "2015-01-01 12:10"));
-    assertEquals(
-        "Construct TIMESTAMP from \"2015-01-01 12:10\" failed, unsupported format.",
-        exception.getMessage());
-
-    // fail with missing seconds
-    exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> constructFromObject("dateOrEpochMillisV", "2015-01-01 12:10"));
-    assertEquals(
-        "Construct TIMESTAMP from \"2015-01-01 12:10\" failed, unsupported format.",
-        exception.getMessage());
+  public void constructDatetimeFromUnsupportedFormat_ReturnsNull() {
+    assertEquals(nullValue(), constructFromObject("timestampV", "2015-01-01 12:10"));
+    assertEquals(nullValue(), constructFromObject("dateOrEpochMillisV", "2015-01-01 12:10"));
   }
 
   @Test
-  public void constructTimeFromUnsupportedFormat_ThrowIllegalArgumentException() {
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> constructFromObject("timeV", "2015-01-01"));
-    assertEquals(
-        "Construct TIME from \"2015-01-01\" failed, unsupported format.", exception.getMessage());
-
-    exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> constructFromObject("timeStringV", "10:10"));
-    assertEquals(
-        "Construct TIME from \"10:10\" failed, unsupported format.", exception.getMessage());
+  public void constructTimeFromUnsupportedFormat_ReturnsNull() {
+    assertEquals(nullValue(), constructFromObject("timeV", "2015-01-01"));
+    assertEquals(nullValue(), constructFromObject("timeStringV", "10:10"));
   }
 
   @Test
-  public void constructDateFromUnsupportedFormat_ThrowIllegalArgumentException() {
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> constructFromObject("dateV", "12:10:10"));
-    assertEquals(
-        "Construct DATE from \"12:10:10\" failed, unsupported format.", exception.getMessage());
-
-    exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> constructFromObject("dateStringV", "abc"));
-    assertEquals("Construct DATE from \"abc\" failed, unsupported format.", exception.getMessage());
+  public void constructDateFromUnsupportedFormat_ReturnsNull() {
+    assertEquals(nullValue(), constructFromObject("dateV", "12:10:10"));
+    assertEquals(nullValue(), constructFromObject("dateStringV", "abc"));
   }
 
   @Test

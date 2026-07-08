@@ -217,9 +217,15 @@ public class OpenSearchExprValueFactory {
         || type == STRUCT) {
       return parseStruct(content, field, supportArrays);
     } else if (typeActionMap.containsKey(type)) {
-      return content.isArray()
-          ? parseArray(content, field, type, supportArrays)
-          : typeActionMap.get(type).apply(content, type);
+      if (content.isArray()) {
+        return parseArray(content, field, type, supportArrays);
+      }
+      try {
+        return typeActionMap.get(type).apply(content, type);
+      } catch (IllegalArgumentException e) {
+        // malformed timestamp --> null
+        return ExprNullValue.of();
+      }
     } else {
       throw new IllegalStateException(
           String.format(
