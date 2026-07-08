@@ -64,13 +64,13 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.GRAPH_EMPLOYEES);
   }
 
-  // Only for Calcite: the rest row source explains as a CalciteEnumerableRestScan.
+  // Only for Calcite: the rest row source explains as a CalciteScannableCatalogScan.
   @Test
   public void explainRestCommand() throws IOException {
     String result = explainQueryToString("| rest '/_cluster/health' | fields status");
     Assert.assertTrue(
         "Expected a rest scan node in the explain output, got: " + result,
-        result.contains("RestScan") || result.contains("rest"));
+        result.contains("CatalogScan"));
   }
 
   @Override
