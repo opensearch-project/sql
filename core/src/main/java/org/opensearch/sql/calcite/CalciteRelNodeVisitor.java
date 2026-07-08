@@ -38,6 +38,7 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -45,6 +46,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -98,7 +101,9 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
+import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.ForeachPlaceholder;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Let;
@@ -233,6 +238,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private static final String FOREACH_TRANSFORM_ITER = "__foreach_iter";
   private static final String FOREACH_PAIR = "__foreach_pair";
   private static final String FOREACH_JSON_ARRAY_FUNCTION = "foreach_json_array";
+  private static final String FOREACH_PAIR_COLLECTION_FUNCTION = "foreach_pair_collection";
+  private static final String FOREACH_JSON_ARRAY_NUMERIC_TYPE = SqlTypeName.DOUBLE.name();
+  private static final String FOREACH_JSON_ARRAY_STRING_TYPE = SqlTypeName.VARCHAR.name();
 
   private final CalciteRexNodeVisitor rexVisitor;
   private final CalciteAggCallVisitor aggVisitor;
@@ -1311,36 +1319,64 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private RelNode visitForeachCollection(
       Foreach node, CalcitePlanContext context, String normalizedMode) {
-    if (node.getCollectionExpression() == null) {
+    UnresolvedExpression sourceCollection = node.getCollectionExpression();
+    if (sourceCollection == null && FOREACH_MODE_AUTO_COLLECTIONS.equals(normalizedMode)) {
+      sourceCollection = inferAutoCollectionExpression(context);
+    }
+    if (sourceCollection == null) {
       throw new SemanticCheckException("foreach " + normalizedMode + " mode requires a field");
     }
-    if (node.getFieldPatterns().size() != 1) {
+    if (node.getFieldPatterns().size() > 1) {
       throw new SemanticCheckException(
           "foreach " + normalizedMode + " mode accepts exactly one field");
     }
+    String itemName =
+        node.getOptions().getOrDefault(FOREACH_OPTION_ITEMSTR, FOREACH_PLACEHOLDER_ITEM);
+    String iterName =
+        node.getOptions().getOrDefault(FOREACH_OPTION_ITERSTR, FOREACH_PLACEHOLDER_ITER);
     UnresolvedExpression collectionExpression =
-        collectionExpressionForMode(node.getCollectionExpression(), context, normalizedMode);
-    String itemName = option(node.getOptions(), FOREACH_OPTION_ITEMSTR, FOREACH_PLACEHOLDER_ITEM);
-    String iterName = option(node.getOptions(), FOREACH_OPTION_ITERSTR, FOREACH_PLACEHOLDER_ITER);
-    Function pairedCollection =
-        new Function(
-            BuiltinFunctionName.TRANSFORM.getName().getFunctionName(),
-            List.of(
-                collectionExpression,
-                new LambdaFunction(
-                    new Function(
-                        BuiltinFunctionName.ARRAY.getName().getFunctionName(),
-                        List.of(
-                            new QualifiedName(FOREACH_TRANSFORM_ITEM),
-                            new QualifiedName(FOREACH_TRANSFORM_ITER))),
-                    List.of(
-                        new QualifiedName(FOREACH_TRANSFORM_ITEM),
-                        new QualifiedName(FOREACH_TRANSFORM_ITER)))));
+        collectionExpressionForMode(
+            sourceCollection, context, normalizedMode, node.getEvalClauses(), itemName);
+    RexNode collectionRex = rexVisitor.analyze(collectionExpression, context);
+    RelDataType itemType = ((ArraySqlType) collectionRex.getType()).getComponentType();
+    List<String> targetAliases =
+        node.getEvalClauses().stream().map(Foreach.ForeachEvalClause::getTargetTemplate).toList();
+    List<ForeachCapturedField> capturedFields =
+        collectForeachCapturedFields(
+            node.getEvalClauses(), context, itemName, iterName, targetAliases);
+    List<UnresolvedExpression> pairArguments = new ArrayList<>();
+    pairArguments.add(collectionExpression);
+    capturedFields.stream()
+        .map(field -> new Field(new QualifiedName(field.name())))
+        .forEach(pairArguments::add);
+    Function pairedCollection = new Function(FOREACH_PAIR_COLLECTION_FUNCTION, pairArguments);
     Map<String, ForeachBinding> bindings = new HashMap<>();
-    putBinding(bindings, itemName, FOREACH_PAIR, ForeachBindingType.PAIR_ITEM);
-    putBinding(bindings, FOREACH_PLACEHOLDER_ITEM, FOREACH_PAIR, ForeachBindingType.PAIR_ITEM);
-    putBinding(bindings, iterName, FOREACH_PAIR, ForeachBindingType.PAIR_ITER);
-    putBinding(bindings, FOREACH_PLACEHOLDER_ITER, FOREACH_PAIR, ForeachBindingType.PAIR_ITER);
+    bindings.put(
+        itemName.toUpperCase(Locale.ROOT),
+        newForeachPairBinding(FOREACH_PAIR, ForeachBindingType.PAIR_ITEM, 0, itemType));
+    bindings.put(
+        FOREACH_PLACEHOLDER_ITEM,
+        newForeachPairBinding(FOREACH_PAIR, ForeachBindingType.PAIR_ITEM, 0, itemType));
+    bindings.put(
+        iterName.toUpperCase(Locale.ROOT),
+        newForeachPairBinding(
+            FOREACH_PAIR,
+            ForeachBindingType.PAIR_ITER,
+            1,
+            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
+    bindings.put(
+        FOREACH_PLACEHOLDER_ITER,
+        newForeachPairBinding(
+            FOREACH_PAIR,
+            ForeachBindingType.PAIR_ITER,
+            1,
+            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
+    for (int i = 0; i < capturedFields.size(); i++) {
+      ForeachCapturedField field = capturedFields.get(i);
+      bindings.put(
+          field.name().toUpperCase(Locale.ROOT),
+          newForeachPairBinding(FOREACH_PAIR, ForeachBindingType.PAIR_EXTRA, i + 2, field.type()));
+    }
 
     context.pushForeachBindings(bindings);
     try {
@@ -1365,10 +1401,75 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  private List<ForeachCapturedField> collectForeachCapturedFields(
+      List<Foreach.ForeachEvalClause> evalClauses,
+      CalcitePlanContext context,
+      String itemName,
+      String iterName,
+      List<String> targetAliases) {
+    Set<String> excluded =
+        Stream.concat(
+                Stream.of(
+                    itemName,
+                    iterName,
+                    FOREACH_PLACEHOLDER_ITEM,
+                    FOREACH_PLACEHOLDER_ITER,
+                    FOREACH_PAIR),
+                targetAliases.stream())
+            .map(name -> name.toUpperCase(Locale.ROOT))
+            .collect(Collectors.toSet());
+    Map<String, RelDataType> rowTypes =
+        context.relBuilder.peek().getRowType().getFieldList().stream()
+            .collect(
+                Collectors.toMap(
+                    field -> field.getName().toUpperCase(Locale.ROOT),
+                    RelDataTypeField::getType,
+                    (left, right) -> left,
+                    LinkedHashMap::new));
+    Map<String, ForeachCapturedField> fields = new LinkedHashMap<>();
+    evalClauses.forEach(
+        clause -> collectForeachCapturedFields(clause.getExpression(), excluded, rowTypes, fields));
+    return new ArrayList<>(fields.values());
+  }
+
+  private void collectForeachCapturedFields(
+      Node node,
+      Set<String> excluded,
+      Map<String, RelDataType> rowTypes,
+      Map<String, ForeachCapturedField> fields) {
+    if (node instanceof QualifiedName qualifiedName) {
+      String key = qualifiedName.toString().toUpperCase(Locale.ROOT);
+      RelDataType type = rowTypes.get(key);
+      if (type != null && !excluded.contains(key)) {
+        fields.putIfAbsent(key, new ForeachCapturedField(qualifiedName.toString(), type));
+      }
+    }
+    node.getChild()
+        .forEach(child -> collectForeachCapturedFields(child, excluded, rowTypes, fields));
+  }
+
+  private ForeachBinding newForeachPairBinding(
+      String pairName, ForeachBindingType type, int index, RelDataType relDataType) {
+    return new ForeachBinding(
+        pairName, type, index, relDataType.getSqlTypeName().name(), componentTypeName(relDataType));
+  }
+
+  @Nullable
+  private String componentTypeName(RelDataType relDataType) {
+    if (relDataType instanceof ArraySqlType arrayType) {
+      return arrayType.getComponentType().getSqlTypeName().name();
+    }
+    return null;
+  }
+
+  private record ForeachCapturedField(String name, RelDataType type) {}
+
   private UnresolvedExpression collectionExpressionForMode(
       UnresolvedExpression collectionExpression,
       CalcitePlanContext context,
-      String normalizedMode) {
+      String normalizedMode,
+      List<Foreach.ForeachEvalClause> evalClauses,
+      String itemName) {
     if (FOREACH_MODE_MULTIVALUE.equals(normalizedMode)) {
       return collectionExpression;
     }
@@ -1378,36 +1479,158 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         return collectionExpression;
       }
     }
-    return new Function(FOREACH_JSON_ARRAY_FUNCTION, List.of(collectionExpression));
+    if (isJsonArrayFunction(collectionExpression)) {
+      Function jsonArray = (Function) collectionExpression;
+      validateHomogeneousJsonArrayArguments(jsonArray);
+      return new Function(
+          FOREACH_JSON_ARRAY_FUNCTION,
+          List.of(
+              collectionExpression,
+              new Literal(
+                  inferForeachJsonArrayType(collectionExpression, evalClauses, itemName),
+                  DataType.STRING)));
+    }
+    return new Function(
+        FOREACH_JSON_ARRAY_FUNCTION,
+        List.of(
+            collectionExpression,
+            new Literal(
+                inferForeachJsonArrayType(collectionExpression, evalClauses, itemName),
+                DataType.STRING)));
+  }
+
+  private UnresolvedExpression inferAutoCollectionExpression(CalcitePlanContext context) {
+    return context.relBuilder.peek().getRowType().getFieldList().stream()
+        .filter(field -> field.getType() instanceof ArraySqlType)
+        .findFirst()
+        .map(field -> (UnresolvedExpression) new Field(new QualifiedName(field.getName())))
+        .orElseThrow(
+            () ->
+                new SemanticCheckException(
+                    "foreach auto_collections mode requires a multivalue field or JSON array"));
+  }
+
+  private boolean isJsonArrayFunction(UnresolvedExpression expression) {
+    return expression instanceof Function function
+        && BuiltinFunctionName.JSON_ARRAY
+            .getName()
+            .getFunctionName()
+            .equalsIgnoreCase(function.getFuncName());
+  }
+
+  private String inferForeachJsonArrayType(
+      UnresolvedExpression collectionExpression,
+      List<Foreach.ForeachEvalClause> evalClauses,
+      String itemName) {
+    if (isJsonArrayFunction(collectionExpression)) {
+      return jsonArrayTypeFromArguments((Function) collectionExpression)
+          .orElse(FOREACH_JSON_ARRAY_STRING_TYPE);
+    }
+    if (foreachItemUsedInArithmetic(evalClauses, itemName)) {
+      return FOREACH_JSON_ARRAY_NUMERIC_TYPE;
+    }
+    return FOREACH_JSON_ARRAY_STRING_TYPE;
+  }
+
+  private Optional<String> jsonArrayTypeFromArguments(Function jsonArray) {
+    boolean hasNumeric = false;
+    boolean hasString = false;
+    for (UnresolvedExpression argument : jsonArray.getFuncArgs()) {
+      if (argument instanceof Literal literal) {
+        switch (literal.getType()) {
+          case INTEGER, LONG, SHORT, FLOAT, DOUBLE, DECIMAL:
+            hasNumeric = true;
+            break;
+          case STRING:
+            hasString = true;
+            break;
+          case NULL:
+            break;
+          default:
+            return Optional.empty();
+        }
+      } else {
+        return Optional.empty();
+      }
+    }
+    if (hasNumeric && hasString) {
+      throw new SemanticCheckException(
+          "foreach json_array elements must be consistently strings or numbers");
+    }
+    if (hasNumeric) {
+      return Optional.of(FOREACH_JSON_ARRAY_NUMERIC_TYPE);
+    }
+    if (hasString) {
+      return Optional.of(FOREACH_JSON_ARRAY_STRING_TYPE);
+    }
+    return Optional.empty();
+  }
+
+  private void validateHomogeneousJsonArrayArguments(Function jsonArray) {
+    jsonArrayTypeFromArguments(jsonArray);
+  }
+
+  private boolean foreachItemUsedInArithmetic(
+      List<Foreach.ForeachEvalClause> evalClauses, String itemName) {
+    return evalClauses.stream()
+        .anyMatch(clause -> foreachItemUsedInArithmetic(clause.getExpression(), itemName, false));
+  }
+
+  private boolean foreachItemUsedInArithmetic(Node node, String itemName, boolean inArithmetic) {
+    if (node instanceof UnresolvedExpression expression
+        && isForeachItemReference(expression, itemName)) {
+      return inArithmetic;
+    }
+    boolean arithmetic =
+        inArithmetic
+            || (node instanceof UnresolvedExpression expression
+                && isArithmeticExpression(expression));
+    return node.getChild().stream()
+        .anyMatch(child -> foreachItemUsedInArithmetic(child, itemName, arithmetic));
+  }
+
+  private boolean isForeachItemReference(UnresolvedExpression expression, String itemName) {
+    if (expression instanceof ForeachPlaceholder placeholder) {
+      return FOREACH_PLACEHOLDER_ITEM.equalsIgnoreCase(placeholder.getName())
+          || itemName.equalsIgnoreCase(placeholder.getName());
+    }
+    return expression instanceof QualifiedName qualifiedName
+        && (FOREACH_PLACEHOLDER_ITEM.equalsIgnoreCase(qualifiedName.toString())
+            || itemName.equalsIgnoreCase(qualifiedName.toString()));
+  }
+
+  private boolean isArithmeticExpression(UnresolvedExpression expression) {
+    return expression instanceof Function function
+        && Set.of("+", "-", "*", "/", "%").contains(function.getFuncName());
   }
 
   private Map<String, ForeachBinding> buildForeachMultifieldBindings(
       List<String> patterns, String fieldName, Map<String, String> options) {
     Map<String, ForeachBinding> bindings = new HashMap<>();
-    putBinding(bindings, FOREACH_PLACEHOLDER_FIELD, fieldName, ForeachBindingType.FIELD);
-    putBinding(
-        bindings,
-        option(options, FOREACH_OPTION_FIELDSTR, FOREACH_PLACEHOLDER_FIELD),
-        fieldName,
-        ForeachBindingType.FIELD);
+    bindings.put(
+        FOREACH_PLACEHOLDER_FIELD, new ForeachBinding(fieldName, ForeachBindingType.FIELD));
+    bindings.put(
+        options
+            .getOrDefault(FOREACH_OPTION_FIELDSTR, FOREACH_PLACEHOLDER_FIELD)
+            .toUpperCase(Locale.ROOT),
+        new ForeachBinding(fieldName, ForeachBindingType.FIELD));
     for (String pattern : patterns) {
       List<String> segments = wildcardSegments(pattern, fieldName);
       if (segments != null) {
         String matchStr = String.join("", segments);
-        putBinding(bindings, FOREACH_PLACEHOLDER_MATCHSTR, matchStr, ForeachBindingType.LITERAL);
-        putBinding(
-            bindings,
-            option(options, FOREACH_OPTION_MATCHSTR, FOREACH_PLACEHOLDER_MATCHSTR),
-            matchStr,
-            ForeachBindingType.LITERAL);
+        bindings.put(
+            FOREACH_PLACEHOLDER_MATCHSTR, new ForeachBinding(matchStr, ForeachBindingType.LITERAL));
+        bindings.put(
+            options
+                .getOrDefault(FOREACH_OPTION_MATCHSTR, FOREACH_PLACEHOLDER_MATCHSTR)
+                .toUpperCase(Locale.ROOT),
+            new ForeachBinding(matchStr, ForeachBindingType.LITERAL));
         for (int i = 0; i < segments.size(); i++) {
           String key = FOREACH_PLACEHOLDER_MATCHSEG + (i + 1);
-          putBinding(bindings, key, segments.get(i), ForeachBindingType.LITERAL);
-          putBinding(
-              bindings,
-              option(options, FOREACH_OPTION_MATCHSEG + (i + 1), key),
-              segments.get(i),
-              ForeachBindingType.LITERAL);
+          bindings.put(key, new ForeachBinding(segments.get(i), ForeachBindingType.LITERAL));
+          bindings.put(
+              options.getOrDefault(FOREACH_OPTION_MATCHSEG + (i + 1), key).toUpperCase(Locale.ROOT),
+              new ForeachBinding(segments.get(i), ForeachBindingType.LITERAL));
         }
         break;
       }
@@ -1422,9 +1645,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (!WildcardUtils.containsWildcard(pattern)) {
       return List.of();
     }
-    java.util.regex.Matcher matcher =
-        java.util.regex.Pattern.compile(WildcardUtils.convertWildcardPatternToRegex(pattern))
-            .matcher(fieldName);
+    Matcher matcher =
+        Pattern.compile(WildcardUtils.convertWildcardPatternToRegex(pattern)).matcher(fieldName);
     if (!matcher.matches()) {
       return null;
     }
@@ -1433,15 +1655,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       segments.add(matcher.group(i));
     }
     return segments;
-  }
-
-  private String option(Map<String, String> options, String name, String defaultValue) {
-    return options.getOrDefault(name, defaultValue);
-  }
-
-  private void putBinding(
-      Map<String, ForeachBinding> bindings, String name, String value, ForeachBindingType type) {
-    bindings.put(name.toUpperCase(Locale.ROOT), new ForeachBinding(value, type));
   }
 
   private String substituteForeachTemplate(String template, Map<String, ForeachBinding> bindings) {

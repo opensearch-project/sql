@@ -21,6 +21,7 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -218,10 +219,20 @@ public class CalcitePlanContext {
     LITERAL,
     LAMBDA,
     PAIR_ITEM,
-    PAIR_ITER
+    PAIR_ITER,
+    PAIR_EXTRA
   }
 
-  public record ForeachBinding(String value, ForeachBindingType type) {}
+  public record ForeachBinding(
+      String value,
+      ForeachBindingType type,
+      int pairIndex,
+      String typeName,
+      @Nullable String componentTypeName) {
+    public ForeachBinding(String value, ForeachBindingType type) {
+      this(value, type, -1, null, null);
+    }
+  }
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {
     this.rexLambdaRefMap.putAll(candidateMap);

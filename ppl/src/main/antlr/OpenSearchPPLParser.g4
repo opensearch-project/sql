@@ -401,7 +401,12 @@ evalCommand
    ;
 
 foreachCommand
-   : FOREACH foreachOption* foreachTarget (COMMA? foreachTarget)* LT_SQR_PRTHS foreachEvalCommand RT_SQR_PRTHS
+   : FOREACH foreachArgument* LT_SQR_PRTHS foreachEvalCommand RT_SQR_PRTHS
+   ;
+
+foreachArgument
+   : foreachOption
+   | foreachTarget
    ;
 
 foreachTarget

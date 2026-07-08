@@ -54,6 +54,7 @@ import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -872,19 +873,28 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitForeachCommand(OpenSearchPPLParser.ForeachCommandContext ctx) {
     java.util.Map<String, String> options = new LinkedHashMap<>();
-    ctx.foreachOption()
-        .forEach(
-            option ->
-                options.put(
-                    option.ident(0).getText().toLowerCase(Locale.ROOT),
-                    normalizeForeachOptionValue(option.getChild(2).getText())));
-    String mode = options.getOrDefault("mode", "multifield");
+    List<OpenSearchPPLParser.ForeachOptionContext> optionContexts =
+        ctx.foreachArgument().stream()
+            .map(OpenSearchPPLParser.ForeachArgumentContext::foreachOption)
+            .filter(java.util.Objects::nonNull)
+            .collect(Collectors.toList());
+    List<OpenSearchPPLParser.ForeachTargetContext> targetContexts =
+        ctx.foreachArgument().stream()
+            .map(OpenSearchPPLParser.ForeachArgumentContext::foreachTarget)
+            .filter(java.util.Objects::nonNull)
+            .collect(Collectors.toList());
+    optionContexts.forEach(
+        option ->
+            options.put(
+                option.ident(0).getText().toLowerCase(Locale.ROOT),
+                normalizeForeachOptionValue(option.getChild(2).getText())));
+    String mode = options.getOrDefault("mode", inferForeachMode(targetContexts));
     List<String> patterns =
-        ctx.foreachTarget().stream().map(this::getTextInQuery).collect(Collectors.toList());
+        targetContexts.stream().map(this::getTextInQuery).collect(Collectors.toList());
     UnresolvedExpression collectionExpression =
         "multifield".equalsIgnoreCase(mode)
             ? null
-            : buildForeachCollectionExpression(ctx.foreachTarget());
+            : buildForeachCollectionExpression(targetContexts, mode);
     List<ForeachEvalClause> evalClauses =
         ctx.foreachEvalCommand().foreachEvalClause().stream()
             .map(
@@ -903,8 +913,21 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return value;
   }
 
+  private String inferForeachMode(List<OpenSearchPPLParser.ForeachTargetContext> targets) {
+    if (targets.size() == 1
+        && targets.get(0).logicalExpression() != null
+        && expressionBuilder.visit(targets.get(0).logicalExpression()) instanceof Function function
+        && "json_array".equalsIgnoreCase(function.getFuncName())) {
+      return "json_array";
+    }
+    return "multifield";
+  }
+
   private UnresolvedExpression buildForeachCollectionExpression(
-      List<OpenSearchPPLParser.ForeachTargetContext> targets) {
+      List<OpenSearchPPLParser.ForeachTargetContext> targets, String mode) {
+    if (targets.isEmpty() && "auto_collections".equalsIgnoreCase(mode)) {
+      return null;
+    }
     if (targets.size() != 1) {
       throw new IllegalArgumentException("foreach collection modes accept exactly one field");
     }

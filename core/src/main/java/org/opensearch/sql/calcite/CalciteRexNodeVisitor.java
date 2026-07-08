@@ -433,9 +433,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         }
         return lambdaRef;
       case PAIR_ITEM:
-        return foreachPairItem(binding.value(), 0, name, context);
+      case PAIR_EXTRA:
+        return foreachPairItem(binding, name, context);
       case PAIR_ITER:
-        return foreachPairItem(binding.value(), 1, name, context);
+        return foreachPairItem(binding, name, context);
       case LITERAL:
       default:
         return context.rexBuilder.makeLiteral(binding.value());
@@ -443,16 +444,21 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   private RexNode foreachPairItem(
-      String pairName, int index, String placeholderName, CalcitePlanContext context) {
-    RexLambdaRef pair = context.getRexLambdaRefMap().get(pairName);
+      ForeachBinding binding, String placeholderName, CalcitePlanContext context) {
+    RexLambdaRef pair = context.getRexLambdaRefMap().get(binding.value());
     if (pair == null) {
       throw new SemanticCheckException("Unresolved foreach lambda placeholder " + placeholderName);
     }
     return PPLFuncImpTable.INSTANCE.resolve(
         context.rexBuilder,
-        BuiltinFunctionName.MVINDEX,
+        BuiltinFunctionName.FOREACH_PAIR_ITEM,
         pair,
-        context.rexBuilder.makeExactLiteral(BigDecimal.valueOf(index)));
+        context.rexBuilder.makeExactLiteral(BigDecimal.valueOf(binding.pairIndex())),
+        context.rexBuilder.makeLiteral(binding.typeName()),
+        binding.componentTypeName() == null
+            ? context.rexBuilder.makeNullLiteral(
+                context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.NULL))
+            : context.rexBuilder.makeLiteral(binding.componentTypeName()));
   }
 
   @Override
@@ -631,7 +637,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
     List<RexNode> capturedVars = null;
     try {
-      for (UnresolvedExpression arg : args) {
+      for (int argIndex = 0; argIndex < args.size(); argIndex++) {
+        UnresolvedExpression arg = args.get(argIndex);
         if (arg instanceof LambdaFunction) {
           CalcitePlanContext lambdaContext =
               prepareLambdaContext(
@@ -650,6 +657,14 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           arguments.add(lambdaNode);
           // Capture any external variables that were referenced in the lambda
           capturedVars = lambdaContext.getCapturedVariables();
+        } else if (node.getFuncName().equalsIgnoreCase("reduce") && argIndex == 0) {
+          Map<String, ForeachBinding> foreachBindings = new HashMap<>(context.getForeachBindings());
+          context.clearForeachBindings();
+          try {
+            arguments.add(analyze(arg, context));
+          } finally {
+            context.pushForeachBindings(foreachBindings);
+          }
         } else {
           arguments.add(analyze(arg, context));
         }

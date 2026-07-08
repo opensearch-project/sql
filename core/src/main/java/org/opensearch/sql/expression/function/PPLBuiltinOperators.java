@@ -47,6 +47,8 @@ import org.opensearch.sql.expression.function.CollectionUDF.ArrayFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ExistsFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForeachPairCollectionFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForeachPairItemFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVAppendFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVFindFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVZipFunctionImpl;
@@ -408,6 +410,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF("array");
   public static final SqlOperator FOREACH_JSON_ARRAY =
       new ForeachJsonArrayFunctionImpl().toUDF("foreach_json_array");
+  public static final SqlOperator FOREACH_PAIR_COLLECTION =
+      new ForeachPairCollectionFunctionImpl().toUDF("foreach_pair_collection");
+  public static final SqlOperator FOREACH_PAIR_ITEM =
+      new ForeachPairItemFunctionImpl().toUDF("foreach_pair_item");
   public static final SqlOperator MAP_APPEND = new MapAppendFunctionImpl().toUDF("map_append");
   public static final SqlOperator MAP_REMOVE = new MapRemoveFunctionImpl().toUDF("MAP_REMOVE");
   public static final SqlOperator MVAPPEND = new MVAppendFunctionImpl().toUDF("mvappend");

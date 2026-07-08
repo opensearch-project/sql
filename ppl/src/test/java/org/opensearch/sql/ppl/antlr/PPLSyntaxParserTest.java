@@ -127,6 +127,14 @@ public class PPLSyntaxParserTest {
     assertNotEquals(
         null,
         new PPLSyntaxParser()
+            .parse("source=t | foreach mode=auto_collections [ eval total = total + <<ITEM>> ]"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("source=t | foreach json_array(1, 2, 3) [ eval total = total + <<ITEM>> ]"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
             .parse(
                 "source=t | foreach mode=multivalue iterstr=IDX nums [ eval total = total + IDX"
                     + " ]"));

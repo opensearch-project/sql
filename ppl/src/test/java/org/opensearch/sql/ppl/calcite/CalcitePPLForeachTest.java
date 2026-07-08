@@ -6,10 +6,12 @@
 package org.opensearch.sql.ppl.calcite;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
 
@@ -81,10 +83,51 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testForeachJsonArrayFunctionWithoutModePlansReduce() {
+    String ppl =
+        "source=EMP | eval total = 0 | foreach json_array(1, 2, 3) [ eval total = total +"
+            + " <<ITEM>> ] | fields total";
+    RelNode root = getRelNode(ppl);
+
+    assertNotNull(root);
+  }
+
+  @Test
+  public void testForeachJsonArrayMixedStringAndNumberFails() {
+    String ppl =
+        "source=EMP | eval total = 0 | foreach json_array(1, 2, 'hello') [ eval total = total +"
+            + " <<ITEM>> ] | fields total";
+
+    assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
+  }
+
+  @Test
   public void testForeachAutoCollectionsPlansReduce() {
     String ppl =
         "source=EMP | eval nums = array(1, 2, 3), total = 0 | foreach mode=auto_collections nums ["
             + " eval total = total + <<ITEM>> ] | fields total";
+    RelNode root = getRelNode(ppl);
+
+    assertNotNull(root);
+  }
+
+  @Test
+  public void testForeachAutoCollectionsWithoutTargetPlansReduce() {
+    String ppl =
+        "source=EMP | eval nums = array(1, 2, 3), total = 0 | foreach mode=auto_collections ["
+            + " eval total = total + <<ITEM>> ] | fields total";
+    RelNode root = getRelNode(ppl);
+
+    assertNotNull(root);
+  }
+
+  @Test
+  public void testForeachStringItemWithNumericIterPlansReduce() {
+    String ppl =
+        "source=EMP | eval word = split('ABCDE', ''), nums = array('1', '2', '3', '4', '5'),"
+            + " word_and_num = array() | foreach word mode=multivalue [ eval word_and_num ="
+            + " mvappend(word_and_num, concat(<<ITEM>>, mvindex(nums, <<ITER>>))) ] | fields"
+            + " word_and_num";
     RelNode root = getRelNode(ppl);
 
     assertNotNull(root);

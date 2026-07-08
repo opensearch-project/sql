@@ -16,6 +16,7 @@ import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -68,6 +69,10 @@ public class LambdaUtils {
 
   public static RexCall reInferReturnTypeForRexCallInsideLambda(
       RexCall rexCall, Map<String, RelDataType> argTypes, RelDataTypeFactory typeFactory) {
+    if (rexCall.getKind() == SqlKind.CAST
+        || "CAST".equalsIgnoreCase(rexCall.getOperator().getName())) {
+      return rexCall;
+    }
     List<RexNode> filledOperands = new ArrayList<>();
     List<RexNode> rexCallOperands = rexCall.getOperands();
     for (RexNode rexNode : rexCallOperands) {

@@ -70,6 +70,8 @@ public enum BuiltinFunctionName {
   /** Collection functions */
   ARRAY(FunctionName.of("array")),
   FOREACH_JSON_ARRAY(FunctionName.of("foreach_json_array"), true),
+  FOREACH_PAIR_COLLECTION(FunctionName.of("foreach_pair_collection"), true),
+  FOREACH_PAIR_ITEM(FunctionName.of("foreach_pair_item"), true),
   ARRAY_LENGTH(FunctionName.of("array_length")),
   ARRAY_SLICE(FunctionName.of("array_slice"), true),
   ARRAY_COMPACT(FunctionName.of("array_compact")),
