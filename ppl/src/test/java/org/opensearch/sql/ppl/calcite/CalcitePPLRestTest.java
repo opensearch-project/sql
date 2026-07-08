@@ -22,11 +22,11 @@ import org.opensearch.sql.utils.SystemIndexUtils;
  * Calcite-path coverage for the {@code rest} leading command at the parse / AST tier.
  *
  * <p>The {@code rest} row source resolves through {@code OpenSearchStorageEngine.getTable} ->
- * {@code RestSourceTable} -> {@code CalciteLogicalRestScan}, which lives in the {@code opensearch}
- * module. This ppl-module Calcite harness binds a Calcite SCOTT schema rather than the OpenSearch
- * storage engine, so the optimized {@code CalciteEnumerableRestScan} logical-plan assertion is
- * exercised in {@code RestSourceTableTest} (logical scan + fixed row type, unit) and {@code
- * CalcitePPLRestIT} (schema + datarows on a live single-node cluster). This test pins the
+ * {@code RestCatalogSource} -> {@code CalciteLogicalCatalogScan}, which lives in the {@code
+ * opensearch} module. This ppl-module Calcite harness binds a Calcite SCOTT schema rather than the
+ * OpenSearch storage engine, so the optimized {@code CalciteScannableCatalogScan} logical-plan
+ * assertion is exercised in {@code RestCatalogSourceTest} (source schema + request, unit) and
+ * {@code CalcitePPLRestIT} (schema + datarows on a live single-node cluster). This test pins the
  * Calcite-facing contract that the ppl module owns: the grammar/AST rewrite of {@code rest} into a
  * {@code RestRelation} carrying the validated, reserved-name-encoded endpoint spec that rides
  * {@code visitRelation} exactly like {@code DESCRIBE}.

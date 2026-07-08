@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.storage.rest;
+package org.opensearch.sql.opensearch.storage.system;
 
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
@@ -25,23 +25,22 @@ import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.opensearch.sql.calcite.plan.Scannable;
 
-/** The physical relational operator representing a scan of a {@link RestSourceTable}. */
-public class CalciteEnumerableRestScan extends AbstractCalciteRestScan
-    implements EnumerableRel, Scannable {
-  public CalciteEnumerableRestScan(
+/** The physical relational operator representing a scan of an {@link OpenSearchCatalogTable}. */
+public class CalciteEnumerableCatalogScan extends AbstractCalciteCatalogScan
+    implements EnumerableRel {
+  public CalciteEnumerableCatalogScan(
       RelOptCluster cluster,
       List<RelHint> hints,
       RelOptTable table,
-      RestSourceTable restTable,
+      OpenSearchCatalogTable catalogTable,
       RelDataType schema) {
     super(
         cluster,
         cluster.traitSetOf(EnumerableConvention.INSTANCE),
         hints,
         table,
-        restTable,
+        catalogTable,
         schema);
   }
 
@@ -66,19 +65,18 @@ public class CalciteEnumerableRestScan extends AbstractCalciteRestScan
     PhysType physType =
         PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray());
 
-    Expression scanOperator = implementor.stash(this, CalciteEnumerableRestScan.class);
+    Expression scanOperator = implementor.stash(this, CalciteEnumerableCatalogScan.class);
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
 
-  @Override
   public Enumerable<@Nullable Object> scan() {
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
-        return new RestEnumerator(
+        return new OpenSearchCatalogEnumerator(
             getFieldPath(),
-            restTable.createRestRequest(),
-            restTable.createOpenSearchResourceMonitor());
+            catalogTable.getSource().createRequest(),
+            catalogTable.createOpenSearchResourceMonitor());
       }
     };
   }

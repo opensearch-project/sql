@@ -20,7 +20,7 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
-import org.opensearch.sql.opensearch.storage.system.OpenSearchSystemIndex;
+import org.opensearch.sql.opensearch.storage.system.OpenSearchCatalogTable;
 import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +52,7 @@ class OpenSearchStorageEngineTest {
     OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
     Table table =
         engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), TABLE_INFO);
-    assertAll(() -> assertNotNull(table), () -> assertTrue(table instanceof OpenSearchSystemIndex));
+    assertAll(
+        () -> assertNotNull(table), () -> assertTrue(table instanceof OpenSearchCatalogTable));
   }
 }
