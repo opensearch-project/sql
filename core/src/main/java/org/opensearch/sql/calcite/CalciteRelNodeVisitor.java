@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -213,6 +214,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   /** Name of the right-side sequence column in the streamstats self-join plan. */
   private static final String RIGHT_SIDE_SEQ_COLUMN =
       RIGHT_SIDE_FIELD_PREFIX + "seq" + RIGHT_SIDE_FIELD_SUFFIX;
+
+  private static final String FOREACH_MODE_MULTIFIELD = "multifield";
+  private static final String FOREACH_MODE_MULTIVALUE = "multivalue";
+  private static final String FOREACH_MODE_JSON_ARRAY = "json_array";
+  private static final String FOREACH_MODE_AUTO_COLLECTIONS = "auto_collections";
+  private static final String FOREACH_OPTION_FIELDSTR = "fieldstr";
+  private static final String FOREACH_OPTION_MATCHSTR = "matchstr";
+  private static final String FOREACH_OPTION_MATCHSEG = "matchseg";
+  private static final String FOREACH_OPTION_ITEMSTR = "itemstr";
+  private static final String FOREACH_OPTION_ITERSTR = "iterstr";
+  private static final String FOREACH_PLACEHOLDER_FIELD = "FIELD";
+  private static final String FOREACH_PLACEHOLDER_MATCHSTR = "MATCHSTR";
+  private static final String FOREACH_PLACEHOLDER_MATCHSEG = "MATCHSEG";
+  private static final String FOREACH_PLACEHOLDER_ITEM = "ITEM";
+  private static final String FOREACH_PLACEHOLDER_ITER = "ITER";
+  private static final String FOREACH_TRANSFORM_ITEM = "__foreach_item";
+  private static final String FOREACH_TRANSFORM_ITER = "__foreach_iter";
+  private static final String FOREACH_PAIR = "__foreach_pair";
+  private static final String FOREACH_JSON_ARRAY_FUNCTION = "foreach_json_array";
 
   private final CalciteRexNodeVisitor rexVisitor;
   private final CalciteAggCallVisitor aggVisitor;
@@ -1250,13 +1270,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitForeach(Foreach node, CalcitePlanContext context) {
     visitChildren(node, context);
-    String mode = node.getMode().toLowerCase(java.util.Locale.ROOT);
+    String mode = node.getMode().toLowerCase(Locale.ROOT);
     switch (mode) {
-      case "multifield":
+      case FOREACH_MODE_MULTIFIELD:
         return visitForeachMultifield(node, context);
-      case "multivalue":
-      case "json_array":
-      case "auto_collections":
+      case FOREACH_MODE_MULTIVALUE:
+      case FOREACH_MODE_JSON_ARRAY:
+      case FOREACH_MODE_AUTO_COLLECTIONS:
         return visitForeachCollection(node, context, mode);
       default:
         throw new CalciteUnsupportedException(
@@ -1300,11 +1320,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     UnresolvedExpression collectionExpression =
         collectionExpressionForMode(node.getCollectionExpression(), context, normalizedMode);
-    String itemName = option(node.getOptions(), "itemstr", "ITEM");
-    String iterName = option(node.getOptions(), "iterstr", "ITER");
-    String transformItemName = "__foreach_item";
-    String transformIterName = "__foreach_iter";
-    String pairName = "__foreach_pair";
+    String itemName = option(node.getOptions(), FOREACH_OPTION_ITEMSTR, FOREACH_PLACEHOLDER_ITEM);
+    String iterName = option(node.getOptions(), FOREACH_OPTION_ITERSTR, FOREACH_PLACEHOLDER_ITER);
     Function pairedCollection =
         new Function(
             BuiltinFunctionName.TRANSFORM.getName().getFunctionName(),
@@ -1314,16 +1331,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                     new Function(
                         BuiltinFunctionName.ARRAY.getName().getFunctionName(),
                         List.of(
-                            new QualifiedName(transformItemName),
-                            new QualifiedName(transformIterName))),
+                            new QualifiedName(FOREACH_TRANSFORM_ITEM),
+                            new QualifiedName(FOREACH_TRANSFORM_ITER))),
                     List.of(
-                        new QualifiedName(transformItemName),
-                        new QualifiedName(transformIterName)))));
+                        new QualifiedName(FOREACH_TRANSFORM_ITEM),
+                        new QualifiedName(FOREACH_TRANSFORM_ITER)))));
     Map<String, ForeachBinding> bindings = new HashMap<>();
-    putBinding(bindings, itemName, pairName, ForeachBindingType.PAIR_ITEM);
-    putBinding(bindings, "ITEM", pairName, ForeachBindingType.PAIR_ITEM);
-    putBinding(bindings, iterName, pairName, ForeachBindingType.PAIR_ITER);
-    putBinding(bindings, "ITER", pairName, ForeachBindingType.PAIR_ITER);
+    putBinding(bindings, itemName, FOREACH_PAIR, ForeachBindingType.PAIR_ITEM);
+    putBinding(bindings, FOREACH_PLACEHOLDER_ITEM, FOREACH_PAIR, ForeachBindingType.PAIR_ITEM);
+    putBinding(bindings, iterName, FOREACH_PAIR, ForeachBindingType.PAIR_ITER);
+    putBinding(bindings, FOREACH_PLACEHOLDER_ITER, FOREACH_PAIR, ForeachBindingType.PAIR_ITER);
 
     context.pushForeachBindings(bindings);
     try {
@@ -1337,7 +1354,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                     new Field(new QualifiedName(alias)),
                     new LambdaFunction(
                         clause.getExpression(),
-                        List.of(new QualifiedName(alias), new QualifiedName(pairName)))));
+                        List.of(new QualifiedName(alias), new QualifiedName(FOREACH_PAIR)))));
         RexNode expr = rexVisitor.analyze(reduce, context);
         projectPlusOverriding(
             List.of(context.relBuilder.alias(expr, alias)), List.of(alias), context);
@@ -1352,39 +1369,43 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       UnresolvedExpression collectionExpression,
       CalcitePlanContext context,
       String normalizedMode) {
-    if ("multivalue".equals(normalizedMode)) {
+    if (FOREACH_MODE_MULTIVALUE.equals(normalizedMode)) {
       return collectionExpression;
     }
-    if ("auto_collections".equals(normalizedMode)) {
+    if (FOREACH_MODE_AUTO_COLLECTIONS.equals(normalizedMode)) {
       RexNode rexNode = rexVisitor.analyze(collectionExpression, context);
       if (rexNode.getType() instanceof ArraySqlType) {
         return collectionExpression;
       }
     }
-    return new Function("foreach_json_array", List.of(collectionExpression));
+    return new Function(FOREACH_JSON_ARRAY_FUNCTION, List.of(collectionExpression));
   }
 
   private Map<String, ForeachBinding> buildForeachMultifieldBindings(
       List<String> patterns, String fieldName, Map<String, String> options) {
     Map<String, ForeachBinding> bindings = new HashMap<>();
-    putBinding(bindings, "FIELD", fieldName, ForeachBindingType.FIELD);
-    putBinding(bindings, option(options, "fieldstr", "FIELD"), fieldName, ForeachBindingType.FIELD);
+    putBinding(bindings, FOREACH_PLACEHOLDER_FIELD, fieldName, ForeachBindingType.FIELD);
+    putBinding(
+        bindings,
+        option(options, FOREACH_OPTION_FIELDSTR, FOREACH_PLACEHOLDER_FIELD),
+        fieldName,
+        ForeachBindingType.FIELD);
     for (String pattern : patterns) {
       List<String> segments = wildcardSegments(pattern, fieldName);
       if (segments != null) {
         String matchStr = String.join("", segments);
-        putBinding(bindings, "MATCHSTR", matchStr, ForeachBindingType.LITERAL);
+        putBinding(bindings, FOREACH_PLACEHOLDER_MATCHSTR, matchStr, ForeachBindingType.LITERAL);
         putBinding(
             bindings,
-            option(options, "matchstr", "MATCHSTR"),
+            option(options, FOREACH_OPTION_MATCHSTR, FOREACH_PLACEHOLDER_MATCHSTR),
             matchStr,
             ForeachBindingType.LITERAL);
         for (int i = 0; i < segments.size(); i++) {
-          String key = "MATCHSEG" + (i + 1);
+          String key = FOREACH_PLACEHOLDER_MATCHSEG + (i + 1);
           putBinding(bindings, key, segments.get(i), ForeachBindingType.LITERAL);
           putBinding(
               bindings,
-              option(options, "matchseg" + (i + 1), key),
+              option(options, FOREACH_OPTION_MATCHSEG + (i + 1), key),
               segments.get(i),
               ForeachBindingType.LITERAL);
         }
@@ -1420,7 +1441,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private void putBinding(
       Map<String, ForeachBinding> bindings, String name, String value, ForeachBindingType type) {
-    bindings.put(name.toUpperCase(java.util.Locale.ROOT), new ForeachBinding(value, type));
+    bindings.put(name.toUpperCase(Locale.ROOT), new ForeachBinding(value, type));
   }
 
   private String substituteForeachTemplate(String template, Map<String, ForeachBinding> bindings) {
