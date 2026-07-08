@@ -62,7 +62,6 @@ commands
 commandName
    : SEARCH
    | DESCRIBE
-   | REST
    | SHOW
    | AD
    | ML
@@ -114,16 +113,6 @@ describeCommand
    : DESCRIBE tableSourceClause
    ;
 
-
-restCommand
-   : REST stringLiteral (restArgument)*
-   ;
-
-restArgument
-   : COUNT EQUAL integerLiteral
-   | TIMEOUT EQUAL stringLiteral
-   | ident EQUAL literalValue
-   ;
 explainCommand
     : EXPLAIN explainMode
     ;
