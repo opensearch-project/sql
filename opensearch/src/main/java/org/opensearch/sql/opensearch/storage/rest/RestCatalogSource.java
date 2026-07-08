@@ -26,10 +26,16 @@ public class RestCatalogSource implements CatalogSource {
   private final OpenSearchClient client;
   private final RestSpec spec;
   private final RestEndpointRegistry.Endpoint endpoint;
+  private final boolean redact;
 
   public RestCatalogSource(OpenSearchClient client, RestSpec spec) {
+    this(client, spec, false);
+  }
+
+  public RestCatalogSource(OpenSearchClient client, RestSpec spec, boolean redact) {
     this.client = client;
     this.spec = spec;
+    this.redact = redact;
     // Allow-list enforced here: unknown or mutating endpoints and disallowed args are rejected.
     this.endpoint = RestEndpointRegistry.resolve(spec.getEndpoint());
     RestEndpointRegistry.validate(spec);
@@ -42,7 +48,7 @@ public class RestCatalogSource implements CatalogSource {
 
   @Override
   public OpenSearchSystemRequest createRequest() {
-    return new RestRequest(client, endpoint, spec);
+    return new RestRequest(client, endpoint, spec, redact);
   }
 
   @Override

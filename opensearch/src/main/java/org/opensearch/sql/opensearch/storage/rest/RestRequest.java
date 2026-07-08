@@ -23,17 +23,27 @@ public class RestRequest implements OpenSearchSystemRequest {
   private final OpenSearchClient client;
   private final RestEndpointRegistry.Endpoint endpoint;
   private final RestSpec spec;
+  private final boolean redact;
 
   public RestRequest(
       OpenSearchClient client, RestEndpointRegistry.Endpoint endpoint, RestSpec spec) {
+    this(client, endpoint, spec, false);
+  }
+
+  public RestRequest(
+      OpenSearchClient client,
+      RestEndpointRegistry.Endpoint endpoint,
+      RestSpec spec,
+      boolean redact) {
     this.client = client;
     this.endpoint = endpoint;
     this.spec = spec;
+    this.redact = redact;
   }
 
   @Override
   public List<ExprValue> search() {
-    List<ExprValue> rows = endpoint.toRows(client, spec);
+    List<ExprValue> rows = endpoint.toRows(client, spec, redact);
     if (spec.getCount() != null && spec.getCount() >= 0 && rows.size() > spec.getCount()) {
       return rows.subList(0, spec.getCount());
     }

@@ -70,6 +70,21 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> PPL_REST_REDACTION_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.PPL_REST_REDACTION_ENABLED.getKeyValue(),
+          false,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<List<String>> PPL_REST_ALLOWED_ENDPOINTS_SETTING =
+      Setting.listSetting(
+          Key.PPL_REST_ALLOWED_ENDPOINTS.getKeyValue(),
+          List.of("*"),
+          Function.identity(),
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<TimeValue> PPL_QUERY_TIMEOUT_SETTING =
       Setting.positiveTimeSetting(
           Key.PPL_QUERY_TIMEOUT.getKeyValue(),
@@ -374,6 +389,18 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.PPL_REST_REDACTION_ENABLED,
+        PPL_REST_REDACTION_ENABLED_SETTING,
+        new Updater(Key.PPL_REST_REDACTION_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_REST_ALLOWED_ENDPOINTS,
+        PPL_REST_ALLOWED_ENDPOINTS_SETTING,
+        new Updater(Key.PPL_REST_ALLOWED_ENDPOINTS));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.PPL_QUERY_TIMEOUT,
         PPL_QUERY_TIMEOUT_SETTING,
         new Updater(Key.PPL_QUERY_TIMEOUT));
@@ -651,6 +678,8 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_SLOWLOG_SETTING)
         .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
         .add(PPL_ENABLED_SETTING)
+        .add(PPL_REST_REDACTION_ENABLED_SETTING)
+        .add(PPL_REST_ALLOWED_ENDPOINTS_SETTING)
         .add(PPL_QUERY_TIMEOUT_SETTING)
         .add(PPL_SYNTAX_LEGACY_PREFERRED_SETTING)
         .add(CALCITE_ENGINE_ENABLED_SETTING)
