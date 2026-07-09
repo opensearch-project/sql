@@ -92,4 +92,30 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
     verifySchema(result, schema("total", "int"));
     verifyDataRows(result, rows(2));
   }
+
+  /**
+   * Cross-feed behavior differs from Splunk by design. Splunk silently no-ops when a mode is fed
+   * the wrong collection shape; we either still work (json_array mode on a real array iterates it -
+   * more permissive) or fail loudly at plan time (multivalue mode on a JSON-text field).
+   */
+  @Test
+  public void testJsonArrayModeOnRealArrayIterates() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach_field2 | eval nums = array(1, 2, 3), total = 0 | foreach"
+                + " mode=json_array nums [ eval total = total + <<ITEM>> ] | fields total | head"
+                + " 1");
+    verifySchema(result, schema("total", "double"));
+    verifyDataRows(result, rows(6.0));
+  }
+
+  @Test
+  public void testMultivalueModeOnJsonTextFieldIsRejected() {
+    assertThrows(
+        ResponseException.class,
+        () ->
+            executeQuery(
+                "source=test_foreach_field2 | eval total = 0 | foreach mode=multivalue jsonfield"
+                    + " [ eval total = total + <<ITEM>> ] | fields total"));
+  }
 }
