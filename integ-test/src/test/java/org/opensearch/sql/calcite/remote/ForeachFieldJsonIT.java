@@ -27,18 +27,17 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
 
-    if (!TestUtils.isIndexExist(client(), "test_foreach_field")) {
+    if (!TestUtils.isIndexExist(client(), "test_foreach_field2")) {
       String mapping =
-          "{\"mappings\":{\"properties\":{"
-              + "\"jsonfield\":{\"type\":\"keyword\"},"
-              + "\"jsonstrs\":{\"type\":\"keyword\"},"
-              + "\"nativenums\":{\"type\":\"long\"}}}}";
-      TestUtils.createIndexByRestClient(client(), "test_foreach_field", mapping);
+          "{\"mappings\":{\"properties\":{\"jsonfield\":{\"type\":\"keyword\"},"
+              + "\"jsonstrs\":{\"type\":\"keyword\"},\"nativenums\":{\"type\":\"long\"},"
+              + "\"nested_objs\":{\"type\":\"nested\",\"properties\":{\"a\":{\"type\":\"long\"}}}}}}";
+      TestUtils.createIndexByRestClient(client(), "test_foreach_field2", mapping);
 
-      Request r = new Request("PUT", "/test_foreach_field/_doc/1?refresh=true");
+      Request r = new Request("PUT", "/test_foreach_field2/_doc/1?refresh=true");
       r.setJsonEntity(
           "{\"jsonfield\": \"[10,20,30]\", \"jsonstrs\": \"[\\\"a\\\",\\\"b\\\"]\","
-              + " \"nativenums\": [1, 2, 3]}");
+              + " \"nativenums\": [1, 2, 3], \"nested_objs\": [{\"a\": 1}, {\"a\": 2}]}");
       client().performRequest(r);
     }
   }
@@ -48,7 +47,7 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
     // Splunk: field holding "[10,20,30]" with foreach mode=json_array sums to 60.
     JSONObject result =
         executeQuery(
-            "source=test_foreach_field | eval total = 0 | foreach mode=json_array jsonfield ["
+            "source=test_foreach_field2 | eval total = 0 | foreach mode=json_array jsonfield ["
                 + " eval total = total + <<ITEM>> ] | fields total");
     verifySchema(result, schema("total", "double"));
     verifyDataRows(result, rows(60.0));
@@ -58,7 +57,7 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
   public void testJsonArrayModeOnFieldWithStringContent() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=test_foreach_field | eval r = '' | foreach mode=json_array jsonstrs ["
+            "source=test_foreach_field2 | eval r = '' | foreach mode=json_array jsonstrs ["
                 + " eval r = concat(r, <<ITEM>>) ] | fields r");
     verifySchema(result, schema("r", "string"));
     verifyDataRows(result, rows("ab"));
@@ -76,7 +75,21 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
         ResponseException.class,
         () ->
             executeQuery(
-                "source=test_foreach_field | eval total = 0 | foreach mode=multivalue nativenums"
+                "source=test_foreach_field2 | eval total = 0 | foreach mode=multivalue nativenums"
                     + " [ eval total = total + <<ITEM>> ] | fields total"));
+  }
+
+  /**
+   * Nested-typed fields map to ARRAY&lt;ANY&gt; at plan time, so multivalue mode iterates them. The
+   * lambda here only counts elements; it does not dereference the object item.
+   */
+  @Test
+  public void testNestedFieldMultivalueIterates() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach_field2 | eval total = 0 | foreach mode=multivalue nested_objs ["
+                + " eval total = total + 1 ] | fields total");
+    verifySchema(result, schema("total", "int"));
+    verifyDataRows(result, rows(2));
   }
 }
