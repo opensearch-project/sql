@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ppl.calcite;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
 import org.apache.calcite.rel.RelNode;
@@ -69,7 +68,25 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
             + " itemstr=NUMBER nums [ eval total = total + NUMBER ] | fields total";
     RelNode root = getRelNode(ppl);
 
-    assertNotNull(root);
+    String expectedLogical =
+        "LogicalProject(total=[reduce(foreach_pair_collection(array(1, 2, 3)), 0, (total,"
+            + " __foreach_pair) -> +(total, foreach_pair_item(__foreach_pair, 0)))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testForeachIterPlaceholderPlansReduce() {
+    String ppl =
+        "source=EMP | eval nums = array(10, 20, 30), total = 0 | foreach mode=multivalue"
+            + " iterstr=IDX nums [ eval total = total + IDX ] | fields total";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(total=[reduce(foreach_pair_collection(array(10, 20, 30)), 0, (total,"
+            + " __foreach_pair) -> +(total, foreach_pair_item(__foreach_pair, 1)))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
@@ -79,7 +96,12 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
             + " <<ITEM>> ] | fields total";
     RelNode root = getRelNode(ppl);
 
-    assertNotNull(root);
+    String expectedLogical =
+        "LogicalProject(total=[reduce(foreach_pair_collection(foreach_json_array('[1,2,3]':VARCHAR,"
+            + " 'DOUBLE':VARCHAR)), 0.0E0:DOUBLE, (total, __foreach_pair) -> +(total,"
+            + " foreach_pair_item(__foreach_pair, 0)))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
@@ -89,7 +111,12 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
             + " <<ITEM>> ] | fields total";
     RelNode root = getRelNode(ppl);
 
-    assertNotNull(root);
+    String expectedLogical =
+        "LogicalProject(total=[reduce(foreach_pair_collection(foreach_json_array(JSON_ARRAY(FLAG(NULL_ON_NULL),"
+            + " 1, 2, 3), 'DOUBLE':VARCHAR)), 0.0E0:DOUBLE, (total, __foreach_pair) -> +(total,"
+            + " foreach_pair_item(__foreach_pair, 0)))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
@@ -108,7 +135,11 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
             + " eval total = total + <<ITEM>> ] | fields total";
     RelNode root = getRelNode(ppl);
 
-    assertNotNull(root);
+    String expectedLogical =
+        "LogicalProject(total=[reduce(foreach_pair_collection(array(1, 2, 3)), 0, (total,"
+            + " __foreach_pair) -> +(total, foreach_pair_item(__foreach_pair, 0)))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
@@ -118,7 +149,11 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
             + " eval total = total + <<ITEM>> ] | fields total";
     RelNode root = getRelNode(ppl);
 
-    assertNotNull(root);
+    String expectedLogical =
+        "LogicalProject(total=[reduce(foreach_pair_collection(array(1, 2, 3)), 0, (total,"
+            + " __foreach_pair) -> +(total, foreach_pair_item(__foreach_pair, 0)))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
@@ -130,16 +165,18 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
             + " word_and_num";
     RelNode root = getRelNode(ppl);
 
-    assertNotNull(root);
-  }
-
-  @Test
-  public void testForeachIterPlaceholderPlansReduce() {
-    String ppl =
-        "source=EMP | eval nums = array(10, 20, 30), total = 0 | foreach mode=multivalue"
-            + " iterstr=IDX nums [ eval total = total + IDX ] | fields total";
-    RelNode root = getRelNode(ppl);
-
-    assertNotNull(root);
+    // The captured field `nums` rides in pair slot 2; ITEM is slot 0 and ITER slot 1.
+    String expectedLogical =
+        "LogicalProject(word_and_num=[reduce(foreach_pair_collection(CASE(=('':VARCHAR, ''),"
+            + " REGEXP_EXTRACT_ALL('ABCDE':VARCHAR, '.'), SPLIT('ABCDE':VARCHAR, '':VARCHAR)),"
+            + " array('1', '2', '3', '4', '5')), array(), (word_and_num, __foreach_pair) ->"
+            + " mvappend(word_and_num, CONCAT(foreach_pair_item(__foreach_pair, 0),"
+            + " ITEM(foreach_pair_item(__foreach_pair, 2),"
+            + " CASE(<(foreach_pair_item(__foreach_pair, 1), 0),"
+            + " +(+(ARRAY_LENGTH(foreach_pair_item(__foreach_pair, 2)),"
+            + " foreach_pair_item(__foreach_pair, 1)), 1), +(foreach_pair_item(__foreach_pair, 1),"
+            + " 1))))))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 }
