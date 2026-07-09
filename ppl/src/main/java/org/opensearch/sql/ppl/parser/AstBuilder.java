@@ -884,10 +884,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       } else {
         OpenSearchPPLParser.ForeachTargetContext target = argument.foreachTarget();
         patterns.add(getTextInQuery(target));
-        targets.add(
-            target.logicalExpression() != null
-                ? expressionBuilder.visit(target.logicalExpression())
-                : new Field(new QualifiedName(getTextInQuery(target))));
+        if (target.functionCall() != null) {
+          targets.add(expressionBuilder.visit(target.functionCall()));
+        } else if (target.stringLiteral() != null) {
+          targets.add(expressionBuilder.visit(target.stringLiteral()));
+        } else {
+          targets.add(new Field(new QualifiedName(getTextInQuery(target))));
+        }
       }
     }
     Foreach.Mode mode =

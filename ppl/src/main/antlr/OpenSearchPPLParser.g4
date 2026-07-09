@@ -410,9 +410,10 @@ foreachArgument
    ;
 
 foreachTarget
-   : wcFieldExpression
+   : functionCall
+   | stringLiteral
+   | wcFieldExpression
    | STAR
-   | logicalExpression
    ;
 
 foreachOption
