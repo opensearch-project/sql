@@ -94,6 +94,7 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.CoercionUtils;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 @RequiredArgsConstructor
@@ -426,39 +427,24 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     switch (binding.type()) {
       case FIELD:
         return context.relBuilder.field(binding.value());
-      case LAMBDA:
-        RexLambdaRef lambdaRef = context.getRexLambdaRefMap().get(binding.value());
-        if (lambdaRef == null) {
+      case PAIR_SLOT:
+        RexLambdaRef pair = context.getRexLambdaRefMap().get(binding.value());
+        if (pair == null) {
           throw new SemanticCheckException("Unresolved foreach lambda placeholder " + name);
         }
-        return lambdaRef;
-      case PAIR_ITEM:
-      case PAIR_EXTRA:
-        return foreachPairItem(binding, name, context);
-      case PAIR_ITER:
-        return foreachPairItem(binding, name, context);
+        // The slot's type is known at plan time but the extraction UDF infers ANY, so build the
+        // call with the type set explicitly. LambdaUtils' re-inference preserves it (a CAST would
+        // not survive the enumerable backend for complex types like arrays).
+        return context.rexBuilder.makeCall(
+            binding.pairType(),
+            PPLBuiltinOperators.FOREACH_PAIR_ITEM,
+            List.of(
+                pair,
+                context.rexBuilder.makeExactLiteral(BigDecimal.valueOf(binding.pairIndex()))));
       case LITERAL:
       default:
         return context.rexBuilder.makeLiteral(binding.value());
     }
-  }
-
-  private RexNode foreachPairItem(
-      ForeachBinding binding, String placeholderName, CalcitePlanContext context) {
-    RexLambdaRef pair = context.getRexLambdaRefMap().get(binding.value());
-    if (pair == null) {
-      throw new SemanticCheckException("Unresolved foreach lambda placeholder " + placeholderName);
-    }
-    return PPLFuncImpTable.INSTANCE.resolve(
-        context.rexBuilder,
-        BuiltinFunctionName.FOREACH_PAIR_ITEM,
-        pair,
-        context.rexBuilder.makeExactLiteral(BigDecimal.valueOf(binding.pairIndex())),
-        context.rexBuilder.makeLiteral(binding.typeName()),
-        binding.componentTypeName() == null
-            ? context.rexBuilder.makeNullLiteral(
-                context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.NULL))
-            : context.rexBuilder.makeLiteral(binding.componentTypeName()));
   }
 
   @Override
@@ -637,8 +623,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
     List<RexNode> capturedVars = null;
     try {
-      for (int argIndex = 0; argIndex < args.size(); argIndex++) {
-        UnresolvedExpression arg = args.get(argIndex);
+      for (UnresolvedExpression arg : args) {
         if (arg instanceof LambdaFunction) {
           CalcitePlanContext lambdaContext =
               prepareLambdaContext(
@@ -657,14 +642,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           arguments.add(lambdaNode);
           // Capture any external variables that were referenced in the lambda
           capturedVars = lambdaContext.getCapturedVariables();
-        } else if (node.getFuncName().equalsIgnoreCase("reduce") && argIndex == 0) {
-          Map<String, ForeachBinding> foreachBindings = new HashMap<>(context.getForeachBindings());
-          context.clearForeachBindings();
-          try {
-            arguments.add(analyze(arg, context));
-          } finally {
-            context.pushForeachBindings(foreachBindings);
-          }
         } else {
           arguments.add(analyze(arg, context));
         }

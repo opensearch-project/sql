@@ -77,7 +77,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FORALL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FOREACH_JSON_ARRAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FOREACH_PAIR_COLLECTION;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.FOREACH_PAIR_ITEM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_UNIXTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.GET_FORMAT;
@@ -1240,7 +1239,6 @@ public class PPLFuncImpTable {
       registerOperator(REDUCE, PPLBuiltinOperators.REDUCE);
       registerOperator(FOREACH_JSON_ARRAY, PPLBuiltinOperators.FOREACH_JSON_ARRAY);
       registerOperator(FOREACH_PAIR_COLLECTION, PPLBuiltinOperators.FOREACH_PAIR_COLLECTION);
-      registerOperator(FOREACH_PAIR_ITEM, PPLBuiltinOperators.FOREACH_PAIR_ITEM);
 
       // Register Json function
       register(

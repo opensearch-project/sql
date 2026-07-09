@@ -69,8 +69,9 @@ public class LambdaUtils {
 
   public static RexCall reInferReturnTypeForRexCallInsideLambda(
       RexCall rexCall, Map<String, RelDataType> argTypes, RelDataTypeFactory typeFactory) {
-    if (rexCall.getKind() == SqlKind.CAST
-        || "CAST".equalsIgnoreCase(rexCall.getOperator().getName())) {
+    // A CAST's target type lives on the call itself and cannot be re-derived from its operands;
+    // re-inferring it trips SqlCastFunction's assertion. Keep the call as-is.
+    if (rexCall.getKind() == SqlKind.CAST) {
       return rexCall;
     }
     List<RexNode> filledOperands = new ArrayList<>();
@@ -94,6 +95,12 @@ public class LambdaUtils {
             .getOperator()
             .inferReturnType(
                 new RexCallBinding(typeFactory, rexCall.getOperator(), filledOperands, List.of()));
+    // A call whose operator can only infer ANY may carry a more precise type assigned when the
+    // call was built (e.g. foreach pair slot extraction); re-inference must not erase it.
+    if (returnType.getSqlTypeName() == SqlTypeName.ANY
+        && rexCall.getType().getSqlTypeName() != SqlTypeName.ANY) {
+      returnType = rexCall.getType();
+    }
     return rexCall.clone(returnType, filledOperands);
   }
 }

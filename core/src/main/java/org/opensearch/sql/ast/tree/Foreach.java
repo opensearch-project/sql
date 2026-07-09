@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -21,7 +22,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 public class Foreach extends UnresolvedPlan {
-  private final String mode;
+  private final Mode mode;
   private final Map<String, String> options;
   private final List<String> fieldPatterns;
   private final UnresolvedExpression collectionExpression;
@@ -42,6 +43,27 @@ public class Foreach extends UnresolvedPlan {
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
     return nodeVisitor.visitForeach(this, context);
+  }
+
+  /** Iteration mode of the foreach command. */
+  public enum Mode {
+    MULTIFIELD,
+    MULTIVALUE,
+    JSON_ARRAY,
+    AUTO_COLLECTIONS;
+
+    public static Mode of(String name) {
+      try {
+        return valueOf(name.toUpperCase(Locale.ROOT));
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException("foreach mode [" + name + "] is not supported");
+      }
+    }
+
+    @Override
+    public String toString() {
+      return name().toLowerCase(Locale.ROOT);
+    }
   }
 
   @Getter

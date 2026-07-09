@@ -17,6 +17,7 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
@@ -78,7 +79,17 @@ public class CalcitePlanContext {
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
+
+  /**
+   * Foreach placeholder bindings active in this context, keyed by upper-cased placeholder name.
+   * Multifield mode activates bindings directly (placeholders resolve against the current row);
+   * collection modes stage bindings via {@link #stageForeachLambdaBindings} instead, so they only
+   * become active inside the lambda context cloned for the generated {@code reduce} call.
+   */
   @Getter private Map<String, ForeachBinding> foreachBindings = new HashMap<>();
+
+  /** Bindings that become active in lambda contexts cloned from this one. */
+  private Map<String, ForeachBinding> stagedForeachLambdaBindings = new HashMap<>();
 
   /**
    * Maps AggregateFunction AST nodes to their output field index for HAVING/post-aggregate
@@ -127,7 +138,9 @@ public class CalcitePlanContext {
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
+    // Active bindings carry over; staged bindings become active inside the lambda.
     this.foreachBindings = new HashMap<>(parent.foreachBindings);
+    this.foreachBindings.putAll(parent.stagedForeachLambdaBindings);
   }
 
   public RexNode resolveJoinCondition(
@@ -210,28 +223,31 @@ public class CalcitePlanContext {
     foreachBindings = new HashMap<>(bindings);
   }
 
+  public void stageForeachLambdaBindings(Map<String, ForeachBinding> bindings) {
+    stagedForeachLambdaBindings = new HashMap<>(bindings);
+  }
+
   public void clearForeachBindings() {
     foreachBindings.clear();
+    stagedForeachLambdaBindings.clear();
+  }
+
+  /**
+   * A foreach placeholder binding. {@code FIELD} resolves to the named row field, {@code LITERAL}
+   * to a string literal, and {@code PAIR_SLOT} to slot {@code pairIndex} (typed {@code pairType})
+   * of the named lambda pair variable.
+   */
+  public record ForeachBinding(
+      String value, ForeachBindingType type, int pairIndex, @Nullable RelDataType pairType) {
+    public ForeachBinding(String value, ForeachBindingType type) {
+      this(value, type, -1, null);
+    }
   }
 
   public enum ForeachBindingType {
     FIELD,
     LITERAL,
-    LAMBDA,
-    PAIR_ITEM,
-    PAIR_ITER,
-    PAIR_EXTRA
-  }
-
-  public record ForeachBinding(
-      String value,
-      ForeachBindingType type,
-      int pairIndex,
-      String typeName,
-      @Nullable String componentTypeName) {
-    public ForeachBinding(String value, ForeachBindingType type) {
-      this(value, type, -1, null, null);
-    }
+    PAIR_SLOT
   }
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {
