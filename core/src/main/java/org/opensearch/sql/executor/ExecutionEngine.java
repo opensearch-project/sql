@@ -83,6 +83,9 @@ public interface ExecutionEngine {
     private final Cursor cursor;
     @lombok.Setter private QueryProfile profile;
     @lombok.Setter private Throwable error;
+
+    /** Async {@code collect} background task id (null unless this query ran an async collect). */
+    @lombok.Setter private String collectTaskId;
   }
 
   @Data

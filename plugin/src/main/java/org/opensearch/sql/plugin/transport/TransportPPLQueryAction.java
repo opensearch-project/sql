@@ -21,15 +21,12 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Injector;
-import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
-import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryType;
@@ -37,9 +34,7 @@ import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
-import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
-import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
 import org.opensearch.sql.ppl.PPLService;
@@ -86,19 +81,10 @@ public class TransportPPLQueryAction
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.clientRef = client;
     this.clusterServiceRef = clusterService;
-
-    ModulesBuilder modules = new ModulesBuilder();
-    modules.add(new OpenSearchPluginModule(extensionsHolder.engines()));
-    org.opensearch.sql.common.setting.Settings pluginSettings =
-        new OpenSearchSettings(clusterService.getClusterSettings());
-    this.pluginSettingsRef = pluginSettings;
-    modules.add(
-        b -> {
-          b.bind(NodeClient.class).toInstance(client);
-          b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
-          b.bind(DataSourceService.class).toInstance(dataSourceService);
-        });
-    this.injector = Guice.createInjector(modules);
+    this.injector =
+        org.opensearch.sql.plugin.config.PplInjectorBuilder.build(
+            client, clusterService, dataSourceService, extensionsHolder);
+    this.pluginSettingsRef = injector.getInstance(org.opensearch.sql.common.setting.Settings.class);
     this.pplEnabled =
         () ->
             MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)
@@ -197,6 +183,18 @@ public class TransportPPLQueryAction
 
     PPLService pplService = injector.getInstance(PPLService.class);
 
+    // Async collect: a terminal, non-testmode `| collect index=foo` is detached to a background
+    // materialization task (the write runs there). The foreground returns a capped read-only
+    // preview of the upstream rows plus the task id; status/cancel via the _tasks API.
+    if (!transformedRequest.isExplainRequest()) {
+      java.util.Optional<PPLService.CollectRoute> collectRoute =
+          pplService.routeTerminalCollect(transformedRequest);
+      if (collectRoute.isPresent()) {
+        submitAsyncCollect(pplService, transformedRequest, collectRoute.get(), clearingListener);
+        return;
+      }
+    }
+
     if (transformedRequest.isExplainRequest()) {
       pplService.explain(
           transformedRequest, createExplainResponseListener(transformedRequest, clearingListener));
@@ -249,6 +247,52 @@ public class TransportPPLQueryAction
     };
   }
 
+  private void submitAsyncCollect(
+      PPLService pplService,
+      PPLQueryRequest request,
+      PPLService.CollectRoute route,
+      ActionListener<TransportPPLQueryResponse> listener) {
+    String destIndex = route.getDestIndex();
+    // Plan-time safety refusals, synchronous and before detaching the background write. Shared with
+    // the collect operator (CalciteRelNodeVisitor.visitCollect) via CollectValidation, which runs
+    // only inside the background task and so cannot surface these to the caller.
+    if (destIndex.startsWith(".")) {
+      listener.onFailure(org.opensearch.sql.calcite.CollectValidation.dotIndexRefused(destIndex));
+      return;
+    }
+    if (!clusterServiceRef.state().routingTable().hasIndex(destIndex)) {
+      listener.onFailure(
+          org.opensearch.sql.calcite.CollectValidation.destinationDoesNotExist(destIndex));
+      return;
+    }
+    org.opensearch.tasks.Task task =
+        clientRef.executeLocally(
+            org.opensearch.sql.plugin.transport.collect.CollectMaterializeAction.INSTANCE,
+            new org.opensearch.sql.plugin.transport.collect.CollectMaterializeRequest(
+                request.getRequest(), destIndex),
+            org.opensearch.tasks.LoggingTaskListener.instance());
+    String taskId = clientRef.getLocalNodeId() + ":" + task.getId();
+    // Run the AST-built preview (collect stripped, capped) and stamp the background task id onto
+    // the
+    // response envelope. The original request supplies the response format.
+    ResponseListener<ExecutionEngine.QueryResponse> formatting = createListener(request, listener);
+    pplService.executeStatement(
+        route.getPreviewStatement(),
+        new ResponseListener<ExecutionEngine.QueryResponse>() {
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse response) {
+            response.setCollectTaskId(taskId);
+            formatting.onResponse(response);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            formatting.onFailure(e);
+          }
+        },
+        createExplainResponseListener(request, listener));
+  }
+
   private ResponseListener<ExecutionEngine.QueryResponse> createListener(
       PPLQueryRequest pplRequest, ActionListener<TransportPPLQueryResponse> listener) {
     Format format = format(pplRequest);
@@ -269,7 +313,11 @@ public class TransportPPLQueryAction
         String responseContent =
             formatter.format(
                 new QueryResult(
-                    response.getSchema(), response.getResults(), response.getCursor(), PPL_SPEC));
+                    response.getSchema(),
+                    response.getResults(),
+                    response.getCursor(),
+                    PPL_SPEC,
+                    response.getCollectTaskId()));
         listener.onResponse(new TransportPPLQueryResponse(responseContent));
       }
 

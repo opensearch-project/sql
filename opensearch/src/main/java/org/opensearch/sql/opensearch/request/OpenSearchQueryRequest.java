@@ -249,7 +249,13 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
           new OpenSearchResponse(
               SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
     } else {
-      this.sourceBuilder.pointInTimeBuilder(new PointInTimeBuilder(this.pitId));
+      // Extend the PIT lease on every page (setKeepAlive), not just at creation. Otherwise the
+      // whole search_after walk must finish within the creation-time keep-alive; collect's
+      // eager-drain interleaves each page fetch with synchronous bulk writes, so a long drain
+      // could outlive a fixed lease and expire the PIT mid-walk. With per-page extension the PIT
+      // only needs to survive one page's fetch+write gap.
+      this.sourceBuilder.pointInTimeBuilder(
+          new PointInTimeBuilder(this.pitId).setKeepAlive(cursorKeepAlive));
       this.sourceBuilder.timeout(cursorKeepAlive);
       // check for search after
       if (searchAfter != null) {

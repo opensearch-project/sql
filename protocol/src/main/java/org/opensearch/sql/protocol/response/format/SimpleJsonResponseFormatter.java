@@ -55,6 +55,11 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
 
     json.datarows(fetchDataRows(response));
 
+    // Envelope A: async collect surfaces its background task id as top-level response metadata.
+    if (response.getCollectTaskId() != null) {
+      json.taskId(response.getCollectTaskId());
+    }
+
     formatMetric.set(System.nanoTime() - formatTime);
 
     json.profile(QueryProfiling.current().finish());
@@ -83,6 +88,10 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
 
     private long total;
     private long size;
+
+    /** Async collect background task id; omitted (null) for non-collect / sync queries. */
+    @com.google.gson.annotations.SerializedName("task_id")
+    private String taskId;
   }
 
   @RequiredArgsConstructor

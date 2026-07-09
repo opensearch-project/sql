@@ -19,6 +19,7 @@ import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.search.SearchRequest;
@@ -195,6 +196,32 @@ public class OpenSearchQueryRequestTest {
 
     openSearchResponse = request.searchWithPIT(searchAction);
     assertTrue(openSearchResponse.isEmpty());
+  }
+
+  @Test
+  void search_with_pit_extends_keep_alive_each_page() {
+    TimeValue keepAlive = new TimeValue(1234);
+    OpenSearchQueryRequest request =
+        OpenSearchQueryRequest.pitOf(
+            new OpenSearchRequest.IndexName("test"),
+            sourceBuilder,
+            factory,
+            List.of(),
+            keepAlive,
+            "samplePid");
+
+    when(searchAction.apply(any())).thenReturn(searchResponse);
+    when(searchResponse.getHits()).thenReturn(searchHits);
+    when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
+    when(searchHit.getSortValues()).thenReturn(new String[] {"sortedValue"});
+
+    request.searchWithPIT(searchAction);
+
+    // Every PIT page must carry keep_alive so the lease is renewed each round-trip; otherwise a
+    // long collect drain outlives the creation-time lease and the PIT expires mid-walk.
+    ArgumentCaptor<PointInTimeBuilder> pit = ArgumentCaptor.forClass(PointInTimeBuilder.class);
+    verify(sourceBuilder, atLeastOnce()).pointInTimeBuilder(pit.capture());
+    assertEquals(keepAlive, pit.getValue().getKeepAlive());
   }
 
   @Test

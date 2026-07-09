@@ -349,7 +349,11 @@ public class RestUnifiedQueryAction {
         String result =
             formatter.format(
                 new QueryResult(
-                    response.getSchema(), response.getResults(), response.getCursor(), langSpec));
+                    response.getSchema(),
+                    response.getResults(),
+                    response.getCursor(),
+                    langSpec,
+                    response.getCollectTaskId()));
         if (response.getProfile() != null) {
           // Append profile and error (if any) to the JSON response
           result = appendProfileToJson(result, response.getProfile(), response.getError());

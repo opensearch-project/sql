@@ -808,11 +808,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitCollect(Collect node, CalcitePlanContext context) {
     visitChildren(node, context);
     if (node.getIndexName().startsWith(".")) {
-      throw new SemanticCheckException(
-          String.format(
-              "collect cannot write to system or hidden index [%s]; dot-prefixed indices are"
-                  + " refused",
-              node.getIndexName()));
+      throw CollectValidation.dotIndexRefused(node.getIndexName());
     }
     // Stamp option values as literal columns below the spool so they are written and passed
     // through.
@@ -848,17 +844,38 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     RelNode child = context.relBuilder.build();
     RelOptSchema relOptSchema = context.relBuilder.getRelOptSchema();
-    RelOptTable dest = relOptSchema.getTableForMember(List.of(node.getIndexName()));
+    RelOptTable dest;
+    try {
+      dest = relOptSchema.getTableForMember(List.of(node.getIndexName()));
+    } catch (RuntimeException e) {
+      // Resolving the destination eagerly fetches its mapping, so a missing index surfaces here as
+      // an IndexNotFoundException (before dest could ever be null). Translate that into collect's
+      // own plan-time "does not exist" error; re-throw anything unrelated.
+      if (isIndexNotFound(e)) {
+        throw CollectValidation.destinationDoesNotExist(node.getIndexName());
+      }
+      throw e;
+    }
     if (dest == null) {
-      throw new SemanticCheckException(
-          String.format(
-              "collect destination index [%s] does not exist; collect requires a pre-existing"
-                  + " destination index",
-              node.getIndexName()));
+      throw CollectValidation.destinationDoesNotExist(node.getIndexName());
     }
     RelNode spool = LogicalTableSpool.create(child, Spool.Type.LAZY, Spool.Type.LAZY, dest);
     context.relBuilder.push(spool);
     return context.relBuilder.peek();
+  }
+
+  /** True if {@code e} or any cause is an index-not-found signal (matched without a hard dep). */
+  private static boolean isIndexNotFound(Throwable e) {
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      if ("IndexNotFoundException".equals(t.getClass().getSimpleName())) {
+        return true;
+      }
+      String msg = t.getMessage();
+      if (msg != null && (msg.contains("no such index") || msg.contains("IndexNotFound"))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

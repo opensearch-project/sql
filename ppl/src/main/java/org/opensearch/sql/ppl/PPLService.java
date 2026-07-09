@@ -10,7 +10,11 @@ import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER
 
 import lombok.extern.log4j.Log4j2;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.Collect;
+import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
@@ -82,6 +86,79 @@ public class PPLService {
       queryManager.submit(plan(request, NO_CONSUMER_RESPONSE_LISTENER, listener));
     } catch (Exception e) {
       listener.onFailure(e);
+    }
+  }
+
+  /**
+   * Execute an already-parsed {@link Statement}, bypassing the parser. Used by the async collect
+   * route to run the preview plan it built from the parsed AST, so a routed collect query is parsed
+   * exactly once.
+   */
+  public void executeStatement(
+      Statement statement,
+      ResponseListener<QueryResponse> queryListener,
+      ResponseListener<ExplainResponse> explainListener) {
+    try {
+      queryManager.submit(queryExecutionFactory.create(statement, queryListener, explainListener));
+    } catch (Exception e) {
+      queryListener.onFailure(e);
+    }
+  }
+
+  /**
+   * If the query's terminal (outermost) command is a non-testmode {@code collect}, returns the
+   * destination index name together with a ready preview statement built from the parsed AST (the
+   * collect stripped, its upstream capped at QUERY_SIZE_LIMIT); otherwise empty. The transport
+   * layer routes such a query to the async materialization action and runs the returned preview via
+   * {@link #executeStatement}, so the query is parsed once and the preview neither re-parses nor
+   * text strips the collect. Parse failures return empty so the normal execution path reports the
+   * error. testmode collect is a dry run (no write) and stays on the synchronous path.
+   */
+  public java.util.Optional<CollectRoute> routeTerminalCollect(PPLQueryRequest request) {
+    try {
+      ParseTree cst = parser.parse(request.getRequest());
+      Statement statement =
+          cst.accept(
+              new AstStatementBuilder(
+                  new AstBuilder(request.getRequest(), settings),
+                  AstStatementBuilder.StatementBuilderContext.builder()
+                      .isExplain(request.isExplainRequest())
+                      .fetchSize(request.getFetchSize())
+                      .highlightConfig(request.getHighlightConfig())
+                      .format(request.getFormat())
+                      .explainMode(request.getExplainMode())
+                      .build()));
+      if (statement instanceof Query query
+          && query.getPlan() instanceof Collect collect
+          && !collect.isTestmode()) {
+        int cap = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
+        UnresolvedPlan upstream = collect.getChild().get(0);
+        Query preview =
+            new Query(new Head(upstream, cap, 0), query.getFetchSize(), query.getQueryType());
+        return java.util.Optional.of(new CollectRoute(collect.getIndexName(), preview));
+      }
+    } catch (Exception ignored) {
+      // not routable as async collect; the normal execution path handles or reports it
+    }
+    return java.util.Optional.empty();
+  }
+
+  /** Destination index and preview statement for a terminal collect routed to the async action. */
+  public static final class CollectRoute {
+    private final String destIndex;
+    private final Statement previewStatement;
+
+    public CollectRoute(String destIndex, Statement previewStatement) {
+      this.destIndex = destIndex;
+      this.previewStatement = previewStatement;
+    }
+
+    public String getDestIndex() {
+      return destIndex;
+    }
+
+    public Statement getPreviewStatement() {
+      return previewStatement;
     }
   }
 

@@ -33,6 +33,9 @@ public class QueryResult implements Iterable<Object[]> {
 
   private final LangSpec langSpec;
 
+  /** Async {@code collect} background task id, surfaced in response metadata (null otherwise). */
+  @Getter private final String collectTaskId;
+
   public QueryResult(ExecutionEngine.Schema schema, Collection<ExprValue> exprValues) {
     this(schema, exprValues, Cursor.None, LangSpec.SQL_SPEC);
   }
@@ -47,10 +50,20 @@ public class QueryResult implements Iterable<Object[]> {
       Collection<ExprValue> exprValues,
       Cursor cursor,
       LangSpec langSpec) {
+    this(schema, exprValues, cursor, langSpec, null);
+  }
+
+  public QueryResult(
+      ExecutionEngine.Schema schema,
+      Collection<ExprValue> exprValues,
+      Cursor cursor,
+      LangSpec langSpec,
+      String collectTaskId) {
     this.schema = schema;
     this.exprValues = exprValues;
     this.cursor = cursor;
     this.langSpec = langSpec;
+    this.collectTaskId = collectTaskId;
   }
 
   /**

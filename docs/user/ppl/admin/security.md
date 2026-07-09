@@ -3,6 +3,16 @@
 ## Introduction  
 
 User needs `cluster:admin/opensearch/ppl` permission to use PPL plugin. User also needs indices level permission `indices:admin/mappings/get` to get field mappings, `indices:monitor/settings/get` to get cluster settings, and `indices:data/read/search*` to search index.
+
+### collect command permissions
+
+The `collect` command materializes results into a destination index as an asynchronous background task, so it needs permissions beyond a read-only PPL query:
+
+- Cluster permission `cluster:admin/opensearch/ppl/collect/materialize` (in addition to `cluster:admin/opensearch/ppl`) to authorize the background materialization task.
+- On the destination index, write permission such as `indices:data/write/bulk`, plus `indices:admin/mappings/get` to resolve its mapping.
+- The usual read permissions on the source index (`indices:data/read/search*`, `indices:admin/mappings/get`, `indices:data/read/point_in_time/create`, `indices:data/read/point_in_time/delete`).
+
+Because the write runs in the background (fire-and-forget), a missing `cluster:admin/opensearch/ppl/collect/materialize` or destination write permission does not fail the request synchronously. The query still returns the preview rows and a `task_id`, and the authorization failure is recorded on the background task, observable via `GET _tasks/<task_id>`.
 ## Using Rest API  
 
 **--INTRODUCED 2.1--**  
