@@ -1215,6 +1215,32 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testForeachMultifieldCommand() {
+    assertEquals(
+        "source=table | foreach identifier identifier [ eval identifier = *(identifier,***) ]",
+        anonymize("source=t | foreach a b [ eval <<FIELD>>_double = <<FIELD>> * 2 ]"));
+  }
+
+  @Test
+  public void testForeachMultivalueCommandWithOptions() {
+    assertEquals(
+        "source=table | foreach mode=multivalue itemstr=identifier identifier"
+            + " [ eval identifier = +(identifier,identifier) ]",
+        anonymize(
+            "source=t | foreach mode=multivalue itemstr=NUMBER nums"
+                + " [ eval total = total + NUMBER ]"));
+  }
+
+  @Test
+  public void testForeachJsonArrayCommandMasksLiteralTarget() {
+    assertEquals(
+        "source=table | foreach mode=json_array identifier [ eval identifier ="
+            + " +(identifier,identifier) ]",
+        anonymize(
+            "source=t | foreach mode=json_array '[1,2,3]' [ eval total = total + <<ITEM>> ]"));
+  }
+
+  @Test
   public void testUnion() {
     assertEquals(
         "| union [search source=table | where identifier < ***] [search source=table |"
