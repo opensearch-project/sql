@@ -179,4 +179,36 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
+
+  @Test
+  public void testForeachJsonArrayFieldNumericUsage() {
+    // Field content is opaque at plan time; arithmetic on <<ITEM>> selects DOUBLE elements.
+    String ppl =
+        "source=EMP | eval total = 0 | foreach mode=json_array ENAME [ eval total = total +"
+            + " <<ITEM>> ] | fields total";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(total=[reduce(foreach_pair_collection(foreach_json_array($1,"
+            + " 'DOUBLE':VARCHAR)), 0.0E0:DOUBLE, (total, __foreach_pair) -> +(total,"
+            + " foreach_pair_item(__foreach_pair, 0)))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testForeachJsonArrayFieldStringUsage() {
+    // No arithmetic on <<ITEM>> keeps field-backed JSON array elements as VARCHAR.
+    String ppl =
+        "source=EMP | eval r = '' | foreach mode=json_array ENAME [ eval r = concat(r, <<ITEM>>)"
+            + " ] | fields r";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(r=[reduce(foreach_pair_collection(foreach_json_array($1,"
+            + " 'VARCHAR':VARCHAR)), '':VARCHAR, (r, __foreach_pair) -> CONCAT(r,"
+            + " foreach_pair_item(__foreach_pair, 0)))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
 }

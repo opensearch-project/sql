@@ -30,6 +30,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.ForeachPlaceholder;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Literal;
@@ -70,6 +71,8 @@ class ForeachPlanner {
 
   /** Name of the lambda variable holding the internal pair inside generated reduce calls. */
   private static final String PAIR_VAR = "__foreach_pair";
+
+  private static final Set<String> ARITHMETIC_OPERATORS = Set.of("+", "-", "*", "/", "%");
 
   private final CalciteRelNodeVisitor relVisitor;
   private final CalciteRexNodeVisitor rexVisitor;
@@ -177,16 +180,15 @@ class ForeachPlanner {
     if (collection == null) {
       throw new SemanticCheckException("foreach " + mode + " mode requires a field");
     }
-    collection = asArrayExpression(collection, mode, context);
+    String itemName = node.getOptions().getOrDefault(OPTION_ITEMSTR, PLACEHOLDER_ITEM);
+    String iterName = node.getOptions().getOrDefault(OPTION_ITERSTR, PLACEHOLDER_ITER);
+    collection = asArrayExpression(collection, mode, context, node.getEvalClauses(), itemName);
     RexNode collectionRex = rexVisitor.analyze(collection, context);
     if (!(collectionRex.getType() instanceof ArraySqlType arrayType)) {
       throw new SemanticCheckException("foreach " + mode + " mode requires a multivalue field");
     }
     RelDataType itemType = arrayType.getComponentType();
     RelDataType iterType = context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
-
-    String itemName = node.getOptions().getOrDefault(OPTION_ITEMSTR, PLACEHOLDER_ITEM);
-    String iterName = node.getOptions().getOrDefault(OPTION_ITERSTR, PLACEHOLDER_ITER);
     List<String> targetAliases =
         node.getEvalClauses().stream().map(ForeachEvalClause::getTargetTemplate).toList();
     List<RelDataTypeField> capturedFields =
@@ -260,7 +262,11 @@ class ForeachPlanner {
    * parses the JSON and casts every element to one inferred type.
    */
   private UnresolvedExpression asArrayExpression(
-      UnresolvedExpression collection, Foreach.Mode mode, CalcitePlanContext context) {
+      UnresolvedExpression collection,
+      Foreach.Mode mode,
+      CalcitePlanContext context,
+      List<ForeachEvalClause> evalClauses,
+      String itemName) {
     if (mode == Foreach.Mode.MULTIVALUE
         || (mode == Foreach.Mode.AUTO_COLLECTIONS
             && rexVisitor.analyze(collection, context).getType() instanceof ArraySqlType)) {
@@ -269,16 +275,27 @@ class ForeachPlanner {
     return new Function(
         BuiltinFunctionName.FOREACH_JSON_ARRAY.getName().getFunctionName(),
         List.of(
-            collection, new Literal(jsonElementType(collection, context).name(), DataType.STRING)));
+            collection,
+            new Literal(
+                jsonElementType(collection, context, evalClauses, itemName).name(),
+                DataType.STRING)));
   }
 
   /**
    * Infers the element type a JSON array collection should be read as. JSON only distinguishes
    * numbers and strings here, so the answer is DOUBLE (gson parses JSON numbers as doubles) or
-   * VARCHAR. Mixed content is rejected; expressions whose content is unknowable at plan time (e.g.
-   * a field holding a JSON string) default to VARCHAR.
+   * VARCHAR.
+   *
+   * <p>For {@code json_array()} calls and string literals the content is visible at plan time;
+   * mixed content is rejected. For opaque expressions — typically a field holding JSON text, the
+   * primary Splunk use of json_array mode — content is unknowable, so infer from usage: an item
+   * placeholder consumed by arithmetic means numeric elements, anything else means strings.
    */
-  private SqlTypeName jsonElementType(UnresolvedExpression collection, CalcitePlanContext context) {
+  private SqlTypeName jsonElementType(
+      UnresolvedExpression collection,
+      CalcitePlanContext context,
+      List<ForeachEvalClause> evalClauses,
+      String itemName) {
     if (collection instanceof Function function
         && BuiltinFunctionName.JSON_ARRAY
             .getName()
@@ -303,8 +320,38 @@ class ForeachPlanner {
       } catch (JsonSyntaxException ignored) {
         // Malformed JSON literals return null at runtime; type choice is irrelevant.
       }
+      return SqlTypeName.VARCHAR;
     }
-    return SqlTypeName.VARCHAR;
+    return itemUsedInArithmetic(evalClauses, itemName) ? SqlTypeName.DOUBLE : SqlTypeName.VARCHAR;
+  }
+
+  private boolean itemUsedInArithmetic(List<ForeachEvalClause> evalClauses, String itemName) {
+    return evalClauses.stream()
+        .anyMatch(clause -> itemUsedInArithmetic(clause.getExpression(), itemName, false));
+  }
+
+  private boolean itemUsedInArithmetic(Node node, String itemName, boolean inArithmetic) {
+    if (isItemReference(node, itemName)) {
+      return inArithmetic;
+    }
+    boolean arithmetic =
+        inArithmetic
+            || (node instanceof Function function
+                && ARITHMETIC_OPERATORS.contains(function.getFuncName()));
+    return node.getChild().stream()
+        .anyMatch(child -> itemUsedInArithmetic(child, itemName, arithmetic));
+  }
+
+  private boolean isItemReference(Node node, String itemName) {
+    String name;
+    if (node instanceof ForeachPlaceholder placeholder) {
+      name = placeholder.getName();
+    } else if (node instanceof QualifiedName qualifiedName) {
+      name = qualifiedName.toString();
+    } else {
+      return false;
+    }
+    return PLACEHOLDER_ITEM.equalsIgnoreCase(name) || itemName.equalsIgnoreCase(name);
   }
 
   private SqlTypeName elementTypeOf(Set<?> families) {
