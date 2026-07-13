@@ -48,7 +48,6 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.junit.jupiter.api.Test;
-import org.opensearch.OpenSearchParseException;
 import org.opensearch.geometry.utils.Geohash;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -228,6 +227,25 @@ class OpenSearchExprValueFactoryTest {
             assertEquals(
                 ipValue("2001:db7::ff00:42:8329"),
                 constructFromObject("ipV", "2001:db7::ff00:42:8329")));
+  }
+
+  @Test
+  public void constructIpFromInvalidString_ReturnsNull() {
+    assertEquals(nullValue(), tupleValue("{\"ipV\":\"not-an-ip\"}").get("ipV"));
+    assertEquals(nullValue(), constructFromObject("ipV", "garbage"));
+  }
+
+  @Test
+  public void constructNumericFromObjectNode_ReturnsNull() {
+    assertEquals(nullValue(), tupleValue("{\"intV\":{\"nested\":\"value\"}}").get("intV"));
+    assertEquals(nullValue(), tupleValue("{\"longV\":{\"nested\":\"value\"}}").get("longV"));
+    assertEquals(nullValue(), tupleValue("{\"floatV\":{\"nested\":\"value\"}}").get("floatV"));
+    assertEquals(nullValue(), tupleValue("{\"doubleV\":{\"nested\":\"value\"}}").get("doubleV"));
+  }
+
+  @Test
+  public void constructBooleanFromObjectNode_ReturnsNull() {
+    assertEquals(nullValue(), tupleValue("{\"boolV\":{\"nested\":\"value\"}}").get("boolV"));
   }
 
   @Test
@@ -766,24 +784,12 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void constructGeoPointFromUnsupportedFormatShouldThrowException() {
-    OpenSearchParseException exception =
-        assertThrows(
-            OpenSearchParseException.class,
-            () -> tupleValue("{\"geoV\": [42.60355556, false]}").get("geoV"));
-    assertEquals("lat must be a number, got false", exception.getMessage());
-
-    exception =
-        assertThrows(
-            OpenSearchParseException.class,
-            () -> tupleValue("{\"geoV\":{\"lon\":-97.25263889}}").get("geoV"));
-    assertEquals("field [lat] missing", exception.getMessage());
-
-    exception =
-        assertThrows(
-            OpenSearchParseException.class,
-            () -> tupleValue("{\"geoV\":{\"lat\":true,\"lon\":-97.25263889}}").get("geoV"));
-    assertEquals("lat must be a number", exception.getMessage());
+  public void constructGeoPointFromUnsupportedFormat_ReturnsNull() {
+    assertEquals(nullValue(), tupleValue("{\"geoV\": [42.60355556, false]}").get("geoV"));
+    assertEquals(nullValue(), tupleValue("{\"geoV\":{\"lon\":-97.25263889}}").get("geoV"));
+    assertEquals(
+        nullValue(), tupleValue("{\"geoV\":{\"lat\":true,\"lon\":-97.25263889}}").get("geoV"));
+    assertEquals(nullValue(), tupleValue("{\"geoV\":\"not-a-geo-point\"}").get("geoV"));
   }
 
   @Test
