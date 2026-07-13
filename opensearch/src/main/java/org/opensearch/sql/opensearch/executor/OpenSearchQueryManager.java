@@ -32,6 +32,7 @@ public class OpenSearchQueryManager implements QueryManager {
   private final Settings settings;
 
   public static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
+  public static final String SQL_SLOW_WORKER_THREAD_POOL_NAME = "sql-slow-worker";
   public static final String SQL_BACKGROUND_THREAD_POOL_NAME = "sql_background_io";
 
   private static final ThreadLocal<CancellableTask> cancellableTask = new ThreadLocal<>();

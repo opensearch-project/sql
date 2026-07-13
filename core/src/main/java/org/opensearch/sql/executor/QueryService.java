@@ -8,7 +8,6 @@ package org.opensearch.sql.executor;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -58,7 +57,6 @@ import org.opensearch.sql.protocol.response.format.Format;
 
 /** The low level interface of core engine. */
 @RequiredArgsConstructor
-@AllArgsConstructor
 @Log4j2
 public class QueryService {
   private final Analyzer analyzer;
@@ -66,6 +64,37 @@ public class QueryService {
   private final Planner planner;
   private DataSourceService dataSourceService;
   private Settings settings;
+  private ExecutionDispatcher executionDispatcher = new DirectExecutionDispatcher();
+
+  public QueryService(
+      Analyzer analyzer,
+      ExecutionEngine executionEngine,
+      Planner planner,
+      DataSourceService dataSourceService,
+      Settings settings) {
+    this(
+        analyzer,
+        executionEngine,
+        planner,
+        dataSourceService,
+        settings,
+        new DirectExecutionDispatcher());
+  }
+
+  public QueryService(
+      Analyzer analyzer,
+      ExecutionEngine executionEngine,
+      Planner planner,
+      DataSourceService dataSourceService,
+      Settings settings,
+      ExecutionDispatcher executionDispatcher) {
+    this.analyzer = analyzer;
+    this.executionEngine = executionEngine;
+    this.planner = planner;
+    this.dataSourceService = dataSourceService;
+    this.settings = settings;
+    this.executionDispatcher = executionDispatcher;
+  }
 
   @Getter(lazy = true)
   private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor(dataSourceService);
@@ -179,10 +208,13 @@ public class QueryService {
 
                   analyzeMetric.set(System.nanoTime() - analyzeStart);
 
-                  // Wrap execution with EXECUTING stage tracking
+                  // Wrap execution with EXECUTING stage tracking — dispatch via
+                  // ExecutionDispatcher which may route to a slow worker pool
                   StageErrorHandler.executeStageVoid(
                       QueryProcessingStage.EXECUTING,
-                      () -> executionEngine.execute(calcitePlan, context, listener),
+                      () ->
+                          executionDispatcher.dispatch(
+                              calcitePlan, context, listener, executionEngine),
                       "while running the query");
                 },
                 QueryService.class);

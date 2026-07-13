@@ -7,6 +7,7 @@ package org.opensearch.sql.plugin.rest;
 
 import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_SLOW_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
@@ -40,12 +41,14 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
+import org.opensearch.sql.opensearch.executor.ScriptDetector;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
@@ -229,18 +232,31 @@ public class RestUnifiedQueryAction {
                     // string, so apply the equivalent top-level limit here before the system cap.
                     plan = addFetchSizeLimit(plan, planContext, fetchSize);
                     plan = addQuerySizeLimit(plan, planContext);
-                    if (profiling) {
-                      analyticsEngine.executeWithProfile(
-                          plan,
-                          planContext,
-                          queryCtx,
-                          createQueryListener(queryType, profileCtx, closingListener));
+                    RelNode finalPlan = plan;
+                    Runnable executeTask =
+                        profiling
+                            ? () ->
+                                analyticsEngine.executeWithProfile(
+                                    finalPlan,
+                                    planContext,
+                                    queryCtx,
+                                    createQueryListener(queryType, profileCtx, closingListener))
+                            : () ->
+                                analyticsEngine.execute(
+                                    finalPlan,
+                                    planContext,
+                                    queryCtx,
+                                    createQueryListener(queryType, profileCtx, closingListener));
+                    if (isSlowPoolEnabled() && ScriptDetector.hasScripts(finalPlan)) {
+                      LOG.debug("Query contains scripts, routing to slow worker pool");
+                      client
+                          .threadPool()
+                          .schedule(
+                              withCurrentContext(executeTask),
+                              new TimeValue(0),
+                              SQL_SLOW_WORKER_THREAD_POOL_NAME);
                     } else {
-                      analyticsEngine.execute(
-                          plan,
-                          planContext,
-                          queryCtx,
-                          createQueryListener(queryType, profileCtx, closingListener));
+                      executeTask.run();
                     }
                   } catch (Exception e) {
                     closingListener.onFailure(e);
@@ -458,6 +474,10 @@ public class RestUnifiedQueryAction {
     err.addProperty("type", error.getClass().getSimpleName());
     err.addProperty("reason", error.getMessage() != null ? error.getMessage() : "");
     return json.substring(0, json.length() - 1) + ",\"error\":" + err + "}";
+  }
+
+  private boolean isSlowPoolEnabled() {
+    return pluginSettings.getSettingValue(Key.SQL_SLOW_WORKER_POOL_ENABLED);
   }
 
   private static Runnable withCurrentContext(final Runnable task) {
