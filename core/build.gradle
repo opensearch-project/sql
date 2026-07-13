@@ -72,7 +72,7 @@ dependencies {
     testImplementation 'org.opensearch.sandbox:analytics-api:3.8.0-SNAPSHOT'
     testImplementation group: 'org.opensearch', name: 'opensearch-core', version: "${opensearch_version}"
     implementation "com.github.seancfoley:ipaddress:5.4.2"
-    implementation "com.jayway.jsonpath:json-path:2.9.0"
+    implementation "com.jayway.jsonpath:json-path:2.10.0"
 
     annotationProcessor('org.immutables:value:2.8.8')
     compileOnly 'org.immutables:value-annotations:2.8.8'
