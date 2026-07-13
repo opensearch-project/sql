@@ -286,9 +286,12 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -572,6 +575,10 @@ public class PPLFuncImpTable {
     // return type of the lambda function.
     compulsoryCast(builder, functionName, args);
 
+    // Align integer operand widths when a comparison has a scalar subquery on one side; see
+    // coerceNumericComparisonOperands for why this is needed for correct decorrelated join keys.
+    args = coerceNumericComparisonOperands(builder, functionName, args);
+
     List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).toList();
     try {
       for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
@@ -604,6 +611,62 @@ public class PPLFuncImpTable {
         String.format(
             "%s function expects {%s}, but got %s",
             functionName, allowedSignatures, PlanUtils.getActualSignature(argTypes)));
+  }
+
+  /**
+   * Widens the operands of a binary comparison against a scalar subquery to a common integer type
+   * when the two operands are integers of differing width (e.g. INT vs BIGINT, SMALLINT vs INT).
+   * Returns the original array unchanged for every other case, so only the ambiguous
+   * integer-width-against-a-subquery case is touched.
+   *
+   * <p>Calcite's comparison operators accept mixed integer widths by family, so {@code makeCall(=,
+   * int, bigint)} type-checks and evaluates correctly as an ordinary scalar predicate (against a
+   * column or literal), which is why those comparisons are left alone. But when one side is a
+   * scalar subquery, Calcite's decorrelator turns the comparison into a join whose keys keep their
+   * original widths; the generated key extractors then box the two sides as different Java types
+   * (e.g. {@code Integer} vs {@code Long}) that never compare equal, so the join silently drops
+   * every row. Casting both sides to their least-restrictive common integer type keeps the boolean
+   * result identical while making the derived join keys share a single type. This surfaces once
+   * integer arithmetic widens (e.g. {@code min(salary) + 1000} is BIGINT) so a subquery result is
+   * compared against a narrower column.
+   */
+  private static RexNode[] coerceNumericComparisonOperands(
+      RexBuilder builder, BuiltinFunctionName functionName, RexNode... args) {
+    if (args.length != 2 || !BuiltinFunctionName.COMPARATORS.contains(functionName)) {
+      return args;
+    }
+    if (!containsSubQuery(args[0]) && !containsSubQuery(args[1])) {
+      return args;
+    }
+    RelDataType leftType = args[0].getType();
+    RelDataType rightType = args[1].getType();
+    if (!SqlTypeName.INT_TYPES.contains(leftType.getSqlTypeName())
+        || !SqlTypeName.INT_TYPES.contains(rightType.getSqlTypeName())
+        || leftType.getSqlTypeName() == rightType.getSqlTypeName()) {
+      return args;
+    }
+    RelDataType commonType =
+        builder.getTypeFactory().leastRestrictive(List.of(leftType, rightType));
+    if (commonType == null) {
+      return args;
+    }
+    return new RexNode[] {
+      builder.makeCast(
+          TYPE_FACTORY.createTypeWithNullability(commonType, leftType.isNullable()), args[0]),
+      builder.makeCast(
+          TYPE_FACTORY.createTypeWithNullability(commonType, rightType.isNullable()), args[1])
+    };
+  }
+
+  /** Whether {@code node} is, or transitively contains, a {@link RexSubQuery}. */
+  private static boolean containsSubQuery(RexNode node) {
+    if (node instanceof RexSubQuery) {
+      return true;
+    }
+    if (node instanceof RexCall call) {
+      return call.getOperands().stream().anyMatch(PPLFuncImpTable::containsSubQuery);
+    }
+    return false;
   }
 
   /**
@@ -727,6 +790,89 @@ public class PPLFuncImpTable {
           PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
     }
 
+    /**
+     * Register an arithmetic operator ({@code +}, {@code -}, {@code *}) that widens narrow integer
+     * operands before applying the operation, deriving the type checker from the operator.
+     *
+     * <p>Calcite infers {@code SMALLINT op SMALLINT -> SMALLINT} (via {@code ReturnTypes.PLUS} /
+     * {@code PRODUCT_NULLABLE}, which fall through to {@code LEAST_RESTRICTIVE}), so the product of
+     * two {@code short} columns overflows: DataFusion silently wraps the {@code i16} result while
+     * the Calcite Enumerable engine throws {@code ArithmeticException: value out of range}. Casting
+     * the operands up (byte/short -> int, int -> long) makes the arithmetic compute at a width that
+     * cannot overflow for the widened tier, matching v2 arithmetic intent across all backends.
+     */
+    protected void registerWideningIntegerOperator(
+        BuiltinFunctionName functionName, SqlOperator operator) {
+      PPLTypeChecker typeChecker =
+          wrapSqlOperandTypeChecker(operator.getOperandTypeChecker(), operator.getName(), false);
+      register(functionName, wideningIntegerArithmetic(operator), typeChecker);
+    }
+
+    /** Same as above but with an explicit {@link PPLTypeChecker}. */
+    protected void registerWideningIntegerOperator(
+        BuiltinFunctionName functionName, SqlOperator operator, PPLTypeChecker typeChecker) {
+      register(functionName, wideningIntegerArithmetic(operator), typeChecker);
+    }
+
+    private static FunctionImp wideningIntegerArithmetic(SqlOperator operator) {
+      // +, -, * are strictly binary; FunctionImp2 documents and enforces the two-operand contract.
+      return (FunctionImp2)
+          (builder, left, right) ->
+              builder.makeCall(operator, widenIntegerOperands(builder, left, right));
+    }
+
+    private static RexNode[] widenIntegerOperands(RexBuilder builder, RexNode... args) {
+      SqlTypeName promoted = promotedIntegerType(args);
+      if (promoted == null) {
+        return args;
+      }
+      // Skip widening arithmetic inside higher-order-function lambda bodies (reduce/mvmap/...).
+      // Those operands reference lambda parameters whose types are placeholders resolved later by
+      // the HOF's own return-type inference (see LambdaUtils.inferReturnTypeFromLambda); wrapping a
+      // RexLambdaRef in a CAST breaks that index-based resolution. They also execute JVM-side via
+      // linq4j (operands already promote to int), so they never hit the backend wrap path.
+      for (RexNode arg : args) {
+        if (referencesLambdaParameter(arg)) {
+          return args;
+        }
+      }
+      RexNode[] widened = new RexNode[args.length];
+      for (int i = 0; i < args.length; i++) {
+        RelDataType target = TYPE_FACTORY.createSqlType(promoted, args[i].getType().isNullable());
+        widened[i] = builder.makeCast(target, args[i]);
+      }
+      return widened;
+    }
+
+    private static boolean referencesLambdaParameter(RexNode node) {
+      if (node instanceof RexLambdaRef) {
+        return true;
+      }
+      if (node instanceof RexCall call) {
+        return call.getOperands().stream().anyMatch(AbstractBuilder::referencesLambdaParameter);
+      }
+      return false;
+    }
+
+    /**
+     * Target integer type that all operands should widen to, or {@code null} to leave the call
+     * untouched (any non-integral operand, e.g. FLOAT/DOUBLE/DECIMAL/DATETIME, defers to Calcite's
+     * default inference). byte/short -> INTEGER; anything involving int/long -> BIGINT.
+     */
+    private static SqlTypeName promotedIntegerType(RexNode... args) {
+      boolean needsLong = false;
+      for (RexNode arg : args) {
+        switch (arg.getType().getSqlTypeName()) {
+          case TINYINT, SMALLINT -> {}
+          case INTEGER, BIGINT -> needsLong = true;
+          default -> {
+            return null;
+          }
+        }
+      }
+      return needsLong ? SqlTypeName.BIGINT : SqlTypeName.INTEGER;
+    }
+
     void populate() {
       // register operators for comparison
       registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);
@@ -741,23 +887,25 @@ public class PPLFuncImpTable {
       registerOperator(OR, SqlStdOperatorTable.OR);
       registerOperator(NOT, SqlStdOperatorTable.NOT);
 
-      // Register ADDFUNCTION for numeric addition only
-      registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
-      registerOperator(
+      // Register ADDFUNCTION for numeric addition only. Widen narrow integer operands so the sum
+      // cannot overflow the (mis-)inferred SMALLINT/TINYINT result type; see
+      // registerWideningIntegerOperator.
+      registerWideningIntegerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
+      registerWideningIntegerOperator(
           SUBTRACTFUNCTION,
           SqlStdOperatorTable.MINUS,
           PPLTypeChecker.wrapFamily((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC));
-      registerOperator(
+      registerWideningIntegerOperator(
           SUBTRACT,
           SqlStdOperatorTable.MINUS,
           PPLTypeChecker.wrapFamily((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC));
-      // Add DATETIME-DATETIME variant for timestamp binning support
+      // Add DATETIME-DATETIME variant for timestamp binning support (no integer widening)
       registerOperator(
           SUBTRACT,
           SqlStdOperatorTable.MINUS,
           PPLTypeChecker.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));
-      registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
-      registerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
+      registerWideningIntegerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
+      registerWideningIntegerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
       registerOperator(TRUNCATE, SqlStdOperatorTable.TRUNCATE);
       registerOperator(ASCII, SqlStdOperatorTable.ASCII);
       registerOperator(LENGTH, SqlStdOperatorTable.CHAR_LENGTH);
@@ -1125,8 +1273,9 @@ public class PPLFuncImpTable {
           SqlStdOperatorTable.CONCAT,
           PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
       // Register ADD (+ symbol) for numeric addition
-      // Replace type checker since PLUS also supports binary addition
-      registerOperator(
+      // Replace type checker since PLUS also supports binary addition. Widen narrow integer
+      // operands so the sum cannot overflow the (mis-)inferred SMALLINT/TINYINT result type.
+      registerWideningIntegerOperator(
           ADD,
           SqlStdOperatorTable.PLUS,
           PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
