@@ -30,6 +30,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.threadpool.ThreadPool;
 
 @ExtendWith(MockitoExtension.class)
@@ -65,7 +66,7 @@ class ThreadPoolExecutionDispatcherTest {
   void dispatchesToSlowPoolWhenScriptsDetected() {
     when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
         .thenReturn(true);
-    AbstractCalciteIndexScan scan = createMockScan(true);
+    AbstractCalciteIndexScan scan = createMockScanWithScripts();
 
     dispatcher.dispatch(scan, context, listener, engine);
 
@@ -78,7 +79,7 @@ class ThreadPoolExecutionDispatcherTest {
   void executesInlineWhenSlowPoolDisabled() {
     when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
         .thenReturn(false);
-    AbstractCalciteIndexScan scan = createMockScan(true);
+    AbstractCalciteIndexScan scan = createMockScanWithScripts();
 
     dispatcher.dispatch(scan, context, listener, engine);
 
@@ -99,7 +100,7 @@ class ThreadPoolExecutionDispatcherTest {
         .when(threadPool)
         .schedule(any(Runnable.class), any(TimeValue.class), any());
 
-    AbstractCalciteIndexScan scan = createMockScan(true);
+    AbstractCalciteIndexScan scan = createMockScanWithScripts();
     dispatcher.dispatch(scan, context, listener, engine);
 
     verify(engine).execute(scan, context, listener);
@@ -122,9 +123,13 @@ class ThreadPoolExecutionDispatcherTest {
     return node;
   }
 
-  private static AbstractCalciteIndexScan createMockScan(boolean scriptPushed) {
+  private static AbstractCalciteIndexScan createMockScanWithScripts() {
     AbstractCalciteIndexScan scan = mock(AbstractCalciteIndexScan.class);
-    when(scan.isScriptPushed()).thenReturn(scriptPushed);
+    PushDownContext ctx = mock(PushDownContext.class);
+    when(ctx.isScriptPushed()).thenReturn(true);
+    when(ctx.isSortExprPushed()).thenReturn(false);
+    when(ctx.getAggSpec()).thenReturn(null);
+    when(scan.getPushDownContext()).thenReturn(ctx);
     when(scan.getInputs()).thenReturn(List.of());
     doAnswer(invocation -> null).when(scan).childrenAccept(any(RelVisitor.class));
     return scan;
