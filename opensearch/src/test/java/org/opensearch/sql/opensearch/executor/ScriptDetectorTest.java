@@ -25,7 +25,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -94,10 +93,11 @@ class ScriptDetectorTest {
   }
 
   @Test
-  void detectsUdfInProject() {
-    SqlUserDefinedFunction udf = mock(SqlUserDefinedFunction.class);
+  void detectsExpensiveUdfInProject() {
+    SqlOperator rexExtractOp = mock(SqlOperator.class);
+    when(rexExtractOp.getName()).thenReturn("REX_EXTRACT");
     RexCall udfCall = mock(RexCall.class);
-    when(udfCall.getOperator()).thenReturn(udf);
+    when(udfCall.getOperator()).thenReturn(rexExtractOp);
     when(udfCall.getOperands()).thenReturn(List.of());
     RelDataType type = mock(RelDataType.class);
     when(udfCall.getType()).thenReturn(type);
@@ -114,6 +114,30 @@ class ScriptDetectorTest {
   }
 
   @Test
+  void ignoresCheapUdfInProject() throws Exception {
+    SqlOperator cheapOp = mock(SqlOperator.class);
+    when(cheapOp.getName()).thenReturn("NOW");
+    RexCall cheapCall = mock(RexCall.class);
+    when(cheapCall.getOperator()).thenReturn(cheapOp);
+    RelDataType type = mock(RelDataType.class);
+    when(cheapCall.getType()).thenReturn(type);
+    // RexVisitorImpl.visitCall accesses call.operands field directly, set it via reflection
+    java.lang.reflect.Field operandsField = RexCall.class.getDeclaredField("operands");
+    operandsField.setAccessible(true);
+    operandsField.set(cheapCall, com.google.common.collect.ImmutableList.of());
+    doAnswer(inv -> inv.<org.apache.calcite.rex.RexVisitor<?>>getArgument(0).visitCall(cheapCall))
+        .when(cheapCall)
+        .accept(any());
+
+    LogicalProject project = mock(LogicalProject.class);
+    when(project.getProjects()).thenReturn(List.of((RexNode) cheapCall));
+    when(project.getInputs()).thenReturn(List.of());
+    doAnswer(invocation -> null).when(project).childrenAccept(any(RelVisitor.class));
+
+    assertFalse(ScriptDetector.hasScripts(project));
+  }
+
+  @Test
   void detectsRexOverInProject() {
     RexOver rexOver = mock(RexOver.class);
     SqlOperator op = mock(SqlOperator.class);
@@ -121,9 +145,9 @@ class ScriptDetectorTest {
     when(rexOver.getOperands()).thenReturn(List.of());
     RelDataType type = mock(RelDataType.class);
     when(rexOver.getType()).thenReturn(type);
-    doAnswer(inv -> inv.<org.apache.calcite.rex.RexVisitor<?>>getArgument(0).visitCall(rexOver))
+    doAnswer(inv -> inv.<org.apache.calcite.rex.RexVisitor<?>>getArgument(0).visitOver(rexOver))
         .when(rexOver)
-        .accept(any());
+        .accept(any(org.apache.calcite.rex.RexVisitor.class));
 
     LogicalProject project = mock(LogicalProject.class);
     when(project.getProjects()).thenReturn(List.of(rexOver));

@@ -16,7 +16,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataQueryBase;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.util.Holder;
 import org.apache.commons.lang3.Strings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -249,10 +254,32 @@ public class RestUnifiedQueryAction {
                                     createQueryListener(queryType, profileCtx, closingListener));
                     if (isSlowPoolEnabled() && ScriptDetector.hasScripts(finalPlan)) {
                       LOG.debug("Query contains scripts, routing to slow worker pool");
+                      JaninoRelMetadataProvider metadataProvider =
+                          RelMetadataQueryBase.THREAD_PROVIDERS.get();
+                      long currentTime = Hook.CURRENT_TIME.get(-1L);
                       client
                           .threadPool()
                           .schedule(
-                              withCurrentContext(executeTask),
+                              withCurrentContext(
+                                  () -> {
+                                    if (metadataProvider != null) {
+                                      RelMetadataQueryBase.THREAD_PROVIDERS.set(metadataProvider);
+                                    }
+                                    Hook.Closeable hookHandle = null;
+                                    if (currentTime >= 0) {
+                                      hookHandle =
+                                          Hook.CURRENT_TIME.addThread(
+                                              (Consumer<Holder<Long>>) h -> h.set(currentTime));
+                                    }
+                                    try {
+                                      executeTask.run();
+                                    } finally {
+                                      if (hookHandle != null) {
+                                        hookHandle.close();
+                                      }
+                                      RelMetadataQueryBase.THREAD_PROVIDERS.remove();
+                                    }
+                                  }),
                               new TimeValue(0),
                               SQL_SLOW_WORKER_THREAD_POOL_NAME);
                     } else {

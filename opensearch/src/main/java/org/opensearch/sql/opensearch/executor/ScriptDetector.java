@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.executor;
 
+import java.util.Set;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.Join;
@@ -14,7 +15,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.context.AggSpec;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
@@ -28,6 +28,9 @@ import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
  * plans (after optimization, where PushDownContext tracks scripts).
  */
 public final class ScriptDetector {
+
+  private static final Set<String> EXPENSIVE_UDFS =
+      Set.of("REX_EXTRACT", "REX_EXTRACT_MULTI", "PARSE", "PATTERN_PARSER");
 
   private ScriptDetector() {}
 
@@ -93,12 +96,15 @@ public final class ScriptDetector {
     expr.accept(
         new RexVisitorImpl<Void>(true) {
           @Override
+          public Void visitOver(RexOver over) {
+            found[0] = true;
+            return null;
+          }
+
+          @Override
           public Void visitCall(RexCall call) {
-            if (call.getOperator() instanceof SqlUserDefinedFunction) {
-              found[0] = true;
-              return null;
-            }
-            if (call instanceof RexOver) {
+            String name = call.getOperator().getName();
+            if (name != null && EXPENSIVE_UDFS.contains(name)) {
               found[0] = true;
               return null;
             }

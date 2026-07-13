@@ -8,11 +8,16 @@ package org.opensearch.sql.opensearch.executor;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_SLOW_WORKER_THREAD_POOL_NAME;
 
 import java.util.Map;
+import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataQueryBase;
+import org.apache.calcite.runtime.Hook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -45,14 +50,30 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       LOG.debug("Query plan contains scripts, dispatching to slow worker pool");
       Map<String, String> ctx = ThreadContext.getImmutableContext();
       CancellableTask task = OpenSearchQueryManager.getCancellableTask();
+      @Nullable JaninoRelMetadataProvider metadataProvider =
+          RelMetadataQueryBase.THREAD_PROVIDERS.get();
+      long currentTime = Hook.CURRENT_TIME.get(-1L);
       threadPool.schedule(
           () -> {
             ThreadContext.putAll(ctx);
             OpenSearchQueryManager.setCancellableTask(task);
+            if (metadataProvider != null) {
+              RelMetadataQueryBase.THREAD_PROVIDERS.set(metadataProvider);
+            }
+            Hook.Closeable hookHandle = null;
+            if (currentTime >= 0) {
+              hookHandle =
+                  Hook.CURRENT_TIME.addThread(
+                      (Consumer<org.apache.calcite.util.Holder<Long>>) h -> h.set(currentTime));
+            }
             try {
               engine.execute(plan, context, listener);
             } finally {
+              if (hookHandle != null) {
+                hookHandle.close();
+              }
               OpenSearchQueryManager.clearCancellableTask();
+              RelMetadataQueryBase.THREAD_PROVIDERS.remove();
             }
           },
           new TimeValue(0),
