@@ -31,7 +31,7 @@ calcite:
                       EnumerableCalc(expr#0..18=[{inputs}], expr#19=[IS NOT NULL($t4)], expr#20=[IS NOT NULL($t7)], expr#21=[AND($t19, $t20)], proj#0..18=[{exprs}], $condition=[$t21])
                         CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
                 EnumerableSort(sort0=[$0], dir0=[ASC])
-                  EnumerableCalc(expr#0..2=[{inputs}], age=[$t0], $1=[$t2])
+                  EnumerableCalc(expr#0..2=[{inputs}], age=[$t0], _row_number_chart_=[$t2])
                     EnumerableWindow(window#0=[window(order by [1 DESC-nulls-last] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
                       EnumerableAggregate(group=[{0}], __grand_total__=[SUM($1)])
                         EnumerableCalc(expr#0..3=[{inputs}], expr#4=[SAFE_CAST($t1)], expr#5=[0], expr#6=[=($t3, $t5)], expr#7=[null:BIGINT], expr#8=[CASE($t6, $t7, $t2)], expr#9=[CAST($t8):DOUBLE], expr#10=[/($t9, $t3)], age=[$t4], avg(balance)=[$t10])
