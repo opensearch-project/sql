@@ -926,6 +926,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               + "] must not be a system (dot-prefixed) index");
     }
     RelNode child = context.relBuilder.build();
+    // Validate key_field names against the result schema: a missing/misspelled key field would
+    // otherwise encode identically for every row and collapse them into a single document.
+    if (!node.getKeyFields().isEmpty()) {
+      java.util.List<String> resultFields = child.getRowType().getFieldNames();
+      for (String keyField : node.getKeyFields()) {
+        if (!resultFields.contains(keyField)) {
+          throw new IllegalArgumentException(
+              "outputlookup key_field ["
+                  + keyField
+                  + "] is not a field of the result; available fields: "
+                  + resultFields);
+        }
+      }
+    }
     org.apache.calcite.plan.RelOptTable sourceTable = findSourceTable(child);
     if (sourceTable == null) {
       throw new IllegalArgumentException(

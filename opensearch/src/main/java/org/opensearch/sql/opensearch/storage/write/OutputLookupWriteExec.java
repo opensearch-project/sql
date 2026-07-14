@@ -30,6 +30,21 @@ import org.opensearch.transport.client.node.NodeClient;
  * overwrite, and delegation of row writes to {@link OpenSearchBulkWriter}. A lookup name is an
  * alias over a backing index; overwrite writes a fresh backing index and atomically repoints the
  * alias (readers always see a consistent lookup), while append writes into the current backing.
+ *
+ * <p>Concurrency and cleanup: the alias swap is a single atomic cluster-state update, so concurrent
+ * overwrites to the same lookup are last-writer-wins and never leave the alias inconsistent. An
+ * in-process write or swap failure deletes its own fresh backing. Backings orphaned by a
+ * coordinator crash between create and swap, or by a losing concurrent overwrite, are not reaped
+ * here; the {@code alias__ol_uuid} naming convention lets a periodic reaper collect any backing not
+ * currently aliased (a follow-up). Append writes the live backing directly and is therefore not
+ * atomic (at-least-once); a keyed append is idempotent on re-run, a plain append duplicates.
+ *
+ * <p>Permissions: all operations run under the calling user's security context (verified: a
+ * read-only user is denied). Beyond the read permissions on the source, the caller needs, on the
+ * destination lookup, {@code indices:data/write/bulk}, {@code indices:admin/create},
+ * {@code indices:admin/aliases}, and {@code indices:admin/delete}; the concrete-index guard also
+ * uses {@code cluster:monitor/state} (a narrower indices-level check could remove that cluster
+ * requirement in a follow-up).
  */
 public final class OutputLookupWriteExec {
 
@@ -90,6 +105,8 @@ public final class OutputLookupWriteExec {
       boolean append,
       Enumerator<@Nullable Object> input) {
 
+    ensureNotConcreteIndex(client, alias);
+
     List<Object[]> rows = new ArrayList<>();
     while (input.moveNext()) {
       if (max != null && rows.size() >= max) {
@@ -117,8 +134,18 @@ public final class OutputLookupWriteExec {
     }
     String backing = freshBacking(alias);
     createBacking(client, backing, mapping);
-    writeRows(client, backing, fields, mode, keyFields, rows);
-    swapAlias(client, alias, backing, oldBackings);
+    boolean swapped = false;
+    try {
+      writeRows(client, backing, fields, mode, keyFields, rows);
+      swapAlias(client, alias, backing, oldBackings);
+      swapped = true;
+    } finally {
+      // If the write or swap failed the fresh backing is never aliased, so delete it here rather
+      // than leaking an orphan. The old lookup is untouched (alias still points at it).
+      if (!swapped) {
+        deleteIndex(client, backing);
+      }
+    }
     for (String old : oldBackings) {
       deleteIndex(client, old);
     }
@@ -147,6 +174,31 @@ public final class OutputLookupWriteExec {
 
   private static void createBacking(NodeClient client, String backing, Map<String, Object> mapping) {
     client.admin().indices().create(new CreateIndexRequest(backing).mapping(mapping)).actionGet();
+  }
+
+  /**
+   * Refuse to write when the lookup name is already a concrete index (not an alias). Otherwise the
+   * alias swap would fail with a confusing "index and alias with the same name" error, and it
+   * guards the dest == source concrete-index case.
+   */
+  private static void ensureNotConcreteIndex(NodeClient client, String alias) {
+    org.opensearch.action.admin.cluster.state.ClusterStateResponse state =
+        client
+            .admin()
+            .cluster()
+            .state(
+                new org.opensearch.action.admin.cluster.state.ClusterStateRequest()
+                    .clear()
+                    .metadata(true)
+                    .indices(alias)
+                    .indicesOptions(org.opensearch.action.support.IndicesOptions.lenientExpandOpen()))
+            .actionGet();
+    if (state.getState().getMetadata().hasIndex(alias)) {
+      throw new IllegalArgumentException(
+          "outputlookup destination ["
+              + alias
+              + "] is an existing concrete index; it must be a lookup alias or not exist");
+    }
   }
 
   /** The single backing index the alias currently points at, or null if the alias does not exist. */

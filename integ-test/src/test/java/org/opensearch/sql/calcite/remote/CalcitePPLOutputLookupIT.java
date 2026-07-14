@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -16,6 +17,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
@@ -277,6 +279,73 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
             src, dest));
     refresh(dest);
     assertEquals("composite-key upsert: (us,h1) updated, (eu,h1) inserted, no duplicate", 3L, docCount(dest));
+  }
+
+  // P0 #1: a key_field that is not a result field is rejected (would otherwise collapse all rows
+  // into one document).
+  @Test
+  public void testMissingKeyFieldRejected() throws IOException {
+    String src = "olkc_src_kfbad";
+    seedSrc(src);
+    ResponseException ex =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | fields id | outputlookup key_field=does_not_exist %s",
+                        src, "olkc_dest_kfbad")));
+    assertTrue(
+        "error should name the offending key_field",
+        ex.getMessage().contains("key_field") && ex.getMessage().contains("does_not_exist"));
+  }
+
+  // P1 #5: refuse when the destination name is already a concrete index (covers dest == source).
+  @Test
+  public void testDestConcreteIndexRejected() throws IOException {
+    String src = "olkc_src_coll";
+    String dest = "olkc_dest_coll";
+    seedSrc(src);
+    client().performRequest(new Request("PUT", "/" + dest)); // pre-create dest as a plain index
+    ResponseException ex =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    String.format("source=%s | fields id | outputlookup %s", src, dest)));
+    assertTrue(
+        "error should flag the concrete-index collision",
+        ex.getMessage().contains("concrete index"));
+  }
+
+  // P1 #4: a failed overwrite (write throws mid-way) must not leave an orphan backing index.
+  @Test
+  public void testFailedOverwriteLeavesNoOrphanBacking() throws IOException {
+    String src = "olkc_src_orph";
+    String dest = "olkc_dest_orph";
+    Request createSrc = new Request("PUT", "/" + src);
+    createSrc.setJsonEntity(
+        "{\"mappings\":{\"properties\":{\"id\":{\"type\":\"integer\"},"
+            + "\"tags\":{\"type\":\"keyword\"}}}}");
+    client().performRequest(createSrc);
+    Request doc = new Request("PUT", "/" + src + "/_doc/1?refresh=true");
+    doc.setJsonEntity("{\"id\":1,\"tags\":[\"x\",\"y\",\"z\"]}");
+    client().performRequest(doc);
+
+    // Overwrite with a multivalue key_field: the id encoder throws mid-write, after the fresh
+    // backing was created but before the alias swap.
+    assertThrows(
+        ResponseException.class,
+        () ->
+            executeQuery(
+                String.format(
+                    "source=%s | fields id, tags | outputlookup append=false key_field=tags %s",
+                    src, dest)));
+
+    Response resp =
+        client().performRequest(new Request("GET", "/_cat/indices/" + dest + "__ol_*?format=json"));
+    JSONArray remaining = new JSONArray(new String(resp.getEntity().getContent().readAllBytes()));
+    assertEquals("failed overwrite must not leave an orphan backing", 0, remaining.length());
   }
 
   private void indexRegionHost(String index, int id, String region, String host, int val)
