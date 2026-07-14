@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.apache.calcite.rel.RelCollations;
@@ -298,6 +299,72 @@ class AggregateAnalyzerTest {
               assertTrue(outputFields.contains(k));
               assertInstanceOf(SingleValueParser.class, v);
             });
+  }
+
+  @Test
+  void analyze_groupBy_nonNullableGroupField() throws ExpressionNotAnalyzableException {
+    AggregateCall aggCall =
+        AggregateCall.create(
+            SqlStdOperatorTable.COUNT,
+            false,
+            false,
+            false,
+            ImmutableList.of(),
+            ImmutableList.of(),
+            -1,
+            null,
+            RelCollations.EMPTY,
+            typeFactory.createSqlType(SqlTypeName.INTEGER),
+            "cnt");
+    // Group by fields a (index 0) and b (index 1), with b marked as non-nullable
+    List<String> outputFields = List.of("a", "b", "cnt");
+    Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of(0, 1));
+    Project project = createMockProject(List.of(0, 1));
+    AggregateAnalyzer.AggregateBuilderHelper helper =
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, null, true, BUCKET_SIZE, Set.of(1));
+    Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
+        AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
+
+    // Field a (index 0) still has missing_bucket=true; field b (index 1) has missing_bucket=false
+    assertEquals(
+        "[{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":["
+            + "{\"a\":{\"terms\":{\"field\":\"a\",\"missing_bucket\":true,\"missing_order\":\"first\",\"order\":\"asc\"}}},"
+            + "{\"b\":{\"terms\":{\"field\":\"b.keyword\",\"missing_bucket\":false,\"order\":\"asc\"}}}]}}}]",
+        result.getLeft().toString());
+  }
+
+  @Test
+  void analyze_groupBy_allNonNullableGroupFields() throws ExpressionNotAnalyzableException {
+    AggregateCall aggCall =
+        AggregateCall.create(
+            SqlStdOperatorTable.COUNT,
+            false,
+            false,
+            false,
+            ImmutableList.of(),
+            ImmutableList.of(),
+            -1,
+            null,
+            RelCollations.EMPTY,
+            typeFactory.createSqlType(SqlTypeName.INTEGER),
+            "cnt");
+    // Group by fields a (index 0) and b (index 1), both marked as non-nullable
+    List<String> outputFields = List.of("a", "b", "cnt");
+    Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of(0, 1));
+    Project project = createMockProject(List.of(0, 1));
+    AggregateAnalyzer.AggregateBuilderHelper helper =
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, null, true, BUCKET_SIZE, Set.of(0, 1));
+    Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
+        AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
+
+    // Both fields have missing_bucket=false
+    assertEquals(
+        "[{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":["
+            + "{\"a\":{\"terms\":{\"field\":\"a\",\"missing_bucket\":false,\"order\":\"asc\"}}},"
+            + "{\"b\":{\"terms\":{\"field\":\"b.keyword\",\"missing_bucket\":false,\"order\":\"asc\"}}}]}}}]",
+        result.getLeft().toString());
   }
 
   @Test
