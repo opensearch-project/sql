@@ -23,10 +23,13 @@ public final class RestResponseRedactor {
   private static final Pattern EC2_HOST =
       Pattern.compile("\\bip-" + OCTET + "-" + OCTET + "-" + OCTET + "-" + OCTET + "\\b");
   private static final Pattern IPV6 =
-      Pattern.compile("([0-9a-f]{1,4}:){7}[0-9a-f]{1,4}", Pattern.CASE_INSENSITIVE);
+      Pattern.compile(
+          "([0-9a-f]{1,4}:){7}[0-9a-f]{1,4}"
+              + "|([0-9a-f]{1,4}(:[0-9a-f]{1,4})*)?::([0-9a-f]{1,4}(:[0-9a-f]{1,4})*)?",
+          Pattern.CASE_INSENSITIVE);
   private static final Pattern AZ_NAME =
       Pattern.compile(
-          "(us(-(gov|iso[a-z]?))?|af|ap|ca|cn|eu|sa|me|il)-(central|(north|south)?(east|west)?)-\\d[a-z]",
+          "\\b[a-z]{2}(-(gov|iso[a-z]?))?-(central|(north|south)?(east|west)?)-\\d[a-z]\\b",
           Pattern.CASE_INSENSITIVE);
 
   private record Mask(Pattern pattern, String replacement) {}

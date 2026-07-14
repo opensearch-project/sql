@@ -44,9 +44,11 @@ class RestResponseRedactorTest {
   }
 
   @Test
-  void doesNotMaskCompressedIpv6() {
-    assertEquals("::1", RestResponseRedactor.redact("::1"));
-    assertEquals("2001:db8::1", RestResponseRedactor.redact("2001:db8::1"));
+  void masksCompressedIpv6() {
+    assertEquals("x.x.x.x", RestResponseRedactor.redact("::1"));
+    assertEquals("x.x.x.x", RestResponseRedactor.redact("fe80::1"));
+    assertEquals("x.x.x.x", RestResponseRedactor.redact("2001:db8::1"));
+    assertEquals("x.x.x.x", RestResponseRedactor.redact("2001:db8::8a2e:370:7334"));
   }
 
   @Test
@@ -60,6 +62,8 @@ class RestResponseRedactorTest {
     assertEquals("xx-xxxxx-xx", RestResponseRedactor.redact("ap-southeast-2b"));
     assertEquals("xx-xxxxx-xx", RestResponseRedactor.redact("eu-west-1c"));
     assertEquals("xx-xxxxx-xx", RestResponseRedactor.redact("us-gov-west-1a"));
+    // Shape-based match covers regions not in any hard-coded list (e.g. mx-central-1).
+    assertEquals("xx-xxxxx-xx", RestResponseRedactor.redact("mx-central-1a"));
     assertEquals(
         "a xx-xxxxx-xx b xx-xxxxx-xx", RestResponseRedactor.redact("a us-east-1a b us-west-2b"));
   }
