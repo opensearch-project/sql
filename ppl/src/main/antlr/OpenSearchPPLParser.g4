@@ -98,6 +98,7 @@ commands
    | nomvCommand
    | graphLookupCommand
    | unionCommand
+   | outputlookupCommand
    ;
 
 commandName
@@ -318,6 +319,18 @@ sortCommand
 
 reverseCommand
    : REVERSE
+   ;
+
+// outputlookup: terminal write sink — materialize pipeline rows into a lookup index (overwrite by default).
+outputlookupCommand
+   : OUTPUTLOOKUP outputlookupOption* tableSourceClause
+   ;
+
+outputlookupOption
+   : APPEND EQUAL append = booleanLiteral
+   | OVERRIDE_IF_EMPTY EQUAL overrideIfEmpty = booleanLiteral
+   | KEY_FIELD EQUAL keyFields += qualifiedName (COMMA keyFields += qualifiedName)*
+   | MAX EQUAL max = integerLiteral
    ;
 
 chartCommand
@@ -1645,6 +1658,9 @@ searchableKeyWord
    | EXISTS
    | SOURCE
    | INDEX
+   | OUTPUTLOOKUP
+   | OVERRIDE_IF_EMPTY
+   | KEY_FIELD
    | A
    | ASC
    | DESC

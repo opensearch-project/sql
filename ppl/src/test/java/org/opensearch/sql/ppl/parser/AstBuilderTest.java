@@ -78,6 +78,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.GraphLookup;
+import org.opensearch.sql.ast.tree.OutputLookup;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
@@ -1938,5 +1939,58 @@ public class AstBuilderTest extends AstPlanningTestBase {
   @Test
   public void testJoinPrefixWithoutCriteriaKeywordIsSyntaxError() {
     assertThrows(SyntaxCheckException.class, () -> plan("source=t1 | inner join a t2"));
+  }
+
+  @Test
+  public void testOutputLookupCommandDefault() {
+    assertEqual("source=t | outputlookup hosts", new OutputLookup("hosts").attach(relation("t")));
+  }
+
+  @Test
+  public void testOutputLookupCommandWithOptions() {
+    OutputLookup expected = new OutputLookup("hosts");
+    expected.setAppend(true);
+    expected.setOverrideIfEmpty(false);
+    expected.setKeyFields(java.util.List.of("id"));
+    expected.setMax(1000);
+    assertEqual(
+        "source=t | outputlookup append=true override_if_empty=false key_field=id max=1000 hosts",
+        expected.attach(relation("t")));
+  }
+
+  @Test
+  public void testOutputLookupUsableAsIdentifier() {
+    // outputlookup must remain usable as a bare field name (keywordsCanBeId)
+    plan("source=t | fields outputlookup");
+  }
+
+  @Test
+  public void testOutputLookupKeyFieldDefaultsAppendTrue() {
+    // Splunk parity: key_field implies append=true by default.
+    OutputLookup expected = new OutputLookup("hosts");
+    expected.setKeyFields(java.util.List.of("id"));
+    expected.setAppend(true);
+    assertEqual(
+        "source=t | outputlookup key_field=id hosts", expected.attach(relation("t")));
+  }
+
+  @Test
+  public void testOutputLookupExplicitAppendOverridesKeyFieldDefault() {
+    // Explicit append=false wins over the key_field append-default.
+    OutputLookup expected = new OutputLookup("hosts");
+    expected.setKeyFields(java.util.List.of("id"));
+    expected.setAppend(false);
+    assertEqual(
+        "source=t | outputlookup append=false key_field=id hosts",
+        expected.attach(relation("t")));
+  }
+
+  @Test
+  public void testOutputLookupMultipleKeyFields() {
+    OutputLookup expected = new OutputLookup("hosts");
+    expected.setKeyFields(java.util.List.of("region", "host"));
+    expected.setAppend(true); // key_field implies append=true
+    assertEqual(
+        "source=t | outputlookup key_field=region,host hosts", expected.attach(relation("t")));
   }
 }

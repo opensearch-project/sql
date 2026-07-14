@@ -293,6 +293,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitOutputLookup(org.opensearch.sql.ast.tree.OutputLookup node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitTranspose(Transpose node, C context) {
     return visitChildren(node, context);
   }

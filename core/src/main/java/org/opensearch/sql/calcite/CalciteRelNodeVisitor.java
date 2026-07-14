@@ -915,6 +915,55 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
+  public RelNode visitOutputLookup(
+      org.opensearch.sql.ast.tree.OutputLookup node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    String indexName = node.getIndexName();
+    if (indexName.startsWith(".")) {
+      throw new IllegalArgumentException(
+          "outputlookup destination ["
+              + indexName
+              + "] must not be a system (dot-prefixed) index");
+    }
+    RelNode child = context.relBuilder.build();
+    org.apache.calcite.plan.RelOptTable sourceTable = findSourceTable(child);
+    if (sourceTable == null) {
+      throw new IllegalArgumentException(
+          "outputlookup requires an OpenSearch source scan in the pipeline");
+    }
+    org.apache.calcite.plan.RelOptSchema relOptSchema = context.relBuilder.getRelOptSchema();
+    if (!(relOptSchema instanceof org.apache.calcite.prepare.Prepare.CatalogReader)) {
+      throw new IllegalStateException("outputlookup could not obtain a Calcite catalog reader");
+    }
+    RelNode sink =
+        OutputLookupTableModify.create(
+            child,
+            sourceTable,
+            (org.apache.calcite.prepare.Prepare.CatalogReader) relOptSchema,
+            indexName,
+            node.isAppend(),
+            node.isOverrideIfEmpty(),
+            node.getKeyFields(),
+            node.getMax());
+    context.relBuilder.push(sink);
+    return context.relBuilder.peek();
+  }
+
+  /** Walk down to the first scan carrying a table, so the write rule can reach the client. */
+  private static org.apache.calcite.plan.RelOptTable findSourceTable(RelNode rel) {
+    if (rel.getTable() != null) {
+      return rel.getTable();
+    }
+    for (RelNode input : rel.getInputs()) {
+      org.apache.calcite.plan.RelOptTable found = findSourceTable(input);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  @Override
   public RelNode visitTranspose(
       org.opensearch.sql.ast.tree.Transpose node, CalcitePlanContext context) {
 
