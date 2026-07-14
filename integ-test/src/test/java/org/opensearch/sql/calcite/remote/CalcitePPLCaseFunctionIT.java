@@ -550,8 +550,9 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                         "source=%s | eval x = case(age > 30, 'old', age > 20, 1 else 0.0) | fields"
                             + " x",
                         TEST_INDEX_BANK)));
-    org.junit.Assert.assertTrue(
+    org.junit.Assert.assertEquals(
         "expected 400 status, got: " + e.getMessage(),
-        e.getMessage().contains("status line [HTTP/1.1 400"));
+        400,
+        e.getResponse().getStatusLine().getStatusCode());
   }
 }
