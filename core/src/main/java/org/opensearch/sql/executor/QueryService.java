@@ -187,23 +187,11 @@ public class QueryService {
 
                   analyzeMetric.set(System.nanoTime() - analyzeStart);
 
-                  // Wrap execution with EXECUTING stage tracking
-                  StageErrorHandler.executeStageVoid(
-                      QueryProcessingStage.EXECUTING,
-                      () -> executionEngine.execute(calcitePlan, context, listener),
-                      "while running the query");
+                  executeCalcitePlan(calcitePlan, context, listener);
                 },
                 QueryService.class);
           } catch (Throwable t) {
-            ArithmeticException overflow = findArithmeticOverflow(t);
-            if (overflow != null) {
-              // Checked arithmetic detected integer/long overflow. Surface as a client error
-              // instead of wrapping (silently) or falling back to the V2 engine.
-              propagateCalciteError(
-                  new NonFallbackCalciteException(
-                      "Arithmetic overflow: " + overflow.getMessage(), overflow),
-                  listener);
-            } else if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
+            if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
               executeWithLegacy(plan, queryType, listener, Optional.of(t));
             } else {
@@ -212,6 +200,25 @@ public class QueryService {
           }
         },
         settings);
+  }
+
+  private void executeCalcitePlan(
+      RelNode calcitePlan,
+      CalcitePlanContext context,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    try {
+      StageErrorHandler.executeStageVoid(
+          QueryProcessingStage.EXECUTING,
+          () -> executionEngine.execute(calcitePlan, context, listener),
+          "while running the query");
+    } catch (RuntimeException e) {
+      ArithmeticException overflow = findArithmeticOverflow(e);
+      if (overflow != null) {
+        throw new NonFallbackCalciteException(
+            "Arithmetic overflow: " + overflow.getMessage(), overflow);
+      }
+      throw e;
+    }
   }
 
   public void explainWithCalcite(
@@ -448,16 +455,7 @@ public class QueryService {
         });
   }
 
-  /**
-   * Checked arithmetic is applied to BIGINT ({@code long}) operands only. Narrower integer
-   * arithmetic (byte/short/int) is already widened to a type that cannot overflow before this
-   * rewrite runs — {@code PPLFuncImpTable} promotes byte/short to INT and any int/long operand to
-   * BIGINT for {@code +}/{@code -}/{@code *} — so the sole remaining overflow case that reaches the
-   * Calcite engine is {@code long} arithmetic, which has no wider integer type to widen into.
-   * Float/double/decimal follow IEEE 754 (or decimal semantics) and have no {@code CHECKED_*}
-   * runtime (e.g. {@code SqlFunctions.checkedMultiply(double, double)} does not exist), so they are
-   * left untouched. Require both the result and every operand to be BIGINT.
-   */
+  /** Returns whether the result and every operand are BIGINT. */
   private static boolean isCheckableIntegerArithmetic(RexCall call) {
     if (!isCheckableLongType(call.getType())) {
       return false;
