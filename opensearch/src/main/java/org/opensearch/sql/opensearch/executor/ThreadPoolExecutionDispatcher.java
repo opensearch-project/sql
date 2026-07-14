@@ -53,6 +53,9 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       @Nullable JaninoRelMetadataProvider metadataProvider =
           RelMetadataQueryBase.THREAD_PROVIDERS.get();
       long currentTime = Hook.CURRENT_TIME.get(-1L);
+      boolean stripNullCols = CalcitePlanContext.stripNullColumns.get();
+      String twUnitName = CalcitePlanContext.timewrapUnitName.get();
+      String twSeries = CalcitePlanContext.timewrapSeries.get();
       threadPool.schedule(
           () -> {
             ThreadContext.putAll(ctx);
@@ -66,14 +69,20 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
                   Hook.CURRENT_TIME.addThread(
                       (Consumer<org.apache.calcite.util.Holder<Long>>) h -> h.set(currentTime));
             }
+            CalcitePlanContext.stripNullColumns.set(stripNullCols);
+            CalcitePlanContext.timewrapUnitName.set(twUnitName);
+            CalcitePlanContext.timewrapSeries.set(twSeries);
             try {
               engine.execute(plan, context, listener);
+            } catch (Exception e) {
+              listener.onFailure(e);
             } finally {
               if (hookHandle != null) {
                 hookHandle.close();
               }
               OpenSearchQueryManager.clearCancellableTask();
               RelMetadataQueryBase.THREAD_PROVIDERS.remove();
+              CalcitePlanContext.clearTimewrapSignals();
             }
           },
           new TimeValue(0),

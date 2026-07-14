@@ -257,6 +257,9 @@ public class RestUnifiedQueryAction {
                       JaninoRelMetadataProvider metadataProvider =
                           RelMetadataQueryBase.THREAD_PROVIDERS.get();
                       long currentTime = Hook.CURRENT_TIME.get(-1L);
+                      boolean stripNullCols = CalcitePlanContext.stripNullColumns.get();
+                      String twUnitName = CalcitePlanContext.timewrapUnitName.get();
+                      String twSeries = CalcitePlanContext.timewrapSeries.get();
                       client
                           .threadPool()
                           .schedule(
@@ -271,13 +274,19 @@ public class RestUnifiedQueryAction {
                                           Hook.CURRENT_TIME.addThread(
                                               (Consumer<Holder<Long>>) h -> h.set(currentTime));
                                     }
+                                    CalcitePlanContext.stripNullColumns.set(stripNullCols);
+                                    CalcitePlanContext.timewrapUnitName.set(twUnitName);
+                                    CalcitePlanContext.timewrapSeries.set(twSeries);
                                     try {
                                       executeTask.run();
+                                    } catch (Exception e) {
+                                      closingListener.onFailure(e);
                                     } finally {
                                       if (hookHandle != null) {
                                         hookHandle.close();
                                       }
                                       RelMetadataQueryBase.THREAD_PROVIDERS.remove();
+                                      CalcitePlanContext.clearTimewrapSignals();
                                     }
                                   }),
                               new TimeValue(0),
