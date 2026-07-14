@@ -52,6 +52,7 @@ buildscript {
         // TODO: Migrate following to Gradle version catalog || Read from OpenSearch BOM in the future.
         // See: https://github.com/opensearch-project/sql/issues/3257
         aws_java_sdk_version = "1.12.651"
+        calcite_version = "1.42.0"
         guava_version = "33.3.0-jre"
         resilience4j_version = "1.5.0"
         hamcrest_version = "2.1"
