@@ -332,6 +332,27 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMakeResults() throws IOException {
+    JSONObject result;
+    try {
+      result = executeQuery("makeresults count=2");
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+
+    if (isCalciteEnabled()) {
+      assertThat(result.getJSONArray("datarows").length(), equalTo(2));
+    } else {
+      JSONObject error = result.getJSONObject("error");
+      assertThat(
+          error.getString("details"),
+          containsString(
+              "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
+      assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
+    }
+  }
+
+  @Test
   public void testMvExpandCommandBasicExpansion() throws IOException {
     JSONObject result;
     try {

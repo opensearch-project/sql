@@ -9,20 +9,43 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.data.type.ExprCoreType;
 
 /** AST node class for a sequence of literal values. */
 @ToString
 @Getter
 @EqualsAndHashCode(callSuper = false)
-@RequiredArgsConstructor
 public class Values extends UnresolvedPlan {
 
   private final List<List<Literal>> values;
+
+  /**
+   * Optional explicit column names (e.g. from {@code makeresults data=}). When {@code null},
+   * columns are positional/auto-named.
+   */
+  private final List<String> columnNames;
+
+  /**
+   * Optional explicit column types (e.g. from {@code makeresults data=}), authoritative for the
+   * schema. Required to type a zero-row relation (header-only CSV / empty JSON array), where there
+   * are no {@link Literal}s to infer from. When {@code null}, types are inferred from the literals.
+   */
+  private final List<ExprCoreType> columnTypes;
+
+  public Values(List<List<Literal>> values) {
+    this(values, null, null);
+  }
+
+  public Values(
+      List<List<Literal>> values, List<String> columnNames, List<ExprCoreType> columnTypes) {
+    this.values = values;
+    this.columnNames = columnNames;
+    this.columnTypes = columnTypes;
+  }
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {

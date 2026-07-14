@@ -37,6 +37,11 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMakeResultsCommand() {
+    assertEquals("makeresults", anonymize("makeresults count=5"));
+  }
+
+  @Test
   public void testTableFunctionCommand() {
     assertEquals(
         "source=prometheus.query_range(***,***,***,***)",

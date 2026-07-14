@@ -562,6 +562,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitMakeResults(
+      org.opensearch.sql.ast.tree.MakeResults node, AnalysisContext context) {
+    throw getOnlyForCalciteException("makeresults");
+  }
+
+  @Override
   public LogicalPlan visitMvExpand(MvExpand node, AnalysisContext context) {
     throw getOnlyForCalciteException("mvexpand");
   }
