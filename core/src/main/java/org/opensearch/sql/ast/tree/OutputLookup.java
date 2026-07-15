@@ -17,7 +17,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 
 /**
  * AST node for the {@code outputlookup} command: a terminal write sink that materializes pipeline
- * rows into a lookup-backing index. Overwrite-by-default (unlike {@code collect}, which appends).
+ * rows into a lookup index. Overwrite-by-default (set {@code append=true} to append instead).
  * See the outputlookup PPL design.
  */
 @Getter
@@ -30,13 +30,13 @@ public class OutputLookup extends UnresolvedPlan {
 
   private UnresolvedPlan child;
 
-  /** Destination lookup name (backing index name in the POC substrate). */
+  /** Destination lookup name (a plain index). */
   private final String indexName;
 
   /** false (default) overwrites the destination; true appends to it. */
   private boolean append = false;
 
-  /** true (default, Splunk parity) clears the destination on empty results; false keeps it. */
+  /** true (default) clears the destination on empty results; false keeps it. */
   private boolean overrideIfEmpty = true;
 
   /** Fields whose values form the document {@code _id} for upsert; empty means auto-generated id. */

@@ -21,11 +21,11 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
- * End-to-end tests for the clean PPL {@code outputlookup} command on the internal integ-test
- * cluster. A lookup is an alias over a backing index; overwrite writes a fresh backing and
- * atomically repoints the alias, append writes the current backing, and the command returns a
- * single {@code rows_written} count (terminal, not pass-through). Reads/asserts go through REST so
- * they exercise the alias.
+ * End-to-end tests for the PPL {@code outputlookup} command (substrate C2: one plain index per
+ * lookup, weak/eventual overwrite) on the internal integ-test cluster. A lookup {@code <name>} is a
+ * plain index; overwrite deletes and recreates it from the current result, append bulk-writes into
+ * it, and the command returns a single {@code rows_written} count (terminal, not pass-through). A
+ * name that is a #11303 filtered alias is migrated onto a dedicated plain index on overwrite.
  */
 public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
 
@@ -86,6 +86,7 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     refresh(dest);
     assertEquals(3L, docCount(dest));
     assertTrue("name present after first write", mappingJson(dest).contains("\"name\""));
+    assertTrue("lookup marker set on create", mappingJson(dest).contains("_meta"));
 
     JSONObject r2 =
         executeQuery(
@@ -300,29 +301,62 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
         ex.getMessage().contains("key_field") && ex.getMessage().contains("does_not_exist"));
   }
 
-  // P1 #5: refuse when the destination name is already a concrete index (covers dest == source).
+  // #1 marker guard: overwrite refuses a name that is an existing NON-lookup index (no
+  // `_meta.lookup` marker), so it never clobbers unrelated data. Also covers dest == source in shape.
   @Test
-  public void testDestConcreteIndexRejected() throws IOException {
+  public void testOverwriteRefusesForeignPlainIndex() throws IOException {
     String src = "olkc_src_coll";
     String dest = "olkc_dest_coll";
     seedSrc(src);
-    client().performRequest(new Request("PUT", "/" + dest)); // pre-create dest as a plain index
+    // Pre-create dest as a plain, unmarked index with unrelated content.
+    Request create = new Request("PUT", "/" + dest);
+    create.setJsonEntity("{\"mappings\":{\"properties\":{\"other\":{\"type\":\"keyword\"}}}}");
+    client().performRequest(create);
+    Request doc = new Request("PUT", "/" + dest + "/_doc/x?refresh=true");
+    doc.setJsonEntity("{\"other\":\"keep\"}");
+    client().performRequest(doc);
+
+    ResponseException ex =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(String.format("source=%s | fields id | outputlookup %s", src, dest)));
+    assertTrue(
+        "error should flag the non-lookup index", ex.getMessage().contains("non-lookup index"));
+    refresh(dest);
+    assertEquals("foreign index left untouched", 1L, docCount(dest));
+    assertTrue("foreign content preserved", mappingJson(dest).contains("\"other\""));
+  }
+
+  // #1 marker guard: append likewise refuses a non-lookup index.
+  @Test
+  public void testAppendRefusesForeignPlainIndex() throws IOException {
+    String src = "olkc_src_apf";
+    String dest = "olkc_dest_apf";
+    seedSrc(src);
+    Request create = new Request("PUT", "/" + dest);
+    create.setJsonEntity("{\"mappings\":{\"properties\":{\"other\":{\"type\":\"keyword\"}}}}");
+    client().performRequest(create);
+    Request doc = new Request("PUT", "/" + dest + "/_doc/x?refresh=true");
+    doc.setJsonEntity("{\"other\":\"keep\"}");
+    client().performRequest(doc);
+
     ResponseException ex =
         assertThrows(
             ResponseException.class,
             () ->
                 executeQuery(
-                    String.format("source=%s | fields id | outputlookup %s", src, dest)));
-    assertTrue(
-        "error should flag the concrete-index collision",
-        ex.getMessage().contains("concrete index"));
+                    String.format("source=%s | fields id | outputlookup append=true %s", src, dest)));
+    assertTrue("append refused on non-lookup index", ex.getMessage().contains("non-lookup index"));
+    refresh(dest);
+    assertEquals("foreign index left untouched", 1L, docCount(dest));
   }
 
-  // P1 #4: a failed overwrite (write throws mid-way) must not leave an orphan backing index.
+  // A multivalue field cannot be a key_field: it has no deterministic single-value _id encoding, so
+  // it is rejected (F3). (Under C2 there is no backing index / orphan concept to assert.)
   @Test
-  public void testFailedOverwriteLeavesNoOrphanBacking() throws IOException {
+  public void testMultivalueKeyFieldRejected() throws IOException {
     String src = "olkc_src_orph";
-    String dest = "olkc_dest_orph";
     Request createSrc = new Request("PUT", "/" + src);
     createSrc.setJsonEntity(
         "{\"mappings\":{\"properties\":{\"id\":{\"type\":\"integer\"},"
@@ -332,20 +366,13 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     doc.setJsonEntity("{\"id\":1,\"tags\":[\"x\",\"y\",\"z\"]}");
     client().performRequest(doc);
 
-    // Overwrite with a multivalue key_field: the id encoder throws mid-write, after the fresh
-    // backing was created but before the alias swap.
     assertThrows(
         ResponseException.class,
         () ->
             executeQuery(
                 String.format(
-                    "source=%s | fields id, tags | outputlookup append=false key_field=tags %s",
-                    src, dest)));
-
-    Response resp =
-        client().performRequest(new Request("GET", "/_cat/indices/" + dest + "__ol_*?format=json"));
-    JSONArray remaining = new JSONArray(new String(resp.getEntity().getContent().readAllBytes()));
-    assertEquals("failed overwrite must not leave an orphan backing", 0, remaining.length());
+                    "source=%s | fields id, tags | outputlookup key_field=tags %s",
+                    src, "olkc_dest_orph")));
   }
 
   // Backward-compat with the Dashboards data importer (#11303): a lookup created there is a
@@ -399,14 +426,19 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertEquals("shared importer index must NOT be deleted", 1, sharedIdx.length());
     assertEquals("other lookup B on the shared index is intact", 2L, docCount(aliasB));
 
-    // Lookup A is migrated: alias now points at a dedicated backing holding the 3 new rows.
-    Response backings =
-        client()
-            .performRequest(new Request("GET", "/_cat/indices/" + aliasA + "__ol_*?format=json"));
-    JSONArray dedicated =
-        new JSONArray(new String(backings.getEntity().getContent().readAllBytes()));
-    assertEquals("lookup A migrated onto its own dedicated backing", 1, dedicated.length());
-    assertEquals("alias A now resolves to the migrated 3-row result", 3L, docCount(aliasA));
+    // Lookup A is migrated: the name is now a dedicated PLAIN INDEX (no alias, no __ol_ backing)
+    // holding the 3 new rows. _cat/indices/<name> returns exactly that index (an alias would
+    // instead resolve to a differently-named backing).
+    Response migrated =
+        client().performRequest(new Request("GET", "/_cat/indices/" + aliasA + "?format=json"));
+    JSONArray migratedIdx =
+        new JSONArray(new String(migrated.getEntity().getContent().readAllBytes()));
+    assertEquals("lookup A migrated onto a single dedicated index", 1, migratedIdx.length());
+    assertEquals(
+        "migrated name is now a concrete index (not an alias over a backing)",
+        aliasA,
+        migratedIdx.getJSONObject(0).getString("index"));
+    assertEquals("name A now resolves to the migrated 3-row result", 3L, docCount(aliasA));
   }
 
   // Append onto a shared/filtered (data-importer) lookup is refused: writing our rows there would

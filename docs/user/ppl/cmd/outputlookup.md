@@ -3,7 +3,7 @@
 
 The `outputlookup` command is a terminal write sink: it materializes the current pipeline result into a lookup index and returns a single `rows_written` count. Use it to build or refresh a lookup (dimension) dataset from a search, which can then be read back with `source=<name>` or enriched into other searches with the `lookup` command.
 
-A lookup name refers to an alias over a private backing index. Overwrite writes a fresh backing index and atomically repoints the alias, so readers of the lookup always see a complete, consistent dataset — never a half-written state.
+A lookup name refers to a plain index. Overwrite replaces that index with the current result (its schema is replaced each run); append adds the result to it. Writes are eventually consistent: a reader during an overwrite may briefly see the lookup being rebuilt.
 
 ## Syntax
 
@@ -32,8 +32,8 @@ The `outputlookup` command supports the following parameters.
 
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
-| `<name>` | Required | The lookup name to write to. Resolves to an alias over a backing index. It must be a lookup alias or not yet exist; an existing concrete index (including the source index itself) is rejected. |
-| `append` | Optional | When `false` (default), overwrites the lookup with the result. When `true`, appends the result to the existing lookup. Because OpenSearch is schemaless, appended rows may introduce new fields (unlike Splunk, which freezes the schema). Default is `false`. |
+| `<name>` | Required | The lookup name to write to. It is a plain index, created on demand if it does not exist and replaced on overwrite. Lookup indices are tagged with a `_meta.lookup` marker; if the name is an existing **non-lookup** index (no marker), the command refuses rather than overwriting it — delete it first to reuse the name. If the name is a filtered alias created by the OpenSearch Dashboards data importer, overwrite migrates it onto a dedicated plain index (the shared index is never deleted). |
+| `append` | Optional | When `false` (default), overwrites the lookup with the result. When `true`, appends the result to the existing lookup. Because OpenSearch is schemaless, appended rows may introduce new fields. Default is `false`. |
 | `override_if_empty` | Optional | When `true` (default), an empty result clears the existing lookup. When `false`, an empty result leaves the existing lookup intact. Default is `true`. |
 | `key_field` | Optional | One or more fields (comma-separated) used as the upsert key. Rows are written by a deterministic `_id` derived from the key values, so re-running the same command updates matching rows in place instead of creating duplicates. Setting `key_field` implies `append=true`. Every field listed must be a field of the result; a multivalue key value is rejected. |
 | `max` | Optional | Caps the number of rows written. |
@@ -89,6 +89,7 @@ source = logs
 
 ## Limitations
 
-- `outputlookup` is a terminal command: it returns a `rows_written` count rather than forwarding the input rows (a deliberate divergence from Splunk, which forwards the events).
-- Splunk file-location and CSV-encoding options (`createinapp`, `.csv.gz`, `output_format`) are not supported; the destination is always a lookup index alias.
-- The write executes under the caller's security context. The caller needs write, create-index, alias, and delete privileges on the destination.
+- `outputlookup` is a terminal command: it returns a `rows_written` count rather than forwarding the input rows.
+- The destination is always a lookup index; there is no file output target.
+- Overwrite is eventually consistent: it deletes and recreates the index, so a concurrent read during the rebuild may briefly see the lookup absent, and an interrupted overwrite may leave it partially written.
+- The write executes under the caller's security context. The caller needs write, create-index, delete, and get privileges on the destination (and alias privileges only when migrating a data-importer lookup); no cluster-level privilege is required.

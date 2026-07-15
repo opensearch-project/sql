@@ -25,7 +25,7 @@ import org.opensearch.transport.client.node.NodeClient;
 /**
  * Batched, retrying bulk writer. Pure write-side: it consumes rows, maps them to documents, and
  * indexes them via the native bulk path. It owns no read, PIT, or index-lifecycle concern (create,
- * replace, alias-swap all live in the calling command).
+ * replace, delete all live in the calling command).
  *
  * <p>It retries only backpressure (429) items under exponential backoff. Any non-429 item failure,
  * or a 429 that survives the retry budget, is raised as a {@link BulkWriteException} rather than
