@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.PAGINATION_CURSOR;
+
 import com.carrotsearch.randomizedtesting.annotations.Name;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import java.io.IOException;
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Test pagination with `WHERE` clause using a parametrized test. See constructor {@link
@@ -26,6 +29,7 @@ import org.opensearch.sql.legacy.TestsConstants;
  * #STATEMENT_TO_NUM_OF_PAGES} to see how these parameters are generated.
  */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
+@RequiresCapability(PAGINATION_CURSOR)
 public class PaginationFilterIT extends SQLIntegTestCase {
 
   /**

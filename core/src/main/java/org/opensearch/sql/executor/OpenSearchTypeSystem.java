@@ -28,13 +28,9 @@ public class OpenSearchTypeSystem extends RelDataTypeSystemImpl {
   private OpenSearchTypeSystem() {}
 
   @Override
-  public int getMaxNumericPrecision() {
-    return MAX_PRECISION;
-  }
-
-  @Override
   public int getMaxPrecision(SqlTypeName typeName) {
     return switch (typeName) {
+      case DECIMAL -> MAX_PRECISION;
       case TIME,
           TIME_WITH_LOCAL_TIME_ZONE,
           TIME_TZ,
@@ -47,8 +43,11 @@ public class OpenSearchTypeSystem extends RelDataTypeSystemImpl {
   }
 
   @Override
-  public int getMaxNumericScale() {
-    return MAX_SCALE;
+  public int getMaxScale(SqlTypeName typeName) {
+    return switch (typeName) {
+      case DECIMAL -> MAX_SCALE;
+      default -> super.getMaxScale(typeName);
+    };
   }
 
   @Override

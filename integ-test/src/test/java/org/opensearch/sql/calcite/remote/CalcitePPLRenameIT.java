@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
+import static org.opensearch.sql.util.Capability.WILDCARD_COLUMN_ORDER;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -21,6 +22,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLRenameIT extends PPLIntegTestCase {
 
@@ -204,6 +206,9 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = WILDCARD_COLUMN_ORDER,
+      note = "rename * returns columns in a different order on the AE route.")
   public void testRenameFullWildcardExcludesMetadataFields() throws IOException {
     JSONObject result =
         executeQuery(String.format("source = %s | rename * as old_*", TEST_INDEX_STATE_COUNTRY));

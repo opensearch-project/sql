@@ -502,11 +502,11 @@ testClusters.analyticsEngineSecurityIT {
     plugin(getJobSchedulerPlugin())
     plugin(getArrowBasePlugin())
     plugin(getArrowFlightRpcPlugin())
+    plugin(getCompositeEnginePlugin())
     plugin(getAnalyticsEnginePlugin())
     plugin(getAnalyticsBackendLucenePlugin())
     plugin(getAnalyticsBackendDatafusionPlugin())
     plugin(getParquetDataFormatPlugin())
-    plugin(getCompositeEnginePlugin())
     plugin ":opensearch-sql-plugin"
     // Arrow Flight / streaming transport requirements
     jvmArgs '--add-opens=java.base/java.nio=ALL-UNNAMED'
@@ -1080,6 +1080,12 @@ task integTestRemote(type: RestIntegTestTask) {
             excludeTestsMatching '*SystemFunctionIT.typeof_opensearch_types'
             // alias_index_mapping: alias_col is type=alias; query is `where alias_col > 1`.
             excludeTestsMatching '*DataTypeIT.test_alias_data_type'
+            // scaled_float reports bigint (not double); string->numeric coerces to null (not 0);
+            // cross-index incompatible field types are rejected; boolean-from-string test DELETEs.
+            excludeTestsMatching '*DataTypeIT.test_numeric_data_types'
+            excludeTestsMatching '*DataTypeIT.testNumericFieldFromString'
+            excludeTestsMatching '*DataTypeIT.testBooleanFieldFromNumberAcrossWildcardIndices'
+            excludeTestsMatching '*DataTypeIT.testBooleanFieldFromString'
             // CalciteAliasFieldAggregationIT: raw-PUT alias index can't be created on the AE route
             // and every test queries alias fields directly — whole class doomed.
             excludeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteAliasFieldAggregationIT'
@@ -1204,6 +1210,138 @@ task integTestRemote(type: RestIntegTestTask) {
             // === Excludes: CalcitePPLAppendPipeCommandIT route divergence ===
             // appendpipe drops the main pipeline's rows on AE (subpipe filter applied in place).
             excludeTestsMatching '*CalcitePPLAppendPipeCommandIT.testDoubleAppendPipeWithFilter'
+
+            // === Excludes: CalciteArrayFunctionIT route divergences ===
+            // Higher-order array functions (transform/mvmap, reduce, filter, exists, forall) take a
+            // PPL lambda the AE backends can't execute ('No backend supports scalar function [...]').
+            excludeTestsMatching '*CalciteArrayFunctionIT.testForAll'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testExists'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testFilter'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testTransform'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testTransformForTwoInput'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testTransformForWithDouble'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testTransformForWithUDF'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testReduce'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testReduce2'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testReduce3'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testReduceWithUDF'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testMvmap'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testMvmapWithAddition'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testMvmapWithEvalFieldReference'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testMvmapWithNestedFunction'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testMvmapWithOtherFieldReference'
+
+            // === Excludes: CalcitePPLMapPathIT route divergences ===
+            // mvcombine -> ARRAY_AGG (no such AggregateFunction enum); addtotals -> DataFusion join panic.
+            excludeTestsMatching '*CalcitePPLMapPathIT.testMvcombineOnMapPath'
+            excludeTestsMatching '*CalcitePPLMapPathIT.testAddtotalsOnMapPath'
+
+            // === Excludes: CalcitePPLBasicIT route divergence ===
+            // REGEXP filter throws a backend NullPointerException on the AE route.
+            excludeTestsMatching '*CalcitePPLBasicIT.testRegexpFilter'
+
+            // === Excludes: percentile is approximate on AE (DataFusion) but exact on v2/Calcite ===
+            excludeTestsMatching '*StatsCommandIT.testStatsPercentileWithNull'
+            excludeTestsMatching '*StatsCommandIT.testStatsPercentileByNullValue'
+            excludeTestsMatching '*StatsCommandIT.testStatsPercentileByNullValueNonNullBucket'
+            excludeTestsMatching '*StatsCommandIT.testStatsPercentileBySpan'
+            excludeTestsMatching '*CalcitePPLAggregationIT.testPercentile'
+            excludeTestsMatching '*CalcitePPLAggregationIT.testPercentileShortcutsFloatingPoint'
+
+            // === Excludes: span() time-field bucketing differs on the AE route ===
+            excludeTestsMatching '*StatsCommandIT.testStatsBySpanTimeWithNullBucket'
+            excludeTestsMatching '*CalciteChartCommandIT.testChartMaxValueByTimestampSpanDayAndWeek'
+
+            // === Excludes: float/half_float arithmetic keeps 32-bit precision on AE ===
+            excludeTestsMatching '*CalcitePPLBuiltinFunctionIT.testDivide'
+            excludeTestsMatching '*CalcitePPLBuiltinFunctionIT.testModFloatAndNegative'
+            excludeTestsMatching '*CalcitePPLBuiltinFunctionIT.testModShouldReturnWiderTypes'
+
+            // === Excludes: date_format/strftime render some tokens differently on AE ===
+            excludeTestsMatching '*DateTimeFunctionIT.testDateFormat'
+            excludeTestsMatching '*CalciteDateTimeFunctionIT.testStrftimeWithDateFields'
+
+            // === Excludes: unix_timestamp drops sub-second precision on AE ===
+            excludeTestsMatching '*DateTimeFunctionIT.testUnixTimestampWithTimestampString'
+
+            // === Excludes: json_set/json_delete with a $-prefixed path is a no-op on AE ===
+            excludeTestsMatching '*CalcitePPLJsonBuiltinFunctionIT.testJsonSetWithDollarPrefixedPath'
+            excludeTestsMatching '*CalcitePPLJsonBuiltinFunctionIT.testJsonDeleteWithDollarPrefixedPath'
+
+            // === Excludes: dedup surviving-row selection is non-deterministic on AE ===
+            excludeTestsMatching '*CalcitePPLDedupIT.testDedupComplex'
+            excludeTestsMatching '*CalcitePPLDedupIT.testDedupExpr'
+            excludeTestsMatching '*CalcitePPLDedupIT.testConsecutiveImplicitFallbackV2'
+
+            // === Excludes: same-index union conflates on AE (delegated predicate leak) ===
+            excludeTestsMatching '*CalciteUnionCommandIT.testUnionThreeSubsearches'
+            excludeTestsMatching '*CalciteUnionCommandIT.testUnionMidPipeline_SingleExplicitDataset'
+
+            // === Excludes: rename * returns columns in a different order on AE ===
+            excludeTestsMatching '*CalcitePPLRenameIT.testRenameFullWildcardExcludesMetadataFields'
+
+            // === Excludes: otel_logs multi-value field can't load into the parquet store ===
+            excludeTestsMatching '*CalciteChartCommandIT.testChartLimit0WithUseOther'
+            excludeTestsMatching '*CalciteChartCommandIT.testChartLimitTopWithUseOther'
+            excludeTestsMatching '*CalciteChartCommandIT.testChartLimitBottomWithUseOther'
+            excludeTestsMatching '*CalciteChartCommandIT.testChartLimitTopWithMinAgg'
+
+            // === Excludes: streamstats carries all columns through; AE reorders them ===
+            excludeTestsMatching '*CalciteReverseCommandIT.testStreamstatsWithReverse'
+            excludeTestsMatching '*CalciteReverseCommandIT.testStreamstatsByWithReverse'
+            excludeTestsMatching '*CalciteReverseCommandIT.testStreamstatsWindowWithReverse'
+            excludeTestsMatching '*CalciteReverseCommandIT.testStreamstatsWithSortThenReverse'
+
+            // === Excludes: invalid-datetime error-message shape differs on AE ===
+            excludeTestsMatching '*CalcitePPLBuiltinDatetimeFunctionInvalidIT.testDAYNAMEInvalid'
+            excludeTestsMatching '*CalcitePPLBuiltinDatetimeFunctionInvalidIT.testMONTHNAMEInvalid'
+
+            // === Excludes: seeded RAND(seed) unsupported on AE ===
+            excludeTestsMatching '*MathematicalFunctionIT.testRand'
+
+            // === Excludes: IP UDT is materialized as BINARY/byte[] on AE ===
+            excludeTestsMatching '*CastFunctionIT.testCastToIP'
+            excludeTestsMatching '*CalcitePPLAppendCommandIT.testAppendSchemaMergeWithIpUDT'
+
+            // === Excludes: append head-without-stable-sort + TIME-widened-to-TIMESTAMP signature ===
+            excludeTestsMatching '*CalcitePPLAppendCommandIT.testAppendWithMergedColumn'
+            excludeTestsMatching '*CalcitePPLBuiltinFunctionsNullIT.testTimediffNull'
+
+            // === Excludes: consecutive dedup has no working V2 fallback on AE ===
+            excludeTestsMatching '*CalciteDedupCommandIT.testConsecutiveDedup'
+
+            // === Excludes: binary field stripped at load; values() ignores configured limit ===
+            excludeTestsMatching '*CalciteMultiValueStatsIT.testListFunctionWithBinary'
+            excludeTestsMatching '*CalciteMultiValueStatsIT.testValuesFunctionRespectsConfiguredLimit'
+
+            // === Excludes: _id/_index metadata not exposed; cross-index object-leaf merge ===
+            excludeTestsMatching '*FieldsCommandIT.testMetadataFields'
+            excludeTestsMatching '*FieldsCommandIT.testMergedObjectFields'
+            // OOS: asserts the Calcite-disabled error, but the AE route is always Calcite-enabled.
+            excludeTestsMatching '*FieldsCommandIT.testEnhancedFieldsWhenCalciteDisabled'
+
+            // === Excludes: head N without a stable sort returns a non-deterministic row set ===
+            excludeTestsMatching '*SortCommandIT.testHeadThenSort'
+
+            // === Excludes: like() doesn't rewrite to .keyword in the explain plan on AE ===
+            excludeTestsMatching '*LikeQueryIT.test_convert_field_text_to_keyword'
+
+            // === Excludes: asserts a Lucene pushdown fragment absent on the AE route ===
+            excludeTestsMatching '*CalciteSortCommandIT.testPushdownSortCastToDoubleExpression'
+
+            // === Excludes: CalciteStreamstatsCommandIT route divergences ===
+            // Each test also carries an in-test @RequiresCapability(...) recording the reason.
+            //  - CHAINED_STREAMSTATS_BY: chaining two streamstats where an upstream stage has `by`
+            //    emits two ROW_NUMBER() sequence columns the Substrait converter names identically,
+            //    so the stacked schema has a duplicate/ambiguous field name (500) or, for chained
+            //    window streamstats, non-deterministic values. Fails single- and multi-shard.
+            excludeTestsMatching '*CalciteStreamstatsCommandIT.testMultipleStreamstats'
+            excludeTestsMatching '*CalciteStreamstatsCommandIT.testMultipleStreamstatsWithWindow'
+            excludeTestsMatching '*CalciteStreamstatsCommandIT.testMultipleStreamstatsWithNull1'
+            excludeTestsMatching '*CalciteStreamstatsCommandIT.testMultipleStreamstatsWithEval'
+            //  - STREAMSTATS_SORT_NOT_HONORED: streamstats computes its window over the backend scan
+            //    order, ignoring a preceding `| sort` (the OVER clause has no explicit ORDER BY).
+            excludeTestsMatching '*CalciteStreamstatsCommandIT.testStreamstatsAndSort'
         }
     }
 

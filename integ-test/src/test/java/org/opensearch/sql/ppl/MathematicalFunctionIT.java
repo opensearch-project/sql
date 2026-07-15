@@ -7,6 +7,8 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
+import static org.opensearch.sql.util.Capability.FUNCTION_TYPE_COMPAT;
+import static org.opensearch.sql.util.Capability.RAND_SEED_UNSUPPORTED;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -17,6 +19,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySome;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class MathematicalFunctionIT extends PPLIntegTestCase {
 
@@ -69,6 +72,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testCeil() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = ceil(age) | fields f", TEST_INDEX_BANK));
@@ -429,6 +433,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = RAND_SEED_UNSUPPORTED,
+      note = "rand(seed) is rejected on the AE route (RAND_SEED_UNSUPPORTED).")
   public void testRand() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = rand() | fields f", TEST_INDEX_BANK));
@@ -564,7 +571,12 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f = sum(1, 2, 3) | fields f | head 5", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "int"));
+    // Calcite widens integer arithmetic operands to avoid overflow, so the result is bigint.
+    if (isCalciteEnabled()) {
+      verifySchema(result, schema("f", null, "bigint"));
+    } else {
+      verifySchema(result, schema("f", null, "int"));
+    }
     verifyDataRows(result, rows(6), rows(6), rows(6), rows(6), rows(6));
   }
 
@@ -583,7 +595,11 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f = sum(age, 10) | fields f | head 7", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "int"));
+    if (isCalciteEnabled()) {
+      verifySchema(result, schema("f", null, "bigint"));
+    } else {
+      verifySchema(result, schema("f", null, "int"));
+    }
     verifyDataRows(result, rows(42), rows(46), rows(38), rows(43), rows(46), rows(49), rows(44));
   }
 
@@ -593,7 +609,11 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f = sum(1, 2, 3, 4, 5) | fields f | head 5", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "int"));
+    if (isCalciteEnabled()) {
+      verifySchema(result, schema("f", null, "bigint"));
+    } else {
+      verifySchema(result, schema("f", null, "int"));
+    }
     verifyDataRows(result, rows(15), rows(15), rows(15), rows(15), rows(15));
   }
 
@@ -674,7 +694,11 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval sum_val = sum(10, 20, 30), avg_val = avg(10, 20, 30) | fields"
                     + " sum_val, avg_val | head 5",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("sum_val", null, "int"), schema("avg_val", null, "double"));
+    if (isCalciteEnabled()) {
+      verifySchema(result, schema("sum_val", null, "bigint"), schema("avg_val", null, "double"));
+    } else {
+      verifySchema(result, schema("sum_val", null, "int"), schema("avg_val", null, "double"));
+    }
     verifyDataRows(
         result, rows(60, 20.0), rows(60, 20.0), rows(60, 20.0), rows(60, 20.0), rows(60, 20.0));
   }
@@ -686,7 +710,11 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | where sum(age, 10) > 40 | eval f = sum(age, 10) | fields f | head 6",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "int"));
+    if (isCalciteEnabled()) {
+      verifySchema(result, schema("f", null, "bigint"));
+    } else {
+      verifySchema(result, schema("f", null, "int"));
+    }
     // Should return rows where age + 10 > 40, so age > 30
     verifyDataRows(result, rows(42), rows(46), rows(43), rows(46), rows(49), rows(44));
   }
@@ -733,7 +761,11 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f = sum(age, age, 10) | fields f | head 5", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "int"));
+    if (isCalciteEnabled()) {
+      verifySchema(result, schema("f", null, "bigint"));
+    } else {
+      verifySchema(result, schema("f", null, "int"));
+    }
     // sum(age, age, 10) = age + age + 10 = 2*age + 10
     verifyDataRows(result, rows(74), rows(82), rows(66), rows(76), rows(82));
   }
@@ -755,7 +787,11 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f = sum(-5, 10, -3) | fields f | head 5", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "int"));
+    if (isCalciteEnabled()) {
+      verifySchema(result, schema("f", null, "bigint"));
+    } else {
+      verifySchema(result, schema("f", null, "int"));
+    }
     verifyDataRows(result, rows(2), rows(2), rows(2), rows(2), rows(2));
   }
 

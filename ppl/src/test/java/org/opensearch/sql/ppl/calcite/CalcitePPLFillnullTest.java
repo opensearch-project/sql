@@ -114,7 +114,8 @@ public class CalcitePPLFillnullTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | fields EMPNO, MGR, SAL, COMM, DEPTNO | fillnull with 0";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], MGR=[COALESCE($3, 0)], SAL=[COALESCE($5, 0)],"
+        "LogicalProject(EMPNO=[CAST($0):INTEGER NOT NULL], MGR=[COALESCE($3, 0)],"
+            + " SAL=[COALESCE($5, 0)],"
             + " COMM=[COALESCE($6, 0)], DEPTNO=[COALESCE($7, 0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -136,7 +137,8 @@ public class CalcitePPLFillnullTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, COALESCE(`MGR`, 0) `MGR`, COALESCE(`SAL`, 0) `SAL`, COALESCE(`COMM`, 0)"
+        "SELECT CAST(`EMPNO` AS INTEGER) `EMPNO`, COALESCE(`MGR`, 0) `MGR`, COALESCE(`SAL`, 0)"
+            + " `SAL`, COALESCE(`COMM`, 0)"
             + " `COMM`, COALESCE(`DEPTNO`, 0) `DEPTNO`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -194,7 +196,8 @@ public class CalcitePPLFillnullTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | fields EMPNO, MGR, SAL, COMM, DEPTNO | fillnull value=0";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], MGR=[COALESCE($3, 0)], SAL=[COALESCE($5, 0)],"
+        "LogicalProject(EMPNO=[CAST($0):INTEGER NOT NULL], MGR=[COALESCE($3, 0)],"
+            + " SAL=[COALESCE($5, 0)],"
             + " COMM=[COALESCE($6, 0)], DEPTNO=[COALESCE($7, 0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -216,7 +219,8 @@ public class CalcitePPLFillnullTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, COALESCE(`MGR`, 0) `MGR`, COALESCE(`SAL`, 0) `SAL`, COALESCE(`COMM`, 0)"
+        "SELECT CAST(`EMPNO` AS INTEGER) `EMPNO`, COALESCE(`MGR`, 0) `MGR`, COALESCE(`SAL`, 0)"
+            + " `SAL`, COALESCE(`COMM`, 0)"
             + " `COMM`, COALESCE(`DEPTNO`, 0) `DEPTNO`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);

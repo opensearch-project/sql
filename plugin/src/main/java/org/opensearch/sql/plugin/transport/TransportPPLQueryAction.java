@@ -10,7 +10,9 @@ import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse.normal
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
@@ -40,6 +42,7 @@ import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
+import org.opensearch.sql.plugin.rest.AnalyticsEngineFormatSupport;
 import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
 import org.opensearch.sql.ppl.PPLService;
@@ -185,10 +188,18 @@ public class TransportPPLQueryAction
             task,
             createExplainResponseListener(transformedRequest, clearingListener));
       } else {
+        // Analytics route only emits JSON; reject unsupported formats (e.g. csv) with a 4xx.
+        try {
+          AnalyticsEngineFormatSupport.validateFormat(format(transformedRequest));
+        } catch (Exception e) {
+          clearingListener.onFailure(e);
+          return;
+        }
         unifiedQueryHandler.execute(
             transformedRequest.getRequest(),
             QueryType.PPL,
             transformedRequest.profile(),
+            transformedRequest.getFetchSize(),
             task,
             clearingListener);
       }
@@ -234,6 +245,18 @@ public class TransportPPLQueryAction
               new JsonResponseFormatter<>(PRETTY) {
                 @Override
                 protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
+                  // For json_tree format, use parsed tree objects instead of strings
+                  if (response.getCalcite() != null
+                      && response.getCalcite().getLogicalTree() != null) {
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    Map<String, Object> calcite = new LinkedHashMap<>();
+                    calcite.put("logical", response.getCalcite().getLogicalTree());
+                    if (response.getCalcite().getPhysicalTree() != null) {
+                      calcite.put("physical", response.getCalcite().getPhysicalTree());
+                    }
+                    result.put("calcite", calcite);
+                    return result;
+                  }
                   return response;
                 }
               };

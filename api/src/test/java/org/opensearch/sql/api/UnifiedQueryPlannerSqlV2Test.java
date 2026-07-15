@@ -272,7 +272,7 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
     givenQuery("SELECT 1 + 1")
         .assertPlan(
             """
-            LogicalProject(1 + 1=[+(1, 1)])
+            LogicalProject(1 + 1=[+(1:BIGINT, 1:BIGINT)])
               LogicalValues(tuples=[[{ 0 }]])
             """);
   }
@@ -404,7 +404,7 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
     givenQuery("SELECT MAX(age) + MIN(age) AS range_sum FROM catalog.employees")
         .assertPlan(
             """
-            LogicalProject(range_sum=[+($0, $1)])
+            LogicalProject(range_sum=[+(CAST($0):BIGINT, CAST($1):BIGINT)])
               LogicalAggregate(group=[{}], MAX(age)=[MAX($0)], MIN(age)=[MIN($0)])
                 LogicalProject(age=[$2])
                   LogicalTableScan(table=[[catalog, employees]])
@@ -545,6 +545,75 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
               LogicalAggregate(group=[{0}])
                 LogicalProject(LENGTH(name)=[CHAR_LENGTH($1)])
                   LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testWindowOverGroupByWithLimit() {
+    givenQuery(
+            """
+            SELECT department, COUNT(*) AS cnt, ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS rn
+              FROM catalog.employees GROUP BY department LIMIT 3
+            """)
+        .assertPlan(
+            """
+            LogicalSort(fetch=[3])
+              LogicalProject(department=[$0], cnt=[$1], rn=[ROW_NUMBER() OVER (ORDER BY $1 DESC NULLS FIRST)])
+                LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+                  LogicalProject(department=[$3])
+                    LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testWindowOverGroupByOrderByWindowAlias() {
+    givenQuery(
+            """
+            SELECT department, COUNT(*) AS cnt, ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS rn
+              FROM catalog.employees GROUP BY department ORDER BY rn LIMIT 3
+            """)
+        .assertPlan(
+            """
+            LogicalSort(sort0=[$2], dir0=[ASC-nulls-first], fetch=[3])
+              LogicalProject(department=[$0], cnt=[$1], rn=[ROW_NUMBER() OVER (ORDER BY $1 DESC NULLS FIRST)])
+                LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+                  LogicalProject(department=[$3])
+                    LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testWindowOverGroupByOrderByWindowAliasWithoutLimit() {
+    givenQuery(
+            """
+            SELECT department, COUNT(*) AS cnt, ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS rn
+              FROM catalog.employees GROUP BY department ORDER BY rn
+            """)
+        .assertPlan(
+            """
+            LogicalSort(sort0=[$2], dir0=[ASC-nulls-first])
+              LogicalProject(department=[$0], cnt=[$1], rn=[ROW_NUMBER() OVER (ORDER BY $1 DESC NULLS FIRST)])
+                LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+                  LogicalProject(department=[$3])
+                    LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testMultipleWindowFunctionsOrderByWindowAlias() {
+    givenQuery(
+            """
+            SELECT department, COUNT(*) AS cnt, ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS rn,
+                   ROW_NUMBER() OVER (ORDER BY department) AS rn2
+              FROM catalog.employees GROUP BY department ORDER BY rn LIMIT 3
+            """)
+        .assertPlan(
+            """
+            LogicalSort(sort0=[$2], dir0=[ASC-nulls-first], fetch=[3])
+              LogicalProject(department=[$0], cnt=[$1], rn=[ROW_NUMBER() OVER (ORDER BY $1 DESC NULLS FIRST)], rn2=[ROW_NUMBER() OVER (ORDER BY $0 NULLS FIRST)])
+                LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+                  LogicalProject(department=[$3])
+                    LogicalTableScan(table=[[catalog, employees]])
             """);
   }
 }

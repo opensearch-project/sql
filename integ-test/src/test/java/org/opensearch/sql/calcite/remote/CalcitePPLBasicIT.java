@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.junit.Assume.assumeFalse;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.REGEXP_FILTER;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -21,6 +22,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLBasicIT extends PPLIntegTestCase {
 
@@ -125,6 +127,20 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testFieldNotFoundWithSuggestion() {
+    // Typo: "nam" instead of "name"
+    Throwable e =
+        assertThrowsWithReplace(
+            IllegalStateException.class, () -> executeQuery("source=test | fields nam"));
+    String stack = org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace(e);
+    verifyErrorMessageContains(e, "Field [nam] not found.");
+    // Verify suggestion based on Levenshtein distance
+    verifyErrorMessageContains(e, "Did you mean: name");
+    // Verify available fields are listed
+    verifyErrorMessageContains(e, "available_fields");
+  }
+
+  @Test
   public void testFilterQuery1() throws IOException {
     JSONObject actual = executeQuery("source=test | where age = 30 | fields name, age");
     verifySchema(actual, schema("name", "string"), schema("age", "bigint"));
@@ -154,6 +170,9 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = REGEXP_FILTER,
+      note = "REGEXP filter throws a backend NullPointerException on the AE route.")
   public void testRegexpFilter() throws IOException {
     JSONObject actual = executeQuery("source=test | where name REGEXP 'he.*' | fields name, age");
     verifySchema(actual, schema("name", "string"), schema("age", "bigint"));

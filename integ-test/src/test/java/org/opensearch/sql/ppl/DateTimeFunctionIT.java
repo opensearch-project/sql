@@ -7,7 +7,9 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
+import static org.opensearch.sql.util.Capability.DATETIME_FORMAT_RENDERING;
 import static org.opensearch.sql.util.Capability.DOC_MUTATION;
+import static org.opensearch.sql.util.Capability.UNIX_TIMESTAMP_SUBSECOND;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -1219,6 +1221,9 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DATETIME_FORMAT_RENDERING,
+      note = "date_format renders some tokens differently on the AE route.")
   public void testDateFormat() throws IOException {
     String timestamp = "1998-01-31 13:14:15.012345";
     String timestampFormat =
@@ -1369,6 +1374,11 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = UNIX_TIMESTAMP_SUBSECOND,
+      note =
+          "unix_timestamp drops the sub-second fraction on the AE route"
+              + " (UNIX_TIMESTAMP_SUBSECOND).")
   public void testUnixTimestampWithTimestampString() throws IOException {
     var result =
         executeQuery(
@@ -1557,7 +1567,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval f = timestampdiff(YEAR, '1997-01-01 00:00:00', '2001-03-06"
                     + " 00:00:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, isCalciteEnabled() ? "bigint" : "timestamp"));
+    // The AE route runs the Calcite path, returning bigint even though the cluster's calcite
+    // setting reads false.
+    verifySchema(
+        result,
+        schema(
+            "f",
+            null,
+            isCalciteEnabled() || isAnalyticsParquetIndicesEnabled() ? "bigint" : "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(4));
   }
 

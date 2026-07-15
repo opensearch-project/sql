@@ -29,6 +29,7 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.search.aggregations.MultiBucketConsumerService;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.setting.Settings;
 
 /** Setting implementation on OpenSearch. */
@@ -197,6 +198,14 @@ public class OpenSearchSettings extends Settings {
       Setting.intSetting(
           Key.QUERY_SIZE_LIMIT.getKeyValue(),
           IndexSettings.MAX_RESULT_WINDOW_SETTING,
+          0,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<Integer> MAX_EXPRESSION_DEPTH_SETTING =
+      Setting.intSetting(
+          Key.MAX_EXPRESSION_DEPTH.getKeyValue(),
+          AstBuildGuard.DEFAULT_MAX_DEPTH,
           0,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
@@ -482,6 +491,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.MAX_EXPRESSION_DEPTH,
+        MAX_EXPRESSION_DEPTH_SETTING,
+        new Updater(Key.MAX_EXPRESSION_DEPTH));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.QUERY_BUCKET_SIZE,
         QUERY_BUCKET_SIZE_SETTING,
         new Updater(Key.QUERY_BUCKET_SIZE));
@@ -650,6 +665,7 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_ENABLED_SETTING)
         .add(SQL_SLOWLOG_SETTING)
         .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
+        .add(MAX_EXPRESSION_DEPTH_SETTING)
         .add(PPL_ENABLED_SETTING)
         .add(PPL_QUERY_TIMEOUT_SETTING)
         .add(PPL_SYNTAX_LEGACY_PREFERRED_SETTING)

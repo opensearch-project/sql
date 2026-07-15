@@ -28,6 +28,8 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import java.io.IOException;
 import java.util.Locale;
 import org.apache.commons.text.StringEscapeUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -561,6 +563,30 @@ public class CalciteExplainIT extends ExplainIT {
             "per_day(cpu_usage)=[DIVIDE(*($1, 8.64E7), TIMESTAMPDIFF('MILLISECOND':VARCHAR, $0,"
                 + " TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
     assertTrue(result.contains("per_day(cpu_usage)=[SUM($0)]"));
+  }
+
+  @Test
+  public void testExplainTimewrap() throws IOException {
+    // Pin the align=end reference with a WHERE upper bound so the base_offset literal is
+    // deterministic (otherwise it falls back to the query clock).
+    var result =
+        explainQueryYaml(
+            "source=events | where @timestamp <= '2024-07-03 18:00:00'"
+                + " | timechart span=6h avg(cpu_usage) | timewrap 1day");
+    String expected = loadExpectedPlan("explain_timewrap.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainTimewrapMonth() throws IOException {
+    // Variable-length unit (month) exercises the EXTRACT-based calendar arithmetic branch, which
+    // produces a different plan from the fixed-length epoch-based path above.
+    var result =
+        explainQueryYaml(
+            "source=events | where @timestamp <= '2024-07-03 18:00:00'"
+                + " | timechart span=1d avg(cpu_usage) | timewrap 1month");
+    String expected = loadExpectedPlan("explain_timewrap_month.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -3009,5 +3035,30 @@ public class CalciteExplainIT extends ExplainIT {
     String actual = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_union.yaml");
     assertYamlEqualsIgnoreId(expected, actual);
+  }
+
+  @Test
+  public void testExplainJsonTreeFormat() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | where age > 30 | fields age";
+    String result = explainQuery(query, Format.JSON_TREE, ExplainMode.STANDARD);
+
+    // Parse JSON response
+    JSONObject json = new JSONObject(result);
+    JSONObject calcite = json.getJSONObject("calcite");
+
+    // Verify logical plan is a structured JSON object (not a plain string)
+    JSONObject logical = calcite.getJSONObject("logical");
+    Assert.assertTrue("Logical plan should contain 'rels' array", logical.has("rels"));
+    JSONArray rels = logical.getJSONArray("rels");
+    Assert.assertTrue("Rels array should not be empty", rels.length() > 0);
+
+    // Verify first rel is a proper RelNode structure
+    JSONObject firstRel = rels.getJSONObject(0);
+    Assert.assertTrue("RelNode should have 'relOp' field", firstRel.has("relOp"));
+    Assert.assertTrue("RelNode should have 'id' field", firstRel.has("id"));
+
+    // Verify physical plan also has structured format
+    JSONObject physical = calcite.getJSONObject("physical");
+    Assert.assertTrue("Physical plan should contain 'rels' array", physical.has("rels"));
   }
 }

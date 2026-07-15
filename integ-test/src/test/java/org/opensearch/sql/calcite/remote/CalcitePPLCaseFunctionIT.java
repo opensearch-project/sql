@@ -537,4 +537,22 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
         schema("flags", "bigint"));
     verifyNumOfRows(actual2, 32);
   }
+
+  /** Case with no common branch supertype must return a clean 4xx, not a 500. */
+  @Test
+  public void testCaseWithIncompatibleBranchTypesRejectsCleanly() {
+    org.opensearch.client.ResponseException e =
+        org.junit.Assert.assertThrows(
+            org.opensearch.client.ResponseException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval x = case(age > 30, 'old', age > 20, 1 else 0.0) | fields"
+                            + " x",
+                        TEST_INDEX_BANK)));
+    org.junit.Assert.assertEquals(
+        "expected 400 status, got: " + e.getMessage(),
+        400,
+        e.getResponse().getStatusLine().getStatusCode());
+  }
 }

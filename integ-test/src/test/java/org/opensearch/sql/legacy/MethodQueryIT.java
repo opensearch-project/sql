@@ -7,12 +7,15 @@ package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sql.util.Capability.EXPLAIN_FORMAT;
+import static org.opensearch.sql.util.Capability.LEGACY_METHOD_QUERY;
 
 import java.io.IOException;
 import java.util.Locale;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * 定製方法查詢．
@@ -41,6 +44,7 @@ public class MethodQueryIT extends SQLIntegTestCase {
    * @throws IOException
    */
   @Test
+  @RequiresCapability(EXPLAIN_FORMAT)
   public void queryTest() throws IOException {
     final String result =
         explainQuery(
@@ -70,6 +74,7 @@ public class MethodQueryIT extends SQLIntegTestCase {
    * @throws IOException
    */
   @Test
+  @RequiresCapability(EXPLAIN_FORMAT)
   public void matchQueryTest() throws IOException {
     final String result =
         explainQuery(
@@ -153,6 +158,7 @@ public class MethodQueryIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(LEGACY_METHOD_QUERY)
   public void regexpQueryTest() throws IOException {
     final String result =
         explainQuery(
@@ -168,6 +174,7 @@ public class MethodQueryIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(LEGACY_METHOD_QUERY)
   public void negativeRegexpQueryTest() throws IOException {
     final String result =
         explainQuery(
@@ -198,6 +205,7 @@ public class MethodQueryIT extends SQLIntegTestCase {
    * @throws IOException
    */
   @Test
+  @RequiresCapability(LEGACY_METHOD_QUERY)
   public void wildcardQueryTest() throws IOException {
     final String result =
         explainQuery(

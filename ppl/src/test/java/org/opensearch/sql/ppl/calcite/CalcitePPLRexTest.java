@@ -306,4 +306,14 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  /** Verifies that rex plans correctly when it appears as the first command of a subsearch. */
+  @Test
+  public void testRexInsideSubsearch() {
+    String ppl =
+        "source=EMP | stats count() as base_c by JOB"
+            + " | appendcol [ rex field=ENAME '^(?<first>[A-Z])' | fields ENAME, first ]";
+    RelNode root = getRelNode(ppl);
+    org.junit.Assert.assertNotNull(root);
+  }
 }

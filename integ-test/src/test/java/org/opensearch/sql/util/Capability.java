@@ -220,7 +220,358 @@ public enum Capability {
    */
   APPENDPIPE_MAIN_RESULT_DROPPED(
       "appendpipe drops the main pipeline's rows on the analytics-engine route: the subpipe filter"
-          + " is applied to the main result instead of appended, so the originals are lost.");
+          + " is applied to the main result instead of appended, so the originals are lost."),
+
+  /**
+   * Higher-order array functions that take a lambda ({@code transform}/{@code mvmap}, {@code
+   * reduce}, {@code filter}, {@code exists}, {@code forall}) are unsupported on the
+   * analytics-engine route: the capability registry rejects them ({@code No backend supports scalar
+   * function [...] among [lucene, datafusion]}) since the backends can't execute a PPL lambda.
+   */
+  ARRAY_HIGHER_ORDER_FUNC(
+      "Higher-order array functions (transform/mvmap, reduce, filter, exists, forall) are"
+          + " unsupported on the analytics-engine route: the backends can't execute a PPL lambda."),
+
+  /**
+   * {@code scaled_float} fields are reported as {@code bigint} on the analytics-engine route
+   * (DataFusion stores the underlying scaled long) rather than {@code double} as on v2/Calcite.
+   */
+  SCALED_FLOAT_TYPE(
+      "scaled_float is reported as bigint on the analytics-engine route (DataFusion stores the"
+          + " scaled long), whereas the v2/Calcite path reports double."),
+
+  /**
+   * Coercing an empty string to a numeric field yields {@code null} on the analytics-engine route,
+   * whereas the v2/Calcite path coerces it to {@code 0}.
+   */
+  STRING_TO_NUMERIC_COERCION(
+      "Coercing an empty/invalid string to a numeric field yields null on the analytics-engine"
+          + " route, whereas the v2/Calcite path coerces it to 0."),
+
+  /**
+   * A wildcard/alias source whose member indices map the same field to incompatible types (e.g.
+   * {@code text} in one, {@code boolean} in another) is rejected on the analytics-engine route
+   * ({@code resolves to indices with incompatible field types}); the v2/Calcite path coerces.
+   */
+  CROSS_INDEX_INCOMPATIBLE_TYPES(
+      "A wildcard/alias source with incompatible field types across member indices is rejected on"
+          + " the analytics-engine route, whereas the v2/Calcite path coerces."),
+
+  /**
+   * The {@code REGEXP} filter operator throws a backend NullPointerException on the
+   * analytics-engine route.
+   */
+  REGEXP_FILTER(
+      "The REGEXP filter operator throws a backend NullPointerException on the analytics-engine"
+          + " route."),
+
+  /**
+   * {@code mvcombine} lowers to an {@code ARRAY_AGG} aggregate the analytics-engine backend doesn't
+   * register ({@code No enum constant ... AggregateFunction.ARRAY_AGG}).
+   */
+  MVCOMBINE_ARRAY_AGG(
+      "mvcombine lowers to ARRAY_AGG, which the analytics-engine backend does not support (no"
+          + " AggregateFunction.ARRAY_AGG enum constant)."),
+
+  /**
+   * {@code addtotals} crashes the DataFusion backend with a join panic (out-of-range slice index)
+   * on the analytics-engine route.
+   */
+  ADDTOTALS_JOIN_PANIC(
+      "addtotals crashes the DataFusion backend with a join panic (out-of-range slice index) on the"
+          + " analytics-engine route."),
+
+  /**
+   * {@code percentile}/{@code median} is approximate on the analytics-engine route (DataFusion's
+   * approx percentile) but exact on the v2/Calcite path, so percentile values, null-bucket rows,
+   * and by-span groupings diverge.
+   */
+  PERCENTILE_APPROXIMATE(
+      "percentile/median is approximate on the analytics-engine route (DataFusion) but exact on the"
+          + " v2/Calcite path, so the values diverge."),
+
+  /**
+   * Arithmetic over {@code float}/{@code half_float}-typed fields keeps 32-bit float precision on
+   * the analytics-engine route (DataFusion), whereas the v2/Calcite path widens to double, so the
+   * least-significant digits diverge (e.g. 0.2 vs 0.19999981).
+   */
+  FLOAT_ARITHMETIC_PRECISION(
+      "Arithmetic over float/half_float fields keeps 32-bit precision on the analytics-engine route"
+          + " (DataFusion) but widens to double on the v2/Calcite path, so the values diverge in"
+          + " the least-significant digits."),
+
+  /**
+   * Datetime formatting functions ({@code date_format}, {@code strftime}) render some tokens /
+   * sub-second precision differently on the analytics-engine route than on the v2/Calcite path.
+   */
+  DATETIME_FORMAT_RENDERING(
+      "date_format/strftime render some format tokens and sub-second precision differently on the"
+          + " analytics-engine route than the v2/Calcite path."),
+
+  /**
+   * {@code json_set}/{@code json_delete} with a {@code $}-prefixed path ({@code $.key}) is a no-op
+   * on the analytics-engine route (the JSON UDF doesn't strip the {@code $} prefix), whereas the
+   * v2/Calcite path applies the modification.
+   */
+  JSON_DOLLAR_PATH(
+      "json_set/json_delete with a $-prefixed path is a no-op on the analytics-engine route (the"
+          + " JSON UDF doesn't handle the $ prefix), whereas the v2/Calcite path applies it."),
+
+  /**
+   * A dataset whose document has a multi-value array for a scalar-mapped field can't be bulk-loaded
+   * into the parquet/composite store ({@code Cannot accept multiple values for field ...}), so
+   * tests reading that dataset fail at setup on the analytics-engine route.
+   */
+  MULTI_VALUE_FIELD_LOAD(
+      "A multi-value array for a scalar-mapped field can't be bulk-loaded into the parquet store on"
+          + " the analytics-engine route, so the dataset fails to load."),
+
+  /**
+   * {@code dedup} returns a different/non-deterministic row set on the analytics-engine route — the
+   * engine merges per-fragment batches without a stable tiebreaker, so which duplicate survives
+   * (and {@code CONSECUTIVE=true} behavior) diverges from the v2/Calcite path.
+   */
+  DEDUP_NONDETERMINISTIC(
+      "dedup returns a different row set on the analytics-engine route: per-fragment merge order"
+          + " has no stable tiebreaker, so the surviving duplicate (and CONSECUTIVE behavior)"
+          + " diverges."),
+
+  /**
+   * {@code union}/{@code multisearch} over subsearches that read the same index conflates on the
+   * analytics-engine route: a delegated predicate from one branch leaks onto the co-located shard
+   * fragment and is applied to all branches, so counts/rows are wrong. Same root cause as {@link
+   * #MULTISEARCH_SAME_INDEX_CONFLATION} / {@link #APPENDPIPE_MAIN_RESULT_DROPPED}.
+   */
+  SAME_INDEX_UNION_CONFLATION(
+      "union over same-index subsearches conflates on the analytics-engine route: a delegated"
+          + " predicate from one branch leaks across the co-located shard fragment, so counts/rows"
+          + " are wrong."),
+
+  /**
+   * A wildcard projection/rename ({@code rename * as ...}, {@code fields *}) returns columns in a
+   * different order on the analytics-engine route (e.g. not mapping order) than the v2/Calcite
+   * path, so row-position-sensitive assertions diverge even though the values are correct.
+   */
+  WILDCARD_COLUMN_ORDER(
+      "A wildcard projection/rename returns columns in a different order on the analytics-engine"
+          + " route than the v2/Calcite path."),
+
+  /**
+   * {@code unix_timestamp()} over a timestamp string with sub-second precision drops the fractional
+   * seconds on the analytics-engine route (e.g. {@code unix_timestamp('1984-06-06
+   * 12:00:00.123456')} returns {@code 455371200} instead of {@code 455371200.123456}), whereas the
+   * v2/Calcite path preserves them.
+   */
+  UNIX_TIMESTAMP_SUBSECOND(
+      "unix_timestamp() drops sub-second precision on the analytics-engine route (returns whole"
+          + " seconds), whereas the v2/Calcite path preserves the fractional seconds."),
+
+  /**
+   * The {@code _index} (and {@code _id}) metadata field is not exposed on the analytics-engine
+   * route — parquet-backed scans surface only mapped document fields, so a query referencing {@code
+   * _index} fails with {@code FIELD_NOT_FOUND}. Sibling of {@link #ID_METADATA}.
+   */
+  INDEX_METADATA(
+      "The analytics-engine route doesn't expose the _index metadata field (parquet-backed scans"
+          + " surface only mapped document fields)."),
+
+  /**
+   * An {@code object} leaf sub-field present in only some member indices of a wildcard/alias source
+   * resolves to {@code FIELD_NOT_FOUND} on the analytics-engine route (e.g. {@code machine.os2}
+   * mapped only in one of two {@code merge_test_*} indices), whereas the v2/Calcite path merges the
+   * schemas and returns the leaf with nulls for the indices that lack it.
+   */
+  CROSS_INDEX_OBJECT_LEAF_MERGE(
+      "An object leaf field present in only some wildcard member indices resolves to"
+          + " FIELD_NOT_FOUND on the analytics-engine route, whereas the v2/Calcite path merges the"
+          + " schemas."),
+
+  /**
+   * {@code dayname}/{@code monthname} (and similar) over an invalid datetime literal throw a
+   * different error-message shape on the analytics-engine route ({@code timestamp:... yyyy-MM-dd
+   * HH:mm:ss[.SSSSSSSSS]}) than the v2/Calcite path ({@code date:... yyyy-MM-dd}): the route parses
+   * the literal through the TIMESTAMP path, so a different parser produces the message. Both
+   * engines correctly reject the input; only the message text diverges.
+   */
+  INVALID_DATETIME_ERROR_SHAPE(
+      "An invalid datetime literal throws a different error-message shape on the analytics-engine"
+          + " route (timestamp/yyyy-MM-dd HH:mm:ss[...]) than the v2/Calcite path"
+          + " (date/yyyy-MM-dd); both engines reject the input, only the message differs."),
+
+  /**
+   * Seeded {@code RAND(seed)} is unsupported on the analytics-engine route (rejected with {@code
+   * Seeded RAND(seed) is not supported on the analytics-engine route}); DataFusion has no
+   * deterministic seeded RAND equivalent. {@code RAND()} without a seed works.
+   */
+  RAND_SEED_UNSUPPORTED(
+      "Seeded RAND(seed) is unsupported on the analytics-engine route (DataFusion has no"
+          + " deterministic seeded RAND); RAND() without a seed works."),
+
+  /**
+   * The IP user-defined type is materialized as a raw {@code BINARY}/{@code byte[]} column on the
+   * analytics-engine route, so operations that need its IP type — {@code cast(... as IP)}, {@code
+   * cidrmatch} over an appended/merged IP column — fail ({@code Cannot convert BINARY to IP} /
+   * {@code unsupported object class [B}). The v2/Calcite path keeps the column typed IP.
+   */
+  IP_UDT_BINARY_REPRESENTATION(
+      "The IP user-defined type is materialized as a raw BINARY/byte[] column on the"
+          + " analytics-engine route, so cast(... as IP) and cidrmatch over an IP column fail; the"
+          + " v2/Calcite path keeps the column typed IP."),
+
+  /**
+   * A {@code TIME}-typed field is presented as {@code TIMESTAMP} on the analytics-engine route, so
+   * a function with a {@code TIME}-only signature (e.g. {@code TIMEDIFF} expects {@code [TIME,
+   * TIME]}) rejects it with a type error ({@code expects {[TIME,TIME]}, but got
+   * [TIMESTAMP,TIMESTAMP]}). The v2/Calcite path preserves the {@code TIME} type and the function
+   * accepts it.
+   */
+  TIME_TYPE_WIDENED_TO_TIMESTAMP(
+      "A TIME-typed field is presented as TIMESTAMP on the analytics-engine route, so functions"
+          + " with a TIME-only signature (e.g. TIMEDIFF) reject it with a type error; the"
+          + " v2/Calcite path preserves the TIME type."),
+
+  /**
+   * {@code binary}-typed fields are stripped from the dataset at load on the analytics-engine route
+   * (the parquet/composite store can't hold them), so a query referencing a binary field resolves
+   * to {@code FIELD_NOT_FOUND}.
+   */
+  BINARY_FIELD_STRIPPED(
+      "binary-typed fields are stripped from the dataset at load on the analytics-engine route, so"
+          + " queries referencing a binary field resolve to FIELD_NOT_FOUND."),
+
+  /**
+   * The {@code plugins.ppl.values.max.limit} cap on {@code values()}/{@code list()} is not honored
+   * on the analytics-engine route: {@code PplAggregateCallRewriter} emits no sort/limit for these
+   * aggregates, so all unique values are returned regardless of the configured limit.
+   */
+  VALUES_LIMIT_NOT_HONORED(
+      "The plugins.ppl.values.max.limit cap on values()/list() is not honored on the"
+          + " analytics-engine route (the aggregate rewriter emits no limit), so all unique values"
+          + " are returned."),
+
+  /**
+   * {@code like()} over a {@code text}+{@code keyword} field does not rewrite the filter to the
+   * {@code .keyword} sub-field in the explain plan on the analytics-engine route (the DataFusion
+   * scan has no Lucene term-pushdown to rewrite to), so a test asserting the plan contains {@code
+   * <field>.keyword} fails. The v2/Calcite-over-Lucene path performs the pushdown rewrite.
+   */
+  TEXT_KEYWORD_PUSHDOWN_REWRITE(
+      "like() over a text+keyword field doesn't rewrite to the .keyword sub-field in the explain"
+          + " plan on the analytics-engine route (no Lucene term-pushdown), whereas the v2/Calcite"
+          + " path does."),
+
+  /**
+   * A test that asserts a Lucene-specific pushdown fragment in the explain plan (e.g. the {@code
+   * SORT->[...]} sort-pushdown JSON) can't pass on the analytics-engine route: the DataFusion scan
+   * produces a different plan shape with no Lucene pushdown fragment. The query results are
+   * correct; only the plan-text assertion diverges.
+   */
+  LUCENE_PUSHDOWN_EXPLAIN(
+      "A test asserting a Lucene-specific pushdown fragment in the explain plan (e.g. SORT->[...])"
+          + " can't pass on the analytics-engine route: the DataFusion scan produces a different"
+          + " plan with no Lucene pushdown fragment."),
+
+  /**
+   * Chaining two {@code streamstats} commands where an upstream stage partitions {@code by} a group
+   * fails on the analytics-engine route. Each {@code streamstats ... by} stage projects a {@code
+   * ROW_NUMBER() OVER ()} sequence column to order its window; the Calcite plan aliases these
+   * distinctly ({@code __stream_seq__}), but the Substrait converter names both physical columns
+   * after the operator ({@code "row_number() ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW"}),
+   * so the stacked schema has a duplicate/ambiguous field name. Verified: it surfaces as a 500
+   * ({@code Schema contains duplicate unqualified field name ...} / streaming-fragment failure) or,
+   * for chained {@code window} streamstats, non-deterministic window values. A single {@code
+   * streamstats by} (or a chain where only the final stage has {@code by}) works.
+   */
+  CHAINED_STREAMSTATS_BY(
+      "Chaining two streamstats where an upstream stage partitions by a group fails on the"
+          + " analytics-engine route: both stages emit a ROW_NUMBER() sequence column the Substrait"
+          + " converter names identically, producing a duplicate/ambiguous field name (500) or"
+          + " non-deterministic window values."),
+
+  /**
+   * {@code streamstats} computes its running/window aggregate over the backend scan order on the
+   * analytics-engine route, ignoring a preceding {@code | sort}. The {@code OVER} clause carries no
+   * explicit {@code ORDER BY} (streamstats orders by encounter order by design), so DataFusion
+   * evaluates the window in scan order rather than the sorted order the v2/Calcite path honors.
+   * Verified: {@code sort age | streamstats window=2 avg(age)} yields window values computed in
+   * insertion order, not age order, so the per-row aggregates diverge.
+   */
+  STREAMSTATS_SORT_NOT_HONORED(
+      "streamstats computes its window over the backend scan order on the analytics-engine route,"
+          + " ignoring a preceding | sort (the OVER clause has no explicit ORDER BY), so the window"
+          + " values diverge from the v2/Calcite path which honors the sort."),
+
+  // Capabilities below were migrated from build.gradle analytics-engine excludes (commit 1ccf431).
+  // BACKEND layer: divergence rooted in the AE/DataFusion execution + composite/parquet storage.
+
+  /** BACKEND: kNN/vector search has no analytics-engine (DataFusion) backend. */
+  VECTOR_SEARCH(
+      "Vector/kNN search is unsupported on the analytics-engine route: DataFusion has no kNN"
+          + " backend."),
+
+  /** BACKEND: geo_point fields are not held by the composite/parquet store. */
+  GEOPOINT_TYPE(
+      "geo_point fields are unsupported on the analytics-engine route: the composite/parquet store"
+          + " does not hold the geo_point type."),
+
+  /**
+   * BACKEND: dotted index names and underscore-prefixed identifiers don't resolve on the AE route.
+   */
+  IDENTIFIER_RESOLUTION(
+      "Dotted index names and underscore-prefixed field identifiers don't resolve on the"
+          + " analytics-engine route."),
+
+  // FRONTEND layer: divergence rooted in the Calcite parser/planner replacing the V2 engine.
+
+  /** FRONTEND: CSV/raw/pretty response formatters are not wired in the Calcite path. */
+  RESPONSE_FORMAT(
+      "CSV/raw/pretty response formats are not produced by the Calcite path used by the"
+          + " analytics-engine route."),
+
+  /** FRONTEND: stateful pagination/cursor/PIT is not implemented in the Calcite path. */
+  PAGINATION_CURSOR(
+      "Pagination, cursor, and point-in-time are unsupported on the analytics-engine route: the"
+          + " Calcite path has no stateful cursor."),
+
+  /** FRONTEND: JDBC prepared statements are not implemented in the Calcite path. */
+  PREPARED_STATEMENT(
+      "Prepared statements are unsupported on the analytics-engine route (Calcite path)."),
+
+  /**
+   * FRONTEND: legacy method-query syntax (regexp_query/wildcard_query) is not in the Calcite
+   * grammar.
+   */
+  LEGACY_METHOD_QUERY(
+      "Legacy method-query syntax (regexp_query/wildcard_query/query/matchquery) is not in the"
+          + " Calcite grammar used by the analytics-engine route."),
+
+  /** FRONTEND: error/validation message text differs under the Calcite path. */
+  QUERY_ERROR_MESSAGE(
+      "Query validation and error-message text differ on the analytics-engine route (Calcite"
+          + " produces different wording for the same semantic error)."),
+
+  /** FRONTEND: explain output is a Calcite plan, not the V2 OpenSearch DSL text. */
+  EXPLAIN_FORMAT(
+      "Explain output differs on the analytics-engine route: the Calcite path emits a different"
+          + " plan shape than the V2 OpenSearch DSL text the test asserts."),
+
+  /**
+   * FRONTEND: Calcite function return types/signatures differ from V2 (CEIL, REGEXP, typeof, AVG).
+   */
+  FUNCTION_TYPE_COMPAT(
+      "Function return types and signatures differ on the analytics-engine route: Calcite uses"
+          + " standard SQL types (e.g. CEIL->double, REGEXP->boolean, typeof ANSI names, AVG"
+          + " rejects temporal) where V2 used OpenSearch-specific behavior."),
+
+  /** BACKEND: untyped NULL literal in a no-FROM query can't be serialized to Substrait. */
+  UNTYPED_NULL_LITERAL(
+      "An untyped NULL literal in a no-FROM query (SELECT NULL, NULL in operators/intervals,"
+          + " typeof(NULL)) can't be serialized to Substrait on the analytics-engine route."),
+
+  /** BACKEND: FILTER(WHERE) on aggregates can't be executed via Substrait streaming. */
+  FILTERED_AGGREGATE(
+      "FILTER(WHERE) on aggregates can't be executed on the analytics-engine route: the Substrait"
+          + " streaming path doesn't support filtered aggregates.");
 
   private final String reason;
 

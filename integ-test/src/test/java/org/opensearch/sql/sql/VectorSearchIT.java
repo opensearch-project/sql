@@ -6,6 +6,7 @@
 package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sql.util.Capability.VECTOR_SEARCH;
 
 import java.io.IOException;
 import org.junit.Assume;
@@ -15,12 +16,14 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration tests for vectorSearch SQL table function — validation and error paths. These tests
  * verify that invalid inputs are rejected with clear error messages. Explain-plan DSL shape tests
  * live in {@link VectorSearchExplainIT}.
  */
+@RequiresCapability(VECTOR_SEARCH)
 public class VectorSearchIT extends SQLIntegTestCase {
 
   @Override
@@ -108,6 +111,26 @@ public class VectorSearchIT extends SQLIntegTestCase {
                         + "vector='[]', option='k=5') AS v"));
 
     assertThat(ex.getMessage(), containsString("must not be empty"));
+  }
+
+  @Test
+  public void testDuplicateNamedArgumentRejectsWith400() throws IOException {
+    // A duplicate named argument on top of all four distinct names sends five arguments to the
+    // resolver, exceeding its fixed four-arg signature. This previously crashed with an unchecked
+    // IndexOutOfBoundsException surfaced as HTTP 500; it must now be a clean 400 with a
+    // user-facing message.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='t', table='t', field='f', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertEquals(400, ex.getResponse().getStatusLine().getStatusCode());
+    // The five-argument case is caught by the repository arity guard before the resolver's
+    // duplicate-name check, so the message reports the argument-count mismatch.
+    assertThat(ex.getMessage(), containsString("Expected 4 arguments"));
   }
 
   @Test

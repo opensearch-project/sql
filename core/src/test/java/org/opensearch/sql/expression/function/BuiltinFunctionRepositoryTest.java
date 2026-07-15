@@ -182,6 +182,63 @@ class BuiltinFunctionRepositoryTest {
   }
 
   @Test
+  @DisplayName("resolve should not crash when resolved signature is shorter than the arguments")
+  void resolve_should_not_index_past_resolved_signature() {
+    // A custom FunctionResolver (e.g. vectorSearch) may return a fixed-arity resolved signature
+    // regardless of the number of arguments it was called with. When more arguments are supplied
+    // than the resolved signature declares (e.g. a duplicate named argument), castArguments must
+    // not index past the end of the resolved type list. Before the fix this threw an unchecked
+    // IndexOutOfBoundsException, surfacing as an HTTP 500 instead of the resolver's clean 400.
+    when(mockFunctionName.getFunctionName()).thenReturn("mock");
+
+    FunctionName funcName = mockFunctionName;
+    FunctionSignature sourceSignature =
+        new FunctionSignature(funcName, ImmutableList.of(STRING, STRING));
+    FunctionSignature resolvedSignature = new FunctionSignature(funcName, ImmutableList.of(STRING));
+
+    DefaultFunctionResolver funcResolver = mock(DefaultFunctionResolver.class);
+    FunctionBuilder funcBuilder = mock(FunctionBuilder.class);
+    when(mockMap.containsKey(eq(funcName))).thenReturn(true);
+    when(mockMap.get(eq(funcName))).thenReturn(funcResolver);
+    when(funcResolver.resolve(any())).thenReturn(Pair.of(resolvedSignature, funcBuilder));
+
+    ExpressionEvaluationException error =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () ->
+                repo.resolve(Collections.emptyList(), sourceSignature)
+                    .apply(functionProperties, ImmutableList.of(mockExpression, mockExpression)));
+    assertEquals("Expected 1 arguments for function mock but received 2", error.getMessage());
+  }
+
+  @Test
+  @DisplayName("resolve should defer under-arity to the builder rather than the cast guard")
+  void resolve_should_not_intercept_under_arity() {
+    // When fewer arguments are supplied than the resolved signature declares, the cast loop cannot
+    // index past the resolved type list, so there is no crash to guard against. The overflow guard
+    // must not fire here; the call must reach the resolved builder so a resolver's own (more
+    // specific) arity validation still runs.
+    FunctionName funcName = mockFunctionName;
+    FunctionSignature sourceSignature = new FunctionSignature(funcName, ImmutableList.of(STRING));
+    FunctionSignature resolvedSignature =
+        new FunctionSignature(funcName, ImmutableList.of(STRING, STRING));
+
+    DefaultFunctionResolver funcResolver = mock(DefaultFunctionResolver.class);
+    FunctionBuilder funcBuilder = mock(FunctionBuilder.class);
+    when(mockMap.containsKey(eq(funcName))).thenReturn(true);
+    when(mockMap.get(eq(funcName))).thenReturn(funcResolver);
+    when(funcResolver.resolve(any())).thenReturn(Pair.of(resolvedSignature, funcBuilder));
+    when(funcBuilder.apply(eq(functionProperties), any()))
+        .thenReturn(new FakeFunctionExpression(funcName, ImmutableList.of(mockExpression)));
+
+    repo.resolve(Collections.emptyList(), sourceSignature)
+        .apply(functionProperties, ImmutableList.of(mockExpression));
+
+    // The builder is reached (overflow guard did not short-circuit under-arity).
+    verify(funcBuilder).apply(eq(functionProperties), any());
+  }
+
+  @Test
   @DisplayName("resolve unregistered function should throw exception")
   void resolve_unregistered() {
     when(mockMap.containsKey(any())).thenReturn(false);

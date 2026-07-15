@@ -102,9 +102,11 @@ source=mvcombine_data
 The query returns the following error:
 
 ```text
-{'context': {'stage': 'analyzing', 'stage_description': 'Parsing and validating the query'}, 'reason': 'Field [does_not_exist] not found.', 'details': 'Field [does_not_exist] not found.', 'location': ['while preparing and validating the query plan'], 'code': 'FIELD_NOT_FOUND', 'type': 'IllegalArgumentException'}
+  {'context': {'stage_description': 'Parsing and validating the query', 'stage': 'analyzing', 'requested_field': 'does_not_exist', 'available_fields': ['packets_str', 'bytes', 'case', 'letters', 'ip', 'tags', '_id', '_index', '_score', '_maxscore', '_sort', '_routing'], 'query_pos': {'column': 34, 'line': 1}}, 'reason': 'Field [does_not_exist] not found.', 'details': 'Field [does_not_exist] not found.', 'location': ['while preparing and validating the query plan'], 'code': 'FIELD_NOT_FOUND', 'type': 'IllegalArgumentException'}
 Error: Query returned no data
 ```
+
+=======
 
 ## Related commands
 

@@ -103,12 +103,21 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
     assertTrue("has profile", result.has("profile"));
 
     JSONObject profile = result.getJSONObject("profile");
-    assertTrue("has query_id", profile.has("query_id"));
-    assertTrue("has planning_time_ms", profile.has("planning_time_ms"));
-    assertTrue("has execution_time_ms", profile.has("execution_time_ms"));
-    assertTrue("has full_plan", profile.has("full_plan"));
+    assertTrue("has summary", profile.has("summary"));
+    assertTrue("summary has total_time_ms", profile.getJSONObject("summary").has("total_time_ms"));
+    assertTrue("has phases", profile.has("phases"));
+    JSONObject phases = profile.getJSONObject("phases");
+    assertTrue("phase analyze", phases.getJSONObject("analyze").has("time_ms"));
+    assertTrue("phase execute", phases.getJSONObject("execute").has("time_ms"));
+    assertTrue("phase format", phases.getJSONObject("format").has("time_ms"));
 
-    JSONArray stages = profile.getJSONArray("stages");
+    JSONObject plan = profile.getJSONObject("plan");
+    assertTrue("has query_id", plan.has("query_id"));
+    assertTrue("has planning_time_ms", plan.has("planning_time_ms"));
+    assertTrue("has execution_time_ms", plan.has("execution_time_ms"));
+    assertTrue("has full_plan", plan.has("full_plan"));
+
+    JSONArray stages = plan.getJSONArray("stages");
     assertTrue("at least one stage", stages.length() >= 1);
 
     JSONObject stage = stages.getJSONObject(0);
@@ -129,9 +138,12 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
     assertTrue("has profile", result.has("profile"));
 
     JSONObject profile = result.getJSONObject("profile");
-    assertTrue("has query_id", profile.has("query_id"));
-    assertTrue("has stages", profile.has("stages"));
-    JSONArray stages = profile.getJSONArray("stages");
+    assertTrue("has summary", profile.has("summary"));
+    assertTrue("has phases", profile.has("phases"));
+    JSONObject plan = profile.getJSONObject("plan");
+    assertTrue("has query_id", plan.has("query_id"));
+    assertTrue("has stages", plan.has("stages"));
+    JSONArray stages = plan.getJSONArray("stages");
     assertTrue("at least one stage", stages.length() >= 1);
   }
 
@@ -142,7 +154,7 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
         executeWithProfile("source = " + INDEX + " | fields name, score", "/_plugins/_ppl");
 
     JSONObject profile = result.getJSONObject("profile");
-    JSONArray stages = profile.getJSONArray("stages");
+    JSONArray stages = profile.getJSONObject("plan").getJSONArray("stages");
 
     for (int i = 0; i < stages.length(); i++) {
       JSONObject stage = stages.getJSONObject(i);
@@ -158,7 +170,7 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
         executeWithProfile("source = " + INDEX + " | fields name", "/_plugins/_ppl");
 
     JSONObject profile = result.getJSONObject("profile");
-    JSONArray stages = profile.getJSONArray("stages");
+    JSONArray stages = profile.getJSONObject("plan").getJSONArray("stages");
 
     boolean foundTasks = false;
     for (int i = 0; i < stages.length(); i++) {
