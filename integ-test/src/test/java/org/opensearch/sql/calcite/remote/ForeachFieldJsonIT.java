@@ -52,6 +52,26 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testJsonArrayFieldInfersNumericItemForAbs() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach_field2 | eval result = 0 | foreach mode=json_array jsonfield ["
+                + " eval result = abs(<<ITEM>>) ] | fields result");
+    verifySchema(result, schema("result", "double"));
+    verifyDataRows(result, rows(30.0));
+  }
+
+  @Test
+  public void testJsonArrayFieldInfersNumericItemForComparison() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach_field2 | eval count = 0 | foreach mode=json_array jsonfield ["
+                + " eval count = count + if(<<ITEM>> > 9, 1, 0) ] | fields count");
+    verifySchema(result, schema("count", "int"));
+    verifyDataRows(result, rows(3));
+  }
+
+  @Test
   public void testJsonArrayModeOnFieldWithStringContent() throws IOException {
     JSONObject result =
         executeQuery(
