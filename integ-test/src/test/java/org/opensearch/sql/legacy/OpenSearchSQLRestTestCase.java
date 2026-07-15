@@ -77,6 +77,16 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
           + "}";
   private static final String SCRIPT_CONTEXT_MAX_COMPILATIONS_RATE_PATTERN =
       "script.context.*.max_compilations_rate";
+  // Per-class cleanup must not delete shared plugin state or force managed indices to be recreated.
+  private static final List<String> PLUGIN_MANAGED_INDEX_PREFIXES =
+      List.of(
+          ".opensearch",
+          ".opendistro",
+          ".ql",
+          ".plugins",
+          ".scheduler",
+          ".geospatial",
+          "security-auditlog-");
   private static RestClient remoteClient;
 
   /**
@@ -212,11 +222,7 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
         JSONObject jsonObject = (JSONObject) object;
         String indexName = jsonObject.getString("index");
         try {
-          // System index, mostly named .opensearch-xxx or .opendistro-xxx, are not allowed to
-          // delete
-          if (!indexName.startsWith(".opensearch")
-              && !indexName.startsWith(".opendistro")
-              && !indexName.startsWith(".ql")) {
+          if (!isPluginManagedIndex(indexName)) {
             client.performRequest(new Request("DELETE", "/" + indexName));
           }
         } catch (Exception e) {
@@ -228,6 +234,10 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
     } catch (ParseException e) {
       throw new IOException(e);
     }
+  }
+
+  static boolean isPluginManagedIndex(String indexName) {
+    return PLUGIN_MANAGED_INDEX_PREFIXES.stream().anyMatch(indexName::startsWith);
   }
 
   /**
