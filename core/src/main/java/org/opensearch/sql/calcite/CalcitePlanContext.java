@@ -88,8 +88,17 @@ public class CalcitePlanContext {
    */
   @Getter private Map<String, ForeachBinding> foreachBindings = new HashMap<>();
 
+  /** Bare identifiers enabled by explicit options such as {@code itemstr=ITEM}. */
+  @Getter private Map<String, ForeachBinding> foreachIdentifierBindings = new HashMap<>();
+
   /** Bindings that become active in lambda contexts cloned from this one. */
   private Map<String, ForeachBinding> stagedForeachLambdaBindings = new HashMap<>();
+
+  /** Bare identifier bindings staged for a generated foreach lambda. */
+  private Map<String, ForeachBinding> stagedForeachIdentifierBindings = new HashMap<>();
+
+  /** Expressions computed by earlier assignments in the same foreach eval iteration. */
+  @Getter private Map<String, RexNode> foreachComputedBindings = new HashMap<>();
 
   /**
    * Maps AggregateFunction AST nodes to their output field index for HAVING/post-aggregate
@@ -141,6 +150,9 @@ public class CalcitePlanContext {
     // Active bindings carry over; staged bindings become active inside the lambda.
     this.foreachBindings = new HashMap<>(parent.foreachBindings);
     this.foreachBindings.putAll(parent.stagedForeachLambdaBindings);
+    this.foreachIdentifierBindings = new HashMap<>(parent.foreachIdentifierBindings);
+    this.foreachIdentifierBindings.putAll(parent.stagedForeachIdentifierBindings);
+    this.foreachComputedBindings = new HashMap<>(parent.foreachComputedBindings);
   }
 
   public RexNode resolveJoinCondition(
@@ -219,17 +231,28 @@ public class CalcitePlanContext {
     timewrapSeries.set(null);
   }
 
-  public void pushForeachBindings(Map<String, ForeachBinding> bindings) {
+  public void pushForeachBindings(
+      Map<String, ForeachBinding> bindings, Map<String, ForeachBinding> identifierBindings) {
     foreachBindings = new HashMap<>(bindings);
+    foreachIdentifierBindings = new HashMap<>(identifierBindings);
   }
 
-  public void stageForeachLambdaBindings(Map<String, ForeachBinding> bindings) {
+  public void stageForeachLambdaBindings(
+      Map<String, ForeachBinding> bindings, Map<String, ForeachBinding> identifierBindings) {
     stagedForeachLambdaBindings = new HashMap<>(bindings);
+    stagedForeachIdentifierBindings = new HashMap<>(identifierBindings);
+  }
+
+  public void putForeachComputedBinding(String name, RexNode expression) {
+    foreachComputedBindings.put(name.toUpperCase(java.util.Locale.ROOT), expression);
   }
 
   public void clearForeachBindings() {
     foreachBindings.clear();
+    foreachIdentifierBindings.clear();
     stagedForeachLambdaBindings.clear();
+    stagedForeachIdentifierBindings.clear();
+    foreachComputedBindings.clear();
   }
 
   /**

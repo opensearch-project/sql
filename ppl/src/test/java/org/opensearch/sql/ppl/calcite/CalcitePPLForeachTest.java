@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl.calcite;
 
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
@@ -69,8 +70,10 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(total=[reduce(foreach_pair_collection(array(1, 2, 3)), 0, (total,"
-            + " __foreach_pair) -> +(total, foreach_pair_item(__foreach_pair, 0)))])\n"
+        "LogicalProject(total=[foreach_pair_item(reduce(foreach_pair_collection(array(1, 2, 3)),"
+            + " foreach_state(0), (__foreach_state, __foreach_pair) ->"
+            + " foreach_state(+(foreach_pair_item(__foreach_state, 0),"
+            + " foreach_pair_item(__foreach_pair, 0)))), 0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -83,8 +86,10 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(total=[reduce(foreach_pair_collection(array(10, 20, 30)), 0, (total,"
-            + " __foreach_pair) -> +(total, foreach_pair_item(__foreach_pair, 1)))])\n"
+        "LogicalProject(total=[foreach_pair_item(reduce(foreach_pair_collection(array(10, 20, 30)),"
+            + " foreach_state(0), (__foreach_state, __foreach_pair) ->"
+            + " foreach_state(+(foreach_pair_item(__foreach_state, 0),"
+            + " foreach_pair_item(__foreach_pair, 1)))), 0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -97,9 +102,10 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(total=[reduce(foreach_pair_collection(foreach_json_array('[1,2,3]':VARCHAR,"
-            + " 'DOUBLE':VARCHAR)), 0.0E0:DOUBLE, (total, __foreach_pair) -> +(total,"
-            + " foreach_pair_item(__foreach_pair, 0)))])\n"
+        "LogicalProject(total=[foreach_pair_item(reduce(foreach_pair_collection(foreach_json_array('[1,2,3]':VARCHAR,"
+            + " 'DOUBLE':VARCHAR)), foreach_state(0.0E0:DOUBLE), (__foreach_state, __foreach_pair)"
+            + " -> foreach_state(+(foreach_pair_item(__foreach_state, 0),"
+            + " foreach_pair_item(__foreach_pair, 0)))), 0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -112,9 +118,10 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(total=[reduce(foreach_pair_collection(foreach_json_array(JSON_ARRAY(FLAG(NULL_ON_NULL),"
-            + " 1, 2, 3), 'DOUBLE':VARCHAR)), 0.0E0:DOUBLE, (total, __foreach_pair) -> +(total,"
-            + " foreach_pair_item(__foreach_pair, 0)))])\n"
+        "LogicalProject(total=[foreach_pair_item(reduce(foreach_pair_collection(foreach_json_array(JSON_ARRAY(FLAG(NULL_ON_NULL),"
+            + " 1, 2, 3), 'DOUBLE':VARCHAR)), foreach_state(0.0E0:DOUBLE), (__foreach_state,"
+            + " __foreach_pair) -> foreach_state(+(foreach_pair_item(__foreach_state, 0),"
+            + " foreach_pair_item(__foreach_pair, 0)))), 0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -136,8 +143,10 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(total=[reduce(foreach_pair_collection(array(1, 2, 3)), 0, (total,"
-            + " __foreach_pair) -> +(total, foreach_pair_item(__foreach_pair, 0)))])\n"
+        "LogicalProject(total=[foreach_pair_item(reduce(foreach_pair_collection(array(1, 2, 3)),"
+            + " foreach_state(0), (__foreach_state, __foreach_pair) ->"
+            + " foreach_state(+(foreach_pair_item(__foreach_state, 0),"
+            + " foreach_pair_item(__foreach_pair, 0)))), 0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -150,8 +159,10 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(total=[reduce(foreach_pair_collection(array(1, 2, 3)), 0, (total,"
-            + " __foreach_pair) -> +(total, foreach_pair_item(__foreach_pair, 0)))])\n"
+        "LogicalProject(total=[foreach_pair_item(reduce(foreach_pair_collection(array(1, 2, 3)),"
+            + " foreach_state(0), (__foreach_state, __foreach_pair) ->"
+            + " foreach_state(+(foreach_pair_item(__foreach_state, 0),"
+            + " foreach_pair_item(__foreach_pair, 0)))), 0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -167,15 +178,15 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
 
     // The captured field `nums` rides in pair slot 2; ITEM is slot 0 and ITER slot 1.
     String expectedLogical =
-        "LogicalProject(word_and_num=[reduce(foreach_pair_collection(CASE(=('':VARCHAR, ''),"
-            + " REGEXP_EXTRACT_ALL('ABCDE':VARCHAR, '.'), SPLIT('ABCDE':VARCHAR, '':VARCHAR)),"
-            + " array('1', '2', '3', '4', '5')), array(), (word_and_num, __foreach_pair) ->"
-            + " mvappend(word_and_num, CONCAT(foreach_pair_item(__foreach_pair, 0),"
-            + " ITEM(foreach_pair_item(__foreach_pair, 2),"
-            + " CASE(<(foreach_pair_item(__foreach_pair, 1), 0),"
+        "LogicalProject(word_and_num=[foreach_pair_item(reduce(foreach_pair_collection(CASE(=('':VARCHAR,"
+            + " ''), REGEXP_EXTRACT_ALL('ABCDE':VARCHAR, '.'), SPLIT('ABCDE':VARCHAR, '':VARCHAR)),"
+            + " array('1', '2', '3', '4', '5')), foreach_state(array()), (__foreach_state,"
+            + " __foreach_pair) -> foreach_state(mvappend(foreach_pair_item(__foreach_state, 0),"
+            + " CONCAT(foreach_pair_item(__foreach_pair, 0), ITEM(foreach_pair_item(__foreach_pair,"
+            + " 2), CASE(<(foreach_pair_item(__foreach_pair, 1), 0),"
             + " +(+(ARRAY_LENGTH(foreach_pair_item(__foreach_pair, 2)),"
             + " foreach_pair_item(__foreach_pair, 1)), 1), +(foreach_pair_item(__foreach_pair, 1),"
-            + " 1))))))])\n"
+            + " 1))))))), 0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -189,9 +200,10 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(total=[reduce(foreach_pair_collection(foreach_json_array($1,"
-            + " 'DOUBLE':VARCHAR)), 0.0E0:DOUBLE, (total, __foreach_pair) -> +(total,"
-            + " foreach_pair_item(__foreach_pair, 0)))])\n"
+        "LogicalProject(total=[foreach_pair_item(reduce(foreach_pair_collection(foreach_json_array($1,"
+            + " 'DOUBLE':VARCHAR)), foreach_state(0.0E0:DOUBLE), (__foreach_state, __foreach_pair)"
+            + " -> foreach_state(+(foreach_pair_item(__foreach_state, 0),"
+            + " foreach_pair_item(__foreach_pair, 0)))), 0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -205,10 +217,112 @@ public class CalcitePPLForeachTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(r=[reduce(foreach_pair_collection(foreach_json_array($1,"
-            + " 'VARCHAR':VARCHAR)), '':VARCHAR, (r, __foreach_pair) -> CONCAT(r,"
-            + " foreach_pair_item(__foreach_pair, 0)))])\n"
+        "LogicalProject(r=[foreach_pair_item(reduce(foreach_pair_collection(foreach_json_array($1,"
+            + " 'VARCHAR':VARCHAR)), foreach_state('':VARCHAR), (__foreach_state, __foreach_pair)"
+            + " -> foreach_state(CONCAT(foreach_pair_item(__foreach_state, 0),"
+            + " foreach_pair_item(__foreach_pair, 0)))), 0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testForeachSubstitutesTemplateInsideStringLiteral() {
+    RelNode root =
+        getRelNode("source=EMP | foreach ENAME [ eval copy = '<<FIELD>>' ] | fields copy");
+
+    verifyLogical(
+        root, "LogicalProject(copy=['ENAME'])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n");
+  }
+
+  @Test
+  public void testDefaultItemNameDoesNotShadowRowField() {
+    RelNode root =
+        getRelNode(
+            "source=EMP | eval ITEM=100, nums=array(1,2), total=0 | foreach mode=multivalue"
+                + " nums [ eval total=total+ITEM ] | fields total");
+
+    String logical = org.apache.calcite.plan.RelOptUtil.toString(root);
+    assertTrue(logical.contains("foreach_pair_collection(array(1, 2), 100)"));
+    assertTrue(logical.contains("foreach_pair_item(__foreach_pair, 2)"));
+  }
+
+  @Test
+  public void testCustomItemNameShadowsRowField() {
+    RelNode root =
+        getRelNode(
+            "source=EMP | eval ITEM=100, nums=array(1,2), total=0 | foreach mode=multivalue"
+                + " itemstr=ITEM nums [ eval total=total+ITEM ] | fields total");
+
+    String logical = org.apache.calcite.plan.RelOptUtil.toString(root);
+    assertTrue(logical.contains("foreach_pair_collection(array(1, 2))"));
+    assertTrue(logical.contains("foreach_pair_item(__foreach_pair, 0)"));
+  }
+
+  @Test
+  public void testJsonFieldNumericFunctionInfersDoubleItem() {
+    RelNode root =
+        getRelNode(
+            "source=EMP | eval result=0 | foreach mode=json_array ENAME [ eval"
+                + " result=abs(<<ITEM>>) ] | fields result");
+
+    String logical = org.apache.calcite.plan.RelOptUtil.toString(root);
+    assertTrue(logical, logical.contains("foreach_json_array($1, 'DOUBLE':VARCHAR)"));
+  }
+
+  @Test
+  public void testJsonFieldNumericComparisonInfersDoubleItem() {
+    RelNode root =
+        getRelNode(
+            "source=EMP | eval count=0 | foreach mode=json_array ENAME [ eval"
+                + " count=count+if(<<ITEM>> > 9, 1, 0) ] | fields count");
+
+    assertTrue(
+        org.apache.calcite.plan.RelOptUtil.toString(root)
+            .contains("foreach_json_array($1, 'DOUBLE':VARCHAR)"));
+  }
+
+  @Test
+  public void testCollectionModeMismatchIsNoOp() {
+    RelNode multivalue =
+        getRelNode(
+            "source=EMP | eval total=0 | foreach mode=multivalue ENAME [ eval"
+                + " total=total+<<ITEM>> ] | fields total");
+    RelNode jsonArray =
+        getRelNode(
+            "source=EMP | eval nums=array(1,2), total=0 | foreach mode=json_array nums [ eval"
+                + " total=total+<<ITEM>> ] | fields total");
+
+    String expected = "LogicalProject(total=[0])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(multivalue, expected);
+    verifyLogical(jsonArray, expected);
+  }
+
+  @Test
+  public void testExactPatternTakesPrecedenceForMatchstr() {
+    RelNode root =
+        getRelNode(
+            "source=EMP | foreach *NO EMPNO [ eval copy_<<MATCHSTR>> = '<<MATCHSTR>>' ] |"
+                + " fields copy_");
+
+    verifyLogical(
+        root, "LogicalProject(copy_=[''])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n");
+  }
+
+  @Test
+  public void testCollectionAssignmentsSharePerIterationState() {
+    RelNode root =
+        getRelNode(
+            "source=EMP | eval nums=array(1,2), sum=0, seen=0 | foreach mode=multivalue nums"
+                + " [ eval sum=sum+<<ITEM>>, seen=seen+sum ] | fields sum, seen");
+
+    String logical = org.apache.calcite.plan.RelOptUtil.toString(root);
+    assertTrue(logical.contains("foreach_state(0, 0)"));
+    assertTrue(
+        logical.contains(
+            "foreach_state(+(foreach_pair_item(__foreach_state, 0),"
+                + " foreach_pair_item(__foreach_pair, 0)),"
+                + " +(foreach_pair_item(__foreach_state, 1),"
+                + " +(foreach_pair_item(__foreach_state, 0),"
+                + " foreach_pair_item(__foreach_pair, 0))))"));
   }
 }

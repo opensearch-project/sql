@@ -7,9 +7,12 @@ package org.opensearch.sql.expression.function.jsonUDF;
 
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.gson;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.StreamSupport;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -65,25 +68,41 @@ public class ForeachJsonArrayFunctionImpl extends ImplementorUDF {
     }
     SqlTypeName elementType = SqlTypeName.valueOf(String.valueOf(args[1]));
     try {
-      List<?> values =
-          args[0] instanceof List<?> list
-              ? list
-              : gson.fromJson(String.valueOf(args[0]), List.class);
-      return values == null
-          ? null
-          : values.stream().map(value -> cast(value, elementType)).toList();
+      if (args[0] instanceof List<?> values) {
+        return values.stream().map(value -> cast(value, elementType)).toList();
+      }
+      JsonArray values = gson.fromJson(String.valueOf(args[0]), JsonArray.class);
+      if (values == null) {
+        return List.of();
+      }
+      return StreamSupport.stream(values.spliterator(), false)
+          .map(value -> cast(value, elementType))
+          .toList();
     } catch (JsonSyntaxException e) {
-      return null;
+      return List.of();
     }
   }
 
   private static Object cast(Object value, SqlTypeName elementType) {
+    if (value instanceof JsonElement element) {
+      if (element.isJsonNull()) {
+        return elementType == SqlTypeName.VARCHAR ? "null" : null;
+      }
+      if (element.isJsonArray() || element.isJsonObject()) {
+        return element.toString();
+      }
+      value =
+          element.getAsJsonPrimitive().isNumber() ? element.getAsNumber() : element.getAsString();
+    }
     if (value == null) {
       return null;
     }
     return switch (elementType) {
       case DOUBLE -> ((Number) value).doubleValue();
-      case VARCHAR -> String.valueOf(value);
+      case VARCHAR ->
+          value instanceof List<?> || value instanceof java.util.Map<?, ?>
+              ? gson.toJson(value)
+              : String.valueOf(value);
       case DECIMAL -> BigDecimal.valueOf(((Number) value).doubleValue());
       default -> value;
     };

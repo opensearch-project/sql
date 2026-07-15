@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.junit.Assert.assertThrows;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -15,7 +14,6 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
-import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
@@ -70,13 +68,13 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
    * desired behavior.
    */
   @Test
-  public void testNativeArrayFieldIsRejected() {
-    assertThrows(
-        ResponseException.class,
-        () ->
-            executeQuery(
-                "source=test_foreach_field2 | eval total = 0 | foreach mode=multivalue nativenums"
-                    + " [ eval total = total + <<ITEM>> ] | fields total"));
+  public void testNativeArrayFieldMappingMismatchIsNoOp() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach_field2 | eval total = 0 | foreach mode=multivalue nativenums"
+                + " [ eval total = total + <<ITEM>> ] | fields total");
+    verifySchema(result, schema("total", "int"));
+    verifyDataRows(result, rows(0));
   }
 
   /**
@@ -93,29 +91,25 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
     verifyDataRows(result, rows(2));
   }
 
-  /**
-   * Cross-feed behavior differs from Splunk by design. Splunk silently no-ops when a mode is fed
-   * the wrong collection shape; we either still work (json_array mode on a real array iterates it -
-   * more permissive) or fail loudly at plan time (multivalue mode on a JSON-text field).
-   */
+  /** Splunk silently no-ops when a mode is fed the wrong collection shape. */
   @Test
-  public void testJsonArrayModeOnRealArrayIterates() throws IOException {
+  public void testJsonArrayModeOnRealArrayIsNoOp() throws IOException {
     JSONObject result =
         executeQuery(
             "source=test_foreach_field2 | eval nums = array(1, 2, 3), total = 0 | foreach"
                 + " mode=json_array nums [ eval total = total + <<ITEM>> ] | fields total | head"
                 + " 1");
-    verifySchema(result, schema("total", "double"));
-    verifyDataRows(result, rows(6.0));
+    verifySchema(result, schema("total", "int"));
+    verifyDataRows(result, rows(0));
   }
 
   @Test
-  public void testMultivalueModeOnJsonTextFieldIsRejected() {
-    assertThrows(
-        ResponseException.class,
-        () ->
-            executeQuery(
-                "source=test_foreach_field2 | eval total = 0 | foreach mode=multivalue jsonfield"
-                    + " [ eval total = total + <<ITEM>> ] | fields total"));
+  public void testMultivalueModeOnJsonTextFieldIsNoOp() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach_field2 | eval total = 0 | foreach mode=multivalue jsonfield"
+                + " [ eval total = total + <<ITEM>> ] | fields total");
+    verifySchema(result, schema("total", "int"));
+    verifyDataRows(result, rows(0));
   }
 }

@@ -40,9 +40,10 @@ Placeholders renamed via `itemstr`/`iterstr` may be written without the `<<...>>
 
 The following considerations apply when using the `foreach` command:
 
-* In collection modes, the bracketed `eval` acts as an accumulator: the target field must already exist (typically initialized with a preceding `eval`), and the expression is applied once per element, folding into the target field.
+* In collection modes, the bracketed `eval` acts as an accumulator: each target field must already exist (typically initialized with a preceding `eval`), and the expressions are applied once per element. Multiple assignments run from left to right, so a later assignment in the same iteration sees an earlier assignment's updated value.
 * In `json_array` mode the element type is inferred: a `json_array(...)` call or JSON string literal is inspected at plan time; for a field holding JSON text, elements are treated as numbers when `<<ITEM>>` is used in arithmetic and as strings otherwise. Mixed string/number JSON arrays are rejected.
-* A field whose mapping is a scalar type (for example, `long`) is not accepted by `multivalue` mode even if documents store arrays in it, because the mapping does not declare the field as an array.
+* Placeholders are also substituted inside string literals. For example, `eval <<FIELD>> = '<<FIELD>>'` replaces each selected field value with that field's name.
+* As in Splunk, `multivalue` mode applied to a non-array value and `json_array` mode applied to a native array are no-ops. A field whose mapping is scalar cannot be identified as multivalue at plan time even when a document stores several values, so `multivalue` mode also no-ops for that mapping.
 
 ## Example 1: Apply the same calculation to multiple fields
 

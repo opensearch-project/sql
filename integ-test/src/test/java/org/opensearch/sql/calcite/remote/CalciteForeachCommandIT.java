@@ -75,6 +75,15 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testForeachSubstitutesPlaceholderInsideStringLiteral() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach | foreach a b [ eval <<FIELD>> = '<<FIELD>>' ] | fields a, b");
+    verifySchema(result, schema("a", "string"), schema("b", "string"));
+    verifyDataRows(result, rows("a", "b"), rows("a", "b"));
+  }
+
+  @Test
   public void testForeachMultivalueMode() throws IOException {
     JSONObject result =
         executeQuery(
@@ -92,6 +101,17 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
                 + " mode=multivalue iterstr=IDX nums [ eval total = total + IDX ] | fields total");
     verifySchema(result, schema("total", "int"));
     verifyDataRows(result, rows(3), rows(3));
+  }
+
+  @Test
+  public void testForeachAssignmentsUseUpdatedStateInOrder() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach | eval nums=array(1,2), sum=0, seen=0 | foreach"
+                + " mode=multivalue itemstr=ITEM nums [ eval sum=sum+ITEM, seen=seen+sum ] |"
+                + " fields sum, seen");
+    verifySchema(result, schema("sum", "int"), schema("seen", "int"));
+    verifyDataRows(result, rows(3, 4), rows(3, 4));
   }
 
   @Test
@@ -157,5 +177,17 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
                 + " mode=auto_collections [ eval total = total + <<ITEM>> ] | fields total");
     verifySchema(result, schema("total", "int"));
     verifyDataRows(result, rows(6), rows(6));
+  }
+
+  @Test
+  public void testCollectionModeMismatchIsNoOp() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach | eval nums=array(1,2), first=0, second=0 | foreach"
+                + " mode=json_array nums [ eval first=first+<<ITEM>> ] | foreach"
+                + " mode=multivalue '[1,2]' [ eval second=second+<<ITEM>> ] | fields first,"
+                + " second");
+    verifySchema(result, schema("first", "int"), schema("second", "int"));
+    verifyDataRows(result, rows(0, 0), rows(0, 0));
   }
 }

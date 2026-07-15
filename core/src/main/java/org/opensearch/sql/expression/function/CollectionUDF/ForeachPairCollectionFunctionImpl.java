@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function.CollectionUDF;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -77,7 +78,7 @@ public class ForeachPairCollectionFunctionImpl extends ImplementorUDF {
       return list;
     }
     if (value instanceof Object[] array) {
-      return List.of(array);
+      return Arrays.asList(array);
     }
     throw new IllegalArgumentException("foreach pair collection requires an array input");
   }
