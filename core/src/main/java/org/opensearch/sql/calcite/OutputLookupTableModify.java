@@ -21,8 +21,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * optimizer treats it as a mandatory table-modifying side effect (never dropped or reordered) and
  * it exposes the standard rowcount row type. The referenced table is the source scan, used only so
  * the lowering rule can reach the in-cluster client; the real destination lookup index is created
- * and written at execution time by the physical operator, so a preexisting destination table is
- * not required. Subclasses {@link TableModify} rather than LogicalTableModify so the built-in
+ * and written at execution time by the physical operator, so a preexisting destination table is not
+ * required. Subclasses {@link TableModify} rather than LogicalTableModify so the built-in
  * EnumerableTableModifyRule (which needs a ModifiableTable) does not fire on it.
  */
 @Getter

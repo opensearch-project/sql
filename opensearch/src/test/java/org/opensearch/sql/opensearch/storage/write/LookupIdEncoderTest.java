@@ -29,7 +29,8 @@ class LookupIdEncoderTest {
 
   @Test
   void multiFieldNoCollisionAcrossBoundaries() {
-    // ["a","bc"] must not collide with ["ab","c"] -- length prefixes keep field boundaries distinct.
+    // ["a","bc"] must not collide with ["ab","c"] -- length prefixes keep field boundaries
+    // distinct.
     assertNotEquals(
         LookupIdEncoder.encode(List.of("a", "b"), FIELDS, new Object[] {"a", "bc"}),
         LookupIdEncoder.encode(List.of("a", "b"), FIELDS, new Object[] {"ab", "c"}));
@@ -58,7 +59,8 @@ class LookupIdEncoderTest {
   void multivalueKeyRejected() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> LookupIdEncoder.encode(List.of("a"), List.of("a"), new Object[] {new Object[] {1, 2}}));
+        () ->
+            LookupIdEncoder.encode(List.of("a"), List.of("a"), new Object[] {new Object[] {1, 2}}));
     assertThrows(
         IllegalArgumentException.class,
         () -> LookupIdEncoder.encode(List.of("a"), List.of("a"), new Object[] {List.of(1, 2)}));

@@ -105,16 +105,14 @@ public final class OpenSearchBulkWriter implements AutoCloseable {
         } else if (item.getFailure().getStatus() == RestStatus.TOO_MANY_REQUESTS) {
           retry.add(pending.requests().get(item.getItemId()));
         } else {
-          fatal.add(
-              new ItemFailure(item.getItemId(), item.getId(), item.getFailureMessage()));
+          fatal.add(new ItemFailure(item.getItemId(), item.getId(), item.getFailureMessage()));
         }
       }
       written += succeeded;
 
       // G2: never swallow a non-retryable failure.
       if (!fatal.isEmpty()) {
-        throw new BulkWriteException(
-            "outputlookup bulk write hit non-retryable failures", fatal);
+        throw new BulkWriteException("outputlookup bulk write hit non-retryable failures", fatal);
       }
       if (retry.numberOfActions() == 0) {
         return;

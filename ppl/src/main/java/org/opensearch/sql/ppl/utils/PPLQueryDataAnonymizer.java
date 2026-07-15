@@ -647,8 +647,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
-  public String visitOutputLookup(
-      org.opensearch.sql.ast.tree.OutputLookup node, String context) {
+  public String visitOutputLookup(org.opensearch.sql.ast.tree.OutputLookup node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     return StringUtils.format("%s | outputlookup ***", child);
   }

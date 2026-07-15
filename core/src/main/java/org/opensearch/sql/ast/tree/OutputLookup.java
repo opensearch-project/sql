@@ -17,8 +17,8 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 
 /**
  * AST node for the {@code outputlookup} command: a terminal write sink that materializes pipeline
- * rows into a lookup index. Overwrite-by-default (set {@code append=true} to append instead).
- * See the outputlookup PPL design.
+ * rows into a lookup index. Overwrite-by-default (set {@code append=true} to append instead). See
+ * the outputlookup PPL design.
  */
 @Getter
 @Setter
@@ -39,7 +39,9 @@ public class OutputLookup extends UnresolvedPlan {
   /** true (default) clears the destination on empty results; false keeps it. */
   private boolean overrideIfEmpty = true;
 
-  /** Fields whose values form the document {@code _id} for upsert; empty means auto-generated id. */
+  /**
+   * Fields whose values form the document {@code _id} for upsert; empty means auto-generated id.
+   */
   private List<String> keyFields = java.util.List.of();
 
   /** Cap on the number of rows written; null means unbounded. */

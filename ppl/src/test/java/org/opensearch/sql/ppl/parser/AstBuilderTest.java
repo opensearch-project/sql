@@ -78,10 +78,10 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.GraphLookup;
-import org.opensearch.sql.ast.tree.OutputLookup;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.OutputLookup;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -1970,8 +1970,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
     OutputLookup expected = new OutputLookup("hosts");
     expected.setKeyFields(java.util.List.of("id"));
     expected.setAppend(true);
-    assertEqual(
-        "source=t | outputlookup key_field=id hosts", expected.attach(relation("t")));
+    assertEqual("source=t | outputlookup key_field=id hosts", expected.attach(relation("t")));
   }
 
   @Test
@@ -1981,8 +1980,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
     expected.setKeyFields(java.util.List.of("id"));
     expected.setAppend(false);
     assertEqual(
-        "source=t | outputlookup append=false key_field=id hosts",
-        expected.attach(relation("t")));
+        "source=t | outputlookup append=false key_field=id hosts", expected.attach(relation("t")));
   }
 
   @Test

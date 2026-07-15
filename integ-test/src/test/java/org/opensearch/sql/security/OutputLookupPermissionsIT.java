@@ -8,7 +8,6 @@ package org.opensearch.sql.security;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.util.Locale;
 import org.junit.Test;
 import org.opensearch.client.Request;
@@ -34,8 +33,7 @@ public class OutputLookupPermissionsIT extends SecurityTestBase {
     super.init();
     if (!initialized) {
       Request create = new Request("PUT", "/" + SRC);
-      create.setJsonEntity(
-          "{\"mappings\":{\"properties\":{\"id\":{\"type\":\"integer\"}}}}");
+      create.setJsonEntity("{\"mappings\":{\"properties\":{\"id\":{\"type\":\"integer\"}}}}");
       client().performRequest(create);
       Request doc = new Request("PUT", "/" + SRC + "/_doc/1?refresh=true");
       doc.setJsonEntity("{\"id\":1}");

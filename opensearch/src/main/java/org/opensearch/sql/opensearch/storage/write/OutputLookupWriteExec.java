@@ -29,9 +29,10 @@ import org.opensearch.sql.opensearch.storage.write.WriteConfig.WriteMode;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
- * Lifecycle for {@code outputlookup} (substrate <b>C2</b>: one plain index per lookup, weak/eventual
- * overwrite). A lookup named {@code <name>} <em>is</em> a plain index; readers ({@code
- * source=<name>}, {@code lookup <name>}) hit it directly. There is no alias, backing index, or uuid.
+ * Lifecycle for {@code outputlookup} (substrate <b>C2</b>: one plain index per lookup,
+ * weak/eventual overwrite). A lookup named {@code <name>} <em>is</em> a plain index; readers
+ * ({@code source=<name>}, {@code lookup <name>}) hit it directly. There is no alias, backing index,
+ * or uuid.
  *
  * <p>Every lookup index this command creates is tagged with the index metadata marker {@code
  * _meta.lookup = true}. Overwrite and append refuse to touch a plain index that lacks the marker
@@ -52,17 +53,17 @@ import org.opensearch.transport.client.node.NodeClient;
  *       at-least-once; a keyed append is idempotent on re-run, a plain append may duplicate.
  * </ul>
  *
- * <p><b>Backward compatibility with the Dashboards data importer (#11303).</b> That feature realizes
- * a lookup as a <em>filtered alias</em> ({@code {term:{__lookup:<uuid>}}}) over a <em>shared</em>
- * index. The two formats coexist permanently; a lookup is migrated only when a name collision forces
- * it. Because a plain index cannot coexist with an alias of the same name, overwrite of a filtered
- * alias <em>migrates on touch</em>: it detaches the alias from the shared index and creates a
- * dedicated plain index {@code <name>} in its place. It <b>never deletes the shared index</b> (other
- * lookups' filtered aliases still use it); the orphaned {@code __lookup} slice is left in the shared
- * index. Reclaiming that slice (a periodic reaper keyed on the {@code __lookup} discriminant that
- * deletes a slice only once no alias references it) is intentionally out of scope here and tracked
- * as a follow-up PR. Append onto a filtered alias is refused (overwrite once to migrate first).
- * Reads of an un-migrated filtered alias remain compatible.
+ * <p><b>Backward compatibility with the Dashboards data importer (#11303).</b> That feature
+ * realizes a lookup as a <em>filtered alias</em> ({@code {term:{__lookup:<uuid>}}}) over a
+ * <em>shared</em> index. The two formats coexist permanently; a lookup is migrated only when a name
+ * collision forces it. Because a plain index cannot coexist with an alias of the same name,
+ * overwrite of a filtered alias <em>migrates on touch</em>: it detaches the alias from the shared
+ * index and creates a dedicated plain index {@code <name>} in its place. It <b>never deletes the
+ * shared index</b> (other lookups' filtered aliases still use it); the orphaned {@code __lookup}
+ * slice is left in the shared index. Reclaiming that slice (a periodic reaper keyed on the {@code
+ * __lookup} discriminant that deletes a slice only once no alias references it) is intentionally
+ * out of scope here and tracked as a follow-up PR. Append onto a filtered alias is refused
+ * (overwrite once to migrate first). Reads of an un-migrated filtered alias remain compatible.
  *
  * <p><b>Permissions.</b> All operations run under the calling user's security context (verified: a
  * read-only user is denied). On the destination the caller needs {@code indices:data/write/bulk},
@@ -90,7 +91,8 @@ public final class OutputLookupWriteExec {
       if (OpenSearchIndex.METADATAFIELD_TYPE_MAP.containsKey(field.getName())) {
         continue;
       }
-      properties.put(field.getName(), Map.of("type", esType(field.getType().getSqlTypeName().name())));
+      properties.put(
+          field.getName(), Map.of("type", esType(field.getType().getSqlTypeName().name())));
     }
     return Map.of("properties", properties);
   }
@@ -186,7 +188,9 @@ public final class OutputLookupWriteExec {
         if (!target.filtered()) {
           // A plain (non-filtered) alias is not a recognized lookup; do not silently take it over.
           throw new IllegalArgumentException(
-              "outputlookup destination [" + name + "] is an alias, not a lookup; refusing to"
+              "outputlookup destination ["
+                  + name
+                  + "] is an alias, not a lookup; refusing to"
                   + " overwrite it");
         }
         // Migrate-on-touch (#11303): detach the filtered alias from its (possibly shared) index —
@@ -278,7 +282,8 @@ public final class OutputLookupWriteExec {
    * Resolved state of the lookup name. {@code ownLookup} is meaningful for {@link Kind#INDEX} (does
    * it carry our marker); {@code filtered} and {@code aliasIndices} for {@link Kind#ALIAS}.
    */
-  private record Target(Kind kind, boolean ownLookup, boolean filtered, List<String> aliasIndices) {}
+  private record Target(
+      Kind kind, boolean ownLookup, boolean filtered, List<String> aliasIndices) {}
 
   /**
    * Probe the target at the indices level (no {@code cluster:monitor/state}): an alias is detected

@@ -123,7 +123,6 @@ class OpenSearchBulkWriterTest {
 
   @Test
   void upsertConfigRequiresKeyField() {
-    assertThrows(
-        IllegalArgumentException.class, () -> cfg(WriteMode.UPSERT, List.of(), 1000));
+    assertThrows(IllegalArgumentException.class, () -> cfg(WriteMode.UPSERT, List.of(), 1000));
   }
 }

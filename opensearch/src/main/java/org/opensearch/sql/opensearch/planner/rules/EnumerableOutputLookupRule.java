@@ -48,8 +48,7 @@ public class EnumerableOutputLookupRule extends ConverterRule {
     RelTraitSet traitSet = node.getTraitSet().replace(EnumerableConvention.INSTANCE);
     RelNode convertedInput =
         convert(
-            node.getInput(),
-            node.getInput().getTraitSet().replace(EnumerableConvention.INSTANCE));
+            node.getInput(), node.getInput().getTraitSet().replace(EnumerableConvention.INSTANCE));
     return new EnumerableOutputLookup(
         node.getCluster(),
         traitSet,

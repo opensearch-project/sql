@@ -49,8 +49,7 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
   private void indexDoc(String index, int id, String name, int status) throws IOException {
     Request req = new Request("PUT", "/" + index + "/_doc/" + id + "?refresh=true");
     req.setJsonEntity(
-        String.format(
-            Locale.ROOT, "{\"id\":%d,\"name\":\"%s\",\"status\":%d}", id, name, status));
+        String.format(Locale.ROOT, "{\"id\":%d,\"name\":\"%s\",\"status\":%d}", id, name, status));
     client().performRequest(req);
   }
 
@@ -65,7 +64,8 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
 
   private long docCount(String indexOrAlias) throws IOException {
     Response resp = client().performRequest(new Request("GET", "/" + indexOrAlias + "/_count"));
-    return new JSONObject(new String(resp.getEntity().getContent().readAllBytes())).getLong("count");
+    return new JSONObject(new String(resp.getEntity().getContent().readAllBytes()))
+        .getLong("count");
   }
 
   private String mappingJson(String indexOrAlias) throws IOException {
@@ -104,8 +104,7 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     String dest = "olkc_dest_ap";
     seedSrc(src);
 
-    executeQuery(
-        String.format("source=%s | where id<3 | fields id | outputlookup %s", src, dest));
+    executeQuery(String.format("source=%s | where id<3 | fields id | outputlookup %s", src, dest));
     refresh(dest);
     assertEquals(2L, docCount(dest));
     assertFalse(mappingJson(dest).contains("\"name\""));
@@ -268,7 +267,8 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     // Run 1: upsert (us,h1) and (us,h2) -> 2 pairs.
     executeQuery(
         String.format(
-            "source=%s | where val<25 | fields region, host, val | outputlookup key_field=region,host %s",
+            "source=%s | where val<25 | fields region, host, val | outputlookup"
+                + " key_field=region,host %s",
             src, dest));
     refresh(dest);
     assertEquals(2L, docCount(dest));
@@ -276,10 +276,14 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     // Run 2: host=h1 matches (us,h1) [update in place] and (eu,h1) [insert] -> 3 distinct pairs.
     executeQuery(
         String.format(
-            "source=%s | where host='h1' | fields region, host, val | outputlookup key_field=region,host %s",
+            "source=%s | where host='h1' | fields region, host, val | outputlookup"
+                + " key_field=region,host %s",
             src, dest));
     refresh(dest);
-    assertEquals("composite-key upsert: (us,h1) updated, (eu,h1) inserted, no duplicate", 3L, docCount(dest));
+    assertEquals(
+        "composite-key upsert: (us,h1) updated, (eu,h1) inserted, no duplicate",
+        3L,
+        docCount(dest));
   }
 
   // P0 #1: a key_field that is not a result field is rejected (would otherwise collapse all rows
@@ -302,7 +306,8 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
   }
 
   // #1 marker guard: overwrite refuses a name that is an existing NON-lookup index (no
-  // `_meta.lookup` marker), so it never clobbers unrelated data. Also covers dest == source in shape.
+  // `_meta.lookup` marker), so it never clobbers unrelated data. Also covers dest == source in
+  // shape.
   @Test
   public void testOverwriteRefusesForeignPlainIndex() throws IOException {
     String src = "olkc_src_coll";
@@ -346,7 +351,8 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
             ResponseException.class,
             () ->
                 executeQuery(
-                    String.format("source=%s | fields id | outputlookup append=true %s", src, dest)));
+                    String.format(
+                        "source=%s | fields id | outputlookup append=true %s", src, dest)));
     assertTrue("append refused on non-lookup index", ex.getMessage().contains("non-lookup index"));
     refresh(dest);
     assertEquals("foreign index left untouched", 1L, docCount(dest));
@@ -376,7 +382,8 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
   }
 
   // Backward-compat with the Dashboards data importer (#11303): a lookup created there is a
-  // FILTERED alias ({term:{__lookup:<uuid>}}) over a SHARED index holding several lookups. Overwrite
+  // FILTERED alias ({term:{__lookup:<uuid>}}) over a SHARED index holding several lookups.
+  // Overwrite
   // must migrate the touched lookup onto a dedicated backing by repointing the alias, and must NOT
   // delete the shared index (that would destroy the other lookups sharing it).
   @Test
@@ -406,9 +413,15 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     Request aliases = new Request("POST", "/_aliases");
     aliases.setJsonEntity(
         "{\"actions\":["
-            + "{\"add\":{\"index\":\"" + shared + "\",\"alias\":\"" + aliasA
+            + "{\"add\":{\"index\":\""
+            + shared
+            + "\",\"alias\":\""
+            + aliasA
             + "\",\"filter\":{\"term\":{\"__lookup\":\"A\"}}}},"
-            + "{\"add\":{\"index\":\"" + shared + "\",\"alias\":\"" + aliasB
+            + "{\"add\":{\"index\":\""
+            + shared
+            + "\",\"alias\":\""
+            + aliasB
             + "\",\"filter\":{\"term\":{\"__lookup\":\"B\"}}}}]}");
     client().performRequest(aliases);
     assertEquals("alias A sees only its slice before overwrite", 2L, docCount(aliasA));
@@ -460,7 +473,10 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     client().performRequest(doc);
     Request aliases = new Request("POST", "/_aliases");
     aliases.setJsonEntity(
-        "{\"actions\":[{\"add\":{\"index\":\"" + shared + "\",\"alias\":\"" + alias
+        "{\"actions\":[{\"add\":{\"index\":\""
+            + shared
+            + "\",\"alias\":\""
+            + alias
             + "\",\"filter\":{\"term\":{\"__lookup\":\"C\"}}}}]}");
     client().performRequest(aliases);
 
@@ -483,11 +499,7 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     Request req = new Request("PUT", "/" + index + "/_doc/" + id + "?refresh=true");
     req.setJsonEntity(
         String.format(
-            Locale.ROOT,
-            "{\"region\":\"%s\",\"host\":\"%s\",\"val\":%d}",
-            region,
-            host,
-            val));
+            Locale.ROOT, "{\"region\":\"%s\",\"host\":\"%s\",\"val\":%d}", region, host, val));
     client().performRequest(req);
   }
 }

@@ -926,9 +926,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     String indexName = node.getIndexName();
     if (indexName.startsWith(".")) {
       throw new IllegalArgumentException(
-          "outputlookup destination ["
-              + indexName
-              + "] must not be a system (dot-prefixed) index");
+          "outputlookup destination [" + indexName + "] must not be a system (dot-prefixed) index");
     }
     RelNode child = context.relBuilder.build();
     // Validate key_field names against the result schema: a missing/misspelled key field would
