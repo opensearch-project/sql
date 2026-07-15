@@ -656,4 +656,88 @@ public class FGACIndexScanningIT extends SecurityTestBase {
         expectedPublicDocs,
         totalDocs);
   }
+
+  /**
+   * Verifies that document-level security is enforced when queries are dispatched to the slow
+   * worker pool. Queries containing window functions (eventstats) are routed to sql-slow-worker;
+   * this test ensures the OpenSearch ThreadContext (which carries DLS filters) is correctly
+   * propagated across that thread pool boundary.
+   */
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  public void testRowLevelSecurityEnforcedOnSlowPool(boolean useCalcite) throws IOException {
+    configureEngine(useCalcite);
+    String engineLabel = useCalcite ? "V3" : "V2";
+
+    // eventstats creates a Window node, which ScriptDetector flags as expensive,
+    // routing the query to the sql-slow-worker pool.
+    String query =
+        String.format(
+            "search source=%s | eventstats count() as total_count by security_level"
+                + " | stats count() by security_level",
+            SECURE_LOGS);
+    JSONObject result = executeQueryAsUser(query, LIMITED_USER);
+
+    var datarows = result.getJSONArray("datarows");
+    var schema = result.getJSONArray("schema");
+    int levelIdx = -1;
+    for (int i = 0; i < schema.length(); i++) {
+      String name = schema.getJSONObject(i).getString("name");
+      if ("security_level".equals(name)) {
+        levelIdx = i;
+      }
+    }
+    assertTrue("Expected security_level in schema", levelIdx >= 0);
+
+    for (int i = 0; i < datarows.length(); i++) {
+      var row = datarows.getJSONArray(i);
+      String securityLevel = row.getString(levelIdx);
+      assertFalse(
+          String.format(
+              "[%s] SECURITY VIOLATION on slow pool: limited_user saw '%s' documents. "
+                  + "DLS ThreadContext may not be propagated to sql-slow-worker pool.",
+              engineLabel, securityLevel),
+          "confidential".equals(securityLevel) || "internal".equals(securityLevel));
+    }
+  }
+
+  /**
+   * Verifies that field-level security is enforced when queries are dispatched to the slow worker
+   * pool. The eventstats command creates a Window node that triggers slow pool dispatch; this test
+   * ensures the restricted field (ssn) remains invisible.
+   */
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  public void testFieldLevelSecurityEnforcedOnSlowPool(boolean useCalcite) throws IOException {
+    configureEngine(useCalcite);
+
+    // eventstats creates a Window node, which ScriptDetector flags as expensive,
+    // routing the query to the sql-slow-worker pool.
+    // manager_user should still NOT see ssn.
+    String query =
+        String.format(
+            "search source=%s | eventstats avg(salary) as avg_salary by department"
+                + " | fields name, department, salary, avg_salary | head 10",
+            EMPLOYEE_RECORDS);
+    JSONObject result = executeQueryAsUser(query, MANAGER_USER);
+
+    var resultSchema = result.getJSONArray("schema");
+    boolean hasSSN = false;
+    boolean hasName = false;
+    boolean hasAvgSalary = false;
+
+    for (int i = 0; i < resultSchema.length(); i++) {
+      String fieldName = resultSchema.getJSONObject(i).getString("name");
+      if ("ssn".equals(fieldName)) hasSSN = true;
+      if ("name".equals(fieldName)) hasName = true;
+      if ("avg_salary".equals(fieldName)) hasAvgSalary = true;
+    }
+
+    assertTrue("manager_user should see 'name' field on slow pool", hasName);
+    assertTrue("manager_user should see computed 'avg_salary' field on slow pool", hasAvgSalary);
+    assertFalse(
+        "SECURITY VIOLATION on slow pool: manager_user saw 'ssn' field. "
+            + "FLS ThreadContext may not be propagated to sql-slow-worker pool.",
+        hasSSN);
+  }
 }
