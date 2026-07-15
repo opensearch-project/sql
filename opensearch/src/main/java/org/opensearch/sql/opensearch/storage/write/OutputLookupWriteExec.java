@@ -20,6 +20,7 @@ import org.opensearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.write.WriteConfig.WriteMode;
@@ -38,6 +39,15 @@ import org.opensearch.transport.client.node.NodeClient;
  * here; the {@code alias__ol_uuid} naming convention lets a periodic reaper collect any backing not
  * currently aliased (a follow-up). Append writes the live backing directly and is therefore not
  * atomic (at-least-once); a keyed append is idempotent on re-run, a plain append duplicates.
+ *
+ * <p>Backward compatibility with the Dashboards data importer (opensearch-project/OpenSearch-
+ * Dashboards#11303): that feature realizes a lookup as a <em>filtered alias</em> ({@code
+ * {term:{__lookup:<uuid>}}}) over a <em>shared</em> backing index. Overwrite migrates such a lookup
+ * onto a dedicated backing by repointing the alias to the fresh backing; it never deletes the old
+ * backing when that backing is shared/filtered (deleting it would destroy the other lookups that
+ * share it). Only our own {@code <alias>__ol_*} unfiltered backings are deleted. Append onto a
+ * shared/filtered lookup is refused (overwrite once to migrate first). This is the go-forward
+ * backing-index-per-lookup format; the shared-index/{@code __lookup} format is deprecated.
  *
  * <p>Permissions: all operations run under the calling user's security context (verified: a
  * read-only user is denied). Beyond the read permissions on the source, the caller needs, on the
@@ -117,27 +127,44 @@ public final class OutputLookupWriteExec {
     }
 
     if (append) {
-      String backing = resolveBacking(client, alias);
-      if (backing == null) {
+      OldBacking current = resolveOldBacking(client, alias);
+      String backing;
+      if (current == null) {
         backing = freshBacking(alias);
         createBacking(client, backing, mapping);
         swapAlias(client, alias, backing, List.of());
+      } else if (!isOwnPrivateBacking(alias, current)) {
+        // The lookup is backed by a shared or filtered index (e.g. a data-importer lookup on a
+        // shared backing with a __lookup discriminant). Appending our rows into that index would
+        // either be invisible through the filtered alias (no discriminant) or mutate a shared
+        // index; neither is safe. Overwrite migrates the lookup to a dedicated backing first.
+        throw new IllegalArgumentException(
+            "outputlookup cannot append to lookup ["
+                + alias
+                + "]: it is backed by a shared or filtered index (e.g. a data-importer lookup);"
+                + " overwrite it once to migrate it to a dedicated backing, then append");
+      } else {
+        backing = current.index();
       }
       writeRows(client, backing, fields, mode, keyFields, rows);
       return rows.size();
     }
 
     // Overwrite: on an empty result, honor override_if_empty before touching anything.
-    List<String> oldBackings = resolveBackings(client, alias);
+    List<OldBacking> oldBackings = resolveOldBackings(client, alias);
     if (rows.isEmpty() && !overrideIfEmpty) {
       return 0;
+    }
+    List<String> oldNames = new ArrayList<>();
+    for (OldBacking o : oldBackings) {
+      oldNames.add(o.index());
     }
     String backing = freshBacking(alias);
     createBacking(client, backing, mapping);
     boolean swapped = false;
     try {
       writeRows(client, backing, fields, mode, keyFields, rows);
-      swapAlias(client, alias, backing, oldBackings);
+      swapAlias(client, alias, backing, oldNames);
       swapped = true;
     } finally {
       // If the write or swap failed the fresh backing is never aliased, so delete it here rather
@@ -146,8 +173,15 @@ public final class OutputLookupWriteExec {
         deleteIndex(client, backing);
       }
     }
-    for (String old : oldBackings) {
-      deleteIndex(client, old);
+    // Delete ONLY our own private, unfiltered backings. A shared or filtered backing (e.g. a
+    // data-importer lookup on a shared index) has just been migrated by repointing the alias to
+    // the fresh backing above; deleting that index would destroy other lookups sharing it, so we
+    // leave the old slice in place (a periodic reaper keyed on the __lookup discriminant can
+    // reclaim it — a cross-repo deprecation follow-up).
+    for (OldBacking old : oldBackings) {
+      if (isOwnPrivateBacking(alias, old)) {
+        deleteIndex(client, old.index());
+      }
     }
     return rows.size();
   }
@@ -201,22 +235,35 @@ public final class OutputLookupWriteExec {
     }
   }
 
-  /** The single backing index the alias currently points at, or null if the alias does not exist. */
-  private static @Nullable String resolveBacking(NodeClient client, String alias) {
-    List<String> backings = resolveBackings(client, alias);
-    return backings.isEmpty() ? null : backings.get(0);
+  /**
+   * An index the lookup alias currently points at, plus whether the alias on it carries a filter. A
+   * filtered alias is the data-importer's shared-index lookup shape ({@code __lookup} discriminant);
+   * a plain alias over an {@code <alias>__ol_*} index is one we own.
+   */
+  private record OldBacking(String index, boolean filtered) {}
+
+  /** True iff this backing is one we own outright: our naming convention and no alias filter. */
+  private static boolean isOwnPrivateBacking(String alias, OldBacking backing) {
+    return !backing.filtered() && backing.index().startsWith(alias + "__ol_");
   }
 
-  private static List<String> resolveBackings(NodeClient client, String alias) {
+  /** The single backing the alias points at (with filter flag), or null if the alias is absent. */
+  private static @Nullable OldBacking resolveOldBacking(NodeClient client, String alias) {
+    List<OldBacking> all = resolveOldBackings(client, alias);
+    return all.isEmpty() ? null : all.get(0);
+  }
+
+  private static List<OldBacking> resolveOldBackings(NodeClient client, String alias) {
     try {
-      return new ArrayList<>(
-          client
-              .admin()
-              .indices()
-              .getAliases(new GetAliasesRequest(alias))
-              .actionGet()
-              .getAliases()
-              .keySet());
+      Map<String, List<AliasMetadata>> aliases =
+          client.admin().indices().getAliases(new GetAliasesRequest(alias)).actionGet().getAliases();
+      List<OldBacking> result = new ArrayList<>();
+      for (Map.Entry<String, List<AliasMetadata>> e : aliases.entrySet()) {
+        boolean filtered =
+            e.getValue().stream().anyMatch(m -> alias.equals(m.alias()) && m.filter() != null);
+        result.add(new OldBacking(e.getKey(), filtered));
+      }
+      return result;
     } catch (IndexNotFoundException e) {
       return List.of();
     }

@@ -348,6 +348,104 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertEquals("failed overwrite must not leave an orphan backing", 0, remaining.length());
   }
 
+  // Backward-compat with the Dashboards data importer (#11303): a lookup created there is a
+  // FILTERED alias ({term:{__lookup:<uuid>}}) over a SHARED index holding several lookups. Overwrite
+  // must migrate the touched lookup onto a dedicated backing by repointing the alias, and must NOT
+  // delete the shared index (that would destroy the other lookups sharing it).
+  @Test
+  public void testOverwriteMigratesDataImporterLookupWithoutDeletingSharedIndex()
+      throws IOException {
+    String src = "olkc_src_mig";
+    String shared = "olkc_shared_imp";
+    String aliasA = "olkc_impa";
+    String aliasB = "olkc_impb";
+    seedSrc(src); // 3 rows: alice/bob/carol
+
+    // Shared importer-style index: 2 docs for lookup A, 2 for lookup B, each tagged with __lookup.
+    Request createShared = new Request("PUT", "/" + shared);
+    createShared.setJsonEntity(
+        "{\"mappings\":{\"properties\":{\"__lookup\":{\"type\":\"keyword\"},"
+            + "\"host_name\":{\"type\":\"keyword\"}}}}");
+    client().performRequest(createShared);
+    Request bulk = new Request("POST", "/" + shared + "/_bulk?refresh=true");
+    bulk.setJsonEntity(
+        "{\"index\":{}}\n{\"__lookup\":\"A\",\"host_name\":\"a1\"}\n"
+            + "{\"index\":{}}\n{\"__lookup\":\"A\",\"host_name\":\"a2\"}\n"
+            + "{\"index\":{}}\n{\"__lookup\":\"B\",\"host_name\":\"b1\"}\n"
+            + "{\"index\":{}}\n{\"__lookup\":\"B\",\"host_name\":\"b2\"}\n");
+    client().performRequest(bulk);
+
+    // Two filtered aliases over the shared index (the #11303 lookup shape).
+    Request aliases = new Request("POST", "/_aliases");
+    aliases.setJsonEntity(
+        "{\"actions\":["
+            + "{\"add\":{\"index\":\"" + shared + "\",\"alias\":\"" + aliasA
+            + "\",\"filter\":{\"term\":{\"__lookup\":\"A\"}}}},"
+            + "{\"add\":{\"index\":\"" + shared + "\",\"alias\":\"" + aliasB
+            + "\",\"filter\":{\"term\":{\"__lookup\":\"B\"}}}}]}");
+    client().performRequest(aliases);
+    assertEquals("alias A sees only its slice before overwrite", 2L, docCount(aliasA));
+
+    // Overwrite lookup A with a fresh 3-row result.
+    JSONObject res =
+        executeQuery(String.format("source=%s | fields id, name | outputlookup %s", src, aliasA));
+    assertEquals(3L, rowsWritten(res));
+    refresh(aliasA);
+
+    // The shared index must still exist and lookup B must be untouched.
+    Response cat =
+        client().performRequest(new Request("GET", "/_cat/indices/" + shared + "?format=json"));
+    JSONArray sharedIdx = new JSONArray(new String(cat.getEntity().getContent().readAllBytes()));
+    assertEquals("shared importer index must NOT be deleted", 1, sharedIdx.length());
+    assertEquals("other lookup B on the shared index is intact", 2L, docCount(aliasB));
+
+    // Lookup A is migrated: alias now points at a dedicated backing holding the 3 new rows.
+    Response backings =
+        client()
+            .performRequest(new Request("GET", "/_cat/indices/" + aliasA + "__ol_*?format=json"));
+    JSONArray dedicated =
+        new JSONArray(new String(backings.getEntity().getContent().readAllBytes()));
+    assertEquals("lookup A migrated onto its own dedicated backing", 1, dedicated.length());
+    assertEquals("alias A now resolves to the migrated 3-row result", 3L, docCount(aliasA));
+  }
+
+  // Append onto a shared/filtered (data-importer) lookup is refused: writing our rows there would
+  // be invisible through the filtered alias or mutate a shared index. Overwrite migrates first.
+  @Test
+  public void testAppendToDataImporterLookupRefused() throws IOException {
+    String src = "olkc_src_appmig";
+    String shared = "olkc_shared_appmig";
+    String alias = "olkc_impc";
+    seedSrc(src);
+
+    Request createShared = new Request("PUT", "/" + shared);
+    createShared.setJsonEntity(
+        "{\"mappings\":{\"properties\":{\"__lookup\":{\"type\":\"keyword\"},"
+            + "\"host_name\":{\"type\":\"keyword\"}}}}");
+    client().performRequest(createShared);
+    Request doc = new Request("PUT", "/" + shared + "/_doc/1?refresh=true");
+    doc.setJsonEntity("{\"__lookup\":\"C\",\"host_name\":\"c1\"}");
+    client().performRequest(doc);
+    Request aliases = new Request("POST", "/_aliases");
+    aliases.setJsonEntity(
+        "{\"actions\":[{\"add\":{\"index\":\"" + shared + "\",\"alias\":\"" + alias
+            + "\",\"filter\":{\"term\":{\"__lookup\":\"C\"}}}}]}");
+    client().performRequest(aliases);
+
+    ResponseException ex =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | fields id, name | outputlookup append=true %s", src, alias)));
+    assertTrue(
+        "append onto a shared/filtered lookup should be refused with migration guidance",
+        ex.getMessage().contains("shared or") || ex.getMessage().contains("migrate"));
+    // The shared index is untouched by the refused append.
+    assertEquals(1L, docCount(alias));
+  }
+
   private void indexRegionHost(String index, int id, String region, String host, int val)
       throws IOException {
     Request req = new Request("PUT", "/" + index + "/_doc/" + id + "?refresh=true");
