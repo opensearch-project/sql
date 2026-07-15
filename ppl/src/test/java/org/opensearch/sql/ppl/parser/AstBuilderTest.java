@@ -1993,4 +1993,32 @@ public class AstBuilderTest extends AstPlanningTestBase {
     assertEqual(
         "source=t | outputlookup key_field=region,host hosts", expected.attach(relation("t")));
   }
+
+  // rest command tests
+
+  @Test
+  public void testRestCommand() {
+    org.opensearch.sql.ast.tree.Project project =
+        (org.opensearch.sql.ast.tree.Project)
+            plan("| rest \"/_cluster/health\" | fields status, number_of_nodes");
+    org.opensearch.sql.ast.tree.RestRelation rest =
+        (org.opensearch.sql.ast.tree.RestRelation) project.getChild().get(0);
+    SystemIndexUtils.RestSpec spec =
+        SystemIndexUtils.decodeRestSpec(rest.getTableQualifiedName().toString());
+    assertEquals("/_cluster/health", spec.getEndpoint());
+    assertTrue(spec.getArgs().isEmpty());
+  }
+
+  @Test
+  public void testRestCommandWithArgs() {
+    org.opensearch.sql.ast.tree.RestRelation rest =
+        (org.opensearch.sql.ast.tree.RestRelation)
+            plan("| rest \"/_cluster/health\" count=5 timeout=\"30s\" level=\"indices\"");
+    SystemIndexUtils.RestSpec spec =
+        SystemIndexUtils.decodeRestSpec(rest.getTableQualifiedName().toString());
+    assertEquals("/_cluster/health", spec.getEndpoint());
+    assertEquals(Integer.valueOf(5), spec.getCount());
+    assertEquals("30s", spec.getTimeout());
+    assertEquals("indices", spec.getArgs().get("level"));
+  }
 }

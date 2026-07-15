@@ -35,6 +35,7 @@
     "user/ppl/cmd/rename.md",
     "user/ppl/cmd/multisearch.md",
     "user/ppl/cmd/replace.md",
+    "user/ppl/cmd/rest.md",
     "user/ppl/cmd/rex.md",
     "user/ppl/cmd/search.md",
     "user/ppl/cmd/showdatasources.md",

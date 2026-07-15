@@ -179,6 +179,12 @@ public class RestUnifiedQueryActionTest {
   }
 
   @Test
+  public void restCommandNotRoutedToAnalyticsEngineUnderClusterComposite() {
+    enableClusterComposite();
+    assertFalse(action.isAnalyticsIndex("| rest '/_cluster/health'", QueryType.PPL));
+  }
+
+  @Test
   public void dataQueryStillRoutesToAnalyticsUnderClusterComposite() {
     enableClusterComposite();
     assertTrue(action.isAnalyticsIndex("SELECT * FROM parquet_logs", QueryType.SQL));
