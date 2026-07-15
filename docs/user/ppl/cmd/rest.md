@@ -4,6 +4,18 @@ The `rest` command is a leading command that reads an allow-listed, read-only in
 
 > **Note**: The `rest` command is supported only on the Calcite query engine (`plugins.calcite.enabled=true`). Each endpoint has a fixed output schema, and the dispatch runs under the caller's security context, so a user who cannot call an endpoint directly cannot call it through `rest`. The command is read-only; mutating and non-allow-listed endpoints are rejected. Each endpoint requires the same cluster-monitor privilege as calling it natively, so `rest` grants no extra access. Some allow-listed endpoints surface operational metadata (for example `/_cat/nodes` exposes node addresses and resource utilization, `/_cat/plugins` the installed plugin inventory, and `/_cluster/state` cluster-state identifiers); this is a deliberate, read-only, monitor-privileged trade-off. `/_cluster/settings` is redacted with the node's setting filter so `Property.Filtered` keys are not surfaced.
 
+## Enabling the command
+
+The `rest` command is **disabled by default**: `plugins.ppl.rest.allowed_endpoints` defaults to an empty list, so every endpoint is rejected until a deployment explicitly opts in. Enable specific endpoints by setting the allow-list (a node-level setting, so it is applied at node startup and cannot be changed at runtime):
+
+```yaml
+plugins.ppl.rest.allowed_endpoints: ["/_cluster/health", "/_cat/nodes"]
+```
+
+Use `["*"]` to allow every endpoint in the curated list below. An empty list (the default) disables the command entirely.
+
+The `rest` command also supports optional response redaction of network identifiers (IPv4/IPv6 addresses, `inet[...]` forms, EC2-style host names, and availability-zone names) in `/_cat/*` and `/_cluster/settings` cell values, controlled by `plugins.ppl.rest.redaction.enabled` (a node-level setting, default `false`). Managed deployments that must not expose host topology should set it to `true`.
+
 ## Syntax
 
 The `rest` command has the following syntax:

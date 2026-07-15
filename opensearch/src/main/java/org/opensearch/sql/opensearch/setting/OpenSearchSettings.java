@@ -77,7 +77,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<List<String>> PPL_REST_ALLOWED_ENDPOINTS_SETTING =
       Setting.listSetting(
           Key.PPL_REST_ALLOWED_ENDPOINTS.getKeyValue(),
-          List.of("*"),
+          List.of(),
           Function.identity(),
           Setting.Property.NodeScope);
 
