@@ -18,6 +18,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.storage.rest.RestCatalogSource;
+import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistry;
 import org.opensearch.sql.opensearch.storage.system.OpenSearchCatalogTable;
 import org.opensearch.sql.opensearch.storage.system.SystemIndexCatalogSource;
 import org.opensearch.sql.storage.StorageEngine;
@@ -51,6 +52,7 @@ public class OpenSearchStorageEngine implements StorageEngine {
 
   private Table restTable(String name) {
     RestSpec spec = decodeRestSpec(name);
+    RestEndpointRegistry.resolve(spec.getEndpoint());
     List<String> allowed = settings.getSettingValue(Settings.Key.PPL_REST_ALLOWED_ENDPOINTS);
     if (allowed == null || !(allowed.contains("*") || allowed.contains(spec.getEndpoint()))) {
       throw new IllegalArgumentException(

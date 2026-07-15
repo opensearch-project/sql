@@ -205,6 +205,11 @@ testClusters {
         plugin(getJobSchedulerPlugin())
         plugin ':opensearch-sql-plugin'
         testDistribution = 'archive'
+        // The rest command is disabled by default (empty allow-list). Opt the doctest cluster into
+        // the registered endpoints so the rest.md examples run against an enabled command. A literal
+        // "*" cannot be used because a bare * is a YAML alias indicator in opensearch.yml.
+        setting 'plugins.ppl.rest.allowed_endpoints',
+                '/_cluster/health,/_cluster/state,/_cluster/settings,/_cat/indices,/_cat/nodes,/_cat/cluster_manager,/_cat/plugins,/_cat/shards,/_resolve/index'
     }
 }
 tasks.register("runRestTestCluster", RunTask) {
