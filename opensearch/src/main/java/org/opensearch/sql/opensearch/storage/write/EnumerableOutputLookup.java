@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.type.RelDataType;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -75,6 +76,23 @@ public class EnumerableOutputLookup extends SingleRel implements EnumerableRel {
   @Override
   protected RelDataType deriveRowType() {
     return modifyRowType;
+  }
+
+  /**
+   * Surface the write parameters in explain output so the physical plan shows the write target and
+   * mode (the write itself is performed at runtime by {@link OutputLookupWriteExec}, which is not a
+   * relational operator and therefore never appears as a plan node). Including these in the digest
+   * also keeps two outputlookups with different targets/modes from being deduplicated by the
+   * planner.
+   */
+  @Override
+  public RelWriter explainTerms(RelWriter pw) {
+    return super.explainTerms(pw)
+        .item("dest", indexName)
+        .itemIf("key_field", keyFields, !keyFields.isEmpty())
+        .item("append", append)
+        .item("override_if_empty", overrideIfEmpty)
+        .itemIf("max", max, max != null);
   }
 
   @Override
