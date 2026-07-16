@@ -35,6 +35,7 @@ import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.CalciteClassLoaderHelper;
+import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.error.QueryProcessingStage;
 import org.opensearch.sql.common.error.StageErrorHandler;
@@ -208,13 +209,17 @@ public class QueryService {
 
                   analyzeMetric.set(System.nanoTime() - analyzeStart);
 
+                  // Optimize before dispatch so the dispatcher's ScriptDetector
+                  // sees the post-optimization plan for accurate routing.
+                  RelNode optimizedPlan = CalciteToolsHelper.optimize(calcitePlan, context);
+
                   // Wrap execution with EXECUTING stage tracking — dispatch via
                   // ExecutionDispatcher which may route to a slow worker pool
                   StageErrorHandler.executeStageVoid(
                       QueryProcessingStage.EXECUTING,
                       () ->
                           executionDispatcher.dispatch(
-                              calcitePlan, context, listener, executionEngine),
+                              optimizedPlan, context, listener, executionEngine),
                       "while running the query");
                 },
                 QueryService.class);

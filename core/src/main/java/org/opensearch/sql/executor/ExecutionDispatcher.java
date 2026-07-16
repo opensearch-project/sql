@@ -18,7 +18,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 public interface ExecutionDispatcher {
 
   /**
-   * Dispatch execution of the given plan.
+   * Dispatch execution of the given plan via the standard ExecutionEngine.
    *
    * @param plan the optimized Calcite plan
    * @param context the plan context
@@ -30,4 +30,16 @@ public interface ExecutionDispatcher {
       CalcitePlanContext context,
       ResponseListener<ExecutionEngine.QueryResponse> listener,
       ExecutionEngine engine);
+
+  /**
+   * Dispatch a task to the appropriate thread pool based on plan characteristics. Use this when the
+   * execution path differs from the standard ExecutionEngine interface (e.g., analytics engine).
+   *
+   * @param plan the optimized Calcite plan used for routing decisions
+   * @param context the plan context
+   * @param task the execution task to run
+   */
+  default void dispatchTask(RelNode plan, CalcitePlanContext context, Runnable task) {
+    task.run();
+  }
 }

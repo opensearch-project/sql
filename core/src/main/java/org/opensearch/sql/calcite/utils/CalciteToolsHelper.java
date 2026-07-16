@@ -516,8 +516,6 @@ public class CalciteToolsHelper {
     public static PreparedStatement run(CalcitePlanContext context, RelNode rel) {
       ProfileMetric optimizeTime = QueryProfiling.current().getOrCreateMetric(OPTIMIZE);
       long startTime = System.nanoTime();
-      // Optimize the plan by Calcite's HepPlanner before using VolcanoPlanner in prepareStatement.
-      rel = CalciteToolsHelper.optimize(rel, context);
       final RelShuttle shuttle =
           new RelHomogeneousShuttle() {
             @Override

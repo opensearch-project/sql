@@ -46,10 +46,23 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       CalcitePlanContext context,
       ResponseListener<ExecutionEngine.QueryResponse> listener,
       ExecutionEngine engine) {
-    if (isSlowPoolEnabled() && ScriptDetector.hasScripts(plan)) {
+    dispatchInternal(plan, context, () -> engine.execute(plan, context, listener), listener);
+  }
+
+  @Override
+  public void dispatchTask(RelNode plan, CalcitePlanContext context, Runnable task) {
+    dispatchInternal(plan, context, task, null);
+  }
+
+  private void dispatchInternal(
+      RelNode optimizedPlan,
+      CalcitePlanContext context,
+      Runnable task,
+      @Nullable ResponseListener<?> failureListener) {
+    if (isSlowPoolEnabled() && ScriptDetector.hasScripts(optimizedPlan)) {
       LOG.debug("Query plan contains scripts, dispatching to slow worker pool");
       Map<String, String> ctx = ThreadContext.getImmutableContext();
-      CancellableTask task = OpenSearchQueryManager.getCancellableTask();
+      CancellableTask cancellableTask = OpenSearchQueryManager.getCancellableTask();
       @Nullable JaninoRelMetadataProvider metadataProvider =
           RelMetadataQueryBase.THREAD_PROVIDERS.get();
       long currentTime = Hook.CURRENT_TIME.get(-1L);
@@ -59,7 +72,7 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       threadPool.schedule(
           () -> {
             ThreadContext.putAll(ctx);
-            OpenSearchQueryManager.setCancellableTask(task);
+            OpenSearchQueryManager.setCancellableTask(cancellableTask);
             if (metadataProvider != null) {
               RelMetadataQueryBase.THREAD_PROVIDERS.set(metadataProvider);
             }
@@ -73,9 +86,11 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
             CalcitePlanContext.timewrapUnitName.set(twUnitName);
             CalcitePlanContext.timewrapSeries.set(twSeries);
             try {
-              engine.execute(plan, context, listener);
+              task.run();
             } catch (Exception e) {
-              listener.onFailure(e);
+              if (failureListener != null) {
+                failureListener.onFailure(e);
+              }
             } finally {
               if (hookHandle != null) {
                 hookHandle.close();
@@ -88,7 +103,7 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
           new TimeValue(0),
           SQL_SLOW_WORKER_THREAD_POOL_NAME);
     } else {
-      engine.execute(plan, context, listener);
+      task.run();
     }
   }
 

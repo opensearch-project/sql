@@ -7,7 +7,6 @@ package org.opensearch.sql.plugin.rest;
 
 import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
-import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_SLOW_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
@@ -16,12 +15,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
-import org.apache.calcite.rel.metadata.RelMetadataQueryBase;
-import org.apache.calcite.runtime.Hook;
-import org.apache.calcite.util.Holder;
 import org.apache.commons.lang3.Strings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,14 +40,12 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.common.response.ResponseListener;
-import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
 import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
-import org.opensearch.sql.opensearch.executor.ScriptDetector;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
@@ -77,18 +69,21 @@ public class RestUnifiedQueryAction {
   private final ClusterService clusterService;
   private final org.opensearch.analytics.EngineContextProvider contextProvider;
   private final org.opensearch.sql.common.setting.Settings pluginSettings;
+  private final org.opensearch.sql.executor.ExecutionDispatcher executionDispatcher;
 
   public RestUnifiedQueryAction(
       NodeClient client,
       ClusterService clusterService,
       QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor,
       org.opensearch.analytics.EngineContextProvider contextProvider,
-      org.opensearch.sql.common.setting.Settings pluginSettings) {
+      org.opensearch.sql.common.setting.Settings pluginSettings,
+      org.opensearch.sql.executor.ExecutionDispatcher executionDispatcher) {
     this.client = client;
     this.clusterService = clusterService;
     this.analyticsEngine = new AnalyticsExecutionEngine(planExecutor);
     this.contextProvider = contextProvider;
     this.pluginSettings = pluginSettings;
+    this.executionDispatcher = executionDispatcher;
   }
 
   /**
@@ -237,6 +232,9 @@ public class RestUnifiedQueryAction {
                     // string, so apply the equivalent top-level limit here before the system cap.
                     plan = addFetchSizeLimit(plan, planContext, fetchSize);
                     plan = addQuerySizeLimit(plan, planContext);
+                    plan =
+                        org.opensearch.sql.calcite.utils.CalciteToolsHelper.optimize(
+                            plan, planContext);
                     RelNode finalPlan = plan;
                     Runnable executeTask =
                         profiling
@@ -252,48 +250,7 @@ public class RestUnifiedQueryAction {
                                     planContext,
                                     queryCtx,
                                     createQueryListener(queryType, profileCtx, closingListener));
-                    if (isSlowPoolEnabled() && ScriptDetector.hasScripts(finalPlan)) {
-                      LOG.debug("Query contains scripts, routing to slow worker pool");
-                      JaninoRelMetadataProvider metadataProvider =
-                          RelMetadataQueryBase.THREAD_PROVIDERS.get();
-                      long currentTime = Hook.CURRENT_TIME.get(-1L);
-                      boolean stripNullCols = CalcitePlanContext.stripNullColumns.get();
-                      String twUnitName = CalcitePlanContext.timewrapUnitName.get();
-                      String twSeries = CalcitePlanContext.timewrapSeries.get();
-                      client
-                          .threadPool()
-                          .schedule(
-                              withCurrentContext(
-                                  () -> {
-                                    if (metadataProvider != null) {
-                                      RelMetadataQueryBase.THREAD_PROVIDERS.set(metadataProvider);
-                                    }
-                                    Hook.Closeable hookHandle = null;
-                                    if (currentTime >= 0) {
-                                      hookHandle =
-                                          Hook.CURRENT_TIME.addThread(
-                                              (Consumer<Holder<Long>>) h -> h.set(currentTime));
-                                    }
-                                    CalcitePlanContext.stripNullColumns.set(stripNullCols);
-                                    CalcitePlanContext.timewrapUnitName.set(twUnitName);
-                                    CalcitePlanContext.timewrapSeries.set(twSeries);
-                                    try {
-                                      executeTask.run();
-                                    } catch (Exception e) {
-                                      closingListener.onFailure(e);
-                                    } finally {
-                                      if (hookHandle != null) {
-                                        hookHandle.close();
-                                      }
-                                      RelMetadataQueryBase.THREAD_PROVIDERS.remove();
-                                      CalcitePlanContext.clearTimewrapSignals();
-                                    }
-                                  }),
-                              new TimeValue(0),
-                              SQL_SLOW_WORKER_THREAD_POOL_NAME);
-                    } else {
-                      executeTask.run();
-                    }
+                    executionDispatcher.dispatchTask(finalPlan, planContext, executeTask);
                   } catch (Exception e) {
                     closingListener.onFailure(e);
                   } finally {
@@ -510,10 +467,6 @@ public class RestUnifiedQueryAction {
     err.addProperty("type", error.getClass().getSimpleName());
     err.addProperty("reason", error.getMessage() != null ? error.getMessage() : "");
     return json.substring(0, json.length() - 1) + ",\"error\":" + err + "}";
-  }
-
-  private boolean isSlowPoolEnabled() {
-    return pluginSettings.getSettingValue(Key.SQL_SLOW_WORKER_POOL_ENABLED);
   }
 
   private static Runnable withCurrentContext(final Runnable task) {
