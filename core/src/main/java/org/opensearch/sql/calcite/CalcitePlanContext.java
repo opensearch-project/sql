@@ -17,10 +17,12 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -79,6 +81,26 @@ public class CalcitePlanContext {
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
 
   /**
+   * Foreach placeholder bindings active in this context, keyed by upper-cased placeholder name.
+   * Multifield mode activates bindings directly (placeholders resolve against the current row);
+   * collection modes stage bindings via {@link #stageForeachLambdaBindings} instead, so they only
+   * become active inside the lambda context cloned for the generated {@code reduce} call.
+   */
+  @Getter private Map<String, ForeachBinding> foreachBindings = new HashMap<>();
+
+  /** Bare identifiers enabled by explicit options such as {@code itemstr=ITEM}. */
+  @Getter private Map<String, ForeachBinding> foreachIdentifierBindings = new HashMap<>();
+
+  /** Bindings that become active in lambda contexts cloned from this one. */
+  private Map<String, ForeachBinding> stagedForeachLambdaBindings = new HashMap<>();
+
+  /** Bare identifier bindings staged for a generated foreach lambda. */
+  private Map<String, ForeachBinding> stagedForeachIdentifierBindings = new HashMap<>();
+
+  /** Expressions computed by earlier assignments in the same foreach eval iteration. */
+  @Getter private Map<String, RexNode> foreachComputedBindings = new HashMap<>();
+
+  /**
    * Maps AggregateFunction AST nodes to their output field index for HAVING/post-aggregate
    * resolution.
    */
@@ -125,6 +147,12 @@ public class CalcitePlanContext {
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
+    // Active bindings carry over; staged bindings become active inside the lambda.
+    this.foreachBindings = new HashMap<>(parent.foreachBindings);
+    this.foreachBindings.putAll(parent.stagedForeachLambdaBindings);
+    this.foreachIdentifierBindings = new HashMap<>(parent.foreachIdentifierBindings);
+    this.foreachIdentifierBindings.putAll(parent.stagedForeachIdentifierBindings);
+    this.foreachComputedBindings = new HashMap<>(parent.foreachComputedBindings);
   }
 
   public RexNode resolveJoinCondition(
@@ -201,6 +229,48 @@ public class CalcitePlanContext {
     stripNullColumns.set(false);
     timewrapUnitName.set(null);
     timewrapSeries.set(null);
+  }
+
+  public void pushForeachBindings(
+      Map<String, ForeachBinding> bindings, Map<String, ForeachBinding> identifierBindings) {
+    foreachBindings = new HashMap<>(bindings);
+    foreachIdentifierBindings = new HashMap<>(identifierBindings);
+  }
+
+  public void stageForeachLambdaBindings(
+      Map<String, ForeachBinding> bindings, Map<String, ForeachBinding> identifierBindings) {
+    stagedForeachLambdaBindings = new HashMap<>(bindings);
+    stagedForeachIdentifierBindings = new HashMap<>(identifierBindings);
+  }
+
+  public void putForeachComputedBinding(String name, RexNode expression) {
+    foreachComputedBindings.put(name.toUpperCase(java.util.Locale.ROOT), expression);
+  }
+
+  public void clearForeachBindings() {
+    foreachBindings.clear();
+    foreachIdentifierBindings.clear();
+    stagedForeachLambdaBindings.clear();
+    stagedForeachIdentifierBindings.clear();
+    foreachComputedBindings.clear();
+  }
+
+  /**
+   * A foreach placeholder binding. {@code FIELD} resolves to the named row field, {@code LITERAL}
+   * to a string literal, and {@code PAIR_SLOT} to slot {@code pairIndex} (typed {@code pairType})
+   * of the named lambda pair variable.
+   */
+  public record ForeachBinding(
+      String value, ForeachBindingType type, int pairIndex, @Nullable RelDataType pairType) {
+    public ForeachBinding(String value, ForeachBindingType type) {
+      this(value, type, -1, null);
+    }
+  }
+
+  public enum ForeachBindingType {
+    FIELD,
+    LITERAL,
+    PAIR_SLOT
   }
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {

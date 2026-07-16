@@ -15,10 +15,16 @@ import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -204,23 +210,14 @@ public class QueryService {
                   RelNode calcitePlan =
                       StageErrorHandler.executeStage(
                           QueryProcessingStage.PLAN_CONVERSION,
-                          () -> convertToCalcitePlan(relNode, context),
+                          () ->
+                              withCheckedArithmetic(
+                                  convertToCalcitePlan(relNode, context), context),
                           "while converting the query to an executable plan");
 
                   analyzeMetric.set(System.nanoTime() - analyzeStart);
 
-                  // Optimize before dispatch so the dispatcher's ScriptDetector
-                  // sees the post-optimization plan for accurate routing.
-                  RelNode optimizedPlan = CalciteToolsHelper.optimize(calcitePlan, context);
-
-                  // Wrap execution with EXECUTING stage tracking — dispatch via
-                  // ExecutionDispatcher which may route to a slow worker pool
-                  StageErrorHandler.executeStageVoid(
-                      QueryProcessingStage.EXECUTING,
-                      () ->
-                          executionDispatcher.dispatch(
-                              optimizedPlan, context, listener, executionEngine),
-                      "while running the query");
+                  executeCalcitePlan(calcitePlan, context, listener);
                 },
                 QueryService.class);
           } catch (Throwable t) {
@@ -233,6 +230,31 @@ public class QueryService {
           }
         },
         settings);
+  }
+
+  private void executeCalcitePlan(
+      RelNode calcitePlan,
+      CalcitePlanContext context,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    try {
+      // Optimize before dispatch so the dispatcher's ScriptDetector
+      // sees the post-optimization plan for accurate routing.
+      RelNode optimizedPlan = CalciteToolsHelper.optimize(calcitePlan, context);
+
+      // Wrap execution with EXECUTING stage tracking — dispatch via
+      // ExecutionDispatcher which may route to a slow worker pool
+      StageErrorHandler.executeStageVoid(
+          QueryProcessingStage.EXECUTING,
+          () -> executionDispatcher.dispatch(optimizedPlan, context, listener, executionEngine),
+          "while running the query");
+    } catch (RuntimeException e) {
+      ArithmeticException overflow = findArithmeticOverflow(e);
+      if (overflow != null) {
+        throw new NonFallbackCalciteException(
+            "Arithmetic overflow: " + overflow.getMessage(), overflow);
+      }
+      throw e;
+    }
   }
 
   public void explainWithCalcite(
@@ -264,7 +286,8 @@ public class QueryService {
                   context.run(
                       () -> {
                         RelNode relNode = analyze(plan, context);
-                        RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+                        RelNode calcitePlan =
+                            withCheckedArithmetic(convertToCalcitePlan(relNode, context), context);
                         if (format != null) {
                           executionEngine.explain(calcitePlan, mode, format, context, listener);
                         } else {
@@ -418,6 +441,82 @@ public class QueryService {
     } else {
       return false;
     }
+  }
+
+  /**
+   * Rewrite {@code +}/{@code -}/{@code *} to their overflow-checked variants ({@code CHECKED_PLUS}
+   * / {@code CHECKED_MINUS} / {@code CHECKED_MULTIPLY}) so integer and long arithmetic overflow
+   * throws {@link ArithmeticException} (via {@code Math.addExact} etc.) instead of silently
+   * wrapping. Applied before pushdown so both coordinator-executed and pushed-down (script)
+   * arithmetic are checked. Floating-point arithmetic is unchanged (IEEE 754).
+   *
+   * <p>This does the same rewrite as Calcite's {@code ConvertToChecked} but preserves each call's
+   * originally inferred type (via {@code makeCall(type, op, operands)}) and touches only the three
+   * arithmetic operators, so it does not re-derive the types of unrelated calls (e.g. {@code
+   * CEIL}/{@code DIVIDE}) the way {@code ConvertToChecked} does.
+   */
+  private static RelNode withCheckedArithmetic(RelNode calcitePlan, CalcitePlanContext context) {
+    RexShuttle checkedShuttle =
+        new RexShuttle() {
+          @Override
+          public RexNode visitCall(RexCall call) {
+            RexNode visited = super.visitCall(call);
+            if (!(visited instanceof RexCall rexCall)) {
+              return visited;
+            }
+            SqlOperator checked =
+                switch (rexCall.getOperator().getKind()) {
+                  case PLUS -> SqlStdOperatorTable.CHECKED_PLUS;
+                  case MINUS -> SqlStdOperatorTable.CHECKED_MINUS;
+                  case TIMES -> SqlStdOperatorTable.CHECKED_MULTIPLY;
+                  default -> null;
+                };
+            // Only integer/long arithmetic can overflow silently and has a checked
+            // implementation (Math.addExact etc.). Float/double/decimal have no checked variant
+            // (SqlFunctions.checkedMultiply(double,double) does not exist) and follow IEEE 754, so
+            // leave them untouched.
+            if (checked == null || !isCheckableIntegerArithmetic(rexCall)) {
+              return visited;
+            }
+            return context.rexBuilder.makeCall(rexCall.getType(), checked, rexCall.getOperands());
+          }
+        };
+    return calcitePlan.accept(
+        new RelHomogeneousShuttle() {
+          @Override
+          public RelNode visit(RelNode other) {
+            RelNode visited = super.visitChildren(other);
+            return visited.accept(checkedShuttle);
+          }
+        });
+  }
+
+  /** Returns whether the result and every operand are BIGINT. */
+  private static boolean isCheckableIntegerArithmetic(RexCall call) {
+    if (!isCheckableLongType(call.getType())) {
+      return false;
+    }
+    return call.getOperands().stream().allMatch(op -> isCheckableLongType(op.getType()));
+  }
+
+  private static boolean isCheckableLongType(org.apache.calcite.rel.type.RelDataType type) {
+    return type.getSqlTypeName() == org.apache.calcite.sql.type.SqlTypeName.BIGINT;
+  }
+
+  /**
+   * Walk the cause chain to find an {@link ArithmeticException} raised by checked arithmetic. Row-
+   * level overflow surfaces wrapped (SQLException -&gt; RuntimeException -&gt; ErrorReport), so a
+   * top-level {@code catch (ArithmeticException)} is insufficient.
+   */
+  private static ArithmeticException findArithmeticOverflow(@Nullable Throwable t) {
+    for (Throwable cause = t;
+        cause != null && cause != cause.getCause();
+        cause = cause.getCause()) {
+      if (cause instanceof ArithmeticException arithmeticException) {
+        return arithmeticException;
+      }
+    }
+    return null;
   }
 
   // TODO https://github.com/opensearch-project/sql/issues/3457

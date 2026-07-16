@@ -45,6 +45,7 @@ subSearch
 // commands
 pplCommands
    : describeCommand
+   | restCommand
    | showDataSourcesCommand
    | searchCommand
    | multisearchCommand
@@ -64,6 +65,7 @@ commands
    | dedupCommand
    | sortCommand
    | evalCommand
+   | foreachCommand
    | headCommand
    | binCommand
    | rareTopCommand
@@ -104,6 +106,7 @@ commands
 commandName
    : SEARCH
    | DESCRIBE
+   | REST
    | SHOW
    | WHERE
    | FIELDS
@@ -116,6 +119,7 @@ commandName
    | DEDUP
    | SORT
    | EVAL
+   | FOREACH
    | FIELDFORMAT
    | HEAD
    | BIN
@@ -208,6 +212,16 @@ describeCommand
    : DESCRIBE tableSourceClause
    ;
 
+
+restCommand
+   : REST stringLiteral (restArgument)*
+   ;
+
+restArgument
+   : COUNT EQUAL integerLiteral
+   | TIMEOUT EQUAL stringLiteral
+   | ident EQUAL literalValue
+   ;
 showDataSourcesCommand
    : SHOW DATASOURCES
    ;
@@ -396,6 +410,38 @@ spanLiteral
 
 evalCommand
    : EVAL evalClause (COMMA evalClause)*
+   ;
+
+foreachCommand
+   : FOREACH foreachArgument* LT_SQR_PRTHS foreachEvalCommand RT_SQR_PRTHS
+   ;
+
+foreachArgument
+   : foreachOption
+   | foreachTarget
+   ;
+
+foreachTarget
+   : functionCall
+   | stringLiteral
+   | wcFieldExpression
+   | STAR
+   ;
+
+foreachOption
+   : ident EQUAL (ident | foreachPlaceholder)
+   ;
+
+foreachEvalCommand
+   : EVAL foreachEvalClause (COMMA foreachEvalClause)*
+   ;
+
+foreachEvalClause
+   : target = foreachEvalTarget EQUAL logicalExpression
+   ;
+
+foreachEvalTarget
+   : (foreachPlaceholder | ident | DOT | MODULE)+
    ;
 
 fieldformatCommand
@@ -965,6 +1011,7 @@ valueExpression
    | literalValue                                                                                               # literalValueExpr
    | functionCall                                                                                               # functionCallExpr
    | lambda                                                                                                     # lambdaExpr
+   | foreachPlaceholder                                                                                         # foreachPlaceholderExpr
    | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                                        # scalarSubqueryExpr
    | valueExpression NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                # inSubqueryExpr
    | LT_PRTHS valueExpression (COMMA valueExpression)* RT_PRTHS NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS     # inSubqueryExpr
@@ -1065,6 +1112,16 @@ fieldExpression
 
 wcFieldExpression
    : wcQualifiedName
+   ;
+
+foreachPlaceholder
+   : LESS LESS foreachPlaceholderName GREATER GREATER
+   ;
+
+foreachPlaceholderName
+   : FIELD
+   | ID
+   | NUMERIC_ID
    ;
 
 selectFieldExpression
@@ -1796,4 +1853,6 @@ searchableKeyWord
    | MAX_DEPTH
    | DEPTH_FIELD
    | EDGE
+   // rest command token, also usable as a free-text search term / identifier
+   | TIMEOUT
    ;

@@ -49,6 +49,18 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testRestCommand() {
+    assertEquals("rest /_cluster/health", anonymize("| rest \"/_cluster/health\""));
+  }
+
+  @Test
+  public void testRestCommandMasksArgValues() {
+    assertEquals(
+        "rest /_cluster/health count=*** timeout=*** level=***",
+        anonymize("| rest \"/_cluster/health\" count=5 timeout=\"30s\" level=\"indices\""));
+  }
+
+  @Test
   public void testWhereCommand() {
     assertEquals("source=table | where identifier = ***", anonymize("search source=t | where a=1"));
   }
@@ -1212,6 +1224,32 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | mvexpand identifier limit=***",
         anonymize("source=t | mvexpand skills limit=5"));
+  }
+
+  @Test
+  public void testForeachMultifieldCommand() {
+    assertEquals(
+        "source=table | foreach identifier identifier [ eval identifier = *(identifier,***) ]",
+        anonymize("source=t | foreach a b [ eval <<FIELD>>_double = <<FIELD>> * 2 ]"));
+  }
+
+  @Test
+  public void testForeachMultivalueCommandWithOptions() {
+    assertEquals(
+        "source=table | foreach mode=multivalue itemstr=identifier identifier"
+            + " [ eval identifier = +(identifier,identifier) ]",
+        anonymize(
+            "source=t | foreach mode=multivalue itemstr=NUMBER nums"
+                + " [ eval total = total + NUMBER ]"));
+  }
+
+  @Test
+  public void testForeachJsonArrayCommandMasksLiteralTarget() {
+    assertEquals(
+        "source=table | foreach mode=json_array identifier [ eval identifier ="
+            + " +(identifier,identifier) ]",
+        anonymize(
+            "source=t | foreach mode=json_array '[1,2,3]' [ eval total = total + <<ITEM>> ]"));
   }
 
   @Test

@@ -199,6 +199,10 @@ public class SQLPlugin extends Plugin
 
     Metrics.getInstance().registerDefaultMetrics();
 
+    // Publish the node SettingsFilter so the in-cluster `rest '/_cluster/settings'` fetcher can
+    // redact filtered settings exactly as the native GET /_cluster/settings endpoint does.
+    org.opensearch.sql.opensearch.storage.rest.RestSettingsFilterHolder.set(settingsFilter);
+
     return Arrays.asList(
         new RestPPLQueryAction(),
         new RestPPLGrammarAction(),

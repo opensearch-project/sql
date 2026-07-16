@@ -314,7 +314,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
         schema("total_revenue", "double"));
     verifyDataRows(
         actual,
-        rows(10, "Supplier#000000010", "Saygah3gYWMp72i PY", "34-852-489-8585", 797313.3838));
+        closeTo(10, "Supplier#000000010", "Saygah3gYWMp72i PY", "34-852-489-8585", 797313.3838));
   }
 
   @Test

@@ -75,6 +75,9 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.FILTER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FIRST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FORALL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FOREACH_JSON_ARRAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FOREACH_PAIR_COLLECTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FOREACH_STATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_UNIXTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.GET_FORMAT;
@@ -273,6 +276,7 @@ import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -315,6 +319,8 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.CollectionUDF.MVIndexFunctionImp;
@@ -426,6 +432,63 @@ public class PPLFuncImpTable {
     aggBuilder.map.forEach(aggMapBuilder::put);
     this.aggFunctionRegistry = ImmutableMap.copyOf(aggMapBuilder.build());
     this.aggExternalFunctionRegistry = new ConcurrentHashMap<>();
+  }
+
+  /** Returns whether every known signature requires a numeric value at the given argument. */
+  public boolean requiresNumericArgument(String functionName, int argumentIndex) {
+    Optional<BuiltinFunctionName> builtin = BuiltinFunctionName.of(functionName);
+    if (builtin.isEmpty()) {
+      return false;
+    }
+    List<Pair<CalciteFuncSignature, FunctionImp>> implementations =
+        new ArrayList<>(functionRegistry.getOrDefault(builtin.get(), List.of()));
+    implementations.addAll(externalFunctionRegistry.getOrDefault(builtin.get(), List.of()));
+    boolean foundArgument = false;
+    for (Pair<CalciteFuncSignature, FunctionImp> implementation : implementations) {
+      PPLTypeChecker checker = implementation.getKey().typeChecker();
+      if (checker == null) {
+        return false;
+      }
+      try {
+        List<List<ExprType>> signatures =
+            checker.getParameterTypes().stream()
+                .filter(parameters -> argumentIndex < parameters.size())
+                .toList();
+        if (signatures.isEmpty()) {
+          return false;
+        }
+        foundArgument = true;
+        List<ExprType> acceptedTypes =
+            signatures.stream().map(parameters -> parameters.get(argumentIndex)).toList();
+        if (acceptedTypes.stream().allMatch(ExprCoreType.numberTypes()::contains)) {
+          continue;
+        }
+        if (acceptedTypes.stream().anyMatch(type -> type != ExprCoreType.UNKNOWN)
+            || !requiresNumericByValidation(checker, signatures, argumentIndex)) {
+          return false;
+        }
+      } catch (RuntimeException e) {
+        return false;
+      }
+    }
+    return foundArgument;
+  }
+
+  private boolean requiresNumericByValidation(
+      PPLTypeChecker checker, List<List<ExprType>> signatures, int argumentIndex) {
+    RelDataType numericType = TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE);
+    RelDataType stringType = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);
+    return signatures.stream()
+        .anyMatch(
+            signature -> {
+              List<RelDataType> numericArguments =
+                  new ArrayList<>(Collections.nCopies(signature.size(), numericType));
+              if (!checker.checkOperandTypes(numericArguments)) {
+                return false;
+              }
+              numericArguments.set(argumentIndex, stringType);
+              return !checker.checkOperandTypes(numericArguments);
+            });
   }
 
   /**
@@ -956,11 +1019,17 @@ public class PPLFuncImpTable {
           wrapSqlOperandTypeChecker(
               SqlLibraryOperators.REGEXP_REPLACE_3.getOperandTypeChecker(), REPLACE.name(), false));
       registerOperator(UPPER, SqlStdOperatorTable.UPPER);
-      registerOperator(ABS, SqlStdOperatorTable.ABS);
-      registerOperator(ACOS, SqlStdOperatorTable.ACOS);
-      registerOperator(ASIN, SqlStdOperatorTable.ASIN);
-      registerOperator(ATAN, SqlStdOperatorTable.ATAN);
-      registerOperator(ATAN2, SqlStdOperatorTable.ATAN2);
+      registerOperator(ABS, SqlStdOperatorTable.ABS, PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
+      registerOperator(
+          ACOS, SqlStdOperatorTable.ACOS, PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
+      registerOperator(
+          ASIN, SqlStdOperatorTable.ASIN, PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
+      registerOperator(
+          ATAN, SqlStdOperatorTable.ATAN, PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
+      registerOperator(
+          ATAN2,
+          SqlStdOperatorTable.ATAN2,
+          PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
       // TODO, workaround to support sequence CompositeOperandTypeChecker.
       registerOperator(
           CEIL,
@@ -1235,6 +1304,9 @@ public class PPLFuncImpTable {
       registerOperator(FILTER, PPLBuiltinOperators.FILTER);
       registerOperator(TRANSFORM, PPLBuiltinOperators.TRANSFORM);
       registerOperator(REDUCE, PPLBuiltinOperators.REDUCE);
+      registerOperator(FOREACH_JSON_ARRAY, PPLBuiltinOperators.FOREACH_JSON_ARRAY);
+      registerOperator(FOREACH_PAIR_COLLECTION, PPLBuiltinOperators.FOREACH_PAIR_COLLECTION);
+      registerOperator(FOREACH_STATE, PPLBuiltinOperators.FOREACH_STATE);
 
       // Register Json function
       register(

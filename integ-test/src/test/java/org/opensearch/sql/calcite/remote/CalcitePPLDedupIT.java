@@ -348,6 +348,45 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows("M", "AK", 20, 23), rows("F", "AK", 21, 334));
   }
 
+  /**
+   * Regression test for https://github.com/opensearch-project/sql/issues/5150
+   *
+   * <p>A renamed field that is not the dedup key must retain its value after dedup aggregation
+   * pushdown. Previously the top_hits response returned the original index field name ({@code
+   * name}), which the enumerator could not resolve to the renamed output name ({@code nm}),
+   * yielding null.
+   */
+  @Test
+  public void testDedupWithRenamedField() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | rename name as nm | dedup 1 category | fields category, nm",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    // One representative row per category; nm must not be null
+    verifyDataRows(actual, rows("X", "A"), rows("Z", "B"), rows("Y", "A"));
+  }
+
+  /**
+   * Regression test for https://github.com/opensearch-project/sql/issues/5197
+   *
+   * <p>When both a {@code rename} and an {@code eval} column-reference resolve to the same original
+   * index field, the old {@code Map&lt;String,String&gt;} mapping silently dropped one alias on
+   * collision. With {@code Map&lt;String,List&lt;String&gt;&gt;} both aliases must appear in the
+   * result with correct values.
+   */
+  @Test
+  public void testDedupWithRenamedFieldMappingCollision() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval nm2 = name | rename name as nm | dedup 1 category"
+                    + " | fields category, nm, nm2",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    // Both nm (from rename) and nm2 (from eval col-ref) must carry the same non-null name value
+    verifyDataRows(actual, rows("X", "A", "A"), rows("Z", "B", "B"), rows("Y", "A", "A"));
+  }
+
   /** Regression test for https://github.com/opensearch-project/sql/issues/3922 */
   @Test
   public void testSortThenDedupKeepEmpty() throws IOException {
