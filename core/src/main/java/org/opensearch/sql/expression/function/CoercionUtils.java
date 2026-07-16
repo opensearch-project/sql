@@ -5,49 +5,61 @@
 
 package org.opensearch.sql.expression.function;
 
-import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
-
 import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
+/**
+ * RelDataType-native widening, casting, and common-type resolution for PPL function dispatch.
+ *
+ * <p>This module models a small widening DAG over a tag space derived from {@link RelDataType}:
+ *
+ * <ul>
+ *   <li>numeric SQL types (BYTE → SHORT → INTEGER → LONG → FLOAT → DOUBLE)
+ *   <li>STRING (VARCHAR/CHAR)
+ *   <li>BOOLEAN
+ *   <li>OpenSearch UDTs (DATE, TIME, TIMESTAMP, IP, BINARY) detected via {@code instanceof}
+ * </ul>
+ *
+ * <p>The widening rules mirror prior behavior: {@code STRING + NUMERIC → DOUBLE}, {@code DATE +
+ * TIME → TIMESTAMP}, {@code STRING + BINARY → BINARY}; STRING widens to BOOLEAN/DATE/TIME/
+ * TIMESTAMP/IP; numerics widen along the integer/float chain; etc.
+ */
 public final class CoercionUtils {
+  private CoercionUtils() {}
+
   /**
-   * Casts the arguments to the types specified in the typeChecker. Returns null if no combination
-   * of parameter types matches the arguments or if casting fails.
-   *
-   * @param builder RexBuilder to create casts
-   * @param typeChecker PPLTypeChecker that provides the parameter types
-   * @param arguments List of RexNode arguments to be cast
-   * @return List of cast RexNode arguments or null if casting fails
+   * Casts the arguments to one of the typeChecker's allowed signatures. Returns null if no
+   * combination of parameter types matches the arguments or if casting fails.
    */
   public static @Nullable List<RexNode> castArguments(
       RexBuilder builder, PPLTypeChecker typeChecker, List<RexNode> arguments) {
-    List<List<ExprType>> paramTypeCombinations = typeChecker.getParameterTypes();
+    List<List<RelDataType>> paramTypeCombinations = typeChecker.getParameterTypes();
 
-    List<ExprType> sourceTypes =
-        arguments.stream()
-            .map(node -> OpenSearchTypeFactory.convertRelDataTypeToExprType(node.getType()))
-            .collect(Collectors.toList());
+    List<RelDataType> sourceTypes = arguments.stream().map(RexNode::getType).toList();
     // Candidate parameter signatures ordered by decreasing widening distance
-    PriorityQueue<Pair<List<ExprType>, Integer>> rankedSignatures =
+    PriorityQueue<Pair<List<RelDataType>, Integer>> rankedSignatures =
         new PriorityQueue<>((left, right) -> Integer.compare(right.getValue(), left.getValue()));
-    for (List<ExprType> paramTypes : paramTypeCombinations) {
-      int distance = distance(sourceTypes, paramTypes);
+    for (List<RelDataType> paramTypes : paramTypeCombinations) {
+      int distance = signatureDistance(sourceTypes, paramTypes);
       if (distance == TYPE_EQUAL) {
         return castArguments(builder, paramTypes, arguments);
       }
@@ -64,38 +76,43 @@ public final class CoercionUtils {
   /**
    * Widen the arguments to the widest type found among them. If no widest type can be determined,
    * returns null.
-   *
-   * @param builder RexBuilder to create casts
-   * @param arguments List of RexNode arguments to be widened
-   * @return List of widened RexNode arguments or null if no widest type can be determined
    */
   public static @Nullable List<RexNode> widenArguments(
       RexBuilder builder, List<RexNode> arguments) {
-    // TODO: Add test on e.g. IP
-    ExprType widestType = findWidestType(arguments);
+    RelDataType widestType = findWidestType(arguments);
     if (widestType == null) {
-      return null; // No widest type found, return null
+      return null;
     }
     return arguments.stream().map(arg -> cast(builder, widestType, arg)).toList();
   }
 
-  /**
-   * Casts the arguments to the types specified in paramTypes. Returns null if the number of
-   * parameters does not match or if casting fails.
-   */
-  private static @Nullable List<RexNode> castArguments(
-      RexBuilder builder, List<ExprType> paramTypes, List<RexNode> arguments) {
-    if (paramTypes.size() != arguments.size()) {
-      return null; // Skip if the number of parameters does not match
-    }
+  /** Returns true if any of the operands is a string-like (VARCHAR/CHAR) RexNode. */
+  public static boolean hasString(List<RexNode> rexNodeList) {
+    return rexNodeList.stream().map(RexNode::getType).anyMatch(SqlTypeUtil::isCharacter);
+  }
 
+  /**
+   * Resolves the widening common type for two {@link RelDataType}s using PPL coercion rules. Used
+   * primarily by tests to verify the rule set.
+   */
+  @VisibleForTesting
+  public static Optional<RelDataType> resolveCommonType(RelDataType left, RelDataType right) {
+    return COMMON_COERCION_RULES.stream()
+        .map(rule -> rule.apply(left, right))
+        .flatMap(Optional::stream)
+        .findFirst();
+  }
+
+  // -------- Internals --------
+
+  private static @Nullable List<RexNode> castArguments(
+      RexBuilder builder, List<RelDataType> paramTypes, List<RexNode> arguments) {
+    if (paramTypes.size() != arguments.size()) {
+      return null;
+    }
     List<RexNode> castedArguments = new ArrayList<>();
     for (int i = 0; i < paramTypes.size(); i++) {
-      ExprType toType = paramTypes.get(i);
-      RexNode arg = arguments.get(i);
-
-      RexNode castedArg = cast(builder, toType, arg);
-
+      RexNode castedArg = cast(builder, paramTypes.get(i), arguments.get(i));
       if (castedArg == null) {
         return null;
       }
@@ -104,180 +121,289 @@ public final class CoercionUtils {
     return castedArguments;
   }
 
-  private static @Nullable RexNode cast(RexBuilder builder, ExprType targetType, RexNode arg) {
-    ExprType argType = OpenSearchTypeFactory.convertRelDataTypeToExprType(arg.getType());
-    if (!argType.shouldCast(targetType)) {
+  private static @Nullable RexNode cast(RexBuilder builder, RelDataType targetType, RexNode arg) {
+    RelDataType argType = arg.getType();
+    if (!shouldCast(argType, targetType)) {
       return arg;
     }
+    // Always make the cast target nullable. Safe cast returns null on parse failure or on a null
+    // source, so a non-nullable declared target defeats null-propagation and leads to primitive
+    // unboxing NPEs in downstream aggregations.
     if (distance(argType, targetType) != IMPOSSIBLE_WIDENING) {
       return builder.makeCast(
-          OpenSearchTypeFactory.convertExprTypeToRelDataType(targetType), arg, true, true);
+          builder.getTypeFactory().createTypeWithNullability(targetType, true), arg, true, true);
     }
     return resolveCommonType(argType, targetType)
         .map(
-            exprType ->
+            common ->
                 builder.makeCast(
-                    OpenSearchTypeFactory.convertExprTypeToRelDataType(exprType), arg, true, true))
+                    builder.getTypeFactory().createTypeWithNullability(common, true),
+                    arg,
+                    true,
+                    true))
         .orElse(null);
   }
 
-  /**
-   * Finds the widest type among the given arguments. The widest type is determined by applying the
-   * widening type rule to each pair of types in the arguments.
-   *
-   * @param arguments List of RexNode arguments to find the widest type from
-   * @return the widest ExprType if found, otherwise null
-   */
-  private static @Nullable ExprType findWidestType(List<RexNode> arguments) {
+  private static @Nullable RelDataType findWidestType(List<RexNode> arguments) {
     if (arguments.isEmpty()) {
-      return null; // No arguments to process
+      return null;
     }
-    ExprType widestType =
-        OpenSearchTypeFactory.convertRelDataTypeToExprType(arguments.getFirst().getType());
+    RelDataType widest = arguments.getFirst().getType();
     if (arguments.size() == 1) {
-      return widestType;
+      return widest;
     }
-
-    // Iterate pairwise through the arguments and find the widest type
     for (int i = 1; i < arguments.size(); i++) {
-      var type = OpenSearchTypeFactory.convertRelDataTypeToExprType(arguments.get(i).getType());
+      RelDataType type = arguments.get(i).getType();
       try {
-        final ExprType tempType = widestType;
-        widestType = resolveCommonType(widestType, type).orElseGet(() -> max(tempType, type));
+        final RelDataType current = widest;
+        widest = resolveCommonType(widest, type).orElseGet(() -> max(current, type));
       } catch (ExpressionEvaluationException e) {
-        // the two types are not compatible, return null
         return null;
       }
     }
-    return widestType;
+    // Normalize standard temporal types to their UDT equivalents so downstream casts route through
+    // the ExtendedRexBuilder UDT path (producing TIMESTAMP/DATE/TIME function calls at runtime).
+    return normalizeTemporalToUdt(widest);
   }
 
-  private static boolean areDateAndTime(ExprType type1, ExprType type2) {
-    return (type1 == ExprCoreType.DATE && type2 == ExprCoreType.TIME)
-        || (type1 == ExprCoreType.TIME && type2 == ExprCoreType.DATE);
+  private static RelDataType normalizeTemporalToUdt(RelDataType type) {
+    if (type instanceof AbstractExprRelDataType<?>) {
+      return type;
+    }
+    SqlTypeName name = type.getSqlTypeName();
+    ExprUDT udt =
+        switch (name) {
+          case TIMESTAMP -> ExprUDT.EXPR_TIMESTAMP;
+          case DATE -> ExprUDT.EXPR_DATE;
+          case TIME -> ExprUDT.EXPR_TIME;
+          default -> null;
+        };
+    return udt == null
+        ? type
+        : OpenSearchTypeFactory.TYPE_FACTORY.createUDT(udt, type.isNullable());
   }
 
-  @VisibleForTesting
-  public static Optional<ExprType> resolveCommonType(ExprType left, ExprType right) {
-    return COMMON_COERCION_RULES.stream()
-        .map(rule -> rule.apply(left, right))
-        .flatMap(Optional::stream)
-        .findFirst();
+  // -------- Tag space + widening DAG --------
+
+  /**
+   * A small enum that tags every {@link RelDataType} the coercion rules need to reason about. Using
+   * an enum means the widening DAG is closed and self-contained.
+   */
+  private enum CoercionTag {
+    UNDEFINED, // Calcite NULL — compatible with anything
+    UNKNOWN, // Anything we can't classify
+    BYTE,
+    SHORT,
+    INTEGER,
+    LONG,
+    FLOAT,
+    DOUBLE,
+    STRING,
+    BOOLEAN,
+    DATE,
+    TIME,
+    TIMESTAMP,
+    IP,
+    BINARY,
+    INTERVAL,
+    ARRAY,
+    STRUCT,
+    GEOMETRY;
   }
 
-  public static boolean hasString(List<RexNode> rexNodeList) {
-    return rexNodeList.stream()
-        .map(RexNode::getType)
-        .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
-        .anyMatch(t -> t == ExprCoreType.STRING);
+  private static CoercionTag tagOf(RelDataType type) {
+    if (type instanceof AbstractExprRelDataType<?> udt) {
+      return switch (udt.getUdt()) {
+        case EXPR_DATE -> CoercionTag.DATE;
+        case EXPR_TIME -> CoercionTag.TIME;
+        case EXPR_TIMESTAMP -> CoercionTag.TIMESTAMP;
+        case EXPR_IP -> CoercionTag.IP;
+        case EXPR_BINARY -> CoercionTag.BINARY;
+      };
+    }
+    SqlTypeName name = type.getSqlTypeName();
+    if (name == null) return CoercionTag.UNKNOWN;
+    return switch (name) {
+      case TINYINT -> CoercionTag.BYTE;
+      case SMALLINT -> CoercionTag.SHORT;
+      case INTEGER -> CoercionTag.INTEGER;
+      case BIGINT -> CoercionTag.LONG;
+      case REAL, FLOAT -> CoercionTag.FLOAT;
+      case DOUBLE, DECIMAL -> CoercionTag.DOUBLE;
+      case CHAR, VARCHAR -> CoercionTag.STRING;
+      case BOOLEAN -> CoercionTag.BOOLEAN;
+      case BINARY, VARBINARY -> CoercionTag.BINARY;
+      case DATE -> CoercionTag.DATE;
+      case TIME, TIME_WITH_LOCAL_TIME_ZONE, TIME_TZ -> CoercionTag.TIME;
+      case TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE, TIMESTAMP_TZ -> CoercionTag.TIMESTAMP;
+      case NULL -> CoercionTag.UNDEFINED;
+      case ARRAY, MULTISET -> CoercionTag.ARRAY;
+      case MAP, ROW, STRUCTURED -> CoercionTag.STRUCT;
+      case GEOMETRY -> CoercionTag.GEOMETRY;
+      default -> {
+        if (SqlTypeName.INTERVAL_TYPES.contains(name)) {
+          yield CoercionTag.INTERVAL;
+        }
+        yield CoercionTag.UNKNOWN;
+      }
+    };
   }
 
-  private static final Set<ExprType> NUMBER_TYPES = ExprCoreType.numberTypes();
+  /**
+   * Parents in the widening DAG. Mirrors {@code ExprCoreType} parent links. A type widens to its
+   * parent and (transitively) to grandparents.
+   */
+  private static final Map<CoercionTag, List<CoercionTag>> PARENTS = buildParents();
+
+  private static Map<CoercionTag, List<CoercionTag>> buildParents() {
+    Map<CoercionTag, List<CoercionTag>> p = new HashMap<>();
+    p.put(CoercionTag.BYTE, List.of(CoercionTag.SHORT));
+    p.put(CoercionTag.SHORT, List.of(CoercionTag.INTEGER));
+    p.put(CoercionTag.INTEGER, List.of(CoercionTag.LONG));
+    p.put(CoercionTag.LONG, List.of(CoercionTag.FLOAT));
+    p.put(CoercionTag.FLOAT, List.of(CoercionTag.DOUBLE));
+    // STRING has TIMESTAMP as a direct parent (in addition to DATE/TIME/BOOLEAN/IP) so the
+    // STRING→TIMESTAMP widening cost matches STRING→DOUBLE (1). This preserves baseline ranking
+    // when both NUMERIC and TIMESTAMP signatures are candidates for a STRING input.
+    p.put(
+        CoercionTag.STRING,
+        List.of(
+            CoercionTag.BOOLEAN,
+            CoercionTag.DATE,
+            CoercionTag.TIME,
+            CoercionTag.TIMESTAMP,
+            CoercionTag.IP));
+    p.put(CoercionTag.DATE, List.of(CoercionTag.TIMESTAMP));
+    p.put(CoercionTag.TIME, List.of(CoercionTag.TIMESTAMP));
+    return p;
+  }
+
+  private static List<CoercionTag> parentsOf(CoercionTag tag) {
+    return PARENTS.getOrDefault(tag, List.of());
+  }
+
+  private static final Set<CoercionTag> NUMBER_TAGS =
+      Set.of(
+          CoercionTag.BYTE,
+          CoercionTag.SHORT,
+          CoercionTag.INTEGER,
+          CoercionTag.LONG,
+          CoercionTag.FLOAT,
+          CoercionTag.DOUBLE);
+
+  // -------- Distance and "shouldCast" --------
+
+  private static final int IMPOSSIBLE_WIDENING = Integer.MAX_VALUE;
+  private static final int TYPE_EQUAL = 0;
+
+  private static int distance(RelDataType from, RelDataType to) {
+    return distance(tagOf(from), tagOf(to), TYPE_EQUAL);
+  }
+
+  private static int distance(CoercionTag from, CoercionTag to) {
+    return distance(from, to, TYPE_EQUAL);
+  }
+
+  private static int distance(CoercionTag from, CoercionTag to, int acc) {
+    if (from == to) return acc;
+    if (from == CoercionTag.UNKNOWN) return IMPOSSIBLE_WIDENING;
+    // UNDEFINED (NULL literal) widens to any concrete type at unit cost — mirrors v2 where every
+    // concrete ExprCoreType has UNDEFINED as a parent.
+    if (from == CoercionTag.UNDEFINED && to != CoercionTag.UNKNOWN) return acc + 1;
+    // STRING widens directly to DOUBLE (custom rule mirroring v2 behavior).
+    if (from == CoercionTag.STRING && to == CoercionTag.DOUBLE) return acc + 1;
+    List<CoercionTag> parents = parentsOf(from);
+    if (parents.isEmpty()) return IMPOSSIBLE_WIDENING;
+    int best = IMPOSSIBLE_WIDENING;
+    for (CoercionTag parent : parents) {
+      int d = distance(parent, to, acc + 1);
+      if (d < best) best = d;
+    }
+    return best;
+  }
+
+  /** The argument should be cast to the target type when their CoercionTags differ. */
+  private static boolean shouldCast(RelDataType source, RelDataType target) {
+    return tagOf(source) != tagOf(target);
+  }
+
+  /**
+   * The widest of two types: the one that the other can widen to. Throws if neither widens to the
+   * other.
+   */
+  static RelDataType max(RelDataType type1, RelDataType type2) {
+    int t1To2 = distance(type1, type2);
+    int t2To1 = distance(type2, type1);
+    if (t1To2 == IMPOSSIBLE_WIDENING && t2To1 == IMPOSSIBLE_WIDENING) {
+      throw new ExpressionEvaluationException(
+          String.format("no max type of %s and %s ", type1, type2));
+    }
+    return t1To2 == IMPOSSIBLE_WIDENING ? type1 : type2;
+  }
+
+  private static int signatureDistance(
+      List<RelDataType> sourceTypes, List<RelDataType> targetTypes) {
+    if (sourceTypes.size() != targetTypes.size()) {
+      return IMPOSSIBLE_WIDENING;
+    }
+    int total = 0;
+    for (int i = 0; i < sourceTypes.size(); i++) {
+      int d = distance(sourceTypes.get(i), targetTypes.get(i));
+      if (d == IMPOSSIBLE_WIDENING) {
+        return IMPOSSIBLE_WIDENING;
+      }
+      total += d;
+    }
+    return total;
+  }
+
+  // -------- Common-type rules --------
+
+  private static boolean hasString(RelDataType l, RelDataType r) {
+    return tagOf(l) == CoercionTag.STRING || tagOf(r) == CoercionTag.STRING;
+  }
+
+  private static boolean hasNumber(RelDataType l, RelDataType r) {
+    return NUMBER_TAGS.contains(tagOf(l)) || NUMBER_TAGS.contains(tagOf(r));
+  }
+
+  private static boolean hasBinary(RelDataType l, RelDataType r) {
+    return tagOf(l) == CoercionTag.BINARY || tagOf(r) == CoercionTag.BINARY;
+  }
+
+  private static boolean areDateAndTime(RelDataType l, RelDataType r) {
+    CoercionTag lt = tagOf(l);
+    CoercionTag rt = tagOf(r);
+    return (lt == CoercionTag.DATE && rt == CoercionTag.TIME)
+        || (lt == CoercionTag.TIME && rt == CoercionTag.DATE);
+  }
 
   private static final List<CoercionRule> COMMON_COERCION_RULES =
       List.of(
           CoercionRule.of(
-              (left, right) -> areDateAndTime(left, right),
-              (left, right) -> ExprCoreType.TIMESTAMP),
+              CoercionUtils::areDateAndTime,
+              (l, r) -> OpenSearchTypeFactory.TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP)),
           CoercionRule.of(
-              (left, right) -> hasString(left, right) && hasNumber(left, right),
-              (left, right) -> ExprCoreType.DOUBLE),
+              (l, r) -> hasString(l, r) && hasNumber(l, r),
+              (l, r) -> OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE)),
           // (BINARY, STRING) → BINARY: ip/binary columns compared with string literals.
-          // Triggers ExtendedRexBuilder.makeCast which wraps the literal with BINARY.
+          // ExtendedRexBuilder.makeCast wraps the literal into VARBINARY when it sees this.
           CoercionRule.of(
-              (left, right) -> hasString(left, right) && hasBinary(left, right),
-              (left, right) -> ExprCoreType.BINARY));
-
-  private static boolean hasString(ExprType left, ExprType right) {
-    return left == ExprCoreType.STRING || right == ExprCoreType.STRING;
-  }
-
-  private static boolean hasNumber(ExprType left, ExprType right) {
-    return NUMBER_TYPES.contains(left) || NUMBER_TYPES.contains(right);
-  }
-
-  private static boolean hasBoolean(ExprType left, ExprType right) {
-    return left == ExprCoreType.BOOLEAN || right == ExprCoreType.BOOLEAN;
-  }
-
-  private static boolean hasBinary(ExprType left, ExprType right) {
-    return left == ExprCoreType.BINARY || right == ExprCoreType.BINARY;
-  }
+              (l, r) -> hasString(l, r) && hasBinary(l, r),
+              (l, r) -> OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.VARBINARY)));
 
   private record CoercionRule(
-      BiPredicate<ExprType, ExprType> predicate, BinaryOperator<ExprType> resolver) {
+      BiPredicate<RelDataType, RelDataType> predicate, BinaryOperator<RelDataType> resolver) {
 
-    Optional<ExprType> apply(ExprType left, ExprType right) {
+    Optional<RelDataType> apply(RelDataType left, RelDataType right) {
       return predicate.test(left, right)
           ? Optional.of(resolver.apply(left, right))
           : Optional.empty();
     }
 
     static CoercionRule of(
-        BiPredicate<ExprType, ExprType> predicate, BinaryOperator<ExprType> resolver) {
+        BiPredicate<RelDataType, RelDataType> predicate, BinaryOperator<RelDataType> resolver) {
       return new CoercionRule(predicate, resolver);
     }
-  }
-
-  private static final int IMPOSSIBLE_WIDENING = Integer.MAX_VALUE;
-  private static final int TYPE_EQUAL = 0;
-
-  private static int distance(ExprType type1, ExprType type2) {
-    return distance(type1, type2, TYPE_EQUAL);
-  }
-
-  private static int distance(ExprType type1, ExprType type2, int distance) {
-    if (type1 == type2) {
-      return distance;
-    } else if (type1 == UNKNOWN) {
-      return IMPOSSIBLE_WIDENING;
-    } else if (type1 == ExprCoreType.STRING && type2 == ExprCoreType.DOUBLE) {
-      return 1;
-    } else {
-      return type1.getParent().stream()
-          .map(parentOfType1 -> distance(parentOfType1, type2, distance + 1))
-          .reduce(Math::min)
-          .get();
-    }
-  }
-
-  /**
-   * The max type among two types. The max is defined as follow if type1 could widen to type2, then
-   * max is type2, vice versa if type1 couldn't widen to type2 and type2 could't widen to type1,
-   * then throw {@link ExpressionEvaluationException}.
-   *
-   * @param type1 type1
-   * @param type2 type2
-   * @return the max type among two types.
-   */
-  public static ExprType max(ExprType type1, ExprType type2) {
-    int type1To2 = distance(type1, type2);
-    int type2To1 = distance(type2, type1);
-
-    if (type1To2 == Integer.MAX_VALUE && type2To1 == Integer.MAX_VALUE) {
-      throw new ExpressionEvaluationException(
-          String.format("no max type of %s and %s ", type1, type2));
-    } else {
-      return type1To2 == Integer.MAX_VALUE ? type1 : type2;
-    }
-  }
-
-  public static int distance(List<ExprType> sourceTypes, List<ExprType> targetTypes) {
-    if (sourceTypes.size() != targetTypes.size()) {
-      return IMPOSSIBLE_WIDENING;
-    }
-
-    int totalDistance = 0;
-    for (int i = 0; i < sourceTypes.size(); i++) {
-      ExprType source = sourceTypes.get(i);
-      ExprType target = targetTypes.get(i);
-      int distance = distance(source, target);
-      if (distance == IMPOSSIBLE_WIDENING) {
-        return IMPOSSIBLE_WIDENING;
-      } else {
-        totalDistance += distance;
-      }
-    }
-    return totalDistance;
   }
 }

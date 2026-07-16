@@ -309,6 +309,7 @@ import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
@@ -319,8 +320,6 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.CollectionUDF.MVIndexFunctionImp;
@@ -450,7 +449,7 @@ public class PPLFuncImpTable {
         return false;
       }
       try {
-        List<List<ExprType>> signatures =
+        List<List<RelDataType>> signatures =
             checker.getParameterTypes().stream()
                 .filter(parameters -> argumentIndex < parameters.size())
                 .toList();
@@ -458,12 +457,12 @@ public class PPLFuncImpTable {
           return false;
         }
         foundArgument = true;
-        List<ExprType> acceptedTypes =
+        List<RelDataType> acceptedTypes =
             signatures.stream().map(parameters -> parameters.get(argumentIndex)).toList();
-        if (acceptedTypes.stream().allMatch(ExprCoreType.numberTypes()::contains)) {
+        if (acceptedTypes.stream().allMatch(SqlTypeUtil::isNumeric)) {
           continue;
         }
-        if (acceptedTypes.stream().anyMatch(type -> type != ExprCoreType.UNKNOWN)
+        if (acceptedTypes.stream().anyMatch(type -> type.getSqlTypeName() != SqlTypeName.ANY)
             || !requiresNumericByValidation(checker, signatures, argumentIndex)) {
           return false;
         }
@@ -475,7 +474,7 @@ public class PPLFuncImpTable {
   }
 
   private boolean requiresNumericByValidation(
-      PPLTypeChecker checker, List<List<ExprType>> signatures, int argumentIndex) {
+      PPLTypeChecker checker, List<List<RelDataType>> signatures, int argumentIndex) {
     RelDataType numericType = TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE);
     RelDataType stringType = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);
     return signatures.stream()
