@@ -54,6 +54,7 @@ import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -87,6 +88,8 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Foreach;
+import org.opensearch.sql.ast.tree.Foreach.ForeachEvalClause;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
@@ -898,6 +901,66 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.evalClause().stream()
             .map(ct -> (Let) internalVisitExpression(ct))
             .collect(Collectors.toList()));
+  }
+
+  @Override
+  public UnresolvedPlan visitForeachCommand(OpenSearchPPLParser.ForeachCommandContext ctx) {
+    java.util.Map<String, String> options = new LinkedHashMap<>();
+    List<UnresolvedExpression> targets = new ArrayList<>();
+    List<String> patterns = new ArrayList<>();
+    for (OpenSearchPPLParser.ForeachArgumentContext argument : ctx.foreachArgument()) {
+      OpenSearchPPLParser.ForeachOptionContext option = argument.foreachOption();
+      if (option != null) {
+        options.put(
+            option.ident(0).getText().toLowerCase(Locale.ROOT),
+            stripForeachPlaceholderMarkers(option.getChild(2).getText()));
+      } else {
+        OpenSearchPPLParser.ForeachTargetContext target = argument.foreachTarget();
+        patterns.add(getTextInQuery(target));
+        if (target.functionCall() != null) {
+          targets.add(expressionBuilder.visit(target.functionCall()));
+        } else if (target.stringLiteral() != null) {
+          targets.add(expressionBuilder.visit(target.stringLiteral()));
+        } else {
+          targets.add(new Field(new QualifiedName(getTextInQuery(target))));
+        }
+      }
+    }
+    Foreach.Mode mode =
+        options.containsKey("mode")
+            ? Foreach.Mode.of(options.get("mode"))
+            : inferForeachMode(targets);
+    UnresolvedExpression collectionExpression = null;
+    if (mode != Foreach.Mode.MULTIFIELD) {
+      if (targets.size() > 1 || (targets.isEmpty() && mode != Foreach.Mode.AUTO_COLLECTIONS)) {
+        throw new IllegalArgumentException("foreach collection modes accept exactly one field");
+      }
+      collectionExpression = targets.isEmpty() ? null : targets.get(0);
+    }
+    List<ForeachEvalClause> evalClauses =
+        ctx.foreachEvalCommand().foreachEvalClause().stream()
+            .map(
+                clause ->
+                    new ForeachEvalClause(
+                        getTextInQuery(clause.target),
+                        expressionBuilder.visit(clause.logicalExpression())))
+            .collect(Collectors.toList());
+    return new Foreach(mode, options, patterns, collectionExpression, evalClauses);
+  }
+
+  private String stripForeachPlaceholderMarkers(String value) {
+    return value.startsWith("<<") && value.endsWith(">>")
+        ? value.substring(2, value.length() - 2)
+        : value;
+  }
+
+  /** A bare json_array(...) target implies json_array mode; anything else is multifield. */
+  private Foreach.Mode inferForeachMode(List<UnresolvedExpression> targets) {
+    return targets.size() == 1
+            && targets.get(0) instanceof Function function
+            && "json_array".equalsIgnoreCase(function.getFuncName())
+        ? Foreach.Mode.JSON_ARRAY
+        : Foreach.Mode.MULTIFIELD;
   }
 
   @Override

@@ -2929,7 +2929,7 @@ public class CalciteExplainIT extends ExplainIT {
     String logical = logicalPlan(explainQueryYaml(query));
     Assert.assertTrue(
         "Expected logical plan to contain ARRAY_JOIN function",
-        logical.toLowerCase().contains("array_join"));
+        logical.toLowerCase(java.util.Locale.ROOT).contains("array_join"));
   }
 
   @Test
@@ -2939,10 +2939,26 @@ public class CalciteExplainIT extends ExplainIT {
             "source=%s | eval full_name = concat(firstname, ' J.') | eval name_array ="
                 + " array(full_name) | nomv name_array | fields name_array",
             TEST_INDEX_BANK);
-    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase();
+    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase(java.util.Locale.ROOT);
     Assert.assertTrue(
         "Expected logical plan to contain both CONCAT and ARRAY_JOIN",
         logical.contains("concat") && logical.contains("array_join"));
+  }
+
+  @Test
+  public void testForeachExplain() throws IOException {
+    String query =
+        StringUtils.format(
+            "source=%s | foreach age balance [ eval <<FIELD>>_double = <<FIELD>> * 2 ] | fields"
+                + " age_double, balance_double",
+            TEST_INDEX_BANK);
+    String logical = logicalPlan(explainQueryYaml(query));
+    Assert.assertTrue(
+        "Expected logical plan to contain foreach-expanded eval fields",
+        logical.contains("age_double")
+            && logical.contains("balance_double")
+            && logical.contains("*($")
+            && logical.contains(", 2)"));
   }
 
   /**
