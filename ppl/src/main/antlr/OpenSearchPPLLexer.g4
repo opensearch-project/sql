@@ -488,6 +488,7 @@ ISBLANK:                            'ISBLANK';
 // COLLECTION FUNCTIONS
 ARRAY:                              'ARRAY';
 ARRAY_LENGTH:                       'ARRAY_LENGTH';
+ARRAY_TO_CSV:                       'ARRAY_TO_CSV';
 MVAPPEND:                           'MVAPPEND';
 MVJOIN:                             'MVJOIN';
 MVINDEX:                            'MVINDEX';

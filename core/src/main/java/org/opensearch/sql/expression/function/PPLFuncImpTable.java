@@ -19,6 +19,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_COMPACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_LENGTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_SLICE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_TO_CSV;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
@@ -1230,6 +1231,7 @@ public class PPLFuncImpTable {
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
       registerOperator(ARRAY_SLICE, SqlLibraryOperators.ARRAY_SLICE);
       registerOperator(ARRAY_COMPACT, SqlLibraryOperators.ARRAY_COMPACT);
+      registerOperator(ARRAY_TO_CSV, PPLBuiltinOperators.ARRAY_TO_CSV);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
       registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
       registerOperator(FILTER, PPLBuiltinOperators.FILTER);

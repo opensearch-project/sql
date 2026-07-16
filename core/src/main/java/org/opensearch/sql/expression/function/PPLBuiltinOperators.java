@@ -44,6 +44,7 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.CollectionUDF.ArrayFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ArrayToCsvFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ExistsFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
@@ -405,6 +406,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator FORALL = new ForallFunctionImpl().toUDF("forall");
   public static final SqlOperator EXISTS = new ExistsFunctionImpl().toUDF("exists");
   public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF("array");
+  public static final SqlOperator ARRAY_TO_CSV = new ArrayToCsvFunctionImpl().toUDF("array_to_csv");
   public static final SqlOperator MAP_APPEND = new MapAppendFunctionImpl().toUDF("map_append");
   public static final SqlOperator MAP_REMOVE = new MapRemoveFunctionImpl().toUDF("MAP_REMOVE");
   public static final SqlOperator MVAPPEND = new MVAppendFunctionImpl().toUDF("mvappend");
