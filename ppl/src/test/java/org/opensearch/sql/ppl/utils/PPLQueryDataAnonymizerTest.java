@@ -49,18 +49,6 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
-  public void testRestCommand() {
-    assertEquals("rest /_cluster/health", anonymize("| rest \"/_cluster/health\""));
-  }
-
-  @Test
-  public void testRestCommandMasksArgValues() {
-    assertEquals(
-        "rest /_cluster/health count=*** timeout=*** level=***",
-        anonymize("| rest \"/_cluster/health\" count=5 timeout=\"30s\" level=\"indices\""));
-  }
-
-  @Test
   public void testWhereCommand() {
     assertEquals("source=table | where identifier = ***", anonymize("search source=t | where a=1"));
   }

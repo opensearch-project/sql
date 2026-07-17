@@ -71,17 +71,6 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
-  public static final Setting<?> PPL_REST_REDACTION_ENABLED_SETTING =
-      Setting.boolSetting(
-          Key.PPL_REST_REDACTION_ENABLED.getKeyValue(), false, Setting.Property.NodeScope);
-
-  public static final Setting<List<String>> PPL_REST_ALLOWED_ENDPOINTS_SETTING =
-      Setting.listSetting(
-          Key.PPL_REST_ALLOWED_ENDPOINTS.getKeyValue(),
-          List.of(),
-          Function.identity(),
-          Setting.Property.NodeScope);
-
   public static final Setting<TimeValue> PPL_QUERY_TIMEOUT_SETTING =
       Setting.positiveTimeSetting(
           Key.PPL_QUERY_TIMEOUT.getKeyValue(),
@@ -391,16 +380,6 @@ public class OpenSearchSettings extends Settings {
         Key.PPL_ENABLED,
         PPL_ENABLED_SETTING,
         new Updater(Key.PPL_ENABLED));
-    registerNonDynamicSettings(
-        settingBuilder,
-        clusterSettings,
-        Key.PPL_REST_REDACTION_ENABLED,
-        PPL_REST_REDACTION_ENABLED_SETTING);
-    registerNonDynamicSettings(
-        settingBuilder,
-        clusterSettings,
-        Key.PPL_REST_ALLOWED_ENDPOINTS,
-        PPL_REST_ALLOWED_ENDPOINTS_SETTING);
     register(
         settingBuilder,
         clusterSettings,
@@ -661,9 +640,7 @@ public class OpenSearchSettings extends Settings {
       Settings.Key key,
       Setting setting) {
     settingBuilder.put(key, setting);
-    if (clusterSettings.get(setting) != null) {
-      latestSettings.put(key, clusterSettings.get(setting));
-    }
+    latestSettings.put(key, clusterSettings.get(setting));
   }
 
   /**
@@ -734,8 +711,6 @@ public class OpenSearchSettings extends Settings {
     return new ImmutableList.Builder<Setting<?>>()
         .add(DATASOURCE_MASTER_SECRET_KEY)
         .add(DATASOURCE_CONFIG)
-        .add(PPL_REST_REDACTION_ENABLED_SETTING)
-        .add(PPL_REST_ALLOWED_ENDPOINTS_SETTING)
         .build();
   }
 

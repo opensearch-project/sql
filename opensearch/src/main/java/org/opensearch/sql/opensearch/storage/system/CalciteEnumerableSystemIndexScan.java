@@ -26,22 +26,17 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/** The physical relational operator representing a scan of an {@link OpenSearchCatalogTable}. */
-public class CalciteEnumerableCatalogScan extends AbstractCalciteCatalogScan
+/** The physical relational operator representing a scan of an OpenSearchSystemIndex type. */
+public class CalciteEnumerableSystemIndexScan extends AbstractCalciteSystemIndexScan
     implements EnumerableRel {
-  public CalciteEnumerableCatalogScan(
+  public CalciteEnumerableSystemIndexScan(
       RelOptCluster cluster,
       List<RelHint> hints,
       RelOptTable table,
-      OpenSearchCatalogTable catalogTable,
+      OpenSearchSystemIndex sysIndex,
       RelDataType schema) {
     super(
-        cluster,
-        cluster.traitSetOf(EnumerableConvention.INSTANCE),
-        hints,
-        table,
-        catalogTable,
-        schema);
+        cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), hints, table, sysIndex, schema);
   }
 
   @Override
@@ -65,7 +60,7 @@ public class CalciteEnumerableCatalogScan extends AbstractCalciteCatalogScan
     PhysType physType =
         PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray());
 
-    Expression scanOperator = implementor.stash(this, CalciteEnumerableCatalogScan.class);
+    Expression scanOperator = implementor.stash(this, CalciteEnumerableSystemIndexScan.class);
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
 
@@ -73,10 +68,10 @@ public class CalciteEnumerableCatalogScan extends AbstractCalciteCatalogScan
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
-        return new OpenSearchCatalogEnumerator(
+        return new OpenSearchSystemIndexEnumerator(
             getFieldPath(),
-            catalogTable.getSource().createRequest(),
-            catalogTable.createOpenSearchResourceMonitor());
+            sysIndex.getSystemIndexBundle().getRight(),
+            sysIndex.createOpenSearchResourceMonitor());
       }
     };
   }
