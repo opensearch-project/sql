@@ -17,7 +17,7 @@ import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-/** Foreach collection modes over index fields (Splunk-parity scenarios). */
+/** Foreach collection modes over index fields. */
 public class ForeachFieldJsonIT extends PPLIntegTestCase {
 
   @Override
@@ -42,7 +42,6 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
 
   @Test
   public void testJsonArrayModeOnFieldWithNumericContent() throws IOException {
-    // Splunk: field holding "[10,20,30]" with foreach mode=json_array sums to 60.
     JSONObject result =
         executeQuery(
             "source=test_foreach_field2 | eval total = 0 | foreach mode=json_array jsonfield ["
@@ -81,6 +80,16 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
     verifyDataRows(result, rows("ab"));
   }
 
+  @Test
+  public void testJsonArrayFieldSafelyCoercesNonNumericItems() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_foreach_field2 | eval total = 0 | foreach mode=json_array jsonstrs ["
+                + " eval total = total + <<ITEM>> ] | fields total");
+    verifySchema(result, schema("total", "double"));
+    verifyDataRows(result, rows((Object) null));
+  }
+
   /**
    * Native OpenSearch array fields (a long field holding [1,2,3]) are typed as scalar BIGINT at
    * plan time because OpenSearch mappings do not distinguish scalars from arrays. foreach
@@ -111,7 +120,7 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
     verifyDataRows(result, rows(2));
   }
 
-  /** Splunk silently no-ops when a mode is fed the wrong collection shape. */
+  /** Collection modes are no-ops when the input has a different collection shape. */
   @Test
   public void testJsonArrayModeOnRealArrayIsNoOp() throws IOException {
     JSONObject result =

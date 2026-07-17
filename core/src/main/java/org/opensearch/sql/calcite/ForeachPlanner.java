@@ -432,9 +432,9 @@ class ForeachPlanner {
    * VARCHAR.
    *
    * <p>For {@code json_array()} calls and string literals the content is visible at plan time;
-   * mixed content is rejected. For opaque expressions — typically a field holding JSON text, the
-   * primary Splunk use of json_array mode — content is unknowable, so infer from usage: an item
-   * placeholder consumed by arithmetic means numeric elements, anything else means strings.
+   * mixed content is rejected. For opaque expressions, typically a field holding JSON text, content
+   * is unknowable, so infer from usage: an item placeholder consumed by arithmetic means numeric
+   * elements, anything else means strings.
    */
   private SqlTypeName jsonElementType(
       UnresolvedExpression collection, CalcitePlanContext context, Foreach node) {
