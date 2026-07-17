@@ -572,10 +572,10 @@ public interface PPLTypeChecker {
   }
 
   /**
-   * Compares two RelDataTypes for signature matching. Two UDTs match if they share the same
-   * {@link ExprUDT} tag — comparing {@code getClass()} is unsafe because addCharsetAndCollation
-   * collapses ExprDateType/ExprTimeType/ExprTimeStampType/ExprBinaryType down to ExprSqlType, so
-   * different UDTs would appear equal. Plain types match by SqlTypeName.
+   * Compares two RelDataTypes for signature matching. Two UDTs match if they share the same {@link
+   * ExprUDT} tag — comparing {@code getClass()} is unsafe because addCharsetAndCollation collapses
+   * ExprDateType/ExprTimeType/ExprTimeStampType/ExprBinaryType down to ExprSqlType, so different
+   * UDTs would appear equal. Plain types match by SqlTypeName.
    */
   private static boolean typesMatch(RelDataType expected, RelDataType actual) {
     if (expected instanceof AbstractExprRelDataType<?> expUdt
