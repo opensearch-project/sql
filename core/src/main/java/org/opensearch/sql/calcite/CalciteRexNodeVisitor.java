@@ -87,7 +87,6 @@ import org.opensearch.sql.calcite.CalcitePlanContext.ForeachBindingType;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.SubsearchUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -320,12 +319,25 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       lowerBound = context.rexBuilder.makeCast(commonType, lowerBound);
       upperBound = context.rexBuilder.makeCast(commonType, upperBound);
     } else {
-      throw new SemanticCheckException(
-          StringUtils.format(
-              "BETWEEN expression types are incompatible: [%s, %s, %s]",
-              OpenSearchTypeFactory.convertRelDataTypeToExprType(value.getType()),
-              OpenSearchTypeFactory.convertRelDataTypeToExprType(lowerBound.getType()),
-              OpenSearchTypeFactory.convertRelDataTypeToExprType(upperBound.getType())));
+      // leastRestrictive() has no common type for mixed temporal representations — e.g. a standard
+      // Calcite TIMESTAMP field compared against EXPR_DATE UDT bounds (`ts between date('...') and
+      // date('...')`). Comparison operators coerce these through CoercionUtils; BETWEEN calls
+      // leastRestrictive directly and would otherwise reject them. Fall back to the same temporal
+      // widening, scoped to all-temporal operands so genuinely incompatible mixes (e.g.
+      // `age between '35' and 38.5`) still raise SemanticCheckException.
+      List<RexNode> widened =
+          widenTemporalOperands(context, List.of(value, lowerBound, upperBound));
+      if (widened == null) {
+        throw new SemanticCheckException(
+            StringUtils.format(
+                "BETWEEN expression types are incompatible: [%s, %s, %s]",
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(value.getType()),
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(lowerBound.getType()),
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(upperBound.getType())));
+      }
+      value = widened.get(0);
+      lowerBound = widened.get(1);
+      upperBound = widened.get(2);
     }
     return context.relBuilder.between(value, lowerBound, upperBound);
   }
@@ -913,26 +925,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitCast(Cast node, CalcitePlanContext context) {
     RexNode expr = analyze(node.getExpression(), context);
+    RelDataType type =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType());
     RelDataType nullableType =
-        switch (node.getDataType()) {
-          case TYPE_ERROR ->
-              throw new IllegalArgumentException("Unsupported AST DataType: " + node.getDataType());
-          case NULL -> TYPE_FACTORY.createSqlType(SqlTypeName.NULL, true);
-          case INTEGER -> TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, true);
-          case LONG -> TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, true);
-          case SHORT -> TYPE_FACTORY.createSqlType(SqlTypeName.SMALLINT, true);
-          case FLOAT -> TYPE_FACTORY.createSqlType(SqlTypeName.REAL, true);
-          case DOUBLE, DECIMAL -> TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE, true);
-          case STRING -> TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true);
-          case BOOLEAN -> TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN, true);
-          case DATE -> TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
-          case TIME -> TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
-          case TIMESTAMP -> TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
-          case INTERVAL ->
-              throw new IllegalArgumentException(
-                  "INTERVAL must carry a unit; cannot map to RelDataType directly.");
-          case IP -> TYPE_FACTORY.createUDT(ExprUDT.EXPR_IP, true);
-        };
+        context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
     // call makeCast() instead of cast() because the saft parameter is true could avoid exception.
     return context.rexBuilder.makeCast(nullableType, expr, true, true);
   }
