@@ -10,8 +10,8 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 
 /**
- * Default no-op dispatcher that executes inline on the current thread. Used when slow-pool routing
- * is disabled or as a fallback.
+ * Default no-op dispatcher that executes inline on the current thread. Used when complex-pool
+ * routing is disabled or as a fallback.
  */
 public class DirectExecutionDispatcher implements ExecutionDispatcher {
 

@@ -7,7 +7,7 @@ package org.opensearch.sql.plugin;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_BACKGROUND_THREAD_POOL_NAME;
-import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_SLOW_WORKER_THREAD_POOL_NAME;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_COMPLEX_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
 
@@ -457,7 +457,7 @@ public class SQLPlugin extends Plugin
 
   @Override
   public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
-    // The worker pool is the primary pool where most of the work is done. The slow-worker pool
+    // The worker pool is the primary pool where most of the work is done. The complex-worker pool
     // handles queries that require scripts (table scans that can't be pushed to Lucene) so they
     // don't starve fast queries. The background thread pool is a separate queue for asynchronous
     // requests to other nodes. We keep them separate to prevent deadlocks during async fetches on
@@ -472,10 +472,10 @@ public class SQLPlugin extends Plugin
             "thread_pool." + SQL_WORKER_THREAD_POOL_NAME),
         new FixedExecutorBuilder(
             settings,
-            SQL_SLOW_WORKER_THREAD_POOL_NAME,
+            SQL_COMPLEX_WORKER_THREAD_POOL_NAME,
             OpenSearchExecutors.allocatedProcessors(settings),
             1000,
-            "thread_pool." + SQL_SLOW_WORKER_THREAD_POOL_NAME),
+            "thread_pool." + SQL_COMPLEX_WORKER_THREAD_POOL_NAME),
         new FixedExecutorBuilder(
             settings,
             SQL_BACKGROUND_THREAD_POOL_NAME,

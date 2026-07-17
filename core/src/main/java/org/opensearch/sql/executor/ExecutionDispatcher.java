@@ -12,7 +12,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 /**
  * Dispatches query execution to an appropriate thread pool based on plan characteristics. After
  * query analysis and optimization, the dispatcher inspects the plan and routes execution to either
- * the fast worker pool (for queries fully pushed to OpenSearch) or the slow worker pool (for
+ * the fast worker pool (for queries fully pushed to OpenSearch) or the complex worker pool (for
  * queries requiring scripts/table scans).
  */
 public interface ExecutionDispatcher {

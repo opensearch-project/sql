@@ -23,6 +23,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestCancellableNodeClient;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
@@ -144,7 +145,12 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   private void sendResponse(
       RestChannel channel, RestStatus status, String contentType, String content) {
-    channel.sendResponse(new BytesRestResponse(status, contentType, content));
+    BytesRestResponse response = new BytesRestResponse(status, contentType, content);
+    String poolName = CalcitePlanContext.executionPool.get();
+    if (poolName != null) {
+      response.addHeader("X-Sql-Thread-Pool", poolName);
+    }
+    channel.sendResponse(response);
   }
 
   private void reportError(final RestChannel channel, final Exception e, final RestStatus status) {

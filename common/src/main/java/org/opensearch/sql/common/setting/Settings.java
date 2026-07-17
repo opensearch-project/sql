@@ -84,7 +84,7 @@ public abstract class Settings {
         "plugins.query.executionengine.spark.streamingjobs.housekeeper.interval"),
 
     /** Thread Pool Settings. */
-    SQL_SLOW_WORKER_POOL_ENABLED("plugins.sql.slow_worker_pool.enabled");
+    SQL_COMPLEX_WORKER_POOL_ENABLED("plugins.sql.complex_worker_pool.enabled");
 
     @Getter private final String keyValue;
 

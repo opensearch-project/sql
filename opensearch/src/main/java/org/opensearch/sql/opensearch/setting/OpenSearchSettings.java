@@ -363,9 +363,9 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
-  public static final Setting<Boolean> SQL_SLOW_WORKER_POOL_ENABLED_SETTING =
+  public static final Setting<Boolean> SQL_COMPLEX_WORKER_POOL_ENABLED_SETTING =
       Setting.boolSetting(
-          Key.SQL_SLOW_WORKER_POOL_ENABLED.getKeyValue(),
+          Key.SQL_COMPLEX_WORKER_POOL_ENABLED.getKeyValue(),
           true,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
@@ -641,9 +641,9 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
-        Key.SQL_SLOW_WORKER_POOL_ENABLED,
-        SQL_SLOW_WORKER_POOL_ENABLED_SETTING,
-        new Updater(Key.SQL_SLOW_WORKER_POOL_ENABLED));
+        Key.SQL_COMPLEX_WORKER_POOL_ENABLED,
+        SQL_COMPLEX_WORKER_POOL_ENABLED_SETTING,
+        new Updater(Key.SQL_COMPLEX_WORKER_POOL_ENABLED));
     defaultSettings = settingBuilder.build();
   }
 
@@ -739,7 +739,7 @@ public class OpenSearchSettings extends Settings {
         .add(SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING)
         .add(STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING)
         .add(FIELD_TYPE_TOLERANCE_SETTING)
-        .add(SQL_SLOW_WORKER_POOL_ENABLED_SETTING)
+        .add(SQL_COMPLEX_WORKER_POOL_ENABLED_SETTING)
         .build();
   }
 

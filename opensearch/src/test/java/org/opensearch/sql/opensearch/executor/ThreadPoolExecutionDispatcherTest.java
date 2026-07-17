@@ -16,7 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_SLOW_WORKER_THREAD_POOL_NAME;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_COMPLEX_WORKER_THREAD_POOL_NAME;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -70,7 +70,7 @@ class ThreadPoolExecutionDispatcherTest {
 
   @Test
   void executesInlineWhenNoScripts() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
     RelNode plan = createMockNode();
 
@@ -82,20 +82,21 @@ class ThreadPoolExecutionDispatcherTest {
 
   @Test
   void dispatchesToSlowPoolWhenScriptsDetected() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
     AbstractCalciteIndexScan scan = createMockScanWithScripts();
 
     dispatcher.dispatch(scan, context, listener, engine);
 
     verify(threadPool)
-        .schedule(any(Runnable.class), eq(new TimeValue(0)), eq(SQL_SLOW_WORKER_THREAD_POOL_NAME));
+        .schedule(
+            any(Runnable.class), eq(new TimeValue(0)), eq(SQL_COMPLEX_WORKER_THREAD_POOL_NAME));
     verify(engine, never()).execute(any(RelNode.class), any(), any(ResponseListener.class));
   }
 
   @Test
   void executesInlineWhenSlowPoolDisabled() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(false);
     AbstractCalciteIndexScan scan = createMockScanWithScripts();
 
@@ -107,7 +108,7 @@ class ThreadPoolExecutionDispatcherTest {
 
   @Test
   void scheduledRunnableCallsEngine() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
     doAnswer(
             invocation -> {
@@ -126,7 +127,7 @@ class ThreadPoolExecutionDispatcherTest {
 
   @Test
   void propagatesCancellableTaskToSlowPool() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
     CancellableTask mockTask = mock(CancellableTask.class);
     OpenSearchQueryManager.setCancellableTask(mockTask);
@@ -158,7 +159,7 @@ class ThreadPoolExecutionDispatcherTest {
 
   @Test
   void propagatesLog4jThreadContextToSlowPool() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
     ThreadContext.put("request.id", "test-123");
     ThreadContext.put("user", "admin");
@@ -187,7 +188,7 @@ class ThreadPoolExecutionDispatcherTest {
 
   @Test
   void propagatesMetadataProviderToSlowPool() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
     JaninoRelMetadataProvider provider = mock(JaninoRelMetadataProvider.class);
     RelMetadataQueryBase.THREAD_PROVIDERS.set(provider);
@@ -215,7 +216,7 @@ class ThreadPoolExecutionDispatcherTest {
 
   @Test
   void propagatesTimewrapSignalsToSlowPool() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
     CalcitePlanContext.stripNullColumns.set(true);
     CalcitePlanContext.timewrapUnitName.set("HOUR");
@@ -257,7 +258,7 @@ class ThreadPoolExecutionDispatcherTest {
 
   @Test
   void forwardsExceptionToListenerOnSlowPool() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
     RuntimeException error = new RuntimeException("execution failed");
     doThrow(error).when(engine).execute(any(RelNode.class), any(), any(ResponseListener.class));
@@ -279,7 +280,7 @@ class ThreadPoolExecutionDispatcherTest {
 
   @Test
   void cleansUpThreadLocalsAfterException() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
     CancellableTask mockTask = mock(CancellableTask.class);
     OpenSearchQueryManager.setCancellableTask(mockTask);
@@ -310,7 +311,7 @@ class ThreadPoolExecutionDispatcherTest {
 
   @Test
   void cancellableTaskAvailableDuringExecution() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED))
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
     CancellableTask mockTask = mock(CancellableTask.class);
     OpenSearchQueryManager.setCancellableTask(mockTask);

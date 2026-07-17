@@ -242,7 +242,7 @@ public class QueryService {
       RelNode optimizedPlan = CalciteToolsHelper.optimize(calcitePlan, context);
 
       // Wrap execution with EXECUTING stage tracking — dispatch via
-      // ExecutionDispatcher which may route to a slow worker pool
+      // ExecutionDispatcher which may route to a complex worker pool
       StageErrorHandler.executeStageVoid(
           QueryProcessingStage.EXECUTING,
           () -> executionDispatcher.dispatch(optimizedPlan, context, listener, executionEngine),

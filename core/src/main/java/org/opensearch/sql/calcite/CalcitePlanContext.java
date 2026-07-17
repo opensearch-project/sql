@@ -58,6 +58,11 @@ public class CalcitePlanContext {
   /** Timewrap series mode: "relative", "short", or "exact". */
   public static final ThreadLocal<String> timewrapSeries = new ThreadLocal<>();
 
+  /**
+   * Thread-local tracking which pool executed this query ("sql-worker" or "sql-complex-worker").
+   */
+  public static final ThreadLocal<String> executionPool = new ThreadLocal<>();
+
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
@@ -229,6 +234,7 @@ public class CalcitePlanContext {
     stripNullColumns.set(false);
     timewrapUnitName.set(null);
     timewrapSeries.set(null);
+    executionPool.set(null);
   }
 
   public void pushForeachBindings(

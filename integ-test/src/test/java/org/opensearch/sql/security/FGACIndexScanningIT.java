@@ -658,19 +658,19 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   }
 
   /**
-   * Verifies that document-level security is enforced when queries are dispatched to the slow
-   * worker pool. Queries containing window functions (eventstats) are routed to sql-slow-worker;
+   * Verifies that document-level security is enforced when queries are dispatched to the complex
+   * worker pool. Queries containing window functions (eventstats) are routed to sql-complex-worker;
    * this test ensures the OpenSearch ThreadContext (which carries DLS filters) is correctly
    * propagated across that thread pool boundary.
    */
   @ParameterizedTest
   @ValueSource(booleans = {false, true})
-  public void testRowLevelSecurityEnforcedOnSlowPool(boolean useCalcite) throws IOException {
+  public void testRowLevelSecurityEnforcedOnComplexPool(boolean useCalcite) throws IOException {
     configureEngine(useCalcite);
     String engineLabel = useCalcite ? "V3" : "V2";
 
     // eventstats creates a Window node, which ScriptDetector flags as expensive,
-    // routing the query to the sql-slow-worker pool.
+    // routing the query to the sql-complex-worker pool.
     String query =
         String.format(
             "search source=%s | eventstats count() as total_count by security_level"
@@ -694,8 +694,8 @@ public class FGACIndexScanningIT extends SecurityTestBase {
       String securityLevel = row.getString(levelIdx);
       assertFalse(
           String.format(
-              "[%s] SECURITY VIOLATION on slow pool: limited_user saw '%s' documents. "
-                  + "DLS ThreadContext may not be propagated to sql-slow-worker pool.",
+              "[%s] SECURITY VIOLATION on complex pool: limited_user saw '%s' documents. "
+                  + "DLS ThreadContext may not be propagated to sql-complex-worker pool.",
               engineLabel, securityLevel),
           "confidential".equals(securityLevel) || "internal".equals(securityLevel));
     }
@@ -703,8 +703,8 @@ public class FGACIndexScanningIT extends SecurityTestBase {
 
   /**
    * Verifies that field-level security is enforced when queries are dispatched to the slow worker
-   * pool. The eventstats command creates a Window node that triggers slow pool dispatch; this test
-   * ensures the restricted field (ssn) remains invisible.
+   * pool. The eventstats command creates a Window node that triggers complex pool dispatch; this
+   * test ensures the restricted field (ssn) remains invisible.
    */
   @ParameterizedTest
   @ValueSource(booleans = {false, true})
@@ -712,7 +712,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     configureEngine(useCalcite);
 
     // eventstats creates a Window node, which ScriptDetector flags as expensive,
-    // routing the query to the sql-slow-worker pool.
+    // routing the query to the sql-complex-worker pool.
     // manager_user should still NOT see ssn.
     String query =
         String.format(
@@ -733,11 +733,11 @@ public class FGACIndexScanningIT extends SecurityTestBase {
       if ("avg_salary".equals(fieldName)) hasAvgSalary = true;
     }
 
-    assertTrue("manager_user should see 'name' field on slow pool", hasName);
-    assertTrue("manager_user should see computed 'avg_salary' field on slow pool", hasAvgSalary);
+    assertTrue("manager_user should see 'name' field on complex pool", hasName);
+    assertTrue("manager_user should see computed 'avg_salary' field on complex pool", hasAvgSalary);
     assertFalse(
-        "SECURITY VIOLATION on slow pool: manager_user saw 'ssn' field. "
-            + "FLS ThreadContext may not be propagated to sql-slow-worker pool.",
+        "SECURITY VIOLATION on complex pool: manager_user saw 'ssn' field. "
+            + "FLS ThreadContext may not be propagated to sql-complex-worker pool.",
         hasSSN);
   }
 }

@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.opensearch.executor;
 
-import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_SLOW_WORKER_THREAD_POOL_NAME;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_COMPLEX_WORKER_THREAD_POOL_NAME;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 
 import java.util.Map;
 import java.util.function.Consumer;
@@ -28,9 +29,9 @@ import org.opensearch.tasks.CancellableTask;
 import org.opensearch.threadpool.ThreadPool;
 
 /**
- * Dispatches query execution to either the fast or slow worker thread pool based on whether the
- * plan contains scripts. Plans with scripts require in-memory evaluation and are routed to the slow
- * pool so they don't block fast pushdown-only queries.
+ * Dispatches query execution to either the fast or complex worker thread pool based on whether the
+ * plan contains scripts. Plans with scripts require in-memory evaluation and are routed to the
+ * complex pool so they don't block fast pushdown-only queries.
  */
 @RequiredArgsConstructor
 public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
@@ -59,8 +60,8 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       CalcitePlanContext context,
       Runnable task,
       @Nullable ResponseListener<?> failureListener) {
-    if (isSlowPoolEnabled() && ScriptDetector.hasScripts(optimizedPlan)) {
-      LOG.debug("Query plan contains scripts, dispatching to slow worker pool");
+    if (isComplexPoolEnabled() && ScriptDetector.hasScripts(optimizedPlan)) {
+      LOG.debug("Query plan contains scripts, dispatching to complex worker pool");
       Map<String, String> ctx = ThreadContext.getImmutableContext();
       CancellableTask cancellableTask = OpenSearchQueryManager.getCancellableTask();
       @Nullable JaninoRelMetadataProvider metadataProvider =
@@ -73,6 +74,7 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
           () -> {
             ThreadContext.putAll(ctx);
             OpenSearchQueryManager.setCancellableTask(cancellableTask);
+            CalcitePlanContext.executionPool.set(SQL_COMPLEX_WORKER_THREAD_POOL_NAME);
             if (metadataProvider != null) {
               RelMetadataQueryBase.THREAD_PROVIDERS.set(metadataProvider);
             }
@@ -101,13 +103,14 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
             }
           },
           new TimeValue(0),
-          SQL_SLOW_WORKER_THREAD_POOL_NAME);
+          SQL_COMPLEX_WORKER_THREAD_POOL_NAME);
     } else {
+      CalcitePlanContext.executionPool.set(SQL_WORKER_THREAD_POOL_NAME);
       task.run();
     }
   }
 
-  private boolean isSlowPoolEnabled() {
-    return settings.getSettingValue(Settings.Key.SQL_SLOW_WORKER_POOL_ENABLED);
+  private boolean isComplexPoolEnabled() {
+    return settings.getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED);
   }
 }
