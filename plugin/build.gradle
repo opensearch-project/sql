@@ -305,27 +305,8 @@ def getJobSchedulerPlugin() {
     })
 }
 
-def getWorkloadManagementPlugin() {
-    provider(new Callable<RegularFile>() {
-        @Override
-        RegularFile call() throws Exception {
-            return new RegularFile() {
-                @Override
-                File getAsFile() {
-                    // ponytail: assumes ~/workplace/opensearch is built
-                    def wlmPath = System.getProperty('user.home') + '/workplace/opensearch/plugins/workload-management/build/distributions'
-                    return fileTree(wlmPath).matching {
-                        include 'workload-management*.zip'
-                    }.singleFile
-                }
-            }
-        }
-    })
-}
-
 testClusters.integTest {
     plugin(getJobSchedulerPlugin())
-    plugin(getWorkloadManagementPlugin())
     plugin(project.tasks.bundlePlugin.archiveFile)
     testDistribution = "ARCHIVE"
 
