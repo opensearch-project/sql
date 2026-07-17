@@ -18,16 +18,23 @@ makeresults [count=<int>] [format=csv|json data=<string>]
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `count` | Optional | The number of rows to generate. Must be a non-negative integer up to 5000. A negative value produces zero rows. Each row has a single `@timestamp` (timestamp) column. Default is `1`. |
-| `format` + `data` | Optional | Generate rows from an inline `csv` or `json` literal instead (up to 5000 rows). When provided, `count` is ignored. |
+| `format` + `data` | Optional | Generate rows from an inline `csv` or `json` literal instead (up to 5000 rows, and the `data` string must not exceed 29999 characters). When provided, `count` is ignored. |
 
 ### Inline data typing
 
 Column types for `data=` follow OpenSearch dynamic-mapping semantics:
 
-- JSON: an integer becomes `long`, a decimal becomes `float`, `true`/`false` becomes `boolean`, and a string becomes `string`.
+- JSON: an integer becomes `long`, a decimal becomes `float`, `true`/`false` becomes `boolean`, and a string becomes `string`. A nested object or array is serialized to its compact JSON string and typed as `string`; use `spath` or the `json_extract` function to re-parse it downstream.
 - CSV: a header token of the form `name:type` declares the column type using the same vocabulary as `cast` (for example `age:int`); a bare header token defaults to `string`.
 
-Inline object/array values and the `date`, `time`, `timestamp`, `ip`, and `json` inline types are not yet supported on this path; use `string` and `cast`.
+The `date`, `time`, `timestamp`, `ip`, and `json` inline types are not yet supported on this path; use `string` and `cast`.
+
+### Implicit `@timestamp` column
+
+`format=json data=` treats each JSON object as an event and prepends an implicit `@timestamp`
+(timestamp) column set to the query time, in addition to the object's own fields. If the JSON data
+already defines an `@timestamp` field, that value is kept and no implicit column is added.
+`format=csv data=` is a pure table and does not add an `@timestamp` column.
 
 ## Example 1: Generate rows for testing
 
@@ -50,7 +57,7 @@ makeresults
 makeresults format=json data='[{"name":"John","age":35},{"name":"Sarah","age":39}]'
 ```
 
-The query returns two rows with a `name` (string) column and an `age` (bigint) column. A JSON integer is typed as a long value; because makeresults rows have no index mapping, the column reports its Calcite type name `bigint` in the response schema.
+The query returns two rows with an `@timestamp` (timestamp, query time) column followed by a `name` (string) column and an `age` (bigint) column. A JSON integer is typed as a long value; because makeresults rows have no index mapping, the column reports its Calcite type name `bigint` in the response schema.
 
 ## Example 4: Generate typed rows from CSV
 

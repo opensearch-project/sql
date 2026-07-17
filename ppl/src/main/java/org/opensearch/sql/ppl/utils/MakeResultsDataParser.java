@@ -8,11 +8,13 @@ package org.opensearch.sql.ppl.utils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Values;
@@ -67,7 +69,10 @@ public final class MakeResultsDataParser {
    * Assemble a shared {@link Values} node from parsed names, per-column types, and coerced rows.
    */
   private static Values toValues(
-      List<String> names, List<ExprCoreType> types, List<List<Object>> rows) {
+      List<String> names,
+      List<ExprCoreType> types,
+      List<List<Object>> rows,
+      boolean withImplicitTimestamp) {
     List<DataType> dataTypes = new ArrayList<>();
     for (ExprCoreType t : types) {
       dataTypes.add(exprToDataType(t));
@@ -81,7 +86,7 @@ public final class MakeResultsDataParser {
       }
       literalRows.add(out);
     }
-    return new Values(literalRows, names, types);
+    return new Values(literalRows, names, types, withImplicitTimestamp);
   }
 
   private static DataType exprToDataType(ExprCoreType t) {
@@ -154,7 +159,7 @@ public final class MakeResultsDataParser {
       }
       rows.add(out);
     }
-    return toValues(names, types, rows);
+    return toValues(names, types, rows, true);
   }
 
   private static Values parseCsv(String data) {
@@ -167,19 +172,24 @@ public final class MakeResultsDataParser {
     List<ExprCoreType> types = new ArrayList<>();
     for (String token : header) {
       String t = token.trim();
+      String name = t;
+      ExprCoreType type = ExprCoreType.STRING;
       int colon = t.lastIndexOf(':');
       if (colon > 0 && colon < t.length() - 1) {
-        String maybeType = t.substring(colon + 1).trim();
-        ExprCoreType declared = resolveType(maybeType);
+        ExprCoreType declared = resolveType(t.substring(colon + 1).trim());
         if (declared != null) {
-          names.add(t.substring(0, colon).trim());
-          types.add(declared);
-          continue;
+          name = t.substring(0, colon).trim();
+          type = declared;
         }
       }
-      names.add(t);
-      types.add(ExprCoreType.STRING);
+      if (name.isEmpty()) {
+        throw new SyntaxCheckException(
+            "makeresults CSV header has a blank column name: " + lines[0]);
+      }
+      names.add(name);
+      types.add(type);
     }
+    names = uniquify(names);
     List<List<Object>> rows = new ArrayList<>();
     for (int li = 1; li < lines.length; li++) {
       if (lines[li].isEmpty()) {
@@ -197,7 +207,7 @@ public final class MakeResultsDataParser {
       }
       rows.add(out);
     }
-    return toValues(names, types, rows);
+    return toValues(names, types, rows, false);
   }
 
   /** Split one CSV line honoring double-quoted fields (embedded commas, "" escape). */
@@ -227,7 +237,30 @@ public final class MakeResultsDataParser {
         cur.append(c);
       }
     }
+    if (inQuotes) {
+      throw new SyntaxCheckException(
+          "makeresults CSV data has an unterminated quoted field: " + line);
+    }
     out.add(cur.toString());
+    return out;
+  }
+
+  /**
+   * Uniquify duplicate column names by appending a numeric suffix, keeping the first occurrence
+   * unchanged (e.g. {@code name, name} becomes {@code name, name0}), so a CSV header with repeated
+   * fields yields addressable columns rather than an ambiguous relation.
+   */
+  private static List<String> uniquify(List<String> names) {
+    List<String> out = new ArrayList<>();
+    Set<String> seen = new HashSet<>();
+    for (String n : names) {
+      String candidate = n;
+      int suffix = 0;
+      while (!seen.add(candidate)) {
+        candidate = n + suffix++;
+      }
+      out.add(candidate);
+    }
     return out;
   }
 
@@ -236,8 +269,7 @@ public final class MakeResultsDataParser {
       return null;
     }
     if (v.isObject() || v.isArray()) {
-      throw new SyntaxCheckException(
-          "makeresults does not support nested JSON object/array values; use scalar values");
+      return ExprCoreType.STRING;
     }
     if (v.isBoolean()) {
       return ExprCoreType.BOOLEAN;
@@ -270,6 +302,9 @@ public final class MakeResultsDataParser {
   private static Object jsonValue(JsonNode v) {
     if (v.isNull()) {
       return null;
+    }
+    if (v.isObject() || v.isArray()) {
+      return v.toString();
     }
     if (v.isBoolean()) {
       return v.booleanValue();
@@ -321,7 +356,7 @@ public final class MakeResultsDataParser {
         case STRING:
           return s;
         case BOOLEAN:
-          return value instanceof Boolean ? value : Boolean.parseBoolean(s);
+          return value instanceof Boolean ? value : parseBooleanStrict(s.trim());
         case INTEGER:
           return Integer.parseInt(s.trim());
         case LONG:
@@ -336,5 +371,16 @@ public final class MakeResultsDataParser {
       throw new SyntaxCheckException(
           "makeresults cannot parse \"" + s + "\" as " + type.typeName());
     }
+  }
+
+  private static Boolean parseBooleanStrict(String s) {
+    if ("true".equalsIgnoreCase(s)) {
+      return Boolean.TRUE;
+    }
+    if ("false".equalsIgnoreCase(s)) {
+      return Boolean.FALSE;
+    }
+    throw new SyntaxCheckException(
+        "makeresults cannot parse \"" + s + "\" as boolean; expected true or false");
   }
 }

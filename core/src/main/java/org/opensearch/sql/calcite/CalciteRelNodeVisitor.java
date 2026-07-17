@@ -4478,7 +4478,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Inline literal rows (e.g. `makeresults format=csv|json data=...`): build a typed
     // LogicalValues
     // with the given/derived schema, then project each column cast to the resolved type.
-    return buildLiteralValues(relBuilder, values.getColumnNames(), values.getColumnTypes(), rows);
+    return buildLiteralValues(
+        relBuilder,
+        values.getColumnNames(),
+        values.getColumnTypes(),
+        rows,
+        values.isWithImplicitTimestamp());
   }
 
   /**
@@ -4491,7 +4496,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       RelBuilder relBuilder,
       List<String> explicitNames,
       List<ExprCoreType> explicitTypes,
-      List<List<Literal>> rows) {
+      List<List<Literal>> rows,
+      boolean withImplicitTimestamp) {
     int nc;
     if (explicitTypes != null) {
       nc = explicitTypes.size();
@@ -4524,7 +4530,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
     }
 
+    boolean prependTimestamp =
+        withImplicitTimestamp && !names.contains(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
+    RelDataType tsType =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.TIMESTAMP, false);
+
     var typeBuilder = relBuilder.getTypeFactory().builder();
+    if (prependTimestamp) {
+      typeBuilder.add(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP, tsType);
+    }
     for (int i = 0; i < nc; i++) {
       typeBuilder.add(
           names.get(i), OpenSearchTypeFactory.convertExprTypeToRelDataType(types.get(i), true));
@@ -4548,11 +4562,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     relBuilder.values(names.toArray(new String[0]), flat);
     List<RexNode> projects = new java.util.ArrayList<>();
+    if (prependTimestamp) {
+      projects.add(
+          relBuilder.alias(
+              relBuilder.call(PPLBuiltinOperators.NOW),
+              OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP));
+    }
     for (int i = 0; i < nc; i++) {
       projects.add(
           relBuilder.alias(
               relBuilder.cast(
-                  relBuilder.field(i), rowType.getFieldList().get(i).getType().getSqlTypeName()),
+                  relBuilder.field(i),
+                  rowType.getField(names.get(i), true, false).getType().getSqlTypeName()),
               names.get(i)));
     }
     relBuilder.project(projects);

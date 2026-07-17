@@ -59,8 +59,8 @@ public class CalcitePPLMakeResultsTest extends CalcitePPLAbstractTest {
                 + "{\"name\":\"Sarah\",\"age\":39,\"score\":4.0}]'");
     verifyLogical(
         root,
-        "LogicalProject(name=[CAST($0):VARCHAR NOT NULL], age=[CAST($1):BIGINT NOT NULL],"
-            + " score=[CAST($2):REAL NOT NULL])\n"
+        "LogicalProject(@timestamp=[NOW()], name=[CAST($0):VARCHAR NOT NULL],"
+            + " age=[CAST($1):BIGINT NOT NULL], score=[CAST($2):REAL NOT NULL])\n"
             + "  LogicalValues(tuples=[[{ 'John', 35, 3.5E0 }, { 'Sarah', 39, 4.0E0 }]])\n");
   }
 
@@ -103,13 +103,18 @@ public class CalcitePPLMakeResultsTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode("makeresults format=json data='[{\"n\":99999999999999999999}]'");
     verifyLogical(
         root,
-        "LogicalProject(n=[CAST($0):VARCHAR NOT NULL])\n"
+        "LogicalProject(@timestamp=[NOW()], n=[CAST($0):VARCHAR NOT NULL])\n"
             + "  LogicalValues(tuples=[[{ '99999999999999999999' }]])\n");
   }
 
   @Test
-  public void testMakeResultsRejectsNestedJson() {
-    expectError("makeresults format=json data='[{\"a\":{\"x\":1}}]'", "nested JSON");
+  public void testMakeResultsSerializesNestedJson() {
+    RelNode root = getRelNode("makeresults format=json data='[{\"a\":{\"x\":1},\"b\":[1,2]}]'");
+    verifyLogical(
+        root,
+        "LogicalProject(@timestamp=[NOW()], a=[CAST($0):VARCHAR NOT NULL],"
+            + " b=[CAST($1):VARCHAR NOT NULL])\n"
+            + "  LogicalValues(tuples=[[{ '{\"x\":1}', '[1,2]' }]])\n");
   }
 
   @Test
@@ -141,5 +146,45 @@ public class CalcitePPLMakeResultsTest extends CalcitePPLAbstractTest {
     // T3: a count outside int range yields a clean validation error, not a raw
     // NumberFormatException.
     expectError("makeresults count=99999999999999", "not a valid integer");
+  }
+
+  @Test
+  public void testMakeResultsJsonUserTimestampWins() {
+    RelNode root = getRelNode("makeresults format=json data='[{\"@timestamp\":\"2020\",\"x\":1}]'");
+    verifyLogical(
+        root,
+        "LogicalProject(@timestamp=[CAST($0):VARCHAR NOT NULL], x=[CAST($1):BIGINT NOT NULL])\n"
+            + "  LogicalValues(tuples=[[{ '2020', 1 }]])\n");
+  }
+
+  @Test
+  public void testMakeResultsRejectsInvalidBoolean() {
+    expectError(
+        "makeresults format=csv data='active:boolean\nnot true'", "cannot parse \"not true\"");
+  }
+
+  @Test
+  public void testMakeResultsAcceptsBooleanCaseInsensitive() {
+    RelNode root = getRelNode("makeresults format=csv data='active:boolean\nTRUE\nFalse'");
+    verifyLogical(root, "LogicalValues(tuples=[[{ true }, { false }]])\n");
+  }
+
+  @Test
+  public void testMakeResultsRejectsUnterminatedQuote() {
+    expectError("makeresults format=csv data='name\n\"unterminated'", "unterminated quoted field");
+  }
+
+  @Test
+  public void testMakeResultsUniquifiesDuplicateCsvHeaders() {
+    RelNode root = getRelNode("makeresults format=csv data='name,name\nJohn,Doe'");
+    verifyLogical(
+        root,
+        "LogicalProject(name=[CAST($0):VARCHAR NOT NULL], name0=[CAST($1):VARCHAR NOT NULL])\n"
+            + "  LogicalValues(tuples=[[{ 'John', 'Doe' }]])\n");
+  }
+
+  @Test
+  public void testMakeResultsRejectsBlankCsvHeader() {
+    expectError("makeresults format=csv data=',field\n1,2'", "blank column name");
   }
 }

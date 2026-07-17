@@ -43,13 +43,43 @@ public class CalcitePPLMakeResultsIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testJson() throws IOException {
+    String data =
+        "makeresults format=json data='[{\"name\":\"John\",\"age\":35,\"score\":3.5},"
+            + "{\"name\":\"Sarah\",\"age\":39,\"score\":4.0}]'";
+    JSONObject result = executeQuery(data);
+    verifySchema(
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("name", "string"),
+        schema("age", "bigint"),
+        schema("score", "float"));
+    JSONObject projected = executeQuery(data + " | fields name, age, score");
+    verifyDataRows(projected, rows("John", 35, 3.5), rows("Sarah", 39, 4.0));
+  }
+
+  @Test
+  public void testNestedJsonSerializesToString() throws IOException {
+    String data =
+        "makeresults format=json data='[{\"name\":\"John\","
+            + "\"addr\":{\"city\":\"NYC\",\"zip\":10001},\"tags\":[\"a\",\"b\"]}]'";
+    JSONObject result = executeQuery(data);
+    verifySchema(
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("name", "string"),
+        schema("addr", "string"),
+        schema("tags", "string"));
+    JSONObject projected = executeQuery(data + " | fields name, addr, tags");
+    verifyDataRows(projected, rows("John", "{\"city\":\"NYC\",\"zip\":10001}", "[\"a\",\"b\"]"));
+  }
+
+  @Test
+  public void testNestedJsonSpathRoundTrip() throws IOException {
     JSONObject result =
         executeQuery(
-            "makeresults format=json data='[{\"name\":\"John\",\"age\":35,\"score\":3.5},"
-                + "{\"name\":\"Sarah\",\"age\":39,\"score\":4.0}]'");
-    verifySchema(
-        result, schema("name", "string"), schema("age", "bigint"), schema("score", "float"));
-    verifyDataRows(result, rows("John", 35, 3.5), rows("Sarah", 39, 4.0));
+            "makeresults format=json data='[{\"addr\":{\"city\":\"NYC\"}}]'"
+                + " | spath input=addr output=city path=city | fields addr, city");
+    verifyDataRows(result, rows("{\"city\":\"NYC\"}", "NYC"));
   }
 
   @Test
@@ -72,5 +102,29 @@ public class CalcitePPLMakeResultsIT extends CalcitePPLIntegTestCase {
     JSONObject result = executeQuery("makeresults count=3 | eval n=1");
     verifySchema(result, schema("@timestamp", "timestamp"), schema("n", "int"));
     assertEquals(3, result.getInt("total"));
+  }
+
+  @Test
+  public void testBareGlobalCountIsUnsupported() {
+    assertThrows(Exception.class, () -> executeQuery("makeresults count=5 | stats count() as c"));
+  }
+
+  @Test
+  public void testBareGlobalCountWorkaroundCountArg() throws IOException {
+    JSONObject result = executeQuery("makeresults count=5 | stats count(1) as c");
+    verifySchema(result, schema("c", "bigint"));
+    verifyDataRows(result, rows(5));
+  }
+
+  @Test
+  public void testBareGlobalCountWorkaroundByTimestamp() throws IOException {
+    JSONObject result = executeQuery("makeresults count=5 | stats count() as c by @timestamp");
+    verifyDataRows(result, rows(5, result.getJSONArray("datarows").getJSONArray(0).get(1)));
+  }
+
+  @Test
+  public void testBareGlobalCountWorkaroundEvalGroup() throws IOException {
+    JSONObject result = executeQuery("makeresults count=5 | eval g=1 | stats count() as c by g");
+    verifyDataRows(result, rows(5, 1));
   }
 }

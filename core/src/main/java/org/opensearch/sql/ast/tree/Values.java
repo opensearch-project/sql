@@ -36,15 +36,32 @@ public class Values extends UnresolvedPlan {
    */
   private final List<ExprCoreType> columnTypes;
 
+  /**
+   * When {@code true}, an implicit {@code @timestamp = NOW()} column is prepended to the relation
+   * (e.g. from {@code makeresults format=json data=}, where each JSON object is treated as an event
+   * carrying a query-time timestamp). CSV {@code data=} leaves this {@code false} (pure table, no
+   * timestamp), and subsearch/dual-table callers never set it.
+   */
+  private final boolean withImplicitTimestamp;
+
   public Values(List<List<Literal>> values) {
     this(values, null, null);
   }
 
   public Values(
       List<List<Literal>> values, List<String> columnNames, List<ExprCoreType> columnTypes) {
+    this(values, columnNames, columnTypes, false);
+  }
+
+  public Values(
+      List<List<Literal>> values,
+      List<String> columnNames,
+      List<ExprCoreType> columnTypes,
+      boolean withImplicitTimestamp) {
     this.values = values;
     this.columnNames = columnNames;
     this.columnTypes = columnTypes;
+    this.withImplicitTimestamp = withImplicitTimestamp;
   }
 
   @Override
