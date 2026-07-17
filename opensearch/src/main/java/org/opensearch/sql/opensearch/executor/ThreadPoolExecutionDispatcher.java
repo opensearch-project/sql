@@ -90,6 +90,7 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
             try {
               task.run();
             } catch (Exception e) {
+              LOG.error("Exception during task execution on complex pool", e);
               if (failureListener != null) {
                 failureListener.onFailure(e);
               }
