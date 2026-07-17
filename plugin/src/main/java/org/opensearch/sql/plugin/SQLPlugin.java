@@ -480,7 +480,7 @@ public class SQLPlugin extends Plugin
             settings,
             SQL_BACKGROUND_THREAD_POOL_NAME,
             settings.getAsInt(
-                "thread_pool.search.size", OpenSearchExecutors.allocatedProcessors(settings)),
+                "thread_pool.search.size", 2 * OpenSearchExecutors.allocatedProcessors(settings)),
             1000,
             "thread_pool." + SQL_BACKGROUND_THREAD_POOL_NAME));
   }
