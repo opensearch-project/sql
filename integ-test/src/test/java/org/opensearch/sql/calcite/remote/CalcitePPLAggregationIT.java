@@ -135,6 +135,35 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
       bulk.setJsonEntity("{\"index\":{}}\n" + "{\"v\":9223372036854775807}\n");
       performRequest(client(), bulk);
     }
+    String exactIndex = "test_sum_long_exact";
+    if (!isIndexExist(client(), exactIndex)) {
+      createIndexByRestClient(
+          client(), exactIndex, "{\"mappings\":{\"properties\":{\"v\":{\"type\":\"long\"}}}}");
+      Request bulk = new Request("POST", "/" + exactIndex + "/_bulk?refresh=true");
+      bulk.setJsonEntity(
+          "{\"index\":{}}\n"
+              + "{\"v\":4611686018427387904}\n"
+              + "{\"index\":{}}\n"
+              + "{\"v\":1}\n");
+      performRequest(client(), bulk);
+    }
+    String exactSortIndex = "test_sum_long_exact_sort";
+    if (!isIndexExist(client(), exactSortIndex)) {
+      createIndexByRestClient(
+          client(),
+          exactSortIndex,
+          "{\"mappings\":{\"properties\":{\"v\":{\"type\":\"long\"},"
+              + "\"g\":{\"type\":\"keyword\"}}}}");
+      Request bulk = new Request("POST", "/" + exactSortIndex + "/_bulk?refresh=true");
+      bulk.setJsonEntity(
+          "{\"index\":{}}\n"
+              + "{\"v\":4611686018427387904,\"g\":\"z\"}\n"
+              + "{\"index\":{}}\n"
+              + "{\"v\":1,\"g\":\"z\"}\n"
+              + "{\"index\":{}}\n"
+              + "{\"v\":4611686018427387904,\"g\":\"a\"}\n");
+      performRequest(client(), bulk);
+    }
 
     // SUM overflows the BIGINT range (3 * (2^63 - 1)); surfaced as a client error rather than
     // silently wrapping to a negative value.
@@ -154,11 +183,23 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifySchema(inRange, schema("sum(v)", "bigint"));
     verifyDataRows(inRange, rows(6000000000000L));
 
-    // A single Long.MAX_VALUE is a valid (non-overflowing) sum and must not error, even though the
-    // pushed-down double result rounds to exactly 2^63 — the narrow saturates instead of erroring.
+    // A single Long.MAX_VALUE is a valid (non-overflowing) sum and must not error.
     JSONObject boundary = executeQuery(String.format("source=%s | stats sum(v)", boundaryIndex));
     verifySchema(boundary, schema("sum(v)", "bigint"));
     verifyDataRows(boundary, rows(9223372036854775807L));
+
+    // BIGINT accumulation retains low-order bits that a double accumulator would discard.
+    JSONObject exact = executeQuery(String.format("source=%s | stats sum(v)", exactIndex));
+    verifySchema(exact, schema("sum(v)", "bigint"));
+    verifyDataRows(exact, rows(4611686018427387905L));
+
+    // Metric ordering remains in Calcite because OpenSearch exposes metric sort values as doubles,
+    // which cannot distinguish these sums. Lexical tie-breaking would otherwise put "a" first.
+    JSONObject exactSort =
+        executeQuery(String.format("source=%s | stats sum(v) as s by g | sort - s", exactSortIndex));
+    verifySchema(exactSort, schema("s", "bigint"), schema("g", "string"));
+    verifyDataRows(
+        exactSort, rows(4611686018427387905L, "z"), rows(4611686018427387904L, "a"));
   }
 
   @Test
@@ -1061,18 +1102,14 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats sum(balance) as a by age", TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(response, schema("a", null, "bigint"), schema("age", null, "int"));
-    // SUM of an all-null bucket is null per the SQL spec. The DSL-pushdown path returns 0 instead
-    // (a known pushdown quirk); the analytics-engine backend (DataFusion) follows the spec like
-    // Calcite-no-pushdown and returns null. See testSumNull and #3408.
-    Object emptySum = (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled()) ? null : 0;
     verifyDataRows(
         response,
-        rows(emptySum, null),
+        rows(null, null),
         rows(32838, 28),
         rows(39225, 32),
         rows(4180, 33),
         rows(48086, 34),
-        rows(emptySum, 36));
+        rows(null, 36));
   }
 
   @Test
@@ -1117,8 +1154,6 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         response.toString());
   }
 
-  // TODO https://github.com/opensearch-project/sql/issues/3408
-  // In most databases, below test returns null instead of 0.
   @Test
   public void testSumNull() throws IOException {
     JSONObject response =
@@ -1136,9 +1171,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             + "  ],\n"
             + "  \"datarows\": [\n"
             + "    [\n"
-            + ((isPushdownDisabled() || isAnalyticsParquetIndicesEnabled())
-                ? "      null\n"
-                : "      0\n")
+            + "      null\n"
             + "    ]\n"
             + "  ],\n"
             + "  \"total\": 1,\n"

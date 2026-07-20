@@ -2,12 +2,11 @@ calcite:
   logical: |
     LogicalSystemLimit(sort0=[$0], dir0=[DESC-nulls-last], fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
-        LogicalProject(sum(balance)=[CHECKED_LONG_NARROW($1)], span(age,5)=[$0])
-          LogicalAggregate(group=[{0}], sum(balance)=[SUM($1)])
-            LogicalProject(span(age,5)=[SPAN($10, 5, null:NULL)], balance0=[CAST($7):DECIMAL(38, 0)])
+        LogicalProject(sum(balance)=[$1], span(age,5)=[$0])
+          LogicalAggregate(group=[{1}], sum(balance)=[CHECKED_LONG_SUM($0)])
+            LogicalProject(balance=[$7], span(age,5)=[SPAN($10, 5, null:NULL)])
               LogicalFilter(condition=[IS NOT NULL($10)])
                 CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
   physical: |
     CalciteEnumerableTopK(sort0=[$0], dir0=[DESC-nulls-last], fetch=[10000])
-      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CHECKED_LONG_NARROW($t1)], sum(balance)=[$t2], span(age,5)=[$t0])
-        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},sum(balance)=SUM($1))], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"span(age,5)":{"histogram":{"field":"age","missing_bucket":false,"order":"asc","interval":5.0}}}]},"aggregations":{"sum(balance)":{"sum":{"script":{"source":"{\"langType\":\"calcite\",\"script\":\"rO0ABXQBOHsKICAib3AiOiB7CiAgICAibmFtZSI6ICJDQVNUIiwKICAgICJraW5kIjogIkNBU1QiLAogICAgInN5bnRheCI6ICJTUEVDSUFMIgogIH0sCiAgIm9wZXJhbmRzIjogWwogICAgewogICAgICAiZHluYW1pY1BhcmFtIjogMCwKICAgICAgInR5cGUiOiB7CiAgICAgICAgInR5cGUiOiAiQklHSU5UIiwKICAgICAgICAibnVsbGFibGUiOiB0cnVlCiAgICAgIH0KICAgIH0KICBdLAogICJ0eXBlIjogewogICAgInR5cGUiOiAiREVDSU1BTCIsCiAgICAibnVsbGFibGUiOiB0cnVlLAogICAgInByZWNpc2lvbiI6IDM4LAogICAgInNjYWxlIjogMAogIH0KfQ==\"}","lang":"opensearch_compounded_script","params":{"utcTimestamp": 0,"SOURCES":[0],"DIGESTS":["balance"]}}}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={1},sum(balance)=CHECKED_LONG_SUM($0)), PROJECT->[sum(balance), span(age,5)]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"span(age,5)":{"histogram":{"field":"age","missing_bucket":false,"order":"asc","interval":5.0}}}]},"aggregations":{"sum(balance)":{"checked_long_sum":{"field":"balance"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

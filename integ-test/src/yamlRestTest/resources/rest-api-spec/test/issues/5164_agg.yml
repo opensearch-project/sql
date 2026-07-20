@@ -4,10 +4,10 @@
 # The enumerable SUM accumulator for a long argument is a plain long, so a running sum past 2^63
 # wraps to a negative result (e.g. SUM(long) returned -5594372458244005145). AVG reduces to
 # SUM(field)/COUNT(field), so its intermediate long SUM wraps the same way (AVG returned a negative
-# average). SUM(long) is now accumulated in DECIMAL and cast back to BIGINT (in-memory) or checked
-# when narrowing the pushed-down double result, turning a genuine overflow into a 4xx client error
-# while keeping the bigint output type; AVG(long) is averaged in DOUBLE, which holds the true
-# average without wrapping.
+# average). SUM(long) now uses exact checked BIGINT accumulation: a pushed-down native aggregation
+# checks shard-local and cross-shard additions, while the Calcite fallback calls Math.addExact.
+# Overflow becomes a 4xx client error and the output type remains bigint. AVG(long) is averaged in
+# DOUBLE, which holds the true average without wrapping.
 
 setup:
   - do:
@@ -59,6 +59,60 @@ setup:
           - '{"long_field": 2000000000000}'
           - '{"index": {}}'
           - '{"long_field": 3000000000000}'
+  - do:
+      indices.create:
+        index: test_agg_exact
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              long_field:
+                type: long
+  - do:
+      bulk:
+        index: test_agg_exact
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"long_field": 4611686018427387904}'
+          - '{"index": {}}'
+          - '{"long_field": 1}'
+  - do:
+      indices.create:
+        index: test_agg_reduce_left
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              long_field:
+                type: long
+  - do:
+      index:
+        index: test_agg_reduce_left
+        refresh: true
+        body:
+          long_field: 9223372036854775807
+  - do:
+      indices.create:
+        index: test_agg_reduce_right
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              long_field:
+                type: long
+  - do:
+      index:
+        index: test_agg_reduce_right
+        refresh: true
+        body:
+          long_field: 1
 
 ---
 teardown:
@@ -75,6 +129,14 @@ teardown:
       indices.delete:
         index: test_agg_in_range
         ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: test_agg_exact
+        ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: test_agg_reduce_*
+        ignore_unavailable: true
 
 ---
 "SUM of large longs overflowing BIGINT throws error":
@@ -89,6 +151,21 @@ teardown:
       ppl:
         body:
           query: source=test_agg_overflow | stats sum(long_field)
+  - match: { "$body": "/[Oo]verflow/" }
+
+---
+"SUM overflow across shard partials throws error":
+  - skip:
+      features:
+        - headers
+  # Each one-shard index has an in-range partial; only their final reduction overflows.
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_agg_reduce_* | stats sum(long_field)
   - match: { "$body": "/[Oo]verflow/" }
 
 ---
@@ -121,3 +198,18 @@ teardown:
           query: source=test_agg_in_range | stats sum(long_field)
   - match: { total: 1 }
   - match: { datarows: [[6000000000000]] }
+
+---
+"SUM of large in-range longs retains low-order precision":
+  - skip:
+      features:
+        - headers
+  # 2^62 + 1 fits in BIGINT but cannot be represented exactly by a double accumulator.
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_agg_exact | stats sum(long_field)
+  - match: { total: 1 }
+  - match: { datarows: [[4611686018427387905]] }

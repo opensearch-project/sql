@@ -1610,16 +1610,9 @@ public class PPLFuncImpTable {
     }
 
     /**
-     * Registers {@code SUM} with the extra behaviour that a BIGINT (long) column is summed in
-     * DECIMAL rather than long. A running long sum near 2^63 silently wraps to a negative value
-     * (the enumerable {@code SumImplementor} generates a plain {@code long + long}); accumulating
-     * in DECIMAL is exact. {@link CalciteRelNodeVisitor} casts the DECIMAL result back to BIGINT so
-     * the output type is unchanged and a genuine overflow surfaces as a client error instead of a
-     * wrong value.
-     *
-     * <p>Only a bare BIGINT column reference is widened. Expressions like {@code sum(field + 1)}
-     * are left as-is so {@link org.opensearch.sql.calcite.plan.rule.PPLAggregateConvertRule} can
-     * still rewrite them to pushdown-friendly {@code sum(field) OP literal} form.
+     * Registers a BIGINT sum accumulator that checks every addition for overflow. Direct fields can
+     * use native checked aggregation pushdown; other plans execute this aggregate with
+     * Math.addExact.
      */
     void registerSumOperator() {
       SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(SqlStdOperatorTable.SUM);
@@ -1628,28 +1621,13 @@ public class PPLFuncImpTable {
           (distinct, field, argList, ctx) -> {
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
-            RexNode sumField = widenBigintColumnToDecimal(field, ctx);
+            boolean checkedLongSum = field.getType().getSqlTypeName() == SqlTypeName.BIGINT;
+            SqlAggFunction sumOperator =
+                checkedLongSum ? PPLBuiltinOperators.CHECKED_LONG_SUM : SqlStdOperatorTable.SUM;
             return UserDefinedFunctionUtils.makeAggregateCall(
-                SqlStdOperatorTable.SUM, List.of(sumField), newArgList, ctx.relBuilder);
+                sumOperator, List.of(field), newArgList, ctx.relBuilder);
           };
       register(SUM, handler, typeChecker);
-    }
-
-    /**
-     * If {@code field} is a bare BIGINT column reference, cast it to DECIMAL so the aggregate that
-     * consumes it accumulates exactly instead of wrapping a long. Any other expression is returned
-     * unchanged.
-     */
-    private static RexNode widenBigintColumnToDecimal(RexNode field, CalcitePlanContext ctx) {
-      if (field instanceof RexInputRef && field.getType().getSqlTypeName() == SqlTypeName.BIGINT) {
-        int maxPrecision = TYPE_FACTORY.getTypeSystem().getMaxNumericPrecision();
-        RelDataType decimalType =
-            TYPE_FACTORY.createTypeWithNullability(
-                TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, maxPrecision, 0),
-                field.getType().isNullable());
-        return ctx.rexBuilder.makeCast(decimalType, field);
-      }
-      return field;
     }
 
     /**
