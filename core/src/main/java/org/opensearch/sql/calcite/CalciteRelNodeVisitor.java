@@ -4512,8 +4512,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       nc = explicitTypes.size();
     } else if (explicitNames != null) {
       nc = explicitNames.size();
+    } else if (!rows.isEmpty() && !rows.get(0).isEmpty()) {
+      nc = rows.get(0).size();
     } else {
-      nc = rows.isEmpty() ? 0 : rows.get(0).size();
+      nc = 0;
     }
 
     List<String> names = new java.util.ArrayList<>();

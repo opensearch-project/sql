@@ -187,4 +187,13 @@ public class CalcitePPLMakeResultsTest extends CalcitePPLAbstractTest {
   public void testMakeResultsRejectsBlankCsvHeader() {
     expectError("makeresults format=csv data=',field\n1,2'", "blank column name");
   }
+
+  @Test
+  public void testMakeResultsSkipsWhitespaceOnlyCsvLines() {
+    RelNode root = getRelNode("makeresults format=csv data='name,age\nJohn,35\n   \nSarah,39'");
+    verifyLogical(
+        root,
+        "LogicalProject(name=[CAST($0):VARCHAR NOT NULL], age=[CAST($1):VARCHAR NOT NULL])\n"
+            + "  LogicalValues(tuples=[[{ 'John', '35' }, { 'Sarah', '39' }]])\n");
+  }
 }

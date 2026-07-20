@@ -192,7 +192,7 @@ public final class MakeResultsDataParser {
     names = uniquify(names);
     List<List<Object>> rows = new ArrayList<>();
     for (int li = 1; li < lines.length; li++) {
-      if (lines[li].isEmpty()) {
+      if (lines[li].trim().isEmpty()) {
         continue;
       }
       List<String> cells = splitCsvLine(lines[li]);
