@@ -161,6 +161,31 @@ public class CalcitePPLMakeResultsTest extends CalcitePPLAbstractTest {
         "makeresults format=csv data='c0\n" + wide + "'", "cell value must not exceed 60000");
   }
 
+  @Test
+  public void testMakeResultsRejectsCsvRowWithMoreColumns() {
+    expectError(
+        "makeresults format=csv data='name,age\nJohn,35,extra'", "more columns than the header");
+  }
+
+  @Test
+  public void testMakeResultsCsvRowWithFewerColumnsPadsNull() {
+    RelNode root = getRelNode("makeresults format=csv data='name,age\nJohn,35\nSarah'");
+    verifyLogical(
+        root,
+        "LogicalProject(name=[CAST($0):VARCHAR NOT NULL], age=[CAST($1):VARCHAR NOT NULL])\n"
+            + "  LogicalValues(tuples=[[{ 'John', '35' }, { 'Sarah', null }]])\n");
+  }
+
+  @Test
+  public void testMakeResultsCountAtCap() {
+    assertNotNull(getRelNode("makeresults count=5000"));
+  }
+
+  @Test
+  public void testMakeResultsAllowsCellValueAtLimit() {
+    assertNotNull(getRelNode("makeresults format=csv data='c0\n" + "x".repeat(60000) + "'"));
+  }
+
   private static String csvData(int cols, int rows) {
     StringBuilder sb = new StringBuilder("makeresults format=csv data='");
     for (int j = 0; j < cols; j++) sb.append(j == 0 ? "" : ",").append("c").append(j);

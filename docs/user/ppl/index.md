@@ -80,7 +80,7 @@ source=accounts
 | [describe command](cmd/describe.md) | 2.1 | stable (since 2.1) | Query the metadata of an index. |
 | [explain command](cmd/explain.md) | 3.1 | stable (since 3.1) | Explain the plan of query. |
 | [show datasources command](cmd/showdatasources.md) | 2.4 | stable (since 2.4) | Query datasources configured in the PPL engine. |
-| [makeresults command](cmd/makeresults.md) | 3.5 | experimental | Generate in-memory rows for testing and seeding, optionally from inline CSV/JSON data. |
+| [makeresults command](cmd/makeresults.md) | 3.8 | experimental (since 3.8) | Generate in-memory rows for testing and seeding, optionally from inline CSV/JSON data. |
 | [addtotals command](cmd/addtotals.md) | 3.5 | stable (since 3.5) | Adds row and column values and appends a totals column and row. |
 | [addcoltotals command](cmd/addcoltotals.md) | 3.5 | stable (since 3.5) | Adds column values and appends a totals row. |
 | [transpose command](cmd/transpose.md) | 3.5 | stable (since 3.5) | Transpose rows to columns. |
