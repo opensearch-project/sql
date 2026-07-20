@@ -153,9 +153,11 @@ public final class OutputLookupWriteExec {
       }
       if (rows.size() > maxRows) {
         throw new IllegalArgumentException(
-            "outputlookup would write more than plugins.ppl.outputlookup.max_rows ["
+            "outputlookup wrote nothing because the result has more than "
                 + maxRows
-                + "] rows; refusing to write, no slice is created");
+                + " rows, the maximum allowed for a single write. To write fewer rows, add"
+                + " max=<n> to your query. To allow more, raise the"
+                + " plugins.ppl.outputlookup.max_rows setting.");
       }
     }
     return rows;
