@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.cluster.MatchMode;
 import org.opensearch.sql.common.cluster.TextSimilarityClustering;
 
 /**
@@ -22,11 +23,12 @@ import org.opensearch.sql.common.cluster.TextSimilarityClustering;
 public class ClusterLabelAggFunction
     implements UserDefinedAggFunction<ClusterLabelAggFunction.Acc> {
 
-  private int bufferLimit = 50000; // Configurable buffer size
-  private int maxClusters = 10000; // Limit cluster count to prevent memory explosion
-  private double threshold = 0.8;
-  private String matchMode = "termlist";
-  private String delims = " ";
+  private static final int DEFAULT_BUFFER_LIMIT = 50000; // rows buffered before a partial merge
+  // caps distinct clusters, which bounds the per-row comparison cost
+  private static final int DEFAULT_MAX_CLUSTERS = 10000;
+  private static final double DEFAULT_THRESHOLD = 0.8;
+  private static final String DEFAULT_MATCH_MODE = "termlist";
+  private static final String DEFAULT_DELIMS = " ";
 
   @Override
   public Acc init() {
@@ -35,7 +37,7 @@ public class ClusterLabelAggFunction
 
   @Override
   public Object result(Acc acc) {
-    return acc.value(threshold, matchMode, delims, maxClusters);
+    return acc.value();
   }
 
   @Override
@@ -63,48 +65,61 @@ public class ClusterLabelAggFunction
       String delims,
       int bufferLimit,
       int maxClusters) {
-    // Process all rows, even when field is null - convert null to empty string
-    // This ensures the result array matches input row count
-    String processedField = (field != null) ? field : "";
-
-    this.threshold = threshold;
-    this.matchMode = matchMode;
-    this.delims = delims;
-    this.bufferLimit = bufferLimit;
-    this.maxClusters = maxClusters;
-
-    acc.evaluate(processedField);
+    // Store config on the accumulator, not on this function instance, so a reused or shared
+    // function object cannot race across concurrent aggregations. Null fields are filtered out
+    // upstream in visitCluster; the guard here keeps the label array aligned to the row count.
+    acc.configure(threshold, matchMode, delims, maxClusters);
+    acc.evaluate(field != null ? field : "");
 
     if (bufferLimit > 0 && acc.bufferSize() == bufferLimit) {
-      acc.partialMerge(threshold, matchMode, delims, maxClusters);
+      acc.partialMerge();
       acc.clearBuffer();
     }
 
     return acc;
   }
 
+  public Acc add(
+      Acc acc, String field, double threshold, String matchMode, String delims, int bufferLimit) {
+    return add(acc, field, threshold, matchMode, delims, bufferLimit, DEFAULT_MAX_CLUSTERS);
+  }
+
   public Acc add(Acc acc, String field, double threshold, String matchMode, String delims) {
-    return add(acc, field, threshold, matchMode, delims, this.bufferLimit, this.maxClusters);
+    return add(
+        acc, field, threshold, matchMode, delims, DEFAULT_BUFFER_LIMIT, DEFAULT_MAX_CLUSTERS);
   }
 
   public Acc add(Acc acc, String field, double threshold, String matchMode) {
-    return add(acc, field, threshold, matchMode, this.delims, this.bufferLimit, this.maxClusters);
+    return add(
+        acc,
+        field,
+        threshold,
+        matchMode,
+        DEFAULT_DELIMS,
+        DEFAULT_BUFFER_LIMIT,
+        DEFAULT_MAX_CLUSTERS);
   }
 
   public Acc add(Acc acc, String field, double threshold) {
     return add(
-        acc, field, threshold, this.matchMode, this.delims, this.bufferLimit, this.maxClusters);
+        acc,
+        field,
+        threshold,
+        DEFAULT_MATCH_MODE,
+        DEFAULT_DELIMS,
+        DEFAULT_BUFFER_LIMIT,
+        DEFAULT_MAX_CLUSTERS);
   }
 
   public Acc add(Acc acc, String field) {
     return add(
         acc,
         field,
-        this.threshold,
-        this.matchMode,
-        this.delims,
-        this.bufferLimit,
-        this.maxClusters);
+        DEFAULT_THRESHOLD,
+        DEFAULT_MATCH_MODE,
+        DEFAULT_DELIMS,
+        DEFAULT_BUFFER_LIMIT,
+        DEFAULT_MAX_CLUSTERS);
   }
 
   public static class Acc implements Accumulator {
@@ -112,6 +127,20 @@ public class ClusterLabelAggFunction
     private final List<ClusterRepresentative> globalClusters = new ArrayList<>();
     private final List<Integer> allLabels = new ArrayList<>();
     private int nextClusterId = 1;
+
+    // Per-accumulator config, set on every add. Held here rather than on the function instance
+    // so concurrent aggregations do not share mutable state.
+    private double threshold = DEFAULT_THRESHOLD;
+    private String matchMode = DEFAULT_MATCH_MODE;
+    private String delims = DEFAULT_DELIMS;
+    private int maxClusters = DEFAULT_MAX_CLUSTERS;
+
+    void configure(double threshold, String matchMode, String delims, int maxClusters) {
+      this.threshold = threshold;
+      this.matchMode = matchMode;
+      this.delims = delims;
+      this.maxClusters = maxClusters;
+    }
 
     public int bufferSize() {
       return buffer.size();
@@ -121,18 +150,13 @@ public class ClusterLabelAggFunction
       buffer.add(value != null ? value : "");
     }
 
-    public void partialMerge(Object... argList) {
+    public void partialMerge() {
       if (buffer.isEmpty()) {
         return;
       }
 
-      double threshold = (Double) argList[0];
-      String matchMode = (String) argList[1];
-      String delims = (String) argList[2];
-      int maxClusters = (Integer) argList[3];
-
       TextSimilarityClustering clustering =
-          new TextSimilarityClustering(threshold, matchMode, delims);
+          new TextSimilarityClustering(threshold, MatchMode.fromString(matchMode), delims);
 
       for (String value : buffer) {
         ClusterAssignment assignment =
@@ -187,11 +211,23 @@ public class ClusterLabelAggFunction
       buffer.clear();
     }
 
+    // Clears all per-query state. Invoked from a finally so a failure mid-drain still frees the
+    // buffered rows, cluster representatives, and labels instead of retaining them until GC.
+    private void reset() {
+      buffer.clear();
+      globalClusters.clear();
+      allLabels.clear();
+      nextClusterId = 1;
+    }
+
     @Override
     public Object value(Object... argList) {
-      partialMerge(argList);
-      clearBuffer();
-      return new ArrayList<>(allLabels);
+      try {
+        partialMerge();
+        return new ArrayList<>(allLabels);
+      } finally {
+        reset();
+      }
     }
 
     /** Represents a cluster with its representative text and current size */

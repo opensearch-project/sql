@@ -33,6 +33,8 @@ public class Cluster extends UnresolvedPlan {
   private final boolean labelOnly;
   private final boolean showCount;
   private final String delims;
+  private final int bufferLimit;
+  private final int maxClusters;
   private UnresolvedPlan child;
 
   @Override
