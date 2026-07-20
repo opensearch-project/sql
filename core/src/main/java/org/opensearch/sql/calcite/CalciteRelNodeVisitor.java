@@ -4484,9 +4484,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       relBuilder.push(LogicalValues.createOneRow(relBuilder.getCluster()));
       return relBuilder.peek();
     }
-    // Inline literal rows (e.g. `makeresults format=csv|json data=...`): build a typed
-    // LogicalValues
-    // with the given/derived schema, then project each column cast to the resolved type.
+    // Inline literal rows, e.g. `makeresults format=csv|json data=...`.
     return buildLiteralValues(
         relBuilder,
         values.getColumnNames(),
@@ -4562,8 +4560,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return relBuilder.peek();
     }
 
-    // Build literal rows from the raw Java values, letting RelBuilder infer the initial types, then
-    // project each column cast to the resolved (OpenSearch-faithful) type.
     Object[] flat = new Object[rows.size() * nc];
     int k = 0;
     for (List<Literal> row : rows) {
@@ -4609,10 +4605,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       relBuilder.values(ImmutableList.<ImmutableList<RexLiteral>>of(), rowType);
       return relBuilder.peek();
     }
-    // Build `count` one-column dummy rows, then project them away with a single @timestamp column
-    // set to query time. @timestamp is OpenSearch's implicit time field, recognized by the
-    // time-aware commands (timechart, reverse, span, timewrap). The dummy column only carries row
-    // multiplicity.
+    // The dummy column only carries row multiplicity; project it to @timestamp=NOW(), OpenSearch's
+    // implicit time field recognized by the time-aware commands.
     Object[] dummy = new Object[count];
     for (int i = 0; i < count; i++) {
       dummy[i] = i;

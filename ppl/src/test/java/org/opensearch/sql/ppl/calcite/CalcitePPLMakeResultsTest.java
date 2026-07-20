@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -136,9 +137,38 @@ public class CalcitePPLMakeResultsTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testMakeResultsRejectsCountOverCap() {
-    // T1: count beyond the codegen-safe bound (5000) is rejected cleanly, not with an opaque
-    // "Code grows beyond 64 KB" codegen failure.
+    // count > 5000 is rejected cleanly, not with a Janino 64 KB codegen failure.
     expectError("makeresults count=6000", "must not exceed 5000");
+  }
+
+  @Test
+  public void testMakeResultsRejectsCellBudget() {
+    // 50 columns x 120 rows = 6000 cells > 5000; a flat row cap would miss this.
+    expectError(csvData(50, 120), "cells (rows x columns)");
+  }
+
+  @Test
+  public void testMakeResultsAllowsAtCellBudget() {
+    // 50 columns x 100 rows = 5000 cells is exactly at budget and must be accepted.
+    assertNotNull(getRelNode(csvData(50, 100)));
+  }
+
+  @Test
+  public void testMakeResultsRejectsOversizedCellValue() {
+    // A single value over the 60000 per-value guard is rejected, not a codegen error.
+    String wide = "x".repeat(60001);
+    expectError(
+        "makeresults format=csv data='c0\n" + wide + "'", "cell value must not exceed 60000");
+  }
+
+  private static String csvData(int cols, int rows) {
+    StringBuilder sb = new StringBuilder("makeresults format=csv data='");
+    for (int j = 0; j < cols; j++) sb.append(j == 0 ? "" : ",").append("c").append(j);
+    for (int r = 0; r < rows; r++) {
+      sb.append("\n");
+      for (int j = 0; j < cols; j++) sb.append(j == 0 ? "" : ",").append("1");
+    }
+    return sb.append("'").toString();
   }
 
   @Test

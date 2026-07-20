@@ -22,22 +22,10 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.type.ExprCoreType;
 
 /**
- * Parses the inline {@code data=} literal of {@code makeresults format=csv|json data="..."} into a
- * shared {@link Values} node (typed literal rows) at plan time, so it flows through the same {@code
- * visitValues} builder as any inline {@code VALUES}.
- *
- * <p>Typing follows OpenSearch dynamic-mapping semantics, surfaced through the same ExprCoreType
- * path an index scan uses:
- *
- * <ul>
- *   <li>JSON integer -&gt; long; JSON decimal -&gt; float; JSON true/false -&gt; boolean; JSON
- *       string -&gt; string; JSON null contributes no type.
- *   <li>CSV header token {@code name:type} declares the type via cast's vocabulary; bare {@code
- *       name} -&gt; string.
- * </ul>
- *
- * <p>Per-column heterogeneity widens to a common numeric type, else to string. Inline UDT types
- * (timestamp/date/time/ip/json) are not yet supported on this path.
+ * Parses the inline {@code makeresults format=csv|json data="..."} literal into a shared {@link
+ * Values} node of typed literal rows. JSON values infer their type (integer to long, decimal to
+ * float, boolean, string); a CSV {@code name:type} header declares the type, a bare name is string.
+ * UDT types (timestamp/date/time/ip/json) are not yet supported on this path.
  */
 public final class MakeResultsDataParser {
 
@@ -55,19 +43,36 @@ public final class MakeResultsDataParser {
     } else {
       throw new SyntaxCheckException("makeresults format must be 'csv' or 'json'");
     }
-    // T1: rows are materialized as inline literals; beyond ~5000 the generated Calcite bytecode
-    // exceeds the JVM 64 KB per-method limit. Cap with a clear message rather than an opaque
-    // codegen failure (the char cap alone does not bound tiny-row counts, e.g. many 1-char CSV
-    // rows).
-    if (result.getValues() != null && result.getValues().size() > 5000) {
-      throw new SyntaxCheckException("makeresults data must not exceed 5000 rows");
+    // Cap inline cells (rows x columns): the generated literal method hits the JVM 64 KB
+    // per-method bytecode limit above ~6900 cells, so a flat row cap is unsafe for wide data.
+    if (result.getValues() != null && !result.getValues().isEmpty()) {
+      int rows = result.getValues().size();
+      int cols = result.getValues().get(0).size();
+      long cells = (long) rows * cols;
+      if (cells > 5000) {
+        throw new SyntaxCheckException(
+            "makeresults data must not exceed 5000 cells (rows x columns); got "
+                + rows
+                + " rows x "
+                + cols
+                + " columns = "
+                + cells);
+      }
+      // A single string literal must fit the 65535-byte constant-pool CONSTANT_Utf8 limit.
+      for (List<Literal> row : result.getValues()) {
+        for (Literal cell : row) {
+          Object v = cell.getValue();
+          if (v instanceof String && ((String) v).length() > 60000) {
+            throw new SyntaxCheckException(
+                "makeresults data cell value must not exceed 60000 characters; got "
+                    + ((String) v).length());
+          }
+        }
+      }
     }
     return result;
   }
 
-  /**
-   * Assemble a shared {@link Values} node from parsed names, per-column types, and coerced rows.
-   */
   private static Values toValues(
       List<String> names,
       List<ExprCoreType> types,
@@ -210,7 +215,6 @@ public final class MakeResultsDataParser {
     return toValues(names, types, rows, false);
   }
 
-  /** Split one CSV line honoring double-quoted fields (embedded commas, "" escape). */
   private static List<String> splitCsvLine(String line) {
     List<String> out = new ArrayList<>();
     StringBuilder cur = new StringBuilder();
@@ -245,11 +249,6 @@ public final class MakeResultsDataParser {
     return out;
   }
 
-  /**
-   * Uniquify duplicate column names by appending a numeric suffix, keeping the first occurrence
-   * unchanged (e.g. {@code name, name} becomes {@code name, name0}), so a CSV header with repeated
-   * fields yields addressable columns rather than an ambiguous relation.
-   */
   private static List<String> uniquify(List<String> names) {
     List<String> out = new ArrayList<>();
     Set<String> seen = new HashSet<>();
@@ -318,7 +317,6 @@ public final class MakeResultsDataParser {
     return v.asText();
   }
 
-  /** Resolve a subset of cast's type vocabulary; returns null for unknown names. */
   private static ExprCoreType resolveType(String name) {
     switch (name.toLowerCase(Locale.ROOT)) {
       case "string":

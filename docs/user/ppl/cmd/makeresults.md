@@ -18,7 +18,7 @@ makeresults [count=<int>] [format=csv|json data=<string>]
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `count` | Optional | The number of rows to generate. Must be a non-negative integer up to 5000. A negative value produces zero rows. Each row has a single `@timestamp` (timestamp) column. Default is `1`. |
-| `format` + `data` | Optional | Generate rows from an inline `csv` or `json` literal instead (up to 5000 rows, and the `data` string must not exceed 29999 characters). When provided, `count` is ignored. |
+| `format` + `data` | Optional | Generate rows from an inline `csv` or `json` literal instead (up to 5000 cells, where cells = rows x columns, and no single cell value may exceed 60000 characters). When provided, `count` is ignored. |
 
 ### Inline data typing
 
@@ -27,7 +27,7 @@ Column types for `data=` follow OpenSearch dynamic-mapping semantics:
 - JSON: an integer becomes `long`, a decimal becomes `float`, `true`/`false` becomes `boolean`, and a string becomes `string`. A nested object or array is serialized to its compact JSON string and typed as `string`; use `spath` or the `json_extract` function to re-parse it downstream.
 - CSV: a header token of the form `name:type` declares the column type using the same vocabulary as `cast` (for example `age:int`); a bare header token defaults to `string`.
 
-The `date`, `time`, `timestamp`, `ip`, and `json` inline types are not yet supported on this path; use `string` and `cast`.
+The `date`, `time`, `timestamp`, `ip`, and `json` inline types are not yet supported on this path; declare the column as `string` and `cast` it downstream, for example `makeresults format=csv data='addr\n192.168.1.1' | eval addr = cast(addr as ip)`.
 
 ### Implicit `@timestamp` column
 

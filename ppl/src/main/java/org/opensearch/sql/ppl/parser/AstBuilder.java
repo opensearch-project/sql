@@ -271,8 +271,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         try {
           count = Integer.parseInt(raw);
         } catch (NumberFormatException e) {
-          // T3: a count outside int range (or otherwise unparseable) yields a clean validation
-          // error rather than a raw NumberFormatException surfaced to the client.
           throw new SyntaxCheckException(
               "makeresults count \"" + raw + "\" is not a valid integer within the allowed range");
         }
@@ -288,21 +286,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       if (data == null || format == null) {
         throw new SyntaxCheckException("makeresults format and data must be provided together");
       }
-      if (data.length() > 29999) {
-        throw new SyntaxCheckException("makeresults data must not exceed 29999 characters");
-      }
       return MakeResultsDataParser.parse(format, data);
     }
     if (count < 0) {
-      // A negative count silently yields zero rows rather than an error. Clamp to 0 so
-      // `makeresults count=-1` produces an empty result.
+      // Negative count yields zero rows.
       count = 0;
     }
     if (count > 5000) {
-      // T1: the count path materializes `count` literal rows inline; beyond ~5000 rows the
-      // generated Calcite bytecode exceeds the JVM 64 KB per-method limit ("Code grows beyond
-      // 64 KB"). Cap at a verified-safe bound with a clear message rather than emitting an opaque
-      // codegen failure. (The query-size limit already truncates output well within this bound.)
+      // Inline literal rows hit the JVM 64 KB per-method bytecode limit.
       throw new SyntaxCheckException("makeresults count must not exceed 5000");
     }
     return new MakeResults(count);

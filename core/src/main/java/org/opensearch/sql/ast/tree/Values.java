@@ -23,24 +23,17 @@ public class Values extends UnresolvedPlan {
 
   private final List<List<Literal>> values;
 
-  /**
-   * Optional explicit column names (e.g. from {@code makeresults data=}). When {@code null},
-   * columns are positional/auto-named.
-   */
   private final List<String> columnNames;
 
   /**
-   * Optional explicit column types (e.g. from {@code makeresults data=}), authoritative for the
-   * schema. Required to type a zero-row relation (header-only CSV / empty JSON array), where there
-   * are no {@link Literal}s to infer from. When {@code null}, types are inferred from the literals.
+   * Optional explicit column types, authoritative for the schema. Required to type a zero-row
+   * relation (header-only CSV / empty JSON array) where there are no literals to infer from.
    */
   private final List<ExprCoreType> columnTypes;
 
   /**
-   * When {@code true}, an implicit {@code @timestamp = NOW()} column is prepended to the relation
-   * (e.g. from {@code makeresults format=json data=}, where each JSON object is treated as an event
-   * carrying a query-time timestamp). CSV {@code data=} leaves this {@code false} (pure table, no
-   * timestamp), and subsearch/dual-table callers never set it.
+   * When {@code true}, prepend an implicit {@code @timestamp = NOW()} column (from {@code
+   * makeresults format=json data=}). CSV data= and subsearch callers leave it {@code false}.
    */
   private final boolean withImplicitTimestamp;
 
