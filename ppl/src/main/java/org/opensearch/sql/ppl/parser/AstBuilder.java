@@ -1201,7 +1201,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     return new org.opensearch.sql.ast.tree.Cluster(
-        sourceField, threshold, matchMode, labelField, countField, labelOnly, showCount, delims);
+        sourceField,
+        threshold,
+        matchMode,
+        labelField,
+        countField,
+        labelOnly,
+        showCount,
+        delims,
+        settings.getSettingValue(Key.CLUSTER_BUFFER_LIMIT),
+        settings.getSettingValue(Key.CLUSTER_MAX_CLUSTERS));
   }
 
   /** AD command. */

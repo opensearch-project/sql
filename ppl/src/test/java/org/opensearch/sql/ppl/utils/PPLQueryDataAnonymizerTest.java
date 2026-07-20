@@ -1069,6 +1069,8 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testClusterCommand() {
+    when(settings.getSettingValue(Key.CLUSTER_BUFFER_LIMIT)).thenReturn(50000);
+    when(settings.getSettingValue(Key.CLUSTER_MAX_CLUSTERS)).thenReturn(10000);
     assertEquals(
         "source=table | cluster identifier t=0.8 labelfield=identifier countfield=identifier",
         anonymize("source=t | cluster message"));

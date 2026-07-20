@@ -122,6 +122,22 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> DEFAULT_CLUSTER_BUFFER_LIMIT_SETTING =
+      Setting.intSetting(
+          Key.CLUSTER_BUFFER_LIMIT.getKeyValue(),
+          50000,
+          1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> DEFAULT_CLUSTER_MAX_CLUSTERS_SETTING =
+      Setting.intSetting(
+          Key.CLUSTER_MAX_CLUSTERS.getKeyValue(),
+          10000,
+          1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> PPL_REX_MAX_MATCH_LIMIT_SETTING =
       Setting.intSetting(
           Key.PPL_REX_MAX_MATCH_LIMIT.getKeyValue(),
@@ -425,6 +441,18 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.CLUSTER_BUFFER_LIMIT,
+        DEFAULT_CLUSTER_BUFFER_LIMIT_SETTING,
+        new Updater(Key.CLUSTER_BUFFER_LIMIT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.CLUSTER_MAX_CLUSTERS,
+        DEFAULT_CLUSTER_MAX_CLUSTERS_SETTING,
+        new Updater(Key.CLUSTER_MAX_CLUSTERS));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.PPL_REX_MAX_MATCH_LIMIT,
         PPL_REX_MAX_MATCH_LIMIT_SETTING,
         new Updater(Key.PPL_REX_MAX_MATCH_LIMIT));
@@ -679,6 +707,8 @@ public class OpenSearchSettings extends Settings {
         .add(DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING)
         .add(DEFAULT_PATTERN_BUFFER_LIMIT_SETTING)
         .add(DEFAULT_PATTERN_SHOW_NUMBERED_TOKEN_SETTING)
+        .add(DEFAULT_CLUSTER_BUFFER_LIMIT_SETTING)
+        .add(DEFAULT_CLUSTER_MAX_CLUSTERS_SETTING)
         .add(PPL_REX_MAX_MATCH_LIMIT_SETTING)
         .add(PPL_VALUES_MAX_LIMIT_SETTING)
         .add(PPL_SUBSEARCH_MAXOUT_SETTING)

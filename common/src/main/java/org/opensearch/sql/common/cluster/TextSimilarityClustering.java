@@ -21,24 +21,26 @@ import org.apache.commons.text.similarity.CosineSimilarity;
 public class TextSimilarityClustering {
 
   private static final CosineSimilarity COSINE = new CosineSimilarity();
+  private static final int MAX_CACHE_SIZE = 10000;
 
-  // Cache vectorized representations to avoid recomputation
+  // Cache vectorized representations to avoid recomputation. Sized so it can hold MAX_CACHE_SIZE
+  // entries under the default 0.75 load factor without rehashing, and evicts least-recently-used
+  // entries beyond that bound.
   private final Map<String, Map<CharSequence, Integer>> vectorCache =
-      new LinkedHashMap<>(MAX_CACHE_SIZE, 0.75f, true) {
+      new LinkedHashMap<>((int) (MAX_CACHE_SIZE / 0.75f) + 1, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, Map<CharSequence, Integer>> eldest) {
           return size() > MAX_CACHE_SIZE;
         }
       };
-  private static final int MAX_CACHE_SIZE = 10000;
 
   private final double threshold;
-  private final String matchMode;
+  private final MatchMode matchMode;
   private final String delims;
 
-  public TextSimilarityClustering(double threshold, String matchMode, String delims) {
+  public TextSimilarityClustering(double threshold, MatchMode matchMode, String delims) {
     this.threshold = validateThreshold(threshold);
-    this.matchMode = validateMatchMode(matchMode);
+    this.matchMode = matchMode != null ? matchMode : MatchMode.DEFAULT;
     this.delims = delims != null ? delims : " ";
   }
 
@@ -48,21 +50,6 @@ public class TextSimilarityClustering {
           "The threshold must be > 0.0 and < 1.0, got: " + threshold);
     }
     return threshold;
-  }
-
-  private static String validateMatchMode(String matchMode) {
-    if (matchMode == null) {
-      return "termlist";
-    }
-    switch (matchMode.toLowerCase()) {
-      case "termlist":
-      case "termset":
-      case "ngramset":
-        return matchMode.toLowerCase();
-      default:
-        throw new IllegalArgumentException(
-            "Invalid match mode: " + matchMode + ". Must be one of: termlist, termset, ngramset");
-    }
   }
 
   /**
@@ -100,8 +87,8 @@ public class TextSimilarityClustering {
       return Map.of();
     }
     return switch (matchMode) {
-      case "termset" -> vectorizeTermSet(value);
-      case "ngramset" -> vectorizeNgramSet(value);
+      case TERMSET -> vectorizeTermSet(value);
+      case NGRAMSET -> vectorizeNgramSet(value);
       default -> vectorizeTermList(value);
     };
   }
