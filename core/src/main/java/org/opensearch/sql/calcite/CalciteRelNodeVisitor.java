@@ -97,6 +97,7 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
+import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
@@ -140,6 +141,7 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -177,6 +179,7 @@ import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.TimewrapUtils;
@@ -186,6 +189,7 @@ import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -4468,17 +4472,150 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitValues(Values values, CalcitePlanContext context) {
     List<List<Literal>> rows = values.getValues();
-    if (rows == null || rows.isEmpty()) {
+    RelBuilder relBuilder = context.relBuilder;
+    boolean hasExplicitSchema = values.getColumnNames() != null || values.getColumnTypes() != null;
+    if (!hasExplicitSchema && (rows == null || rows.isEmpty())) {
       // PPL empty subsearch (e.g., `... | append [ ]`): zero rows, no columns.
-      context.relBuilder.values(context.relBuilder.getTypeFactory().builder().build());
-      return context.relBuilder.peek();
+      relBuilder.values(relBuilder.getTypeFactory().builder().build());
+      return relBuilder.peek();
     }
-    if (rows.size() == 1 && rows.get(0).isEmpty()) {
+    if (rows != null && rows.size() == 1 && rows.get(0).isEmpty()) {
       // SQL FROM-less SELECT (dual table) encoded as Values([[]]): one-row relation for Project.
-      context.relBuilder.push(LogicalValues.createOneRow(context.relBuilder.getCluster()));
-      return context.relBuilder.peek();
+      relBuilder.push(LogicalValues.createOneRow(relBuilder.getCluster()));
+      return relBuilder.peek();
     }
-    throw new CalciteUnsupportedException("Inline VALUES with literal rows is unsupported");
+    // Inline literal rows, e.g. `makeresults format=csv|json data=...`.
+    return buildLiteralValues(
+        relBuilder,
+        values.getColumnNames(),
+        values.getColumnTypes(),
+        rows,
+        values.isWithImplicitTimestamp());
+  }
+
+  /**
+   * Build a typed {@link LogicalValues} (+ a cast {@code Project}) from inline literal rows. Column
+   * names/types are taken from the explicit lists when provided (authoritative, and required to
+   * type a zero-row relation); otherwise names are positional and types are inferred from the
+   * literals.
+   */
+  private RelNode buildLiteralValues(
+      RelBuilder relBuilder,
+      List<String> explicitNames,
+      List<ExprCoreType> explicitTypes,
+      List<List<Literal>> rows,
+      boolean withImplicitTimestamp) {
+    int nc;
+    if (explicitTypes != null) {
+      nc = explicitTypes.size();
+    } else if (explicitNames != null) {
+      nc = explicitNames.size();
+    } else if (!rows.isEmpty() && !rows.get(0).isEmpty()) {
+      nc = rows.get(0).size();
+    } else {
+      nc = 0;
+    }
+
+    List<String> names = new java.util.ArrayList<>();
+    for (int i = 0; i < nc; i++) {
+      names.add(explicitNames != null ? explicitNames.get(i) : "column_" + i);
+    }
+
+    List<ExprCoreType> types = new java.util.ArrayList<>();
+    for (int c = 0; c < nc; c++) {
+      if (explicitTypes != null) {
+        types.add(explicitTypes.get(c));
+      } else {
+        // infer from the first non-null literal in this column, defaulting to STRING.
+        ExprCoreType t = ExprCoreType.STRING;
+        for (List<Literal> row : rows) {
+          DataType dt = row.get(c).getType();
+          if (dt != DataType.NULL) {
+            t = dt.getCoreType();
+            break;
+          }
+        }
+        types.add(t);
+      }
+    }
+
+    boolean prependTimestamp =
+        withImplicitTimestamp && !names.contains(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
+    RelDataType tsType =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.TIMESTAMP, false);
+
+    var typeBuilder = relBuilder.getTypeFactory().builder();
+    if (prependTimestamp) {
+      typeBuilder.add(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP, tsType);
+    }
+    for (int i = 0; i < nc; i++) {
+      typeBuilder.add(
+          names.get(i), OpenSearchTypeFactory.convertExprTypeToRelDataType(types.get(i), true));
+    }
+    RelDataType rowType = typeBuilder.build();
+
+    if (rows.isEmpty()) {
+      // header-only CSV / empty JSON array: a zero-row relation with the resolved schema.
+      relBuilder.values(ImmutableList.<ImmutableList<RexLiteral>>of(), rowType);
+      return relBuilder.peek();
+    }
+
+    Object[] flat = new Object[rows.size() * nc];
+    int k = 0;
+    for (List<Literal> row : rows) {
+      for (Literal cell : row) {
+        flat[k++] = cell.getValue();
+      }
+    }
+    relBuilder.values(names.toArray(new String[0]), flat);
+    List<RexNode> projects = new java.util.ArrayList<>();
+    if (prependTimestamp) {
+      projects.add(
+          relBuilder.alias(
+              relBuilder.call(PPLBuiltinOperators.NOW),
+              OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP));
+    }
+    for (int i = 0; i < nc; i++) {
+      projects.add(
+          relBuilder.alias(
+              relBuilder.cast(
+                  relBuilder.field(i),
+                  rowType.getField(names.get(i), true, false).getType().getSqlTypeName()),
+              names.get(i)));
+    }
+    relBuilder.project(projects);
+    return relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitMakeResults(MakeResults node, CalcitePlanContext context) {
+    // Count path only: the `format=csv|json data=...` form is parsed into a shared Values node
+    // (see MakeResultsDataParser) and handled by visitValues.
+    RelBuilder relBuilder = context.relBuilder;
+    int count = node.getCount();
+    RelDataType tsType =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.TIMESTAMP, false);
+    if (count == 0) {
+      RelDataType rowType =
+          relBuilder
+              .getTypeFactory()
+              .builder()
+              .add(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP, tsType)
+              .build();
+      relBuilder.values(ImmutableList.<ImmutableList<RexLiteral>>of(), rowType);
+      return relBuilder.peek();
+    }
+    // The dummy column only carries row multiplicity; project it to @timestamp=NOW(), OpenSearch's
+    // implicit time field recognized by the time-aware commands.
+    Object[] dummy = new Object[count];
+    for (int i = 0; i < count; i++) {
+      dummy[i] = i;
+    }
+    relBuilder.values(new String[] {"__makeresults_dummy__"}, dummy);
+    RexNode now = relBuilder.call(PPLBuiltinOperators.NOW);
+    relBuilder.project(
+        List.of(relBuilder.alias(now, OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP)));
+    return relBuilder.peek();
   }
 
   @Override

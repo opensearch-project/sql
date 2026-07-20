@@ -884,6 +884,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return "";
   }
 
+  @Override
+  public String visitMakeResults(org.opensearch.sql.ast.tree.MakeResults node, String context) {
+    return "makeresults";
+  }
+
   private String visitFieldList(List<Field> fieldList) {
     return fieldList.stream().map(this::visitExpression).collect(Collectors.joining(","));
   }

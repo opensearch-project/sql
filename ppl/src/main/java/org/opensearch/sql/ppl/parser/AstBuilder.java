@@ -97,6 +97,7 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
@@ -145,6 +146,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.ppl.utils.MakeResultsDataParser;
 import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
@@ -255,6 +257,46 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitShowDataSourcesCommand(
       OpenSearchPPLParser.ShowDataSourcesCommandContext ctx) {
     return new DescribeRelation(qualifiedName(DATASOURCES_TABLE_NAME));
+  }
+
+  /** makeresults command. */
+  @Override
+  public UnresolvedPlan visitMakeresultsCommand(OpenSearchPPLParser.MakeresultsCommandContext ctx) {
+    int count = 1;
+    String format = null;
+    String data = null;
+    for (OpenSearchPPLParser.MakeresultsArgContext arg : ctx.makeresultsArg()) {
+      if (arg.integerLiteral() != null) {
+        String raw = arg.integerLiteral().getText();
+        try {
+          count = Integer.parseInt(raw);
+        } catch (NumberFormatException e) {
+          throw new SyntaxCheckException(
+              "makeresults count \"" + raw + "\" is not a valid integer within the allowed range");
+        }
+      } else if (arg.stringLiteral() != null) {
+        data = StringUtils.unquoteText(arg.stringLiteral().getText());
+      } else if (arg.JSON() != null) {
+        format = "json";
+      } else if (arg.CSV() != null) {
+        format = "csv";
+      }
+    }
+    if (data != null || format != null) {
+      if (data == null || format == null) {
+        throw new SyntaxCheckException("makeresults format and data must be provided together");
+      }
+      return MakeResultsDataParser.parse(format, data);
+    }
+    if (count < 0) {
+      // Negative count yields zero rows.
+      count = 0;
+    }
+    if (count > 5000) {
+      // Inline literal rows hit the JVM 64 KB per-method bytecode limit.
+      throw new SyntaxCheckException("makeresults count must not exceed 5000");
+    }
+    return new MakeResults(count);
   }
 
   /** Where command. */

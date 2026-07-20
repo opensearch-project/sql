@@ -13,6 +13,10 @@ options { caseInsensitive = true; }
 SEARCH:                             'SEARCH';
 DESCRIBE:                           'DESCRIBE';
 SHOW:                               'SHOW';
+MAKERESULTS:                        'MAKERESULTS';
+FORMAT:                             'FORMAT';
+CSV:                                'CSV';
+DATA:                               'DATA';
 EXPLAIN:                            'EXPLAIN';
 FROM:                               'FROM';
 WHERE:                              'WHERE';

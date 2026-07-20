@@ -71,6 +71,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -341,6 +342,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitValues(Values node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitMakeResults(MakeResults node, C context) {
     return visitChildren(node, context);
   }
 
