@@ -130,6 +130,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Foreach;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
@@ -214,12 +215,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final CalciteAggCallVisitor aggVisitor;
   private final DataSourceService dataSourceService;
   private final MapPathPreMaterializer mapPathMaterializer;
+  private final ForeachPlanner foreachPlanner;
 
   public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
     this.dataSourceService = dataSourceService;
     this.mapPathMaterializer = new MapPathPreMaterializer(rexVisitor);
+    this.foreachPlanner = new ForeachPlanner(this, rexVisitor);
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
@@ -1305,6 +1308,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
+  public RelNode visitForeach(Foreach node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    return foreachPlanner.plan(node, context);
+  }
+
+  @Override
   public RelNode visitConvert(Convert node, CalcitePlanContext context) {
     visitChildren(node, context);
 
@@ -1435,7 +1444,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private void projectPlusOverriding(
+  void projectPlusOverriding(
       List<RexNode> newFields, List<String> newNames, CalcitePlanContext context) {
     Set<String> originalFieldNameSet =
         new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
