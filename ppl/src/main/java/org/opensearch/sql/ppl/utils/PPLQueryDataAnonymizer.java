@@ -84,6 +84,7 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.Multikv;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -609,6 +610,25 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
                         "%s = %s", MASK_COLUMN, visitExpression(clause.getExpression())))
             .collect(Collectors.joining(", "));
     return command.append(" [ eval ").append(evalClauses).append(" ]").toString();
+  }
+
+  @Override
+  public String visitMultikv(Multikv node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder sb = new StringBuilder(child).append(" | multikv");
+    if (node.getFields() != null && !node.getFields().isEmpty()) {
+      sb.append(" fields ").append(MASK_COLUMN);
+    }
+    if (node.getFilterTerms() != null && !node.getFilterTerms().isEmpty()) {
+      sb.append(" filter ").append(MASK_LITERAL);
+    }
+    if (node.getForceHeader() != null) {
+      sb.append(" forceheader=").append(MASK_LITERAL);
+    }
+    if (node.isNoHeader()) {
+      sb.append(" noheader=true");
+    }
+    return sb.toString();
   }
 
   /** Build {@link LogicalSort}. */

@@ -163,6 +163,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTHNAME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_OF_YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MSTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIKV_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIKV_SPLIT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIMATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIMATCHQUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
@@ -1335,6 +1337,8 @@ public class PPLFuncImpTable {
       registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);
       registerOperator(JSON_EXTEND, PPLBuiltinOperators.JSON_EXTEND);
       registerOperator(JSON_EXTRACT_ALL, PPLBuiltinOperators.JSON_EXTRACT_ALL); // internal
+      registerOperator(MULTIKV_SPLIT, PPLBuiltinOperators.MULTIKV_SPLIT); // internal
+      registerOperator(MULTIKV_EXTRACT, PPLBuiltinOperators.MULTIKV_EXTRACT); // internal
 
       // Register operators with a different type checker
 

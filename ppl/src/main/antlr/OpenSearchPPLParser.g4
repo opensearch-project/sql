@@ -86,6 +86,7 @@ commands
    | appendCommand
    | expandCommand
     | mvexpandCommand
+    | multikvCommand
    | flattenCommand
    | reverseCommand
    | regexCommand
@@ -135,6 +136,7 @@ commandName
    | CONVERT
    | EXPAND
     | MVEXPAND
+    | MULTIKV
    | FLATTEN
    | TRENDLINE
    | TIMECHART
@@ -650,6 +652,21 @@ nomvCommand
 
 mvexpandCommand
     : MVEXPAND fieldExpression (LIMIT EQUAL INTEGER_LITERAL)?
+    ;
+
+// multikv: extract field values from table-formatted text in a field (default _raw),
+// emitting one row per table data row. v1 fixed-schema: output columns must be
+// determinable at plan time via the fields list, a literal forceheader, or noheader.
+multikvCommand
+    : MULTIKV multikvParameter*
+    ;
+
+multikvParameter
+    : FIELDS fields = fieldList
+    | FIELD EQUAL inField = qualifiedName
+    | FORCEHEADER EQUAL forceHeader = integerLiteral
+    | NOHEADER EQUAL noHeader = booleanLiteral
+    | RMORIG EQUAL rmOrig = booleanLiteral
     ;
 
 flattenCommand

@@ -82,6 +82,7 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MakeResults;
+import org.opensearch.sql.ast.tree.Multikv;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -1112,6 +1113,25 @@ public class AstBuilderTest extends AstPlanningTestBase {
   public void testMakeResultsCommand() {
     assertEqual("makeresults", new MakeResults(1));
     assertEqual("makeresults count=5", new MakeResults(5));
+  }
+
+  @Test
+  public void testMultikvCommand() {
+    assertEqual(
+        "source=t | multikv fields CPU pctIdle",
+        new Multikv("_raw", Arrays.asList(field("CPU"), field("pctIdle")), null, null, false, true)
+            .attach(relation("t")));
+    assertEqual(
+        "source=t | multikv fields endpoint forceheader=2",
+        new Multikv("_raw", Arrays.asList(field("endpoint")), null, 2, false, true)
+            .attach(relation("t")));
+    assertEqual(
+        "source=t | multikv noheader=true",
+        new Multikv("_raw", null, null, null, true, true).attach(relation("t")));
+    assertEqual(
+        "source=t | multikv field=message fields CPU",
+        new Multikv("message", Arrays.asList(field("CPU")), null, null, false, true)
+            .attach(relation("t")));
   }
 
   @Test

@@ -83,6 +83,7 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MakeResults;
+import org.opensearch.sql.ast.tree.Multikv;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -566,6 +567,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitMakeResults(MakeResults node, AnalysisContext context) {
     throw getOnlyForCalciteException("makeresults");
+  }
+
+  @Override
+  public LogicalPlan visitMultikv(Multikv node, AnalysisContext context) {
+    throw getOnlyForCalciteException("multikv");
   }
 
   @Override
