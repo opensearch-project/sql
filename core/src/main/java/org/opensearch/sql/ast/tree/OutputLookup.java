@@ -30,7 +30,7 @@ public class OutputLookup extends UnresolvedPlan {
 
   private UnresolvedPlan child;
 
-  /** Destination lookup name (a plain index). */
+  /** Destination lookup name. */
   private final String indexName;
 
   /** false (default) overwrites the destination; true appends to it. */

@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.storage.write;
 
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Map;
 import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -47,8 +46,8 @@ public class EnumerableOutputLookup extends SingleRel implements EnumerableRel {
   private final boolean overrideIfEmpty;
   private final List<String> keyFields;
   private final @Nullable Integer max;
+  private final int maxRows;
   private final List<String> fields;
-  private final Map<String, Object> mapping;
 
   public EnumerableOutputLookup(
       RelOptCluster cluster,
@@ -60,7 +59,8 @@ public class EnumerableOutputLookup extends SingleRel implements EnumerableRel {
       boolean append,
       boolean overrideIfEmpty,
       List<String> keyFields,
-      @Nullable Integer max) {
+      @Nullable Integer max,
+      int maxRows) {
     super(cluster, traits, input);
     this.modifyRowType = modifyRowType;
     this.client = client;
@@ -69,8 +69,8 @@ public class EnumerableOutputLookup extends SingleRel implements EnumerableRel {
     this.overrideIfEmpty = overrideIfEmpty;
     this.keyFields = keyFields;
     this.max = max;
+    this.maxRows = maxRows;
     this.fields = input.getRowType().getFieldNames();
-    this.mapping = OutputLookupWriteExec.inferMapping(input.getRowType());
   }
 
   @Override
@@ -82,7 +82,7 @@ public class EnumerableOutputLookup extends SingleRel implements EnumerableRel {
    * Surface the write parameters in explain output so the physical plan shows the write target and
    * mode (the write itself is performed at runtime by {@link OutputLookupWriteExec}, which is not a
    * relational operator and therefore never appears as a plan node). Including these in the digest
-   * also keeps two outputlookups with different targets/modes from being deduplicated by the
+   * also keeps two outputlookups with different targets or modes from being deduplicated by the
    * planner.
    */
   @Override
@@ -107,7 +107,8 @@ public class EnumerableOutputLookup extends SingleRel implements EnumerableRel {
         append,
         overrideIfEmpty,
         keyFields,
-        max);
+        max,
+        maxRows);
   }
 
   @Override
@@ -130,10 +131,10 @@ public class EnumerableOutputLookup extends SingleRel implements EnumerableRel {
             client,
             indexName,
             fields,
-            mapping,
             mode,
             keyFields,
             max,
+            maxRows,
             overrideIfEmpty,
             append,
             input.enumerator());

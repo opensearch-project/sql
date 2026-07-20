@@ -29,8 +29,7 @@ class LookupIdEncoderTest {
 
   @Test
   void multiFieldNoCollisionAcrossBoundaries() {
-    // ["a","bc"] must not collide with ["ab","c"] -- length prefixes keep field boundaries
-    // distinct.
+    // length prefixes keep field boundaries distinct so concatenations cannot collide
     assertNotEquals(
         LookupIdEncoder.encode(List.of("a", "b"), FIELDS, new Object[] {"a", "bc"}),
         LookupIdEncoder.encode(List.of("a", "b"), FIELDS, new Object[] {"ab", "c"}));
@@ -43,13 +42,11 @@ class LookupIdEncoderTest {
     String missing = LookupIdEncoder.encode(List.of("a"), List.of("x"), new Object[] {"v"});
     assertNotEquals(nullVal, emptyVal, "null must differ from empty string");
     assertNotEquals(emptyVal, missing, "empty string must differ from a missing field");
-    // By design (A7), null and missing both encode as N, so they collapse to the same id.
     assertEquals(nullVal, missing, "null and missing both encode as N");
   }
 
   @Test
   void typedValuesDoNotCollideWithStrings() {
-    // integer 1 vs string "1" -- type tag keeps them apart.
     assertNotEquals(
         LookupIdEncoder.encode(List.of("a"), List.of("a"), new Object[] {1}),
         LookupIdEncoder.encode(List.of("a"), List.of("a"), new Object[] {"1"}));

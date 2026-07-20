@@ -1960,13 +1960,11 @@ public class AstBuilderTest extends AstPlanningTestBase {
 
   @Test
   public void testOutputLookupUsableAsIdentifier() {
-    // outputlookup must remain usable as a bare field name (keywordsCanBeId)
     plan("source=t | fields outputlookup");
   }
 
   @Test
   public void testOutputLookupKeyFieldDefaultsAppendTrue() {
-    // Splunk parity: key_field implies append=true by default.
     OutputLookup expected = new OutputLookup("hosts");
     expected.setKeyFields(java.util.List.of("id"));
     expected.setAppend(true);
@@ -1975,7 +1973,6 @@ public class AstBuilderTest extends AstPlanningTestBase {
 
   @Test
   public void testOutputLookupExplicitAppendOverridesKeyFieldDefault() {
-    // Explicit append=false wins over the key_field append-default.
     OutputLookup expected = new OutputLookup("hosts");
     expected.setKeyFields(java.util.List.of("id"));
     expected.setAppend(false);

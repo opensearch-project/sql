@@ -18,7 +18,6 @@ public class OpenSearchIndexRules {
       EnumerableNestedAggregateRule.DEFAULT_CONFIG.toRule();
   private static final RelOptRule GRAPH_LOOKUP_RULE =
       EnumerableGraphLookupRule.DEFAULT_CONFIG.toRule();
-  // outputlookup: lower the terminal write node (LogicalOutputLookup) to the OpenSearch write op.
   private static final RelOptRule OUTPUT_LOOKUP_RULE =
       EnumerableOutputLookupRule.DEFAULT_CONFIG.toRule();
   // Rule that always pushes down relevance functions regardless of pushdown settings

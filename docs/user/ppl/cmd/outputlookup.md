@@ -91,5 +91,6 @@ source = logs
 
 - `outputlookup` is a terminal command: it returns a `rows_written` count rather than forwarding the input rows.
 - The destination is always a lookup index; there is no file output target.
-- Overwrite is eventually consistent: it deletes and recreates the index, so a concurrent read during the rebuild may briefly see the lookup absent, and an interrupted overwrite may leave it partially written.
-- The write executes under the caller's security context. The caller needs write, create-index, delete, and get privileges on the destination (and alias privileges only when migrating a data-importer lookup); no cluster-level privilege is required.
+- Overwrite is weak/eventually consistent but gap-free: it writes a fresh slice and atomically repoints the alias, so a concurrent read always sees the whole old slice or the whole new one, never a partial state. The previous slice is orphaned until reclaimed.
+- `outputlookup` is for bounded lookup (dimension) tables, not a bulk data sink. The number of rows a single write may produce is capped by `plugins.ppl.outputlookup.max_rows` (NodeScope, Dynamic, default `1000000`, minimum `1`). Exceeding it fails the query (no slice is written) rather than silently truncating. The optional `max=<int>` command argument truncates to at most N rows and must not exceed the setting.
+- The write executes under the caller's security context. The caller needs write and get privileges on the destination and alias privileges to publish or repoint the filtered alias, plus create-index the first time the shared `.lookups` index is created; no cluster-level privilege is required.

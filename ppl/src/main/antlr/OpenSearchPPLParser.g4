@@ -335,7 +335,6 @@ reverseCommand
    : REVERSE
    ;
 
-// outputlookup: terminal write sink — materialize pipeline rows into a lookup index (overwrite by default).
 outputlookupCommand
    : OUTPUTLOOKUP outputlookupOption* tableSourceClause
    ;

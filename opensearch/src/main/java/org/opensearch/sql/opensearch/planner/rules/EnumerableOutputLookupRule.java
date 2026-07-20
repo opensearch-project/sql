@@ -12,6 +12,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.opensearch.sql.calcite.OutputLookupTableModify;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.write.EnumerableOutputLookup;
 import org.opensearch.transport.client.node.NodeClient;
@@ -37,14 +38,11 @@ public class EnumerableOutputLookupRule extends ConverterRule {
   }
 
   @Override
-  public boolean matches(RelOptRuleCall call) {
-    return nodeClientOf((OutputLookupTableModify) call.rel(0)) != null;
-  }
-
-  @Override
   public RelNode convert(RelNode rel) {
     OutputLookupTableModify node = (OutputLookupTableModify) rel;
-    NodeClient client = nodeClientOf(node);
+    OpenSearchIndex index = indexOf(node);
+    NodeClient client = index.getClient().getNodeClient().orElseThrow();
+    int maxRows = index.getSettings().getSettingValue(Settings.Key.OUTPUTLOOKUP_MAX_ROWS);
     RelTraitSet traitSet = node.getTraitSet().replace(EnumerableConvention.INSTANCE);
     RelNode convertedInput =
         convert(
@@ -59,17 +57,21 @@ public class EnumerableOutputLookupRule extends ConverterRule {
         node.isAppend(),
         node.isOverrideIfEmpty(),
         node.getKeyFields(),
-        node.getMax());
+        node.getMax(),
+        maxRows);
   }
 
-  private static NodeClient nodeClientOf(OutputLookupTableModify node) {
+  @Override
+  public boolean matches(RelOptRuleCall call) {
+    OutputLookupTableModify node = (OutputLookupTableModify) call.rel(0);
+    OpenSearchIndex index = indexOf(node);
+    return index != null && index.getClient().getNodeClient().isPresent();
+  }
+
+  private static OpenSearchIndex indexOf(OutputLookupTableModify node) {
     if (node.getTable() == null) {
       return null;
     }
-    OpenSearchIndex index = node.getTable().unwrap(OpenSearchIndex.class);
-    if (index == null) {
-      return null;
-    }
-    return index.getClient().getNodeClient().orElse(null);
+    return node.getTable().unwrap(OpenSearchIndex.class);
   }
 }

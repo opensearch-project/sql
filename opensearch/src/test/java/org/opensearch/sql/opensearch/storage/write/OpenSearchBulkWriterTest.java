@@ -59,7 +59,6 @@ class OpenSearchBulkWriterTest {
       written = writer.flush().written();
     }
 
-    // 1000 + 1000 + 500 -> three bulk calls, all rows counted.
     verify(client, times(3)).bulk(captor.capture());
     assertEquals(1000, captor.getAllValues().get(0).numberOfActions());
     assertEquals(500, captor.getAllValues().get(2).numberOfActions());

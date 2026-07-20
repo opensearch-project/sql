@@ -6,313 +6,285 @@
 package org.opensearch.sql.opensearch.storage.write;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.opensearch.action.admin.indices.alias.get.GetAliasesRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.cluster.metadata.AliasMetadata;
-import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.index.IndexNotFoundException;
-import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.write.WriteConfig.WriteMode;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
- * Lifecycle for {@code outputlookup} (substrate <b>C2</b>: one plain index per lookup,
- * weak/eventual overwrite). A lookup named {@code <name>} <em>is</em> a plain index; readers
- * ({@code source=<name>}, {@code lookup <name>}) hit it directly. There is no alias, backing index,
- * or uuid.
+ * Lifecycle for {@code outputlookup} on substrate C3: every lookup is a slice tagged {@code
+ * __lookup=<uuid>} in the single shared {@code .lookups} index behind a filtered alias {@code
+ * <name>}, the same artifact the Dashboards data importer produces. The index owns its mapping (see
+ * {@link LookupsIndex}), so the write honors it and never infers a keyword-only mapping.
  *
- * <p>Every lookup index this command creates is tagged with the index metadata marker {@code
- * _meta.lookup = true}. Overwrite and append refuse to touch a plain index that lacks the marker
- * (i.e. a non-lookup index the user created for another purpose), so the command never clobbers
- * unrelated data; delete such an index first to reuse the name.
+ * <p><b>Consistency, weak and eventual.</b> Overwrite is content-atomic and gap-free because the
+ * alias repoint is a single cluster-state update, but the overall contract stays weak because a
+ * crash between the slice write and the repoint can orphan a slice or leave the alias unswapped.
+ * Append is at-least-once. A keyed write is idempotent within a slice because the deterministic id
+ * is salted with the slice uuid.
  *
- * <p><b>Consistency contract — weak/eventual (aligned with the merged Dashboards importer #11303,
- * which also writes lookups incrementally).</b> This command does not gold-plate read-continuity:
- *
- * <ul>
- *   <li><b>overwrite</b> ({@code append=false}) = delete the index and recreate it from the current
- *       result, then bulk write. The schema is fully replaced each run. There is a brief window
- *       where {@code <name>} is absent (a concurrent read sees index-not-found) and a crash
- *       mid-overwrite can lose the lookup — both within the weak/eventual contract; we deliberately
- *       do not reintroduce a blue/green alias swap to close that window (see the {@code
- *       feature/ppl-outputlookup-alias-swap} branch for the strong-consistency alternative).
- *   <li><b>append</b> ({@code append=true}) = bulk into the existing index. Incrementally visible,
- *       at-least-once; a keyed append is idempotent on re-run, a plain append may duplicate.
- * </ul>
- *
- * <p><b>Backward compatibility with the Dashboards data importer (#11303).</b> That feature
- * realizes a lookup as a <em>filtered alias</em> ({@code {term:{__lookup:<uuid>}}}) over a
- * <em>shared</em> index. The two formats coexist permanently; a lookup is migrated only when a name
- * collision forces it. Because a plain index cannot coexist with an alias of the same name,
- * overwrite of a filtered alias <em>migrates on touch</em>: it detaches the alias from the shared
- * index and creates a dedicated plain index {@code <name>} in its place. It <b>never deletes the
- * shared index</b> (other lookups' filtered aliases still use it); the orphaned {@code __lookup}
- * slice is left in the shared index. Reclaiming that slice (a periodic reaper keyed on the {@code
- * __lookup} discriminant that deletes a slice only once no alias references it) is intentionally
- * out of scope here and tracked as a follow-up PR. Append onto a filtered alias is refused
- * (overwrite once to migrate first). Reads of an un-migrated filtered alias remain compatible.
- *
- * <p><b>Permissions.</b> All operations run under the calling user's security context (verified: a
- * read-only user is denied). On the destination the caller needs {@code indices:data/write/bulk},
- * {@code indices:admin/create}, {@code indices:admin/delete}, and {@code indices:admin/get} (to
- * probe the target's state / lookup marker) — plus {@code indices:admin/aliases} only on the #11303
- * migration path. No cluster-level permission is required.
+ * <p><b>Permissions.</b> Runs under the caller security context and needs {@code
+ * indices:data/write/bulk} and {@code indices:admin/aliases} on the destination, plus {@code
+ * indices:admin/create} the first time {@code .lookups} is created and get plus aliases-get to
+ * probe the name. No cluster-level permission.
  */
 public final class OutputLookupWriteExec {
 
+  private static final Logger LOGGER = LogManager.getLogger(OutputLookupWriteExec.class);
+
   private static final int BATCH_SIZE = 1000;
 
-  /** Index-metadata marker distinguishing a lookup this command owns from an arbitrary index. */
-  private static final String META_KEY = "_meta";
-
-  private static final String LOOKUP_MARKER = "lookup";
+  /** Extracts the {@code __lookup} discriminant value from a term-filter JSON string. */
+  private static final Pattern LOOKUP_UUID =
+      Pattern.compile("\"" + LookupsIndex.LOOKUP_FIELD + "\"\\s*:\\s*\"([^\"]+)\"");
 
   private OutputLookupWriteExec() {}
 
-  /** Map the child row schema to an OpenSearch mapping. Pure and unit-testable. */
-  public static Map<String, Object> inferMapping(RelDataType rowType) {
-    Map<String, Object> properties = new LinkedHashMap<>();
-    for (RelDataTypeField field : rowType.getFieldList()) {
-      // Skip reserved metadata fields (_id, _routing, ...); OpenSearch rejects them in a mapping,
-      // and the writer already excludes them from the document source.
-      if (OpenSearchIndex.METADATAFIELD_TYPE_MAP.containsKey(field.getName())) {
-        continue;
-      }
-      properties.put(
-          field.getName(), Map.of("type", esType(field.getType().getSqlTypeName().name())));
-    }
-    return Map.of("properties", properties);
-  }
-
-  private static String esType(String sqlTypeName) {
-    switch (sqlTypeName) {
-      case "TINYINT":
-      case "SMALLINT":
-      case "INTEGER":
-      case "BIGINT":
-        return "long";
-      case "FLOAT":
-      case "REAL":
-      case "DOUBLE":
-      case "DECIMAL":
-        return "double";
-      case "BOOLEAN":
-        return "boolean";
-      case "DATE":
-      case "TIME":
-      case "TIMESTAMP":
-        return "date";
-      default:
-        return "keyword";
-    }
-  }
-
   /**
-   * Drain the input, materialize it into the lookup per the outputlookup options, and return the
-   * number of rows written.
+   * Drain the input, materialize it into a {@code .lookups} slice, publish it through the {@code
+   * <name>} filtered alias, and return the number of rows written.
    */
   public static long execute(
       NodeClient client,
       String name,
       List<String> fields,
-      Map<String, Object> mapping,
       WriteMode mode,
       List<String> keyFields,
       @Nullable Integer max,
+      int maxRows,
       boolean overrideIfEmpty,
       boolean append,
       Enumerator<@Nullable Object> input) {
 
-    List<Object[]> rows = new ArrayList<>();
-    while (input.moveNext()) {
-      if (max != null && rows.size() >= max) {
-        break;
-      }
-      Object cur = input.current();
-      rows.add(cur instanceof Object[] arr ? arr : new Object[] {cur});
-    }
+    List<Object[]> rows = drain(input, max, maxRows);
 
-    Target target = resolveTarget(client, name);
-
-    if (append) {
-      switch (target.kind()) {
-        case ABSENT:
-          createIndex(client, name, mapping);
-          break;
-        case INDEX:
-          if (!target.ownLookup()) {
-            throw foreignIndexError(name);
-          }
-          // Append into our existing lookup index.
-          break;
-        case ALIAS:
-          throw appendToAliasError(name, target.filtered());
-        default:
-          throw new IllegalStateException("unreachable target kind: " + target.kind());
-      }
-      writeRows(client, name, fields, mode, keyFields, rows);
-      return rows.size();
-    }
-
-    // Overwrite: on an empty result, honor override_if_empty before touching anything.
-    if (rows.isEmpty() && !overrideIfEmpty) {
+    if (!append && rows.isEmpty() && !overrideIfEmpty) {
       return 0;
     }
+
+    LookupsIndex.ensureExists(client);
+
+    Target target = resolveTarget(client, name);
     switch (target.kind()) {
       case ABSENT:
-        createIndex(client, name, mapping);
-        break;
-      case INDEX:
-        if (!target.ownLookup()) {
-          throw foreignIndexError(name);
+        {
+          String uuid = newUuid();
+          writeSlice(client, LookupsIndex.INDEX_NAME, fields, mode, keyFields, rows, uuid);
+          addFilteredAlias(client, name, LookupsIndex.INDEX_NAME, uuid);
+          break;
         }
-        // Weak/eventual replace: drop our old lookup index and recreate it with the current schema.
-        // There is a brief absent window (contract-permitted); we do not blue/green it.
-        deleteIndex(client, name);
-        createIndex(client, name, mapping);
-        break;
       case ALIAS:
-        if (!target.filtered()) {
-          // A plain (non-filtered) alias is not a recognized lookup; do not silently take it over.
-          throw new IllegalArgumentException(
-              "outputlookup destination ["
-                  + name
-                  + "] is an alias, not a lookup; refusing to"
-                  + " overwrite it");
+        {
+          if (!target.filtered()) {
+            throw new IllegalArgumentException(
+                "outputlookup destination ["
+                    + name
+                    + "] is a non-filtered alias, not a lookup; refusing to write it");
+          }
+          if (append) {
+            if (target.lookupUuid() == null) {
+              throw new IllegalArgumentException(
+                  "outputlookup cannot append to ["
+                      + name
+                      + "]: its alias filter has no __lookup discriminant; overwrite it first");
+            }
+            writeSlice(
+                client, target.primaryIndex(), fields, mode, keyFields, rows, target.lookupUuid());
+          } else {
+            String uuid = newUuid();
+            writeSlice(client, LookupsIndex.INDEX_NAME, fields, mode, keyFields, rows, uuid);
+            repointFilteredAlias(
+                client, name, target.aliasIndices(), LookupsIndex.INDEX_NAME, uuid);
+            // TODO(reaper, separate PR): the atomic repoint leaves the previous slice as an
+            // orphan (a __lookup uuid in .lookups referenced by no alias). Crash-before-repoint
+            // and concurrent same-name overwrite produce the same orphan shape. A reaper reclaims
+            // them: enumerate distinct __lookup uuids in .lookups, subtract the set referenced by
+            // any filtered alias, delete_by_query the remainder. This info log is the reaper's
+            // observability seam until then.
+            LOGGER.info(
+                "outputlookup overwrite of [{}] wrote a new slice into [{}] and repointed the"
+                    + " alias; the previous slice(s) on {} are orphaned pending the reaper",
+                name,
+                LookupsIndex.INDEX_NAME,
+                target.aliasIndices());
+          }
+          break;
         }
-        // Migrate-on-touch (#11303): detach the filtered alias from its (possibly shared) index —
-        // NEVER delete that index — then create a dedicated plain index in its place. The orphaned
-        // __lookup slice is left for a follow-up reaper.
-        removeAlias(client, name, target.aliasIndices());
-        createIndex(client, name, mapping);
-        break;
+      case INDEX:
+        throw new IllegalArgumentException(
+            "outputlookup destination ["
+                + name
+                + "] is a concrete index, not a lookup; delete it first to reuse the name");
       default:
         throw new IllegalStateException("unreachable target kind: " + target.kind());
     }
-    writeRows(client, name, fields, mode, keyFields, rows);
     return rows.size();
   }
 
-  private static IllegalArgumentException foreignIndexError(String name) {
-    return new IllegalArgumentException(
-        "outputlookup destination ["
-            + name
-            + "] is an existing non-lookup index (no lookup marker); refusing to overwrite it."
-            + " Delete it first to reuse the name for a lookup");
-  }
-
-  private static IllegalArgumentException appendToAliasError(String name, boolean filtered) {
-    if (filtered) {
-      return new IllegalArgumentException(
-          "outputlookup cannot append to lookup ["
-              + name
-              + "]: it is an alias over a shared index (e.g. a data-importer lookup); overwrite it"
-              + " once to migrate it to a dedicated index, then append");
+  /**
+   * Drain the input rows. {@code max} is the optional per-query {@code max=} limit and truncates
+   * silently (the user opted into at-most-N). {@code maxRows} is the operator ceiling {@code
+   * plugins.ppl.outputlookup.max_rows}: exceeding it throws (a fail-loud 400) rather than
+   * truncating, so an operator guard never silently drops data, and no slice is written.
+   */
+  private static List<Object[]> drain(
+      Enumerator<@Nullable Object> input, @Nullable Integer max, int maxRows) {
+    List<Object[]> rows = new ArrayList<>();
+    while (input.moveNext()) {
+      Object cur = input.current();
+      rows.add(cur instanceof Object[] arr ? arr : new Object[] {cur});
+      if (max != null && rows.size() >= max) {
+        break;
+      }
+      if (rows.size() > maxRows) {
+        throw new IllegalArgumentException(
+            "outputlookup would write more than plugins.ppl.outputlookup.max_rows ["
+                + maxRows
+                + "] rows; refusing to write, no slice is created");
+      }
     }
-    return new IllegalArgumentException(
-        "outputlookup cannot append to ["
-            + name
-            + "]: it is an alias, not a lookup index; overwrite it first");
+    return rows;
   }
 
-  private static void writeRows(
+  /**
+   * Bulk the rows into {@code index} as a slice tagged {@code __lookup=<uuid>}. The discriminant is
+   * appended to the document fields, and to the key fields on an upsert so the deterministic id is
+   * salted with the slice uuid and keyed rows never collide across slices sharing the index.
+   */
+  private static void writeSlice(
       NodeClient client,
       String index,
       List<String> fields,
       WriteMode mode,
       List<String> keyFields,
-      List<Object[]> rows) {
+      List<Object[]> rows,
+      String uuid) {
+    List<String> sliceFields = new ArrayList<>(fields);
+    sliceFields.add(LookupsIndex.LOOKUP_FIELD);
+
+    List<String> sliceKeys = keyFields;
+    if (mode == WriteMode.UPSERT) {
+      sliceKeys = new ArrayList<>(keyFields);
+      sliceKeys.add(LookupsIndex.LOOKUP_FIELD);
+    }
+
     WriteConfig cfg =
-        new WriteConfig(index, fields, mode, keyFields, BATCH_SIZE, RefreshPolicy.IMMEDIATE);
+        new WriteConfig(index, sliceFields, mode, sliceKeys, BATCH_SIZE, RefreshPolicy.IMMEDIATE);
     try (OpenSearchBulkWriter writer = new OpenSearchBulkWriter(client, cfg)) {
       for (Object[] row : rows) {
-        writer.add(row);
+        Object[] tagged = new Object[row.length + 1];
+        System.arraycopy(row, 0, tagged, 0, row.length);
+        tagged[row.length] = uuid;
+        writer.add(tagged);
       }
     }
   }
 
-  /** Create the lookup index, tagging it with the {@code _meta.lookup} ownership marker. */
-  private static void createIndex(NodeClient client, String index, Map<String, Object> mapping) {
-    Map<String, Object> withMarker = new LinkedHashMap<>(mapping);
-    withMarker.put(META_KEY, Map.of(LOOKUP_MARKER, true));
-    client.admin().indices().create(new CreateIndexRequest(index).mapping(withMarker)).actionGet();
+  private static String newUuid() {
+    return UUID.randomUUID().toString();
   }
 
-  private static void deleteIndex(NodeClient client, String index) {
-    try {
-      client.admin().indices().delete(new DeleteIndexRequest(index)).actionGet();
-    } catch (IndexNotFoundException ignored) {
-      // already gone
-    }
+  private static String lookupFilter(String uuid) {
+    return "{\"term\":{\"" + LookupsIndex.LOOKUP_FIELD + "\":\"" + uuid + "\"}}";
   }
 
-  /** Detach the alias {@code name} from the given indices (used on the #11303 migration path). */
-  private static void removeAlias(NodeClient client, String alias, List<String> indices) {
+  private static void addFilteredAlias(NodeClient client, String alias, String index, String uuid) {
     IndicesAliasesRequest req = new IndicesAliasesRequest();
-    for (String index : indices) {
-      req.addAliasAction(AliasActions.remove().index(index).alias(alias));
+    req.addAliasAction(AliasActions.add().index(index).alias(alias).filter(lookupFilter(uuid)));
+    client.admin().indices().aliases(req).actionGet();
+  }
+
+  /**
+   * Atomically move the alias from its current backing indices onto {@code newIndex} filtered on
+   * {@code uuid}. The remove and add actions are one aliases request, applied as a single
+   * cluster-state update, so a reader resolves either the whole old slice or the whole new one.
+   */
+  private static void repointFilteredAlias(
+      NodeClient client, String alias, List<String> oldIndices, String newIndex, String uuid) {
+    IndicesAliasesRequest req = new IndicesAliasesRequest();
+    for (String old : oldIndices) {
+      req.addAliasAction(AliasActions.remove().index(old).alias(alias));
     }
+    req.addAliasAction(AliasActions.add().index(newIndex).alias(alias).filter(lookupFilter(uuid)));
     client.admin().indices().aliases(req).actionGet();
   }
 
   /** What the lookup name currently resolves to. */
   private enum Kind {
-    /** The name does not exist. */
     ABSENT,
-    /** The name is a plain concrete index. */
+    /** A concrete index blocks a same-name alias, so it is refused. */
     INDEX,
-    /** The name is an alias (e.g. a #11303 filtered alias over a shared index). */
     ALIAS
   }
 
   /**
-   * Resolved state of the lookup name. {@code ownLookup} is meaningful for {@link Kind#INDEX} (does
-   * it carry our marker); {@code filtered} and {@code aliasIndices} for {@link Kind#ALIAS}.
+   * Resolved state of the lookup name. For {@link Kind#ALIAS}, {@code aliasIndices} are the backing
+   * indices, {@code filtered} is whether the alias carries a filter, and {@code lookupUuid} is the
+   * {@code __lookup} discriminant parsed from that filter (null when the filter is not a {@code
+   * __lookup} term).
    */
   private record Target(
-      Kind kind, boolean ownLookup, boolean filtered, List<String> aliasIndices) {}
+      Kind kind, boolean filtered, List<String> aliasIndices, @Nullable String lookupUuid) {
+    /** The index the alias currently points at (first, for the single-index lookup case). */
+    String primaryIndex() {
+      return aliasIndices.isEmpty() ? null : aliasIndices.get(0);
+    }
+  }
 
   /**
    * Probe the target at the indices level (no {@code cluster:monitor/state}): an alias is detected
-   * via get-aliases, a concrete index and its lookup marker via get-index.
+   * via get-aliases, a concrete index via get-index.
    */
   private static Target resolveTarget(NodeClient client, String name) {
-    // Alias? get-aliases filters by alias name, so a non-empty result means <name> is an alias.
     Map<String, List<AliasMetadata>> aliases = getAliases(client, name);
-    List<String> aliasIndices = new ArrayList<>();
+    List<String> indices = new ArrayList<>();
     boolean filtered = false;
+    String uuid = null;
     for (Map.Entry<String, List<AliasMetadata>> e : aliases.entrySet()) {
       for (AliasMetadata m : e.getValue()) {
         if (name.equals(m.alias())) {
-          aliasIndices.add(e.getKey());
+          indices.add(e.getKey());
           if (m.filter() != null) {
             filtered = true;
+            String parsed = extractLookupUuid(m.filter().string());
+            if (parsed != null) {
+              uuid = parsed;
+            }
           }
         }
       }
     }
-    if (!aliasIndices.isEmpty()) {
-      return new Target(Kind.ALIAS, false, filtered, aliasIndices);
+    if (!indices.isEmpty()) {
+      return new Target(Kind.ALIAS, filtered, indices, uuid);
     }
-    // Concrete index? get-index returns its mapping (with our marker) or throws if absent.
     GetIndexResponse index = getIndex(client, name);
     if (index == null) {
-      return new Target(Kind.ABSENT, false, false, List.of());
+      return new Target(Kind.ABSENT, false, List.of(), null);
     }
-    return new Target(Kind.INDEX, hasLookupMarker(index, name), false, List.of());
+    return new Target(Kind.INDEX, false, List.of(), null);
+  }
+
+  private static @Nullable String extractLookupUuid(@Nullable String filterJson) {
+    if (filterJson == null) {
+      return null;
+    }
+    Matcher m = LOOKUP_UUID.matcher(filterJson);
+    return m.find() ? m.group(1) : null;
   }
 
   private static Map<String, List<AliasMetadata>> getAliases(NodeClient client, String name) {
@@ -334,15 +306,5 @@ public final class OutputLookupWriteExec {
     } catch (IndexNotFoundException e) {
       return null;
     }
-  }
-
-  /** True iff the concrete index {@code name} carries our {@code _meta.lookup = true} marker. */
-  private static boolean hasLookupMarker(GetIndexResponse index, String name) {
-    MappingMetadata mapping = index.getMappings().get(name);
-    if (mapping == null) {
-      return false;
-    }
-    Object meta = mapping.getSourceAsMap().get(META_KEY);
-    return meta instanceof Map && Boolean.TRUE.equals(((Map<?, ?>) meta).get(LOOKUP_MARKER));
   }
 }

@@ -790,7 +790,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Reverse();
   }
 
-  /** Outputlookup command visitor (write sink). Materializes rows into a lookup index. */
+  /** Outputlookup command. Materializes rows into a lookup index. */
   @Override
   public UnresolvedPlan visitOutputlookupCommand(
       OpenSearchPPLParser.OutputlookupCommandContext ctx) {
@@ -813,7 +813,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         node.setMax(Integer.parseInt(opt.max.getText()));
       }
     }
-    // Splunk parity: key_field sets append=true by default, unless append was given explicitly.
+    // key_field implies append=true unless append was set explicitly.
     if (!node.getKeyFields().isEmpty() && !appendExplicit) {
       node.setAppend(true);
     }

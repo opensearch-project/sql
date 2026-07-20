@@ -110,7 +110,6 @@ public final class OpenSearchBulkWriter implements AutoCloseable {
       }
       written += succeeded;
 
-      // G2: never swallow a non-retryable failure.
       if (!fatal.isEmpty()) {
         throw new BulkWriteException("outputlookup bulk write hit non-retryable failures", fatal);
       }
