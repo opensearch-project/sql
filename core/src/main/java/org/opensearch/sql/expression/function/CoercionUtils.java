@@ -15,8 +15,8 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.commons.lang3.tuple.Pair;
@@ -25,27 +25,32 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
-/**
- * PPL function-dispatch widening. Signatures expose {@link RelDataType} at the public boundary, but
- * the widening lattice and common-type rules operate on {@link ExprType} — the source of truth for
- * OpenSearch's type hierarchy. RelDataType inputs are converted at the entry via {@link
- * OpenSearchTypeFactory#convertRelDataTypeToExprType}, and results are round-tripped back with
- * {@link OpenSearchTypeFactory#convertExprTypeToRelDataType} — which returns the UDT variant for
- * temporal / IP types so downstream casts route through the UDT path automatically.
- */
 public final class CoercionUtils {
-  private CoercionUtils() {}
-
   /**
-   * Casts the arguments to one of the typeChecker's allowed signatures. Returns null if no
-   * combination of parameter types matches the arguments or if casting fails.
+   * Casts the arguments to the types specified in the typeChecker. Returns null if no combination
+   * of parameter types matches the arguments or if casting fails.
+   *
+   * @param builder RexBuilder to create casts
+   * @param typeChecker PPLTypeChecker that provides the parameter types
+   * @param arguments List of RexNode arguments to be cast
+   * @return List of cast RexNode arguments or null if casting fails
    */
   public static @Nullable List<RexNode> castArguments(
       RexBuilder builder, PPLTypeChecker typeChecker, List<RexNode> arguments) {
     List<List<ExprType>> paramTypeCombinations =
-        typeChecker.getParameterTypes().stream().map(CoercionUtils::toExprTypes).toList();
+        typeChecker.getParameterTypes().stream()
+            .map(
+                types ->
+                    types.stream()
+                        .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+                        .toList())
+            .toList();
 
-    List<ExprType> sourceTypes = arguments.stream().map(CoercionUtils::exprTypeOf).toList();
+    List<ExprType> sourceTypes =
+        arguments.stream()
+            .map(node -> OpenSearchTypeFactory.convertRelDataTypeToExprType(node.getType()))
+            .collect(Collectors.toList());
+    // Candidate parameter signatures ordered by decreasing widening distance
     PriorityQueue<Pair<List<ExprType>, Integer>> rankedSignatures =
         new PriorityQueue<>((left, right) -> Integer.compare(right.getValue(), left.getValue()));
     for (List<ExprType> paramTypes : paramTypeCombinations) {
@@ -64,55 +69,40 @@ public final class CoercionUtils {
   }
 
   /**
-   * Widen the arguments to the widest type found among them. Returns null if no widest type can be
-   * determined.
+   * Widen the arguments to the widest type found among them. If no widest type can be determined,
+   * returns null.
+   *
+   * @param builder RexBuilder to create casts
+   * @param arguments List of RexNode arguments to be widened
+   * @return List of widened RexNode arguments or null if no widest type can be determined
    */
   public static @Nullable List<RexNode> widenArguments(
       RexBuilder builder, List<RexNode> arguments) {
+    // TODO: Add test on e.g. IP
     ExprType widestType = findWidestType(arguments);
     if (widestType == null) {
-      return null;
+      return null; // No widest type found, return null
     }
     return arguments.stream().map(arg -> cast(builder, widestType, arg)).toList();
   }
 
-  /** Returns true if any of the operands has {@link ExprCoreType#STRING} type. */
-  public static boolean hasString(List<RexNode> rexNodeList) {
-    return rexNodeList.stream()
-        .map(CoercionUtils::exprTypeOf)
-        .anyMatch(t -> t == ExprCoreType.STRING);
-  }
-
   /**
-   * Resolves the widening common type for two {@link RelDataType}s using PPL coercion rules. Used
-   * primarily by tests to verify the rule set.
+   * Casts the arguments to the types specified in paramTypes. Returns null if the number of
+   * parameters does not match or if casting fails.
    */
-  @VisibleForTesting
-  public static Optional<RelDataType> resolveCommonType(RelDataType left, RelDataType right) {
-    return resolveCommonType(
-            OpenSearchTypeFactory.convertRelDataTypeToExprType(left),
-            OpenSearchTypeFactory.convertRelDataTypeToExprType(right))
-        .map(OpenSearchTypeFactory::convertExprTypeToRelDataType);
-  }
-
-  // -------- Internals --------
-
-  private static ExprType exprTypeOf(RexNode node) {
-    return OpenSearchTypeFactory.convertRelDataTypeToExprType(node.getType());
-  }
-
-  private static List<ExprType> toExprTypes(List<RelDataType> types) {
-    return types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
-  }
-
   private static @Nullable List<RexNode> castArguments(
       RexBuilder builder, List<ExprType> paramTypes, List<RexNode> arguments) {
     if (paramTypes.size() != arguments.size()) {
-      return null;
+      return null; // Skip if the number of parameters does not match
     }
+
     List<RexNode> castedArguments = new ArrayList<>();
     for (int i = 0; i < paramTypes.size(); i++) {
-      RexNode castedArg = cast(builder, paramTypes.get(i), arguments.get(i));
+      ExprType toType = paramTypes.get(i);
+      RexNode arg = arguments.get(i);
+
+      RexNode castedArg = cast(builder, toType, arg);
+
       if (castedArg == null) {
         return null;
       }
@@ -122,61 +112,88 @@ public final class CoercionUtils {
   }
 
   private static @Nullable RexNode cast(RexBuilder builder, ExprType targetType, RexNode arg) {
-    ExprType argType = exprTypeOf(arg);
+    ExprType argType = OpenSearchTypeFactory.convertRelDataTypeToExprType(arg.getType());
     if (!argType.shouldCast(targetType)) {
       return arg;
     }
-    // Always make the cast target nullable. Safe cast returns null on parse failure or on a null
-    // source, so a non-nullable declared target defeats null-propagation and leads to primitive
-    // unboxing NPEs in downstream aggregations.
     if (distance(argType, targetType) != IMPOSSIBLE_WIDENING) {
       return builder.makeCast(
-          OpenSearchTypeFactory.convertExprTypeToRelDataType(targetType, true), arg, true, true);
+          OpenSearchTypeFactory.convertExprTypeToRelDataType(targetType), arg, true, true);
     }
     return resolveCommonType(argType, targetType)
         .map(
-            common ->
+            exprType ->
                 builder.makeCast(
-                    OpenSearchTypeFactory.convertExprTypeToRelDataType(common, true),
-                    arg,
-                    true,
-                    true))
+                    OpenSearchTypeFactory.convertExprTypeToRelDataType(exprType), arg, true, true))
         .orElse(null);
   }
 
+  /**
+   * Finds the widest type among the given arguments. The widest type is determined by applying the
+   * widening type rule to each pair of types in the arguments.
+   *
+   * @param arguments List of RexNode arguments to find the widest type from
+   * @return the widest ExprType if found, otherwise null
+   */
   private static @Nullable ExprType findWidestType(List<RexNode> arguments) {
     if (arguments.isEmpty()) {
-      return null;
+      return null; // No arguments to process
     }
-    ExprType widest = exprTypeOf(arguments.getFirst());
+    ExprType widestType =
+        OpenSearchTypeFactory.convertRelDataTypeToExprType(arguments.getFirst().getType());
     if (arguments.size() == 1) {
-      return widest;
+      return widestType;
     }
+
+    // Iterate pairwise through the arguments and find the widest type
     for (int i = 1; i < arguments.size(); i++) {
-      ExprType type = exprTypeOf(arguments.get(i));
+      var type = OpenSearchTypeFactory.convertRelDataTypeToExprType(arguments.get(i).getType());
       try {
-        final ExprType current = widest;
-        widest = resolveCommonType(widest, type).orElseGet(() -> max(current, type));
+        final ExprType tempType = widestType;
+        widestType = resolveCommonType(widestType, type).orElseGet(() -> max(tempType, type));
       } catch (ExpressionEvaluationException e) {
+        // the two types are not compatible, return null
         return null;
       }
     }
-    return widest;
+    return widestType;
   }
 
-  // -------- Common-type rules --------
+  private static boolean areDateAndTime(ExprType type1, ExprType type2) {
+    return (type1 == ExprCoreType.DATE && type2 == ExprCoreType.TIME)
+        || (type1 == ExprCoreType.TIME && type2 == ExprCoreType.DATE);
+  }
 
-  private static Optional<ExprType> resolveCommonType(ExprType left, ExprType right) {
+  @VisibleForTesting
+  public static Optional<ExprType> resolveCommonType(ExprType left, ExprType right) {
     return COMMON_COERCION_RULES.stream()
         .map(rule -> rule.apply(left, right))
         .flatMap(Optional::stream)
         .findFirst();
   }
 
-  private static boolean areDateAndTime(ExprType left, ExprType right) {
-    return (left == ExprCoreType.DATE && right == ExprCoreType.TIME)
-        || (left == ExprCoreType.TIME && right == ExprCoreType.DATE);
+  public static boolean hasString(List<RexNode> rexNodeList) {
+    return rexNodeList.stream()
+        .map(RexNode::getType)
+        .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+        .anyMatch(t -> t == ExprCoreType.STRING);
   }
+
+  private static final Set<ExprType> NUMBER_TYPES = ExprCoreType.numberTypes();
+
+  private static final List<CoercionRule> COMMON_COERCION_RULES =
+      List.of(
+          CoercionRule.of(
+              (left, right) -> areDateAndTime(left, right),
+              (left, right) -> ExprCoreType.TIMESTAMP),
+          CoercionRule.of(
+              (left, right) -> hasString(left, right) && hasNumber(left, right),
+              (left, right) -> ExprCoreType.DOUBLE),
+          // (BINARY, STRING) → BINARY: ip/binary columns compared with string literals.
+          // Triggers ExtendedRexBuilder.makeCast which wraps the literal with BINARY.
+          CoercionRule.of(
+              (left, right) -> hasString(left, right) && hasBinary(left, right),
+              (left, right) -> ExprCoreType.BINARY));
 
   private static boolean hasString(ExprType left, ExprType right) {
     return left == ExprCoreType.STRING || right == ExprCoreType.STRING;
@@ -186,21 +203,13 @@ public final class CoercionUtils {
     return NUMBER_TYPES.contains(left) || NUMBER_TYPES.contains(right);
   }
 
+  private static boolean hasBoolean(ExprType left, ExprType right) {
+    return left == ExprCoreType.BOOLEAN || right == ExprCoreType.BOOLEAN;
+  }
+
   private static boolean hasBinary(ExprType left, ExprType right) {
     return left == ExprCoreType.BINARY || right == ExprCoreType.BINARY;
   }
-
-  private static final Set<ExprType> NUMBER_TYPES = ExprCoreType.numberTypes();
-
-  private static final List<CoercionRule> COMMON_COERCION_RULES =
-      List.of(
-          CoercionRule.of(CoercionUtils::areDateAndTime, (l, r) -> ExprCoreType.TIMESTAMP),
-          CoercionRule.of(
-              (l, r) -> hasString(l, r) && hasNumber(l, r), (l, r) -> ExprCoreType.DOUBLE),
-          // (BINARY, STRING) → BINARY: ip/binary columns compared with string literals.
-          // ExtendedRexBuilder.makeCast wraps the literal into VARBINARY when it sees this.
-          CoercionRule.of(
-              (l, r) -> hasString(l, r) && hasBinary(l, r), (l, r) -> ExprCoreType.BINARY));
 
   private record CoercionRule(
       BiPredicate<ExprType, ExprType> predicate, BinaryOperator<ExprType> resolver) {
@@ -217,8 +226,6 @@ public final class CoercionUtils {
     }
   }
 
-  // -------- Widening distance --------
-
   private static final int IMPOSSIBLE_WIDENING = Integer.MAX_VALUE;
   private static final int TYPE_EQUAL = 0;
 
@@ -232,41 +239,52 @@ public final class CoercionUtils {
     } else if (type1 == UNKNOWN) {
       return IMPOSSIBLE_WIDENING;
     } else if (type1 == ExprCoreType.STRING && type2 == ExprCoreType.DOUBLE) {
-      return distance + 1;
+      return 1;
     } else {
       return type1.getParent().stream()
           .map(parentOfType1 -> distance(parentOfType1, type2, distance + 1))
           .reduce(Math::min)
-          .orElse(IMPOSSIBLE_WIDENING);
+          .get();
     }
-  }
-
-  private static int distance(List<ExprType> sourceTypes, List<ExprType> targetTypes) {
-    if (sourceTypes.size() != targetTypes.size()) {
-      return IMPOSSIBLE_WIDENING;
-    }
-    int total = 0;
-    for (int i = 0; i < sourceTypes.size(); i++) {
-      int d = distance(sourceTypes.get(i), targetTypes.get(i));
-      if (d == IMPOSSIBLE_WIDENING) {
-        return IMPOSSIBLE_WIDENING;
-      }
-      total += d;
-    }
-    return total;
   }
 
   /**
-   * The widest of two types: the one that the other can widen to. Throws if neither widens to the
-   * other.
+   * The max type among two types. The max is defined as follow if type1 could widen to type2, then
+   * max is type2, vice versa if type1 couldn't widen to type2 and type2 could't widen to type1,
+   * then throw {@link ExpressionEvaluationException}.
+   *
+   * @param type1 type1
+   * @param type2 type2
+   * @return the max type among two types.
    */
-  static ExprType max(ExprType type1, ExprType type2) {
-    int t1To2 = distance(type1, type2);
-    int t2To1 = distance(type2, type1);
-    if (t1To2 == IMPOSSIBLE_WIDENING && t2To1 == IMPOSSIBLE_WIDENING) {
+  public static ExprType max(ExprType type1, ExprType type2) {
+    int type1To2 = distance(type1, type2);
+    int type2To1 = distance(type2, type1);
+
+    if (type1To2 == Integer.MAX_VALUE && type2To1 == Integer.MAX_VALUE) {
       throw new ExpressionEvaluationException(
           String.format("no max type of %s and %s ", type1, type2));
+    } else {
+      return type1To2 == Integer.MAX_VALUE ? type1 : type2;
     }
-    return t1To2 == IMPOSSIBLE_WIDENING ? type1 : type2;
+  }
+
+  public static int distance(List<ExprType> sourceTypes, List<ExprType> targetTypes) {
+    if (sourceTypes.size() != targetTypes.size()) {
+      return IMPOSSIBLE_WIDENING;
+    }
+
+    int totalDistance = 0;
+    for (int i = 0; i < sourceTypes.size(); i++) {
+      ExprType source = sourceTypes.get(i);
+      ExprType target = targetTypes.get(i);
+      int distance = distance(source, target);
+      if (distance == IMPOSSIBLE_WIDENING) {
+        return IMPOSSIBLE_WIDENING;
+      } else {
+        totalDistance += distance;
+      }
+    }
+    return totalDistance;
   }
 }
