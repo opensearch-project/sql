@@ -142,6 +142,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MakeResults;
+import org.opensearch.sql.ast.tree.Multikv;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -197,6 +198,7 @@ import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.expression.function.multikv.MultikvParser;
 import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.utils.ParseUtils;
 import org.opensearch.sql.utils.WildcardRenameUtils;
@@ -4467,6 +4469,146 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     buildExpandRelNode(arrayFieldRex, fieldName, fieldName, mvExpand.getLimit(), context);
 
     return relBuilder.peek();
+  }
+
+  /**
+   * multikv (fixed-schema): rewrite to an equivalent pipeline using existing operators.
+   *
+   * <pre>
+   *   eval __multikv_record__ = MULTIKV_SPLIT(inField, forceHeader, noHeader, filter)  // array&lt;varchar&gt;
+   *   | mvexpand __multikv_record__                                                     // 1 -&gt; N rows
+   *   | eval &lt;col&gt; = MULTIKV_EXTRACT(__multikv_record__, '&lt;col&gt;')  for each declared field
+   *   | fields &lt;col1&gt;, &lt;col2&gt;, ...                                                      // declared output schema
+   * </pre>
+   *
+   * The output column names come from the declared {@code fields} list and are therefore known at
+   * plan time. When no {@code fields} clause is declared, the output schema is not determinable at
+   * plan time and is rejected with guidance to add a {@code fields} clause.
+   *
+   * <p>When the input field is an object or an array of objects instead of text, the command
+   * dispatches to a native rewrite: {@code mvexpand} an array (a single object needs no explosion),
+   * then read each declared column from the object with {@code ITEM}. This preserves value types
+   * and shares the {@code fields} contract.
+   */
+  @Override
+  public RelNode visitMultikv(Multikv node, CalcitePlanContext context) {
+    List<Field> fields = node.getFields();
+    boolean noFields = (fields == null || fields.isEmpty());
+
+    // Fixed-schema: named output columns must be declared via the fields clause. The only
+    // no-fields form that is supported is positional noheader, which produces row-explosion with
+    // no named columns (e.g. `... | multikv noheader=true | stats count`). Any other no-fields
+    // form (bare auto-header, or forceheader without fields) cannot yield a plan-time schema and
+    // is rejected here with guidance, rather than failing at execution.
+    if (noFields && !node.isNoHeader()) {
+      throw ErrorReport.wrap(
+              new SemanticCheckException(
+                  "multikv has no declared output columns. Add an explicit fields clause, for"
+                      + " example: multikv fields <col1> <col2>"))
+          .code(ErrorCode.FIELD_NOT_FOUND)
+          .location("while resolving the output schema for multikv")
+          .context("command", "multikv")
+          .build();
+    }
+
+    // Dispatch on the input field's type. A structured (array of objects) input is exploded
+    // natively with mvexpand and each declared column is read with ITEM, preserving element types.
+    // A text input falls through to the split pipeline below. The child is built once here to read
+    // its schema; the structured branch reuses that build, the text branch discards it.
+    boolean savedProjectVisited = context.isProjectVisited();
+    RelNode probe = node.getChild().get(0).accept(this, context);
+    RelDataTypeField probeField = probe.getRowType().getField(node.getInField(), true, false);
+    boolean structuredArray =
+        probeField != null
+            && (SqlTypeUtil.isArray(probeField.getType())
+                || SqlTypeUtil.isMultiset(probeField.getType()));
+    boolean structuredMap = probeField != null && SqlTypeUtil.isMap(probeField.getType());
+    if (structuredArray || structuredMap) {
+      RelBuilder relBuilder = context.relBuilder;
+      if (structuredArray) {
+        // Array of objects: one row per element. A single object (map) needs no explosion.
+        buildExpandRelNode(
+            relBuilder.field(node.getInField()),
+            node.getInField(),
+            node.getInField(),
+            null,
+            context);
+      }
+      if (noFields) {
+        return relBuilder.peek();
+      }
+      List<RexNode> projected = new ArrayList<>();
+      List<String> names = new ArrayList<>();
+      for (Field f : fields) {
+        String col = f.getField().toString();
+        RexNode item =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_ITEM,
+                relBuilder.field(node.getInField()),
+                context.rexBuilder.makeLiteral(
+                    col,
+                    context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                    true));
+        projected.add(item);
+        names.add(col);
+      }
+      relBuilder.project(projected, names);
+      context.setProjectVisited(true);
+      return relBuilder.peek();
+    }
+    // Text input: discard the probe build and run the split pipeline on a fresh build.
+    context.relBuilder.build();
+    context.setProjectVisited(savedProjectVisited);
+
+    final String lineField = "__multikv_record__";
+    final int forceHeader = node.getForceHeader() == null ? -1 : node.getForceHeader();
+    final String filterJoined =
+        (node.getFilterTerms() == null || node.getFilterTerms().isEmpty())
+            ? ""
+            : String.join(MultikvParser.FS, node.getFilterTerms());
+
+    // 1. eval __multikv_record__ = MULTIKV_SPLIT(inField, forceHeader, noHeader, filter)
+    UnresolvedPlan plan =
+        AstDSL.eval(
+            node.getChild().get(0),
+            AstDSL.let(
+                AstDSL.field(lineField),
+                AstDSL.function(
+                    "multikv_split",
+                    AstDSL.field(node.getInField()),
+                    AstDSL.intLiteral(forceHeader),
+                    AstDSL.booleanLiteral(node.isNoHeader()),
+                    AstDSL.stringLiteral(filterJoined))));
+
+    // 2. mvexpand __multikv_record__ (one row per table data row)
+    plan = new MvExpand(AstDSL.field(lineField), null).attach(plan);
+
+    if (noFields) {
+      // Positional noheader, no named columns: row-explosion only. The helper record column is
+      // retained (downstream typically only counts rows). Naming positional columns is deferred.
+      return plan.accept(this, context);
+    }
+
+    // 3. eval each declared column = MULTIKV_EXTRACT(__multikv_record__, '<col>')
+    Let[] lets =
+        fields.stream()
+            .map(
+                f -> {
+                  String col = f.getField().toString();
+                  return AstDSL.let(
+                      AstDSL.field(col),
+                      AstDSL.function(
+                          "multikv_extract", AstDSL.field(lineField), AstDSL.stringLiteral(col)));
+                })
+            .toArray(Let[]::new);
+    plan = AstDSL.eval(plan, lets);
+
+    // 4. project the declared columns only (drops original event fields and the helper record)
+    UnresolvedExpression[] projections = fields.toArray(new UnresolvedExpression[0]);
+    plan = AstDSL.project(plan, projections);
+
+    return plan.accept(this, context);
   }
 
   @Override

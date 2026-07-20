@@ -42,6 +42,25 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMultikvFieldsCommand() {
+    assertEquals(
+        "source=table | multikv fields identifier", anonymize("source=t | multikv fields pctIdle"));
+  }
+
+  @Test
+  public void testMultikvForceHeaderCommand() {
+    assertEquals(
+        "source=table | multikv fields identifier forceheader=***",
+        anonymize("source=t | multikv fields endpoint forceheader=2"));
+  }
+
+  @Test
+  public void testMultikvNoHeaderCommand() {
+    assertEquals(
+        "source=table | multikv noheader=true", anonymize("source=t | multikv noheader=true"));
+  }
+
+  @Test
   public void testTableFunctionCommand() {
     assertEquals(
         "source=prometheus.query_range(***,***,***,***)",

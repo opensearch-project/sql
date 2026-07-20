@@ -99,6 +99,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.Multikv;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -1074,6 +1075,38 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     return new MvExpand(field, limit);
+  }
+
+  @Override
+  public UnresolvedPlan visitMultikvCommand(OpenSearchPPLParser.MultikvCommandContext ctx) {
+    List<Field> fields = null;
+    String inField = Multikv.DEFAULT_INPUT_FIELD;
+    Integer forceHeader = null;
+    boolean noHeader = false;
+    boolean rmOrig = true; // Splunk default
+
+    for (OpenSearchPPLParser.MultikvParameterContext p : ctx.multikvParameter()) {
+      if (p.fields != null) {
+        fields =
+            p.fields.fieldExpression().stream()
+                .map(f -> (Field) expressionBuilder.visit(f))
+                .collect(Collectors.toList());
+      } else if (p.inField != null) {
+        inField = p.inField.getText();
+      } else if (p.forceHeader != null) {
+        forceHeader = Integer.parseInt(p.forceHeader.getText());
+        if (forceHeader <= 0) {
+          throw new IllegalArgumentException(
+              "multikv forceheader must be a positive line number, got: " + forceHeader);
+        }
+      } else if (p.noHeader != null) {
+        noHeader = Boolean.parseBoolean(p.noHeader.getText());
+      } else if (p.rmOrig != null) {
+        rmOrig = Boolean.parseBoolean(p.rmOrig.getText());
+      }
+    }
+
+    return new Multikv(inField, fields, null, forceHeader, noHeader, rmOrig);
   }
 
   @Override
