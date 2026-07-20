@@ -54,6 +54,7 @@ import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -87,6 +88,8 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Foreach;
+import org.opensearch.sql.ast.tree.Foreach.ForeachEvalClause;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
@@ -111,7 +114,6 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.ReplacePair;
-import org.opensearch.sql.ast.tree.RestRelation;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -146,7 +148,6 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 import org.opensearch.sql.ppl.utils.MakeResultsDataParser;
 import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
-import org.opensearch.sql.utils.SystemIndexUtils;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
@@ -256,37 +257,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitShowDataSourcesCommand(
       OpenSearchPPLParser.ShowDataSourcesCommandContext ctx) {
     return new DescribeRelation(qualifiedName(DATASOURCES_TABLE_NAME));
-  }
-
-  /**
-   * <b>Rest command.</b><br>
-   * Leading command that reads an allow-listed, read-only in-cluster management endpoint
-   * (cluster/cat/nodes) as rows. The validated endpoint spec is encoded into a single reserved
-   * table name via {@link org.opensearch.sql.utils.SystemIndexUtils#restTable}; that name resolves
-   * through the storage engine to a REST source table on the Calcite path, mirroring how DESCRIBE
-   * resolves to a system index. Allow-list/authorization enforcement happens at source-table
-   * construction in the storage engine (it owns the transport actions and per-endpoint schemas).
-   */
-  @Override
-  public UnresolvedPlan visitRestCommand(OpenSearchPPLParser.RestCommandContext ctx) {
-    String endpoint = StringUtils.unquoteText(ctx.stringLiteral().getText());
-    LinkedHashMap<String, String> args = new LinkedHashMap<>();
-    Integer count = null;
-    String timeout = null;
-    for (OpenSearchPPLParser.RestArgumentContext arg : ctx.restArgument()) {
-      if (arg.COUNT() != null) {
-        count = Integer.parseInt(arg.integerLiteral().getText());
-      } else if (arg.TIMEOUT() != null) {
-        timeout = StringUtils.unquoteText(arg.stringLiteral().getText());
-      } else {
-        args.put(
-            StringUtils.unquoteIdentifier(arg.ident().getText()),
-            StringUtils.unquoteText(arg.literalValue().getText()));
-      }
-    }
-    String token =
-        SystemIndexUtils.restTable(new SystemIndexUtils.RestSpec(endpoint, args, count, timeout));
-    return new RestRelation(new QualifiedName(token));
   }
 
   /** makeresults command. */
@@ -949,6 +919,66 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.evalClause().stream()
             .map(ct -> (Let) internalVisitExpression(ct))
             .collect(Collectors.toList()));
+  }
+
+  @Override
+  public UnresolvedPlan visitForeachCommand(OpenSearchPPLParser.ForeachCommandContext ctx) {
+    java.util.Map<String, String> options = new LinkedHashMap<>();
+    List<UnresolvedExpression> targets = new ArrayList<>();
+    List<String> patterns = new ArrayList<>();
+    for (OpenSearchPPLParser.ForeachArgumentContext argument : ctx.foreachArgument()) {
+      OpenSearchPPLParser.ForeachOptionContext option = argument.foreachOption();
+      if (option != null) {
+        options.put(
+            option.ident(0).getText().toLowerCase(Locale.ROOT),
+            stripForeachPlaceholderMarkers(option.getChild(2).getText()));
+      } else {
+        OpenSearchPPLParser.ForeachTargetContext target = argument.foreachTarget();
+        patterns.add(getTextInQuery(target));
+        if (target.functionCall() != null) {
+          targets.add(expressionBuilder.visit(target.functionCall()));
+        } else if (target.stringLiteral() != null) {
+          targets.add(expressionBuilder.visit(target.stringLiteral()));
+        } else {
+          targets.add(new Field(new QualifiedName(getTextInQuery(target))));
+        }
+      }
+    }
+    Foreach.Mode mode =
+        options.containsKey("mode")
+            ? Foreach.Mode.of(options.get("mode"))
+            : inferForeachMode(targets);
+    UnresolvedExpression collectionExpression = null;
+    if (mode != Foreach.Mode.MULTIFIELD) {
+      if (targets.size() > 1 || (targets.isEmpty() && mode != Foreach.Mode.AUTO_COLLECTIONS)) {
+        throw new IllegalArgumentException("foreach collection modes accept exactly one field");
+      }
+      collectionExpression = targets.isEmpty() ? null : targets.get(0);
+    }
+    List<ForeachEvalClause> evalClauses =
+        ctx.foreachEvalCommand().foreachEvalClause().stream()
+            .map(
+                clause ->
+                    new ForeachEvalClause(
+                        getTextInQuery(clause.target),
+                        expressionBuilder.visit(clause.logicalExpression())))
+            .collect(Collectors.toList());
+    return new Foreach(mode, options, patterns, collectionExpression, evalClauses);
+  }
+
+  private String stripForeachPlaceholderMarkers(String value) {
+    return value.startsWith("<<") && value.endsWith(">>")
+        ? value.substring(2, value.length() - 2)
+        : value;
+  }
+
+  /** A bare json_array(...) target implies json_array mode; anything else is multifield. */
+  private Foreach.Mode inferForeachMode(List<UnresolvedExpression> targets) {
+    return targets.size() == 1
+            && targets.get(0) instanceof Function function
+            && "json_array".equalsIgnoreCase(function.getFuncName())
+        ? Foreach.Mode.JSON_ARRAY
+        : Foreach.Mode.MULTIFIELD;
   }
 
   @Override

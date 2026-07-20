@@ -33,19 +33,6 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testRest() throws IOException {
-    JSONObject result;
-    try {
-      result = executeQuery("| rest '/_cluster/health' | fields status, number_of_nodes");
-    } catch (ResponseException e) {
-      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
-    }
-    if (isCalciteEnabled()) {
-      assertFalse(result.getJSONArray("datarows").isEmpty());
-    }
-  }
-
-  @Test
   public void testJoin() throws IOException {
     JSONObject result;
     try {

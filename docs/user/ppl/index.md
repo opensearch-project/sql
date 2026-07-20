@@ -74,7 +74,6 @@ source=accounts
 | [lookup command](cmd/lookup.md) | 3.0 | experimental (since 3.0) | Add or replace data from a lookup index. |
 | [multisearch command](cmd/multisearch.md) | 3.4 | experimental (since 3.4) | Execute multiple search queries and combine their results. |
 | [union command](cmd/union.md) | 3.7 | experimental (since 3.7) | Combine results from multiple datasets using UNION ALL semantics. |
-| [rest command](cmd/rest.md) | 3.8 | experimental (since 3.8) | Read an allow-listed, read-only in-cluster management endpoint (cluster/cat/nodes) as rows. Calcite engine only. |
 | [ml command](cmd/ml.md) | 2.5 | stable (since 2.5) | Apply machine learning algorithms to analyze data. |
 | [kmeans command](cmd/kmeans.md) | 1.3 | stable (since 1.3) | Apply the kmeans algorithm on the search result returned by a PPL command. |
 | [ad command](cmd/ad.md) | 1.3 | deprecated (since 2.5) | Apply Random Cut Forest algorithm on the search result returned by a PPL command. |

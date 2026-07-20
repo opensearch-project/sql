@@ -74,6 +74,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Foreach;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
@@ -575,6 +576,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitGraphLookup(GraphLookup node, AnalysisContext context) {
     throw getOnlyForCalciteException("graphlookup");
+  }
+
+  @Override
+  public LogicalPlan visitForeach(Foreach node, AnalysisContext context) {
+    throw getOnlyForCalciteException("foreach");
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */

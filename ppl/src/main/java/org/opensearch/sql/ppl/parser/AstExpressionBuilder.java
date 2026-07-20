@@ -124,6 +124,18 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Let((Field) visit(ctx.fieldExpression()), visit(ctx.logicalExpression()));
   }
 
+  @Override
+  public UnresolvedExpression visitForeachPlaceholderExpr(
+      OpenSearchPPLParser.ForeachPlaceholderExprContext ctx) {
+    return visit(ctx.foreachPlaceholder());
+  }
+
+  @Override
+  public UnresolvedExpression visitForeachPlaceholder(
+      OpenSearchPPLParser.ForeachPlaceholderContext ctx) {
+    return new ForeachPlaceholder(ctx.foreachPlaceholderName().getText());
+  }
+
   /** Field format eval clause - similar to evalClause but for fieldformat command. */
   @Override
   public UnresolvedExpression visitFieldFormatEvalClause(

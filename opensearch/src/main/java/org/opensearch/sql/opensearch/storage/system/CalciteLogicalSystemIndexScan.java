@@ -14,35 +14,35 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
-import org.opensearch.sql.opensearch.planner.rules.EnumerableCatalogScanRule;
+import org.opensearch.sql.opensearch.planner.rules.EnumerableSystemIndexScanRule;
 
-/** The logical relational operator representing a scan of an {@link OpenSearchCatalogTable}. */
-public class CalciteLogicalCatalogScan extends AbstractCalciteCatalogScan {
+/** The logical relational operator representing a scan of an OpenSearchSystemIndex type. */
+public class CalciteLogicalSystemIndexScan extends AbstractCalciteSystemIndexScan {
 
-  public CalciteLogicalCatalogScan(
-      RelOptCluster cluster, RelOptTable table, OpenSearchCatalogTable catalogTable) {
+  public CalciteLogicalSystemIndexScan(
+      RelOptCluster cluster, RelOptTable table, OpenSearchSystemIndex sysIndex) {
     this(
         cluster,
         cluster.traitSetOf(Convention.NONE),
         ImmutableList.of(),
         table,
-        catalogTable,
+        sysIndex,
         table.getRowType());
   }
 
-  protected CalciteLogicalCatalogScan(
+  protected CalciteLogicalSystemIndexScan(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       List<RelHint> hints,
       RelOptTable table,
-      OpenSearchCatalogTable catalogTable,
+      OpenSearchSystemIndex sysIndex,
       RelDataType schema) {
-    super(cluster, traitSet, hints, table, catalogTable, schema);
+    super(cluster, traitSet, hints, table, sysIndex, schema);
   }
 
   @Override
   public void register(RelOptPlanner planner) {
     super.register(planner);
-    planner.addRule(EnumerableCatalogScanRule.DEFAULT_CONFIG.toRule());
+    planner.addRule(EnumerableSystemIndexScanRule.DEFAULT_CONFIG.toRule());
   }
 }

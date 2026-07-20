@@ -13,8 +13,6 @@ options { caseInsensitive = true; }
 SEARCH:                             'SEARCH';
 DESCRIBE:                           'DESCRIBE';
 SHOW:                               'SHOW';
-REST:                               'REST';
-TIMEOUT:                            'TIMEOUT';
 MAKERESULTS:                        'MAKERESULTS';
 FORMAT:                             'FORMAT';
 CSV:                                'CSV';
@@ -32,6 +30,7 @@ STREAMSTATS:                        'STREAMSTATS';
 DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
+FOREACH:                            'FOREACH';
 FIELDFORMAT:                        'FIELDFORMAT';
 HEAD:                               'HEAD';
 BIN:                                'BIN';
