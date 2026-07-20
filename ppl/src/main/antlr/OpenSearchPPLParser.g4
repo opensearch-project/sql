@@ -46,6 +46,7 @@ subSearch
 pplCommands
    : describeCommand
    | showDataSourcesCommand
+   | makeresultsCommand
    | searchCommand
    | multisearchCommand
    | graphLookupCommand
@@ -154,6 +155,7 @@ commandName
    | TRANSPOSE
    | GRAPHLOOKUP
    | TIMEWRAP
+   | MAKERESULTS
    ;
 
 searchCommand
@@ -213,6 +215,16 @@ describeCommand
 
 showDataSourcesCommand
    : SHOW DATASOURCES
+   ;
+
+makeresultsCommand
+   : MAKERESULTS makeresultsArg*
+   ;
+
+makeresultsArg
+   : COUNT EQUAL integerLiteral
+   | FORMAT EQUAL (CSV | JSON)
+   | DATA EQUAL stringLiteral
    ;
 
 whereCommand
@@ -1764,6 +1776,9 @@ searchableKeyWord
    // ARGUMENT KEYWORDS
    | KEEPEMPTY
    | CONSECUTIVE
+   | FORMAT
+   | CSV
+   | DATA
    | DEDUP_SPLITVALUES
    | PARTITIONS
    | ALLNUM

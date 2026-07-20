@@ -81,6 +81,7 @@ import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.OutputLookup;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -1106,6 +1107,12 @@ public class AstBuilderTest extends AstPlanningTestBase {
   @Test
   public void testDescribeCommand() {
     assertEqual("describe t", describe(mappingTable("t")));
+  }
+
+  @Test
+  public void testMakeResultsCommand() {
+    assertEqual("makeresults", new MakeResults(1));
+    assertEqual("makeresults count=5", new MakeResults(5));
   }
 
   @Test
