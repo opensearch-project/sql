@@ -219,7 +219,7 @@ public class DataTypeIT extends PPLIntegTestCase {
       client().performRequest(createIndex);
 
       Request insertDoc = new Request("PUT", "/" + index + "/_doc/1?refresh=true");
-      insertDoc.setJsonEntity("{\"message\":\"hello\"}");
+      insertDoc.setJsonEntity("{\"tenant\":\"acme\",\"message\":\"hello\"}");
       client().performRequest(insertDoc);
 
       JSONObject result = executeQuery(String.format("source=%s | fields tenant, message", index));
