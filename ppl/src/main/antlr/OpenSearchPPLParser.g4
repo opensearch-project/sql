@@ -487,6 +487,7 @@ rareTopCommand
 rareTopOption
    : COUNTFIELD EQUAL countField = stringLiteral
    | SHOWCOUNT EQUAL showCount = booleanLiteral
+   | SHOWPERC EQUAL showPerc = booleanLiteral
    | USENULL EQUAL useNull = booleanLiteral
    ;
 
@@ -1791,6 +1792,7 @@ searchableKeyWord
    | ANOMALY_SCORE_THRESHOLD
    | COUNTFIELD
    | SHOWCOUNT
+   | SHOWPERC
    | MAXOUT
    | PATH
    | INPUT

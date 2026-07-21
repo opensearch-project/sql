@@ -406,18 +406,36 @@ public class PPLQueryDataAnonymizerTest {
   public void testRareCommandWithGroupByWithCalcite() {
     when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals(
-        "source=table | rare 10 countield='count' showcount=true usenull=true identifier by"
-            + " identifier",
+        "source=table | rare 10 countfield='count' showcount=true showperc=false usenull=true"
+            + " identifier by identifier",
         anonymize("source=t | rare a by b"));
+  }
+
+  @Test
+  public void testRareCommandWithShowPercWithCalCite() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
+    assertEquals(
+        "source=table | rare 10 countfield='count' showcount=true showperc=true usenull=true"
+            + " identifier",
+        anonymize("source=t | rare showperc=true a "));
   }
 
   @Test
   public void testTopCommandWithNAndGroupByWithCalcite() {
     when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals(
-        "source=table | top 1 countield='count' showcount=true usenull=true identifier by"
-            + " identifier",
+        "source=table | top 1 countfield='count' showcount=true showperc=false usenull=true"
+            + " identifier by identifier",
         anonymize("source=t | top 1 a by b"));
+  }
+
+  @Test
+  public void testTopCommandWithShowPercWithCalcite() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
+    assertEquals(
+        "source=table | top 1 countfield='count' showcount=true showperc=true usenull=true"
+            + " identifier by identifier",
+        anonymize("source=t | top 1 showperc=true a by b"));
   }
 
   @Test

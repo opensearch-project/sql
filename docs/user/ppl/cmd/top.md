@@ -20,7 +20,7 @@ The `top` command supports the following parameters.
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `<N>` | Optional | The number of results to return. Default is `10`. |
-| `top-options` | Optional | `showcount`: Whether to create a field in the output that represents a count of the tuple of values. Default is `true`.<br>`countfield`: The name of the field that contains the count. Default is `count`.<br>`usenull`: Whether to output `null` values. Default is the value of `plugins.ppl.syntax.legacy.preferred`. |
+| `top-options` | Optional | `showcount`: Whether to create a field in the output that represents a count of the tuple of values. Default is `true`.<br>`countfield`: The name of the field that contains the count. Default is `count`.<br>`showperc`: Whether to create a field in the output that represents the percentage of the count relative to the total. Default is `false`.<br>`usenull`: Whether to output `null` values. Default is the value of `plugins.ppl.syntax.legacy.preferred`. |
 | `<field-list>` | Required | A comma-delimited list of field names.  |
 | `<by-clause>` | Optional | One or more fields to group the results by. |
 
@@ -139,7 +139,30 @@ fetched rows / total rows = 7/7
 +----------------------------------+--------------+
 ```
 
-## Example 6: Specifying null value handling
+## Example 6: Displaying percentages
+
+The following query finds the most common severity levels and shows the percentage each represents:
+
+```ppl
+source=otellogs
+| top showperc=true severityText
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 4/4
++--------------+-------+---------+
+| severityText | count | percent |
+|--------------+-------+---------|
+| ERROR        | 7     | 35.0    |
+| INFO         | 6     | 30.0    |
+| WARN         | 4     | 20.0    |
+| DEBUG        | 3     | 15.0    |
++--------------+-------+---------+
+```
+
+## Example 7: Specifying null value handling
 
 The following query specifies `usenull=false` to exclude null values:
 
