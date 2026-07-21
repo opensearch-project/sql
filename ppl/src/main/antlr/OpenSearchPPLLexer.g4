@@ -60,6 +60,7 @@ APPENDCOL:                          'APPENDCOL';
 ADDTOTALS:                          'ADDTOTALS';
 ADDCOLTOTALS:                       'ADDCOLTOTALS';
 GRAPHLOOKUP:                        'GRAPHLOOKUP';
+XYSERIES:                           'XYSERIES';
 TIMEWRAP:                           'TIMEWRAP';
 ALIGN:                              'ALIGN';
 SERIES:                             'SERIES';
