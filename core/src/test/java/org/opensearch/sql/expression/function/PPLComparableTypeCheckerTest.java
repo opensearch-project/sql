@@ -64,16 +64,18 @@ class PPLComparableTypeCheckerTest {
 
   @Test
   void plainBinaryVsBinaryUdtAreComparable() {
-    // Regression: VARBINARY / BINARY both map to ExprCoreType.BINARY, as does EXPR_BINARY UDT.
+    // Guardrail: any future refactor of isComparable that classifies via SqlTypeFamily or Java
+    // class would break this pair — VARBINARY (family=BINARY) and EXPR_BINARY (VARCHAR-backed
+    // UDT) look unrelated at that level, but both map to ExprCoreType.BINARY and must compare.
     assertTrue(comparable(sql(SqlTypeName.VARBINARY), udt(ExprUDT.EXPR_BINARY)));
     assertTrue(comparable(udt(ExprUDT.EXPR_BINARY), sql(SqlTypeName.VARBINARY)));
   }
 
   @Test
   void dayTimeAndYearMonthIntervalsAreComparable() {
-    // Regression: Calcite splits INTERVAL into day-time and year-month SqlTypeFamilies, but
-    // convertRelDataTypeToExprType maps every interval SqlTypeName to ExprCoreType.INTERVAL,
-    // so shouldCast is false and both should be comparable in the PPL sense.
+    // Guardrail: Calcite splits INTERVAL into day-time and year-month SqlTypeFamilies, so a
+    // family-based check would reject this pair. convertRelDataTypeToExprType collapses every
+    // interval SqlTypeName to ExprCoreType.INTERVAL, so shouldCast is false and both compare.
     assertTrue(comparable(interval(TimeUnit.DAY), interval(TimeUnit.YEAR)));
     assertTrue(comparable(interval(TimeUnit.HOUR), interval(TimeUnit.MONTH)));
   }
