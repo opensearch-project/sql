@@ -4093,6 +4093,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     String format = node.getFormat();
 
     // Build the pivot axis - cast to VARCHAR if needed for string comparison
+    RexNode yNameRef = b.field(yNameFieldName);
     RelDataType yNameType = yNameRef.getType();
     RexNode axis;
     if (!SqlTypeUtil.isCharacter(yNameRef.getType())) {
