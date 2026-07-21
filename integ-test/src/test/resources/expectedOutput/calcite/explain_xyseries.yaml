@@ -2,7 +2,7 @@ calcite:
   logical: |
     LogicalSystemLimit(sort0=[$0], dir0=[ASC], fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalSort(sort0=[$0], dir0=[ASC])
-        LogicalProject(state=[$0], avg_balance: F=[$1], avg_balance: M=[$2])
+        LogicalProject(state=[$0], F=[$1], M=[$2])
           LogicalAggregate(group=[{1}], F_avg_balance=[MAX($0) FILTER $2], M_avg_balance=[MAX($0) FILTER $3])
             LogicalProject(avg_balance=[$2], state=[$1], $f3=[IS TRUE(=($0, 'F'))], $f4=[IS TRUE(=($0, 'M'))])
               LogicalAggregate(group=[{0, 1}], avg_balance=[AVG($2)])
