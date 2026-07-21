@@ -61,6 +61,8 @@ ADDTOTALS:                          'ADDTOTALS';
 ADDCOLTOTALS:                       'ADDCOLTOTALS';
 GRAPHLOOKUP:                        'GRAPHLOOKUP';
 XYSERIES:                           'XYSERIES';
+SEP:                                'SEP';
+FORMAT:                             'FORMAT';
 TIMEWRAP:                           'TIMEWRAP';
 ALIGN:                              'ALIGN';
 SERIES:                             'SERIES';
