@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
@@ -33,6 +34,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 
 /**
  * A custom type checker interface for PPL (Piped Processing Language) functions.
@@ -272,13 +274,16 @@ public interface PPLTypeChecker {
     }
 
     /**
-     * Modified from {@link SqlTypeUtil#isComparable(RelDataType, RelDataType)} for PPL semantics.
+     * Modified from {@link SqlTypeUtil#isComparable(RelDataType, RelDataType)} to accommodate PPL
+     * semantics: comparability follows the ExprType lattice (via {@code shouldCast}), so a UDT
+     * temporal / IP / binary compares to any RelDataType that maps to the same {@link ExprType}.
      *
      * @param type1 first type
      * @param type2 second type
      * @return true if the two types are comparable, false otherwise
      */
-    private static boolean isComparable(RelDataType type1, RelDataType type2) {
+    @VisibleForTesting
+    static boolean isComparable(RelDataType type1, RelDataType type2) {
       if (type1.isStruct() != type2.isStruct()) {
         return false;
       }
@@ -302,31 +307,10 @@ public interface PPLTypeChecker {
         return true;
       }
 
-      // Same UDT kind is comparable. Compare via the ExprUDT tag (not the concrete Java class),
-      // because createTypeWithNullability on an AbstractExprRelDataType returns a plain ExprSqlType
-      // that loses the concrete subclass identity.
-      if (type1 instanceof AbstractExprRelDataType<?> udt1
-          && type2 instanceof AbstractExprRelDataType<?> udt2
-          && udt1.getUdt() == udt2.getUdt()) {
+      ExprType exprType1 = OpenSearchTypeFactory.convertRelDataTypeToExprType(type1);
+      ExprType exprType2 = OpenSearchTypeFactory.convertRelDataTypeToExprType(type2);
+      if (!exprType1.shouldCast(exprType2)) {
         return true;
-      }
-
-      // Temporal UDT vs standard temporal of the same kind is comparable (widening produced by
-      // findWidestType may leave a standard TIMESTAMP field alongside a UDT temporal literal).
-      if (temporalKind(type1) != null && temporalKind(type1) == temporalKind(type2)) {
-        return true;
-      }
-
-      // Plain types are comparable when their SqlTypeFamily matches (CHAR vs VARCHAR, INTEGER vs
-      // BIGINT, BOOLEAN vs BOOLEAN, etc.). UDTs are excluded since they share the underlying
-      // VARCHAR family but should not be transparently comparable to plain strings here.
-      if (!(type1 instanceof AbstractExprRelDataType<?>)
-          && !(type2 instanceof AbstractExprRelDataType<?>)) {
-        SqlTypeFamily family1 = type1.getSqlTypeName().getFamily();
-        SqlTypeFamily family2 = type2.getSqlTypeName().getFamily();
-        if (family1 != null && family1 == family2) {
-          return true;
-        }
       }
 
       // If one of the arguments is of type 'ANY', return true.
@@ -587,23 +571,6 @@ public interface PPLTypeChecker {
       return false;
     }
     return expected.getSqlTypeName() == actual.getSqlTypeName();
-  }
-
-  /** Returns DATE / TIME / TIMESTAMP for either UDT or standard temporal types; null otherwise. */
-  private static SqlTypeName temporalKind(RelDataType type) {
-    if (type instanceof AbstractExprRelDataType<?> udt) {
-      return switch (udt.getUdt()) {
-        case EXPR_DATE -> SqlTypeName.DATE;
-        case EXPR_TIME -> SqlTypeName.TIME;
-        case EXPR_TIMESTAMP -> SqlTypeName.TIMESTAMP;
-        default -> null;
-      };
-    }
-    SqlTypeName name = type.getSqlTypeName();
-    if (name == SqlTypeName.DATE || name == SqlTypeName.TIME || name == SqlTypeName.TIMESTAMP) {
-      return name;
-    }
-    return null;
   }
 
   // Util Functions
