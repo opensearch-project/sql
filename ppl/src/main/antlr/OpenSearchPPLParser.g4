@@ -1872,5 +1872,4 @@ searchableKeyWord
    | DEPTH_FIELD
    | EDGE
    | SEP
-   | FORMAT
    ;
