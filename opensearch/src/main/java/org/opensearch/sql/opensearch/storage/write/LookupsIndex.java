@@ -13,24 +13,19 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
- * The single shared index that co-locates every lookup as rows tagged {@code __lookup=<uuid>}
- * behind a filtered alias, the same artifact the Dashboards data importer produces.
- *
- * <p>It is a normal hidden index, not a registered system index, so a lookup stays readable by a
- * user through its alias (a system index would block that read for non-system callers). Its uniform
- * dynamic template maps every string field to {@code text} plus {@code keyword} and disables
- * content-based detection, so lookups sharing the index never collide on field type and typing is
- * deterministic.
+ * Creates a lookup backing index: an ordinary non-hidden index, per-lookup by default so it owns
+ * its mapping and write boundary. Its dynamic template types every string as {@code text} plus
+ * {@code keyword} with detection off, so lookups sharing an index type deterministically.
  */
 public final class LookupsIndex {
 
   private LookupsIndex() {}
 
-  /** Fixed, single, not-configurable shared lookup store. */
-  public static final String INDEX_NAME = ".lookups";
-
-  /** Per-row discriminant; matches the Dashboards importer constant. */
+  /** Per-row lookup slice discriminant. */
   public static final String LOOKUP_FIELD = "__lookup";
+
+  /** Suffix of the dedicated per-lookup backing index derived from the lookup name. */
+  public static final String BACKING_SUFFIX = "__lookup";
 
   private static Map<String, Object> mappings() {
     Map<String, Object> stringAsTextAndKeyword =
@@ -55,22 +50,19 @@ public final class LookupsIndex {
   }
 
   private static Settings settings() {
-    return Settings.builder()
-        .put("index.hidden", true)
-        .put("index.mapping.total_fields.limit", 2000)
-        .build();
+    return Settings.builder().put("index.mapping.total_fields.limit", 2000).build();
   }
 
-  public static CreateIndexRequest createRequest() {
-    return new CreateIndexRequest(INDEX_NAME).mapping(mappings()).settings(settings());
+  public static CreateIndexRequest createRequest(String index) {
+    return new CreateIndexRequest(index).mapping(mappings()).settings(settings());
   }
 
-  /** Create {@code .lookups} with its template if absent; a concurrent create is a no-op. */
-  public static void ensureExists(NodeClient client) {
+  /** Create {@code index} with its template if absent; a concurrent create is a no-op. */
+  public static void ensureExists(NodeClient client, String index) {
     try {
-      client.admin().indices().create(createRequest()).actionGet();
+      client.admin().indices().create(createRequest(index)).actionGet();
     } catch (ResourceAlreadyExistsException alreadyExists) {
-      // Created concurrently.
+      // Created concurrently, or already present from a prior write.
     }
   }
 }

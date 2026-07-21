@@ -33,6 +33,8 @@ import org.opensearch.transport.client.node.NodeClient;
  */
 public final class OpenSearchBulkWriter implements AutoCloseable {
 
+  private static final TimeValue RETRY_TIMEOUT = TimeValue.timeValueSeconds(60);
+
   private final NodeClient client;
   private final WriteConfig cfg;
 
@@ -88,6 +90,7 @@ public final class OpenSearchBulkWriter implements AutoCloseable {
     buffered = 0;
 
     Iterator<TimeValue> backoff = BackoffPolicy.exponentialBackoff().iterator();
+    long deadlineNanos = System.nanoTime() + RETRY_TIMEOUT.nanos();
     while (true) {
       BulkResponse response = client.bulk(pending).actionGet();
       if (!response.hasFailures()) {
@@ -116,12 +119,16 @@ public final class OpenSearchBulkWriter implements AutoCloseable {
       if (retry.numberOfActions() == 0) {
         return;
       }
-      if (!backoff.hasNext()) {
+      if (!backoff.hasNext() || System.nanoTime() >= deadlineNanos) {
         List<ItemFailure> exhausted = new ArrayList<>();
         for (int i = 0; i < retry.numberOfActions(); i++) {
           exhausted.add(new ItemFailure(i, null, "429 retry budget exhausted"));
         }
-        throw new BulkWriteException("outputlookup bulk write exhausted 429 retries", exhausted);
+        throw new BulkWriteException(
+            "outputlookup bulk write exhausted 429 retries or hit the "
+                + RETRY_TIMEOUT
+                + " retry timeout",
+            exhausted);
       }
       try {
         Thread.sleep(backoff.next().millis());

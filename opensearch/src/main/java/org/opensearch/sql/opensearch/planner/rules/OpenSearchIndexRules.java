@@ -20,6 +20,10 @@ public class OpenSearchIndexRules {
       EnumerableGraphLookupRule.DEFAULT_CONFIG.toRule();
   private static final RelOptRule OUTPUT_LOOKUP_RULE =
       EnumerableOutputLookupRule.DEFAULT_CONFIG.toRule();
+
+  public static final List<RelOptRule> WRITE_CONVERSION_RULES =
+      ImmutableList.of(OUTPUT_LOOKUP_RULE);
+
   // Rule that always pushes down relevance functions regardless of pushdown settings
   private static final RelevanceFunctionPushdownRule RELEVANCE_FUNCTION_RULE =
       RelevanceFunctionPushdownRule.Config.DEFAULT.toRule();

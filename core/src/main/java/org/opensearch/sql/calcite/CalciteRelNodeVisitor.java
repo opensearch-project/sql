@@ -930,10 +930,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitOutputLookup(
       org.opensearch.sql.ast.tree.OutputLookup node, CalcitePlanContext context) {
     visitChildren(node, context);
-    String indexName = node.getIndexName();
-    if (indexName.startsWith(".")) {
+    String name = node.getIndexName();
+    if (name.startsWith(".")) {
       throw new IllegalArgumentException(
-          "outputlookup destination [" + indexName + "] must not be a system (dot-prefixed) index");
+          "outputlookup lookup name [" + name + "] must not be dot-prefixed");
     }
     RelNode child = context.relBuilder.build();
     // Validate key_field names against the result schema: a missing/misspelled key field would
@@ -950,41 +950,33 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         }
       }
     }
-    org.apache.calcite.plan.RelOptTable sourceTable = findSourceTable(child);
-    if (sourceTable == null) {
-      throw new IllegalArgumentException(
-          "outputlookup requires an OpenSearch source scan in the pipeline");
-    }
     org.apache.calcite.plan.RelOptSchema relOptSchema = context.relBuilder.getRelOptSchema();
-    if (!(relOptSchema instanceof org.apache.calcite.prepare.Prepare.CatalogReader)) {
+    if (!(relOptSchema instanceof org.apache.calcite.prepare.Prepare.CatalogReader catalogReader)) {
       throw new IllegalStateException("outputlookup could not obtain a Calcite catalog reader");
     }
+    // Resolve a table from the schema (not a scan) so sourceless pipelines reach the client; any
+    // OpenSearch name yields the same client, and the supplied row type avoids a mapping fetch.
+    OpenSearchSchema openSearchSchema =
+        context.config.getDefaultSchema().unwrap(OpenSearchSchema.class);
+    org.apache.calcite.schema.Table clientTable = openSearchSchema.getTable(name);
+    org.apache.calcite.plan.RelOptTable destTable =
+        org.apache.calcite.prepare.RelOptTableImpl.create(
+            relOptSchema,
+            child.getRowType(),
+            clientTable,
+            ImmutableList.of(OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME, name));
     RelNode sink =
         OutputLookupTableModify.create(
             child,
-            sourceTable,
-            (org.apache.calcite.prepare.Prepare.CatalogReader) relOptSchema,
-            indexName,
+            destTable,
+            catalogReader,
+            name,
             node.isAppend(),
             node.isOverrideIfEmpty(),
             node.getKeyFields(),
             node.getMax());
     context.relBuilder.push(sink);
     return context.relBuilder.peek();
-  }
-
-  /** Walk down to the first scan carrying a table, so the write rule can reach the client. */
-  private static org.apache.calcite.plan.RelOptTable findSourceTable(RelNode rel) {
-    if (rel.getTable() != null) {
-      return rel.getTable();
-    }
-    for (RelNode input : rel.getInputs()) {
-      org.apache.calcite.plan.RelOptTable found = findSourceTable(input);
-      if (found != null) {
-        return found;
-      }
-    }
-    return null;
   }
 
   @Override

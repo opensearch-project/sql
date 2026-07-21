@@ -53,6 +53,26 @@ class LookupIdEncoderTest {
   }
 
   @Test
+  void bigDecimalKeepsFractionalPartAndDoesNotCollideOnTruncation() {
+    String d10 =
+        LookupIdEncoder.encode(
+            List.of("a"), List.of("a"), new Object[] {new java.math.BigDecimal("1.0")});
+    String d15 =
+        LookupIdEncoder.encode(
+            List.of("a"), List.of("a"), new Object[] {new java.math.BigDecimal("1.5")});
+    String d19 =
+        LookupIdEncoder.encode(
+            List.of("a"), List.of("a"), new Object[] {new java.math.BigDecimal("1.9")});
+    assertNotEquals(d10, d15, "1.0 and 1.5 must not collide");
+    assertNotEquals(d15, d19, "1.5 and 1.9 must not collide");
+    assertNotEquals(
+        LookupIdEncoder.encode(
+            List.of("a"), List.of("a"), new Object[] {new java.math.BigDecimal("1")}),
+        LookupIdEncoder.encode(List.of("a"), List.of("a"), new Object[] {1L}),
+        "BigDecimal(1) and long 1 differ by type tag");
+  }
+
+  @Test
   void multivalueKeyRejected() {
     assertThrows(
         IllegalArgumentException.class,

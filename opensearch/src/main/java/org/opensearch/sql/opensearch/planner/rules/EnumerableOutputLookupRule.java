@@ -17,10 +17,7 @@ import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.write.EnumerableOutputLookup;
 import org.opensearch.transport.client.node.NodeClient;
 
-/**
- * Lowers an {@link OutputLookupTableModify} whose referenced table is an {@link OpenSearchIndex}
- * into the physical {@link EnumerableOutputLookup}, wiring in the in-cluster node client.
- */
+/** Lowers {@link OutputLookupTableModify} to the physical {@link EnumerableOutputLookup}. */
 public class EnumerableOutputLookupRule extends ConverterRule {
 
   public static final Config DEFAULT_CONFIG =

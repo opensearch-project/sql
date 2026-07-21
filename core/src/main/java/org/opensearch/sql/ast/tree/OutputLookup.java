@@ -15,11 +15,7 @@ import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
-/**
- * AST node for the {@code outputlookup} command: a terminal write sink that materializes pipeline
- * rows into a lookup index. Overwrite-by-default (set {@code append=true} to append instead). See
- * the outputlookup PPL design.
- */
+/** AST node for the {@code outputlookup} command: a terminal write sink, overwrite by default. */
 @Getter
 @Setter
 @ToString
@@ -30,7 +26,7 @@ public class OutputLookup extends UnresolvedPlan {
 
   private UnresolvedPlan child;
 
-  /** Destination lookup name. */
+  /** The lookup name: the filtered alias published over the backing index. */
   private final String indexName;
 
   /** false (default) overwrites the destination; true appends to it. */

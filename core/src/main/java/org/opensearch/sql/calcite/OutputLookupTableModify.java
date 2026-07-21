@@ -14,16 +14,18 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.Prepare.CatalogReader;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Terminal write node for outputlookup, modeled as a Calcite {@link TableModify} INSERT so the
- * optimizer treats it as a mandatory table-modifying side effect (never dropped or reordered) and
- * it exposes the standard rowcount row type. The referenced table is the source scan, used only so
- * the lowering rule can reach the in-cluster client; the real destination lookup index is created
- * and written at execution time by the physical operator, so a preexisting destination table is not
- * required. Subclasses {@link TableModify} rather than LogicalTableModify so the built-in
- * EnumerableTableModifyRule (which needs a ModifiableTable) does not fire on it.
+ * Terminal write node for outputlookup, a Calcite {@link TableModify} INSERT so the optimizer
+ * treats it as a mandatory side effect (never dropped or reordered). The referenced table is the
+ * destination backing index, used only so the lowering rule can reach the in-cluster client; the
+ * lookup is created and written at execution time. Subclasses {@link TableModify} rather than
+ * LogicalTableModify so the built-in EnumerableTableModifyRule (which needs a ModifiableTable) does
+ * not fire.
  */
 @Getter
 public class OutputLookupTableModify extends TableModify {
@@ -75,6 +77,25 @@ public class OutputLookupTableModify extends TableModify {
         overrideIfEmpty,
         keyFields,
         max);
+  }
+
+  @Override
+  public RelDataType deriveRowType() {
+    RelDataTypeFactory typeFactory = getCluster().getTypeFactory();
+    return typeFactory
+        .builder()
+        .add("rows_written", typeFactory.createSqlType(SqlTypeName.BIGINT))
+        .build();
+  }
+
+  /** Registers the write-lowering rule when no OpenSearch scan in the pipeline does. */
+  @Override
+  public void register(org.apache.calcite.plan.RelOptPlanner planner) {
+    org.opensearch.sql.calcite.plan.AbstractOpenSearchTable osTable =
+        table.unwrap(org.opensearch.sql.calcite.plan.AbstractOpenSearchTable.class);
+    if (osTable != null) {
+      osTable.getWriteConversionRules().forEach(planner::addRule);
+    }
   }
 
   @Override

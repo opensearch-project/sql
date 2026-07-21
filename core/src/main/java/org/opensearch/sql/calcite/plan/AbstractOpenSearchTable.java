@@ -22,4 +22,11 @@ public abstract class AbstractOpenSearchTable extends AbstractTable
   public RelDataType getRowType(RelDataTypeFactory relDataTypeFactory) {
     return OpenSearchTypeFactory.convertSchema(this);
   }
+
+  /**
+   * Write-lowering rules a write node registers itself when the pipeline has no OpenSearch scan.
+   */
+  public java.util.List<org.apache.calcite.plan.RelOptRule> getWriteConversionRules() {
+    return java.util.List.of();
+  }
 }

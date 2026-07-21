@@ -23,13 +23,11 @@ import org.opensearch.client.WarningsHandler;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
- * End-to-end tests for the PPL {@code outputlookup} command (substrate C3) on the internal
- * integ-test cluster. Every lookup {@code <name>} is a {@code __lookup=<uuid>} slice in the shared
- * {@code .lookups} index behind a filtered alias, so reads and counts here go through the
- * per-lookup alias, which the uuid filter isolates from every other lookup sharing the index.
- * Overwrite writes a fresh slice and atomically repoints the alias; append bulks into the current
- * slice; the command returns a single {@code rows_written} count. A legacy alias over an index
- * outside {@code .lookups} is migrated onto a {@code .lookups} slice on overwrite.
+ * End-to-end tests for the PPL {@code outputlookup} command on the internal integ-test cluster. A
+ * lookup {@code <name>} is a {@code __lookup=<uuid>} slice inside a dedicated per-lookup, plain,
+ * non-hidden backing index {@code <name>__lookup} behind a filtered alias, so reads and counts go
+ * through the alias. Overwrite writes a fresh slice and atomically repoints the alias; append bulks
+ * into the current slice; the command returns a single {@code rows_written} count.
  */
 public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
 
@@ -71,12 +69,10 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     client().performRequest(req);
   }
 
-  /** rows_written count returned by the outputlookup query. */
   private long rowsWritten(JSONObject result) {
     return result.getJSONArray("datarows").getJSONArray(0).getLong(0);
   }
 
-  /** Doc count behind a lookup alias (uuid-filtered) or a concrete index. */
   private long docCount(String indexOrAlias) throws IOException {
     Request req = new Request("GET", "/" + indexOrAlias + "/_count");
     req.setOptions(PERMISSIVE);
@@ -85,7 +81,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
         .getLong("count");
   }
 
-  /** _source of the first hit behind a lookup alias or index. */
   private JSONObject firstHitSource(String indexOrAlias) throws IOException {
     Request req = new Request("GET", "/" + indexOrAlias + "/_search");
     req.setOptions(PERMISSIVE);
@@ -97,7 +92,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
         .getJSONObject("_source");
   }
 
-  /** The single index a filtered lookup alias currently points at. */
   private String aliasTargetIndex(String alias) throws IOException {
     Request req = new Request("GET", "/_alias/" + alias);
     req.setOptions(PERMISSIVE);
@@ -113,8 +107,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     return new JSONArray(new String(resp.getEntity().getContent().readAllBytes())).length();
   }
 
-  // Overwrite returns the count, repoints the alias to a fresh slice, and the new slice holds only
-  // the current result's fields (absent fields are not in the new slice's documents).
   @Test
   public void testOverwriteReturnsCountReplacesAndDropsAbsentFields() throws IOException {
     String src = "olkc_src_ow";
@@ -137,7 +129,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertFalse("absent field not in the new slice's document", firstHitSource(dest).has("name"));
   }
 
-  // append keeps existing rows AND keeps a new field (OpenSearch is schemaless, .lookups template).
   @Test
   public void testAppendKeepsNewField() throws IOException {
     String src = "olkc_src_ap";
@@ -158,7 +149,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertEquals("append adds into the same slice without clearing", 3L, docCount(dest));
   }
 
-  // override_if_empty=false leaves the existing lookup intact on an empty result.
   @Test
   public void testOverrideIfEmptyFalseKeeps() throws IOException {
     String src = "olkc_src_oif";
@@ -178,8 +168,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertEquals("empty guard kept existing lookup", 3L, docCount(dest));
   }
 
-  // Default override_if_empty=true clears the lookup on an empty result (repoints to an empty
-  // slice).
   @Test
   public void testOverrideIfEmptyTrueClears() throws IOException {
     String src = "olkc_src_oit";
@@ -195,8 +183,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertEquals("empty result cleared the lookup", 0L, docCount(dest));
   }
 
-  // key_field upserts by id (implies append) — re-run updates in place within the slice, no
-  // duplicates.
   @Test
   public void testKeyFieldUpsertNoDuplicate() throws IOException {
     String src = "olkc_src_kf";
@@ -217,7 +203,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertEquals("upsert updates in place, no duplicate", 3L, docCount(dest));
   }
 
-  // max caps rows written (and the returned count).
   @Test
   public void testMaxCapsRows() throws IOException {
     String src = "olkc_src_max";
@@ -231,8 +216,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertEquals("max caps written rows", 2L, docCount(dest));
   }
 
-  // The operator ceiling plugins.ppl.outputlookup.max_rows fails loud (does not truncate) and
-  // writes nothing when the input exceeds it.
   @Test
   public void testMaxRowsSettingRejectsExceeding() throws IOException {
     String src = "olkc_src_cap";
@@ -270,7 +253,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     client().performRequest(req);
   }
 
-  // A multivalue field is preserved as a native array.
   @Test
   public void testMultivaluePreservedAsArray() throws IOException {
     String src = "olkc_src_mv";
@@ -291,7 +273,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertEquals("multivalue preserved as a native array", 3, tags.length());
   }
 
-  // Source larger than the 10k result window is written in full into the slice (no truncation).
   @Test
   public void testLargeSourceWritesPastQuerySizeLimit() throws IOException {
     String src = "olkc_src_big";
@@ -323,8 +304,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertEquals("the slice holds all rows", (long) total, docCount(dest));
   }
 
-  // A composite (multi-field) key_field upserts by the pair, so re-running updates matching pairs
-  // in place with no duplicates.
   @Test
   public void testMultiFieldKeyFieldUpsertNoDuplicate() throws IOException {
     String src = "olkc_src_mkf";
@@ -358,8 +337,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
         docCount(dest));
   }
 
-  // A key_field that is not a result field is rejected at plan time (would otherwise collapse all
-  // rows into one document).
   @Test
   public void testMissingKeyFieldRejected() throws IOException {
     String src = "olkc_src_kfbad";
@@ -377,8 +354,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
         ex.getMessage().contains("key_field") && ex.getMessage().contains("does_not_exist"));
   }
 
-  // Overwrite refuses a name that is an existing concrete index (a concrete index cannot share a
-  // name with the lookup alias), so it never clobbers unrelated data.
   @Test
   public void testOverwriteRefusesConcreteSameNameIndex() throws IOException {
     String src = "olkc_src_coll";
@@ -402,7 +377,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertTrue("its content preserved", firstHitSource(dest).has("other"));
   }
 
-  // Append likewise refuses a concrete same-name index.
   @Test
   public void testAppendRefusesConcreteSameNameIndex() throws IOException {
     String src = "olkc_src_apf";
@@ -427,7 +401,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertEquals("concrete index left untouched", 1L, docCount(dest));
   }
 
-  // A multivalue field cannot be a key_field: it has no deterministic single-value _id encoding.
   @Test
   public void testMultivalueKeyFieldRejected() throws IOException {
     String src = "olkc_src_mvk";
@@ -449,32 +422,26 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
                     src, "olkc_dest_mvk")));
   }
 
-  // Two lookups written into the shared .lookups index are isolated by their __lookup uuid: each
-  // alias sees only its own slice, and a shared field name (name) coexists without collision.
   @Test
-  public void testTwoLookupsShareLookupsIndexIsolatedByUuid() throws IOException {
-    String src = "olkc_src_iso";
-    String lka = "olkc_iso_a";
-    String lkb = "olkc_iso_b";
+  public void testDefaultBackingIndexIsPerLookup() throws IOException {
+    String src = "olkc_src_def";
+    String lka = "olkc_def_a";
+    String lkb = "olkc_def_b";
     seedSrc(src);
 
     executeQuery(String.format("source=%s | fields id, name | outputlookup %s", src, lka));
-    executeQuery(
-        String.format("source=%s | where id=1 | fields id, name | outputlookup %s", src, lkb));
+    executeQuery(String.format("source=%s | fields id, name | outputlookup %s", src, lkb));
     refresh(lka);
     refresh(lkb);
 
-    assertEquals("lookup A sees only its 3-row slice", 3L, docCount(lka));
-    assertEquals("lookup B sees only its 1-row slice", 1L, docCount(lkb));
-    assertTrue("shared field name present in A", firstHitSource(lka).has("name"));
-    assertTrue("shared field name present in B", firstHitSource(lkb).has("name"));
+    assertEquals(
+        "lookup A lives in its own backing index", lka + "__lookup", aliasTargetIndex(lka));
+    assertEquals(
+        "lookup B lives in its own backing index", lkb + "__lookup", aliasTargetIndex(lkb));
   }
 
-  // Backward-compat: a legacy data-importer lookup is a filtered alias over an index OUTSIDE
-  // .lookups. Overwrite migrates it onto a fresh .lookups slice by repointing the alias, and must
-  // NOT delete the legacy shared index (other lookups still use it).
   @Test
-  public void testOverwriteMigratesLegacyFilteredAliasOntoLookups() throws IOException {
+  public void testOverwriteRepointsImporterFilteredAlias() throws IOException {
     String src = "olkc_src_mig";
     String shared = "olkc_shared_imp";
     String aliasA = "olkc_impa";
@@ -515,13 +482,15 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertEquals(3L, rowsWritten(res));
     refresh(aliasA);
 
-    assertEquals("legacy shared index must NOT be deleted", 1L, catIndexCount(shared));
-    assertEquals("other lookup B on the shared index is intact", 2L, docCount(aliasB));
-    assertEquals("alias A repointed onto .lookups", ".lookups", aliasTargetIndex(aliasA));
-    assertEquals("alias A now resolves to the migrated 3-row slice", 3L, docCount(aliasA));
+    assertEquals("importer index must NOT be deleted", 1L, catIndexCount(shared));
+    assertEquals("other lookup B on the importer index is intact", 2L, docCount(aliasB));
+    assertEquals(
+        "alias A repointed onto the lookup's own backing index",
+        aliasA + "__lookup",
+        aliasTargetIndex(aliasA));
+    assertEquals("alias A now resolves to the fresh 3-row slice", 3L, docCount(aliasA));
   }
 
-  // Append onto a non-filtered alias is refused: it is not a recognized lookup.
   @Test
   public void testAppendRefusedOnNonFilteredAlias() throws IOException {
     String src = "olkc_src_nfa";
@@ -548,8 +517,6 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
         ex.getMessage().contains("non-filtered alias"));
   }
 
-  // Append onto a filtered alias whose filter carries no __lookup discriminant is refused: it is
-  // not a recognized lookup slice.
   @Test
   public void testAppendRefusedOnAliasWithoutLookupDiscriminant() throws IOException {
     String src = "olkc_src_nod";
@@ -578,6 +545,72 @@ public class CalcitePPLOutputLookupIT extends PPLIntegTestCase {
     assertTrue(
         "append onto an alias without a __lookup discriminant is refused",
         ex.getMessage().contains("__lookup discriminant"));
+  }
+
+  @Test
+  public void testMakeResultsSourcelessPipelineWritesLookup() throws IOException {
+    String dest = "olkc_dest_mkr";
+    JSONObject r =
+        executeQuery(
+            "makeresults format=json data='[{\\\"host\\\":\\\"h1\\\",\\\"n\\\":1},"
+                + "{\\\"host\\\":\\\"h2\\\",\\\"n\\\":2},{\\\"host\\\":\\\"h3\\\",\\\"n\\\":3}]'"
+                + " | outputlookup "
+                + dest);
+    assertEquals("sourceless makeresults pipeline writes all rows", 3L, rowsWritten(r));
+    refresh(dest);
+    assertEquals(3L, docCount(dest));
+    assertEquals(
+        "lookup lives in its own default backing index", dest + "__lookup", aliasTargetIndex(dest));
+    assertTrue("field from makeresults present in the slice", firstHitSource(dest).has("host"));
+  }
+
+  @Test
+  public void testConcurrentAppendToAbsentDoesNotLoseWrites() throws Exception {
+    String src = "olkc_src_cc";
+    String dest = "olkc_dest_cc";
+    Request create = new Request("PUT", "/" + src);
+    create.setJsonEntity("{\"mappings\":{\"properties\":{\"id\":{\"type\":\"integer\"}}}}");
+    client().performRequest(create);
+    for (int i = 1; i <= 6; i++) {
+      indexId(src, i);
+    }
+
+    java.util.concurrent.CyclicBarrier barrier = new java.util.concurrent.CyclicBarrier(2);
+    java.util.concurrent.ExecutorService pool =
+        java.util.concurrent.Executors.newFixedThreadPool(2);
+    try {
+      java.util.concurrent.Callable<Void> lower =
+          () -> {
+            barrier.await();
+            executeQuery(
+                String.format(
+                    "source=%s | where id<=3 | fields id | outputlookup append=true %s",
+                    src, dest));
+            return null;
+          };
+      java.util.concurrent.Callable<Void> upper =
+          () -> {
+            barrier.await();
+            executeQuery(
+                String.format(
+                    "source=%s | where id>3 | fields id | outputlookup append=true %s", src, dest));
+            return null;
+          };
+      for (java.util.concurrent.Future<Void> f : pool.invokeAll(java.util.List.of(lower, upper))) {
+        f.get();
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+    refresh(dest);
+    assertEquals(
+        "both concurrent appends persisted, none lost to an alias-filter race", 6L, docCount(dest));
+  }
+
+  private void indexId(String index, int id) throws IOException {
+    Request req = new Request("PUT", "/" + index + "/_doc/" + id + "?refresh=true");
+    req.setJsonEntity(String.format(Locale.ROOT, "{\"id\":%d}", id));
+    client().performRequest(req);
   }
 
   private void indexRegionHost(String index, int id, String region, String host, int val)

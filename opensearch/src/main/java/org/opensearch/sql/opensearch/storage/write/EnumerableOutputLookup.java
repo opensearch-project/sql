@@ -28,11 +28,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.opensearch.storage.write.WriteConfig.WriteMode;
 import org.opensearch.transport.client.node.NodeClient;
 
-/**
- * Physical terminal write operator for {@code outputlookup}. Drains the child rows, materializes
- * them into the lookup via {@link OutputLookupWriteExec}, and emits a single {@code BIGINT} row
- * carrying the written count.
- */
+/** Physical terminal write operator for {@code outputlookup}; emits a single BIGINT row count. */
 @Getter
 public class EnumerableOutputLookup extends SingleRel implements EnumerableRel {
 
@@ -79,11 +75,8 @@ public class EnumerableOutputLookup extends SingleRel implements EnumerableRel {
   }
 
   /**
-   * Surface the write parameters in explain output so the physical plan shows the write target and
-   * mode (the write itself is performed at runtime by {@link OutputLookupWriteExec}, which is not a
-   * relational operator and therefore never appears as a plan node). Including these in the digest
-   * also keeps two outputlookups with different targets or modes from being deduplicated by the
-   * planner.
+   * Params also enter the digest so the planner does not dedup outputlookups with different
+   * targets.
    */
   @Override
   public RelWriter explainTerms(RelWriter pw) {
@@ -123,7 +116,6 @@ public class EnumerableOutputLookup extends SingleRel implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 
-  /** Runtime entry: drain input, materialize into the lookup, emit one row with the count. */
   public Enumerable<@Nullable Object> writeAndCount(Enumerable<@Nullable Object> input) {
     WriteMode mode = keyFields.isEmpty() ? WriteMode.APPEND : WriteMode.UPSERT;
     long count =

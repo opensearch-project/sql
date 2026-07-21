@@ -59,6 +59,14 @@ public final class LookupIdEncoder {
     if (value instanceof Float || value instanceof Double) {
       return Double.toString(((Number) value).doubleValue());
     }
+    if (value instanceof java.math.BigDecimal bigDecimal) {
+      // longValue() would truncate the fraction and collide distinct decimals onto one id
+      return bigDecimal.stripTrailingZeros().toPlainString();
+    }
+    if (value instanceof java.math.BigInteger bigInteger) {
+      // longValue() would overflow-truncate integers wider than 64 bits
+      return bigInteger.toString();
+    }
     if (value instanceof Number) {
       return Long.toString(((Number) value).longValue());
     }
@@ -71,6 +79,12 @@ public final class LookupIdEncoder {
     }
     if (value instanceof Float || value instanceof Double) {
       return 'd';
+    }
+    if (value instanceof java.math.BigDecimal) {
+      return 'D';
+    }
+    if (value instanceof java.math.BigInteger) {
+      return 'I';
     }
     if (value instanceof Number) {
       return 'i';

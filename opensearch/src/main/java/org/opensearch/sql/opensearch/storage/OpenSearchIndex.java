@@ -54,6 +54,11 @@ import org.opensearch.transport.client.node.NodeClient;
 /** OpenSearch table (index) implementation. */
 public class OpenSearchIndex extends AbstractOpenSearchTable {
 
+  @Override
+  public java.util.List<org.apache.calcite.plan.RelOptRule> getWriteConversionRules() {
+    return org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules.WRITE_CONVERSION_RULES;
+  }
+
   public static final String METADATA_FIELD_ID = "_id";
   public static final String METADATA_FIELD_INDEX = "_index";
   public static final String METADATA_FIELD_SCORE = "_score";
