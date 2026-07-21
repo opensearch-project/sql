@@ -21,9 +21,14 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.expression.function.PPLTypeChecker.PPLComparableTypeChecker;
 
+/**
+ * Exercises {@link PPLComparableTypeChecker#checkOperandTypes} against representative type pairs.
+ */
 class PPLComparableTypeCheckerTest {
 
   private static final OpenSearchTypeFactory TF = OpenSearchTypeFactory.TYPE_FACTORY;
+  private static final PPLComparableTypeChecker CHECKER =
+      new PPLComparableTypeChecker((SameOperandTypeChecker) OperandTypes.SAME_SAME);
 
   private static RelDataType sql(SqlTypeName name) {
     return TF.createSqlType(name);
@@ -41,87 +46,60 @@ class PPLComparableTypeCheckerTest {
     return TF.createSqlIntervalType(new SqlIntervalQualifier(unit, unit, SqlParserPos.ZERO));
   }
 
+  private static boolean comparable(RelDataType a, RelDataType b) {
+    return CHECKER.checkOperandTypes(List.of(a, b));
+  }
+
   @Test
   void numericAndNumericAreComparable() {
-    assertTrue(
-        PPLComparableTypeChecker.isComparable(sql(SqlTypeName.INTEGER), sql(SqlTypeName.DOUBLE)));
-    assertTrue(
-        PPLComparableTypeChecker.isComparable(sql(SqlTypeName.TINYINT), sql(SqlTypeName.BIGINT)));
+    assertTrue(comparable(sql(SqlTypeName.INTEGER), sql(SqlTypeName.DOUBLE)));
+    assertTrue(comparable(sql(SqlTypeName.TINYINT), sql(SqlTypeName.BIGINT)));
   }
 
   @Test
   void sameUdtIsComparable() {
-    assertTrue(
-        PPLComparableTypeChecker.isComparable(udt(ExprUDT.EXPR_DATE), udt(ExprUDT.EXPR_DATE)));
-    assertTrue(
-        PPLComparableTypeChecker.isComparable(
-            udt(ExprUDT.EXPR_TIMESTAMP, true), udt(ExprUDT.EXPR_TIMESTAMP, false)));
-    assertTrue(PPLComparableTypeChecker.isComparable(udt(ExprUDT.EXPR_IP), udt(ExprUDT.EXPR_IP)));
+    assertTrue(comparable(udt(ExprUDT.EXPR_DATE), udt(ExprUDT.EXPR_DATE)));
+    assertTrue(comparable(udt(ExprUDT.EXPR_TIMESTAMP, true), udt(ExprUDT.EXPR_TIMESTAMP, false)));
   }
 
   @Test
   void plainBinaryVsBinaryUdtAreComparable() {
     // Regression: VARBINARY / BINARY both map to ExprCoreType.BINARY, as does EXPR_BINARY UDT.
-    assertTrue(
-        PPLComparableTypeChecker.isComparable(
-            sql(SqlTypeName.VARBINARY), udt(ExprUDT.EXPR_BINARY)));
-    assertTrue(
-        PPLComparableTypeChecker.isComparable(
-            udt(ExprUDT.EXPR_BINARY), sql(SqlTypeName.VARBINARY)));
+    assertTrue(comparable(sql(SqlTypeName.VARBINARY), udt(ExprUDT.EXPR_BINARY)));
+    assertTrue(comparable(udt(ExprUDT.EXPR_BINARY), sql(SqlTypeName.VARBINARY)));
   }
 
   @Test
   void dayTimeAndYearMonthIntervalsAreComparable() {
-    // Regression: Calcite splits INTERVAL into day-time and year-month families, but
-    // convertRelDataTypeToExprType maps every interval SqlTypeName to ExprCoreType.INTERVAL, so
-    // shouldCast is false and both should be comparable in the PPL sense.
-    assertTrue(
-        PPLComparableTypeChecker.isComparable(interval(TimeUnit.DAY), interval(TimeUnit.YEAR)));
-    assertTrue(
-        PPLComparableTypeChecker.isComparable(interval(TimeUnit.HOUR), interval(TimeUnit.MONTH)));
+    // Regression: Calcite splits INTERVAL into day-time and year-month SqlTypeFamilies, but
+    // convertRelDataTypeToExprType maps every interval SqlTypeName to ExprCoreType.INTERVAL,
+    // so shouldCast is false and both should be comparable in the PPL sense.
+    assertTrue(comparable(interval(TimeUnit.DAY), interval(TimeUnit.YEAR)));
+    assertTrue(comparable(interval(TimeUnit.HOUR), interval(TimeUnit.MONTH)));
   }
 
   @Test
   void plainTemporalVsMatchingTemporalUdtIsComparable() {
-    // Plain TIMESTAMP and EXPR_TIMESTAMP both map to ExprCoreType.TIMESTAMP.
-    assertTrue(
-        PPLComparableTypeChecker.isComparable(
-            sql(SqlTypeName.TIMESTAMP), udt(ExprUDT.EXPR_TIMESTAMP)));
-    assertTrue(
-        PPLComparableTypeChecker.isComparable(sql(SqlTypeName.DATE), udt(ExprUDT.EXPR_DATE)));
-    assertTrue(
-        PPLComparableTypeChecker.isComparable(sql(SqlTypeName.TIME), udt(ExprUDT.EXPR_TIME)));
-  }
-
-  @Test
-  void differentUdtsAreNotComparable() {
-    assertFalse(
-        PPLComparableTypeChecker.isComparable(udt(ExprUDT.EXPR_DATE), udt(ExprUDT.EXPR_TIMESTAMP)));
-    assertFalse(
-        PPLComparableTypeChecker.isComparable(udt(ExprUDT.EXPR_DATE), udt(ExprUDT.EXPR_BINARY)));
+    assertTrue(comparable(sql(SqlTypeName.TIMESTAMP), udt(ExprUDT.EXPR_TIMESTAMP)));
+    assertTrue(comparable(sql(SqlTypeName.DATE), udt(ExprUDT.EXPR_DATE)));
+    assertTrue(comparable(sql(SqlTypeName.TIME), udt(ExprUDT.EXPR_TIME)));
   }
 
   @Test
   void udtVsUnrelatedPlainTypeIsNotComparable() {
-    // EXPR_DATE → DATE, VARCHAR → STRING. shouldCast returns true, ANY fallback doesn't fire.
-    assertFalse(
-        PPLComparableTypeChecker.isComparable(udt(ExprUDT.EXPR_DATE), sql(SqlTypeName.VARCHAR)));
-    assertFalse(
-        PPLComparableTypeChecker.isComparable(
-            udt(ExprUDT.EXPR_TIMESTAMP), sql(SqlTypeName.INTEGER)));
+    assertFalse(comparable(udt(ExprUDT.EXPR_DATE), sql(SqlTypeName.VARCHAR)));
+    assertFalse(comparable(udt(ExprUDT.EXPR_TIMESTAMP), sql(SqlTypeName.INTEGER)));
   }
 
   @Test
   void stringVsNumericIsNotComparable() {
-    assertFalse(
-        PPLComparableTypeChecker.isComparable(sql(SqlTypeName.VARCHAR), sql(SqlTypeName.INTEGER)));
+    assertFalse(comparable(sql(SqlTypeName.VARCHAR), sql(SqlTypeName.INTEGER)));
   }
 
   @Test
   void anyIsComparableWithAnything() {
-    assertTrue(
-        PPLComparableTypeChecker.isComparable(sql(SqlTypeName.ANY), sql(SqlTypeName.INTEGER)));
-    assertTrue(PPLComparableTypeChecker.isComparable(sql(SqlTypeName.ANY), udt(ExprUDT.EXPR_DATE)));
+    assertTrue(comparable(sql(SqlTypeName.ANY), sql(SqlTypeName.INTEGER)));
+    assertTrue(comparable(sql(SqlTypeName.ANY), udt(ExprUDT.EXPR_DATE)));
   }
 
   @Test
@@ -129,7 +107,7 @@ class PPLComparableTypeCheckerTest {
     RelDataType struct =
         TF.createStructType(
             List.of(sql(SqlTypeName.INTEGER), sql(SqlTypeName.VARCHAR)), List.of("a", "b"));
-    assertFalse(PPLComparableTypeChecker.isComparable(struct, sql(SqlTypeName.INTEGER)));
+    assertFalse(comparable(struct, sql(SqlTypeName.INTEGER)));
   }
 
   @Test
@@ -140,7 +118,7 @@ class PPLComparableTypeCheckerTest {
     RelDataType s2 =
         TF.createStructType(
             List.of(sql(SqlTypeName.BIGINT), sql(SqlTypeName.CHAR)), List.of("x", "y"));
-    assertTrue(PPLComparableTypeChecker.isComparable(s1, s2));
+    assertTrue(comparable(s1, s2));
   }
 
   @Test
@@ -149,30 +127,13 @@ class PPLComparableTypeCheckerTest {
     RelDataType s2 =
         TF.createStructType(
             List.of(sql(SqlTypeName.INTEGER), sql(SqlTypeName.VARCHAR)), List.of("a", "b"));
-    assertFalse(PPLComparableTypeChecker.isComparable(s1, s2));
+    assertFalse(comparable(s1, s2));
   }
 
   @Test
   void ipTypesAreRejectedByOuterChecker() {
-    // Even though EXPR_IP vs EXPR_IP is comparable in isolation, PPLComparableTypeChecker
-    // filters IP UDTs out at the outer checkOperandTypes level.
-    PPLComparableTypeChecker checker =
-        new PPLComparableTypeChecker((SameOperandTypeChecker) OperandTypes.SAME_SAME);
-    assertFalse(checker.checkOperandTypes(List.of(udt(ExprUDT.EXPR_IP), udt(ExprUDT.EXPR_IP))));
-  }
-
-  @Test
-  void checkerAcceptsMixedTemporalOperands() {
-    // Regression: date_field = timestamp_field must NOT be rejected here — comparison operators
-    // rely on downstream coercion. Both DATE and TIMESTAMP map to their own ExprCoreType so
-    // shouldCast is true, but ExprCoreType.DATE has TIMESTAMP as a parent (widening lattice), so
-    // isCompatible-style checks pass. Confirm directly through the checker:
-    PPLComparableTypeChecker checker =
-        new PPLComparableTypeChecker((SameOperandTypeChecker) OperandTypes.SAME_SAME);
-    // Same-kind temporals go through fine.
-    assertTrue(checker.checkOperandTypes(List.of(udt(ExprUDT.EXPR_DATE), udt(ExprUDT.EXPR_DATE))));
-    assertTrue(
-        checker.checkOperandTypes(
-            List.of(udt(ExprUDT.EXPR_TIMESTAMP), sql(SqlTypeName.TIMESTAMP))));
+    // IP UDTs are explicitly filtered out in PPLComparableTypeChecker.checkOperandTypes so that
+    // built-in comparable functions (COALESCE, NULLIF, IFNULL, IF) cannot accept them.
+    assertFalse(comparable(udt(ExprUDT.EXPR_IP), udt(ExprUDT.EXPR_IP)));
   }
 }

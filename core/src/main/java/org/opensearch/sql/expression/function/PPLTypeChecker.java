@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.expression.function;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
@@ -274,16 +273,13 @@ public interface PPLTypeChecker {
     }
 
     /**
-     * Modified from {@link SqlTypeUtil#isComparable(RelDataType, RelDataType)} to accommodate PPL
-     * semantics: comparability follows the ExprType lattice (via {@code shouldCast}), so a UDT
-     * temporal / IP / binary compares to any RelDataType that maps to the same {@link ExprType}.
+     * Modified from {@link SqlTypeUtil#isComparable(RelDataType, RelDataType)} to
      *
      * @param type1 first type
      * @param type2 second type
      * @return true if the two types are comparable, false otherwise
      */
-    @VisibleForTesting
-    static boolean isComparable(RelDataType type1, RelDataType type2) {
+    private static boolean isComparable(RelDataType type1, RelDataType type2) {
       if (type1.isStruct() != type2.isStruct()) {
         return false;
       }
@@ -302,13 +298,14 @@ public interface PPLTypeChecker {
         return true;
       }
 
-      // Numeric types are comparable without the need to cast.
+      // Numeric types are comparable without the need to cast
       if (SqlTypeUtil.isNumeric(type1) && SqlTypeUtil.isNumeric(type2)) {
         return true;
       }
 
       ExprType exprType1 = OpenSearchTypeFactory.convertRelDataTypeToExprType(type1);
       ExprType exprType2 = OpenSearchTypeFactory.convertRelDataTypeToExprType(type2);
+
       if (!exprType1.shouldCast(exprType2)) {
         return true;
       }
