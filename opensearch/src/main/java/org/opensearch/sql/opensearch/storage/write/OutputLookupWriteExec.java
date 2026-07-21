@@ -21,8 +21,10 @@ import org.opensearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.opensearch.action.admin.indices.get.GetIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.cluster.metadata.AliasMetadata;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -39,7 +41,7 @@ public final class OutputLookupWriteExec {
 
   private static final Logger LOGGER = LogManager.getLogger(OutputLookupWriteExec.class);
 
-  private static final int BATCH_SIZE = 1000;
+  private static final int BATCH_SIZE = 5000;
 
   private OutputLookupWriteExec() {}
 
@@ -178,6 +180,11 @@ public final class OutputLookupWriteExec {
       sliceKeys.add(LookupsIndex.LOOKUP_FIELD);
     }
 
+    // The slice is not yet published, so drop redundancy/durability/auto-visibility during the load
+    // and restore them after the single refresh below (before the alias op): no replica writes, no
+    // per-request translog fsync, no background refresh churn while filling the slice.
+    applyLoadSettings(client, index);
+
     WriteConfig cfg =
         new WriteConfig(index, sliceFields, mode, sliceKeys, BATCH_SIZE, RefreshPolicy.NONE);
     try (OpenSearchBulkWriter writer = new OpenSearchBulkWriter(client, cfg)) {
@@ -192,6 +199,37 @@ public final class OutputLookupWriteExec {
     // the slice through the atomic alias repoint that follows, and append through this refresh, so
     // per-batch refresh is redundant and dominates write cost at scale.
     client.admin().indices().refresh(new RefreshRequest(index)).actionGet();
+    restoreServeSettings(client, index);
+  }
+
+  private static void applyLoadSettings(NodeClient client, String index) {
+    updateSettings(
+        client,
+        index,
+        Settings.builder()
+            .put("index.number_of_replicas", 0)
+            .put("index.translog.durability", "async")
+            .put("index.refresh_interval", "-1")
+            .build());
+  }
+
+  private static void restoreServeSettings(NodeClient client, String index) {
+    updateSettings(
+        client,
+        index,
+        Settings.builder()
+            .put("index.number_of_replicas", 1)
+            .put("index.translog.durability", "request")
+            .putNull("index.refresh_interval")
+            .build());
+  }
+
+  private static void updateSettings(NodeClient client, String index, Settings settings) {
+    client
+        .admin()
+        .indices()
+        .updateSettings(new UpdateSettingsRequest(index).settings(settings))
+        .actionGet();
   }
 
   private static String newUuid() {
