@@ -4096,7 +4096,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelDataType yNameType = yNameRef.getType();
     RexNode axis;
     if (!SqlTypeUtil.isCharacter(yNameRef.getType())) {
-       if (!SqlTypeUtil.isAtomic(yNameType)) {
+      if (!SqlTypeUtil.isAtomic(yNameType)) {
         throw new IllegalArgumentException(
             "xyseries y-name-field must be a scalar type, got: " + yNameType.getSqlTypeName());
       }
