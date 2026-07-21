@@ -99,6 +99,7 @@ commands
    | fieldformatCommand
    | nomvCommand
    | graphLookupCommand
+   | xyseriesCommand
    | unionCommand
    | timewrapCommand
    ;
@@ -153,6 +154,7 @@ commandName
    | NOMV
    | TRANSPOSE
    | GRAPHLOOKUP
+   | XYSERIES
    | TIMEWRAP
    | MAKERESULTS
    ;
@@ -762,6 +764,19 @@ graphLookupArgs
    | (BATCH_MODE EQUAL booleanLiteral)
    | (USE_PIT EQUAL booleanLiteral)
    | (FILTER EQUAL LT_PRTHS logicalExpression RT_PRTHS)
+   ;
+
+xyseriesCommand
+   : XYSERIES xyseriesOption* xField = fieldExpression yNameField = fieldExpression IN LT_PRTHS xyseriesPivotValues RT_PRTHS yDataFields = fieldList
+   ;
+
+xyseriesOption
+   : SEP EQUAL sep = stringLiteral
+   | FORMAT EQUAL format = stringLiteral
+   ;
+
+xyseriesPivotValues
+   : stringLiteral (COMMA stringLiteral)*
    ;
 
 // clauses
@@ -1856,4 +1871,5 @@ searchableKeyWord
    | MAX_DEPTH
    | DEPTH_FIELD
    | EDGE
+   | SEP
    ;

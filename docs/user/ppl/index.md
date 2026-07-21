@@ -89,7 +89,8 @@ source=accounts
 | [nomv command](cmd/nomv.md) | 3.6 | stable (since 3.6) | Converts a multivalue field to a single-value string by joining elements with newlines. |
 | [mvexpand command](cmd/mvexpand.md) | 3.6                | stable (since 3.6)       | Expand a multi-valued field into separate documents (one per value). |
 | [graphlookup command](cmd/graphlookup.md) | 3.6 | experimental (since 3.6) | Performs recursive graph traversal on a collection using a BFS algorithm.|
-  
+| [xyseries command](cmd/xyseries.md) | 3.8 | stable (since 3.8) | Converts row-oriented grouped results into a wide table format suitable for chart visualizations. One field serves as the X axis (row key), one field provides pivot values for generating output column names, and one or more data fields fill the pivoted cells. Only rows matching the explicitly provided pivot values in the `in` clause are included. | 
+
   - [Syntax](cmd/syntax.md) - PPL query structure and command syntax formatting  
 * **Functions**  
   - [Aggregation Functions](functions/aggregations.md)  
