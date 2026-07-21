@@ -4148,8 +4148,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           throw new IllegalStateException(
               "xyseries: expected pivot output column '" + pivotColName + "' not found", e);
         }
-        reorderNames.add(
-            generateColumnName(aggName, pivotVal, separator, format, yDataFieldNames.size()));
+        boolean singleDataField = yDataFieldNames.size() == 1;
+        reorderNames.add(generateColumnName(aggName, pivotVal, separator, format, singleDataField));
       }
     }
     // Fail fast with a clear message if the naming scheme produced collisions
@@ -4187,15 +4187,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String pivotValue,
       String separator,
       String format,
-      int yDataFieldCount) {
-    if (yDataFieldCount == 1) {
-      return pivotValue;
-    } else {
-      if (format != null) {
-        return format.replace("$AGG$", yDataFieldName).replace("$VAL$", pivotValue);
-      }
-      return yDataFieldName + separator + pivotValue;
+      boolean singleDataField) {
+    if (format != null) {
+      return format.replace("$AGG$", yDataFieldName).replace("$VAL$", pivotValue);
     }
+    if (singleDataField) {
+      return pivotValue;
+    }
+    return yDataFieldName + separator + pivotValue;
   }
 
   @Override
