@@ -248,8 +248,7 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
                 "search source=%s | stats avg(balance) as avg_balance by gender, state"
                     + " | xyseries state gender in ('F', 'M') avg_balance",
                 TEST_INDEX_BANK_REMOTE));
-    verifyColumn(
-        result, columnName("state"), columnName("avg_balance: F"), columnName("avg_balance: M"));
+    verifyColumn(result, columnName("state"), columnName("F"), columnName("M"));
     verifyDataRows(
         result,
         rows("IL", null, 39225.0),
