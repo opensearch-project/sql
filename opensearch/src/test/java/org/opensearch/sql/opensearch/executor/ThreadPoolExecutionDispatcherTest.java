@@ -58,6 +58,9 @@ class ThreadPoolExecutionDispatcherTest {
   @BeforeEach
   void setUp() {
     dispatcher = new ThreadPoolExecutionDispatcher(threadPool, settings);
+    // Mock the cancellation poller so it returns a no-op cancellable
+    when(threadPool.scheduleWithFixedDelay(any(Runnable.class), any(TimeValue.class), any()))
+        .thenReturn(mock(org.opensearch.threadpool.Scheduler.Cancellable.class));
   }
 
   @AfterEach

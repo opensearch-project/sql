@@ -28,6 +28,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.tasks.CancellableTask;
+import org.opensearch.threadpool.Scheduler.Cancellable;
 import org.opensearch.threadpool.ThreadPool;
 
 /**
@@ -75,6 +76,8 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       String twSeries = CalcitePlanContext.timewrapSeries.get();
       threadPool.schedule(
           () -> {
+            final Thread executionThread = Thread.currentThread();
+            Cancellable cancelPoller = scheduleCancellationPoller(cancellableTask, executionThread);
             Hook.Closeable hookHandle = null;
             try {
               ThreadContext.putAll(ctx);
@@ -99,6 +102,8 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
                 failureListener.onFailure(e);
               }
             } finally {
+              cancelPoller.cancel();
+              Thread.interrupted();
               if (hookHandle != null) {
                 hookHandle.close();
               }
@@ -114,6 +119,41 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       CalcitePlanContext.executionPool.set(SQL_WORKER_THREAD_POOL_NAME);
       task.run();
     }
+  }
+
+  private static final TimeValue CANCEL_POLL_INTERVAL = new TimeValue(500);
+  private static final Cancellable NOOP_CANCELLABLE =
+      new Cancellable() {
+        @Override
+        public boolean cancel() {
+          return false;
+        }
+
+        @Override
+        public boolean isCancelled() {
+          return false;
+        }
+      };
+
+  /**
+   * Polls the cancellable task and interrupts the execution thread when cancelled. This bridges the
+   * gap where OpenSearchQueryManager's timeout interrupt targets the sql-worker thread but
+   * execution has moved to the complex-worker thread.
+   */
+  private Cancellable scheduleCancellationPoller(
+      @Nullable CancellableTask cancellableTask, Thread executionThread) {
+    if (cancellableTask == null) {
+      return NOOP_CANCELLABLE;
+    }
+    return threadPool.scheduleWithFixedDelay(
+        () -> {
+          if (cancellableTask.isCancelled()) {
+            LOG.debug("Task cancelled, interrupting complex pool execution thread");
+            executionThread.interrupt();
+          }
+        },
+        CANCEL_POLL_INTERVAL,
+        ThreadPool.Names.GENERIC);
   }
 
   private boolean isComplexPoolEnabled() {
