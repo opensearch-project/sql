@@ -98,6 +98,41 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSumAllIntegralTypes() throws IOException {
+    String stats =
+        "stats sum(byte_number), sum(short_number), sum(integer_number), sum(long_number)";
+    String query = String.format("source=%s | %s", TEST_INDEX_DATATYPE_NUMERIC, stats);
+
+    JSONObject actual = executeQuery(query);
+    verifySchema(
+        actual,
+        schema("sum(byte_number)", "bigint"),
+        schema("sum(short_number)", "bigint"),
+        schema("sum(integer_number)", "bigint"),
+        schema("sum(long_number)", "bigint"));
+    verifyDataRows(actual, rows(4L, 3L, 2L, 1L));
+
+    String explain = explainQueryToString(query);
+    assertAllIntegralSumsAreChecked(explain);
+
+    // HEAD prevents aggregation pushdown while preserving each field's integral input type.
+    String fallbackQuery =
+        String.format("source=%s | head 1 | %s", TEST_INDEX_DATATYPE_NUMERIC, stats);
+    verifyDataRows(executeQuery(fallbackQuery), rows(4L, 3L, 2L, 1L));
+
+    String fallbackExplain = explainQueryToString(fallbackQuery);
+    assertTrue(fallbackExplain.contains("EnumerableAggregate"));
+    assertAllIntegralSumsAreChecked(fallbackExplain);
+  }
+
+  private static void assertAllIntegralSumsAreChecked(String explain) {
+    assertTrue(explain.contains("sum(byte_number)=[CHECKED_LONG_SUM("));
+    assertTrue(explain.contains("sum(short_number)=[CHECKED_LONG_SUM("));
+    assertTrue(explain.contains("sum(integer_number)=[CHECKED_LONG_SUM("));
+    assertTrue(explain.contains("sum(long_number)=[CHECKED_LONG_SUM("));
+  }
+
+  @Test
   public void testSumAvgLongOverflow() throws IOException {
     String overflowIndex = "test_sum_long_overflow";
     if (!isIndexExist(client(), overflowIndex)) {

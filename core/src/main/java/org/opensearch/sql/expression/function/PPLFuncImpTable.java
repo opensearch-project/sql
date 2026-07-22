@@ -1610,8 +1610,8 @@ public class PPLFuncImpTable {
     }
 
     /**
-     * Registers a BIGINT sum accumulator that checks every addition for overflow. Direct fields can
-     * use native checked aggregation pushdown; other plans execute this aggregate with
+     * Registers an integral sum accumulator that checks every addition for BIGINT overflow. Direct
+     * fields can use native checked aggregation pushdown; other plans execute this aggregate with
      * Math.addExact.
      */
     void registerSumOperator() {
@@ -1621,13 +1621,20 @@ public class PPLFuncImpTable {
           (distinct, field, argList, ctx) -> {
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
-            boolean checkedLongSum = field.getType().getSqlTypeName() == SqlTypeName.BIGINT;
+            boolean checkedLongSum = isIntegral(field.getType().getSqlTypeName());
             SqlAggFunction sumOperator =
                 checkedLongSum ? PPLBuiltinOperators.CHECKED_LONG_SUM : SqlStdOperatorTable.SUM;
             return UserDefinedFunctionUtils.makeAggregateCall(
                 sumOperator, List.of(field), newArgList, ctx.relBuilder);
           };
       register(SUM, handler, typeChecker);
+    }
+
+    private static boolean isIntegral(SqlTypeName typeName) {
+      return switch (typeName) {
+        case TINYINT, SMALLINT, INTEGER, BIGINT -> true;
+        default -> false;
+      };
     }
 
     /**

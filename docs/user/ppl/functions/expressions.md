@@ -15,7 +15,7 @@ Arithmetic expressions are formed by combining numeric literals and binary arith
 
 Long (`BIGINT`) arithmetic operations (`+`, `-`, `*`) in `eval` expressions detect overflow and return an error instead of silently wrapping. Narrower integer operands are widened before arithmetic, so crossing the 32-bit integer boundary does not overflow. Floating-point (`float`, `double`) arithmetic follows IEEE 754 and does not produce overflow errors.
 
-`stats sum(bigint_field)` uses an exact `BIGINT` accumulator and checks every addition for overflow. It returns an error as soon as the running sum exceeds the `BIGINT` range. With pushdown enabled, a direct field sum uses a native checked aggregation that validates both shard-local additions and the final cross-shard reduction. When the aggregate cannot be pushed down, Calcite uses `Math.addExact`. Neither path uses OpenSearch's double-based `sum`, so results do not lose low-order precision for large values.
+`stats sum(integral_field)` widens `TINYINT`, `SMALLINT`, `INTEGER`, and `BIGINT` inputs to an exact `BIGINT` accumulator and checks every addition for overflow. It returns an error as soon as the running sum exceeds the `BIGINT` range. With pushdown enabled, a direct field sum uses a native checked aggregation that validates both shard-local additions and the final cross-shard reduction. When the aggregate cannot be pushed down, Calcite uses `Math.addExact`. Neither path uses OpenSearch's double-based `sum`, so results do not lose low-order precision for large values.
 
 For example, summing `4611686018427387904` (`2^62`) and `1` returns the exact `4611686018427387905`.
 
