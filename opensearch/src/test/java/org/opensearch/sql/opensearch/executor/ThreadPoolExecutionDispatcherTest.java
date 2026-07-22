@@ -41,6 +41,8 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.tasks.CancellableTask;
+import org.opensearch.threadpool.Scheduler.Cancellable;
+import org.opensearch.threadpool.Scheduler.ScheduledCancellable;
 import org.opensearch.threadpool.ThreadPool;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,9 +60,12 @@ class ThreadPoolExecutionDispatcherTest {
   @BeforeEach
   void setUp() {
     dispatcher = new ThreadPoolExecutionDispatcher(threadPool, settings);
-    // Mock the cancellation poller so it returns a no-op cancellable
+    // Mock schedule calls to return non-null cancellables (for both outer dispatch and inner
+    // timeout)
+    when(threadPool.schedule(any(Runnable.class), any(TimeValue.class), any()))
+        .thenReturn(mock(ScheduledCancellable.class));
     when(threadPool.scheduleWithFixedDelay(any(Runnable.class), any(TimeValue.class), any()))
-        .thenReturn(mock(org.opensearch.threadpool.Scheduler.Cancellable.class));
+        .thenReturn(mock(Cancellable.class));
   }
 
   @AfterEach
@@ -113,11 +118,13 @@ class ThreadPoolExecutionDispatcherTest {
   void scheduledRunnableCallsEngine() {
     when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
+    when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(new TimeValue(60000));
     doAnswer(
             invocation -> {
               Runnable task = invocation.getArgument(0);
               task.run();
-              return null;
+              return mock(ScheduledCancellable.class);
             })
         .when(threadPool)
         .schedule(any(Runnable.class), any(TimeValue.class), any());
@@ -132,6 +139,8 @@ class ThreadPoolExecutionDispatcherTest {
   void propagatesCancellableTaskToSlowPool() {
     when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
+    when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(new TimeValue(60000));
     CancellableTask mockTask = mock(CancellableTask.class);
     OpenSearchQueryManager.setCancellableTask(mockTask);
 
@@ -143,7 +152,7 @@ class ThreadPoolExecutionDispatcherTest {
               OpenSearchQueryManager.clearCancellableTask();
               task.run();
               taskOnSlowPool.set(OpenSearchQueryManager.getCancellableTask());
-              return null;
+              return mock(ScheduledCancellable.class);
             })
         .when(threadPool)
         .schedule(any(Runnable.class), any(TimeValue.class), any());
@@ -164,6 +173,8 @@ class ThreadPoolExecutionDispatcherTest {
   void propagatesLog4jThreadContextToSlowPool() {
     when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
+    when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(new TimeValue(60000));
     ThreadContext.put("request.id", "test-123");
     ThreadContext.put("user", "admin");
 
@@ -177,7 +188,7 @@ class ThreadPoolExecutionDispatcherTest {
               task.run();
               requestIdOnSlowPool.set(ThreadContext.get("request.id"));
               userOnSlowPool.set(ThreadContext.get("user"));
-              return null;
+              return mock(ScheduledCancellable.class);
             })
         .when(threadPool)
         .schedule(any(Runnable.class), any(TimeValue.class), any());
@@ -193,6 +204,8 @@ class ThreadPoolExecutionDispatcherTest {
   void propagatesMetadataProviderToSlowPool() {
     when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
+    when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(new TimeValue(60000));
     JaninoRelMetadataProvider provider = mock(JaninoRelMetadataProvider.class);
     RelMetadataQueryBase.THREAD_PROVIDERS.set(provider);
 
@@ -203,7 +216,7 @@ class ThreadPoolExecutionDispatcherTest {
               RelMetadataQueryBase.THREAD_PROVIDERS.remove();
               task.run();
               providerOnSlowPool.set(RelMetadataQueryBase.THREAD_PROVIDERS.get());
-              return null;
+              return mock(ScheduledCancellable.class);
             })
         .when(threadPool)
         .schedule(any(Runnable.class), any(TimeValue.class), any());
@@ -221,6 +234,8 @@ class ThreadPoolExecutionDispatcherTest {
   void propagatesTimewrapSignalsToSlowPool() {
     when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
+    when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(new TimeValue(60000));
     CalcitePlanContext.stripNullColumns.set(true);
     CalcitePlanContext.timewrapUnitName.set("HOUR");
     CalcitePlanContext.timewrapSeries.set("timestamp");
@@ -235,7 +250,7 @@ class ThreadPoolExecutionDispatcherTest {
               CalcitePlanContext.clearTimewrapSignals();
               CalcitePlanContext.stripNullColumns.set(false);
               task.run();
-              return null;
+              return mock(ScheduledCancellable.class);
             })
         .when(threadPool)
         .schedule(any(Runnable.class), any(TimeValue.class), any());
@@ -263,6 +278,8 @@ class ThreadPoolExecutionDispatcherTest {
   void forwardsExceptionToListenerOnSlowPool() {
     when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
+    when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(new TimeValue(60000));
     RuntimeException error = new RuntimeException("execution failed");
     doThrow(error).when(engine).execute(any(RelNode.class), any(), any(ResponseListener.class));
 
@@ -270,7 +287,7 @@ class ThreadPoolExecutionDispatcherTest {
             invocation -> {
               Runnable task = invocation.getArgument(0);
               task.run();
-              return null;
+              return mock(ScheduledCancellable.class);
             })
         .when(threadPool)
         .schedule(any(Runnable.class), any(TimeValue.class), any());
@@ -285,6 +302,8 @@ class ThreadPoolExecutionDispatcherTest {
   void cleansUpThreadLocalsAfterException() {
     when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
+    when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(new TimeValue(60000));
     CancellableTask mockTask = mock(CancellableTask.class);
     OpenSearchQueryManager.setCancellableTask(mockTask);
     CalcitePlanContext.timewrapUnitName.set("DAY");
@@ -298,7 +317,7 @@ class ThreadPoolExecutionDispatcherTest {
             invocation -> {
               Runnable task = invocation.getArgument(0);
               task.run();
-              return null;
+              return mock(ScheduledCancellable.class);
             })
         .when(threadPool)
         .schedule(any(Runnable.class), any(TimeValue.class), any());
@@ -316,6 +335,8 @@ class ThreadPoolExecutionDispatcherTest {
   void cancellableTaskAvailableDuringExecution() {
     when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
+    when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(new TimeValue(60000));
     CancellableTask mockTask = mock(CancellableTask.class);
     OpenSearchQueryManager.setCancellableTask(mockTask);
 
@@ -326,7 +347,7 @@ class ThreadPoolExecutionDispatcherTest {
               // Simulate running on a different thread
               OpenSearchQueryManager.clearCancellableTask();
               task.run();
-              return null;
+              return mock(ScheduledCancellable.class);
             })
         .when(threadPool)
         .schedule(any(Runnable.class), any(TimeValue.class), any());
