@@ -482,7 +482,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(sum=[$1], JOB=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], sum=[SUM($1)])\n"
+            + "  LogicalAggregate(group=[{0}], sum=[CHECKED_LONG_SUM($1)])\n"
             + "    LogicalProject(JOB=[$2], MGR=[$3])\n"
             + "      LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n"
@@ -496,7 +496,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         ""
-            + "SELECT SUM(`EMP`.`MGR`) `sum`, `EMP`.`JOB`\n"
+            + "SELECT `CHECKED_LONG_SUM`(`EMP`.`MGR`) `sum`, `EMP`.`JOB`\n"
             + "FROM `scott`.`EMP`\n"
             + "INNER JOIN (SELECT `DEPTNO`, `DNAME`\n"
             + "FROM `scott`.`DEPT`\n"
