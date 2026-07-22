@@ -215,9 +215,7 @@ public class QueryService {
                                   convertToCalcitePlan(relNode, context), context),
                           "while converting the query to an executable plan");
 
-                  analyzeMetric.set(System.nanoTime() - analyzeStart);
-
-                  executeCalcitePlan(calcitePlan, context, listener);
+                  executeCalcitePlan(calcitePlan, context, listener, analyzeMetric, analyzeStart);
                 },
                 QueryService.class);
           } catch (Throwable t) {
@@ -235,11 +233,14 @@ public class QueryService {
   private void executeCalcitePlan(
       RelNode calcitePlan,
       CalcitePlanContext context,
-      ResponseListener<ExecutionEngine.QueryResponse> listener) {
+      ResponseListener<ExecutionEngine.QueryResponse> listener,
+      ProfileMetric analyzeMetric,
+      long analyzeStart) {
     try {
       // Optimize before dispatch so the dispatcher's ScriptDetector
       // sees the post-optimization plan for accurate routing.
       RelNode optimizedPlan = CalciteToolsHelper.optimize(calcitePlan, context);
+      analyzeMetric.set(System.nanoTime() - analyzeStart);
 
       // Wrap execution with EXECUTING stage tracking — dispatch via
       // ExecutionDispatcher which may route to a complex worker pool
