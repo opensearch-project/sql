@@ -570,6 +570,96 @@ class OpenSearchAggregationResponseParserTest {
                 ImmutableMap.of("percentiles", List.of(21.0, 27.0, 30.0, 35.0, 55.0, 58.0, 60.0))));
   }
 
+  /**
+   * Dedup pushdown (LITERAL_AGG) with a renamed field: {@code rename value as val | dedup
+   * category}. The top_hits response returns {@code _source: {category, value}} but the output
+   * schema expects {@code val}. The {@code fieldNameMapping} must translate {@code value -> val}.
+   *
+   * <p>Regression test for https://github.com/opensearch-project/sql/issues/5150
+   */
+  @Test
+  void top_hits_field_name_mapping_single_rename_should_pass() {
+    String response =
+        "{\n"
+            + "  \"composite#composite_buckets\": {\n"
+            + "    \"buckets\": [\n"
+            + "      {\n"
+            + "        \"key\": { \"category\": \"A\" },\n"
+            + "        \"doc_count\": 2,\n"
+            + "        \"top_hits#dedup\": {\n"
+            + "          \"hits\": {\n"
+            + "            \"total\": { \"value\": 2, \"relation\": \"eq\" },\n"
+            + "            \"hits\": [\n"
+            + "              {\n"
+            + "                \"_index\": \"idx\",\n"
+            + "                \"_id\": \"1\",\n"
+            + "                \"fields\": { \"value\": [10.5] }\n"
+            + "              }\n"
+            + "            ]\n"
+            + "          }\n"
+            + "        }\n"
+            + "      }\n"
+            + "    ]\n"
+            + "  }\n"
+            + "}";
+
+    Map<String, List<String>> mapping = Map.of("value", List.of("val"));
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new TopHitsParser("dedup", false, false, mapping));
+    assertThat(
+        parse(parser, response),
+        contains(ImmutableMap.of("category", "A"), ImmutableMap.of("val", 10.5)));
+  }
+
+  /**
+   * Dedup pushdown (LITERAL_AGG) where two output names ({@code pay} from rename, {@code pay2} from
+   * eval column-ref) both resolve to the same original field {@code salary}. The old {@code
+   * Map<String,String>} approach silently dropped one mapping on collision; with {@code
+   * Map<String,List<String>>} both aliases must appear in the result.
+   *
+   * <p>Regression test for https://github.com/opensearch-project/sql/issues/5197
+   */
+  @Test
+  void top_hits_field_name_mapping_collision_should_duplicate_value() {
+    String response =
+        "{\n"
+            + "  \"composite#composite_buckets\": {\n"
+            + "    \"buckets\": [\n"
+            + "      {\n"
+            + "        \"key\": { \"dept_id\": \"eng\" },\n"
+            + "        \"doc_count\": 3,\n"
+            + "        \"top_hits#dedup\": {\n"
+            + "          \"hits\": {\n"
+            + "            \"total\": { \"value\": 3, \"relation\": \"eq\" },\n"
+            + "            \"hits\": [\n"
+            + "              {\n"
+            + "                \"_index\": \"idx\",\n"
+            + "                \"_id\": \"1\",\n"
+            + "                \"fields\": { \"salary\": [50000] }\n"
+            + "              }\n"
+            + "            ]\n"
+            + "          }\n"
+            + "        }\n"
+            + "      }\n"
+            + "    ]\n"
+            + "  }\n"
+            + "}";
+
+    // salary -> [pay, pay2]: both rename and eval-column-ref resolve to the same source field
+    Map<String, List<String>> mapping = Map.of("salary", List.of("pay", "pay2"));
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new TopHitsParser("dedup", false, false, mapping));
+
+    List<Map<String, Object>> result = parse(parser, response);
+    // Bucket key row
+    assertThat(result.get(0), org.hamcrest.Matchers.hasEntry("dept_id", "eng"));
+    // Hit row must contain both aliases with the same value; original key must be absent
+    Map<String, Object> hitRow = result.get(1);
+    assertEquals(50000, hitRow.get("pay"));
+    assertEquals(50000, hitRow.get("pay2"));
+    assertNull(hitRow.get("salary"), "original field name must be removed after mapping");
+  }
+
   public List<Map<String, Object>> parse(OpenSearchAggregationResponseParser parser, String json) {
     return parser.parse(fromJson(json));
   }

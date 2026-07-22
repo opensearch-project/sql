@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.UNTYPED_NULL_LITERAL;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -13,6 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * This manual IT for NULL literal cannot be replaced with comparison test because other database
@@ -22,6 +24,7 @@ import org.opensearch.sql.legacy.SQLIntegTestCase;
 public class NullLiteralIT extends SQLIntegTestCase {
 
   @Test
+  @RequiresCapability(UNTYPED_NULL_LITERAL)
   public void testNullLiteralSchema() {
     verifySchema(
         query("SELECT NULL, ABS(NULL), 1 + NULL, NULL + 1.0"),
@@ -32,6 +35,7 @@ public class NullLiteralIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(UNTYPED_NULL_LITERAL)
   public void testNullLiteralInOperator() {
     verifyDataRows(query("SELECT NULL = NULL, NULL AND TRUE"), rows(null, null));
   }
@@ -42,6 +46,7 @@ public class NullLiteralIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(UNTYPED_NULL_LITERAL)
   public void testNullLiteralInInterval() {
     verifyDataRows(
         query("SELECT INTERVAL NULL DAY, INTERVAL 60 * 60 * 24 * (NULL - FLOOR(NULL)) SECOND"),

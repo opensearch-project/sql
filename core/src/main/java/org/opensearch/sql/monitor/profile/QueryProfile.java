@@ -21,7 +21,8 @@ public final class QueryProfile {
 
   private final Map<String, Phase> phases;
 
-  private final PlanNode plan;
+  /** Execution-engine-specific plan profile: a {@link PlanNode} tree, or a pre-rendered object. */
+  private final Object plan;
 
   /**
    * Create a new query profile snapshot.
@@ -40,7 +41,7 @@ public final class QueryProfile {
    * @param phases metric values keyed by {@link MetricName}
    * @param plan plan tree profiling output
    */
-  public QueryProfile(double totalTimeMillis, Map<MetricName, Double> phases, PlanNode plan) {
+  public QueryProfile(double totalTimeMillis, Map<MetricName, Double> phases, Object plan) {
     this.summary = new Summary(totalTimeMillis);
     this.phases = buildPhases(phases);
     this.plan = plan;

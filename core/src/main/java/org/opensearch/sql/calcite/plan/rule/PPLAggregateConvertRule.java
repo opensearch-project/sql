@@ -135,7 +135,9 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
         final Function<RelNode, Function<RexNode, RexNode>> literalConverterProvider;
         RexCall rexCall = (RexCall) project.getProjects().get(aggCall.getArgList().getFirst());
         if (rexCall.getOperator().kind == SqlKind.PLUS
-            || rexCall.getOperator().kind == SqlKind.MINUS) {
+            || rexCall.getOperator().kind == SqlKind.MINUS
+            || rexCall.getOperator().kind == SqlKind.CHECKED_PLUS
+            || rexCall.getOperator().kind == SqlKind.CHECKED_MINUS) {
           AggregateCall countCall =
               AggregateCall.create(
                   aggCall.getParserPosition(),
@@ -280,7 +282,12 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
 
     List<SqlKind> CONVERTABLE_FUNCTIONS =
         List.of(
-            SqlKind.PLUS, SqlKind.MINUS, SqlKind.TIMES
+            SqlKind.PLUS,
+            SqlKind.MINUS,
+            SqlKind.TIMES,
+            SqlKind.CHECKED_PLUS,
+            SqlKind.CHECKED_MINUS,
+            SqlKind.CHECKED_TIMES
             // Don't support division because of the issue of integer division
             // e.g. (2000 / 3) * 3 = 1998 while 2000 * 3 / 3 = 2000
             // SqlKind.DIVIDE

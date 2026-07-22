@@ -32,7 +32,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max",
+                    + " as max | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -62,7 +62,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max",
+                    + " as max | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchemaInOrder(
@@ -94,7 +94,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by country",
+                    + " as max by country | fields name, country, state, month, year, age, cnt,"
+                    + " avg, min, max",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -124,7 +125,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by country",
+                    + " as max by country | fields name, country, state, month, year, age, cnt,"
+                    + " avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchemaInOrder(
@@ -153,7 +155,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by state",
+                    + " as max by state | fields name, country, state, month, year, age, cnt, avg,"
+                    + " min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
     verifyDataRows(
         actual,
@@ -171,7 +174,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats bucket_nullable=false count() as cnt, avg(age) as avg,"
-                    + " min(age) as min, max(age) as max by country",
+                    + " min(age) as min, max(age) as max by country | fields name, country, state,"
+                    + " month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -187,7 +191,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats bucket_nullable=false count() as cnt, avg(age) as avg,"
-                    + " min(age) as min, max(age) as max by state",
+                    + " min(age) as min, max(age) as max by state | fields name, country, state,"
+                    + " month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
     verifyDataRows(
         actual,
@@ -205,7 +210,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span",
+                    + " as max by span(age, 10) as age_span | fields name, country, state, month,"
+                    + " year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -222,7 +228,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span",
+                    + " as max by span(age, 10) as age_span | fields name, country, state, month,"
+                    + " year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -241,7 +248,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, country",
+                    + " as max by span(age, 10) as age_span, country | fields name, country, state,"
+                    + " month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -258,7 +266,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, state",
+                    + " as max by span(age, 10) as age_span, state | fields name, country, state,"
+                    + " month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -275,7 +284,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, country",
+                    + " as max by span(age, 10) as age_span, country | fields name, country, state,"
+                    + " month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -294,7 +304,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, state",
+                    + " as max by span(age, 10) as age_span, state | fields name, country, state,"
+                    + " month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -328,7 +339,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats avg(age) as avg_age by state, country | eventstats"
-                    + " avg(avg_age) as avg_state_age by country",
+                    + " avg(avg_age) as avg_state_age by country | fields name, country, state,"
+                    + " month, year, age, avg_age, avg_state_age",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -345,7 +357,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats avg(age) as avg_age by state, country | eventstats"
-                    + " avg(avg_age) as avg_state_age by country",
+                    + " avg(avg_age) as avg_state_age by country | fields name, country, state,"
+                    + " month, year, age, avg_age, avg_state_age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -365,7 +378,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eventstats bucket_nullable=false avg(age) as avg_age by state, country"
                     + " | eventstats bucket_nullable=false avg(avg_age) as avg_state_age by"
-                    + " country",
+                    + " country | fields name, country, state, month, year, age, avg_age,"
+                    + " avg_state_age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -386,7 +400,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
                 "source=%s | eventstats avg(age) as avg_age by country, state, name | eval"
                     + " avg_age_divide_20 = avg_age - 20 | eventstats avg(avg_age_divide_20) as"
                     + " avg_state_age by country, state | where avg_state_age > 0 | eventstats"
-                    + " count(avg_state_age) as count_country_age_greater_20 by country",
+                    + " count(avg_state_age) as count_country_age_greater_20 by country | fields"
+                    + " name, country, state, month, year, age, avg_age, avg_age_divide_20,"
+                    + " avg_state_age, count_country_age_greater_20",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -422,7 +438,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age)",
+                    + " var_samp(age) | fields name, country, state, month, year, age,"
+                    + " `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`, `var_samp(age)`",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -492,7 +509,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age)",
+                    + " var_samp(age) | fields name, country, state, month, year, age,"
+                    + " `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`, `var_samp(age)`",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchemaInOrder(
@@ -555,7 +573,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age) by country",
+                    + " var_samp(age) by country | fields name, country, state, month, year, age,"
+                    + " `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`, `var_samp(age)`",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -571,7 +590,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where country != 'USA' | eventstats stddev_samp(age) by span(age, 10)",
+                "source=%s | where country != 'USA' | eventstats stddev_samp(age) by span(age, 10)"
+                    + " | fields name, country, state, month, year, age, `stddev_samp(age)`",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -586,7 +606,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age) by country",
+                    + " var_samp(age) by country | fields name, country, state, month, year, age,"
+                    + " `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`, `var_samp(age)`",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -634,7 +655,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eventstats dc(state) as dc_state", TEST_INDEX_STATE_COUNTRY));
+                "source=%s | eventstats dc(state) as dc_state | fields name, country, state, month,"
+                    + " year, age, dc_state",
+                TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
         actual,
@@ -659,7 +682,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eventstats dc(state) as dc_state by country",
+                "source=%s | eventstats dc(state) as dc_state by country | fields name, country,"
+                    + " state, month, year, age, dc_state",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -685,7 +709,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eventstats distinct_count(country) as dc_country",
+                "source=%s | eventstats distinct_count(country) as dc_country | fields name,"
+                    + " country, state, month, year, age, dc_country",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -711,7 +736,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eventstats dc(state) as dc_state",
+                "source=%s | eventstats dc(state) as dc_state | fields name, country, state, month,"
+                    + " year, age, dc_state",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchemaInOrder(
@@ -739,7 +765,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eventstats earliest(message), latest(message) by server",
+                "source=%s | eventstats earliest(message), latest(message) by server | fields"
+                    + " created_at, server, `@timestamp`, message, level, `earliest(message)`,"
+                    + " `latest(message)`",
                 TEST_INDEX_LOGS));
     verifySchema(
         actual,

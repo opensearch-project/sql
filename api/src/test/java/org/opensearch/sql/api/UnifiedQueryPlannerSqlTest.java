@@ -259,4 +259,154 @@ public class UnifiedQueryPlannerSqlTest extends UnifiedQueryTestBase {
             """)
         .assertErrorMessage("Encountered");
   }
+
+  @Test
+  public void testSqlWindowFunctionWithOrderBy() {
+    givenQuery(
+            """
+            SELECT name, SUM(age) OVER (PARTITION BY department ORDER BY id) AS running_sum
+            FROM catalog.employees\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], running_sum=[SUM($2) OVER (PARTITION BY $3 ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlWindowRowNumber() {
+    givenQuery(
+            """
+            SELECT name, ROW_NUMBER() OVER (ORDER BY id) AS rn
+            FROM catalog.employees\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], rn=[ROW_NUMBER() OVER (ORDER BY $0)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlWindowDistinctAggregate() {
+    givenQuery(
+            """
+            SELECT name, COUNT(DISTINCT department) OVER (PARTITION BY department) AS dist_cnt
+            FROM catalog.employees\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], dist_cnt=[COUNT(DISTINCT $3) OVER (PARTITION BY $3)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlIsNullFunction() {
+    // ISNULL(field) — exercises the ISNULL alias registration in PPLFuncImpTable.
+    // Calcite constant-folds to false since test schema columns are NOT NULL.
+    givenQuery(
+            """
+            SELECT ISNULL(department) AS is_null
+            FROM catalog.employees\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(is_null=[false])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlLimitOffset() {
+    givenQuery(
+            """
+            SELECT name
+            FROM catalog.employees
+            LIMIT 10 OFFSET 5\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1])
+              LogicalSort(offset=[5], fetch=[10])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlAggregateWithAlias() {
+    givenQuery(
+            """
+            SELECT department, COUNT(*) AS cnt
+            FROM catalog.employees
+            GROUP BY department\
+            """)
+        .assertPlan(
+            """
+            LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+              LogicalProject(department=[$3])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlGroupByWithoutBucketNullable() {
+    givenQuery(
+            """
+            SELECT age, COUNT(*) AS cnt
+            FROM catalog.employees
+            GROUP BY age\
+            """)
+        .assertPlan(
+            """
+            LogicalAggregate(group=[{0}], COUNT(*)=[COUNT()])
+              LogicalProject(age=[$2])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlSelectWithAlias() {
+    givenQuery(
+            """
+            SELECT age AS employee_age, name AS employee_name
+            FROM catalog.employees\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(employee_age=[$2], employee_name=[$1])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlDerivedTableInFromClause() {
+    // SELECT ... FROM (SELECT ...) AS t — exercises visitRelationSubquery override.
+    givenQuery(
+            """
+            SELECT t.id
+            FROM (SELECT id, name FROM catalog.employees WHERE age > 30) AS t\
+            """)
+        .assertPlan(
+            """
+            LogicalProject(t.id=[$0])
+              LogicalFilter(condition=[>($2, 30)])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testSqlSelectWithoutFromClause() {
+    // SELECT 1 — exercises visitValues dual-table case (single empty row).
+    givenQuery(
+            """
+            SELECT 1\
+            """)
+        .assertPlan(
+            """
+            LogicalSort(sort0=[$0], dir0=[ASC])
+              LogicalValues(tuples=[[]])
+            """);
+  }
 }

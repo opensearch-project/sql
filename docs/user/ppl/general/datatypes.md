@@ -42,6 +42,7 @@ The table below list the mapping between OpenSearch Data Type, PPL Data Type and
 | scaled_float | float | DOUBLE |
 | double | double | DOUBLE |
 | keyword | string | VARCHAR |
+| constant_keyword | string | VARCHAR |
 | text | string | VARCHAR |
 | match_only_text | string | VARCHAR |
 | date | timestamp | TIMESTAMP |

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.IDENTIFIER_RESOLUTION;
+import static org.opensearch.sql.util.Capability.ID_METADATA;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -17,6 +19,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /** Integration tests for identifiers including index and field name symbol. */
 public class IdentifierIT extends SQLIntegTestCase {
@@ -56,6 +59,7 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(IDENTIFIER_RESOLUTION)
   public void testMultipleQueriesWithSpecialIndexNames() throws IOException {
     createIndexWithOneDoc("test.one", "test.two");
     queryAndAssertTheDoc("SELECT * FROM test.one");
@@ -63,6 +67,7 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(IDENTIFIER_RESOLUTION)
   public void testDoubleUnderscoreIdentifierTest() throws IOException {
     new Index("test.twounderscores").addDoc("{\"__age\": 30}");
     final JSONObject result =
@@ -73,6 +78,7 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testMetafieldIdentifierTest() throws IOException {
     // create an index, but the contents doesn't matter
     String id = "12345";
@@ -94,6 +100,7 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testMetafieldIdentifierRoutingSelectTest() throws IOException {
     // create an index, but the contents doesn't really matter
     String index = "test.routing_select";
@@ -132,6 +139,7 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testMetafieldIdentifierRoutingFilterTest() throws IOException {
     // create an index, but the contents doesn't really matter
     String index = "test.routing_filter";
@@ -172,6 +180,7 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testMetafieldIdentifierWithAliasTest() throws IOException {
     // create an index, but the contents doesn't matter
     String id = "99999";

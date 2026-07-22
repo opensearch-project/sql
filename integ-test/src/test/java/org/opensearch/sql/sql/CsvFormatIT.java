@@ -7,6 +7,7 @@ package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_CSV_SANITIZE;
 import static org.opensearch.sql.protocol.response.format.CsvResponseFormatter.CONTENT_TYPE;
+import static org.opensearch.sql.util.Capability.RESPONSE_FORMAT;
 import static org.opensearch.sql.util.TestUtils.assertRowsEqual;
 
 import java.io.IOException;
@@ -16,7 +17,9 @@ import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(RESPONSE_FORMAT)
 public class CsvFormatIT extends SQLIntegTestCase {
 
   @Override

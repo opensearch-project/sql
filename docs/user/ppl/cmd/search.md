@@ -128,34 +128,34 @@ Cross-cluster search lets any node in a cluster execute search requests against 
 
 ## Example 1: Fetching all data
 
-Retrieve all documents from an index by specifying only the source without any search conditions. This is useful for exploring small datasets or verifying data ingestion:
+Retrieve all documents from an index:
 
 ```ppl
-source=accounts
+source=otellogs
+| head 3
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
-+----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
-| account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname |
-|----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------|
-| 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     |
-| 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     |
-| 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    |
-| 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    |
-+----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
+fetched rows / total rows = 3/3
++----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+-----------------------------------------------------------------------------------------------+
+| spanId   | traceId          | @timestamp          | instrumentationScope                                                                                                                      | severityText | resource                                                                                                                             | flags | attributes | droppedAttributesCount | severityNumber | time                | body                                                                                          |
+|----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+-----------------------------------------------------------------------------------------------|
+| span0001 | abcd1234efgh5678 | 2024-02-01 09:10:00 | {'name': '@opentelemetry/instrumentation-http', 'droppedAttributesCount': 0, 'version': '0.57.0'}                                         | INFO         | {'attributes': {'service': {'name': 'frontend'}, 'host': {'name': 'frontend-6b7b4c9f-x2kl9'}}, 'droppedAttributesCount': 0}          | 0     | {}         | 0                      | 9              | 2024-02-01 09:10:00 | [2024-02-01T09:10:00.123Z] "GET /api/products HTTP/1.1" 200 - 1024 45 frontend-6b7b4c9f-x2kl9 |
+| span0002 | abcd1234efgh5678 | 2024-02-01 09:11:00 | {'name': 'Microsoft.Extensions.Hosting', 'droppedAttributesCount': 0, 'version': '9.0.0'}                                                 | INFO         | {'attributes': {'service': {'name': 'cart'}, 'host': {'name': 'cart-5d8f7b-mk29s'}}, 'droppedAttributesCount': 0}                    | 0     | {}         | 0                      | 9              | 2024-02-01 09:11:00 | Order #1234 placed successfully by user U100                                                  |
+| span0003 | abcd1234efgh5678 | 2024-02-01 09:12:00 | {'name': 'go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc', 'droppedAttributesCount': 0, 'version': '0.49.0'} | WARN         | {'attributes': {'service': {'name': 'product-catalog'}, 'host': {'name': 'productcatalog-7c9d-zn4p2'}}, 'droppedAttributesCount': 0} | 0     | {}         | 0                      | 13             | 2024-02-01 09:12:00 | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms        |
++----------+------------------+---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------+-------+------------+------------------------+----------------+---------------------+-----------------------------------------------------------------------------------------------+
 ```
 
 
-## Example 2: Text search
+## Example 2: Searching text
 
 For basic text search, use an unquoted single term:
   
 ```ppl
 search ERROR source=otellogs
-| sort @timestamp
+| sort `resource.attributes.service.name`
 | fields severityText, body
 | head 1
 ```
@@ -164,91 +164,71 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+--------------+---------------------------------------------------------+
-| severityText | body                                                    |
-|--------------+---------------------------------------------------------|
-| ERROR        | Payment failed: Insufficient funds for user@example.com |
-+--------------+---------------------------------------------------------+
++--------------+----------------------------------------------------------------+
+| severityText | body                                                           |
+|--------------+----------------------------------------------------------------|
+| ERROR        | NullPointerException in CheckoutService.placeOrder at line 142 |
++--------------+----------------------------------------------------------------+
 ```
   
 Phrase search requires quotation marks for multi-word exact matching:
   
 ```ppl
 search "Payment failed" source=otellogs
-| fields body
+| sort `resource.attributes.service.name` | fields body | head 1
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+---------------------------------------------------------+
-| body                                                    |
-|---------------------------------------------------------|
-| Payment failed: Insufficient funds for user@example.com |
-+---------------------------------------------------------+
++---------------------------------------------------------------------+
+| body                                                                |
+|---------------------------------------------------------------------|
+| Payment failed: connection timeout to payment gateway after 30000ms |
++---------------------------------------------------------------------+
 ```
 
 Multiple search terms (unquoted string literals) are automatically combined using the `AND` operator:
   
 ```ppl
-search user email source=otellogs
-| sort @timestamp
+search connection timeout source=otellogs
 | fields body
-| head 1
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+--------------------------------------------------------------------------------------------------------------------+
-| body                                                                                                               |
-|--------------------------------------------------------------------------------------------------------------------|
-| Executing SQL: SELECT * FROM users WHERE email LIKE '%@gmail.com' AND status != 'deleted' ORDER BY created_at DESC |
-+--------------------------------------------------------------------------------------------------------------------+
++---------------------------------------------------------------------+
+| body                                                                |
+|---------------------------------------------------------------------|
+| Payment failed: connection timeout to payment gateway after 30000ms |
++---------------------------------------------------------------------+
 ```
   
-> **Note**: `search user email` is equivalent to `search user AND email`. 
+> **Note**: `search connection timeout` is equivalent to `search connection AND timeout`. 
 
-Enclose terms containing special characters in double quotation marks:
-  
-```ppl
-search "john.doe+newsletter@company.com" source=otellogs
-| fields body
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 1/1
-+--------------------------------------------------------------------------------------------------------------------+
-| body                                                                                                               |
-|--------------------------------------------------------------------------------------------------------------------|
-| Email notification sent to john.doe+newsletter@company.com with subject: 'Welcome! Your order #12345 is confirmed' |
-+--------------------------------------------------------------------------------------------------------------------+
-```
-  
 ### Combined phrase and Boolean search
 
 Combine quoted phrases with Boolean operators for more precise searches:
 
 ```ppl
-search "User authentication" OR OAuth2 source=otellogs
-| sort @timestamp
+search "connection timeout" OR "heap space" source=otellogs
+| sort `resource.attributes.service.name`
 | fields body
-| head 1
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 1/1
-+----------------------------------------------------------------------------------------------------------+
-| body                                                                                                     |
-|----------------------------------------------------------------------------------------------------------|
-| [2024-01-15 10:30:09] production.INFO: User authentication successful for admin@company.org using OAuth2 |
-+----------------------------------------------------------------------------------------------------------+
+fetched rows / total rows = 2/2
++-------------------------------------------------------------------------+
+| body                                                                    |
+|-------------------------------------------------------------------------|
+| Payment failed: connection timeout to payment gateway after 30000ms     |
+| Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
++-------------------------------------------------------------------------+
 ```
   
 
@@ -261,23 +241,30 @@ The following queries demonstrate Boolean operators and precedence.
 Use `OR` to match documents containing any of the specified conditions:
 
 ```ppl
-search severityText="ERROR" OR severityText="FATAL" source=otellogs
-| sort @timestamp
-| fields severityText
-| head 3
+search severityText="ERROR" OR severityText="WARN" source=otellogs
+| sort severityNumber, `resource.attributes.service.name`
+| fields severityText, `resource.attributes.service.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 3/3
-+--------------+
-| severityText |
-|--------------|
-| ERROR        |
-| FATAL        |
-| ERROR        |
-+--------------+
+fetched rows / total rows = 11/11
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| WARN         | frontend-proxy                   |
+| WARN         | frontend-proxy                   |
+| WARN         | product-catalog                  |
+| WARN         | product-catalog                  |
+| ERROR        | checkout                         |
+| ERROR        | checkout                         |
+| ERROR        | frontend-proxy                   |
+| ERROR        | payment                          |
+| ERROR        | payment                          |
+| ERROR        | product-catalog                  |
+| ERROR        | recommendation                   |
++--------------+----------------------------------+
 ```
 
 Combine conditions with `AND` to require all criteria to match:
@@ -292,11 +279,11 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
-+----------------------------------------------------------------------------------+
-| body                                                                             |
-|----------------------------------------------------------------------------------|
-| User e1ce63e6-8501-11f0-930d-c2fcbdc05f14 adding 4 of product HQTGWGPNH4 to cart |
-+----------------------------------------------------------------------------------+
++----------------------------------------------+
+| body                                         |
+|----------------------------------------------|
+| Order #1234 placed successfully by user U100 |
++----------------------------------------------+
 ```
   
 ### Operator precedence
@@ -307,15 +294,14 @@ The operators are evaluated using the following precedence:
 Parentheses > NOT > OR > AND
 ```
 
-The following query demonstrates operator precedence:
+The following query demonstrates operator precedence.
 
 ```ppl
 search severityText="ERROR" OR severityText="WARN" AND severityNumber>15 source=otellogs
-| sort @timestamp
 | fields severityText, severityNumber
 | head 2
 ```
-  
+
 The preceding expression is evaluated as `(severityText="ERROR" OR severityText="WARN") AND severityNumber>15`. The query returns the following results:
   
 ```text
@@ -328,58 +314,62 @@ fetched rows / total rows = 2/2
 +--------------+----------------+
 ```
 
-## Example 4: NOT compared to != semantics  
+## Example 4: Comparing NOT with != semantics
 
-Both `!=` and `NOT` operators find documents in which the field value is not equal to the specified value. However, the `!=` operator excludes documents containing null or missing fields, while the `NOT` operator includes them. The following query shows this difference.
+Both `!=` and `NOT` operators find documents in which the field value is not equal to the specified value. However, the `!=` operator excludes documents containing null or missing fields, while the `NOT` operator includes them. The following queries show this difference using `instrumentationScope.name`, which is null for most records.
 
 **!= operator**
 
-Find all accounts for which the `employer` field exists and is not `Quility`:
+Excludes null values — only returns rows where the field exists and is not the specified value:
 
 ```ppl
-search employer!="Quility" source=accounts
+search instrumentationScope.name!="@opentelemetry/instrumentation-http" source=otellogs
+| fields instrumentationScope.name
 ```
-  
+
 The query returns the following results:
-  
-```text
-fetched rows / total rows = 2/2
-+----------------+-----------+--------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
-| account_number | firstname | address            | balance | gender | city   | employer | state | age | email                 | lastname |
-|----------------+-----------+--------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------|
-| 1              | Amber     | 880 Holmes Lane    | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     |
-| 6              | Hattie    | 671 Bristol Street | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     |
-+----------------+-----------+--------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
-```
-  
-**`NOT` operator** 
 
-Find all accounts that do not specify `Quility` as the employer (including those with null employer values):
+```text
+fetched rows / total rows = 1/1
++------------------------------+
+| instrumentationScope.name    |
+|------------------------------|
+| Microsoft.Extensions.Hosting |
++------------------------------+
+```
+
+**`NOT` operator**
+
+Includes null values — returns rows where the field is null or not the specified value:
 
 ```ppl
-search NOT employer="Quility" source=accounts
-```
-  
-The query returns the following results. Dale Adams appears in the search results because his `employer` field is `null`:
-  
-```text
-fetched rows / total rows = 3/3
-+----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
-| account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname |
-|----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------|
-| 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     |
-| 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     |
-| 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    |
-+----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
+search NOT instrumentationScope.name="@opentelemetry/instrumentation-http" source=otellogs
+| fields instrumentationScope.name
+| head 5
 ```
 
-## Example 5: Range queries
+The query returns the following results:
+
+```text
+fetched rows / total rows = 5/5
++------------------------------+
+| instrumentationScope.name    |
+|------------------------------|
+| Microsoft.Extensions.Hosting |
+| null                         |
+| null                         |
+| null                         |
+| null                         |
++------------------------------+
+```
+
+## Example 5: Querying ranges
 
 Use comparison operators (`>,` `<,` `>=` and `<=`) to filter numeric and date fields within specific ranges. Range queries are particularly useful for filtering by age, price, timestamps, or any numeric metrics:
 
 ```ppl
-search severityNumber>15 AND severityNumber<=20 source=otellogs
-| sort @timestamp
+search severityNumber>13 AND severityNumber<=21 source=otellogs
+| sort severityNumber, `resource.attributes.service.name`
 | fields severityNumber
 | head 3
 ```
@@ -393,30 +383,13 @@ fetched rows / total rows = 3/3
 |----------------|
 | 17             |
 | 17             |
-| 18             |
+| 17             |
 +----------------+
 ```
 
-The following query filters by decimal values within a specific range:
-
-```ppl
-search `attributes.payment.amount`>=1000.0 AND `attributes.payment.amount`<=2000.0 source=otellogs
-| fields body
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 1/1
-+---------------------------------------------------------+
-| body                                                    |
-|---------------------------------------------------------|
-| Payment failed: Insufficient funds for user@example.com |
-+---------------------------------------------------------+
-```
 
 
-## Example 6: Wildcards
+## Example 6: Using wildcards
 
 The following queries demonstrate wildcard pattern matching. In wildcard patterns, `*` matches zero or more characters, while `?` matches exactly one character.
 
@@ -424,7 +397,7 @@ Use `*` to match any number of characters at the end of a term:
 
 ```ppl
 search severityText=ERR* source=otellogs
-| sort @timestamp
+| sort severityNumber, `resource.attributes.service.name`
 | fields severityText
 | head 3
 ```
@@ -438,15 +411,15 @@ fetched rows / total rows = 3/3
 |--------------|
 | ERROR        |
 | ERROR        |
-| ERROR2       |
+| ERROR       |
 +--------------+
 ```
 
 Wildcard searches also work within text fields to find partial matches:
 
 ```ppl
-search body=user* source=otellogs
-| sort @timestamp
+search body=connection* source=otellogs
+| sort `resource.attributes.service.name`
 | fields body
 | head 2
 ```
@@ -455,20 +428,19 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 2/2
-+----------------------------------------------------------------------------------+
-| body                                                                             |
-|----------------------------------------------------------------------------------|
-| User e1ce63e6-8501-11f0-930d-c2fcbdc05f14 adding 4 of product HQTGWGPNH4 to cart |
-| Payment failed: Insufficient funds for user@example.com                          |
-+----------------------------------------------------------------------------------+
++---------------------------------------------------------------------+
+| body                                                                |
+|---------------------------------------------------------------------|
+| Payment failed: connection timeout to payment gateway after 30000ms |
+| Connection pool 80% utilized on database replica db-replica-02      |
++---------------------------------------------------------------------+
 ```
 
 Use `?` to match exactly one character in specific positions:
 
 ```ppl
-search severityText="INFO?" source=otellogs
-| sort @timestamp
-| fields severityText
+search severityText="ERR?R" source=otellogs
+| fields severityText, `resource.attributes.service.name`
 | head 3
 ```
 
@@ -476,38 +448,40 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 3/3
-+--------------+
-| severityText |
-|--------------|
-| INFO2        |
-| INFO3        |
-| INFO4        |
-+--------------+
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| ERROR        | payment                          |
+| ERROR        | checkout                         |
+| ERROR        | payment                          |
++--------------+----------------------------------+
 ```
 
 
-## Example 7: Wildcard patterns in field searches  
+## Example 7: Wildcard patterns in service name searches
 
-When searching in text or keyword fields, wildcards enable partial matching, which is useful when you only know part of a value. Wildcards work best on keyword fields, for which they match the exact value using patterns. Using wildcards on text fields may produce unexpected results because they apply to individual tokens after analysis, not the entire field value. Wildcards in keyword fields are case sensitive unless normalized at indexing.
+When searching in text or keyword fields, wildcards enable partial matching, which is useful when you only know part of a service name. Wildcards work best on keyword fields, for which they match the exact value using patterns. Using wildcards on text fields may produce unexpected results because they apply to individual tokens after analysis, not the entire field value. Wildcards in keyword fields are case sensitive unless normalized at indexing.
 
-> **Note**: Leading wildcards (for example, `*@example.com`) can decrease query speed compared to trailing wildcards.
+> **Note**: Leading wildcards (for example, `*-service`) can decrease query speed compared to trailing wildcards.
 
-Find records for which you only know the beginning of a field value:
+Find logs for services when you only know the beginning of the service name:
 
 ```ppl
-search employer=Py* source=accounts
-| fields firstname, employer
+search `resource.attributes.service.name`=payment* source=otellogs
+| fields severityText, `resource.attributes.service.name`, body
+| head 2
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 1/1
-+-----------+----------+
-| firstname | employer |
-|-----------+----------|
-| Amber     | Pyrami   |
-+-----------+----------+
+fetched rows / total rows = 2/2
++--------------+----------------------------------+-------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                    |
+|--------------+----------------------------------+-------------------------------------------------------------------------|
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms     |
+| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
++--------------+----------------------------------+-------------------------------------------------------------------------+
 ```
 
 Combine wildcard patterns with other conditions for more precise filtering:
@@ -535,23 +509,29 @@ The `IN` operator efficiently checks whether a field matches any value in a list
 Check whether a field matches any value from a predefined list:
 
 ```ppl
-search severityText IN ("ERROR", "WARN", "FATAL") source=otellogs
-| sort @timestamp
-| fields severityText
-| head 3
+search severityText IN ("ERROR", "WARN") source=otellogs
+| fields severityText, `resource.attributes.service.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 3/3
-+--------------+
-| severityText |
-|--------------|
-| ERROR        |
-| WARN         |
-| FATAL        |
-+--------------+
+fetched rows / total rows = 11/11
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| WARN         | product-catalog                  |
+| WARN         | product-catalog                  |
+| WARN         | frontend-proxy                   |
+| WARN         | frontend-proxy                   |
+| ERROR        | payment                          |
+| ERROR        | checkout                         |
+| ERROR        | payment                          |
+| ERROR        | frontend-proxy                   |
+| ERROR        | recommendation                   |
+| ERROR        | product-catalog                  |
+| ERROR        | checkout                         |
++--------------+----------------------------------+
 ```
 
 
@@ -559,48 +539,33 @@ Filter logs by `severityNumber` to find errors with a specific numeric severity 
 
 ```ppl
 search severityNumber=17 source=otellogs
-| sort @timestamp
-| fields body
-| head 1
+| fields body, `resource.attributes.service.name`
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 1/1
-+---------------------------------------------------------+
-| body                                                    |
-|---------------------------------------------------------|
-| Payment failed: Insufficient funds for user@example.com |
-+---------------------------------------------------------+
+fetched rows / total rows = 7/7
++----------------------------------------------------------------------------------------------+----------------------------------+
+| body                                                                                         | resource.attributes.service.name |
+|----------------------------------------------------------------------------------------------+----------------------------------|
+| Payment failed: connection timeout to payment gateway after 30000ms                          | payment                          |
+| NullPointerException in CheckoutService.placeOrder at line 142                               | checkout                         |
+| Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                      | payment                          |
+| [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 | frontend-proxy                   |
+| Failed to process recommendation request: invalid product ID from 203.0.113.50               | recommendation                   |
+| Database primary node unreachable: connection refused to db-primary-01:5432                  | product-catalog                  |
+| Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) | checkout                         |
++----------------------------------------------------------------------------------------------+----------------------------------+
 ```
 
-Search for logs containing a specific user email address in the attributes:
-
-```ppl
-search `attributes.user.email`="user@example.com" source=otellogs
-| fields body
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 1/1
-+---------------------------------------------------------+
-| body                                                    |
-|---------------------------------------------------------|
-| Payment failed: Insufficient funds for user@example.com |
-+---------------------------------------------------------+
-```
-  
-
-## Example 9: Complex expressions  
+## Example 9: Using complex expressions  
 
 To create sophisticated search queries, combine multiple conditions using Boolean operators and parentheses:
   
 ```ppl
-search (severityText="ERROR" OR severityText="WARN") AND severityNumber>10 source=otellogs
-| sort @timestamp
+search (severityText="ERROR" OR severityText="WARN") AND severityNumber>13 source=otellogs
+| sort severityNumber, `resource.attributes.service.name`
 | fields severityText
 | head 3
 ```
@@ -613,31 +578,12 @@ fetched rows / total rows = 3/3
 | severityText |
 |--------------|
 | ERROR        |
-| WARN         |
+| ERROR        |
 | ERROR        |
 +--------------+
 ```
 
-Combine multiple conditions with `OR` and `AND` operators to search for logs matching either a specific user or high-severity fund errors:
-
-```ppl
-search `attributes.user.email`="user@example.com" OR (`attributes.error.code`="INSUFFICIENT_FUNDS" AND severityNumber>15) source=otellogs
-| fields body
-```
-  
-The query returns the following results:
-  
-```
-fetched rows / total rows = 1/1
-+---------------------------------------------------------+
-| body                                                    |
-|---------------------------------------------------------|
-| Payment failed: Insufficient funds for user@example.com |
-+---------------------------------------------------------+
-```
-  
-
-## Example 10: Time modifiers  
+## Example 10: Using time modifiers  
 
 Time modifiers filter search results by time range using the implicit `@timestamp` field. They support various time formats for precise temporal filtering.
 
@@ -646,24 +592,23 @@ Time modifiers filter search results by time range using the implicit `@timestam
 Filter logs within a specific time window using absolute timestamps:
 
 ```ppl
-search earliest='2024-01-15 10:30:05' latest='2024-01-15 10:30:10' source=otellogs
-| fields @timestamp, severityText
+search earliest='2024-02-01 09:13:00' latest='2024-02-01 09:16:00' source=otellogs
+| sort severityNumber
+| fields `@timestamp`, severityText
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 6/6
-+-------------------------------+--------------+
-| @timestamp                    | severityText |
-|-------------------------------+--------------|
-| 2024-01-15 10:30:05.678901234 | FATAL        |
-| 2024-01-15 10:30:06.789012345 | TRACE        |
-| 2024-01-15 10:30:07.890123456 | ERROR        |
-| 2024-01-15 10:30:08.901234567 | WARN         |
-| 2024-01-15 10:30:09.012345678 | INFO         |
-| 2024-01-15 10:30:10.123456789 | TRACE2       |
-+-------------------------------+--------------+
+fetched rows / total rows = 4/4
++---------------------+--------------+
+| @timestamp          | severityText |
+|---------------------+--------------|
+| 2024-02-01 09:14:00 | DEBUG        |
+| 2024-02-01 09:16:00 | INFO         |
+| 2024-02-01 09:13:00 | ERROR        |
+| 2024-02-01 09:15:00 | ERROR        |
++---------------------+--------------+
 ```
   
 ### Relative time filtering
@@ -672,8 +617,8 @@ Filter logs using relative time expressions, such as those that occurred before 
 
 ```ppl
 search latest=-30s source=otellogs
-| sort @timestamp
-| fields @timestamp, severityText
+| sort severityNumber
+| fields `@timestamp`, severityText
 | head 3
 ```
   
@@ -681,13 +626,13 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+-------------------------------+--------------+
-| @timestamp                    | severityText |
-|-------------------------------+--------------|
-| 2024-01-15 10:30:00.123456789 | INFO         |
-| 2024-01-15 10:30:01.23456789  | ERROR        |
-| 2024-01-15 10:30:02.345678901 | WARN         |
-+-------------------------------+--------------+
++---------------------+--------------+
+| @timestamp          | severityText |
+|---------------------+--------------|
+| 2024-02-01 09:14:00 | DEBUG        |
+| 2024-02-01 09:21:00 | DEBUG        |
+| 2024-02-01 09:28:00 | DEBUG        |
++---------------------+--------------+
 ```
   
 ### Time rounding
@@ -696,7 +641,8 @@ Use time rounding expressions to filter events relative to time boundaries, such
 
 ```ppl
 search latest='@m' source=otellogs
-| fields @timestamp, severityText
+| sort severityNumber
+| fields `@timestamp`, severityText
 | head 2
 ```
   
@@ -704,12 +650,12 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
-+-------------------------------+--------------+
-| @timestamp                    | severityText |
-|-------------------------------+--------------|
-| 2024-01-15 10:30:00.123456789 | INFO         |
-| 2024-01-15 10:30:01.23456789  | ERROR        |
-+-------------------------------+--------------+
++---------------------+--------------+
+| @timestamp          | severityText |
+|---------------------+--------------|
+| 2024-02-01 09:14:00 | DEBUG        |
+| 2024-02-01 09:21:00 | DEBUG        |
++---------------------+--------------+
 ```
   
 ### Unix timestamp filtering
@@ -717,27 +663,30 @@ fetched rows / total rows = 2/2
 Filter logs using Unix epoch timestamps for precise time ranges:
 
 ```ppl
-search earliest=1705314600 latest=1705314605 source=otellogs
-| fields @timestamp, severityText
+search earliest=1706778600 latest=1706778960 source=otellogs
+| sort severityNumber
+| fields `@timestamp`, severityText
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 5/5
-+-------------------------------+--------------+
-| @timestamp                    | severityText |
-|-------------------------------+--------------|
-| 2024-01-15 10:30:00.123456789 | INFO         |
-| 2024-01-15 10:30:01.23456789  | ERROR        |
-| 2024-01-15 10:30:02.345678901 | WARN         |
-| 2024-01-15 10:30:03.456789012 | DEBUG        |
-| 2024-01-15 10:30:04.567890123 | INFO         |
-+-------------------------------+--------------+
+fetched rows / total rows = 7/7
++---------------------+--------------+
+| @timestamp          | severityText |
+|---------------------+--------------|
+| 2024-02-01 09:14:00 | DEBUG        |
+| 2024-02-01 09:10:00 | INFO         |
+| 2024-02-01 09:11:00 | INFO         |
+| 2024-02-01 09:16:00 | INFO         |
+| 2024-02-01 09:12:00 | WARN         |
+| 2024-02-01 09:13:00 | ERROR        |
+| 2024-02-01 09:15:00 | ERROR        |
++---------------------+--------------+
 ```
   
 
-## Example 11: Escaping special characters
+## Escaping special characters
 
 Special characters fall into two categories, depending on whether they must always be escaped or only when you want to search for their literal value:
 
@@ -757,68 +706,3 @@ The following table compares wildcard and literal character matching.
 | Literal `user*` | `field="user\\*"` | Matches only `user*` |
 | Wildcard search | `field=log?` | Matches `log1`, `logA`, `logs` |
 | Literal `log?` | `field="log\\?"`  | Matches only `log?`|
-
-### Escaping backslash characters
-
-Each backslash in the search value must be escaped with another backslash. For example, the following query searches for Windows file paths by properly escaping backslashes:
-
-```ppl
-search `attributes.error.type`="C:\\\\Users\\\\admin" source=otellogs
-| fields `attributes.error.type`
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 1/1
-+-----------------------+
-| attributes.error.type |
-|-----------------------|
-| C:\Users\admin        |
-+-----------------------+
-```
-
-> **Note**: When using the REST API with JSON, additional JSON escaping is required.
-
-### Quotation marks within strings
-
-Search for text containing quotation marks by escaping them with backslashes:
-
-```ppl
-search body="\"exact phrase\"" source=otellogs
-| sort @timestamp
-| fields body
-| head 1
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 1/1
-+--------------------------------------------------------------------------------------------------------------------------------------------------------+
-| body                                                                                                                                                   | 
-|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Query contains Lucene special characters: +field:value -excluded AND (grouped OR terms) NOT "exact phrase" wildcard* fuzzy~2 /regex/ [range TO search] |
-+--------------------------------------------------------------------------------------------------------------------------------------------------------+
-```
-
-### Text containing special characters
-
-Search for literal text containing wildcard characters by escaping them:
-
-```ppl
-search "wildcard\\* fuzzy~2" source=otellogs
-| fields body
-| head 1
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 1/1
-+--------------------------------------------------------------------------------------------------------------------------------------------------------+
-| body                                                                                                                                                   |
-|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Query contains Lucene special characters: +field:value -excluded AND (grouped OR terms) NOT "exact phrase" wildcard* fuzzy~2 /regex/ [range TO search] |
-+--------------------------------------------------------------------------------------------------------------------------------------------------------+
-```

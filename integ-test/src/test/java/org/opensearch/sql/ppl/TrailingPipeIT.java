@@ -34,8 +34,10 @@ public class TrailingPipeIT extends PPLIntegTestCase {
   @Test
   public void testTrailingPipeAfterSource() throws IOException {
     // Query with trailing pipe should produce same results as without
-    JSONObject resultWithout = executeQuery(String.format("source=%s", TEST_INDEX_ACCOUNT));
-    JSONObject resultWith = executeQuery(String.format("source=%s |", TEST_INDEX_ACCOUNT));
+    JSONObject resultWithout =
+        executeQuery(String.format("source=%s | sort account_number", TEST_INDEX_ACCOUNT));
+    JSONObject resultWith =
+        executeQuery(String.format("source=%s | sort account_number |", TEST_INDEX_ACCOUNT));
 
     // Both should return the same data
     assertTrue(resultWithout.similar(resultWith));
@@ -52,11 +54,13 @@ public class TrailingPipeIT extends PPLIntegTestCase {
     JSONObject resultWithout =
         executeQuery(
             String.format(
-                "source=%s | where age > 30 | fields firstname, age", TEST_INDEX_ACCOUNT));
+                "source=%s | where age > 30 | sort account_number | fields firstname, age",
+                TEST_INDEX_ACCOUNT));
     JSONObject resultWith =
         executeQuery(
             String.format(
-                "source=%s | where age > 30 | fields firstname, age |", TEST_INDEX_ACCOUNT));
+                "source=%s | where age > 30 | sort account_number | fields firstname, age |",
+                TEST_INDEX_ACCOUNT));
 
     assertTrue(resultWithout.similar(resultWith));
   }
@@ -71,10 +75,14 @@ public class TrailingPipeIT extends PPLIntegTestCase {
   public void testTrailingPipeAfterHead() throws IOException {
     JSONObject resultWithout =
         executeQuery(
-            String.format("source=%s | fields firstname, age | head 3", TEST_INDEX_ACCOUNT));
+            String.format(
+                "source=%s | sort account_number | fields firstname, age | head 3",
+                TEST_INDEX_ACCOUNT));
     JSONObject resultWith =
         executeQuery(
-            String.format("source=%s | fields firstname, age | head 3 |", TEST_INDEX_ACCOUNT));
+            String.format(
+                "source=%s | sort account_number | fields firstname, age | head 3 |",
+                TEST_INDEX_ACCOUNT));
 
     assertTrue(resultWithout.similar(resultWith));
   }
@@ -115,11 +123,13 @@ public class TrailingPipeIT extends PPLIntegTestCase {
     JSONObject resultNormal =
         executeQuery(
             String.format(
-                "source=%s | where age > 30 | fields firstname, age", TEST_INDEX_ACCOUNT));
+                "source=%s | where age > 30 | sort account_number | fields firstname, age",
+                TEST_INDEX_ACCOUNT));
     JSONObject resultWithEmpty =
         executeQuery(
             String.format(
-                "source=%s | | where age > 30 | fields firstname, age", TEST_INDEX_ACCOUNT));
+                "source=%s | | where age > 30 | sort account_number | fields firstname, age",
+                TEST_INDEX_ACCOUNT));
 
     assertTrue(resultNormal.similar(resultWithEmpty));
   }
@@ -136,12 +146,12 @@ public class TrailingPipeIT extends PPLIntegTestCase {
     JSONObject resultNormal =
         executeQuery(
             String.format(
-                "source=%s | where age > 30 | fields firstname, age | sort age",
+                "source=%s | where age > 30 | sort age, account_number | fields firstname, age",
                 TEST_INDEX_ACCOUNT));
     JSONObject resultWithEmpty =
         executeQuery(
             String.format(
-                "source=%s | | where age > 30 | | fields firstname, age | sort age",
+                "source=%s | | where age > 30 | | sort age, account_number | fields firstname, age",
                 TEST_INDEX_ACCOUNT));
 
     assertTrue(resultNormal.similar(resultWithEmpty));
@@ -159,12 +169,12 @@ public class TrailingPipeIT extends PPLIntegTestCase {
     JSONObject resultNormal =
         executeQuery(
             String.format(
-                "source=%s | where age > 30 | fields firstname, age | sort age",
+                "source=%s | where age > 30 | sort age, account_number | fields firstname, age",
                 TEST_INDEX_ACCOUNT));
     JSONObject resultWithEmpty =
         executeQuery(
             String.format(
-                "source=%s | | where age > 30 | fields firstname, age | sort age |",
+                "source=%s | | where age > 30 | sort age, account_number | fields firstname, age |",
                 TEST_INDEX_ACCOUNT));
 
     assertTrue(resultNormal.similar(resultWithEmpty));

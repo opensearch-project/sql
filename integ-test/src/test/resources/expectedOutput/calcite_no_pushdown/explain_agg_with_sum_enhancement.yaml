@@ -7,7 +7,7 @@ calcite:
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[100], expr#5=[*($t2, $t4)], expr#6=[+($t1, $t5)], expr#7=[-($t1, $t5)], expr#8=[*($t1, $t4)], sum(balance)=[$t1], sum(balance + 100)=[$t6], sum(balance - 100)=[$t7], sum(balance * 100)=[$t8], sum(balance / 100)=[$t3], gender=[$t0])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[100:BIGINT], expr#5=[*($t2, $t4)], expr#6=[+($t1, $t5)], expr#7=[-($t1, $t5)], expr#8=[*($t1, $t4)], sum(balance)=[$t1], sum(balance + 100)=[$t6], sum(balance - 100)=[$t7], sum(balance * 100)=[$t8], sum(balance / 100)=[$t3], gender=[$t0])
         EnumerableAggregate(group=[{0}], sum(balance)=[SUM($1)], sum(balance + 100)_COUNT=[COUNT($1)], sum(balance / 100)=[SUM($2)])
           EnumerableCalc(expr#0..18=[{inputs}], expr#19=[100], expr#20=[DIVIDE($t7, $t19)], gender=[$t4], balance=[$t7], $f5=[$t20])
             CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])

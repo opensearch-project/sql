@@ -90,6 +90,9 @@ public interface PlanUtils {
   String ROW_NUMBER_COLUMN_FOR_TRANSPOSE = "_row_number_transpose_";
   String VALUE_COLUMN_FOR_TRANSPOSE = "_value_transpose_";
 
+  /** Ordering key on addcoltotals' UNION ALL branches: 0 on the data rows, 1 on the summary row. */
+  String ORDER_COLUMN_FOR_ADDCOLTOTALS = "_addcoltotals_order_";
+
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
       case MICROSECOND -> SpanUnit.MICROSECOND;
@@ -171,6 +174,19 @@ public interface PlanUtils {
       List<RexNode> partitions,
       List<RexNode> orderKeys,
       @Nullable WindowFrame windowFrame) {
+    return makeOver(
+        context, functionName, false, field, argList, partitions, orderKeys, windowFrame);
+  }
+
+  static RexNode makeOver(
+      CalcitePlanContext context,
+      BuiltinFunctionName functionName,
+      boolean distinct,
+      RexNode field,
+      List<RexNode> argList,
+      List<RexNode> partitions,
+      List<RexNode> orderKeys,
+      @Nullable WindowFrame windowFrame) {
     if (windowFrame == null) {
       windowFrame = WindowFrame.rowsUnbounded();
     }
@@ -226,7 +242,7 @@ public interface PlanUtils {
             upperBound);
       default:
         return withOver(
-            makeAggCall(context, functionName, false, field, argList),
+            makeAggCall(context, functionName, distinct, field, argList),
             partitions,
             orderKeys,
             rows,
@@ -772,15 +788,21 @@ public interface PlanUtils {
     return Mappings.target(getSelectColumns(rexNodes), schema.getFieldCount());
   }
 
+  /**
+   * Accepts the un-merged {@code IS NOT NULL($ref)} shape and the merged-{@code AND} shape that
+   * {@link org.apache.calcite.rel.rules.FilterMergeRule} produces when a user {@code where}
+   * precedes the dedup. The concrete partition-key match — and the split-out of any user predicate
+   * folded into the AND — happens in {@link PPLSimplifyDedupRule#apply}.
+   */
   static boolean mayBeFilterFromBucketNonNull(LogicalFilter filter) {
     RexNode condition = filter.getCondition();
     return isNotNullOnRef(condition)
         || (condition instanceof RexCall rexCall
             && rexCall.getOperator().equals(SqlStdOperatorTable.AND)
-            && rexCall.getOperands().stream().allMatch(PlanUtils::isNotNullOnRef));
+            && rexCall.getOperands().stream().anyMatch(PlanUtils::isNotNullOnRef));
   }
 
-  private static boolean isNotNullOnRef(RexNode rex) {
+  public static boolean isNotNullOnRef(RexNode rex) {
     return rex instanceof RexCall rexCall
         && rexCall.isA(SqlKind.IS_NOT_NULL)
         && rexCall.getOperands().get(0) instanceof RexInputRef;

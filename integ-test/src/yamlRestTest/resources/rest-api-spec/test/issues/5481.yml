@@ -1,0 +1,69 @@
+# Issue: https://github.com/opensearch-project/sql/issues/5481
+# A timestamp range comparison AND'd with an IN clause on another field must push down and
+# return rows. Calcite folds the IN into a Sarg and strips the timestamp literal's UDT; without
+# the field-type-keyed fix the range query ships an unformatted date and the shard rejects it.
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  - do:
+      indices.create:
+        index: issue5481
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              event_time:
+                type: date
+              severity:
+                type: keyword
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5481", "_id": "1"}}'
+          - '{"event_time": "2026-05-28T10:00:00Z", "severity": "ERROR"}'
+          - '{"index": {"_index": "issue5481", "_id": "2"}}'
+          - '{"event_time": "2026-05-28T10:05:00Z", "severity": "WARN"}'
+          - '{"index": {"_index": "issue5481", "_id": "3"}}'
+          - '{"event_time": "2026-05-28T10:10:00Z", "severity": "INFO"}'
+          - '{"index": {"_index": "issue5481", "_id": "4"}}'
+          - '{"event_time": "2026-05-28T10:15:00Z", "severity": "ERROR"}'
+          - '{"index": {"_index": "issue5481", "_id": "5"}}'
+          - '{"event_time": "2026-05-28T10:20:00Z", "severity": "WARN"}'
+          - '{"index": {"_index": "issue5481", "_id": "6"}}'
+          - '{"event_time": "2026-05-28T10:25:00Z", "severity": "DEBUG"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5481
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5481: timestamp range AND keyword IN pushes down and returns rows":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=issue5481 | where event_time > timestamp('2026-05-28 10:08:00') | where severity in ('ERROR', 'WARN') | fields severity, event_time | sort event_time
+
+  - match: { total: 2 }
+  - match: { schema: [ { name: severity, type: "string" }, { name: event_time, type: "timestamp" } ] }
+  - match: { datarows: [ [ "ERROR", "2026-05-28 10:15:00" ], [ "WARN", "2026-05-28 10:20:00" ] ] }

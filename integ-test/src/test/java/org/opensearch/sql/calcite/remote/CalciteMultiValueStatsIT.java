@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
+import static org.opensearch.sql.util.Capability.BINARY_FIELD_STRIPPED;
+import static org.opensearch.sql.util.Capability.VALUES_LIMIT_NOT_HONORED;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -21,6 +23,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
 
@@ -169,6 +172,9 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = BINARY_FIELD_STRIPPED,
+      note = "binary_value is stripped at load on the AE route (BINARY_FIELD_STRIPPED).")
   public void testListFunctionWithBinary() throws IOException {
     JSONObject response =
         executeQuery(
@@ -420,6 +426,11 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = VALUES_LIMIT_NOT_HONORED,
+      note =
+          "values() ignores plugins.ppl.values.max.limit on the AE route"
+              + " (VALUES_LIMIT_NOT_HONORED).")
   public void testValuesFunctionRespectsConfiguredLimit() throws IOException, InterruptedException {
     // Test 1: Set limit to 3 and verify only 3 values are returned
     updateClusterSettings(new ClusterSetting(TRANSIENT, "plugins.ppl.values.max.limit", "3"));

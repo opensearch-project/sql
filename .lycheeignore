@@ -1,0 +1,12 @@
+# example opensearch/dashboards ports
+http://localhost:5601
+http://localhost:9200
+
+# sites that block scraping
+https://hg.openjdk.org/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/
+https://www.linkedin.com/in/*/
+
+# we have many pull requests links due to changelogs, skip these as they're unlikely to break and it saves API usage
+https://github.com/opendistro-for-elasticsearch/sql/pull/*
+https://github.com/opensearch-project/sql/pull/*
+

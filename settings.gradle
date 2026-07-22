@@ -3,6 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+pluginManagement {
+    repositories {
+        maven { url "https://ci.opensearch.org/maven2/" }
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
 
 rootProject.name = 'opensearch-sql'
 

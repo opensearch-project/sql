@@ -28,33 +28,30 @@ The `expand` command supports the following parameters.
 | `<alias>` | Optional | The name to use in place of the original field name. |  
   
 
-## Example: Expand an address field using an alias  
+## Example: Expand a collected list of services into individual rows  
 
-Given a `migration` dataset with the following data:
-  
-```json
-{"name":"abbas","age":24,"address":[{"city":"New york city","state":"NY","moveInDate":{"dateAndTime":"19840412T090742.000Z"}}]}
-{"name":"chen","age":32,"address":[{"city":"Miami","state":"Florida","moveInDate":{"dateAndTime":"19010811T040333.000Z"}},{"city":"los angeles","state":"CA","moveInDate":{"dateAndTime":"20230503T080742.000Z"}}]}
-```
-  
-The following query expands the `address` field and renames it to `addr`:
+The following query first collects all service names per severity level into an array using `stats list()`, then expands each array element into its own row. This is useful when you need to go from an aggregated view back to individual rows:
   
 ```ppl
-source=migration
-| expand address as addr
+source=otellogs
+| where severityText = 'WARN'
+| stats list(`resource.attributes.service.name`) as services by severityText
+| expand services as service
+| fields severityText, service
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 3/3
-+-------+-----+-------------------------------------------------------------------------------------------+
-| name  | age | addr                                                                                      |
-|-------+-----+-------------------------------------------------------------------------------------------|
-| abbas | 24  | {"city":"New york city","state":"NY","moveInDate":{"dateAndTime":"19840412T090742.000Z"}} |
-| chen  | 32  | {"city":"Miami","state":"Florida","moveInDate":{"dateAndTime":"19010811T040333.000Z"}}    |
-| chen  | 32  | {"city":"los angeles","state":"CA","moveInDate":{"dateAndTime":"20230503T080742.000Z"}}   |
-+-------+-----+-------------------------------------------------------------------------------------------+
+fetched rows / total rows = 4/4
++--------------+-----------------+
+| severityText | service         |
+|--------------+-----------------|
+| WARN         | product-catalog |
+| WARN         | product-catalog |
+| WARN         | frontend-proxy  |
+| WARN         | frontend-proxy  |
++--------------+-----------------+
 ```
   
 

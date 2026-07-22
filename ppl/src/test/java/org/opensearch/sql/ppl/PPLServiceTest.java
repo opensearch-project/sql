@@ -5,6 +5,11 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.doAnswer;
+
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Assert;
@@ -21,6 +26,7 @@ import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
+import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 
@@ -94,6 +100,15 @@ public class PPLServiceTest {
 
   @Test
   public void testExecuteShouldPass() {
+    doAnswer(
+            invocation -> {
+              ResponseListener<QueryResponse> listener = invocation.getArgument(4);
+              listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
+              return null;
+            })
+        .when(queryService)
+        .execute(any(), any(), any(), anyBoolean(), any());
+
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY),
         getQueryListener(false),
@@ -102,6 +117,15 @@ public class PPLServiceTest {
 
   @Test
   public void testExecuteCsvFormatShouldPass() {
+    doAnswer(
+            invocation -> {
+              ResponseListener<QueryResponse> listener = invocation.getArgument(4);
+              listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
+              return null;
+            })
+        .when(queryService)
+        .execute(any(), any(), any(), anyBoolean(), any());
+
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY, "csv"),
         getQueryListener(false),
@@ -138,6 +162,15 @@ public class PPLServiceTest {
 
   @Test
   public void testPrometheusQuery() {
+    doAnswer(
+            invocation -> {
+              ResponseListener<QueryResponse> listener = invocation.getArgument(4);
+              listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
+              return null;
+            })
+        .when(queryService)
+        .execute(any(), any(), any(), anyBoolean(), any());
+
     pplService.execute(
         new PPLQueryRequest("source = prometheus.http_requests_total", null, QUERY),
         getQueryListener(false),

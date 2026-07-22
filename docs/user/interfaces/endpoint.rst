@@ -266,6 +266,58 @@ Result set::
       "status": 200
     }
 
+Profile [Experimental]
+======================
+
+Description
+-----------
+
+Profiling captures per-stage timings (in milliseconds) for SQL query
+execution. To enable profiling, set ``"profile": true`` in the request
+body alongside ``"query"``.
+
+.. note::
+   The ``profile`` parameter only takes effect when the query runs on
+   the Analytics Engine. In all other cases the flag is silently ignored.
+
+   Profile output is returned only for regular query execution (not
+   ``_explain``) and only with the default ``format=jdbc``.
+
+Example
+-------
+
+Request::
+
+    POST /_plugins/_sql
+    {
+      "query": "SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id",
+      "profile": true
+    }
+
+Expected output (trimmed)::
+
+    {
+      "profile": {
+        "summary": {
+          "total_time_ms": 33.34
+        },
+        "phases": {
+          "analyze": { "time_ms": 8.68 },
+          "optimize": { "time_ms": 18.2 },
+          "execute": { "time_ms": 4.87 },
+          "format": { "time_ms": 0.05 }
+        },
+        "plan": {
+          "node": "EnumerableCalc",
+          "time_ms": 4.82,
+          "rows": 2,
+          "children": [
+            { "node": "CalciteEnumerableIndexScan", "time_ms": 4.12, "rows": 2 }
+          ]
+        }
+      }
+    }
+
 Fetch Size (PPL) [Experimental]
 ================================
 

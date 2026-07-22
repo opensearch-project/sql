@@ -8,6 +8,8 @@ package org.opensearch.sql.sql;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.Capability.DATETIME_FORMAT_RENDERING;
+import static org.opensearch.sql.util.Capability.FUNCTION_TYPE_COMPAT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -31,6 +33,7 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class DateTimeFunctionIT extends SQLIntegTestCase {
 
@@ -1170,6 +1173,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DATETIME_FORMAT_RENDERING)
   public void testDateFormat() throws IOException {
     String timestamp = "1998-01-31 13:14:15.012345";
     String timestampFormat =
@@ -1397,6 +1401,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testDateStringAsTimestamp() throws IOException {
     JSONObject result = executeQuery("select {timestamp '2025-07-10'} as t");
     verifySchema(result, schema("{timestamp '2025-07-10'}", "t", "timestamp"));
@@ -1404,6 +1409,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testTimestampBracket() throws IOException {
     JSONObject result = executeQuery("select {timestamp '2020-09-16 17:30:00'}");
     verifySchema(result, schema("{timestamp '2020-09-16 17:30:00'}", null, "timestamp"));
@@ -1423,6 +1429,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testTimeBracket() throws IOException {
     JSONObject result = executeQuery("select {time '17:30:00'}");
     verifySchema(result, schema("{time '17:30:00'}", null, "time"));
@@ -1461,6 +1468,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testBracketedEquivalent() throws IOException {
     compareBrackets("timestamp", "timestamp", "2020-09-16 17:30:00");
     compareBrackets("timestamp", "ts", "2020-09-16 17:30:00");

@@ -7,6 +7,8 @@ package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_TIME;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_TIME_NESTED;
+import static org.opensearch.sql.util.Capability.ID_METADATA;
+import static org.opensearch.sql.util.Capability.NESTED_FIELDS;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -16,6 +18,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class ComplexTimestampQueryIT extends SQLIntegTestCase {
   @Override
@@ -26,6 +29,7 @@ public class ComplexTimestampQueryIT extends SQLIntegTestCase {
 
   /** See: <a href="https://github.com/opensearch-project/sql/issues/3159">3159</a> */
   @Test
+  @RequiresCapability(ID_METADATA)
   public void joinWithTimestampFieldsSchema() throws IOException {
     String query =
         String.format(
@@ -100,6 +104,7 @@ public class ComplexTimestampQueryIT extends SQLIntegTestCase {
 
   /** See: <a href="https://github.com/opensearch-project/sql/issues/1545">1545</a> */
   @Test
+  @RequiresCapability(NESTED_FIELDS)
   public void selectDatetimeWithNested() throws IOException {
     String query =
         String.format(

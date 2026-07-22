@@ -29,6 +29,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.udaf.DistinctCountApproxLogicalAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.FirstAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LastAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.ListAggFunction;
@@ -46,6 +47,9 @@ import org.opensearch.sql.expression.function.CollectionUDF.ArrayFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ExistsFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForeachPairCollectionFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForeachPairItemFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForeachStateFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVAppendFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVFindFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVZipFunctionImpl;
@@ -53,6 +57,7 @@ import org.opensearch.sql.expression.function.CollectionUDF.MapAppendFunctionImp
 import org.opensearch.sql.expression.function.CollectionUDF.MapRemoveFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ReduceFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.TransformFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.ForeachJsonArrayFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
@@ -404,6 +409,14 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator FORALL = new ForallFunctionImpl().toUDF("forall");
   public static final SqlOperator EXISTS = new ExistsFunctionImpl().toUDF("exists");
   public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF("array");
+  public static final SqlOperator FOREACH_JSON_ARRAY =
+      new ForeachJsonArrayFunctionImpl().toUDF("foreach_json_array");
+  public static final SqlOperator FOREACH_PAIR_COLLECTION =
+      new ForeachPairCollectionFunctionImpl().toUDF("foreach_pair_collection");
+  public static final SqlOperator FOREACH_PAIR_ITEM =
+      new ForeachPairItemFunctionImpl().toUDF("foreach_pair_item");
+  public static final SqlOperator FOREACH_STATE =
+      new ForeachStateFunctionImpl().toUDF("foreach_state");
   public static final SqlOperator MAP_APPEND = new MapAppendFunctionImpl().toUDF("map_append");
   public static final SqlOperator MAP_REMOVE = new MapRemoveFunctionImpl().toUDF("MAP_REMOVE");
   public static final SqlOperator MVAPPEND = new MVAppendFunctionImpl().toUDF("mvappend");
@@ -507,6 +520,23 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           "VALUES",
           PPLReturnTypes.STRING_ARRAY,
           PPLOperandTypes.ANY_SCALAR_OPTIONAL_INTEGER);
+
+  /**
+   * Logical marker for {@code DISTINCT_COUNT_APPROX} (also exposed as {@code dc} and {@code
+   * distinct_count} aliases). PPL parser uses this to produce a RelNode; backends override or
+   * rewrite it before execution. {@code OpenSearchExecutionEngine} registers a real HyperLogLog++
+   * implementation in the external registry of {@code PPLFuncImpTable}, which has lookup precedence
+   * and serves the OpenSearch V3 path. Other backends (DataFusion / analytics-engine) rewrite the
+   * operator on their own. Operand metadata is {@code null} to match the existing external
+   * registration's permissive policy and avoid introducing new type rejections.
+   */
+  public static final SqlAggFunction DISTINCT_COUNT_APPROX =
+      createUserDefinedAggFunction(
+          DistinctCountApproxLogicalAggFunction.class,
+          // Substrait-standard name the analytics-engine backend resolves by (V3 overrides it).
+          "APPROX_COUNT_DISTINCT",
+          ReturnTypes.BIGINT_FORCE_NULLABLE,
+          null);
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");

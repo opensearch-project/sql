@@ -38,6 +38,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -618,7 +619,31 @@ public class AggregateAnalyzer {
           topHitsAggregationBuilder.sort(
               SortBuilders.fieldSort(key.field()).order(order).missing(missing));
         }
-        yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggName, false, false));
+        // Build a mapping from original index field name to output (renamed) field names.
+        // top_hits returns _source / fields keyed by the original index name, but the Calcite
+        // row-type uses the renamed output name. A single original field may map to multiple
+        // output names when both a rename and an eval column-ref resolve to the same source
+        // field (issue #5197), so the value is a List rather than a single String.
+        Map<String, List<String>> fieldNameMapping = new HashMap<>();
+        for (Pair<RexNode, String> arg : args) {
+          if (arg.getKey() instanceof RexInputRef) {
+            NamedFieldExpression namedField = helper.inferNamedField(arg.getKey());
+            if (namedField == null) {
+              continue;
+            }
+            String originalName = namedField.getRootName();
+            String outputName = arg.getValue();
+            if (!originalName.equals(outputName)) {
+              fieldNameMapping
+                  .computeIfAbsent(originalName, k -> new ArrayList<>())
+                  .add(outputName);
+            }
+          }
+        }
+        yield Pair.of(
+            topHitsAggregationBuilder,
+            new TopHitsParser(
+                aggName, false, false, fieldNameMapping.isEmpty() ? null : fieldNameMapping));
       }
       default ->
           throw new AggregateAnalyzer.AggregateAnalyzerException(

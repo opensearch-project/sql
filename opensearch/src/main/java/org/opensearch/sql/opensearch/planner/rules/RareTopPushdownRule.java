@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.planner.rules;
 import java.util.List;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.SubstitutionRule;
@@ -49,22 +50,31 @@ public class RareTopPushdownRule extends InterruptibleRelRule<RareTopPushdownRul
       List<Integer> groupIndices = PlanUtils.getSelectColumns(windows.getFirst().partitionKeys);
       List<String> byList = groupIndices.stream().map(fieldNameList::get).toList();
 
-      if (windows.getFirst().orderKeys.size() != 1) {
+      // ORDER BY must be either the count column alone, or the count column followed by the
+      // rare/top target field ASC (the stable tie-break inserted by visitRareTopN). The pushdown
+      // to the OpenSearch terms aggregation naturally tie-breaks on `_key:asc`, so the latter
+      // shape lowers to the same wire request as the single-key shape.
+      List<RexFieldCollation> orderKeys = windows.getFirst().orderKeys;
+      if (orderKeys.isEmpty() || orderKeys.size() > 2) {
         return;
       }
-      RexFieldCollation orderKey = windows.getFirst().orderKeys.getFirst();
-      List<Integer> orderIndices = PlanUtils.getSelectColumns(List.of(orderKey.getKey()));
-      List<String> orderList = orderIndices.stream().map(fieldNameList::get).toList();
+      RexFieldCollation primaryOrderKey = orderKeys.getFirst();
+      List<Integer> primaryOrderIndices =
+          PlanUtils.getSelectColumns(List.of(primaryOrderKey.getKey()));
+      List<String> primaryOrderList = primaryOrderIndices.stream().map(fieldNameList::get).toList();
       List<String> targetList =
           fieldNameList.stream()
               .filter(Predicate.not(byList::contains))
-              .filter(Predicate.not(orderList::contains))
+              .filter(Predicate.not(primaryOrderList::contains))
               .toList();
       if (targetList.size() != 1) {
         return;
       }
       String targetName = targetList.getFirst();
-      digest = new RareTopDigest(targetName, byList, number, orderKey.getDirection());
+      if (hasIncompatibleTieBreak(orderKeys, fieldNameList, targetName)) {
+        return;
+      }
+      digest = new RareTopDigest(targetName, byList, number, primaryOrderKey.getDirection());
     } catch (Exception e) {
       return;
     }
@@ -73,6 +83,26 @@ public class RareTopPushdownRule extends InterruptibleRelRule<RareTopPushdownRul
       call.transformTo(newScan);
       PlanUtils.tryPruneRelNodes(call);
     }
+  }
+
+  /**
+   * Returns {@code true} when a second {@link RexFieldCollation} is present but is not the stable
+   * tie-break shape this rule recognises (rare/top target field, ASC). A single-key shape (no
+   * tie-break) is always accepted because the OpenSearch terms aggregation tie-breaks on {@code
+   * _key:asc} natively. {@code orderKeys} arity is pre-checked by the caller.
+   */
+  private static boolean hasIncompatibleTieBreak(
+      List<RexFieldCollation> orderKeys, List<String> fieldNameList, String targetName) {
+    if (orderKeys.size() != 2) {
+      return false;
+    }
+    RexFieldCollation tieBreakKey = orderKeys.get(1);
+    if (tieBreakKey.getDirection() != RelFieldCollation.Direction.ASCENDING) {
+      return true;
+    }
+    List<Integer> tieBreakIndices = PlanUtils.getSelectColumns(List.of(tieBreakKey.getKey()));
+    List<String> tieBreakList = tieBreakIndices.stream().map(fieldNameList::get).toList();
+    return tieBreakList.size() != 1 || !tieBreakList.getFirst().equals(targetName);
   }
 
   @Value.Immutable

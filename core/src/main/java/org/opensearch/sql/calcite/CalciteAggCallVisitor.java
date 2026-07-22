@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.logging.log4j.util.Strings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -46,10 +47,17 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
     }
     return BuiltinFunctionName.ofAggregation(node.getFuncName())
         .map(
-            functionName -> {
-              return PlanUtils.makeAggCall(
-                  context, functionName, node.getDistinct(), field, argList);
-            })
+            functionName ->
+                PlanUtils.makeAggCall(context, functionName, node.getDistinct(), field, argList))
+        // Apply the optional FILTER(WHERE ...) predicate; IS TRUE treats NULL as non-matching.
+        .map(
+            aggCall ->
+                node.condition() == null
+                    ? aggCall
+                    : aggCall.filter(
+                        context.rexBuilder.makeCall(
+                            SqlStdOperatorTable.IS_TRUE,
+                            rexNodeVisitor.analyze(node.condition(), context))))
         .orElseThrow(
             () ->
                 new UnsupportedOperationException("Unexpected aggregation: " + node.getFuncName()));

@@ -330,20 +330,23 @@ Expected output (trimmed):
 
 ### Description
 
-You can add an `include_metadata` parameter to control whether metadata fields (such as `_id`, `_index`, `_score`, etc.) are included in wildcard field selections. This parameter can be specified either as a URL parameter or in the request body JSON. It only affects implicit field selections using `fields *` and does not impact explicit field selections.
+You can add an `include_metadata` parameter to control whether metadata fields (`_id`, `_index`, `_score`, `_maxscore`, `_sort`, `_routing`) are returned. This parameter can be specified either as a URL parameter or in the request body JSON.
+
+It applies whenever a query returns all columns, which happens in two cases: an explicit `source=... | fields *`, or a query with no `fields` clause at all (such as `source=... | head 1`), where an all-columns projection is added implicitly. It does not affect explicitly listed fields.
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `include_metadata` | boolean | `false` | When `true`, metadata fields are included in wildcard field selections (`fields *`). When `false` (default), metadata fields are excluded from wildcard selections. Can be specified as a URL parameter or in the request body JSON. |
+| `include_metadata` | boolean | `false` | When `true`, metadata fields are returned alongside data fields for all-columns selections. When `false` (default), they are excluded. Can be specified as a URL parameter or in the request body JSON. |
 
 ### Behavior
 
-- **Default behavior (`include_metadata=false`)**: Wildcard field selections (`fields *`) exclude metadata fields like `_id`, `_index`, `_score`, etc.
-- **With `include_metadata=true`**: Wildcard field selections include both regular data fields and metadata fields.
-- **Explicit field selection**: The parameter does not affect explicit field selections. If you explicitly specify `fields _id, firstname`, the `_id` field will be included regardless of the `include_metadata` setting.
-- **Aggregations**: The parameter does not affect aggregation results, which never include metadata fields.
+- **Default behavior (`include_metadata=false`)**: all-columns selections return only data fields; the metadata fields listed above are excluded.
+- **With `include_metadata=true`**: all-columns selections return both data fields and all six metadata fields.
+- **Queries with no `fields` clause**: also affected, because an all-columns projection is added implicitly. For example, `source=accounts | head 1` returns metadata fields when the parameter is `true`.
+- **Explicit field selection**: not affected. `fields _id, firstname` returns `_id` regardless of the `include_metadata` setting.
+- **Aggregations**: not affected; aggregation results never contain metadata fields.
 
 ### Example 1: Include metadata fields (URL parameter)
 
@@ -352,6 +355,8 @@ curl -sS -H 'Content-Type: application/json' \
 -X POST "localhost:9200/_plugins/_ppl?include_metadata=true" \
 -d '{"query" : "source=accounts | fields * | head 1"}'
 ```
+
+This produces the same result as Example 2 below.
 
 ### Example 2: Include metadata fields (request body)
 
@@ -448,12 +453,12 @@ Expected output (metadata fields included):
       32,
       "amberduke@pyrami.com",
       "Duke",
-      "pf4NQp4BHgpoAGEqpZkR",
+      "<document id>",
       "accounts",
       1.0,
       1.0,
       -2,
-      "[zgCLGDnFRDe3VQL4L9lNVw][accounts][0]"
+      "<routing value>"
     ]
   ],
   "total": 1,
@@ -461,11 +466,13 @@ Expected output (metadata fields included):
 }
 ```
 
+`_id` and `_routing` are shown as placeholders: their values are generated per document and per cluster, so they differ on every run.
+
 ### Example 3: Explicit field selection (unaffected by include_metadata)
 
 ```bash ppl ignore
 curl -sS -H 'Content-Type: application/json' \
--X POST localhost:9200/_plugins/_ppl?include_metadata=true \
+-X POST "localhost:9200/_plugins/_ppl?include_metadata=true" \
 -d '{"query" : "source=accounts | fields firstname, lastname | head 1"}'
 ```
 
@@ -494,15 +501,15 @@ Expected output (only explicitly selected fields):
 }
 ```
 
-### Example 4: Explicit metadata field selection
+### Example 4: Explicit metadata field selection (works with the parameter off)
 
 ```bash ppl ignore
 curl -sS -H 'Content-Type: application/json' \
--X POST "localhost:9200/_plugins/_ppl?include_metadata=true" \
+-X POST "localhost:9200/_plugins/_ppl?include_metadata=false" \
 -d '{"query" : "source=accounts | fields firstname, _id | head 1"}'
 ```
 
-Expected output (explicitly selected metadata field included):
+Expected output (the explicitly selected metadata field is returned even though `include_metadata` is `false`):
 
 ```json
 {
@@ -519,7 +526,7 @@ Expected output (explicitly selected metadata field included):
   "datarows": [
     [
       "Amber",
-      "pf4NQp4BHgpoAGEqpZkR"
+      "<document id>"
     ]
   ],
   "total": 1,
@@ -529,10 +536,10 @@ Expected output (explicitly selected metadata field included):
 
 ### Notes
 
-- The `include_metadata` parameter only affects wildcard field selections (`fields *`).
-- **Current limitation**: Explicit metadata field selection (e.g., `fields firstname, _id`) currently requires `include_metadata=true` to work properly.
-- Metadata fields include system fields like `_id`, `_index`, `_score`, `_maxscore`, `_sort`, `_routing`, etc.
-- When using search queries with scoring (e.g., `source=accounts "Holmes"`), the `_score` field becomes available and will be included when `include_metadata=true`.
+- The `include_metadata` parameter applies only to selections that return all columns, either an explicit `fields *` or a query with no `fields` clause. It never adds fields to an explicitly listed selection.
+- Explicitly selected metadata fields are always returned, regardless of this parameter. For example, `source=accounts | fields firstname, _id` returns `_id` whether `include_metadata` is `true`, `false`, or unset.
+- The metadata fields are `_id`, `_index`, `_score`, `_maxscore`, `_sort` and `_routing`. All six are part of the index schema, so `include_metadata=true` returns all of them, not only `_id` and `_index`.
+- `_score` is returned even when the query does not search (for example `source=accounts | fields *`); it only carries a meaningful relevance value for scoring queries such as `source=accounts "Holmes"`.
 - Aggregation queries are not affected by this parameter, as they never include metadata fields in their results.
 - The parameter can be specified as a URL parameter (`?include_metadata=true`) or in the request body JSON (`{"include_metadata": true}`).
 - When both URL parameter and request body specify the parameter, the request body takes precedence.

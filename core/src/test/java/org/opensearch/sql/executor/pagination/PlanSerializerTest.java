@@ -168,6 +168,14 @@ public class PlanSerializerTest {
     assertSame(object, cds.resolveObject(object));
   }
 
+  @Test
+  @SneakyThrows
+  void deserialize_rejects_disallowed_class() {
+    String serialized = serialize(new java.net.URL("http://example.com"));
+    var exception = assertThrows(IllegalStateException.class, () -> deserialize(serialized));
+    assertTrue(exception.getMessage().contains("Failed to deserialize"));
+  }
+
   // Helpers and auxiliary classes section below
 
   @SneakyThrows

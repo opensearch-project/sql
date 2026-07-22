@@ -15,6 +15,20 @@ plugins {
 
 apply plugin: 'opensearch.testclusters'
 
+configurations {
+    zipArchive
+}
+
+repositories {
+    mavenLocal()
+    maven { url "https://ci.opensearch.org/maven2/" }
+    mavenCentral()
+}
+
+dependencies {
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
+}
+
 def path = project(':').projectDir
 // temporary fix, because currently we are under migration to new architecture. Need to run ./gradlew run from
 // plugin module, and will only build ppl in it.
@@ -156,19 +170,13 @@ check.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 clean.dependsOn(stopPrometheus)
 
-// 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
-String opensearch_no_snapshot = opensearch_version.replace('-SNAPSHOT', '')
-String[] version_tokens = opensearch_no_snapshot.tokenize('-')
-String opensearch_build = version_tokens[0] + '.0'
-if (version_tokens.length > 1) {
-    opensearch_build += '-' + version_tokens[1]
+def getJobSchedulerPlugin() {
+    provider { (RegularFile) (() ->
+        configurations.zipArchive.asFileTree.matching {
+            include '**/opensearch-job-scheduler*'
+        }.singleFile )
+    }
 }
-String mlCommonsRemoteFile = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + opensearch_no_snapshot + '/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-ml-' + opensearch_build + '.zip'
-String mlCommonsPlugin = 'opensearch-ml'
-
-String bwcOpenSearchJSDownload = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + opensearch_no_snapshot + '/latest/linux/x64/tar/builds/' +
-        'opensearch/plugins/opensearch-job-scheduler-' + opensearch_build + '.zip'
-String jsPlugin = 'opensearch-job-scheduler'
 
 testClusters {
     docTestCluster {
@@ -194,7 +202,7 @@ testClusters {
             }
         }))
         */
-        plugin(getJobSchedulerPlugin(jsPlugin, bwcOpenSearchJSDownload))
+        plugin(getJobSchedulerPlugin())
         plugin ':opensearch-sql-plugin'
         testDistribution = 'archive'
     }
@@ -202,51 +210,4 @@ testClusters {
 tasks.register("runRestTestCluster", RunTask) {
     description = 'Runs OpenSearch SQL plugin'
     useCluster testClusters.docTestCluster;
-}
-
-
-def getJobSchedulerPlugin(String jsPlugin, String bwcOpenSearchJSDownload) {
-    return provider(new Callable<RegularFile>() {
-        @Override
-        RegularFile call() throws Exception {
-            return new RegularFile() {
-                @Override
-                File getAsFile() {
-                    // Use absolute paths
-                    String basePath = new File('.').getCanonicalPath()
-                    File dir = new File(basePath + File.separator + 'doctest' + File.separator + jsPlugin)
-
-                    // Log the directory path for debugging
-                    println("Creating directory: " + dir.getAbsolutePath())
-
-                    // Create directory if it doesn't exist
-                    if (!dir.exists()) {
-                        if (!dir.mkdirs()) {
-                            throw new IOException("Failed to create directory: " + dir.getAbsolutePath())
-                        }
-                    }
-
-                    // Define the file path
-                    File f = new File(dir, jsPlugin + '-' + opensearch_build + '.zip')
-
-                    // Download file if it doesn't exist
-                    if (!f.exists()) {
-                        println("Downloading file from: " + bwcOpenSearchJSDownload)
-                        println("Saving to file: " + f.getAbsolutePath())
-
-                        new URL(bwcOpenSearchJSDownload).withInputStream { ins ->
-                            f.withOutputStream { it << ins }
-                        }
-                    }
-
-                    // Check if the file was created successfully
-                    if (!f.exists()) {
-                        throw new FileNotFoundException("File was not created: " + f.getAbsolutePath())
-                    }
-
-                    return fileTree(f.getParent()).matching { include f.getName() }.singleFile
-                }
-            }
-        }
-    })
 }

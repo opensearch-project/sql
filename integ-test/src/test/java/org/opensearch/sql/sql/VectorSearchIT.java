@@ -6,19 +6,24 @@
 package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sql.util.Capability.VECTOR_SEARCH;
 
 import java.io.IOException;
+import org.junit.Assume;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration tests for vectorSearch SQL table function — validation and error paths. These tests
  * verify that invalid inputs are rejected with clear error messages. Explain-plan DSL shape tests
  * live in {@link VectorSearchExplainIT}.
  */
+@RequiresCapability(VECTOR_SEARCH)
 public class VectorSearchIT extends SQLIntegTestCase {
 
   @Override
@@ -106,6 +111,26 @@ public class VectorSearchIT extends SQLIntegTestCase {
                         + "vector='[]', option='k=5') AS v"));
 
     assertThat(ex.getMessage(), containsString("must not be empty"));
+  }
+
+  @Test
+  public void testDuplicateNamedArgumentRejectsWith400() throws IOException {
+    // A duplicate named argument on top of all four distinct names sends five arguments to the
+    // resolver, exceeding its fixed four-arg signature. This previously crashed with an unchecked
+    // IndexOutOfBoundsException surfaced as HTTP 500; it must now be a clean 400 with a
+    // user-facing message.
+    ResponseException ex =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "SELECT v._id FROM vectorSearch(table='t', table='t', field='f', "
+                        + "vector='[1.0]', option='k=5') AS v"));
+
+    assertEquals(400, ex.getResponse().getStatusLine().getStatusCode());
+    // The five-argument case is caught by the repository arity guard before the resolver's
+    // duplicate-name check, so the message reports the argument-count mismatch.
+    assertThat(ex.getMessage(), containsString("Expected 4 arguments"));
   }
 
   @Test
@@ -346,13 +371,22 @@ public class VectorSearchIT extends SQLIntegTestCase {
   }
 
   // ── k-NN plugin capability check ──────────────────────────────────────
-  // The default integ-test cluster does not have the k-NN plugin installed. Execution-path
+  // The plugin's own integ-test cluster does not have the k-NN plugin installed. Execution-path
   // queries against vectorSearch() should therefore fail with the clear "k-NN plugin missing"
   // error from KnnPluginCapability, while _explain continues to work because the capability
   // probe is deferred to scan open() and does not run during analysis/planning.
 
   @Test
   public void testExecutionWithoutKnnPluginReturnsCapabilityError() throws IOException {
+    // This test asserts the "k-NN plugin not installed" capability error, so it is only meaningful
+    // on a cluster WITHOUT the k-NN plugin. The OpenSearch distribution bundles opensearch-knn, so
+    // on the distribution integ-test cluster the query reaches k-NN and fails with a different
+    // ("not knn_vector type") error instead. Skip there; the missing-plugin path stays covered by
+    // the plugin's own JVM integ-test cluster, which does not ship k-NN.
+    Assume.assumeFalse(
+        "k-NN plugin is installed on this cluster; skipping missing-plugin capability check",
+        isKnnPluginInstalled());
+
     ResponseException ex =
         expectThrows(
             ResponseException.class,
@@ -750,6 +784,18 @@ public class VectorSearchIT extends SQLIntegTestCase {
       client().performRequest(new Request("DELETE", "/_all/_alias/" + aliasName));
     } catch (IOException ignored) {
       // Alias does not exist, which is fine.
+    }
+  }
+
+  // Mirrors VectorSearchExecutionIT#isKnnPluginInstalled — opensearch-knn is bundled in the
+  // OpenSearch distribution but not in the plugin's own JVM integ-test cluster.
+  private static boolean isKnnPluginInstalled() {
+    try {
+      Response response = client().performRequest(new Request("GET", "/_cat/plugins?h=component"));
+      String body = new String(response.getEntity().getContent().readAllBytes());
+      return body.contains("opensearch-knn");
+    } catch (IOException e) {
+      return false;
     }
   }
 }

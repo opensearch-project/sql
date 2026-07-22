@@ -204,6 +204,38 @@ Result set::
       }
     }
 
+plugins.query.max_expression_depth
+==================================
+
+Version
+-------
+3.8
+
+Description
+-----------
+
+This setting bounds the maximum nesting depth of an expression while a query is parsed into its abstract syntax tree, keeping parsing bounded for very large or deeply nested expressions. A query exceeding the limit is rejected with a 400 error. The default value is 1000. Set it to 0 to disable the limit (unlimited). Here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.max_expression_depth" : 500
+	  }
+	}'
+
+Result set::
+
+    {
+      "acknowledged" : true,
+      "persistent" : { },
+      "transient" : {
+        "plugins" : {
+          "query" : {
+            "max_expression_depth" : "500"
+          }
+        }
+      }
+    }
+
 plugins.query.buckets
 =====================
 

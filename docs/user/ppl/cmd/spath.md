@@ -42,7 +42,7 @@ When `path` is omitted, the `spath` command runs in auto-extract mode. Instead o
 >
 > Invalid or malformed JSON returns partial results containing any fields successfully parsed before the error. Empty JSON object (`{}`) returns an empty map.
 
-## Example 1: Basic field extraction
+## Example 1: Extracting basic fields
 
 The basic use of `spath` extracts a single field from JSON data. The following query extracts the `n` field from JSON objects in the `doc_n` field:
   
@@ -92,7 +92,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 3: Sum of inner elements  
+## Example 3: Summing inner elements  
 
 The following query shows how to use `spath` to extract the `n` field from JSON data and calculate the sum of all extracted values: 
   
@@ -116,7 +116,7 @@ fetched rows / total rows = 1/1
 ```
   
 
-## Example 4: Escaped paths  
+## Example 4: Using escaped paths  
 
 Use quoted string syntax to access JSON field names that contain spaces, dots, or other special characters:
   
@@ -141,7 +141,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 5: Auto-extract mode  
+## Example 5: Using auto-extract mode  
 
 When `path` is omitted, `spath` extracts all fields from the JSON into a map. You can access individual values using dotted path navigation, where `doc.user.name` resolves to the map key `user.name`. For keys containing special characters like `{}`, use backtick quoting:
   

@@ -23,140 +23,147 @@ The `rare` command supports the following parameters.
 | --- | --- | --- |
 | `<field-list>` | Required | A comma-delimited list of field names. |
 | `<by-clause>` | Optional | One or more fields to group the results by. |
-| `rare-options` | Optional | Additional options for controlling output: <br> - `showcount`: Whether to create a field in the output containing the frequency count for each combination of values. Default is `true`. <br> - `countfield`: The name of the field that contains the count. Default is `count`. <br> - `usenull`: Whether to output null values. Default is the value of `plugins.ppl.syntax.legacy.preferred`. |  
-  
+| `rare-options` | Optional | Additional options for controlling output: <br> - `showcount`: Whether to create a field in the output containing the frequency count for each combination of values. Default is `true`. <br> - `countfield`: The name of the field that contains the count. Default is `count`. <br> - `usenull`: Whether to output null values. Default is the value of `plugins.ppl.syntax.legacy.preferred`. |
 
-## Example 1: Find the least common values without showing counts
+## Example 1: Finding the least common values without showing counts
 
-The following query uses the `rare` command with `showcount=false` to find the least common gender without displaying frequency counts:
-  
+The following query uses `showcount=false` to find the least common severity levels without displaying frequency counts:
+
 ```ppl
-source=accounts
-| rare showcount=false gender
+source=otellogs
+| rare showcount=false severityText
 ```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 2/2
-+--------+
-| gender |
-|--------|
-| F      |
-| M      |
-+--------+
-```
-  
 
-## Example 2: Find the least common values grouped by field
-
-The following query uses the `rare` command with a `by` clause to find the least common age values grouped by gender:
-  
-```ppl
-source=accounts
-| rare showcount=false age by gender
-```
-  
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 4/4
-+--------+-----+
-| gender | age |
-|--------+-----|
-| F      | 28  |
-| M      | 32  |
-| M      | 33  |
-| M      | 36  |
-+--------+-----+
++--------------+
+| severityText |
+|--------------|
+| DEBUG        |
+| WARN         |
+| INFO         |
+| ERROR        |
++--------------+
 ```
-  
 
-## Example 3: Find the least common values with frequency counts
+## Example 2: Finding the least common values grouped by field
 
-The following query uses the `rare` command with default settings to find the least common gender values and display their frequency counts:
-  
+The following query finds the least common severity levels grouped by service:
+
 ```ppl
-source=accounts
-| rare gender
+source=otellogs
+| rare showcount=false severityText by `resource.attributes.service.name`
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 2/2
-+--------+-------+
-| gender | count |
-|--------+-------|
-| F      | 1     |
-| M      | 3     |
-+--------+-------+
+fetched rows / total rows = 12/12
++----------------------------------+--------------+
+| resource.attributes.service.name | severityText |
+|----------------------------------+--------------|
+| product-catalog                  | DEBUG        |
+| product-catalog                  | ERROR        |
+| product-catalog                  | WARN         |
+| frontend-proxy                   | ERROR        |
+| frontend-proxy                   | WARN         |
+| recommendation                   | ERROR        |
+| payment                          | ERROR        |
+| checkout                         | INFO         |
+| checkout                         | ERROR        |
+| cart                             | INFO         |
+| cart                             | DEBUG        |
+| frontend                         | INFO         |
++----------------------------------+--------------+
 ```
-  
 
-## Example 4: Customize the count field name
+## Example 3: Finding the least common values with frequency counts
 
-The following query uses the `rare` command with the `countfield` parameter to specify a custom name for the frequency count field:
-  
+The following query finds the least common severity levels with their frequency counts:
+
 ```ppl
-source=accounts
-| rare countfield='cnt' gender
+source=otellogs
+| rare severityText
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 2/2
-+--------+-----+
-| gender | cnt |
-|--------+-----|
-| F      | 1   |
-| M      | 3   |
-+--------+-----+
+fetched rows / total rows = 4/4
++--------------+-------+
+| severityText | count |
+|--------------+-------|
+| DEBUG        | 3     |
+| WARN         | 4     |
+| INFO         | 6     |
+| ERROR        | 7     |
++--------------+-------+
 ```
-  
 
-## Example 5: Specify null value handling
+## Example 4: Customizing the count field name
 
-The following query uses the `rare` command with `usenull=false` to exclude null values from the results:
+The following query uses `countfield` to specify a custom name for the frequency count field:
 
 ```ppl
-source=accounts
-| rare usenull=false email
+source=otellogs
+| rare countfield='cnt' severityText
 ```
-  
+
 The query returns the following results:
-  
+
+```text
+fetched rows / total rows = 4/4
++--------------+-----+
+| severityText | cnt |
+|--------------+-----|
+| DEBUG        | 3   |
+| WARN         | 4   |
+| INFO         | 6   |
+| ERROR        | 7   |
++--------------+-----+
+```
+
+## Example 5: Specifying null value handling
+
+The following query uses `usenull=false` to exclude null values:
+
+```ppl
+source=otellogs
+| rare usenull=false instrumentationScope.name
+```
+
+The query returns the following results:
+
 ```text
 fetched rows / total rows = 3/3
-+-----------------------+-------+
-| email                 | count |
-|-----------------------+-------|
-| amberduke@pyrami.com  | 1     |
-| daleadams@boink.com   | 1     |
-| hattiebond@netagy.com | 1     |
-+-----------------------+-------+
++-----------------------------------------------------------------------------+-------+
+| instrumentationScope.name                                                   | count |
+|-----------------------------------------------------------------------------+-------|
+| Microsoft.Extensions.Hosting                                                | 1     |
+| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | 1     |
+| @opentelemetry/instrumentation-http                                         | 2     |
++-----------------------------------------------------------------------------+-------+
 ```
 
 The following query uses `usenull=true` to include null values in the results:
 
 ```ppl
-source=accounts
-| rare usenull=true email
+source=otellogs
+| rare usenull=true instrumentationScope.name
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 4/4
-+-----------------------+-------+
-| email                 | count |
-|-----------------------+-------|
-| null                  | 1     |
-| amberduke@pyrami.com  | 1     |
-| daleadams@boink.com   | 1     |
-| hattiebond@netagy.com | 1     |
-+-----------------------+-------+
++-----------------------------------------------------------------------------+-------+
+| instrumentationScope.name                                                   | count |
+|-----------------------------------------------------------------------------+-------|
+| Microsoft.Extensions.Hosting                                                | 1     |
+| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | 1     |
+| @opentelemetry/instrumentation-http                                         | 2     |
+| null                                                                        | 16    |
++-----------------------------------------------------------------------------+-------+
 ```
-  
-

@@ -87,6 +87,8 @@ The table below list the mapping between OpenSearch Data Type, OpenSearch SQL Da
 +-----------------+---------------------+-----------+
 | keyword         | keyword             | VARCHAR   |
 +-----------------+---------------------+-----------+
+| constant_keyword| keyword             | VARCHAR   |
++-----------------+---------------------+-----------+
 | text            | text                | VARCHAR   |
 +-----------------+---------------------+-----------+
 | date*           | timestamp           | TIMESTAMP |

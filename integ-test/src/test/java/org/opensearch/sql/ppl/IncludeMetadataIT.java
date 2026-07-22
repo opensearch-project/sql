@@ -10,13 +10,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE;
+import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -133,23 +138,43 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
 
   @Test
   public void testIncludeMetadataWithExplicitMetadataField() throws IOException {
-    // When metadata fields are explicitly selected, they should be included regardless of
-    // include_metadata parameter, but currently there's a limitation where explicit metadata
-    // fields require include_metadata=true to work properly
-    JSONObject result1 =
+    // An explicitly selected metadata field is returned regardless of include_metadata: the
+    // parameter only governs selections that return all columns. Both values must behave alike.
+    JSONObject withFlagOff =
         executeQueryWithParams(
             "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, _id | head 1",
             "include_metadata",
-            "true");
-    JSONObject result2 =
+            "false");
+    JSONObject withFlagOn =
         executeQueryWithParams(
             "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, _id | head 1",
             "include_metadata",
             "true");
 
-    verifySchema(result1, schema("firstname", "string"), schema("_id", "string"));
+    verifySchema(withFlagOff, schema("firstname", "string"), schema("_id", "string"));
+    verifySchema(withFlagOn, schema("firstname", "string"), schema("_id", "string"));
+  }
 
-    verifySchema(result2, schema("firstname", "string"), schema("_id", "string"));
+  @Test
+  public void testExplicitMetadataFieldSurvivesLaterCommands() throws IOException {
+    // A query that does not end with `fields` gets an implicit all-columns projection attached.
+    // An earlier revision of this feature made that projection strip metadata unconditionally,
+    // so an explicitly selected _id was silently dropped as soon as another command followed.
+    JSONObject sorted =
+        executeQueryWithParams(
+            "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, _id | sort firstname | head 1",
+            "include_metadata",
+            "false");
+    assertTrue(
+        "_id was explicitly selected, so it must survive a following command",
+        columnNames(sorted).contains("_id"));
+
+    JSONObject headed =
+        executeQueryWithParams(
+            "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, _id | head 1",
+            "include_metadata",
+            "false");
+    assertTrue("_id must survive a following head", columnNames(headed).contains("_id"));
   }
 
   @Test
@@ -274,6 +299,84 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
     assertTrue(
         "Request body should take precedence - should include _index field",
         schemaStr.contains("_index"));
+  }
+
+  /**
+   * Regression test for the V2 (non-Calcite) engine.
+   *
+   * <p>A query that does not end with an explicit {@code fields} clause gets an implicit
+   * all-columns projection attached while the AST is built — a stage shared by both engines. An
+   * earlier revision of this feature attached a node type the V2 select-list analyzer has no
+   * visitor method for, so the analyzer returned null and every such query failed with HTTP 500
+   * NullPointerException.
+   *
+   * <p>{@code include_metadata} itself is Calcite-only, but the projection it interacts with is
+   * shared, so the V2 path must keep working. Calcite is off by default in production, which is why
+   * this configuration needs its own coverage.
+   */
+  @Test
+  public void testImplicitSelectAllStillWorksOnV2Engine() throws IOException {
+    disableCalcite();
+    try {
+      // Ends in an aggregation, so an all-columns projection is attached.
+      verifyColumn(
+          executeQuery("source=" + TEST_INDEX_ACCOUNT + " | stats count()"), columnName("count()"));
+
+      // No fields clause at all.
+      JSONObject described = executeQuery("describe " + TEST_INDEX_ACCOUNT);
+      assertTrue("describe must return columns", described.getJSONArray("schema").length() > 0);
+
+      // Ends in sort, so an all-columns projection is attached.
+      JSONObject sorted = executeQuery("source=" + TEST_INDEX_ACCOUNT + " | sort age | head 1");
+      assertTrue("sort must return columns", sorted.getJSONArray("schema").length() > 0);
+
+      // Control: ends with an explicit fields clause, so no projection is attached. This case
+      // passed even on the broken revision, which is what made the failure pattern diagnosable.
+      verifyColumn(
+          executeQuery("source=" + TEST_INDEX_ACCOUNT + " | fields firstname | head 1"),
+          columnName("firstname"));
+    } finally {
+      // enableCalcite/disableCalcite write a persistent cluster setting, so this must be restored
+      // or every later test in this class would silently run against the V2 engine.
+      enableCalcite();
+    }
+  }
+
+  @Test
+  public void testIncludeMetadataIsIgnoredOnV2Engine() throws IOException {
+    // The V2 engine has no metadata-field support, so the parameter is accepted and ignored
+    // rather than rejected. Documented here so the behaviour is deliberate, not accidental.
+    //
+    // Note this uses a query with no `fields` clause rather than `fields *`: the wildcard form is
+    // itself Calcite-only (AstBuilder rejects it with "Enhanced fields feature is supported only
+    // when plugins.calcite.enabled=true"), so it cannot reach the V2 engine at all.
+    disableCalcite();
+    try {
+      JSONObject result =
+          executeQueryWithParams(
+              "source=" + TEST_INDEX_ACCOUNT + " | head 1", "include_metadata", "true");
+      List<String> columns = columnNames(result);
+      assertTrue("V2 must still return data fields", columns.contains("firstname"));
+      assertFalse(
+          "V2 has no metadata-field support, so include_metadata is ignored",
+          columns.contains("_id"));
+    } finally {
+      enableCalcite();
+    }
+  }
+
+  /**
+   * Extracts column names from a response schema. Preferred over substring matching on the
+   * serialised schema, which would match a data field such as {@code user_id} when looking for
+   * {@code _id}.
+   */
+  private List<String> columnNames(JSONObject result) {
+    JSONArray schema = result.getJSONArray("schema");
+    List<String> names = new ArrayList<>(schema.length());
+    for (int i = 0; i < schema.length(); i++) {
+      names.add(schema.getJSONObject(i).getString("name"));
+    }
+    return names;
   }
 
   private JSONObject executeQueryWithJsonBodyParam(String query, boolean includeMetadata)

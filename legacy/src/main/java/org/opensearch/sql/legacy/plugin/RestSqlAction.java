@@ -197,20 +197,20 @@ public class RestSqlAction extends BaseRestHandler {
                   handleException(restChannel, e);
                 }
               },
-              this::handleException)
+              RestSqlAction::handleException)
           .accept(channel);
     } catch (Exception e) {
       handleException(channel, e);
     }
   }
 
-  private void handleException(RestChannel restChannel, Exception exception) {
+  public static void handleException(RestChannel restChannel, Exception exception) {
     RestStatus status = getRestStatus(exception);
     logAndPublishMetrics(status, exception);
     reportError(restChannel, exception, status);
   }
 
-  private static RestStatus getRestStatus(Exception ex) {
+  public static RestStatus getRestStatus(Exception ex) {
     int code = getRawErrorCode(ex);
     return RestStatus.fromCode(code);
   }
@@ -337,12 +337,13 @@ public class RestSqlAction extends BaseRestHandler {
         || e instanceof ExpressionEvaluationException;
   }
 
-  private void sendResponse(
+  private static void sendResponse(
       final RestChannel channel, final String message, final RestStatus status) {
     channel.sendResponse(new BytesRestResponse(status, message));
   }
 
-  private void reportError(final RestChannel channel, final Exception e, final RestStatus status) {
+  private static void reportError(
+      final RestChannel channel, final Exception e, final RestStatus status) {
     sendResponse(
         channel, ErrorMessageFactory.createErrorMessage(e, status.getStatus()).toString(), status);
   }

@@ -50,6 +50,8 @@ public class OpenSearchIndexRules {
       SortIndexScanRule.Config.DEFAULT.toRule();
   private static final DedupPushdownRule DEDUP_PUSH_DOWN =
       DedupPushdownRule.Config.DEFAULT.toRule();
+  private static final DedupPushdownRule DEDUP_PUSH_DOWN_WITH_FILTER =
+      DedupPushdownRule.Config.WITH_FILTER.toRule();
   private static final SortProjectExprTransposeRule SORT_PROJECT_EXPR_TRANSPOSE =
       SortProjectExprTransposeRule.Config.DEFAULT.toRule();
   private static final ExpandCollationOnProjectExprRule EXPAND_COLLATION_ON_PROJECT_EXPR =
@@ -75,6 +77,7 @@ public class OpenSearchIndexRules {
           LIMIT_INDEX_SCAN,
           SORT_INDEX_SCAN,
           DEDUP_PUSH_DOWN,
+          DEDUP_PUSH_DOWN_WITH_FILTER,
           SORT_PROJECT_EXPR_TRANSPOSE,
           SORT_AGGREGATION_METRICS_RULE,
           RARE_TOP_PUSH_DOWN,

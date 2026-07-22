@@ -10,10 +10,14 @@ import static org.junit.Assert.assertThrows;
 
 import java.util.Map;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.exception.CalciteUnsupportedException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 
 public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
@@ -71,7 +75,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
     // This is valid in SparkSQL, but Calcite requires "catalog" as the default root schema to
     // resolve it
-    assertThrows(IllegalStateException.class, () -> planner.plan("source = opensearch.employees"));
+    assertThrows(SemanticCheckException.class, () -> planner.plan("source = opensearch.employees"));
   }
 
   @Test
@@ -114,5 +118,84 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
   @Test(expected = SyntaxCheckException.class)
   public void testPlanPropagatingSyntaxCheckException() {
     planner.plan("source = catalog.employees | eval"); // Trigger syntax error from parser
+  }
+
+  @Test
+  public void syntaxErrorIsRethrownAsSyntaxCheckException() {
+    givenInvalidQuery("INVALID +++")
+        .assertErrorType(SyntaxCheckException.class)
+        .assertErrorMessageContains("is not a valid term");
+  }
+
+  @Test
+  public void semanticErrorIsRethrownAsSemanticCheckException() {
+    givenInvalidQuery("source = catalog.employees | rename id* as x*y*")
+        .assertErrorType(SemanticCheckException.class)
+        .assertErrorMessageEquals("Source and target patterns have different wildcard counts");
+  }
+
+  @Test
+  public void fieldNotFoundIsRethrownAsErrorReport() {
+    givenInvalidQuery("source = catalog.employees | where unknown_field = 1")
+        .assertErrorType(ErrorReport.class)
+        .assertErrorMessageContains("Field [unknown_field] not found");
+  }
+
+  @Test
+  public void invalidTableIsRethrownAsSemanticCheckException() {
+    givenInvalidQuery("source = catalog.nonexistent_table")
+        .assertErrorType(SemanticCheckException.class)
+        .assertCauseType(CalciteException.class);
+  }
+
+  @Test
+  public void unsupportedFeatureIsRethrownAsSemanticCheckException() {
+    // A feature unsupported on the analytics engine (here a PPL command that raises
+    // CalciteUnsupportedException; SQL table functions like vectorSearch() take the same path) is
+    // an invalid query, normalized to a SemanticCheckException so callers classify it as a 4xx.
+    givenInvalidQuery("source = catalog.employees | kmeans")
+        .assertErrorType(SemanticCheckException.class)
+        .assertCauseType(CalciteUnsupportedException.class)
+        .assertErrorMessageContains("unsupported in Calcite");
+  }
+
+  @Test
+  public void unsupportedWindowFunctionIsRethrownAsSemanticCheckException() {
+    // Window functions outside WINDOW_FUNC_MAPPING reach
+    // CalciteRexNodeVisitor#visitWindowFunction's
+    // orElseThrow. The throw site emits CalciteUnsupportedException so this path normalizes to a
+    // 4xx SemanticCheckException rather than escaping as a 500.
+    givenInvalidQuery("source = catalog.employees | eventstats rank()")
+        .assertErrorType(SemanticCheckException.class)
+        .assertCauseType(CalciteUnsupportedException.class)
+        .assertErrorMessageContains("Unexpected window function: rank");
+  }
+
+  @Test
+  public void assertionErrorIsWrappedAsSemanticCheckException() {
+    // Remove when the underlying Calcite assertion is fixed.
+    givenInvalidQuery(
+            """
+            source = catalog.employees
+            | eval ts = timestamp('2024-01-01')
+            | stats max(ts)
+            """)
+        .assertErrorType(SemanticCheckException.class)
+        .assertErrorMessageEquals("Failed to plan query: invalid plan structure")
+        .assertCauseType(AssertionError.class);
+  }
+
+  /**
+   * Without the {@code PATTERN_*} defaults in {@link UnifiedQueryContext}, a bare {@code patterns
+   * <field>} (no explicit {@code method=}/{@code mode=}) dies at parse time with {@code
+   * PatternMethod.valueOf("NULL")} because {@code AstBuilder.visitPatternsCommand} reads a null
+   * from {@code settings.getSettingValue(Key.PATTERN_METHOD)}. With the defaults present, the
+   * planner lowers patterns to SIMPLE / LABEL mode and adds {@code patterns_field}.
+   */
+  @Test
+  public void testPPLPatternsPicksUpDefaults() {
+    givenQuery("source = catalog.employees | patterns name")
+        .assertPlanContains("REGEXP_REPLACE")
+        .assertFields("id", "name", "age", "department", "patterns_field");
   }
 }
