@@ -237,6 +237,50 @@ public class CalcitePlanContext {
     executionPool.set(null);
   }
 
+  /**
+   * Snapshot of all thread-local state in CalcitePlanContext. Used when dispatching queries to the
+   * complex worker pool — capture state on the caller thread, restore on the worker thread.
+   */
+  public static class ThreadLocalSnapshot {
+    final boolean skipEncoding;
+    final boolean stripNullColumns;
+    final String timewrapUnitName;
+    final String timewrapSeries;
+    final String executionPool;
+
+    private ThreadLocalSnapshot(
+        boolean skipEncoding,
+        boolean stripNullColumns,
+        String timewrapUnitName,
+        String timewrapSeries,
+        String executionPool) {
+      this.skipEncoding = skipEncoding;
+      this.stripNullColumns = stripNullColumns;
+      this.timewrapUnitName = timewrapUnitName;
+      this.timewrapSeries = timewrapSeries;
+      this.executionPool = executionPool;
+    }
+  }
+
+  /** Capture current thread-local state for cross-thread propagation. */
+  public static ThreadLocalSnapshot snapshotThreadLocals() {
+    return new ThreadLocalSnapshot(
+        skipEncoding.get(),
+        stripNullColumns.get(),
+        timewrapUnitName.get(),
+        timewrapSeries.get(),
+        executionPool.get());
+  }
+
+  /** Restore thread-local state from a snapshot. */
+  public static void restoreThreadLocals(ThreadLocalSnapshot snapshot) {
+    skipEncoding.set(snapshot.skipEncoding);
+    stripNullColumns.set(snapshot.stripNullColumns);
+    timewrapUnitName.set(snapshot.timewrapUnitName);
+    timewrapSeries.set(snapshot.timewrapSeries);
+    executionPool.set(snapshot.executionPool);
+  }
+
   public void pushForeachBindings(
       Map<String, ForeachBinding> bindings, Map<String, ForeachBinding> identifierBindings) {
     foreachBindings = new HashMap<>(bindings);

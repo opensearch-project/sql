@@ -15,6 +15,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQueryBase;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.util.Holder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -65,36 +66,35 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       @Nullable ResponseListener<?> failureListener) {
     if (isComplexPoolEnabled() && ScriptDetector.hasScripts(optimizedPlan)) {
       LOG.debug("Query plan contains scripts, dispatching to complex worker pool");
+      // Capture thread-local state to propagate across thread boundary
       Map<String, String> ctx = ThreadContext.getImmutableContext();
       CancellableTask cancellableTask = OpenSearchQueryManager.getCancellableTask();
       ProfileContext profileContext = QueryProfiling.current();
+      CalcitePlanContext.ThreadLocalSnapshot snapshot = CalcitePlanContext.snapshotThreadLocals();
       @Nullable JaninoRelMetadataProvider metadataProvider =
           RelMetadataQueryBase.THREAD_PROVIDERS.get();
       long currentTime = Hook.CURRENT_TIME.get(-1L);
-      boolean stripNullCols = CalcitePlanContext.stripNullColumns.get();
-      String twUnitName = CalcitePlanContext.timewrapUnitName.get();
-      String twSeries = CalcitePlanContext.timewrapSeries.get();
+
       threadPool.schedule(
           () -> {
             final Thread executionThread = Thread.currentThread();
             Cancellable cancelPoller = scheduleCancellationPoller(cancellableTask, executionThread);
             Hook.Closeable hookHandle = null;
             try {
+              // Restore state from caller thread
               ThreadContext.putAll(ctx);
               OpenSearchQueryManager.setCancellableTask(cancellableTask);
               QueryProfiling.set(profileContext);
+              CalcitePlanContext.restoreThreadLocals(snapshot);
+              // Override execution pool to indicate complex pool
               CalcitePlanContext.executionPool.set(SQL_COMPLEX_WORKER_THREAD_POOL_NAME);
               if (metadataProvider != null) {
                 RelMetadataQueryBase.THREAD_PROVIDERS.set(metadataProvider);
               }
               if (currentTime >= 0) {
                 hookHandle =
-                    Hook.CURRENT_TIME.addThread(
-                        (Consumer<org.apache.calcite.util.Holder<Long>>) h -> h.set(currentTime));
+                    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(currentTime));
               }
-              CalcitePlanContext.stripNullColumns.set(stripNullCols);
-              CalcitePlanContext.timewrapUnitName.set(twUnitName);
-              CalcitePlanContext.timewrapSeries.set(twSeries);
               task.run();
             } catch (Exception e) {
               LOG.error("Exception during task execution on complex pool", e);
