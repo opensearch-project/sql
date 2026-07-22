@@ -189,7 +189,8 @@ Expected output (trimmed):
          "children": [
             { "node": "CalciteEnumerableIndexScan", "time_ms": 4.12, "rows": 2 }
          ]
-      }
+      },
+      "thread_pool": "sql-worker"
    }
 }
 ```
@@ -201,6 +202,7 @@ Expected output (trimmed):
 - Plan node names use Calcite physical operator names (for example, `EnumerableCalc` or `CalciteEnumerableIndexScan`).
 - Plan `time_ms` is inclusive of child operators and represents wall-clock time; overlapping work can make summed plan times exceed `summary.total_time_ms`.
 - Scan nodes reflect operator wall-clock time; background prefetch can make scan time smaller than total request latency.
+- `thread_pool` indicates which thread pool executed the query. Possible values are `sql-worker` (default, pushdown-only queries) and `sql-complex-worker` (queries requiring in-memory evaluation such as scripted fields).
 
 ## Highlight
 
