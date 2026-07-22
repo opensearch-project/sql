@@ -196,10 +196,10 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     // Metric ordering remains in Calcite because OpenSearch exposes metric sort values as doubles,
     // which cannot distinguish these sums. Lexical tie-breaking would otherwise put "a" first.
     JSONObject exactSort =
-        executeQuery(String.format("source=%s | stats sum(v) as s by g | sort - s", exactSortIndex));
+        executeQuery(
+            String.format("source=%s | stats sum(v) as s by g | sort - s", exactSortIndex));
     verifySchema(exactSort, schema("s", "bigint"), schema("g", "string"));
-    verifyDataRows(
-        exactSort, rows(4611686018427387905L, "z"), rows(4611686018427387904L, "a"));
+    verifyDataRows(exactSort, rows(4611686018427387905L, "z"), rows(4611686018427387904L, "a"));
   }
 
   @Test
