@@ -74,10 +74,21 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       @Nullable JaninoRelMetadataProvider metadataProvider =
           RelMetadataQueryBase.THREAD_PROVIDERS.get();
       long currentTime = Hook.CURRENT_TIME.get(-1L);
+      TimeValue timeout = settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT);
 
       threadPool.schedule(
           () -> {
             final Thread executionThread = Thread.currentThread();
+            Cancellable timeoutHandle =
+                threadPool.schedule(
+                    () -> {
+                      LOG.warn(
+                          "Query execution timed out after {}. Interrupting execution thread.",
+                          timeout);
+                      executionThread.interrupt();
+                    },
+                    timeout,
+                    ThreadPool.Names.GENERIC);
             Cancellable cancelPoller = scheduleCancellationPoller(cancellableTask, executionThread);
             Hook.Closeable hookHandle = null;
             try {
@@ -102,6 +113,7 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
                 failureListener.onFailure(e);
               }
             } finally {
+              timeoutHandle.cancel();
               cancelPoller.cancel();
               Thread.interrupted();
               if (hookHandle != null) {
