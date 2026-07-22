@@ -284,6 +284,70 @@ public class SQLQueryRequestTest {
     assertTrue(csvRequest.isSupported());
   }
 
+  @Test
+  public void should_support_query_with_profile_field() {
+    SQLQueryRequest request =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .jsonContent("{\"query\": \"SELECT 1\", \"profile\": true}")
+            .build();
+    assertTrue(request.isSupported());
+  }
+
+  @Test
+  public void should_disable_profile_when_no_json_content() {
+    SQLQueryRequest request =
+        new SQLQueryRequest(null, "SELECT 1", "_plugins/_sql", Map.of(), null);
+    assertFalse(request.isProfileEnabled());
+  }
+
+  @Test
+  public void should_disable_profile_when_profile_field_absent() {
+    SQLQueryRequest request =
+        new SQLQueryRequest(
+            new JSONObject("{\"query\": \"SELECT 1\"}"),
+            "SELECT 1",
+            "_plugins/_sql",
+            Map.of(),
+            null);
+    assertFalse(request.isProfileEnabled());
+  }
+
+  @Test
+  public void should_enable_profile_for_jdbc_query() {
+    SQLQueryRequest request =
+        new SQLQueryRequest(
+            new JSONObject("{\"query\": \"SELECT 1\", \"profile\": true}"),
+            "SELECT 1",
+            "_plugins/_sql",
+            Map.of(),
+            null);
+    assertTrue(request.isProfileEnabled());
+  }
+
+  @Test
+  public void should_disable_profile_on_explain_path() {
+    SQLQueryRequest request =
+        new SQLQueryRequest(
+            new JSONObject("{\"query\": \"SELECT 1\", \"profile\": true}"),
+            "SELECT 1",
+            "_plugins/_sql/_explain",
+            Map.of(),
+            null);
+    assertFalse(request.isProfileEnabled());
+  }
+
+  @Test
+  public void should_disable_profile_for_non_jdbc_format() {
+    SQLQueryRequest request =
+        new SQLQueryRequest(
+            new JSONObject("{\"query\": \"SELECT 1\", \"profile\": true}"),
+            "SELECT 1",
+            "_plugins/_sql",
+            Map.of("format", "csv"),
+            null);
+    assertFalse(request.isProfileEnabled());
+  }
+
   /** SQL query request build helper to improve test data setup readability. */
   private static class SQLQueryRequestBuilder {
     private String jsonContent;

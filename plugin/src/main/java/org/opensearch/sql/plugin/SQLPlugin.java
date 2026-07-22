@@ -63,6 +63,7 @@ import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.ScriptService;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
@@ -106,6 +107,7 @@ import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine;
 import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
+import org.opensearch.sql.plugin.rest.AnalyticsEngineFormatSupport;
 import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
 import org.opensearch.sql.plugin.rest.RestPPLGrammarAction;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
@@ -225,11 +227,13 @@ public class SQLPlugin extends Plugin
         () -> {
           if (cached[0] == null) {
             var executor = AnalyticsExecutorHolder.get();
-            if (executor == null) {
+            var contextProvider = org.opensearch.sql.plugin.rest.EngineContextProviderHolder.get();
+            if (executor == null || contextProvider == null) {
               return null;
             }
             cached[0] =
-                new RestUnifiedQueryAction(client, clusterService, executor, pluginSettings);
+                new RestUnifiedQueryAction(
+                    client, clusterService, executor, contextProvider, pluginSettings);
           }
           return cached[0];
         };
@@ -239,6 +243,7 @@ public class SQLPlugin extends Plugin
           || !unifiedQueryHandler.isAnalyticsIndex(sqlRequest.getQuery(), QueryType.SQL)) {
         return false;
       }
+      LOGGER.info("[{}] Routing SQL query to analytics engine", QueryContext.getRequestId());
       if (sqlRequest.isExplainRequest()) {
         unifiedQueryHandler.explain(
             sqlRequest.getQuery(),
@@ -263,15 +268,21 @@ public class SQLPlugin extends Plugin
 
               @Override
               public void onFailure(Exception e) {
-                channel.sendResponse(
-                    new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                RestSqlAction.handleException(channel, e);
               }
             });
       } else {
+        // Analytics route only emits JSON; reject unsupported formats (e.g. csv) with a 4xx.
+        try {
+          AnalyticsEngineFormatSupport.validateFormat(sqlRequest.format());
+        } catch (Exception e) {
+          RestSqlAction.handleException(channel, e);
+          return true;
+        }
         unifiedQueryHandler.execute(
             sqlRequest.getQuery(),
             QueryType.SQL,
-            false,
+            sqlRequest.isProfileEnabled(),
             new ActionListener<>() {
               @Override
               public void onResponse(TransportPPLQueryResponse response) {
@@ -282,8 +293,7 @@ public class SQLPlugin extends Plugin
 
               @Override
               public void onFailure(Exception e) {
-                channel.sendResponse(
-                    new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                RestSqlAction.handleException(channel, e);
               }
             });
       }

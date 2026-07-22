@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WILDCARD;
+import static org.opensearch.sql.util.Capability.TEXT_KEYWORD_PUSHDOWN_REWRITE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
@@ -13,6 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class LikeQueryIT extends PPLIntegTestCase {
 
@@ -97,6 +99,11 @@ public class LikeQueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = TEXT_KEYWORD_PUSHDOWN_REWRITE,
+      note =
+          "like() over a text+keyword field doesn't rewrite to .keyword in the explain plan on the"
+              + " AE route (TEXT_KEYWORD_PUSHDOWN_REWRITE).")
   public void test_convert_field_text_to_keyword() throws IOException {
     String query =
         "source="

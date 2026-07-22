@@ -9,6 +9,7 @@ import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpen
 import static org.opensearch.sql.executor.QueryType.SQL;
 import static org.opensearch.sql.ppl.StandaloneIT.getDataSourceMetadataStorage;
 import static org.opensearch.sql.ppl.StandaloneIT.getDataSourceUserRoleHelper;
+import static org.opensearch.sql.util.Capability.PAGINATION_CURSOR;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -51,9 +52,11 @@ import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.util.InternalRestHighLevelClient;
+import org.opensearch.sql.util.RequiresCapability;
 import org.opensearch.sql.util.StandaloneModule;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
+@RequiresCapability(PAGINATION_CURSOR)
 public class StandalonePaginationIT extends SQLIntegTestCase {
 
   private QueryService queryService;

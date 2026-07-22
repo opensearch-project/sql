@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
+import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.appendPipe;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
@@ -65,7 +66,6 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
@@ -78,23 +78,21 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.GraphLookup;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.exception.SemanticCheckException;
-import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.ppl.AstPlanningTestBase;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
-public class AstBuilderTest {
+public class AstBuilderTest extends AstPlanningTestBase {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
-
-  private final Settings settings = Mockito.mock(Settings.class);
-
-  private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
   @Test
   public void testDynamicSourceClauseThrowsUnsupportedException() {
@@ -1112,6 +1110,12 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testMakeResultsCommand() {
+    assertEqual("makeresults", new MakeResults(1));
+    assertEqual("makeresults count=5", new MakeResults(5));
+  }
+
+  @Test
   public void testDescribeMatchAllCrossClusterSearchCommand() {
     assertEqual("describe *:t", describe(mappingTable("*:t")));
   }
@@ -1403,11 +1407,6 @@ public class AstBuilderTest {
   protected void assertEqual(String query, String expected) {
     Node expectedPlan = plan(expected);
     assertEqual(query, expectedPlan);
-  }
-
-  private Node plan(String query) {
-    AstBuilder astBuilder = new AstBuilder(query, settings);
-    return astBuilder.visit(parser.parse(query));
   }
 
   private String mappingTable(String indexName) {
@@ -1829,6 +1828,78 @@ public class AstBuilderTest {
     plan("source=t | invalidCmd |");
   }
 
+  // Xyseries tests
+
+  @Test
+  public void testXyseriesCommandBasic() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"),
+            field("response"),
+            List.of("200", "404"),
+            List.of(field("host_cnt")),
+            ": ",
+            null);
+    expected.attach(relation("t"));
+    assertEqual("source=t | xyseries url response in (\"200\", \"404\") host_cnt", expected);
+  }
+
+  @Test
+  public void testXyseriesCommandMultipleDataFields() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"),
+            field("response"),
+            List.of("200", "404"),
+            List.of(field("host_cnt"), field("method_cnt")),
+            ": ",
+            null);
+    expected.attach(relation("t"));
+    assertEqual(
+        "source=t | xyseries url response in (\"200\", \"404\") host_cnt, method_cnt", expected);
+  }
+
+  @Test
+  public void testXyseriesCommandWithSep() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"), field("response"), List.of("200"), List.of(field("host_cnt")), "-", null);
+    expected.attach(relation("t"));
+    assertEqual("source=t | xyseries sep=\"-\" url response in (\"200\") host_cnt", expected);
+  }
+
+  @Test
+  public void testXyseriesCommandWithFormat() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"),
+            field("response"),
+            List.of("200"),
+            List.of(field("host_cnt")),
+            ": ",
+            "$VAL$+$AGG$");
+    expected.attach(relation("t"));
+    assertEqual(
+        "source=t | xyseries format=\"$VAL$+$AGG$\" url response in (\"200\") host_cnt", expected);
+  }
+
+  @Test
+  public void testXyseriesCommandWithSepAndFormat() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"),
+            field("response"),
+            List.of("200", "404"),
+            List.of(field("host_cnt")),
+            "-",
+            "$AGG$_$VAL$");
+    expected.attach(relation("t"));
+    assertEqual(
+        "source=t | xyseries sep=\"-\" format=\"$AGG$_$VAL$\" url response in (\"200\", \"404\")"
+            + " host_cnt",
+        expected);
+  }
+
   @Test
   public void testUnionWithSubsearches() {
     plan("| union [search source=t1 | where age > 30] " + "[search source=t2 | where age < 20]");
@@ -1862,5 +1933,90 @@ public class AstBuilderTest {
   @Test
   public void testMaxoutAsFieldName() {
     plan("source=t | eval maxout = 1");
+  }
+
+  // These assert on joinCondition/joinFields rather than full Join equality, since JoinHint has no
+  // equals().
+  @Test
+  public void testJoinWithImplicitFieldKeepsBareField() {
+    Join shorthand = (Join) plan("source=t1 | inner join on a AND b t2");
+    assertTrue(shorthand.getJoinFields().isEmpty());
+    assertEquals(Optional.of(and(field("a"), field("b"))), shorthand.getJoinCondition());
+  }
+
+  @Test
+  public void testJoinWithSingleImplicitFieldKeepsBareField() {
+    Join shorthand = (Join) plan("source=t1 | inner join on a t2");
+    assertTrue(shorthand.getJoinFields().isEmpty());
+    assertEquals(Optional.of(field("a")), shorthand.getJoinCondition());
+  }
+
+  @Test
+  public void testJoinWithMultipleImplicitFieldsFlattenInOrder() {
+    Join join = (Join) plan("source=t1 | inner join on a AND b AND c t2");
+    assertTrue(join.getJoinFields().isEmpty());
+    assertEquals(
+        Optional.of(and(and(field("a"), field("b")), field("c"))), join.getJoinCondition());
+  }
+
+  @Test
+  public void testJoinWithImplicitFieldWhereKeywordKeepsBareField() {
+    Join join = (Join) plan("source=t1 | inner join where a t2");
+    assertTrue(join.getJoinFields().isEmpty());
+    assertEquals(Optional.of(field("a")), join.getJoinCondition());
+  }
+
+  @Test
+  public void testJoinWithQualifiedConditionIsNotRewritten() {
+    Join join = (Join) plan("source=t1 | inner join on l.a = r.a t2");
+    assertEquals(
+        Optional.of(compare("=", field(qualifiedName("l", "a")), field(qualifiedName("r", "a")))),
+        join.getJoinCondition());
+    assertTrue(join.getJoinFields().isEmpty());
+  }
+
+  // No-prefix form: the grammar reorder lets `on` read as the criteria keyword, not a field.
+  @Test
+  public void testJoinNoPrefixImplicitFieldKeepsBareField() {
+    Join join = (Join) plan("source=t1 | join on a t2");
+    assertTrue(join.getJoinFields().isEmpty());
+    assertEquals(Optional.of(field("a")), join.getJoinCondition());
+  }
+
+  @Test
+  public void testJoinNoPrefixImplicitFieldWhereKeepsBareField() {
+    Join join = (Join) plan("source=t1 | join where a t2");
+    assertTrue(join.getJoinFields().isEmpty());
+    assertEquals(Optional.of(field("a")), join.getJoinCondition());
+  }
+
+  @Test
+  public void testJoinWithImplicitFieldKeepsAliasesOnNode() {
+    Join join = (Join) plan("source=t1 | join left = l right = r on a t2");
+    assertTrue(join.getJoinFields().isEmpty());
+    assertEquals(Optional.of(field("a")), join.getJoinCondition());
+    assertEquals(Optional.of("l"), join.getLeftAlias());
+    assertEquals(Optional.of("r"), join.getRightAlias());
+  }
+
+  // The reorder must not change the field-list form.
+  @Test
+  public void testJoinFieldListStillParsesAsFieldList() {
+    Join join = (Join) plan("source=t1 | join a t2");
+    assertEquals(Optional.empty(), join.getJoinCondition());
+    assertEquals(Optional.of(List.of(field("a"))), join.getJoinFields());
+  }
+
+  @Test
+  public void testJoinNoPrefixComparisonStaysCondition() {
+    Join join = (Join) plan("source=t1 | join on a = b t2");
+    assertTrue(join.getJoinCondition().isPresent());
+    assertTrue(join.getJoinFields().isEmpty());
+  }
+
+  // A prefix with a bare field but no on/where is still a field list, so this is a syntax error.
+  @Test
+  public void testJoinPrefixWithoutCriteriaKeywordIsSyntaxError() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t1 | inner join a t2"));
   }
 }

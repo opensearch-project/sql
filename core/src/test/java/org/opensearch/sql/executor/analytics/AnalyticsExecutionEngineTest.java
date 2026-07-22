@@ -7,6 +7,7 @@ package org.opensearch.sql.executor.analytics;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,6 +29,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
+import org.opensearch.analytics.schema.BinaryType;
+import org.opensearch.analytics.schema.DateOnlyType;
+import org.opensearch.analytics.schema.IpType;
+import org.opensearch.analytics.schema.TimeOnlyType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
@@ -35,6 +40,8 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import org.opensearch.sql.monitor.profile.ProfileContext;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 class AnalyticsExecutionEngineTest {
@@ -160,6 +167,39 @@ class AnalyticsExecutionEngineTest {
         6.0, response.getResults().get(0).tupleValue().get("d").value(), "double value. " + dump);
   }
 
+  /**
+   * A column whose planned type is ANY (e.g. the SCALAR_MAX/SCALAR_MIN UDFs declare ANY) maps to
+   * UNDEFINED; recover the concrete type from the first row's runtime value so the schema matches
+   * the Calcite path instead of reporting "undefined".
+   */
+  @Test
+  void executeRelNode_anyColumnRecoversTypeFromFirstRow() {
+    RelNode relNode = mockRelNode("age", SqlTypeName.BIGINT, "new", SqlTypeName.ANY);
+    Iterable<Object[]> rows = Arrays.asList(new Object[] {2L, 3}, new Object[] {4L, 4});
+    stubExecutorWith(relNode, rows);
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    // 'new' is ANY in the plan but the first row's value is an Integer → schema reports INTEGER.
+    assertEquals(ExprCoreType.LONG, response.getSchema().getColumns().get(0).getExprType(), dump);
+    assertEquals(
+        ExprCoreType.INTEGER, response.getSchema().getColumns().get(1).getExprType(), dump);
+  }
+
+  /** ANY column with no rows to derive from stays UNDEFINED (mirrors the Calcite path fallback). */
+  @Test
+  void executeRelNode_anyColumnEmptyResultsStaysUndefined() {
+    RelNode relNode = mockRelNode("new", SqlTypeName.ANY);
+    stubExecutorWith(relNode, Collections.emptyList());
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    assertEquals(
+        ExprCoreType.UNDEFINED, response.getSchema().getColumns().get(0).getExprType(), dump);
+  }
+
   @Test
   void executeRelNode_temporalTypes() {
     RelNode relNode =
@@ -179,6 +219,119 @@ class AnalyticsExecutionEngineTest {
 
   // Query size limit is now enforced in the RelNode plan (LogicalSystemLimit) before it reaches
   // AnalyticsExecutionEngine. The engine trusts the executor to honor the limit.
+
+  /** Raw 16-byte ipv6-mapped buffer + IpType → canonical IP string + schema reports "ip". */
+  @Test
+  void executeRelNode_ipColumnRendersAsAddressString() {
+    RelNode relNode = mockRelNodeWithType("host", new IpType(true));
+    // 1.2.3.4 in ipv4-mapped-ipv6 form: 10 zero bytes + ff ff + 4 IPv4 bytes.
+    byte[] ipv4 = new byte[16];
+    ipv4[10] = (byte) 0xff;
+    ipv4[11] = (byte) 0xff;
+    ipv4[12] = 1;
+    ipv4[13] = 2;
+    ipv4[14] = 3;
+    ipv4[15] = 4;
+    // ::1 in pure ipv6 form.
+    byte[] ipv6 = new byte[16];
+    ipv6[15] = 1;
+    Iterable<Object[]> rows = Arrays.asList(new Object[] {ipv4}, new Object[] {ipv6});
+    stubExecutorWith(relNode, rows);
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    // Schema: column reports "ip", not "binary".
+    assertEquals(ExprCoreType.IP, response.getSchema().getColumns().get(0).getExprType(), dump);
+    // Cells: byte[] → formatted address string.
+    assertEquals(
+        "1.2.3.4",
+        response.getResults().get(0).tupleValue().get("host").value(),
+        "ipv4-mapped IPv6 buffer should render as dotted quad. " + dump);
+    assertEquals(
+        "::1",
+        response.getResults().get(1).tupleValue().get("host").value(),
+        "pure IPv6 buffer should render as RFC 5952 compressed form. " + dump);
+  }
+
+  /** Raw byte buffer + BinaryType → base64 string + schema reports "binary". */
+  @Test
+  void executeRelNode_binaryColumnRendersAsBase64() {
+    RelNode relNode = mockRelNodeWithType("blob", new BinaryType(true));
+    Iterable<Object[]> rows =
+        Collections.singletonList(new Object[] {"Some binary blob".getBytes()});
+    stubExecutorWith(relNode, rows);
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    assertEquals(ExprCoreType.BINARY, response.getSchema().getColumns().get(0).getExprType(), dump);
+    assertEquals(
+        "U29tZSBiaW5hcnkgYmxvYg==",
+        response.getResults().get(0).tupleValue().get("blob").value(),
+        "byte[] should base64-encode to match OpenSearch binary wire format. " + dump);
+  }
+
+  /** DateOnlyType — schema reports DATE, value strips midnight suffix. */
+  @Test
+  void executeRelNode_dateOnlyTypeStripsTimeSuffix() {
+    RelNode relNode =
+        mockRelNodeWithType("d", new DateOnlyType(RelDataTypeSystem.DEFAULT, true, 3));
+    Iterable<Object[]> rows = Collections.singletonList(new Object[] {"1984-04-12 00:00:00"});
+    stubExecutorWith(relNode, rows);
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    assertEquals(ExprCoreType.DATE, response.getSchema().getColumns().get(0).getExprType(), dump);
+    assertEquals(
+        "1984-04-12", response.getResults().get(0).tupleValue().get("d").stringValue(), dump);
+  }
+
+  /** TimeOnlyType — schema reports TIME, value strips 1970-01-01 prefix. */
+  @Test
+  void executeRelNode_timeOnlyTypeStripsEpochDatePrefix() {
+    RelNode relNode =
+        mockRelNodeWithType("t", new TimeOnlyType(RelDataTypeSystem.DEFAULT, true, 3));
+    Iterable<Object[]> rows = Collections.singletonList(new Object[] {"1970-01-01 09:00:00"});
+    stubExecutorWith(relNode, rows);
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    assertEquals(ExprCoreType.TIME, response.getSchema().getColumns().get(0).getExprType(), dump);
+    assertEquals(
+        "09:00:00", response.getResults().get(0).tupleValue().get("t").stringValue(), dump);
+  }
+
+  /** TIME-typed list elements arrive as "1970-01-01[ T]HH:mm:ss[.frac]" — strip the prefix. */
+  @Test
+  void executeRelNode_listOfStringStripsEpochDatePrefix() {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType arrayOfVarchar =
+        typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.VARCHAR), -1);
+    RelNode relNode = mockRelNodeWithType("time_list", arrayOfVarchar);
+    java.util.List<String> input =
+        Arrays.asList(
+            "1970-01-01 19:36:22",
+            "1970-01-01T02:05:25",
+            "1970-01-01 12:34:56.123456789",
+            "2020-10-13 13:00:00",
+            "hello");
+    stubExecutorWith(relNode, Collections.singletonList(new Object[] {input}));
+
+    QueryResponse response = executeAndCapture(relNode);
+    String dump = dumpResponse(response);
+
+    java.util.List<String> result =
+        response.getResults().get(0).tupleValue().get("time_list").collectionValue().stream()
+            .map(org.opensearch.sql.data.model.ExprValue::stringValue)
+            .toList();
+    assertEquals(
+        Arrays.asList("19:36:22", "02:05:25", "12:34:56.123456789", "2020-10-13 13:00:00", "hello"),
+        result,
+        dump);
+  }
 
   @Test
   void executeRelNode_emptyResults() {
@@ -274,6 +427,49 @@ class AnalyticsExecutionEngineTest {
             + errorRef.get().getClass().getSimpleName()
             + " - "
             + errorRef.get().getMessage());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeRelNode_profilePreservedOnAsyncListener() throws Exception {
+    ProfileContext expected = QueryProfiling.activate(true);
+
+    RelNode relNode = mockRelNode("col", SqlTypeName.VARCHAR);
+    Iterable<Object[]> rows = Collections.singletonList(new Object[] {"value"});
+
+    // Fire the executor's listener on a different thread to simulate async dispatch
+    doAnswer(
+            inv -> {
+              ActionListener<Iterable<Object[]>> al = inv.getArgument(2);
+              Thread t = new Thread(() -> al.onResponse(rows));
+              t.start();
+              t.join();
+              return null;
+            })
+        .when(mockExecutor)
+        .execute(eq(relNode), any(), any(ActionListener.class));
+
+    AtomicReference<ProfileContext> seen = new AtomicReference<>();
+    engine.execute(
+        relNode,
+        mockContext,
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            seen.set(QueryProfiling.current());
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            throw new AssertionError(e);
+          }
+        });
+
+    try {
+      assertSame(expected, seen.get(), "Profile context not restored on async listener thread");
+    } finally {
+      QueryProfiling.clear();
+    }
   }
 
   // --- helpers ---
@@ -374,6 +570,16 @@ class AnalyticsExecutionEngineTest {
       builder.add(name, typeName);
     }
     RelDataType rowType = builder.build();
+
+    RelNode relNode = mock(RelNode.class);
+    when(relNode.getRowType()).thenReturn(rowType);
+    return relNode;
+  }
+
+  /** Variant of {@link #mockRelNode} that accepts a pre-built RelDataType (e.g. UDTs). */
+  private RelNode mockRelNodeWithType(String name, RelDataType type) {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType rowType = typeFactory.builder().add(name, type).build();
 
     RelNode relNode = mock(RelNode.class);
     when(relNode.getRowType()).thenReturn(rowType);

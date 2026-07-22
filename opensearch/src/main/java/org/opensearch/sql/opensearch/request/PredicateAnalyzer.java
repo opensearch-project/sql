@@ -784,16 +784,29 @@ public class PredicateAnalyzer {
 
     private static QueryExpression constructQueryExpressionForSearch(
         RexCall call, SwapResult pair) {
+      boolean isTimeStamp =
+          (pair.getKey() instanceof NamedFieldExpression namedField)
+              && namedField.isTimeStampType();
       if (isSearchWithComplementedPoints(call)) {
+        // A NOT IN over a timestamp field cannot use a flat terms query: timestamp values must be
+        // normalized + formatted (see in()/termsQuery, which does neither). Decompose into the
+        // complement of an OR of formatted per-point range queries, mirroring the range branch.
+        if (isTimeStamp) {
+          return pointsAsTimestampOr(call, pair).not();
+        }
         return QueryExpression.create(pair.getKey()).notIn(pair.getValue());
       } else if (isSearchWithPoints(call)) {
+        // IN over a timestamp field: the flat terms query in in() emits unformatted values like
+        // '2018-06-23 00:00:00' that the date field cannot parse. Decompose into an OR of formatted
+        // per-point range queries (equals(point, true) builds gte/lte + format="date_time"), the
+        // same path the range branch below and visitCompare's `=` already take.
+        if (isTimeStamp) {
+          return pointsAsTimestampOr(call, pair);
+        }
         return QueryExpression.create(pair.getKey()).in(pair.getValue());
       } else {
         Sarg<?> sarg = pair.getValue().literal.getValueAs(Sarg.class);
         Set<? extends Range<?>> rangeSet = requireNonNull(sarg).rangeSet.asRanges();
-        boolean isTimeStamp =
-            (pair.getKey() instanceof NamedFieldExpression namedField)
-                && namedField.isTimeStampType();
         List<QueryExpression> queryExpressions =
             rangeSet.stream()
                 .map(
@@ -809,6 +822,30 @@ public class PredicateAnalyzer {
           return CompoundQueryExpression.or(queryExpressions.toArray(new QueryExpression[0]));
         }
       }
+    }
+
+    /**
+     * Builds an OR of per-point {@code equals(point, true)} query expressions for a points-only
+     * Sarg over a timestamp field. Each point becomes a {@code gte/lte} range query with {@code
+     * format="date_time"}, so the timestamp value is normalized to the date field's accepted format
+     * — unlike a flat terms query, which emits unformatted values the date field rejects.
+     */
+    private static QueryExpression pointsAsTimestampOr(RexCall call, SwapResult pair) {
+      RexLiteral literal = (RexLiteral) call.getOperands().get(1);
+      Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
+      Set<? extends Range<?>> ranges =
+          (sarg.isComplementedPoints() ? sarg.negate() : sarg).rangeSet.asRanges();
+      List<QueryExpression> queryExpressions =
+          ranges.stream()
+              .map(
+                  range ->
+                      QueryExpression.create(pair.getKey())
+                          .equals(sargPointValue(range.lowerEndpoint()), true))
+              .toList();
+      if (queryExpressions.size() == 1) {
+        return queryExpressions.getFirst();
+      }
+      return CompoundQueryExpression.or(queryExpressions.toArray(new QueryExpression[0]));
     }
 
     private QueryExpression andOr(RexCall call) {
@@ -1357,7 +1394,7 @@ public class PredicateAnalyzer {
                 .caseInsensitive(!caseSensitive);
         return this;
       }
-      throw new UnsupportedOperationException("Like query is not supported for text field");
+      throw new PredicateAnalyzerException("Like query is not supported for text field");
     }
 
     @Override
@@ -1378,10 +1415,12 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression equals(LiteralExpression literal) {
-      Object value = literal.value();
-      if (literal.isDateTime()) {
+      boolean isTimeStamp = isFieldOrLiteralDateTime(literal);
+      Object value = convertEndpointValue(literal.value(), isTimeStamp);
+      if (isTimeStamp) {
         builder =
-            addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value).lte(value));
+            addFormatIfNecessary(
+                isTimeStamp, rangeQuery(getFieldReference()).gte(value).lte(value));
       } else {
         builder = termQuery(getFieldReferenceForTermQuery(), value);
       }
@@ -1390,12 +1429,15 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression notEquals(LiteralExpression literal) {
-      Object value = literal.value();
-      if (literal.isDateTime()) {
+      boolean isTimeStamp = isFieldOrLiteralDateTime(literal);
+      Object value = convertEndpointValue(literal.value(), isTimeStamp);
+      if (isTimeStamp) {
         builder =
             boolQuery()
-                .should(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gt(value)))
-                .should(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lt(value)));
+                .should(
+                    addFormatIfNecessary(isTimeStamp, rangeQuery(getFieldReference()).gt(value)))
+                .should(
+                    addFormatIfNecessary(isTimeStamp, rangeQuery(getFieldReference()).lt(value)));
       } else {
         builder =
             boolQuery()
@@ -1408,30 +1450,46 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression gt(LiteralExpression literal) {
-      Object value = literal.value();
-      builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gt(value));
+      boolean isTimeStamp = isFieldOrLiteralDateTime(literal);
+      Object value = convertEndpointValue(literal.value(), isTimeStamp);
+      builder = addFormatIfNecessary(isTimeStamp, rangeQuery(getFieldReference()).gt(value));
       return this;
     }
 
     @Override
     public QueryExpression gte(LiteralExpression literal) {
-      Object value = literal.value();
-      builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value));
+      boolean isTimeStamp = isFieldOrLiteralDateTime(literal);
+      Object value = convertEndpointValue(literal.value(), isTimeStamp);
+      builder = addFormatIfNecessary(isTimeStamp, rangeQuery(getFieldReference()).gte(value));
       return this;
     }
 
     @Override
     public QueryExpression lt(LiteralExpression literal) {
-      Object value = literal.value();
-      builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lt(value));
+      boolean isTimeStamp = isFieldOrLiteralDateTime(literal);
+      Object value = convertEndpointValue(literal.value(), isTimeStamp);
+      builder = addFormatIfNecessary(isTimeStamp, rangeQuery(getFieldReference()).lt(value));
       return this;
     }
 
     @Override
     public QueryExpression lte(LiteralExpression literal) {
-      Object value = literal.value();
-      builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lte(value));
+      boolean isTimeStamp = isFieldOrLiteralDateTime(literal);
+      Object value = convertEndpointValue(literal.value(), isTimeStamp);
+      builder = addFormatIfNecessary(isTimeStamp, rangeQuery(getFieldReference()).lte(value));
       return this;
+    }
+
+    /**
+     * Whether the comparison is a timestamp/date range. The field type is the reliable signal:
+     * {@code literal.isDateTime()} reads the literal's UDT, which {@link
+     * org.apache.calcite.rex.RexSimplify} can strip (to VARCHAR) when a sibling clause is folded
+     * into a {@code Sarg}, e.g. {@code @timestamp > X AND severityText IN (...)}. Falling back to
+     * {@code rel.isTimeStampType()} keeps ISO-8601 normalization and the {@code "date_time"} format
+     * hint on the range query.
+     */
+    private boolean isFieldOrLiteralDateTime(LiteralExpression literal) {
+      return literal.isDateTime() || (rel != null && rel.isTimeStampType());
     }
 
     @Override
@@ -1580,6 +1638,11 @@ public class PredicateAnalyzer {
     }
 
     private Object convertEndpointValue(Object value, boolean isTimeStamp) {
+      // Shared normalization entry point: guard a null endpoint so the timestamp branch's
+      // value.toString() cannot NPE. sargPointValue never produces null from a non-null input.
+      if (value == null) {
+        return null;
+      }
       value = sargPointValue(value);
       return isTimeStamp ? timestampValueForPushDown(value.toString()) : value;
     }
@@ -1712,16 +1775,19 @@ public class PredicateAnalyzer {
   }
 
   /**
-   * By default, range queries on date/time need use the format of the source to parse the literal.
-   * So we need to specify that the literal has "date_time" format
+   * Range queries on date/time fields need the source format to parse the literal, so we attach the
+   * {@code "date_time"} format. The caller resolves whether the comparison is a timestamp range
+   * from the field type (see {@link SimpleQueryExpression#isFieldOrLiteralDateTime}) rather than
+   * the literal's UDT, which {@link org.apache.calcite.rex.RexSimplify} can strip when a sibling
+   * clause is folded into a {@code Sarg}.
    *
-   * @param literal literal value
-   * @param rangeQueryBuilder query builder to optionally add {@code format} expression
-   * @return existing builder with possible {@code format} attribute
+   * @param isTimeStamp whether the comparison endpoint is a timestamp/date range endpoint
+   * @param rangeQueryBuilder query builder to optionally add the {@code format} attribute
+   * @return the same builder, with {@code format("date_time")} added when {@code isTimeStamp}
    */
   private static RangeQueryBuilder addFormatIfNecessary(
-      LiteralExpression literal, RangeQueryBuilder rangeQueryBuilder) {
-    if (literal.isDateTime()) {
+      boolean isTimeStamp, RangeQueryBuilder rangeQueryBuilder) {
+    if (isTimeStamp) {
       rangeQueryBuilder.format("date_time");
     }
     return rangeQueryBuilder;

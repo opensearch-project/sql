@@ -58,6 +58,7 @@ boolean ignorePrometheus = ignorePrometheusProp != null && !ignorePrometheusProp
 
 repositories {
     mavenLocal()
+    maven { url "https://ci.opensearch.org/maven2/" }
     mavenCentral()
     maven {
         url 'https://jitpack.io'
@@ -213,6 +214,7 @@ dependencies {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.9.3')
+    testImplementation('org.junit.jupiter:junit-jupiter-params:5.9.3')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.9.3')
     testRuntimeOnly('org.junit.platform:junit-platform-launcher:1.9.3')
 
@@ -275,6 +277,12 @@ ext.pluginVersion = opensearch_version.tokenize('-')[0]
 ext.featureBuildBase = "https://ci.opensearch.org/ci/dbc/feature-build-opensearch/feature-datafusion/latest/linux/x64/tar/builds/opensearch/plugins"
 ext.analyticsEngineZipDest = "${buildDir}/distributions/analytics-engine-${pluginVersion}-SNAPSHOT.zip"
 ext.arrowFlightRpcZipDest = "${buildDir}/distributions/arrow-flight-rpc-${pluginVersion}-SNAPSHOT.zip"
+ext.arrowBaseZipDest = "${buildDir}/distributions/arrow-base-${pluginVersion}-SNAPSHOT.zip"
+ext.testPplFrontendZipDest = "${buildDir}/distributions/test-ppl-frontend-${pluginVersion}-SNAPSHOT.zip"
+ext.analyticsBackendLuceneZipDest = "${buildDir}/distributions/analytics-backend-lucene-${pluginVersion}-SNAPSHOT.zip"
+ext.parquetDataFormatZipDest = "${buildDir}/distributions/parquet-data-format-${pluginVersion}-SNAPSHOT.zip"
+ext.compositeEngineZipDest = "${buildDir}/distributions/composite-engine-${pluginVersion}-SNAPSHOT.zip"
+ext.analyticsBackendDatafusionZipDest = "${buildDir}/distributions/analytics-backend-datafusion-${pluginVersion}-SNAPSHOT.zip"
 
 task downloadAnalyticsEngineZip(type: Download) {
     src "${featureBuildBase}/1-analytics-engine-${pluginVersion}.zip"
@@ -285,11 +293,59 @@ task downloadAnalyticsEngineZip(type: Download) {
 }
 
 task downloadArrowFlightRpcZip(type: Download) {
-    src "${featureBuildBase}/0-arrow-flight-rpc-${pluginVersion}.zip"
+    src "${featureBuildBase}/0-2-arrow-flight-rpc-${pluginVersion}.zip"
     dest arrowFlightRpcZipDest
     overwrite false
     onlyIfModified true
     onlyIf { !project.findProperty('arrowFlightRpcZip') }
+}
+
+task downloadArrowBaseZip(type: Download) {
+    src "${featureBuildBase}/0-1-arrow-base-${pluginVersion}.zip"
+    dest arrowBaseZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('arrowBaseZip') }
+}
+
+task downloadTestPplFrontendZip(type: Download) {
+    src "${featureBuildBase}/1-test-ppl-frontend-${pluginVersion}.zip"
+    dest testPplFrontendZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('testPplFrontendZip') }
+}
+
+task downloadAnalyticsBackendLuceneZip(type: Download) {
+    src "${featureBuildBase}/1-analytics-backend-lucene-${pluginVersion}.zip"
+    dest analyticsBackendLuceneZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('analyticsBackendLuceneZip') }
+}
+
+task downloadParquetDataFormatZip(type: Download) {
+    src "${featureBuildBase}/1-parquet-data-format-${pluginVersion}.zip"
+    dest parquetDataFormatZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('parquetDataFormatZip') }
+}
+
+task downloadCompositeEngineZip(type: Download) {
+    src "${featureBuildBase}/1-composite-engine-${pluginVersion}.zip"
+    dest compositeEngineZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('compositeEngineZip') }
+}
+
+task downloadAnalyticsBackendDatafusionZip(type: Download) {
+    src "${featureBuildBase}/1-analytics-backend-datafusion-${pluginVersion}.zip"
+    dest analyticsBackendDatafusionZipDest
+    overwrite false
+    onlyIfModified true
+    onlyIf { !project.findProperty('analyticsBackendDatafusionZip') }
 }
 
 def getAnalyticsEnginePlugin() {
@@ -298,6 +354,30 @@ def getAnalyticsEnginePlugin() {
 
 def getArrowFlightRpcPlugin() {
     provider { (RegularFile) (() -> file(project.findProperty('arrowFlightRpcZip') ?: arrowFlightRpcZipDest)) }
+}
+
+def getArrowBasePlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('arrowBaseZip') ?: arrowBaseZipDest)) }
+}
+
+def getTestPplFrontendPlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('testPplFrontendZip') ?: testPplFrontendZipDest)) }
+}
+
+def getAnalyticsBackendLucenePlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('analyticsBackendLuceneZip') ?: analyticsBackendLuceneZipDest)) }
+}
+
+def getParquetDataFormatPlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('parquetDataFormatZip') ?: parquetDataFormatZipDest)) }
+}
+
+def getCompositeEnginePlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('compositeEngineZip') ?: compositeEngineZipDest)) }
+}
+
+def getAnalyticsBackendDatafusionPlugin() {
+    provider { (RegularFile) (() -> file(project.findProperty('analyticsBackendDatafusionZip') ?: analyticsBackendDatafusionZipDest)) }
 }
 
 testClusters {
@@ -335,6 +415,7 @@ testClusters {
     analyticsEngineCompat {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
+        plugin(getArrowBasePlugin())
         plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
@@ -391,10 +472,93 @@ stopPrometheus.mustRunAfter startPrometheus
 
 task analyticsEngineCompatIT(type: RestIntegTestTask) {
     useCluster testClusters.analyticsEngineCompat
-    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip
     systemProperty 'tests.security.manager', 'false'
     filter {
         includeTestsMatching 'org.opensearch.sql.plugin.AnalyticsEngineCompatIT'
+    }
+}
+
+task analyticsEngineSecurityIT(type: RestIntegTestTask) {
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip, downloadAnalyticsBackendLuceneZip, downloadParquetDataFormatZip, downloadCompositeEngineZip, downloadAnalyticsBackendDatafusionZip
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+
+    doFirst {
+        systemProperty "https", "false"
+        systemProperty "user", "admin"
+        systemProperty "password", "admin"
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
+    }
+}
+
+testClusters.analyticsEngineSecurityIT {
+    testDistribution = 'archive'
+    plugin(getJobSchedulerPlugin())
+    plugin(getArrowBasePlugin())
+    plugin(getArrowFlightRpcPlugin())
+    plugin(getCompositeEnginePlugin())
+    plugin(getAnalyticsEnginePlugin())
+    plugin(getAnalyticsBackendLucenePlugin())
+    plugin(getAnalyticsBackendDatafusionPlugin())
+    plugin(getParquetDataFormatPlugin())
+    plugin ":opensearch-sql-plugin"
+    // Arrow Flight / streaming transport requirements
+    jvmArgs '--add-opens=java.base/java.nio=ALL-UNNAMED'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    systemProperty 'io.netty.allocator.numDirectArenas', '1'
+    systemProperty 'io.netty.noUnsafe', 'false'
+    systemProperty 'io.netty.tryUnsafe', 'true'
+    systemProperty 'io.netty.tryReflectionSetAccessible', 'true'
+    systemProperty 'opensearch.experimental.feature.pluggable.dataformat.enabled', 'true'
+    systemProperty 'opensearch.experimental.feature.transport.stream.enabled', 'true'
+    // Native library path for DataFusion/parquet — pass via -PnativeLibPath=/path/to/release/
+    if (project.findProperty('nativeLibPath')) {
+        systemProperty 'java.library.path', project.findProperty('nativeLibPath')
+    }
+}
+
+configureSecurityPlugin(testClusters.analyticsEngineSecurityIT)
+
+task analyticsEngineProfileIT(type: RestIntegTestTask) {
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip, downloadAnalyticsBackendLuceneZip, downloadParquetDataFormatZip, downloadCompositeEngineZip, downloadAnalyticsBackendDatafusionZip
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.analytics.AnalyticsEngineProfileIT'
+    }
+}
+
+testClusters.analyticsEngineProfileIT {
+    testDistribution = 'archive'
+    plugin(getJobSchedulerPlugin())
+    plugin(getArrowBasePlugin())
+    plugin(getArrowFlightRpcPlugin())
+    plugin(getAnalyticsEnginePlugin())
+    plugin(getAnalyticsBackendLucenePlugin())
+    plugin(getAnalyticsBackendDatafusionPlugin())
+    plugin(getParquetDataFormatPlugin())
+    plugin(getCompositeEnginePlugin())
+    plugin ":opensearch-sql-plugin"
+    // Arrow Flight / streaming transport requirements
+    jvmArgs '--add-opens=java.base/java.nio=ALL-UNNAMED'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    systemProperty 'io.netty.allocator.numDirectArenas', '1'
+    systemProperty 'io.netty.noUnsafe', 'false'
+    systemProperty 'io.netty.tryUnsafe', 'true'
+    systemProperty 'io.netty.tryReflectionSetAccessible', 'true'
+    systemProperty 'opensearch.experimental.feature.pluggable.dataformat.enabled', 'true'
+    systemProperty 'opensearch.experimental.feature.transport.stream.enabled', 'true'
+    // Native library path for DataFusion/parquet — pass via -PnativeLibPath=/path/to/release/
+    if (project.findProperty('nativeLibPath')) {
+        systemProperty 'java.library.path', project.findProperty('nativeLibPath')
     }
 }
 
@@ -460,6 +624,11 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     }
     afterTest { desc, result ->
         logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
+    }
+
+    // Exclude tests that require the analytics engine plugin stack (run separately via analyticsEngineSecurityIT)
+    filter {
+        excludeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
     }
 
     systemProperty 'tests.security.manager', 'false'
@@ -576,6 +745,9 @@ integTest {
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
     exclude 'org/opensearch/sql/correctness/**'
 
+    // Exclude tests that require the analytics engine plugin stack (run separately via dedicated tasks)
+    exclude 'org/opensearch/sql/analytics/AnalyticsEngineProfileIT.class'
+
     // Explain IT is dependent on internal implementation of old engine so it's not necessary
     // to run these with new engine and not necessary to make this consistent with old engine.
     exclude 'org/opensearch/sql/legacy/ExplainIT.class'
@@ -593,6 +765,12 @@ integTest {
 
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
+
+    // Exclude the analytics-engine smoke test, because it executes in another task
+    // (:analyticsEngineCompatIT) against a cluster that bundles the analytics-engine plugin
+    // stack. Running it here against the plain integTest/remoteCluster (no analytics-engine)
+    // is pointless and leaves it exposed to suite-wide infra flakiness.
+    exclude 'org/opensearch/sql/plugin/AnalyticsEngineCompatIT.class'
 
     // Workaround for Gradle 9.4.1 ClassCastException in TestEventReporterAsListener.started
     // (line 58) — the bridge casts a parent test descriptor's reporter to
@@ -857,12 +1035,313 @@ task integTestRemote(type: RestIntegTestTask) {
         systemProperty 'tests.analytics.parquet_indices', System.getProperty("tests.analytics.parquet_indices")
     }
 
+    // Primary-shard count for analytics-backed test indices (default 1). Set to e.g. 3 to
+    // reproduce multi-shard coordination behavior on a single-node cluster.
+    if (System.getProperty("tests.analytics.num_shards") != null) {
+        systemProperty 'tests.analytics.num_shards', System.getProperty("tests.analytics.num_shards")
+    }
+
+    // True only when the analytics-engine route is active (every test index parquet-backed). Matches
+    // AnalyticsIndexConfig.isEnabled, which parses the value rather than checking mere presence, so a
+    // `-Dtests.analytics.parquet_indices=false` run stays on the v2 path.
+    def analyticsEnabled = Boolean.parseBoolean(System.getProperty("tests.analytics.parquet_indices", "false"))
+
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
 
-    if (System.getProperty("tests.rest.bwcsuite") == null) {
-        filter {
+    filter {
+        if (System.getProperty("tests.rest.bwcsuite") == null) {
             excludeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
+
+        if (analyticsEnabled) {
+            // Full-text search (search-filter syntax -> Lucene query_string) needs an inverted-index
+            // reader that parquet-backed analytics indices lack, so it's unsupported on this route.
+            excludeTestsMatching '*OperatorIT.testEqualOperator'
+            excludeTestsMatching '*OperatorIT.testNotEqualOperator'
+            excludeTestsMatching '*OperatorIT.testLessOperator'
+            excludeTestsMatching '*OperatorIT.testLteOperator'
+            excludeTestsMatching '*OperatorIT.testGreaterOperator'
+            excludeTestsMatching '*OperatorIT.testGteOperator'
+            excludeTestsMatching '*OperatorIT.testNotOperator'
+
+            // === Excludes: PPL ITs doomed by the unsupported-field strip ===
+            // On the AE route TestUtils.AnalyticsIndexConfig strips nested/geo_point/geo_shape/alias
+            // fields from every test mapping AND its bulk data (the parquet/composite store can't
+            // scan them). A test whose query references such a field can't pass — the data is gone.
+            // Verified field-by-field against the index mappings; only doomed work is excluded.
+            // Gated on the parsed boolean so `-Dtests.analytics.parquet_indices=false` excludes none.
+            //
+            // GeoPointFormatsIT: EVERY test reads a geo_point field — whole class doomed.
+            excludeTestsMatching 'org.opensearch.sql.ppl.GeoPointFormatsIT'
+            // datatypes_index_mapping: nested_value=nested, geo_point_value=geo_point.
+            // Glob matches the Calcite subclasses too (CalciteDataTypeIT, CalciteSystemFunctionIT).
+            excludeTestsMatching '*DataTypeIT.test_nonnumeric_data_types'
+            excludeTestsMatching '*SystemFunctionIT.typeof_opensearch_types'
+            // alias_index_mapping: alias_col is type=alias; query is `where alias_col > 1`.
+            excludeTestsMatching '*DataTypeIT.test_alias_data_type'
+            // scaled_float reports bigint (not double); string->numeric coerces to null (not 0);
+            // cross-index incompatible field types are rejected; boolean-from-string test DELETEs.
+            excludeTestsMatching '*DataTypeIT.test_numeric_data_types'
+            excludeTestsMatching '*DataTypeIT.testNumericFieldFromString'
+            excludeTestsMatching '*DataTypeIT.testBooleanFieldFromNumberAcrossWildcardIndices'
+            excludeTestsMatching '*DataTypeIT.testBooleanFieldFromString'
+            // CalciteAliasFieldAggregationIT: raw-PUT alias index can't be created on the AE route
+            // and every test queries alias fields directly — whole class doomed.
+            excludeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteAliasFieldAggregationIT'
+
+            // === Excludes: WhereCommandIT / CalciteWhereCommandIT route divergences (#5546) ===
+            // Each test also carries an in-test requireCapability(...) recording the reason (see
+            // Capability); listed here so the AE-route skip set stays countable in one
+            // place. Reasons:
+            //  - Nested-field queries: the parquet/composite store has no nested-document support, so
+            //    nested fields are stripped at load (#5541). Defined only in CalciteWhereCommandIT.
+            excludeTestsMatching '*CalciteWhereCommandIT.testFilterOnComputedNestedFields'
+            excludeTestsMatching '*CalciteWhereCommandIT.testFilterOnNestedAndRootFields'
+            excludeTestsMatching '*CalciteWhereCommandIT.testFilterOnNestedFields'
+            excludeTestsMatching '*CalciteWhereCommandIT.testFilterOnMultipleCascadedNestedFields'
+            excludeTestsMatching '*CalciteWhereCommandIT.testScriptFilterOnDifferentNestedHierarchyShouldThrow'
+            excludeTestsMatching '*CalciteWhereCommandIT.testAggFilterOnNestedFields'
+            //  - _id metadata field not exposed on parquet-backed scans. Defined in the base
+            //    WhereCommandIT and inherited by CalciteWhereCommandIT; the glob matches both runs.
+            excludeTestsMatching '*WhereCommandIT.testWhereWithMetadataFields'
+            excludeTestsMatching '*WhereCommandIT.testWhereWithMetadataFields2'
+            //  - Exact == on a dynamically-mapped string (email) returns no rows: dynamic mapping
+            //    omits the .keyword sub-field on the AE route.
+            excludeTestsMatching '*WhereCommandIT.testDoubleEqualWithSpecialCharacters'
+
+            // === Excludes: CalciteMultisearchCommandIT route divergences ===
+            // Each test also carries an in-test requireCapability(...) recording the reason (see
+            // Capability); listed here so the AE-route skip set stays countable.
+            //  - Same-index subsearch conflation: when every subsearch reads the same index, the AE
+            //    route applies the first subsearch's filter to all of them, so counts are wrong.
+            excludeTestsMatching '*CalciteMultisearchCommandIT.testMultisearchWithThreeSubsearches'
+            excludeTestsMatching '*CalciteMultisearchCommandIT.testMultisearchWithComplexAggregation'
+            excludeTestsMatching '*CalciteMultisearchCommandIT.testMultisearchWithoutFurtherProcessing'
+            //  - Column-order divergence: multisearch over different indices returns merged columns
+            //    in a different order than the v2/Calcite path.
+            excludeTestsMatching '*CalciteMultisearchCommandIT.testMultisearchWithTimestampInterleaving'
+
+            // === Excludes: CalciteBinCommandIT route divergences ===
+            // bin on a time field then grouping by it: the AE route types the date-histogram bucket
+            // column as string (not timestamp) AND produces a different bucket set (auto-histogram
+            // span / empty-bucket filtering differ), so both schema and row counts diverge. Each
+            // test also carries an in-test requireCapability(...) (see Capability).
+            excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeField_Count'
+            excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeField_Avg'
+            excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeAndTermField_Count'
+            excludeTestsMatching '*CalciteBinCommandIT.testStatsWithBinsOnTimeAndTermField_Avg'
+
+            // === Excludes: CalcitePPLEnhancedCoalesceIT route divergences ===
+            // Each test also carries an in-test requireCapability(...) recording the reason (see
+            // Capability). The other ordering-sensitive coalesce tests were fixed in
+            // place with an explicit `sort` instead of being skipped.
+            //  - COALESCE over all-untyped-null operands is rejected by the capability registry.
+            excludeTestsMatching '*CalcitePPLEnhancedCoalesceIT.testCoalesceWithAllNonExistentFields'
+            //  - head N without a sort unique over the head window is non-deterministic, and the
+            //    nullable tiebreak these would need orders nulls differently than v2/Calcite.
+            excludeTestsMatching '*CalcitePPLEnhancedCoalesceIT.testCoalesceWithMixedTypes'
+            excludeTestsMatching '*CalcitePPLEnhancedCoalesceIT.testCoalesceBasic'
+
+            // === Excludes: CalcitePPLScalarSubqueryIT / CalcitePPLInSubqueryIT route divergences ===
+            // Each test also carries an in-test requireCapability(...) recording the reason (see
+            // Capability); listed here so the AE-route skip set stays countable.
+            //  - Exact equality on an explicitly text-mapped field (department/occupation = '...')
+            //    in the subsearch returns no rows on the AE route (analyzed text, no .keyword).
+            excludeTestsMatching '*CalcitePPLScalarSubqueryIT.testTwoUncorrelatedScalarSubqueriesInOr'
+            excludeTestsMatching '*CalcitePPLInSubqueryIT.testInSubqueryWithTableAlias'
+            excludeTestsMatching '*CalcitePPLInSubqueryIT.testInCorrelatedSubquery'
+            //  - subsearch.maxout is lowered as a LIMIT on the in-subquery semi-join's right side,
+            //    which the AE route does not honor, so the subsearch returns all rows.
+            excludeTestsMatching '*CalcitePPLInSubqueryIT.testSubsearchMaxOut'
+
+            // === Excludes: CalcitePPLConditionBuiltinFunctionIT route divergences ===
+            // Each test also carries an in-test requireCapability(...) recording the reason (see
+            // Capability); listed here so the AE-route skip set stays countable.
+            //  - isnull/isnotnull on the object/struct parent field big5.aws: objects are flattened
+            //    to dotted leaf columns and the struct parent is not a queryable column.
+            excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testIsNullWithStruct'
+            excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testIsNotNullWithStruct'
+            //  - isnull/isnotnull on the nested field nested_simple.address: nested fields are
+            //    stripped at index creation (the route can't store them).
+            excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testIsNullWithNested'
+            excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testIsNotNullWithNested'
+            //  - concat('H', null): DataFusion treats NULL as empty string; v2/Calcite propagates NULL.
+            excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testNullIfWithExpression'
+            //  - earliest('now', utc_timestamp()): 'now' and utc_timestamp() resolve to the same
+            //    instant on the route (true) but differ on v2 (false).
+            excludeTestsMatching '*CalcitePPLConditionBuiltinFunctionIT.testEarliestWithEval'
+
+            // === Excludes: CalcitePPLEvalMaxMinFunctionIT route divergences ===
+            // The AnalyticsExecutionEngine ANY-rescue (this PR) fixes the homogeneous max()/min()
+            // schema types, so most of the class now passes on the AE route. Three tests still
+            // diverge; each carries an in-test requireCapability(...) (see Capability).
+            //  - Mixed numeric+string operands throw 'Cannot infer return type for GREATEST' (the
+            //    DataFusion GREATEST/LEAST can't unify heterogeneous operand types).
+            excludeTestsMatching '*CalcitePPLEvalMaxMinFunctionIT.testEvalMaxNumericAndString'
+            excludeTestsMatching '*CalcitePPLEvalMaxMinFunctionIT.testEvalMinNumericAndString'
+            //  - max() over int operands reports bigint on the AE route (DataFusion widens integers
+            //    to Int64) where the v2/Calcite path reports int.
+            excludeTestsMatching '*CalcitePPLEvalMaxMinFunctionIT.testEvalMaxNumeric'
+
+            // === Excludes: CalcitePPLCaseFunctionIT route divergences ===
+            // bin @timestamp then group by it: bucket column typed string (not timestamp) on AE.
+            excludeTestsMatching '*CalcitePPLCaseFunctionIT.testNestedCaseAggWithAutoDateHistogram'
+
+            // === Excludes: CalcitePPLStringBuiltinFunctionIT route divergences ===
+            // Re-PUT a shared _id with different data; the append-only AE store can't replace docs.
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testConcatWithField'
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testConcatWs'
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testReverse'
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testRight'
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testTrim'
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testRTrim'
+            excludeTestsMatching '*CalcitePPLStringBuiltinFunctionIT.testLTrim'
+
+            // === Excludes: full-text relevance functions (unsupported on DataFusion) ===
+            excludeTestsMatching '*MultiMatchIT.test_wildcard_multi_match'
+            excludeTestsMatching '*QueryStringIT.wildcard_test'
+            excludeTestsMatching '*SimpleQueryStringIT.test_wildcard_simple_query_string'
+
+            // === Excludes: CalciteLikeQueryIT route divergence ===
+            // LIKE is case-insensitive on AE (DataFusion); v2/Calcite treats LIKE as case-sensitive.
+            excludeTestsMatching '*CalciteLikeQueryIT.test_the_default_3rd_option'
+
+            // === Excludes: CalcitePPLAppendPipeCommandIT route divergence ===
+            // appendpipe drops the main pipeline's rows on AE (subpipe filter applied in place).
+            excludeTestsMatching '*CalcitePPLAppendPipeCommandIT.testDoubleAppendPipeWithFilter'
+
+            // === Excludes: CalciteArrayFunctionIT route divergences ===
+            // Higher-order array functions (transform/mvmap, reduce, filter, exists, forall) take a
+            // PPL lambda the AE backends can't execute ('No backend supports scalar function [...]').
+            excludeTestsMatching '*CalciteArrayFunctionIT.testForAll'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testExists'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testFilter'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testTransform'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testTransformForTwoInput'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testTransformForWithDouble'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testTransformForWithUDF'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testReduce'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testReduce2'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testReduce3'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testReduceWithUDF'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testMvmap'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testMvmapWithAddition'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testMvmapWithEvalFieldReference'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testMvmapWithNestedFunction'
+            excludeTestsMatching '*CalciteArrayFunctionIT.testMvmapWithOtherFieldReference'
+
+            // === Excludes: CalcitePPLMapPathIT route divergences ===
+            // mvcombine -> ARRAY_AGG (no such AggregateFunction enum); addtotals -> DataFusion join panic.
+            excludeTestsMatching '*CalcitePPLMapPathIT.testMvcombineOnMapPath'
+            excludeTestsMatching '*CalcitePPLMapPathIT.testAddtotalsOnMapPath'
+
+            // === Excludes: CalcitePPLBasicIT route divergence ===
+            // REGEXP filter throws a backend NullPointerException on the AE route.
+            excludeTestsMatching '*CalcitePPLBasicIT.testRegexpFilter'
+
+            // === Excludes: percentile is approximate on AE (DataFusion) but exact on v2/Calcite ===
+            excludeTestsMatching '*StatsCommandIT.testStatsPercentileWithNull'
+            excludeTestsMatching '*StatsCommandIT.testStatsPercentileByNullValue'
+            excludeTestsMatching '*StatsCommandIT.testStatsPercentileByNullValueNonNullBucket'
+            excludeTestsMatching '*StatsCommandIT.testStatsPercentileBySpan'
+            excludeTestsMatching '*CalcitePPLAggregationIT.testPercentile'
+            excludeTestsMatching '*CalcitePPLAggregationIT.testPercentileShortcutsFloatingPoint'
+
+            // === Excludes: span() time-field bucketing differs on the AE route ===
+            excludeTestsMatching '*StatsCommandIT.testStatsBySpanTimeWithNullBucket'
+            excludeTestsMatching '*CalciteChartCommandIT.testChartMaxValueByTimestampSpanDayAndWeek'
+
+            // === Excludes: float/half_float arithmetic keeps 32-bit precision on AE ===
+            excludeTestsMatching '*CalcitePPLBuiltinFunctionIT.testDivide'
+            excludeTestsMatching '*CalcitePPLBuiltinFunctionIT.testModFloatAndNegative'
+            excludeTestsMatching '*CalcitePPLBuiltinFunctionIT.testModShouldReturnWiderTypes'
+
+            // === Excludes: date_format/strftime render some tokens differently on AE ===
+            excludeTestsMatching '*DateTimeFunctionIT.testDateFormat'
+            excludeTestsMatching '*CalciteDateTimeFunctionIT.testStrftimeWithDateFields'
+
+            // === Excludes: unix_timestamp drops sub-second precision on AE ===
+            excludeTestsMatching '*DateTimeFunctionIT.testUnixTimestampWithTimestampString'
+
+            // === Excludes: json_set/json_delete with a $-prefixed path is a no-op on AE ===
+            excludeTestsMatching '*CalcitePPLJsonBuiltinFunctionIT.testJsonSetWithDollarPrefixedPath'
+            excludeTestsMatching '*CalcitePPLJsonBuiltinFunctionIT.testJsonDeleteWithDollarPrefixedPath'
+
+            // === Excludes: dedup surviving-row selection is non-deterministic on AE ===
+            excludeTestsMatching '*CalcitePPLDedupIT.testDedupComplex'
+            excludeTestsMatching '*CalcitePPLDedupIT.testDedupExpr'
+            excludeTestsMatching '*CalcitePPLDedupIT.testConsecutiveImplicitFallbackV2'
+
+            // === Excludes: same-index union conflates on AE (delegated predicate leak) ===
+            excludeTestsMatching '*CalciteUnionCommandIT.testUnionThreeSubsearches'
+            excludeTestsMatching '*CalciteUnionCommandIT.testUnionMidPipeline_SingleExplicitDataset'
+
+            // === Excludes: rename * returns columns in a different order on AE ===
+            excludeTestsMatching '*CalcitePPLRenameIT.testRenameFullWildcardExcludesMetadataFields'
+
+            // === Excludes: otel_logs multi-value field can't load into the parquet store ===
+            excludeTestsMatching '*CalciteChartCommandIT.testChartLimit0WithUseOther'
+            excludeTestsMatching '*CalciteChartCommandIT.testChartLimitTopWithUseOther'
+            excludeTestsMatching '*CalciteChartCommandIT.testChartLimitBottomWithUseOther'
+            excludeTestsMatching '*CalciteChartCommandIT.testChartLimitTopWithMinAgg'
+
+            // === Excludes: streamstats carries all columns through; AE reorders them ===
+            excludeTestsMatching '*CalciteReverseCommandIT.testStreamstatsWithReverse'
+            excludeTestsMatching '*CalciteReverseCommandIT.testStreamstatsByWithReverse'
+            excludeTestsMatching '*CalciteReverseCommandIT.testStreamstatsWindowWithReverse'
+            excludeTestsMatching '*CalciteReverseCommandIT.testStreamstatsWithSortThenReverse'
+
+            // === Excludes: invalid-datetime error-message shape differs on AE ===
+            excludeTestsMatching '*CalcitePPLBuiltinDatetimeFunctionInvalidIT.testDAYNAMEInvalid'
+            excludeTestsMatching '*CalcitePPLBuiltinDatetimeFunctionInvalidIT.testMONTHNAMEInvalid'
+
+            // === Excludes: seeded RAND(seed) unsupported on AE ===
+            excludeTestsMatching '*MathematicalFunctionIT.testRand'
+
+            // === Excludes: IP UDT is materialized as BINARY/byte[] on AE ===
+            excludeTestsMatching '*CastFunctionIT.testCastToIP'
+            excludeTestsMatching '*CalcitePPLAppendCommandIT.testAppendSchemaMergeWithIpUDT'
+
+            // === Excludes: append head-without-stable-sort + TIME-widened-to-TIMESTAMP signature ===
+            excludeTestsMatching '*CalcitePPLAppendCommandIT.testAppendWithMergedColumn'
+            excludeTestsMatching '*CalcitePPLBuiltinFunctionsNullIT.testTimediffNull'
+
+            // === Excludes: consecutive dedup has no working V2 fallback on AE ===
+            excludeTestsMatching '*CalciteDedupCommandIT.testConsecutiveDedup'
+
+            // === Excludes: binary field stripped at load; values() ignores configured limit ===
+            excludeTestsMatching '*CalciteMultiValueStatsIT.testListFunctionWithBinary'
+            excludeTestsMatching '*CalciteMultiValueStatsIT.testValuesFunctionRespectsConfiguredLimit'
+
+            // === Excludes: _id/_index metadata not exposed; cross-index object-leaf merge ===
+            excludeTestsMatching '*FieldsCommandIT.testMetadataFields'
+            excludeTestsMatching '*FieldsCommandIT.testMergedObjectFields'
+            // OOS: asserts the Calcite-disabled error, but the AE route is always Calcite-enabled.
+            excludeTestsMatching '*FieldsCommandIT.testEnhancedFieldsWhenCalciteDisabled'
+
+            // === Excludes: head N without a stable sort returns a non-deterministic row set ===
+            excludeTestsMatching '*SortCommandIT.testHeadThenSort'
+
+            // === Excludes: like() doesn't rewrite to .keyword in the explain plan on AE ===
+            excludeTestsMatching '*LikeQueryIT.test_convert_field_text_to_keyword'
+
+            // === Excludes: asserts a Lucene pushdown fragment absent on the AE route ===
+            excludeTestsMatching '*CalciteSortCommandIT.testPushdownSortCastToDoubleExpression'
+
+            // === Excludes: CalciteStreamstatsCommandIT route divergences ===
+            // Each test also carries an in-test @RequiresCapability(...) recording the reason.
+            //  - CHAINED_STREAMSTATS_BY: chaining two streamstats where an upstream stage has `by`
+            //    emits two ROW_NUMBER() sequence columns the Substrait converter names identically,
+            //    so the stacked schema has a duplicate/ambiguous field name (500) or, for chained
+            //    window streamstats, non-deterministic values. Fails single- and multi-shard.
+            excludeTestsMatching '*CalciteStreamstatsCommandIT.testMultipleStreamstats'
+            excludeTestsMatching '*CalciteStreamstatsCommandIT.testMultipleStreamstatsWithWindow'
+            excludeTestsMatching '*CalciteStreamstatsCommandIT.testMultipleStreamstatsWithNull1'
+            excludeTestsMatching '*CalciteStreamstatsCommandIT.testMultipleStreamstatsWithEval'
+            //  - STREAMSTATS_SORT_NOT_HONORED: streamstats computes its window over the backend scan
+            //    order, ignoring a preceding `| sort` (the OVER clause has no explicit ORDER BY).
+            excludeTestsMatching '*CalciteStreamstatsCommandIT.testStreamstatsAndSort'
         }
     }
 

@@ -7,6 +7,9 @@ package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.Capability.FILTERED_AGGREGATE;
+import static org.opensearch.sql.util.Capability.FUNCTION_TYPE_COMPAT;
+import static org.opensearch.sql.util.Capability.PERCENTILE_APPROXIMATE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verify;
@@ -26,6 +29,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class AggregationIT extends SQLIntegTestCase {
   @Override
@@ -37,6 +41,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FILTERED_AGGREGATE)
   public void testFilteredAggregatePushDown() throws IOException {
     JSONObject response =
         executeQuery("SELECT COUNT(*) FILTER(WHERE age > 35) FROM " + TEST_INDEX_BANK);
@@ -45,6 +50,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FILTERED_AGGREGATE)
   public void testFilteredAggregateNotPushDown() throws IOException {
     JSONObject response =
         executeQuery(
@@ -221,6 +227,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testPushDownAggregationOnNullDateTimeValuesFromTableReturnsNull() throws IOException {
     var response =
         executeQuery(
@@ -236,6 +243,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testPushDownAggregationOnNullDateValuesReturnsNull() throws IOException {
     var response =
         executeQuery(
@@ -252,6 +260,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testPushDownAggregationOnNullTimeValuesReturnsNull() throws IOException {
     var response =
         executeQuery(
@@ -268,6 +277,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testPushDownAggregationOnNullTimeStampValuesReturnsNull() throws IOException {
     var response =
         executeQuery(
@@ -284,6 +294,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testPushDownAggregationOnNullDateTimeValuesReturnsNull() throws IOException {
     var response =
         executeQuery(
@@ -473,6 +484,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testAvgDatePushedDown() throws IOException {
     var response = executeQuery(String.format("SELECT avg(date0)" + " from %s", TEST_INDEX_CALCS));
     verifySchema(response, schema("avg(date0)", null, "date"));
@@ -500,6 +512,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testAvgDateTimePushedDown() throws IOException {
     var response =
         executeQuery(
@@ -524,6 +537,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testAvgTimePushedDown() throws IOException {
     var response = executeQuery(String.format("SELECT avg(time1)" + " from %s", TEST_INDEX_CALCS));
     verifySchema(response, schema("avg(time1)", null, "time"));
@@ -551,6 +565,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testAvgTimeStampPushedDown() throws IOException {
     var response =
         executeQuery(
@@ -581,6 +596,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testAvgDateInMemory() throws IOException {
     var response =
         executeQuery(
@@ -625,6 +641,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testAvgDateTimeInMemory() throws IOException {
     var response =
         executeQuery(
@@ -662,6 +679,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testAvgTimeInMemory() throws IOException {
     var response =
         executeQuery(
@@ -702,6 +720,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testAvgTimeStampInMemory() throws IOException {
     var response =
         executeQuery(
@@ -725,6 +744,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FILTERED_AGGREGATE)
   public void testFilteredPercentilePushDown() throws IOException {
     JSONObject response =
         executeQuery(
@@ -735,6 +755,7 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PERCENTILE_APPROXIMATE)
   public void testPercentileGroupByPushDown() throws IOException {
     var response =
         executeQuery(

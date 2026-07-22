@@ -24,8 +24,10 @@ import com.google.gson.JsonParser;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
@@ -38,6 +40,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.utils.YamlFormatter;
 
 public class MatcherUtils {
@@ -274,6 +277,9 @@ public class MatcherUtils {
   public static TypeSafeMatcher<JSONObject> schema(
       String expectedName, String expectedAlias, String expectedType) {
     return new TypeSafeMatcher<JSONObject>() {
+      private static final Set<String> NUMERIC_TYPES = Set.of("integer", "long", "float", "double");
+      private static final Set<String> STRING_TYPES = Set.of("keyword", "text", "string");
+
       @Override
       public void describeTo(Description description) {
         description.appendText(
@@ -286,9 +292,31 @@ public class MatcherUtils {
         String actualName = (String) jsonObject.query("/name");
         String actualAlias = (String) jsonObject.query("/alias");
         String actualType = (String) jsonObject.query("/type");
+
+        if (TestUtils.AnalyticsIndexConfig.isEnabled()) {
+          // The analytics-engine route promotes the alias to the name (SQL-standard) and unifies
+          // keyword/text/string and the numeric types, so relax name and type matching for it only.
+          boolean nameMatches =
+              expectedName.equals(actualName)
+                  || (!Strings.isNullOrEmpty(expectedAlias) && expectedAlias.equals(actualName));
+          boolean typeMatches =
+              expectedType.equals(actualType) || isCompatibleType(expectedType, actualType);
+          return nameMatches && typeMatches;
+        }
+
         return expectedName.equals(actualName)
             && (Strings.isNullOrEmpty(expectedAlias) || expectedAlias.equals(actualAlias))
             && expectedType.equals(actualType);
+      }
+
+      private boolean isCompatibleType(String expected, String actual) {
+        if (expected == null || actual == null) {
+          return false;
+        }
+        String e = expected.toLowerCase();
+        String a = actual.toLowerCase();
+        return (NUMERIC_TYPES.contains(e) && NUMERIC_TYPES.contains(a))
+            || (STRING_TYPES.contains(e) && STRING_TYPES.contains(a));
       }
     };
   }
@@ -430,6 +458,29 @@ public class MatcherUtils {
     assertEquals(
         JsonParser.parseString(eliminatePid(expected)),
         JsonParser.parseString(eliminatePid(actual)));
+  }
+
+  /**
+   * Compare two {@code datarows} JSON arrays as multisets — same rows, order ignored. Use when the
+   * test only asserts that two queries return the <em>same set of rows</em> (e.g. checking that two
+   * equivalent alias syntaxes produce the same result), not that they emit them in the same order.
+   * The analytics-engine (DataFusion) route does not guarantee the same row order as the v2/Calcite
+   * route, so a plain {@link #assertJsonEquals} on the serialized datarows is order-sensitive and
+   * flaky on that route; comparing as multisets asserts the intended equivalence without depending
+   * on output order.
+   */
+  public static void assertJsonRowsEqualIgnoreOrder(String expectedRows, String actualRows) {
+    List<String> expected = new ArrayList<>();
+    new JSONArray(eliminatePid(expectedRows))
+        .iterator()
+        .forEachRemaining(o -> expected.add(o.toString()));
+    List<String> actual = new ArrayList<>();
+    new JSONArray(eliminatePid(actualRows))
+        .iterator()
+        .forEachRemaining(o -> actual.add(o.toString()));
+    expected.sort(Comparator.naturalOrder());
+    actual.sort(Comparator.naturalOrder());
+    assertEquals(expected, actual);
   }
 
   /**

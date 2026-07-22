@@ -5,9 +5,11 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
+import static org.opensearch.sql.util.Capability.TEXT_FIELD_EXACT_MATCH;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -19,6 +21,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
 
@@ -27,16 +30,22 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
 
+    // init() runs as @Before, before every test method. On the analytics route the parquet-backed
+    // store is append-only on same-_id PUT, so seed the extra worker doc only when the index is
+    // first created — otherwise it accumulates a duplicate per test method and inflates row counts.
+    boolean workerExisted = isIndexExist(client(), TEST_INDEX_WORKER);
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
     loadIndex(Index.OCCUPATION);
 
-    // {"index":{"_id":"7"}}
-    // {"id":1006,"name":"Tommy","occupation":"Teacher","country":"USA","salary":30000}
-    Request request1 = new Request("PUT", "/" + TEST_INDEX_WORKER + "/_doc/7?refresh=true");
-    request1.setJsonEntity(
-        "{\"id\":1006,\"name\":\"Tommy\",\"occupation\":\"Teacher\",\"country\":\"USA\",\"salary\":30000}");
-    client().performRequest(request1);
+    if (!workerExisted) {
+      // {"index":{"_id":"7"}}
+      // {"id":1006,"name":"Tommy","occupation":"Teacher","country":"USA","salary":30000}
+      Request request1 = new Request("PUT", "/" + TEST_INDEX_WORKER + "/_doc/7?refresh=true");
+      request1.setJsonEntity(
+          "{\"id\":1006,\"name\":\"Tommy\",\"occupation\":\"Teacher\",\"country\":\"USA\",\"salary\":30000}");
+      client().performRequest(request1);
+    }
   }
 
   @Test
@@ -229,6 +238,9 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = TEXT_FIELD_EXACT_MATCH,
+      note = "Subsearch filters a text-mapped field with exact equality (department = 'DATA').")
   public void testTwoUncorrelatedScalarSubqueriesInOr() throws IOException {
     JSONObject result =
         executeQuery(

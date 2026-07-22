@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import org.apache.calcite.rel.RelNode;
 import org.junit.Before;
 import org.junit.Test;
+import org.opensearch.analytics.EngineContextProvider;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexMetadata;
@@ -20,6 +21,7 @@ import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.IndexSettings;
+import org.opensearch.indices.IndicesService;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -40,6 +42,9 @@ public class RestUnifiedQueryActionTest {
     metadata = mock(Metadata.class);
     when(clusterService.state()).thenReturn(clusterState);
     when(clusterState.metadata()).thenReturn(metadata);
+    // isAnalyticsIndex short-circuits on the cluster.pluggable.dataformat setting; the per-index
+    // path is only exercised when this returns something other than "composite".
+    when(clusterService.getSettings()).thenReturn(Settings.EMPTY);
 
     @SuppressWarnings("unchecked")
     QueryPlanExecutor<RelNode, Iterable<Object[]>> executor = mock(QueryPlanExecutor.class);
@@ -48,6 +53,7 @@ public class RestUnifiedQueryActionTest {
             mock(NodeClient.class),
             clusterService,
             executor,
+            mock(EngineContextProvider.class),
             mock(org.opensearch.sql.common.setting.Settings.class));
   }
 
@@ -90,9 +96,147 @@ public class RestUnifiedQueryActionTest {
   }
 
   @Test
+  public void sqlQueryRoutesToAnalyticsForPluggableIndex() {
+    registerIndex(
+        "parquet_logs",
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+            .build());
+
+    assertTrue(action.isAnalyticsIndex("SELECT * FROM parquet_logs", QueryType.SQL));
+    assertTrue(
+        action.isAnalyticsIndex(
+            "SELECT ts, level FROM parquet_logs WHERE level = 'ERROR'", QueryType.SQL));
+  }
+
+  @Test
+  public void sqlQueryWithSchemaRoutesToAnalytics() {
+    registerIndex(
+        "parquet_logs",
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+            .build());
+
+    assertTrue(action.isAnalyticsIndex("SELECT * FROM opensearch.parquet_logs", QueryType.SQL));
+  }
+
+  @Test
+  public void sqlQueryRoutesToLuceneForNonPluggableIndex() {
+    registerIndex("plain_logs", Settings.EMPTY);
+
+    assertFalse(action.isAnalyticsIndex("SELECT * FROM plain_logs", QueryType.SQL));
+  }
+
+  @Test
+  public void sqlQueryRoutesToLuceneForMissingIndex() {
+    assertFalse(action.isAnalyticsIndex("SELECT * FROM does_not_exist", QueryType.SQL));
+  }
+
+  @Test
   public void nullAndEmptyQueriesRouteToLucene() {
     assertFalse(action.isAnalyticsIndex(null, QueryType.PPL));
     assertFalse(action.isAnalyticsIndex("", QueryType.PPL));
+    assertFalse(action.isAnalyticsIndex(null, QueryType.SQL));
+    assertFalse(action.isAnalyticsIndex("", QueryType.SQL));
+  }
+
+  @Test
+  public void showStatementNotRoutedToAnalyticsEngine() {
+    registerIndex(
+        "parquet_logs",
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+            .build());
+
+    assertFalse(action.isAnalyticsIndex("SHOW TABLES LIKE 'parquet_logs'", QueryType.SQL));
+  }
+
+  @Test
+  public void describeStatementNotRoutedToAnalyticsEngine() {
+    registerIndex(
+        "parquet_logs",
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+            .build());
+
+    assertFalse(action.isAnalyticsIndex("DESCRIBE TABLES LIKE 'parquet_logs'", QueryType.SQL));
+  }
+
+  @Test
+  public void showStatementNotRoutedToAnalyticsEngineUnderClusterComposite() {
+    enableClusterComposite();
+    assertFalse(action.isAnalyticsIndex("SHOW TABLES LIKE 'parquet_logs'", QueryType.SQL));
+  }
+
+  @Test
+  public void describeStatementNotRoutedToAnalyticsEngineUnderClusterComposite() {
+    enableClusterComposite();
+    assertFalse(action.isAnalyticsIndex("DESCRIBE TABLES LIKE 'parquet_logs'", QueryType.SQL));
+  }
+
+  @Test
+  public void dataQueryStillRoutesToAnalyticsUnderClusterComposite() {
+    enableClusterComposite();
+    assertTrue(action.isAnalyticsIndex("SELECT * FROM parquet_logs", QueryType.SQL));
+  }
+
+  @Test
+  public void unparseableQueryRoutesToAnalyticsUnderClusterComposite() {
+    enableClusterComposite();
+    // malformed -> AE re-parses & reports
+    assertTrue(action.isAnalyticsIndex("SELECT FROM WHERE", QueryType.SQL));
+  }
+
+  @Test
+  public void legacyShowNotRoutedToAnalyticsEngineUnderClusterComposite() {
+    enableClusterComposite();
+    // unquoted LIKE is rejected by the V2 parser, but still belongs on the default pipeline
+    assertFalse(action.isAnalyticsIndex("SHOW TABLES LIKE %", QueryType.SQL));
+  }
+
+  @Test
+  public void legacyDescribeNotRoutedToAnalyticsEngineUnderClusterComposite() {
+    enableClusterComposite();
+    // legacy DESCRIBE syntax is rejected by the V2 parser, but belongs on the default pipeline
+    assertFalse(action.isAnalyticsIndex("DESCRIBE my_index", QueryType.SQL));
+  }
+
+  @Test
+  public void pplDescribeNotRoutedToAnalyticsEngineUnderClusterComposite() {
+    enableClusterComposite();
+    assertFalse(action.isAnalyticsIndex("describe parquet_logs", QueryType.PPL));
+  }
+
+  @Test
+  public void pplShowDatasourcesNotRoutedToAnalyticsEngineUnderClusterComposite() {
+    enableClusterComposite();
+    assertFalse(action.isAnalyticsIndex("show datasources", QueryType.PPL));
+  }
+
+  @Test
+  public void pplDataQueryStillRoutesToAnalyticsUnderClusterComposite() {
+    enableClusterComposite();
+    assertTrue(action.isAnalyticsIndex("source = parquet_logs | fields ts", QueryType.PPL));
+  }
+
+  @Test
+  public void pplUnparseableQueryRoutesToAnalyticsUnderClusterComposite() {
+    enableClusterComposite();
+    // malformed -> AE re-parses & reports
+    assertTrue(action.isAnalyticsIndex("source = parquet_logs | | fields ts", QueryType.PPL));
+  }
+
+  private void enableClusterComposite() {
+    when(clusterService.getSettings())
+        .thenReturn(
+            Settings.builder()
+                .put(
+                    IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+                .build());
   }
 
   private void registerIndex(String name, Settings settings) {

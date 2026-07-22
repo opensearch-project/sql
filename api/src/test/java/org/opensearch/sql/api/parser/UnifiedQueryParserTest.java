@@ -25,10 +25,13 @@ import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 
 import org.junit.Test;
+import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryTestBase;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.executor.QueryType;
 
 public class UnifiedQueryParserTest extends UnifiedQueryTestBase {
 
@@ -78,6 +81,38 @@ public class UnifiedQueryParserTest extends UnifiedQueryTestBase {
   @Test
   public void testSyntaxErrorThrows() {
     assertThrows(SyntaxCheckException.class, () -> context.getParser().parse("not a valid query"));
+  }
+
+  @Test
+  public void deeplyNestedExpressionShouldBeRejected() throws Exception {
+    String key = Settings.Key.MAX_EXPRESSION_DEPTH.getKeyValue();
+    try (UnifiedQueryContext ppl =
+            UnifiedQueryContext.builder()
+                .language(QueryType.PPL)
+                .catalog(DEFAULT_CATALOG, testSchema)
+                .setting(key, 20)
+                .build();
+        UnifiedQueryContext sql =
+            UnifiedQueryContext.builder()
+                .language(QueryType.SQL)
+                .catalog(DEFAULT_CATALOG, testSchema)
+                .setting(key, 20)
+                .build()) {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> ppl.getParser().parse("source = catalog.employees | where " + orChain(30)));
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> sql.getParser().parse("SELECT * FROM catalog.employees WHERE " + orChain(30)));
+    }
+  }
+
+  private String orChain(int terms) {
+    StringBuilder sb = new StringBuilder("age = 1");
+    for (int i = 2; i <= terms; i++) {
+      sb.append(" or age = ").append(i);
+    }
+    return sb.toString();
   }
 
   private void assertEqual(String query, UnresolvedPlan expected) {

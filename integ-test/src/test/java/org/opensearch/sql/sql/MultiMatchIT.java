@@ -6,6 +6,7 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BEER;
+import static org.opensearch.sql.util.Capability.FULLTEXT_RELEVANCE_FUNC;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -13,6 +14,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class MultiMatchIT extends SQLIntegTestCase {
   @Override
@@ -53,6 +55,7 @@ public class MultiMatchIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FULLTEXT_RELEVANCE_FUNC)
   public void verify_wildcard_test() {
     String query1 = "SELECT Id FROM " + TEST_INDEX_BEER + " WHERE multi_match(['Tags'], 'taste')";
     JSONObject result1 = executeJdbcRequest(query1);
@@ -141,6 +144,7 @@ public class MultiMatchIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FULLTEXT_RELEVANCE_FUNC)
   public void multi_match_alternate_syntax() throws IOException {
     String query =
         "SELECT Id FROM " + TEST_INDEX_BEER + " WHERE CreationDate = multi_match('2014-01-22');";
@@ -149,6 +153,7 @@ public class MultiMatchIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FULLTEXT_RELEVANCE_FUNC)
   public void multimatch_alternate_syntax() throws IOException {
     String query =
         "SELECT Id FROM " + TEST_INDEX_BEER + " WHERE CreationDate = multimatch('2014-01-22');";

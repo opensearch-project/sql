@@ -6,6 +6,7 @@
 package org.opensearch.sql.legacy;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
+import static org.opensearch.sql.util.Capability.STRUCT_PARENT_FIELD;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -16,11 +17,13 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.utils.StringUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration test for OpenSearch object field (and nested field). This class is focused on simple
  * SELECT-FROM query to ensure right column number and value is returned.
  */
+@RequiresCapability(STRUCT_PARENT_FIELD)
 public class ObjectFieldSelectIT extends SQLIntegTestCase {
 
   @Override

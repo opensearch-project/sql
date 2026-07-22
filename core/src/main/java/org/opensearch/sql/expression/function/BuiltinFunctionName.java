@@ -69,6 +69,9 @@ public enum BuiltinFunctionName {
 
   /** Collection functions */
   ARRAY(FunctionName.of("array")),
+  FOREACH_JSON_ARRAY(FunctionName.of("foreach_json_array"), true),
+  FOREACH_PAIR_COLLECTION(FunctionName.of("foreach_pair_collection"), true),
+  FOREACH_STATE(FunctionName.of("foreach_state"), true),
   ARRAY_LENGTH(FunctionName.of("array_length")),
   ARRAY_SLICE(FunctionName.of("array_slice"), true),
   ARRAY_COMPACT(FunctionName.of("array_compact")),
@@ -425,6 +428,7 @@ public enum BuiltinFunctionName {
           .put("dc", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("distinct_count", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
+          .put("row_number", BuiltinFunctionName.ROW_NUMBER)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

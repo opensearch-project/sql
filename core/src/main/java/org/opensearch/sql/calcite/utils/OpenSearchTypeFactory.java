@@ -46,6 +46,10 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.analytics.schema.BinaryType;
+import org.opensearch.analytics.schema.DateOnlyType;
+import org.opensearch.analytics.schema.IpType;
+import org.opensearch.analytics.schema.TimeOnlyType;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
@@ -273,6 +277,42 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           "Unsupported conversion for Relational Data type: " + type.getSqlTypeName());
     }
     return exprType;
+  }
+
+  /** DATE check for return-type inference; recognizes the analytics-route {@link DateOnlyType}. */
+  public static boolean isDateExprType(RelDataType type) {
+    return type instanceof DateOnlyType || convertRelDataTypeToExprType(type) == ExprCoreType.DATE;
+  }
+
+  /** TIME counterpart of {@link #isDateExprType}; recognizes {@link TimeOnlyType}. */
+  public static boolean isTimeExprType(RelDataType type) {
+    return type instanceof TimeOnlyType || convertRelDataTypeToExprType(type) == ExprCoreType.TIME;
+  }
+
+  /**
+   * Result-schema-only variant of {@link #convertRelDataTypeToExprType} that recognizes the
+   * analytics-engine {@link IpType} / {@link BinaryType} markers as {@link ExprCoreType#IP} /
+   * {@link ExprCoreType#BINARY}.
+   *
+   * <p>Kept off the general path because Calcite's planner-internal coercion would round-trip
+   * through {@link #convertExprTypeToRelDataType} and synthesize {@code CAST(... AS ExprIPType)}
+   * casts the substrait converter can't handle.
+   */
+  public static ExprType convertAnalyticsEngineRelDataTypeToExprType(RelDataType type) {
+    if (type instanceof IpType) {
+      return IP;
+    }
+    if (type instanceof BinaryType) {
+      return BINARY;
+    }
+    // span() over date / time UDT — schema label is DATE / TIME, not TIMESTAMP.
+    if (type instanceof DateOnlyType) {
+      return DATE;
+    }
+    if (type instanceof TimeOnlyType) {
+      return TIME;
+    }
+    return convertRelDataTypeToExprType(type);
   }
 
   public static ExprValue getExprValueByExprType(ExprType type, Object value) {

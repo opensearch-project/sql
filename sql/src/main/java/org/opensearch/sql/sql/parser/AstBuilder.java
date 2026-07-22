@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
@@ -40,7 +39,9 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -50,19 +51,30 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import org.opensearch.sql.sql.parser.context.ParsingContext;
 
 /** Abstract syntax tree (AST) builder. */
-@RequiredArgsConstructor
 public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
-  private final AstExpressionBuilder expressionBuilder = new AstExpressionBuilder();
+  private final AstExpressionBuilder expressionBuilder;
 
   /** Parsing context stack that contains context for current query parsing. */
-  private final ParsingContext context = new ParsingContext();
+  protected final ParsingContext context = new ParsingContext();
 
   /**
    * SQL query to get original token text. This is necessary because token.getText() returns text
    * without whitespaces or other characters discarded by lexer.
    */
-  private final String query;
+  protected final String query;
+
+  protected final AstBuildGuard guard;
+
+  public AstBuilder(String query) {
+    this(query, null);
+  }
+
+  public AstBuilder(String query, Settings settings) {
+    this.query = query;
+    this.guard = AstBuildGuard.fromSettings(settings);
+    this.expressionBuilder = createExpressionBuilder();
+  }
 
   @Override
   public UnresolvedPlan visitShowStatement(OpenSearchSQLParser.ShowStatementContext ctx) {
@@ -261,6 +273,12 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
+  public UnresolvedPlan visitUnionSelect(OpenSearchSQLParser.UnionSelectContext ctx) {
+    throw new SyntaxCheckException(
+        "UNION is not supported in the V2 SQL engine. Falling back to legacy engine.");
+  }
+
+  @Override
   public UnresolvedPlan visitHavingClause(HavingClauseContext ctx) {
     AstHavingFilterBuilder builder = new AstHavingFilterBuilder(context.peek());
     return new Filter(builder.visit(ctx.expression()));
@@ -277,6 +295,11 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
    */
   protected UnresolvedExpression visitAstExpression(ParseTree tree) {
     return expressionBuilder.visit(tree);
+  }
+
+  /** Override to provide a custom expression builder (e.g., with subquery support). */
+  protected AstExpressionBuilder createExpressionBuilder() {
+    return new AstExpressionBuilder(guard);
   }
 
   private UnresolvedExpression visitSelectItem(SelectElementContext ctx) {

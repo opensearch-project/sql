@@ -29,7 +29,7 @@ calcite:
                     EnumerableCalc(expr#0..171=[{inputs}], expr#172=[IS NOT NULL($t23)], expr#173=[IS NOT NULL($t163)], expr#174=[AND($t172, $t173)], proj#0..171=[{exprs}], $condition=[$t174])
                       CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_otel_logs]])
               EnumerableSort(sort0=[$0], dir0=[ASC])
-                EnumerableCalc(expr#0..2=[{inputs}], severityText=[$t0], $1=[$t2])
+                EnumerableCalc(expr#0..2=[{inputs}], severityText=[$t0], _row_number_chart_=[$t2])
                   EnumerableWindow(window#0=[window(order by [1 DESC-nulls-last] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
                     EnumerableAggregate(group=[{0}], __grand_total__=[SUM($2)])
                       EnumerableAggregate(group=[{7, 23}], max(severityNumber)=[MAX($163)])

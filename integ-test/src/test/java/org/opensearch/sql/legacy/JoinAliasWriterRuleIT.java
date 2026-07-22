@@ -6,6 +6,8 @@
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.sql.util.Capability.EXPLAIN_FORMAT;
+import static org.opensearch.sql.util.Capability.QUERY_ERROR_MESSAGE;
 
 import java.io.IOException;
 import org.junit.Ignore;
@@ -13,6 +15,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.util.RequiresCapability;
 
 /** Test cases for writing missing join table aliases. */
 public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
@@ -26,6 +29,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(EXPLAIN_FORMAT)
   public void noTableAliasNoCommonColumns() throws IOException {
     sameExplain(
         query(
@@ -45,6 +49,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(EXPLAIN_FORMAT)
   public void oneTableAliasNoCommonColumns() throws IOException {
     sameExplain(
         query(
@@ -61,6 +66,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(EXPLAIN_FORMAT)
   public void bothTableAliasNoCommonColumns() throws IOException {
     sameExplain(
         query(
@@ -78,6 +84,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
 
   @Test
   @Ignore
+  @RequiresCapability(EXPLAIN_FORMAT)
   public void tableNamesWithTypeName() throws IOException {
     sameExplain(
         query(
@@ -98,6 +105,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
 
   @Ignore
   @Test
+  @RequiresCapability(EXPLAIN_FORMAT)
   public void tableNamesWithTypeNameExplicitTableAlias() throws IOException {
     sameExplain(
         query(
@@ -114,6 +122,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(EXPLAIN_FORMAT)
   public void actualTableNameAsAliasOnColumnFields() throws IOException {
     sameExplain(
         query(
@@ -130,6 +139,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(EXPLAIN_FORMAT)
   public void actualTableNameAsAliasOnColumnFieldsTwo() throws IOException {
     sameExplain(
         query(
@@ -150,6 +160,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(EXPLAIN_FORMAT)
   public void columnsWithTableAliasNotAffected() throws IOException {
     sameExplain(
         query(
@@ -166,6 +177,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(QUERY_ERROR_MESSAGE)
   public void commonColumnWithoutTableAliasDifferentTables() throws IOException {
     exception.expect(ResponseException.class);
     exception.expectMessage("Field name [firstname] is ambiguous");
@@ -179,6 +191,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(QUERY_ERROR_MESSAGE)
   public void sameTablesNoAliasAndNoAliasOnColumns() throws IOException {
     exception.expect(ResponseException.class);
     exception.expectMessage("Not unique table/alias: [opensearch-sql_test_index_bank]");
@@ -192,6 +205,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(QUERY_ERROR_MESSAGE)
   public void sameTablesNoAliasWithTableNameAsAliasOnColumns() throws IOException {
     exception.expect(ResponseException.class);
     exception.expectMessage("Not unique table/alias: [opensearch-sql_test_index_bank]");
@@ -206,6 +220,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(EXPLAIN_FORMAT)
   public void sameTablesWithExplicitAliasOnFirst() throws IOException {
     sameExplain(
         query(
@@ -221,6 +236,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(EXPLAIN_FORMAT)
   public void sameTablesWithExplicitAliasOnSecond() throws IOException {
     sameExplain(
         query(

@@ -41,8 +41,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.QueryProcessingStage;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchDataTypeTest {
@@ -87,6 +91,7 @@ class OpenSearchDataTypeTest {
     assertEquals("DOUBLE", OpenSearchDataType.of(MappingType.Double).typeName());
     assertEquals("KEYWORD", OpenSearchDataType.of(MappingType.Keyword).typeName());
     assertEquals("KEYWORD", OpenSearchDataType.of(MappingType.Keyword).typeName());
+    assertEquals("CONSTANT_KEYWORD", OpenSearchDataType.of(MappingType.ConstantKeyword).typeName());
   }
 
   @Test
@@ -111,6 +116,7 @@ class OpenSearchDataTypeTest {
     return Stream.of(
         Arguments.of(MappingType.Text, "text", OpenSearchTextType.of()),
         Arguments.of(MappingType.Keyword, "keyword", STRING),
+        Arguments.of(MappingType.ConstantKeyword, "constant_keyword", STRING),
         Arguments.of(MappingType.Byte, "byte", BYTE),
         Arguments.of(MappingType.Short, "short", SHORT),
         Arguments.of(MappingType.Integer, "integer", INTEGER),
@@ -481,6 +487,53 @@ class OpenSearchDataTypeTest {
         () -> assertEquals(aliasTypeOnDouble, aliasTypeOnDouble.getExprType()),
         () -> assertEquals(ExprCoreType.DOUBLE, aliasTypeOnDouble.getOriginalExprType()),
         () -> assertEquals("original_path2", aliasTypeOnDouble.getOriginalPath().orElseThrow()));
+  }
+
+  @Test
+  public void traverseAndFlatten_alias_to_unresolvable_path_throws_descriptive_error() {
+    // Alias path targets a text multi-field, which is not in the flattened mapping.
+    Map<String, OpenSearchDataType> keywordAliasTree =
+        Map.of(
+            "source",
+            textKeywordType,
+            "source_alias",
+            new OpenSearchAliasType("source.keyword", OpenSearchDataType.of(MappingType.Invalid)));
+    ErrorReport keywordError =
+        assertThrows(
+            ErrorReport.class, () -> OpenSearchDataType.traverseAndFlatten(keywordAliasTree));
+    assertAll(
+        () -> assertEquals(ErrorCode.FIELD_NOT_FOUND, keywordError.getCode()),
+        () -> assertEquals(QueryProcessingStage.ANALYZING, keywordError.getStage()),
+        () -> assertTrue(keywordError.getCause() instanceof SemanticCheckException),
+        () ->
+            assertEquals(
+                "Alias field [source_alias] refers to unresolved path [source.keyword].",
+                keywordError.getCause().getMessage()),
+        () -> assertEquals("source_alias", keywordError.getContext().get("alias_field")),
+        () -> assertEquals("source.keyword", keywordError.getContext().get("alias_path")),
+        () ->
+            assertTrue(
+                keywordError.getSuggestion().contains("\"source.keyword.keyword\"")
+                    && keywordError.getSuggestion().contains("not a valid alias target")));
+
+    // Alias path targets a field that does not exist.
+    Map<String, OpenSearchDataType> missingFieldTree =
+        Map.of(
+            "col1",
+            textType,
+            "col_alias",
+            new OpenSearchAliasType("missing", OpenSearchDataType.of(MappingType.Invalid)));
+    ErrorReport missingError =
+        assertThrows(
+            ErrorReport.class, () -> OpenSearchDataType.traverseAndFlatten(missingFieldTree));
+    assertAll(
+        () -> assertEquals(ErrorCode.FIELD_NOT_FOUND, missingError.getCode()),
+        () -> assertTrue(missingError.getCause() instanceof SemanticCheckException),
+        () ->
+            assertEquals(
+                "Alias field [col_alias] refers to unresolved path [missing].",
+                missingError.getCause().getMessage()),
+        () -> assertEquals("missing", missingError.getContext().get("alias_path")));
   }
 
   @Test

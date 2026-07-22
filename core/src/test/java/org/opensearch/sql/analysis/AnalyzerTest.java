@@ -72,7 +72,6 @@ import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
@@ -898,9 +897,6 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.field("double_value")));
   }
 
-  @Disabled(
-      "the project/remove command should shrink the type env. Should be enabled once "
-          + "https://github.com/opensearch-project/sql/issues/917 is resolved")
   @Test
   public void project_source_change_type_env() {
     SemanticCheckException exception =
@@ -1945,6 +1941,24 @@ class AnalyzerTest extends AnalyzerTestBase {
                         .attach(relation("schema"))));
     assertEquals(
         "Regex is supported only when plugins.calcite.enabled=true", exception.getMessage());
+  }
+
+  @Test
+  public void foreach_command_throws_unsupported_exception_with_legacy_engine() {
+    UnsupportedOperationException exception =
+        assertThrows(
+            UnsupportedOperationException.class,
+            () ->
+                analyze(
+                    new org.opensearch.sql.ast.tree.Foreach(
+                            org.opensearch.sql.ast.tree.Foreach.Mode.MULTIFIELD,
+                            ImmutableMap.of(),
+                            ImmutableList.of("integer_value"),
+                            null,
+                            ImmutableList.of())
+                        .attach(relation("schema"))));
+    assertEquals(
+        "foreach is supported only when plugins.calcite.enabled=true", exception.getMessage());
   }
 
   @Test

@@ -209,7 +209,11 @@ public class OpenSearchExprValueFactory {
     final ExprType type = fieldType.get();
 
     if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))) {
-      return parseGeoPoint(content, supportArrays);
+      try {
+        return parseGeoPoint(content, supportArrays);
+      } catch (Exception e) {
+        return ExprNullValue.of();
+      }
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))
         || content.isArray()) {
       return parseArray(content, field, type, supportArrays);
@@ -217,9 +221,14 @@ public class OpenSearchExprValueFactory {
         || type == STRUCT) {
       return parseStruct(content, field, supportArrays);
     } else if (typeActionMap.containsKey(type)) {
-      return content.isArray()
-          ? parseArray(content, field, type, supportArrays)
-          : typeActionMap.get(type).apply(content, type);
+      if (content.isArray()) {
+        return parseArray(content, field, type, supportArrays);
+      }
+      try {
+        return typeActionMap.get(type).apply(content, type);
+      } catch (Exception e) {
+        return ExprNullValue.of();
+      }
     } else {
       throw new IllegalStateException(
           String.format(

@@ -37,6 +37,11 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMakeResultsCommand() {
+    assertEquals("makeresults", anonymize("makeresults count=5"));
+  }
+
+  @Test
   public void testTableFunctionCommand() {
     assertEquals(
         "source=prometheus.query_range(***,***,***,***)",
@@ -281,6 +286,17 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | timechart timefield=time_identifier max(identifier)",
         anonymize("source=t | timechart timefield=month max(revenue)"));
+  }
+
+  @Test
+  public void testTimewrapCommand() {
+    assertEquals(
+        "source=table | timechart count() | timewrap *** align=end series=relative",
+        anonymize("source=t | timechart count() | timewrap 1day"));
+
+    assertEquals(
+        "source=table | timechart count() | timewrap *** align=now series=short",
+        anonymize("source=t | timechart count() | timewrap 1week align=now series=short"));
   }
 
   @Test
@@ -617,6 +633,28 @@ public class PPLQueryDataAnonymizerTest {
         "source=table | join type=left overwrite=*** max=*** identifier,identifier table | fields +"
             + " identifier",
         anonymize("source=t | join type=outer max=2 id1 id2 s | fields id1"));
+  }
+
+  @Test
+  public void testJoinWithImplicitField() {
+    // The AST keeps the bare field, so the anonymized query shows `on identifier`, not a rewrite.
+    assertEquals(
+        "source=table | inner join max=*** on identifier table | fields + identifier",
+        anonymize("source=t | inner join on id s | fields id"));
+    assertEquals(
+        "source=table as identifier | inner join max=*** left = identifier right = identifier on"
+            + " identifier table as identifier | fields + identifier",
+        anonymize("source=t | join left = l right = r on id s | fields id"));
+    assertEquals(
+        "source=table | inner join max=*** on identifier and identifier table | fields +"
+            + " identifier",
+        anonymize("source=t | inner join on id AND uid s | fields id"));
+    assertEquals(
+        "source=table | inner join max=*** on identifier table | fields + identifier",
+        anonymize("source=t | inner join where id s | fields id"));
+    assertEquals(
+        "source=table | inner join max=*** on identifier table | fields + identifier",
+        anonymize("source=t | join on id s | fields id"));
   }
 
   @Test
@@ -1179,6 +1217,32 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | mvexpand identifier limit=***",
         anonymize("source=t | mvexpand skills limit=5"));
+  }
+
+  @Test
+  public void testForeachMultifieldCommand() {
+    assertEquals(
+        "source=table | foreach identifier identifier [ eval identifier = *(identifier,***) ]",
+        anonymize("source=t | foreach a b [ eval <<FIELD>>_double = <<FIELD>> * 2 ]"));
+  }
+
+  @Test
+  public void testForeachMultivalueCommandWithOptions() {
+    assertEquals(
+        "source=table | foreach mode=multivalue itemstr=identifier identifier"
+            + " [ eval identifier = +(identifier,identifier) ]",
+        anonymize(
+            "source=t | foreach mode=multivalue itemstr=NUMBER nums"
+                + " [ eval total = total + NUMBER ]"));
+  }
+
+  @Test
+  public void testForeachJsonArrayCommandMasksLiteralTarget() {
+    assertEquals(
+        "source=table | foreach mode=json_array identifier [ eval identifier ="
+            + " +(identifier,identifier) ]",
+        anonymize(
+            "source=t | foreach mode=json_array '[1,2,3]' [ eval total = total + <<ITEM>> ]"));
   }
 
   @Test

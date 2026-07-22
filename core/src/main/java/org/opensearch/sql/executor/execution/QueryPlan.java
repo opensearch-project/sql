@@ -16,6 +16,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.protocol.response.format.Format;
 
 /** Query plan which includes a <em>select</em> query. */
 public class QueryPlan extends AbstractPlan {
@@ -119,12 +120,19 @@ public class QueryPlan extends AbstractPlan {
   @Override
   public void explain(
       ResponseListener<ExecutionEngine.ExplainResponse> listener, ExplainMode mode) {
+    explain(listener, mode, null);
+  }
+
+  @Override
+  public void explain(
+      ResponseListener<ExecutionEngine.ExplainResponse> listener, ExplainMode mode, Format format) {
     if (pageSize.isPresent()) {
       listener.onFailure(
           new NotImplementedException(
               "`explain` feature for paginated requests is not implemented yet."));
     } else {
-      queryService.explain(plan, getQueryType(), highlightConfig, includeMetadata, listener, mode);
+      queryService.explain(
+          plan, getQueryType(), highlightConfig, includeMetadata, listener, mode, format);
     }
   }
 }

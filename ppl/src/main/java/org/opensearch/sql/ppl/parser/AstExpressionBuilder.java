@@ -22,6 +22,7 @@ import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.RuleNode;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
@@ -31,6 +32,7 @@ import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -95,14 +97,43 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   private final AstBuilder astBuilder;
 
+  private final AstBuildGuard guard;
+
   public AstExpressionBuilder(AstBuilder astBuilder) {
+    this(astBuilder, new AstBuildGuard());
+  }
+
+  public AstExpressionBuilder(AstBuilder astBuilder, AstBuildGuard guard) {
     this.astBuilder = astBuilder;
+    this.guard = guard;
+  }
+
+  @Override
+  public UnresolvedExpression visit(ParseTree tree) {
+    return guard.enforce(() -> super.visit(tree));
+  }
+
+  @Override
+  public UnresolvedExpression visitChildren(RuleNode node) {
+    return guard.enforce(() -> super.visitChildren(node));
   }
 
   /** Eval clause. */
   @Override
   public UnresolvedExpression visitEvalClause(EvalClauseContext ctx) {
     return new Let((Field) visit(ctx.fieldExpression()), visit(ctx.logicalExpression()));
+  }
+
+  @Override
+  public UnresolvedExpression visitForeachPlaceholderExpr(
+      OpenSearchPPLParser.ForeachPlaceholderExprContext ctx) {
+    return visit(ctx.foreachPlaceholder());
+  }
+
+  @Override
+  public UnresolvedExpression visitForeachPlaceholder(
+      OpenSearchPPLParser.ForeachPlaceholderContext ctx) {
+    return new ForeachPlaceholder(ctx.foreachPlaceholderName().getText());
   }
 
   /** Field format eval clause - similar to evalClause but for fieldformat command. */
@@ -903,11 +934,21 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   public QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
-    return new QualifiedName(
+    List<String> parts =
         ctx.stream()
             .map(RuleContext::getText)
             .map(StringUtils::unquoteIdentifier)
-            .collect(Collectors.toList()));
+            .collect(Collectors.toList());
+
+    // Capture source position from the first identifier for error reporting
+    if (!ctx.isEmpty()) {
+      ParserRuleContext first = ctx.get(0);
+      int line = first.getStart().getLine();
+      int column = first.getStart().getCharPositionInLine();
+      return new QualifiedName(parts, line, column);
+    }
+
+    return new QualifiedName(parts);
   }
 
   private List<UnresolvedExpression> singleFieldRelevanceArguments(

@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
+import static org.opensearch.sql.util.Capability.HEAD_WITHOUT_STABLE_SORT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
@@ -23,6 +24,7 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class SortCommandIT extends PPLIntegTestCase {
 
@@ -313,6 +315,11 @@ public class SortCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = HEAD_WITHOUT_STABLE_SORT,
+      note =
+          "head 2 without a stable sort returns a non-deterministic row set on the AE route"
+              + " (HEAD_WITHOUT_STABLE_SORT).")
   public void testHeadThenSort() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | head 2 | sort age | fields age", TEST_INDEX_BANK));

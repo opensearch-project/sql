@@ -9,6 +9,8 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATE_NULL;
+import static org.opensearch.sql.util.Capability.BIN_TIME_FIELD_BUCKETING;
+import static org.opensearch.sql.util.Capability.PERCENTILE_APPROXIMATE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -19,6 +21,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class StatsCommandIT extends PPLIntegTestCase {
 
@@ -622,8 +625,10 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | eval decimal=ceil(balance/100000.0) | stats percentile(decimal, 50),"
                     + " min(decimal)",
                 TEST_INDEX_BANK));
+    // The AE route runs the Calcite path, so it returns the Calcite (double) type even though the
+    // cluster's calcite setting reads false; treat it like the Calcite branch.
     String returnType = "bigint";
-    if (isCalciteEnabled()) {
+    if (isCalciteEnabled() || isAnalyticsParquetIndicesEnabled()) {
       returnType = "double";
     }
 
@@ -635,6 +640,9 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = PERCENTILE_APPROXIMATE,
+      note = "percentile is approximate on the AE route but exact on v2/Calcite.")
   public void testStatsPercentileWithNull() throws IOException {
     JSONObject response =
         executeQuery(
@@ -673,6 +681,9 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = PERCENTILE_APPROXIMATE,
+      note = "percentile is approximate on the AE route but exact on v2/Calcite.")
   public void testStatsPercentileByNullValue() throws IOException {
     JSONObject response =
         executeQuery(
@@ -691,6 +702,9 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = PERCENTILE_APPROXIMATE,
+      note = "percentile is approximate on the AE route but exact on v2/Calcite.")
   public void testStatsPercentileByNullValueNonNullBucket() throws IOException {
     JSONObject response =
         executeQuery(
@@ -708,6 +722,9 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = PERCENTILE_APPROXIMATE,
+      note = "percentile is approximate on the AE route but exact on v2/Calcite.")
   public void testStatsPercentileBySpan() throws IOException {
     JSONObject response =
         executeQuery(
@@ -755,6 +772,9 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = BIN_TIME_FIELD_BUCKETING,
+      note = "span() time bucketing differs on the AE route (bucket set/null bucket).")
   public void testStatsBySpanTimeWithNullBucket() throws IOException {
     JSONObject response =
         executeQuery(

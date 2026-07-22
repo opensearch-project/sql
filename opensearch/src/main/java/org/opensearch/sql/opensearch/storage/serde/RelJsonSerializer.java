@@ -29,6 +29,7 @@ import org.apache.calcite.util.JsonBuilder;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine.OperatorTable;
+import org.opensearch.sql.utils.DeserializationFilterUtil;
 
 /**
  * A serializer that (de-)serializes Calcite RexNode, RelDataType and OpenSearch field mapping.
@@ -120,6 +121,7 @@ public class RelJsonSerializer {
     try {
       ByteArrayInputStream input = new ByteArrayInputStream(Base64.getDecoder().decode(struct));
       ObjectInputStream objectInput = new ObjectInputStream(input);
+      objectInput.setObjectInputFilter(DeserializationFilterUtil.createFilter(""));
       exprStr = (String) objectInput.readObject();
 
       // Deserialize RelDataType and RexNode by JSON

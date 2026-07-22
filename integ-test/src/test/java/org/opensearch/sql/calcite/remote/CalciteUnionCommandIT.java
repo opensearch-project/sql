@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOCATIONS_TYPE_CONFLICT;
+import static org.opensearch.sql.util.Capability.SAME_INDEX_UNION_CONFLATION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -18,6 +19,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteUnionCommandIT extends PPLIntegTestCase {
 
@@ -48,6 +50,9 @@ public class CalciteUnionCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = SAME_INDEX_UNION_CONFLATION,
+      note = "same-index union conflates on the AE route (delegated predicate leak).")
   public void testUnionThreeSubsearches() throws IOException {
     JSONObject result =
         executeQuery(
@@ -155,6 +160,9 @@ public class CalciteUnionCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = SAME_INDEX_UNION_CONFLATION,
+      note = "same-index union conflates on the AE route (delegated predicate leak).")
   public void testUnionMidPipeline_SingleExplicitDataset() throws IOException {
     JSONObject result =
         executeQuery(

@@ -68,7 +68,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + " '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `ENAME`)['pattern'] AS"
             + " STRING) `patterns_field`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR"
             + " `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END,"
-            + " `ENAME`)['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`\n"
+            + " `ENAME`)['tokens'] AS MAP< STRING, ARRAY< STRING > >) `tokens`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -95,7 +95,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + " '' ELSE REGEXP_REPLACE(`ENAME`, '[A-H]', '<*>') END, `ENAME`)['pattern'] AS STRING)"
             + " `patterns_field`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` ="
             + " '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[A-H]', '<*>') END, `ENAME`)['tokens'] AS"
-            + " MAP< VARCHAR, VARCHAR ARRAY >) `tokens`\n"
+            + " MAP< STRING, ARRAY< STRING > >) `tokens`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -142,7 +142,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + " = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END,"
             + " `ENAME`)['pattern'] AS STRING) `patterns_field`, TRY_CAST(PATTERN_PARSER(CASE"
             + " WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`,"
-            + " '[a-zA-Z0-9]+', '<*>') END, `ENAME`)['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >)"
+            + " '[a-zA-Z0-9]+', '<*>') END, `ENAME`)['tokens'] AS MAP< STRING, ARRAY< STRING > >)"
             + " `tokens`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -187,7 +187,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + " OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), TRUE)['pattern']"
             + " AS STRING) `patterns_field`, TRY_CAST(PATTERN_PARSER(`ENAME`, `pattern`(`ENAME`,"
             + " 10, 100000, TRUE) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING),"
-            + " TRUE)['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`\n"
+            + " TRUE)['tokens'] AS MAP< STRING, ARRAY< STRING > >) `tokens`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -234,7 +234,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + " UNBOUNDED FOLLOWING), TRUE)['pattern'] AS STRING) `patterns_field`,"
             + " TRY_CAST(PATTERN_PARSER(`ENAME`, `pattern`(`ENAME`, 10, 100000, TRUE) OVER"
             + " (PARTITION BY `DEPTNO` RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING),"
-            + " TRUE)['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`\n"
+            + " TRUE)['tokens'] AS MAP< STRING, ARRAY< STRING > >) `tokens`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -287,7 +287,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + " '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END) `pattern_count`,"
             + " TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
             + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `TAKE`(`ENAME`, 10))['tokens']"
-            + " AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`, `TAKE`(`ENAME`, 10) `sample_logs`\n"
+            + " AS MAP< STRING, ARRAY< STRING > >) `tokens`, `TAKE`(`ENAME`, 10) `sample_logs`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
             + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END";
@@ -318,7 +318,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + " `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END)"
             + " `pattern_count`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = ''"
             + " THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `TAKE`(`ENAME`,"
-            + " 10))['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`, `TAKE`(`ENAME`, 10)"
+            + " 10))['tokens'] AS MAP< STRING, ARRAY< STRING > >) `tokens`, `TAKE`(`ENAME`, 10)"
             + " `sample_logs`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
@@ -410,7 +410,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT TRY_CAST(`t20`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
             + " TRY_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
-            + " TRY_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >)"
+            + " TRY_CAST(`t20`.`patterns_field`['tokens'] AS MAP< STRING, ARRAY< STRING > >)"
             + " `tokens`, TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING >)"
             + " `sample_logs`\n"
             + "FROM (SELECT `pattern`(`ENAME`, 10, 100000, TRUE) `patterns_field`\n"
@@ -475,8 +475,8 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `$cor0`.`DEPTNO`, TRY_CAST(`t20`.`patterns_field`['pattern'] AS STRING)"
             + " `patterns_field`, TRY_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT)"
-            + " `pattern_count`, TRY_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR,"
-            + " VARCHAR ARRAY >) `tokens`, TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS"
+            + " `pattern_count`, TRY_CAST(`t20`.`patterns_field`['tokens'] AS MAP< STRING,"
+            + " ARRAY< STRING > >) `tokens`, TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS"
             + " ARRAY< STRING >) `sample_logs`\n"
             + "FROM (SELECT `DEPTNO`, `pattern`(`ENAME`, 10, 100000, TRUE) `patterns_field`\n"
             + "FROM `scott`.`EMP`\n"

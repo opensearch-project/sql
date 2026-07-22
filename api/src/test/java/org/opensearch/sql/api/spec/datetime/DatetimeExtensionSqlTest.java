@@ -20,8 +20,8 @@ import org.opensearch.sql.api.UnifiedQueryTestBase;
 import org.opensearch.sql.executor.QueryType;
 
 /**
- * Tests that DatetimeExtension post-analysis rules (UDT normalization and output VARCHAR cast)
- * apply correctly to the SQL V2 parser path through CalciteRelNodeVisitor.
+ * Tests that the DatetimeExtension UDT-normalization post-analysis rule applies correctly to the
+ * SQL V2 parser path through CalciteRelNodeVisitor.
  */
 public class DatetimeExtensionSqlTest extends UnifiedQueryTestBase {
 
@@ -47,7 +47,7 @@ public class DatetimeExtensionSqlTest extends UnifiedQueryTestBase {
   private Table createEventsTable() {
     return SimpleTable.builder()
         .col("id", INTEGER)
-        .col("name", VARCHAR)
+        .col("event_str", VARCHAR)
         .col("hire_date", DATE)
         .col("start_time", TIME)
         .col("created_at", TIMESTAMP)
@@ -57,12 +57,11 @@ public class DatetimeExtensionSqlTest extends UnifiedQueryTestBase {
   }
 
   @Test
-  public void testAllStandardDatetimeTypesCastToVarchar() {
+  public void testStandardDatetimeTypesNotWrapped() {
     givenQuery("SELECT * FROM catalog.events")
         .assertPlan(
             """
-            LogicalProject(id=[$0], name=[$1], hire_date=[CAST($2):VARCHAR NOT NULL], start_time=[CAST($3):VARCHAR NOT NULL], created_at=[CAST($4):VARCHAR NOT NULL])
-              LogicalTableScan(table=[[catalog, events]])
+            LogicalTableScan(table=[[catalog, events]])
             """);
   }
 
@@ -71,21 +70,19 @@ public class DatetimeExtensionSqlTest extends UnifiedQueryTestBase {
     givenQuery("SELECT * FROM catalog.events WHERE created_at > '2024-01-01T00:00:00Z'")
         .assertPlan(
             """
-            LogicalProject(id=[$0], name=[$1], hire_date=[CAST($2):VARCHAR NOT NULL], start_time=[CAST($3):VARCHAR NOT NULL], created_at=[CAST($4):VARCHAR NOT NULL])
-              LogicalFilter(condition=[>($4, TIMESTAMP('2024-01-01T00:00:00Z':VARCHAR))])
-                LogicalTableScan(table=[[catalog, events]])
+            LogicalFilter(condition=[>($4, TIMESTAMP('2024-01-01T00:00:00Z':VARCHAR))])
+              LogicalTableScan(table=[[catalog, events]])
             """)
         .assertReturnType("TIMESTAMP", TIMESTAMP, 9);
   }
 
   @Test
   public void testComparisonWithDatetimeUdf() {
-    givenQuery("SELECT * FROM catalog.events WHERE created_at < DATE(name)")
+    givenQuery("SELECT * FROM catalog.events WHERE created_at < DATE(event_str)")
         .assertPlan(
             """
-            LogicalProject(id=[$0], name=[$1], hire_date=[CAST($2):VARCHAR NOT NULL], start_time=[CAST($3):VARCHAR NOT NULL], created_at=[CAST($4):VARCHAR NOT NULL])
-              LogicalFilter(condition=[<($4, TIMESTAMP(DATE($1)))])
-                LogicalTableScan(table=[[catalog, events]])
+            LogicalFilter(condition=[<($4, TIMESTAMP(DATE($1)))])
+              LogicalTableScan(table=[[catalog, events]])
             """)
         .assertReturnType("DATE", DATE)
         .assertReturnType("TIMESTAMP", TIMESTAMP, 9);

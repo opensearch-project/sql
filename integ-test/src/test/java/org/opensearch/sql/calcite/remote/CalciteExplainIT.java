@@ -28,6 +28,8 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import java.io.IOException;
 import java.util.Locale;
 import org.apache.commons.text.StringEscapeUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -561,6 +563,30 @@ public class CalciteExplainIT extends ExplainIT {
             "per_day(cpu_usage)=[DIVIDE(*($1, 8.64E7), TIMESTAMPDIFF('MILLISECOND':VARCHAR, $0,"
                 + " TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
     assertTrue(result.contains("per_day(cpu_usage)=[SUM($0)]"));
+  }
+
+  @Test
+  public void testExplainTimewrap() throws IOException {
+    // Pin the align=end reference with a WHERE upper bound so the base_offset literal is
+    // deterministic (otherwise it falls back to the query clock).
+    var result =
+        explainQueryYaml(
+            "source=events | where @timestamp <= '2024-07-03 18:00:00'"
+                + " | timechart span=6h avg(cpu_usage) | timewrap 1day");
+    String expected = loadExpectedPlan("explain_timewrap.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainTimewrapMonth() throws IOException {
+    // Variable-length unit (month) exercises the EXTRACT-based calendar arithmetic branch, which
+    // produces a different plan from the fixed-length epoch-based path above.
+    var result =
+        explainQueryYaml(
+            "source=events | where @timestamp <= '2024-07-03 18:00:00'"
+                + " | timechart span=1d avg(cpu_usage) | timewrap 1month");
+    String expected = loadExpectedPlan("explain_timewrap_month.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -2153,6 +2179,29 @@ public class CalciteExplainIT extends ExplainIT {
                 + "|  transpose 4 column_name='column_names'"));
   }
 
+  /**
+   * With a user {@code where} clause preceding {@code dedup}, the physical plan must push both the
+   * filter and the dedup-as-aggregation into the OpenSearch scan, not fall back to an in-memory
+   * {@code ROW_NUMBER} window above a row-fetching scan.
+   */
+  @Test
+  public void testDedupAfterWherePushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String result =
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where age > 25 | dedup gender");
+    assertTrue(
+        "Expected user where filter pushed down to the scan:\n" + result,
+        result.contains("FILTER->>($8, 25)"));
+    assertTrue(
+        "Expected dedup pushed down as AGGREGATION (composite + top_hits):\n" + result,
+        result.contains("AGGREGATION->"));
+    assertFalse(
+        "Unexpected EnumerableWindow — dedup fell back to the in-memory ROW_NUMBER form:\n"
+            + result,
+        result.contains("EnumerableWindow"));
+  }
+
   public void testComplexDedup() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_dedup_complex1.yaml");
@@ -2865,10 +2914,13 @@ public class CalciteExplainIT extends ExplainIT {
             "source=%s | fields firstname, age | eval names = array(firstname) | nomv names |"
                 + " fields names",
             TEST_INDEX_BANK);
-    var result = explainQueryYaml(query);
+    // Assert on the LOGICAL plan only: nomv lowers to MVJOIN -> ARRAY_JOIN, which is stable in the
+    // logical plan regardless of pushdown. The physical section's rendering varies with the
+    // pushdown setting (e.g. under CalciteNoPushdownIT), so scanning the whole output is flaky.
+    String logical = logicalPlan(explainQueryYaml(query));
     Assert.assertTrue(
-        "Expected explain to contain ARRAY_JOIN function",
-        result.toLowerCase().contains("array_join"));
+        "Expected logical plan to contain ARRAY_JOIN function",
+        logical.toLowerCase(java.util.Locale.ROOT).contains("array_join"));
   }
 
   @Test
@@ -2878,10 +2930,40 @@ public class CalciteExplainIT extends ExplainIT {
             "source=%s | eval full_name = concat(firstname, ' J.') | eval name_array ="
                 + " array(full_name) | nomv name_array | fields name_array",
             TEST_INDEX_BANK);
-    var result = explainQueryYaml(query);
+    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase(java.util.Locale.ROOT);
     Assert.assertTrue(
-        "Expected explain to contain both CONCAT and ARRAY_JOIN",
-        result.toLowerCase().contains("concat") && result.toLowerCase().contains("array_join"));
+        "Expected logical plan to contain both CONCAT and ARRAY_JOIN",
+        logical.contains("concat") && logical.contains("array_join"));
+  }
+
+  @Test
+  public void testForeachExplain() throws IOException {
+    String query =
+        StringUtils.format(
+            "source=%s | foreach age balance [ eval <<FIELD>>_double = <<FIELD>> * 2 ] | fields"
+                + " age_double, balance_double",
+            TEST_INDEX_BANK);
+    String logical = logicalPlan(explainQueryYaml(query));
+    Assert.assertTrue(
+        "Expected logical plan to contain foreach-expanded eval fields",
+        logical.contains("age_double")
+            && logical.contains("balance_double")
+            && logical.contains("*($")
+            && logical.contains(", 2)"));
+  }
+
+  /**
+   * Return just the {@code logical:} section of a YAML explain result (everything before the {@code
+   * physical:} key). The logical plan is deterministic across pushdown on/off, whereas the physical
+   * section's rendering varies — so assertions on plan content should target the logical plan to
+   * avoid flakiness.
+   *
+   * <p>Splits on the line-anchored top-level {@code "\nphysical:"} key so a string value that
+   * happens to contain {@code "physical:"} inside the logical section can't truncate the plan.
+   */
+  private static String logicalPlan(String explainYaml) {
+    int physicalIdx = explainYaml.indexOf("\nphysical:");
+    return physicalIdx >= 0 ? explainYaml.substring(0, physicalIdx) : explainYaml;
   }
 
   @Test
@@ -2947,6 +3029,48 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testXyseriesExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance by gender, state"
+                    + " | xyseries state gender in (\"F\", \"M\") avg_balance",
+                TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_xyseries.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testXyseriesMultipleDataFieldsExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance, count() as cnt by gender, state"
+                    + " | xyseries state gender in (\"F\", \"M\") avg_balance, cnt",
+                TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_xyseries_multiple_data_fields.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testXyseriesWithFormatExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance by gender, state | xyseries"
+                    + " format=\"$VAL$_$AGG$\" state gender in (\"F\", \"M\") avg_balance",
+                TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_xyseries_with_format.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testExplainConsecutiveSortsAfterAggIssue5125() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_agg_consecutive_sorts_issue_5125.yaml");
@@ -2969,5 +3093,30 @@ public class CalciteExplainIT extends ExplainIT {
     String actual = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_union.yaml");
     assertYamlEqualsIgnoreId(expected, actual);
+  }
+
+  @Test
+  public void testExplainJsonTreeFormat() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | where age > 30 | fields age";
+    String result = explainQuery(query, Format.JSON_TREE, ExplainMode.STANDARD);
+
+    // Parse JSON response
+    JSONObject json = new JSONObject(result);
+    JSONObject calcite = json.getJSONObject("calcite");
+
+    // Verify logical plan is a structured JSON object (not a plain string)
+    JSONObject logical = calcite.getJSONObject("logical");
+    Assert.assertTrue("Logical plan should contain 'rels' array", logical.has("rels"));
+    JSONArray rels = logical.getJSONArray("rels");
+    Assert.assertTrue("Rels array should not be empty", rels.length() > 0);
+
+    // Verify first rel is a proper RelNode structure
+    JSONObject firstRel = rels.getJSONObject(0);
+    Assert.assertTrue("RelNode should have 'relOp' field", firstRel.has("relOp"));
+    Assert.assertTrue("RelNode should have 'id' field", firstRel.has("id"));
+
+    // Verify physical plan also has structured format
+    JSONObject physical = calcite.getJSONObject("physical");
+    Assert.assertTrue("Physical plan should contain 'rels' array", physical.has("rels"));
   }
 }

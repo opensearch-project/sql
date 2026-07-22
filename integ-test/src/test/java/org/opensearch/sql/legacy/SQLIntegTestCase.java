@@ -35,6 +35,7 @@ import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
@@ -60,11 +61,19 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return true;
   }
 
+  @Rule public final CapabilityRule capabilityRule = new CapabilityRule();
+
   @Before
   public void setUpIndices() throws Exception {
     if (client() == null) {
       initClient();
     }
+
+    // When -Dtests.analytics.parquet_indices=true, make every index (including ones a test
+    // auto-creates via a raw document PUT, which bypasses createIndexByRestClient) parquet-backed
+    // composite, so it is stored as a DataFormatAwareEngine and is actually scannable by the
+    // analytics engine it routes to. Must run before init() creates any index.
+    TestUtils.AnalyticsIndexConfig.applyClusterSettings(client());
 
     if (shouldResetQuerySizeLimit()) {
       resetQuerySizeLimit();
@@ -130,6 +139,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {
+    // No client when every test in the class was skipped (e.g. @RequiresCapability on the AE
+    // route).
+    if (client() == null) {
+      return;
+    }
     if (System.getProperty("tests.rest.bwcsuite") == null) {
       wipeAllOpenSearchIndices();
       wipeAllClusterSettings();
@@ -208,7 +222,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
     if (!isIndexExist(client, indexName)) {
       createIndexByRestClient(client, indexName, mapping);
-      loadDataByRestClient(client, indexName, dataSet);
+      // On the analytics-engine route, unsupported-typed fields are stripped from the mapping; drop
+      // the same keys from the bulk data so the two agree. Empty (no-op) off the AE route.
+      loadDataByRestClient(client, indexName, dataSet, analyticsDroppedFields(mapping));
     }
   }
 
@@ -533,6 +549,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "account",
         getAccountIndexMapping(),
         "src/test/resources/accounts.json"),
+    ACCOUNT_EXTENDED(
+        TestsConstants.TEST_INDEX_ACCOUNT_EXTENDED,
+        "account_extended",
+        getAccountExtendedIndexMapping(),
+        "src/test/resources/accounts_extended.json"),
     PHRASE(
         TestsConstants.TEST_INDEX_PHRASE,
         "phrase",
@@ -626,6 +647,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "account",
         getBankIndexMapping(),
         "src/test/resources/bank.json"),
+    BANK_EXTENDED(
+        TestsConstants.TEST_INDEX_BANK_EXTENDED,
+        "bank_extended",
+        getBankExtendedIndexMapping(),
+        "src/test/resources/bank_extended.json"),
     BANK_TWO(
         TestsConstants.TEST_INDEX_BANK_TWO,
         "account_two",
@@ -716,6 +742,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getDataTypeNonnumericIndexMapping(),
         "src/test/resources/datatypes.json"),
+    DATETIME_SIMPLE(
+        TestsConstants.TEST_INDEX_DATETIME_SIMPLE,
+        "_doc",
+        getDateTimeSimpleIndexMapping(),
+        "src/test/resources/datetime_simple.json"),
     BEER(
         TestsConstants.TEST_INDEX_BEER, "beer", null, "src/test/resources/beer.stackexchange.json"),
     NULL_MISSING(
@@ -958,7 +989,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "events_traffic",
         "events_traffic",
         getMappingFile("events_traffic_index_mapping.json"),
-        "src/test/resources/events_traffic.json");
+        "src/test/resources/events_traffic.json"),
+    TIMEWRAP_TEST(
+        "timewrap_test",
+        "timewrap_test",
+        "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"keyword\"},\"requests\":{\"type\":\"integer\"},\"errors\":{\"type\":\"integer\"}}}}",
+        "src/test/resources/timewrap_test.json");
 
     private final String name;
     private final String type;
