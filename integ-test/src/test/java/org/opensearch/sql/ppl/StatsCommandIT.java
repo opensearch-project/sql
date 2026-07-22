@@ -512,7 +512,8 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | where age = 36 | stats sum(balance)",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(response, schema("sum(balance)", null, "bigint"));
-    verifyDataRows(response, rows((Object) null));
+    Integer expectedValue = (isCalciteEnabled() || isAnalyticsParquetIndicesEnabled()) ? null : 0;
+    verifyDataRows(response, rows(expectedValue));
   }
 
   @Test
