@@ -1,0 +1,282 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+
+  # Primary index — appId is text-only, no keyword sub-field. Before the fix this
+  # scenario silently degraded to a full _source scan with client-side aggregation.
+  - do:
+      indices.create:
+        index: logs_text_only
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              appId:
+                type: text
+              level:
+                type: keyword
+
+  - do:
+      bulk:
+        index: logs_text_only
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"appId": "app-1", "level": "info"}'
+          - '{"index": {"_id": "2"}}'
+          - '{"appId": "app-1", "level": "warn"}'
+          - '{"index": {"_id": "3"}}'
+          - '{"appId": "app-2", "level": "info"}'
+          - '{"index": {"_id": "4"}}'
+          - '{"appId": "app-3", "level": "info"}'
+          - '{"index": {"_id": "5"}}'
+          - '{"appId": "app-1", "level": "info"}'
+
+  # Companion index — appId is text with a keyword sub-field. Sits under the
+  # same logs_text* pattern so multi-index queries also exercise the
+  # conflicting-mapping case where the merged type loses its keyword sub-field.
+  - do:
+      indices.create:
+        index: logs_text_with_keyword
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              appId:
+                type: text
+                fields:
+                  keyword:
+                    type: keyword
+                    ignore_above: 256
+
+  - do:
+      bulk:
+        index: logs_text_with_keyword
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"appId": "app-1"}'
+          - '{"index": {}}'
+          - '{"appId": "app-1"}'
+          - '{"index": {}}'
+          - '{"appId": "app-2"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: logs_text_only,logs_text_with_keyword
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"top command on a text field returns correct counts":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=logs_text_only | top 10 appId
+  - match: { total: 3 }
+  - match:
+      schema:
+        - { name: appId, type: string }
+        - { name: count, type: bigint }
+  - match:
+      datarows:
+        - [ "app-1", 3 ]
+        - [ "app-2", 1 ]
+        - [ "app-3", 1 ]
+
+---
+"stats by text field returns correct counts":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=logs_text_only | stats count() by appId
+  - match: { total: 3 }
+  - match:
+      schema:
+        - { name: "count()", type: bigint }
+        - { name: appId, type: string }
+  - match:
+      datarows:
+        - [ 3, "app-1" ]
+        - [ 1, "app-2" ]
+        - [ 1, "app-3" ]
+
+---
+"top on text field pushes down as composite terms with _source script":
+  # AGGREGATION pushdown means the physical plan carries a composite_buckets
+  # aggregation whose terms source uses a script (not a field), because appId
+  # is a text field with no .keyword sub-field. Presence of both AGGREGATION
+  # in PushDownContext and the composite/script bucket confirms the DSL is
+  # pushed to OpenSearch instead of falling back to an unbounded scan.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: source=logs_text_only | top 10 appId
+  - match: { "calcite.physical": "/AGGREGATION/" }
+  - match: { "calcite.physical": "/composite_buckets/" }
+  - match: { "calcite.physical": "/\"appId\":\\{\"terms\":\\{\"script\"/" }
+
+---
+"stats by text field pushes down as composite terms with _source script":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: source=logs_text_only | stats count() by appId
+  - match: { "calcite.physical": "/AGGREGATION/" }
+  - match: { "calcite.physical": "/composite_buckets/" }
+  - match: { "calcite.physical": "/\"appId\":\\{\"terms\":\\{\"script\"/" }
+
+---
+"count(text_field) on text-only pushes down as scripted value_count":
+  # count(FIELD) reaches the metric path with a bare RexInputRef (Calcite does not
+  # insert a numeric cast around COUNT). For a text field without .keyword, the
+  # metric aggregation must still push down by using a script value source that
+  # reads the field from _source, not fall back to an unbounded scan.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: source=logs_text_only | stats count(appId)
+  - match: { "calcite.physical": "/AGGREGATION/" }
+  - match: { "calcite.physical": "/\"count\\(appId\\)\":\\{\"value_count\":\\{\"script\"/" }
+
+---
+"count(text_field) on text-only returns correct count":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=logs_text_only | stats count(appId)
+  - match: { total: 1 }
+  - match:
+      schema:
+        - { name: "count(appId)", type: bigint }
+  - match:
+      datarows:
+        - [ 5 ]
+
+---
+"text field with .keyword sub-field pushes down using the sub-field":
+  # A text field that carries `.keyword` must be rewritten to `<field>.keyword`
+  # in the DSL, not routed through the script path. Baseline that guarantees the
+  # fix did NOT alter behavior for keyword-backed fields.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: source=logs_text_with_keyword | stats count() by appId
+  - match: { "calcite.physical": "/AGGREGATION/" }
+  - match: { "calcite.physical": "/composite_buckets/" }
+  - match: { "calcite.physical": "/\"appId\":\\{\"terms\":\\{\"field\":\"appId\\.keyword\"/" }
+
+---
+"multi-index stats across text-only + text+keyword pushes down via _source script":
+  # `source=logs_text*` spans a text-only and a text+keyword index. The
+  # merged `appId` field loses its .keyword sub-field (because one member has
+  # none). Before the fix this fell back to a full _source scan and client-side
+  # aggregation; after the fix the composite terms bucket uses the _source-
+  # reading script for the merged field type.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: source=logs_text* | stats count() by appId
+  - match: { "calcite.physical": "/AGGREGATION/" }
+  - match: { "calcite.physical": "/composite_buckets/" }
+  - match: { "calcite.physical": "/\"appId\":\\{\"terms\":\\{\"script\"/" }
+
+---
+"multi-index stats returns correct merged counts":
+  # logs_text_only:         app-1=3, app-2=1, app-3=1
+  # logs_text_with_keyword: app-1=2, app-2=1
+  # merged:                 app-1=5, app-2=2, app-3=1
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=logs_text* | stats count() by appId
+  - match: { total: 3 }
+  - match:
+      schema:
+        - { name: "count()", type: bigint }
+        - { name: appId, type: string }
+  - match:
+      datarows:
+        - [ 5, "app-1" ]
+        - [ 2, "app-2" ]
+        - [ 1, "app-3" ]
+
+---
+"multi-index top returns correct merged counts":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=logs_text* | top 10 appId
+  - match: { total: 3 }
+  - match:
+      schema:
+        - { name: appId, type: string }
+        - { name: count, type: bigint }
+  - match:
+      datarows:
+        - [ "app-1", 5 ]
+        - [ "app-2", 2 ]
+        - [ "app-3", 1 ]

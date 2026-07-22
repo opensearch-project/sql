@@ -158,7 +158,13 @@ public class AggregateAnalyzer {
     <T> T build(RexNode node, Function<String, T> fieldBuilder, Function<Script, T> scriptBuilder) {
       if (node == null) return fieldBuilder.apply(METADATA_FIELD);
       else if (node instanceof RexInputRef ref) {
-        return fieldBuilder.apply(inferNamedField(node).getReferenceForTermQuery());
+        String fieldRef = inferNamedField(node).getReferenceForTermQuery();
+        // Text field with no .keyword sub-field is not aggregatable directly. Fall back to a
+        // Calcite script that reads the value from _source.
+        if (fieldRef == null) {
+          return scriptBuilder.apply(inferScript(node).getScript());
+        }
+        return fieldBuilder.apply(fieldRef);
       } else if (node instanceof RexCall || node instanceof RexLiteral) {
         return scriptBuilder.apply(inferScript(node).getScript());
       }
@@ -175,7 +181,7 @@ public class AggregateAnalyzer {
     }
 
     ScriptQueryExpression inferScript(RexNode node) {
-      if (node instanceof RexCall || node instanceof RexLiteral) {
+      if (node instanceof RexCall || node instanceof RexLiteral || node instanceof RexInputRef) {
         return new ScriptQueryExpression(
             node, rowType, fieldTypes, cluster, Collections.emptyMap());
       }
