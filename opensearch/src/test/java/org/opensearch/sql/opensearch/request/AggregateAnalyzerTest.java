@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -403,8 +402,9 @@ class AggregateAnalyzerTest {
     String dsl = result.getLeft().toString();
     // Composite bucket for `c` must use a script value source (not a raw field).
     assertTrue(
-        dsl.contains("\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":["
-            + "{\"c\":{\"terms\":{\"script\":{"),
+        dsl.contains(
+            "\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":["
+                + "{\"c\":{\"terms\":{\"script\":{"),
         "expected composite terms bucket on 'c' to use a script, but got: " + dsl);
     // The script must be tagged as a Calcite compounded script and reference the `c` field.
     assertTrue(
