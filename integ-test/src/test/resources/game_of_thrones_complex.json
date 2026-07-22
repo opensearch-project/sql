@@ -1,14 +1,14 @@
 {"index":{"_id":"1"}}
-{"name":{"firstname":"Daenerys","lastname":"Targaryen","ofHerName":1},"nickname":"Daenerys \"Stormborn\"","house":"Targaryen","gender":"F","parents":{"father":"Aerys" , "mother":"Rhaella"},"titles":["motherOfDragons","queenOfTheAndals","breakerOfChains","Khaleesi"]}
+{"name": {"firstname": "Daenerys", "lastname": "Targaryen", "ofHerName": 1}, "nickname": "Daenerys \"Stormborn\"", "house": "Targaryen", "gender": "F", "parents": {"father": "Aerys", "mother": "Rhaella"}}
 {"index":{"_id":"2"}}
-{"name":{"firstname":"Eddard","lastname":"Stark","ofHisName":1},"house":"Stark", "parents":{"father":"Rickard" , "mother":"Lyarra"} ,"gender":"M","titles":["lordOfWinterfell","wardenOfTheNorth","handOfTheKing"]}
+{"name": {"firstname": "Eddard", "lastname": "Stark", "ofHisName": 1}, "house": "Stark", "parents": {"father": "Rickard", "mother": "Lyarra"}, "gender": "M"}
 {"index":{"_id":"3"}}
-{"name":{"firstname":"Brandon","lastname":"Stark","ofHisName":4},"house":"Stark","parents":{"father":"Eddard","mother":"Catelyn"},"gender":"M","titles":["princeOfWinterfell"],"@wolf":"Summer"}
+{"name": {"firstname": "Brandon", "lastname": "Stark", "ofHisName": 4}, "house": "Stark", "parents": {"father": "Eddard", "mother": "Catelyn"}, "gender": "M", "@wolf": "Summer"}
 {"index":{"_id":"4"}}
-{"name":{"firstname":"Jaime","lastname":"Lannister","ofHisName":1},"gender":"M","house":"Lannister","parents":{"father":"Tywin","mother":"Joanna"},"titles":["kingSlayer","lordCommanderOfTheKingsguard","Ser"]}
+{"name": {"firstname": "Jaime", "lastname": "Lannister", "ofHisName": 1}, "gender": "M", "house": "Lannister", "parents": {"father": "Tywin", "mother": "Joanna"}}
 {"index":{"_id":"5"}}
-{"words":"fireAndBlood","hname":"Targaryen","sigil":"Dragon","seat":"Dragonstone"}
+{"words": "fireAndBlood", "hname": "Targaryen", "sigil": "Dragon", "seat": "Dragonstone"}
 {"index":{"_id":"6"}}
-{"words":"winterIsComing" , "hname":"Stark","sigil":"direwolf","seat":"Winterfell"}
+{"words": "winterIsComing", "hname": "Stark", "sigil": "direwolf", "seat": "Winterfell"}
 {"index":{"_id":"7"}}
-{"words":"hearMeRoar" , "hname":"Lannister","sigil":"lion","seat":"CasterlyRock"}
+{"words": "hearMeRoar", "hname": "Lannister", "sigil": "lion", "seat": "CasterlyRock"}

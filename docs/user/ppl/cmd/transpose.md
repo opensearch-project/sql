@@ -1,92 +1,69 @@
 # transpose
 
-## Description
-
-The `transpose` command outputs the requested number of rows as columns, effectively transposing each result row into a corresponding column of field values.
+The `transpose` command outputs the requested number of rows as columns, converting each result row into a corresponding column of field values.
 
 ## Syntax
 
+The `transpose` command has the following syntax:
+
+```
 transpose [int] [column_name=<string>]
 
-* number-of-rows: optional. The number of rows to transform into columns. Default value is 5. Maximum allowed is 10000.
-* column_name: optional. The name of the first column to use when transposing rows. This column holds the field names.
+## Parameters
 
+The `transpose` command supports the following parameters.
 
-## Example 1: Transpose results
+| Parameter | Required/Optional | Description |
+|---|---|---|
+| `<int>` | Optional | The number of rows to transform into columns. Default is `5`. Maximum is `10000`. |
+| `column_name=<string>` | Optional | The name of the first column to use when transposing rows. This column holds the field names. |
 
-This example shows transposing wihtout any parameters. It transforms 5 rows into columns as default is 5.
+## Example 1: Transposing a severity breakdown
+
+The following query transposes a severity breakdown into a columnar format. This is useful for creating compact summary views:
 
 ```ppl
-source=accounts
-| head 5 
-| fields account_number, firstname,  lastname, balance 
+source=otellogs
+| stats count() as log_count by severityText
+| sort severityText
 | transpose
 ```
 
-Expected output:
+The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
-+----------------+-------+--------+---------+-------+-------+
-| column         | row 1 | row 2  | row 3   | row 4 | row 5 |
-|----------------+-------+--------+---------+-------+-------|
-| account_number | 1     | 6      | 13      | 18    | null  |
-| firstname      | Amber | Hattie | Nanette | Dale  | null  |
-| balance        | 39225 | 5686   | 32838   | 4180  | null  |
-| lastname       | Duke  | Bond   | Bates   | Adams | null  |
-+----------------+-------+--------+---------+-------+-------+
+fetched rows / total rows = 2/2
++--------------+-------+-------+-------+-------+-------+
+| column       | row 1 | row 2 | row 3 | row 4 | row 5 |
+|--------------+-------+-------+-------+-------+-------|
+| log_count    | 3     | 7     | 6     | 4     | null  |
+| severityText | DEBUG | ERROR | INFO  | WARN  | null  |
++--------------+-------+-------+-------+-------+-------+
 ```
 
-## Example 2: Tranpose results up to a provided number of rows.
+## Example 2: Transposing a limited number of rows
 
-This example shows transposing wihtout any parameters. It transforms 4 rows into columns as default is 5.
+The following query transposes only the first three severity levels:
 
 ```ppl
-source=accounts
-| head 5 
-| fields  account_number, firstname,  lastname, balance 
-| transpose 4
+source=otellogs
+| stats count() as log_count by severityText
+| sort severityText
+| transpose 3
 ```
 
-Expected output:
+The query returns the following results:
 
 ```text
-fetched rows / total rows = 4/4
-+----------------+-------+--------+---------+-------+
-| column         | row 1 | row 2  | row 3   | row 4 |
-|----------------+-------+--------+---------+-------|
-| account_number | 1     | 6      | 13      | 18    |
-| firstname      | Amber | Hattie | Nanette | Dale  |
-| balance        | 39225 | 5686   | 32838   | 4180  |
-| lastname       | Duke  | Bond   | Bates   | Adams |
-+----------------+-------+--------+---------+-------+
-```
-
-## Example 2: Tranpose results up to a provided number of rows and first column with specified column name.
-
-This example shows transposing wihtout any parameters. It transforms 4 rows into columns as default is 5.
-
-```ppl
-source=accounts
-| head 5 
-| fields  account_number, firstname,  lastname, balance 
-| transpose 4 column_name='column_names'
-```
-
-Expected output:
-
-```text
-fetched rows / total rows = 4/4
-+----------------+-------+--------+---------+-------+
-| column_names   | row 1 | row 2  | row 3   | row 4 |
-|----------------+-------+--------+---------+-------|
-| account_number | 1     | 6      | 13      | 18    |
-| firstname      | Amber | Hattie | Nanette | Dale  |
-| balance        | 39225 | 5686   | 32838   | 4180  |
-| lastname       | Duke  | Bond   | Bates   | Adams |
-+----------------+-------+--------+---------+-------+
+fetched rows / total rows = 2/2
++--------------+-------+-------+-------+
+| column       | row 1 | row 2 | row 3 |
+|--------------+-------+-------+-------|
+| log_count    | 3     | 7     | 6     |
+| severityText | DEBUG | ERROR | INFO  |
++--------------+-------+-------+-------+
 ```
 
 ## Limitations
 
-The `transpose` command transforms up to a number of rows specified and if not enough rows found, it shows those transposed rows as null columns. 
+The `transpose` command converts a specified number of rows into columns. If fewer rows are available, the missing values are represented as `null` columns.

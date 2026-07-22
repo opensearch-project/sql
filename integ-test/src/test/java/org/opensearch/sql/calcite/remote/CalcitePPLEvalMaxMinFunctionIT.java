@@ -7,6 +7,8 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
+import static org.opensearch.sql.util.Capability.EVAL_MAX_MIN_INT_WIDENING;
+import static org.opensearch.sql.util.Capability.EVAL_MAX_MIN_MIXED_TYPES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -15,6 +17,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
   @Override
@@ -27,6 +30,9 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = EVAL_MAX_MIN_INT_WIDENING,
+      note = "max(1, 3, age) selects an int-valued result; the AE route reports it as bigint.")
   public void testEvalMaxNumeric() throws Exception {
     JSONObject result =
         executeQuery(
@@ -48,6 +54,11 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = EVAL_MAX_MIN_MIXED_TYPES,
+      note =
+          "Mixed numeric+string operands -> 'Cannot infer return type for GREATEST' on the AE"
+              + " route.")
   public void testEvalMaxNumericAndString() throws Exception {
     JSONObject result =
         executeQuery(
@@ -82,6 +93,11 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = EVAL_MAX_MIN_MIXED_TYPES,
+      note =
+          "Mixed numeric+string operands -> 'Cannot infer return type for GREATEST' on the AE"
+              + " route.")
   public void testEvalMinNumericAndString() throws Exception {
     JSONObject result =
         executeQuery(

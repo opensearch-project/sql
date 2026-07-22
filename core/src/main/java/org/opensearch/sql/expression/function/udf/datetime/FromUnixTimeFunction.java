@@ -10,7 +10,7 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTime;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTimeFormat;
 
-import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -61,18 +61,18 @@ public class FromUnixTimeFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      return Expressions.call(FromUnixTimeImplementor.class, "fromUnixTime", translatedOperands);
+      // Box the numeric operand and pass it as Number so method resolution succeeds whether the
+      // upstream expression yields a primitive or a boxed value (e.g. a nullable double).
+      List<Expression> operands = new ArrayList<>(translatedOperands);
+      operands.set(0, Expressions.convert_(Expressions.box(operands.getFirst()), Number.class));
+      return Expressions.call(FromUnixTimeImplementor.class, "fromUnixTime", operands);
     }
 
-    public static String fromUnixTime(double unixTime) {
+    public static String fromUnixTime(Number unixTime) {
       return (String) exprFromUnixTime(new ExprDoubleValue(unixTime)).valueForCalcite();
     }
 
-    public static String fromUnixTime(BigDecimal unixTime) {
-      return (String) exprFromUnixTime(new ExprDoubleValue(unixTime)).valueForCalcite();
-    }
-
-    public static String fromUnixTime(double unixTime, String format) {
+    public static String fromUnixTime(Number unixTime, String format) {
       return (String)
           exprFromUnixTimeFormat(new ExprDoubleValue(unixTime), new ExprStringValue(format))
               .valueForCalcite();

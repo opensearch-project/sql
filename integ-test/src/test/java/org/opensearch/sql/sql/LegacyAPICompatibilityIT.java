@@ -7,6 +7,7 @@ package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.plugin.rest.RestQuerySettingsAction.SETTINGS_API_ENDPOINT;
+import static org.opensearch.sql.util.Capability.PAGINATION_CURSOR;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -17,6 +18,7 @@ import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.utils.StringUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
 /** For backward compatibility, check if legacy API endpoints are accessible. */
 public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
@@ -50,6 +52,7 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PAGINATION_CURSOR)
   public void closeCursor() throws IOException {
     String sql =
         StringUtils.format("SELECT firstname FROM %s WHERE balance > 100", TEST_INDEX_ACCOUNT);

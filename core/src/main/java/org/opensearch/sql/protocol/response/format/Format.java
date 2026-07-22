@@ -25,6 +25,8 @@ public enum Format {
   JSON("json"),
   /** Returns explain output in yaml format */
   YAML("yaml"),
+  /** Returns explain output as structured JSON tree using RelJsonWriter */
+  JSON_TREE("json_tree"),
 
   /*---- backward compatible format of explain response -----*/
   SIMPLE("simple"),
@@ -52,6 +54,7 @@ public enum Format {
     builder = new ImmutableMap.Builder<>();
     builder.put(JSON.formatName, JSON);
     builder.put(YAML.formatName, YAML);
+    builder.put(JSON_TREE.formatName, JSON_TREE);
     builder.put(SIMPLE.formatName, SIMPLE);
     builder.put(STANDARD.formatName, STANDARD);
     builder.put(EXTENDED.formatName, EXTENDED);

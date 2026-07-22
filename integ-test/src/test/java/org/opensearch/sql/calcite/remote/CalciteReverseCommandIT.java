@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
+import static org.opensearch.sql.util.Capability.WILDCARD_COLUMN_ORDER;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteReverseCommandIT extends PPLIntegTestCase {
 
@@ -230,6 +232,11 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = WILDCARD_COLUMN_ORDER,
+      note =
+          "streamstats carries all source columns through; the AE route returns them in a different"
+              + " order (WILDCARD_COLUMN_ORDER).")
   public void testStreamstatsWithReverse() throws IOException {
     // Test that reverse is ignored when used directly after streamstats
     // streamstats maintains order via __stream_seq__, but this field is projected out
@@ -259,6 +266,11 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = WILDCARD_COLUMN_ORDER,
+      note =
+          "streamstats carries all source columns through; the AE route returns them in a different"
+              + " order (WILDCARD_COLUMN_ORDER).")
   public void testStreamstatsWindowWithReverse() throws IOException {
     // Test that reverse is ignored after streamstats with window
     JSONObject result =
@@ -286,6 +298,11 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = WILDCARD_COLUMN_ORDER,
+      note =
+          "streamstats carries all source columns through; the AE route returns them in a different"
+              + " order (WILDCARD_COLUMN_ORDER).")
   public void testStreamstatsByWithReverse() throws IOException {
     // Test that reverse is effective after streamstats with partitioning (by clause).
     // Backtracking finds the __stream_seq__ sort from streamstats and reverses its order.
@@ -314,6 +331,11 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = WILDCARD_COLUMN_ORDER,
+      note =
+          "streamstats carries all source columns through; the AE route returns them in a different"
+              + " order (WILDCARD_COLUMN_ORDER).")
   public void testStreamstatsWithSortThenReverse() throws IOException {
     // Test that reverse works when there's an explicit sort after streamstats
     // The explicit sort creates a collation that reverse can detect and reverse

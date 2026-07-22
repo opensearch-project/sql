@@ -38,27 +38,32 @@ public class HeadCommandIT extends PPLIntegTestCase {
   @Test
   public void testHead() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | fields firstname, age | head", TEST_INDEX_ACCOUNT));
+        executeQuery(
+            String.format(
+                "source=%s | sort account_number | fields firstname, age | head",
+                TEST_INDEX_ACCOUNT));
     verifyDataRows(
         result,
+        rows("Bradshaw", 29),
         rows("Amber", 32),
+        rows("Roberta", 22),
+        rows("Levine", 26),
+        rows("Rodriquez", 31),
+        rows("Leola", 30),
         rows("Hattie", 36),
-        rows("Nanette", 28),
-        rows("Dale", 33),
-        rows("Elinor", 36),
-        rows("Virginia", 39),
-        rows("Dillard", 34),
-        rows("Mcgee", 39),
-        rows("Aurelia", 37),
-        rows("Fulton", 23));
+        rows("Levy", 22),
+        rows("Jan", 35),
+        rows("Opal", 39));
   }
 
   @Test
   public void testHeadWithNumber() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | fields firstname, age | head 3", TEST_INDEX_ACCOUNT));
-    verifyDataRows(result, rows("Amber", 32), rows("Hattie", 36), rows("Nanette", 28));
+            String.format(
+                "source=%s | sort account_number | fields firstname, age | head 3",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Bradshaw", 29), rows("Amber", 32), rows("Roberta", 22));
   }
 
   @Ignore("Fix https://github.com/opensearch-project/sql/issues/703#issuecomment-1211422130")
@@ -87,24 +92,26 @@ public class HeadCommandIT extends PPLIntegTestCase {
     setMaxResultWindow(TEST_INDEX_ACCOUNT, 10);
     JSONObject result =
         executeQuery(
-            String.format("source=%s | fields firstname, age | head 15", TEST_INDEX_ACCOUNT));
+            String.format(
+                "source=%s | sort account_number | fields firstname, age | head 15",
+                TEST_INDEX_ACCOUNT));
     verifyDataRows(
         result,
+        rows("Bradshaw", 29),
         rows("Amber", 32),
+        rows("Roberta", 22),
+        rows("Levine", 26),
+        rows("Rodriquez", 31),
+        rows("Leola", 30),
         rows("Hattie", 36),
+        rows("Levy", 22),
+        rows("Jan", 35),
+        rows("Opal", 39),
+        rows("Dominique", 37),
+        rows("Jenkins", 20),
+        rows("Stafford", 20),
         rows("Nanette", 28),
-        rows("Dale", 33),
-        rows("Elinor", 36),
-        rows("Virginia", 39),
-        rows("Dillard", 34),
-        rows("Mcgee", 39),
-        rows("Aurelia", 37),
-        rows("Fulton", 23),
-        rows("Burton", 31),
-        rows("Josie", 32),
-        rows("Hughes", 30),
-        rows("Hall", 25),
-        rows("Deidre", 33));
+        rows("Erma", 39));
   }
 
   @Ignore("Fix https://github.com/opensearch-project/sql/issues/703#issuecomment-1211422130")
@@ -138,7 +145,9 @@ public class HeadCommandIT extends PPLIntegTestCase {
   public void testHeadWithNumberAndFrom() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | fields firstname, age | head 3 from 4", TEST_INDEX_ACCOUNT));
-    verifyDataRows(result, rows("Elinor", 36), rows("Virginia", 39), rows("Dillard", 34));
+            String.format(
+                "source=%s | sort account_number | fields firstname, age | head 3 from 4",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Rodriquez", 31), rows("Leola", 30), rows("Hattie", 36));
   }
 }

@@ -31,6 +31,9 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
+    // Excluded on the analytics-engine route from integ-test/build.gradle (alias fields are
+    // unsupported there — the raw-PUT index can't even be created and these tests query the alias
+    // fields directly), alongside the other AE-route exclusions kept in one place.
     enableCalcite();
     createTestIndexWithAliasFields();
     loadIndex(Index.DATA_TYPE_ALIAS);

@@ -1,8 +1,9 @@
 
 # fieldformat
 
-The `fieldformat` command sets the value to a field with the specified expression and appends the field with evaluated result to the search results. The command is an alias of eval command.
-Additionally, it also provides string concatenation dot operator followed by and/or follows a string that will be concatenated to the expression.
+The `fieldformat` command sets a field to the result of a specified expression and appends the evaluated field to the search results. This command is an alias of [`eval`](./eval.md/).
+
+It also supports string concatenation using the dot (`.`) operator, allowing you to append strings to expressions.
 
 
 ## Syntax
@@ -20,109 +21,65 @@ The `fieldformat` command supports the following parameters.
 
 | Parameter| Required/Optional | Description                                                                                                                                   |
 |----------------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| `<field>`      | Required          | The name of the field to create or update. If the field does not exist, a new field is added. If it already exists, its value is overwritten. |
-| `<expression>` | Required          | The expression to evaluate.  The expression can have a prefix and/or suffix string part that will be concatenated to the expression.          |
-| `prefix`       | Optional          | A string before the expression followed by dot operator which will be concatenated as prefix to the evaluated expression value.               |
-| `suffix`       | Optional          | A string that follows  the expression and dot operator which will be concatenated as suffix to the evaluated expression value.                |
-  
+| `<field>`      | Required | The name of the field to create or update. If the field does not exist, it is added. If it already exists, its value is overwritten. |
+| `<expression>` | Required | The expression to evaluate. It may include optional prefix and/or suffix strings that are concatenated using the dot (`.`) operator. |
+| `prefix`       | Optional | A string placed before the expression. When combined using the dot (`.`) operator, it is concatenated as a prefix to the evaluated result. |
+| `suffix`       | Optional | A string placed after the expression. When combined using the dot (`.`) operator, it is concatenated as a suffix to the evaluated result. | 
 
-## Example 1: Create a new field  
+## Example 1: Creating a computed field for incident classification  
 
-The following query creates a new `doubleAge` field for each document:
+The following query creates an `is_critical` field that indicates whether a log entry represents a critical issue, useful for filtering in dashboards:
   
 ```ppl
-source=accounts
-| fieldformat doubleAge = age * 2
-| fields age, doubleAge
+source=otellogs
+| where severityText IN ('ERROR', 'WARN')
+| fieldformat is_critical = IF(severityNumber >= 21, 'CRITICAL', 'ERROR')
+| sort severityNumber, `resource.attributes.service.name`
+| fields severityText, `resource.attributes.service.name`, is_critical
+| head 4
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
-+-----+-----------+
-| age | doubleAge |
-|-----+-----------|
-| 32  | 64        |
-| 36  | 72        |
-| 28  | 56        |
-| 33  | 66        |
-+-----+-----------+
++--------------+----------------------------------+-------------+
+| severityText | resource.attributes.service.name | is_critical |
+|--------------+----------------------------------+-------------|
+| WARN         | frontend-proxy                   | ERROR       |
+| WARN         | frontend-proxy                   | ERROR       |
+| WARN         | product-catalog                  | ERROR       |
+| WARN         | product-catalog                  | ERROR       |
++--------------+----------------------------------+-------------+
 ```
   
 
-## Example 2: Override an existing field  
+## Example 2: Overriding a field with a formatted value  
 
-The following query overrides the `age` field by adding `1` to its value:
+The following query overrides the `severityNumber` field with a human-readable severity tier:
   
 ```ppl
-source=accounts
-| fieldformat age = age + 1
-| fields age
+source=otellogs
+| dedup severityText
+| sort severityNumber
+| fieldformat severityNumber = CASE(severityNumber < 9, 'low', severityNumber < 17, 'medium', severityNumber >= 17, 'high')
+| fields severityText, severityNumber
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
-+-----+
-| age |
-|-----|
-| 33  |
-| 37  |
-| 29  |
-| 34  |
-+-----+
++--------------+----------------+
+| severityText | severityNumber |
+|--------------+----------------|
+| DEBUG        | low            |
+| INFO         | medium         |
+| WARN         | medium         |
+| ERROR        | high           |
++--------------+----------------+
 ```
   
+## Related commands
 
-  
-
-## Example 3: String concatenation with prefix 
-
-The following query uses the `.` (dot) operator for string concatenation. You can concatenate string literals and field values as follows:
-  
-```ppl
-source=accounts 
-| fieldformat greeting = 'Hello '.tostring( firstname) 
-| fields firstname, greeting
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+-----------+---------------+
-| firstname | greeting      |
-|-----------+---------------|
-| Amber     | Hello Amber   |
-| Hattie    | Hello Hattie  |
-| Nanette   | Hello Nanette |
-| Dale      | Hello Dale    |
-+-----------+---------------+
-```
-  
-
-## Example 4: String concatenation with dot operator, prefix and suffix
-
-The following query performs prefix and suffix string concatenation operations using dot operator:
-
-```ppl
-source=accounts | fieldformat age_info =  'Age: '.CAST(age AS STRING).' years.' | fields firstname, age, age_info
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 4/4
-+-----------+-----+----------------+
-| firstname | age | age_info       |
-|-----------+-----+----------------|
-| Amber     | 32  | Age: 32 years. |
-| Hattie    | 36  | Age: 36 years. |
-| Nanette   | 28  | Age: 28 years. |
-| Dale      | 33  | Age: 33 years. |
-+-----------+-----+----------------+
-```
-
-
+- [`eval`](./eval.md)

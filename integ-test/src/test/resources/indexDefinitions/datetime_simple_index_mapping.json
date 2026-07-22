@@ -1,0 +1,10 @@
+{
+  "mappings": {
+    "properties": {
+      "date_value": {
+        "type" : "date",
+        "format": "yyyy-MM-dd HH:mm:ss"
+      }
+    }
+  }
+}

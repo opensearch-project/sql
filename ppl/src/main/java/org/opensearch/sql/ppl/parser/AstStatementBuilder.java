@@ -12,7 +12,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.expression.AllFields;
-import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
@@ -22,6 +21,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
+import org.opensearch.sql.protocol.response.format.Format;
 
 /** Build {@link Statement} from PPL Query. */
 @RequiredArgsConstructor
@@ -46,12 +46,15 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
     }
     if (ctx.explainStatement() != null) {
       if (ctx.explainStatement().explainMode() == null) {
-        return new Explain(query, PPL);
+        return new Explain(query, PPL, null, context.format);
       } else {
-        return new Explain(query, PPL, ctx.explainStatement().explainMode().getText());
+        return new Explain(
+            query, PPL, ctx.explainStatement().explainMode().getText(), context.format);
       }
     } else {
-      return context.isExplain ? new Explain(query, PPL, context.explainMode) : query;
+      return context.isExplain
+          ? new Explain(query, PPL, context.explainMode, context.format)
+          : query;
     }
   }
 
@@ -75,7 +78,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
     /** Highlight config from the API request. */
     private final HighlightConfig highlightConfig;
 
-    private final String format;
+    private final Format format;
     private final String explainMode;
 
     /** Whether to include metadata fields like _id, _index, _score in the result. */
@@ -86,12 +89,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
     if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
       return plan;
     } else {
-      // Use AllFieldsExcludeMeta when include_metadata is false (default behavior)
-      // Use AllFields when include_metadata is true (include metadata fields)
-      boolean includeMetadata = context.isIncludeMetadata();
-      AllFields allFields = includeMetadata ? AllFields.of() : AllFieldsExcludeMeta.of();
-
-      return new Project(ImmutableList.of(allFields)).attach(plan);
+      return new Project(ImmutableList.of(AllFields.of())).attach(plan);
     }
   }
 }

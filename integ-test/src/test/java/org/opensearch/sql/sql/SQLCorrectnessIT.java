@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.BackendCapabilities.requireCapability;
+import static org.opensearch.sql.util.Capability.UNTYPED_NULL_LITERAL;
+
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,6 +30,7 @@ public class SQLCorrectnessIT extends CorrectnessTestBase {
 
   @Test
   public void runAllTests() throws Exception {
+    requireCapability(UNTYPED_NULL_LITERAL);
     verifyQueries(EXPR_TEST_DIR, expr -> "SELECT " + expr);
     verifyQueries(QUERY_TEST_DIR, Function.identity());
   }

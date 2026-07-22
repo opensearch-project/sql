@@ -61,10 +61,17 @@ class QueryPlanTest {
   @Test
   public void explain_no_page_size() {
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
-    query.explain(explainListener, mode);
+    query.explain(explainListener, mode, null);
 
     verify(queryService, times(1))
-        .explain(eq(plan), eq(queryType), isNull(), anyBoolean(), eq(explainListener), eq(mode));
+        .explain(
+            eq(plan),
+            eq(queryType),
+            isNull(),
+            anyBoolean(),
+            eq(explainListener),
+            eq(mode),
+            isNull());
   }
 
   @Test

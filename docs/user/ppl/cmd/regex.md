@@ -33,139 +33,121 @@ The `regex` command supports the following parameters.
 | `<field>` | Required | The field name to match against. |
 | `<pattern>` | Required | The regular expression pattern to match. Supports [Java regular expression syntax](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html). |
 
-## Example 1: Basic pattern matching  
+## Example 1: Finding logs matching a pattern
 
-The following query uses the `regex` command to return any document in which the `lastname` field starts with an uppercase letter:
+The following query finds error logs mentioning connection timeouts:
   
 ```ppl
-source=accounts
-| regex lastname="^[A-Z][a-z]+$"
-| fields account_number, firstname, lastname
+source=otellogs
+| where severityText = 'ERROR'
+| regex body=".*timeout.*"
+| fields severityText, `resource.attributes.service.name`, body
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------------+-----------+----------+
-| account_number | firstname | lastname |
-|----------------+-----------+----------|
-| 1              | Amber     | Duke     |
-| 6              | Hattie    | Bond     |
-| 13             | Nanette   | Bates    |
-| 18             | Dale      | Adams    |
-+----------------+-----------+----------+
+fetched rows / total rows = 1/1
++--------------+----------------------------------+---------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                |
+|--------------+----------------------------------+---------------------------------------------------------------------|
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms |
++--------------+----------------------------------+---------------------------------------------------------------------+
 ```
   
 
-## Example 2: Negative matching
+## Example 2: Excluding logs matching a pattern
 
-The following query excludes documents in which the `lastname` field ends with `ms`:
-
+The following query finds all errors except those related to timeouts:
+  
 ```ppl
-source=accounts
-| regex lastname!=".*ms$"
-| fields account_number, lastname
+source=otellogs
+| where severityText = 'ERROR'
+| regex body!=".*timeout.*"
+| fields severityText, `resource.attributes.service.name`, body
+| head 3
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+----------------+----------+
-| account_number | lastname |
-|----------------+----------|
-| 1              | Duke     |
-| 6              | Bond     |
-| 13             | Bates    |
-+----------------+----------+
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                         |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------------|
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                      |
+| ERROR        | frontend-proxy                   | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 |
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
 ```
   
 
-## Example 3: Email domain matching  
+## Example 3: Filtering by service name pattern
 
-The following query filters documents by email domain patterns:
+The following query finds warning logs from services whose names end with "catalog":
   
 ```ppl
-source=accounts
-| regex email="@pyrami\.com$"
-| fields account_number, email
+source=otellogs
+| where severityText = 'WARN'
+| regex `resource.attributes.service.name`=".*catalog$"
+| fields severityText, `resource.attributes.service.name`, body
 ```
   
 The query returns the following results:
   
+```text
+fetched rows / total rows = 2/2
++--------------+----------------------------------+----------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                   |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------|
+| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
+| WARN         | product-catalog                  | Connection pool 80% utilized on database replica db-replica-02                         |
++--------------+----------------------------------+----------------------------------------------------------------------------------------+
+```
+  
+
+## Example 4: Complex patterns with character classes
+
+The following query uses complex regex patterns with character classes and quantifiers to match log messages containing service method calls:
+
+```ppl
+source=otellogs
+| where severityText = 'ERROR'
+| regex body="[A-Z][a-zA-Z]+\\.[a-zA-Z]+"
+| fields severityText, body
+| head 3
+```
+
+The query returns the following results:
+
 ```text
 fetched rows / total rows = 1/1
-+----------------+----------------------+
-| account_number | email                |
-|----------------+----------------------|
-| 1              | amberduke@pyrami.com |
-+----------------+----------------------+
++--------------+----------------------------------------------------------------+
+| severityText | body                                                           |
+|--------------+----------------------------------------------------------------|
+| ERROR        | NullPointerException in CheckoutService.placeOrder at line 142 |
++--------------+----------------------------------------------------------------+
 ```
-  
 
-## Example 4: Complex patterns with character classes  
+## Example 5: Case-sensitive matching
 
-The following query uses complex regex patterns with character classes and quantifiers:
-  
+By default, regex matching is case sensitive. The following query searches for lowercase `error`:
+
 ```ppl
-source=accounts | regex address="\\d{3,4}\\s+[A-Z][a-z]+\\s+(Street|Lane|Court)" | fields account_number, address
+source=otellogs
+| regex severityText="error"
+| fields severityText
 ```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 4/4
-+----------------+----------------------+
-| account_number | address              |
-|----------------+----------------------|
-| 1              | 880 Holmes Lane      |
-| 6              | 671 Bristol Street   |
-| 13             | 789 Madison Street   |
-| 18             | 467 Hutchinson Court |
-+----------------+----------------------+
-```
-  
 
-## Example 5: Case-sensitive matching  
+The query returns no results because the regex pattern `error` (lowercase) does not match `ERROR` (uppercase):
 
-By default, regex matching is case sensitive. The following query searches for the lowercase state name `va`:
-  
-```ppl
-source=accounts
-| regex state="va"
-| fields account_number, state
-```
-  
-The query returns no results because the regex pattern `va` (lowercase) does not match any state values in the data.
-  
 ```text
 fetched rows / total rows = 0/0
-+----------------+-------+
-| account_number | state |
-|----------------+-------|
-+----------------+-------+
++--------------+
+| severityText |
+|--------------|
++--------------+
 ```
-
-The following query searches for the uppercase state name `VA`:
-
-```ppl
-source=accounts
-| regex state="VA"
-| fields account_number, state
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 1/1
-+----------------+-------+
-| account_number | state |
-|----------------+-------|
-| 13             | VA    |
-+----------------+-------+
-```
-  
 
 ## Limitations
 

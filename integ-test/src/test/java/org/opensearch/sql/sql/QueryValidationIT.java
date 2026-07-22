@@ -8,6 +8,7 @@ package org.opensearch.sql.sql;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.Capability.QUERY_ERROR_MESSAGE;
 import static org.opensearch.sql.util.MatcherUtils.featureValueOf;
 
 import java.io.IOException;
@@ -21,12 +22,15 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.ResponseException;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * The query validation IT only covers test for error cases that not doable in comparison test. For
  * all other tests, comparison test should be favored over manual written test like this.
  */
+@RequiresCapability(QUERY_ERROR_MESSAGE)
 public class QueryValidationIT extends SQLIntegTestCase {
 
   @Rule public final ExpectedException exceptionRule = ExpectedException.none();
@@ -34,6 +38,27 @@ public class QueryValidationIT extends SQLIntegTestCase {
   @Override
   protected void init() throws Exception {
     loadIndex(Index.ACCOUNT);
+  }
+
+  @Test
+  public void testDeeplyNestedPredicateIsRejectedInsteadOfCrashingNode() throws IOException {
+    // Lower the limit so a small, safe-to-parse query triggers the guard (a query large enough
+    // to exhaust the default limit could overflow the ANTLR parser itself before the guard runs).
+    updateClusterSettings(
+        new ClusterSetting(TRANSIENT, Settings.Key.MAX_EXPRESSION_DEPTH.getKeyValue(), "20"));
+    try {
+      StringBuilder predicate = new StringBuilder("age = 1");
+      for (int i = 2; i <= 30; i++) {
+        predicate.append(" OR age = ").append(i);
+      }
+      expectResponseException()
+          .hasStatusCode(BAD_REQUEST)
+          .containsMessage("Expression nesting depth exceeds the maximum allowed")
+          .whenExecute("SELECT * FROM opensearch-sql_test_index_account WHERE " + predicate);
+    } finally {
+      updateClusterSettings(
+          new ClusterSetting(TRANSIENT, Settings.Key.MAX_EXPRESSION_DEPTH.getKeyValue(), null));
+    }
   }
 
   @Ignore(
@@ -100,6 +125,34 @@ public class QueryValidationIT extends SQLIntegTestCase {
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
 
+    client().performRequest(request);
+  }
+
+  // An alias field whose path targets a text multi-field (e.g. "source.keyword") must fail with a
+  // descriptive client error rather than an opaque NullPointerException.
+  @Test
+  public void testAliasToKeywordMultiFieldFailsWithBadRequest() throws IOException {
+    String index = "test_alias_unresolved_keyword";
+    createIndexWithMapping(
+        index,
+        "{ \"properties\": {"
+            + "  \"source\": { \"type\": \"text\", \"fields\": { \"keyword\": { \"type\":"
+            + " \"keyword\" } } },"
+            + "  \"source_alias\": { \"type\": \"alias\", \"path\": \"source.keyword\" } } }");
+
+    expectResponseException()
+        .hasStatusCode(BAD_REQUEST)
+        // #5532 unwraps ErrorReport to its cause in the SQL error formatter, so the reported type
+        // is
+        // now the underlying SemanticCheckException, not the ErrorReport wrapper.
+        .hasErrorType("SemanticCheckException")
+        .containsMessage("Alias field [source_alias] refers to unresolved path [source.keyword]")
+        .whenExecute(String.format(Locale.ROOT, "SELECT * FROM %s", index));
+  }
+
+  private static void createIndexWithMapping(String indexName, String mapping) throws IOException {
+    Request request = new Request("PUT", "/" + indexName);
+    request.setJsonEntity(String.format(Locale.ROOT, "{ \"mappings\": %s }", mapping));
     client().performRequest(request);
   }
 

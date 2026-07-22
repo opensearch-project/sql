@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.VECTOR_SEARCH;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -15,12 +17,14 @@ import java.util.regex.Pattern;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Explain-plan integration tests for vectorSearch SQL table function. These tests verify DSL
  * push-down shape via _explain. They do NOT require the k-NN plugin since _explain only parses and
  * plans the query without executing it against a knn index.
  */
+@RequiresCapability(VECTOR_SEARCH)
 public class VectorSearchExplainIT extends SQLIntegTestCase {
 
   // Matches WrapperQueryBuilder's base64 payload in explain JSON. The explain output escapes

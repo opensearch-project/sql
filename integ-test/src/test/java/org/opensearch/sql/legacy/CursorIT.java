@@ -12,6 +12,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_TIME;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.Capability.PAGINATION_CURSOR;
 import static org.opensearch.sql.util.TestUtils.verifyIsV2Cursor;
 
 import java.io.IOException;
@@ -27,7 +28,9 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.utils.StringUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(PAGINATION_CURSOR)
 public class CursorIT extends SQLIntegTestCase {
 
   private static final String CURSOR = "cursor";

@@ -656,8 +656,8 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT TRANSFORM(ARRAY_SLICE(ARRAY(1, 2, 3, 4, 5), 1, 3 - 1 + 1), `arr` -> `arr` * 10)"
-            + " `result`\n"
+        "SELECT TRANSFORM(ARRAY_SLICE(ARRAY(1, 2, 3, 4, 5), 1, 3 - 1 + 1), `arr` -> `arr`"
+            + " * 10) `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);

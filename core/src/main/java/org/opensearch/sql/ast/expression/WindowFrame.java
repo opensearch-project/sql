@@ -40,6 +40,13 @@ public class WindowFrame extends UnresolvedExpression {
         AstDSL.stringLiteral("CURRENT ROW"));
   }
 
+  public static WindowFrame rangeToCurrentRow() {
+    return WindowFrame.of(
+        FrameType.RANGE,
+        AstDSL.stringLiteral("UNBOUNDED PRECEDING"),
+        AstDSL.stringLiteral("CURRENT ROW"));
+  }
+
   public static WindowFrame of(FrameType type, String lower, String upper) {
     return WindowFrame.of(type, AstDSL.stringLiteral(lower), AstDSL.stringLiteral(upper));
   }

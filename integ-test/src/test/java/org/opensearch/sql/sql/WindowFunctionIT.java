@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.PERCENTILE_APPROXIMATE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
@@ -13,6 +14,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class WindowFunctionIT extends SQLIntegTestCase {
 
@@ -125,6 +127,7 @@ public class WindowFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PERCENTILE_APPROXIMATE)
   public void testPercentileOverNull() {
     JSONObject response =
         new JSONObject(
@@ -145,6 +148,7 @@ public class WindowFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PERCENTILE_APPROXIMATE)
   public void testPercentileOver() {
     JSONObject response =
         new JSONObject(
@@ -165,6 +169,7 @@ public class WindowFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PERCENTILE_APPROXIMATE)
   public void testPercentilePartition() {
     JSONObject response =
         new JSONObject(

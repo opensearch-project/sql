@@ -19,209 +19,232 @@ The `where` command supports the following parameters.
 | --- | --- | --- |
 | `<boolean-expression>` | Required | The condition used to filter the results. Only rows in which this condition evaluates to `true` are returned. |
 
-## Example 1: Filter by numeric values
+## Example 1: Filtering by severity level
 
-The following query returns accounts in which `balance` is greater than `30000`:
+The following query finds all log entries with a severity level above `INFO` (severityNumber > 9), filtering out routine logs to focus on warnings and errors:
 
 ```ppl
-source=accounts
-| where balance > 30000
-| fields account_number, balance
+source=otellogs
+| where severityNumber > 9
+| sort severityNumber, `resource.attributes.service.name`
+| fields severityText, severityNumber, `resource.attributes.service.name`
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 11/11
++--------------+----------------+----------------------------------+
+| severityText | severityNumber | resource.attributes.service.name |
+|--------------+----------------+----------------------------------|
+| WARN         | 13             | frontend-proxy                   |
+| WARN         | 13             | frontend-proxy                   |
+| WARN         | 13             | product-catalog                  |
+| WARN         | 13             | product-catalog                  |
+| ERROR        | 17             | checkout                         |
+| ERROR        | 17             | checkout                         |
+| ERROR        | 17             | frontend-proxy                   |
+| ERROR        | 17             | payment                          |
+| ERROR        | 17             | payment                          |
+| ERROR        | 17             | product-catalog                  |
+| ERROR        | 17             | recommendation                   |
++--------------+----------------+----------------------------------+
+```
+
+## Example 2: Filtering using combined criteria
+
+The following query narrows down errors to a specific service during an incident investigation, combining severity and service name conditions with `AND`:
+
+```ppl
+source=otellogs
+| where severityNumber >= 17 AND `resource.attributes.service.name` = 'payment'
+| fields severityText, severityNumber, `resource.attributes.service.name`
 ```
 
 The query returns the following results:
 
 ```text
 fetched rows / total rows = 2/2
-+----------------+---------+
-| account_number | balance |
-|----------------+---------|
-| 1              | 39225   |
-| 13             | 32838   |
-+----------------+---------+
++--------------+----------------+----------------------------------+
+| severityText | severityNumber | resource.attributes.service.name |
+|--------------+----------------+----------------------------------|
+| ERROR        | 17             | payment                          |
+| ERROR        | 17             | payment                          |
++--------------+----------------+----------------------------------+
 ```
 
-## Example 2: Filter using combined criteria
 
-The following query combines multiple conditions using an `AND` operator:
+## Example 3: Filtering with multiple possible values
+
+The following query retrieves all warnings and errors using `OR` to match either condition:
 
 ```ppl
-source=accounts
-| where age > 30 AND gender = 'M'
-| fields account_number, age, gender
+source=otellogs
+| where severityText = 'WARN' or severityText = 'ERROR'
+| fields severityText, `resource.attributes.service.name`, body
+| head 5
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 5/5
++--------------+----------------------------------+----------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                   |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------|
+| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                    |
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                         |
+| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                |
+| WARN         | product-catalog                  | Connection pool 80% utilized on database replica db-replica-02                         |
++--------------+----------------------------------+----------------------------------------------------------------------------------------+
+```
+  
+
+## Example 4: Filtering by text patterns 
+
+The `LIKE` operator enables pattern matching on string fields using wildcards.
+
+### Matching with a prefix pattern
+
+The following query uses a percent sign (`%`) to find all services starting with `frontend`:
+
+```ppl
+source=otellogs
+| where LIKE(`resource.attributes.service.name`, 'frontend%')
+| fields severityText, `resource.attributes.service.name`, body
+| head 3
+```
+
+### Matching with a wildcard pattern
+
+The following query finds all logs from services containing `product` in their name:
+
+```ppl
+source=otellogs
+| where LIKE(`resource.attributes.service.name`, '%product%')
+| fields severityText, `resource.attributes.service.name`, body
+| head 3
 ```
 
 The query returns the following results:
 
 ```text
 fetched rows / total rows = 3/3
-+----------------+-----+--------+
-| account_number | age | gender |
-|----------------+-----+--------|
-| 1              | 32  | M      |
-| 6              | 36  | M      |
-| 18             | 33  | M      |
-+----------------+-----+--------+
++--------------+----------------------------------+----------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                   |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------|
+| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms |
+| WARN         | product-catalog                  | Connection pool 80% utilized on database replica db-replica-02                         |
+| DEBUG        | product-catalog                  | gRPC call /ProductCatalogService/GetProduct completed in 12ms                          |
++--------------+----------------------------------+----------------------------------------------------------------------------------------+
 ```
 
+## Example 5: Filtering by excluding specific values  
 
-## Example 3: Filter with multiple possible values
-
-The following query fetches all the documents from the `accounts` index in which `account_number` is `1` or `gender` is `F`:
-
-```ppl
-source=accounts
-| where account_number=1 or gender="F"
-| fields account_number, gender
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 2/2
-+----------------+--------+
-| account_number | gender |
-|----------------+--------|
-| 1              | M      |
-| 13             | F      |
-+----------------+--------+
-```
-  
-
-## Example 4: Filter by text patterns 
-
-The `LIKE` operator enables pattern matching on string fields using wildcards.
-
-### Matching a single character
-
-The following query uses an underscore (`_`) to match a single character:
-
-```ppl
-source=accounts
-| where LIKE(state, 'M_')
-| fields account_number, state
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 1/1
-+----------------+-------+
-| account_number | state |
-|----------------+-------|
-| 18             | MD    |
-+----------------+-------+
-```
-
-### Matching multiple characters
-
-The following query uses a percent sign (`%`) to match multiple characters:
-
-```ppl
-source=accounts
-| where LIKE(state, 'V%')
-| fields account_number, state
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 1/1
-+----------------+-------+
-| account_number | state |
-|----------------+-------|
-| 13             | VA    |
-+----------------+-------+
-```
-
-## Example 5: Filter by excluding specific values  
-
-The following query uses a `NOT` operator to exclude matching records:
+The following query uses a `NOT` operator to exclude routine informational and debug logs, focusing on warnings and errors that need attention:
   
 ```ppl
-source=accounts
-| where NOT state = 'CA'
-| fields account_number, state
+source=otellogs
+| where NOT severityText IN ('INFO', 'DEBUG')
+| sort severityNumber, `resource.attributes.service.name`
+| fields severityText, `resource.attributes.service.name`, body
+| head 4
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
-+----------------+-------+
-| account_number | state |
-|----------------+-------|
-| 1              | IL    |
-| 6              | TN    |
-| 13             | VA    |
-| 18             | MD    |
-+----------------+-------+
++--------------+----------------------------------+-------------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                      |
+|--------------+----------------------------------+-------------------------------------------------------------------------------------------|
+| WARN         | frontend-proxy                   | SSL certificate for api.example.com expires in 14 days                                    |
+| WARN         | frontend-proxy                   | Rate limit threshold reached: 450/500 requests per minute for API key ending in ...abc789 |
+| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms    |
+| WARN         | product-catalog                  | Connection pool 80% utilized on database replica db-replica-02                            |
++--------------+----------------------------------+-------------------------------------------------------------------------------------------+
 ```
   
 
-## Example 6: Filter using value lists  
+## Example 6: Filtering using value lists  
 
-The following query uses an `IN` operator to match multiple values:
+The following query uses an `IN` operator to match multiple severity levels at once, retrieving all errors and warnings for incident response:
   
 ```ppl
-source=accounts
-| where state IN ('IL', 'VA')
-| fields account_number, state
+source=otellogs
+| where severityText IN ('ERROR', 'WARN')
+| sort severityNumber, `resource.attributes.service.name`
+| fields severityText, `resource.attributes.service.name`, body
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 11/11
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                                         |
+|--------------+----------------------------------+----------------------------------------------------------------------------------------------|
+| WARN         | frontend-proxy                   | SSL certificate for api.example.com expires in 14 days                                       |
+| WARN         | frontend-proxy                   | Rate limit threshold reached: 450/500 requests per minute for API key ending in ...abc789    |
+| WARN         | product-catalog                  | Slow query detected: SELECT * FROM products WHERE category = 'electronics' took 3200ms       |
+| WARN         | product-catalog                  | Connection pool 80% utilized on database replica db-replica-02                               |
+| ERROR        | checkout                         | NullPointerException in CheckoutService.placeOrder at line 142                               |
+| ERROR        | checkout                         | Kafka producer delivery failed: message too large for topic order-events (max 1048576 bytes) |
+| ERROR        | frontend-proxy                   | [2024-02-01T09:20:00.456Z] "POST /api/checkout HTTP/1.1" 503 - 0 30000 checkout-8d4f7b-mk2p9 |
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms                          |
+| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3                      |
+| ERROR        | product-catalog                  | Database primary node unreachable: connection refused to db-primary-01:5432                  |
+| ERROR        | recommendation                   | Failed to process recommendation request: invalid product ID from 203.0.113.50               |
++--------------+----------------------------------+----------------------------------------------------------------------------------------------+
+```
+  
+
+## Example 7: Filtering records with missing data  
+
+The following query finds logs that have instrumentation scope metadata:
+  
+```ppl
+source=otellogs
+| where NOT ISNULL(instrumentationScope.name)
+| fields severityText, instrumentationScope.name
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 4/4
++--------------+-----------------------------------------------------------------------------+
+| severityText | instrumentationScope.name                                                   |
+|--------------+-----------------------------------------------------------------------------|
+| INFO         | @opentelemetry/instrumentation-http                                         |
+| INFO         | Microsoft.Extensions.Hosting                                                |
+| WARN         | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc |
+| ERROR        | @opentelemetry/instrumentation-http                                         |
++--------------+-----------------------------------------------------------------------------+
+```
+  
+
+## Example 8: Filtering using grouped conditions  
+
+The following query investigates a specific service's errors by combining severity conditions with a service filter, using parentheses to control evaluation order:
+  
+```ppl
+source=otellogs
+| where (severityText = 'ERROR' OR severityText = 'WARN') AND `resource.attributes.service.name` = 'payment'
+| sort severityNumber
+| fields severityText, `resource.attributes.service.name`, body
 ```
   
 The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
-+----------------+-------+
-| account_number | state |
-|----------------+-------|
-| 1              | IL    |
-| 13             | VA    |
-+----------------+-------+
-```
-  
-
-## Example 7: Filter records with missing data  
-
-The following query returns records in which the `employer` field is `null`:
-  
-```ppl
-source=accounts
-| where ISNULL(employer)
-| fields account_number, employer
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 1/1
-+----------------+----------+
-| account_number | employer |
-|----------------+----------|
-| 18             | null     |
-+----------------+----------+
-```
-  
-
-## Example 8: Filter using grouped conditions  
-
-The following query combines multiple conditions using parentheses and logical operators:
-  
-```ppl
-source=accounts
-| where (balance > 40000 OR age > 35) AND gender = 'M'
-| fields account_number, balance, age, gender
-```
-  
-The query returns the following results:
-  
-```text
-fetched rows / total rows = 1/1
-+----------------+---------+-----+--------+
-| account_number | balance | age | gender |
-|----------------+---------+-----+--------|
-| 6              | 5686    | 36  | M      |
-+----------------+---------+-----+--------+
++--------------+----------------------------------+-------------------------------------------------------------------------+
+| severityText | resource.attributes.service.name | body                                                                    |
+|--------------+----------------------------------+-------------------------------------------------------------------------|
+| ERROR        | payment                          | Payment failed: connection timeout to payment gateway after 30000ms     |
+| ERROR        | payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
++--------------+----------------------------------+-------------------------------------------------------------------------+
 ```
   

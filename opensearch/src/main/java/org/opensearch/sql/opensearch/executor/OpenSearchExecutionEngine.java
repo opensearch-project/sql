@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.executor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Suppliers;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,6 +25,7 @@ import org.apache.calcite.avatica.util.StructImpl;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Hook;
@@ -42,6 +44,7 @@ import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.TimewrapPivot;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -65,12 +68,14 @@ import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.transport.client.node.NodeClient;
 
 /** OpenSearch execution engine implementation. */
 public class OpenSearchExecutionEngine implements ExecutionEngine {
   private static final Logger logger = LogManager.getLogger(OpenSearchExecutionEngine.class);
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   private final OpenSearchClient client;
 
@@ -167,38 +172,146 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         });
   }
 
+  /**
+   * Parse sourceBuilder JSON strings within the physical plan tree to objects. This finds any
+   * sourceBuilder fields (which are serialized as JSON strings by RelJsonWriter) and parses them to
+   * JSON objects for easier client consumption.
+   */
+  @SuppressWarnings("unchecked")
+  private void parseSourceBuilderInPhysicalTree(Object physicalTree) {
+    try {
+      if (!(physicalTree instanceof Map)) {
+        return;
+      }
+      Map<String, Object> tree = (Map<String, Object>) physicalTree;
+      Object relsObj = tree.get("rels");
+      if (!(relsObj instanceof List)) {
+        return;
+      }
+
+      List<Object> rels = (List<Object>) relsObj;
+      for (Object relObj : rels) {
+        if (!(relObj instanceof Map)) {
+          continue;
+        }
+        Map<String, Object> rel = (Map<String, Object>) relObj;
+
+        // Parse sourceBuilder if it exists as a JSON string
+        Object sourceBuilderObj = rel.get("sourceBuilder");
+        if (sourceBuilderObj instanceof String) {
+          try {
+            String sourceBuilderJson = (String) sourceBuilderObj;
+            Object parsed = objectMapper.readValue(sourceBuilderJson, Object.class);
+            rel.put("sourceBuilder", parsed);
+          } catch (Exception e) {
+            logger.debug("Failed to parse sourceBuilder JSON: {}", e.getMessage());
+          }
+        }
+      }
+    } catch (Exception e) {
+      logger.warn("Failed to parse sourceBuilder in physical tree: " + e.getMessage());
+    }
+  }
+
   @Override
   public void explain(
       RelNode rel,
       ExplainMode mode,
       CalcitePlanContext context,
       ResponseListener<ExplainResponse> listener) {
+    explain(rel, mode, null, context, listener);
+  }
+
+  @Override
+  public void explain(
+      RelNode rel,
+      ExplainMode mode,
+      Format format,
+      CalcitePlanContext context,
+      ResponseListener<ExplainResponse> listener) {
     client.schedule(
         () -> {
           try {
-            if (mode == ExplainMode.SIMPLE) {
-              String logical = RelOptUtil.toString(rel, SqlExplainLevel.NO_ATTRIBUTES);
-              listener.onResponse(
-                  new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
-            } else {
-              SqlExplainLevel level =
-                  mode == ExplainMode.COST
-                      ? SqlExplainLevel.ALL_ATTRIBUTES
-                      : SqlExplainLevel.EXPPLAN_ATTRIBUTES;
-              String logical = RelOptUtil.toString(rel, level);
-              AtomicReference<String> physical = new AtomicReference<>();
-              AtomicReference<String> javaCode = new AtomicReference<>();
-              try (Hook.Closeable closeable = getPhysicalPlanInHook(physical, level)) {
-                if (mode == ExplainMode.EXTENDED) {
-                  getCodegenInHook(javaCode);
-                  CalcitePlanContext.skipEncoding.set(true);
+            if (format == Format.JSON_TREE) {
+              // Use RelJsonWriter for structured JSON tree output
+              try {
+                RelJsonWriter logicalWriter = new RelJsonWriter();
+                rel.explain(logicalWriter);
+                String logicalJson = logicalWriter.asString();
+
+                AtomicReference<String> physicalJson = new AtomicReference<>();
+                AtomicReference<Exception> physicalError = new AtomicReference<>();
+                SqlExplainLevel level =
+                    mode == ExplainMode.COST
+                        ? SqlExplainLevel.ALL_ATTRIBUTES
+                        : SqlExplainLevel.EXPPLAN_ATTRIBUTES;
+
+                try (Hook.Closeable closeable =
+                    Hook.PLAN_BEFORE_IMPLEMENTATION.addThread(
+                        obj -> {
+                          try {
+                            RelRoot relRoot = (RelRoot) obj;
+                            RelJsonWriter physicalWriter = new RelJsonWriter();
+                            relRoot.rel.explain(physicalWriter);
+                            physicalJson.set(physicalWriter.asString());
+                          } catch (Exception e) {
+                            physicalError.set(e);
+                          }
+                        })) {
+                  // triggers the hook
+                  OpenSearchRelRunners.run(context, rel);
                 }
-                // triggers the hook
-                OpenSearchRelRunners.run(context, rel);
+
+                if (physicalError.get() != null) {
+                  throw physicalError.get();
+                }
+
+                // Parse JSON strings to objects for structured output
+                Object logicalTree = objectMapper.readValue(logicalJson, Object.class);
+                Object physicalTree = objectMapper.readValue(physicalJson.get(), Object.class);
+
+                // Parse sourceBuilder JSON if present in physical plan
+                parseSourceBuilderInPhysicalTree(physicalTree);
+
+                ExplainResponseNodeV2 response =
+                    new ExplainResponseNodeV2(logicalJson, physicalJson.get(), null);
+                response.setLogicalTree(logicalTree);
+                response.setPhysicalTree(physicalTree);
+
+                listener.onResponse(new ExplainResponse(response));
+              } catch (Exception e) {
+                // RelJsonWriter can't handle some custom types (e.g., SystemLimitType enum)
+                listener.onFailure(
+                    new UnsupportedOperationException(
+                        "Cannot serialize plan to json_tree format: " + e.getMessage(), e));
+                return;
               }
-              listener.onResponse(
-                  new ExplainResponse(
-                      new ExplainResponseNodeV2(logical, physical.get(), javaCode.get())));
+            } else {
+              // Original string format for json/yaml
+              if (mode == ExplainMode.SIMPLE) {
+                String logical = RelOptUtil.toString(rel, SqlExplainLevel.NO_ATTRIBUTES);
+                listener.onResponse(
+                    new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
+              } else {
+                SqlExplainLevel level =
+                    mode == ExplainMode.COST
+                        ? SqlExplainLevel.ALL_ATTRIBUTES
+                        : SqlExplainLevel.EXPPLAN_ATTRIBUTES;
+                String logical = RelOptUtil.toString(rel, level);
+                AtomicReference<String> physical = new AtomicReference<>();
+                AtomicReference<String> javaCode = new AtomicReference<>();
+                try (Hook.Closeable closeable = getPhysicalPlanInHook(physical, level)) {
+                  if (mode == ExplainMode.EXTENDED) {
+                    getCodegenInHook(javaCode);
+                    CalcitePlanContext.skipEncoding.set(true);
+                  }
+                  // triggers the hook
+                  OpenSearchRelRunners.run(context, rel);
+                }
+                listener.onResponse(
+                    new ExplainResponse(
+                        new ExplainResponseNodeV2(logical, physical.get(), javaCode.get())));
+              }
             }
           } catch (Exception e) {
             listener.onFailure(e);
@@ -320,6 +433,23 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       }
       columns.add(new Column(columnName, null, exprType));
     }
+    // Timewrap post-processing: pivot unpivoted rows into period columns. The pivot is shared with
+    // the analytics route (AnalyticsExecutionEngine) so both engines produce identical output.
+    if (TimewrapPivot.isTimewrap()) {
+      try {
+        TimewrapPivot.Result pivoted =
+            TimewrapPivot.pivot(
+                columns,
+                values,
+                CalcitePlanContext.timewrapUnitName.get(),
+                CalcitePlanContext.timewrapSeries.get());
+        columns = pivoted.columns();
+        values = pivoted.values();
+      } finally {
+        CalcitePlanContext.clearTimewrapSignals();
+      }
+    }
+
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
     return response;

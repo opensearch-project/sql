@@ -17,10 +17,14 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
@@ -41,6 +45,18 @@ public class CalcitePlanContext {
 
   /** This thread local variable is only used to skip script encoding in script pushdown. */
   public static final ThreadLocal<Boolean> skipEncoding = ThreadLocal.withInitial(() -> false);
+
+  /** When true, the execution engine strips all-null columns from the result (used by timewrap). */
+  public static final ThreadLocal<Boolean> stripNullColumns = ThreadLocal.withInitial(() -> false);
+
+  /**
+   * Timewrap span unit name for column renaming in the execution engine. When set, the execution
+   * engine uses __base_offset__ to compute absolute period names (e.g., "501days_before").
+   */
+  public static final ThreadLocal<String> timewrapUnitName = new ThreadLocal<>();
+
+  /** Timewrap series mode: "relative", "short", or "exact". */
+  public static final ThreadLocal<String> timewrapSeries = new ThreadLocal<>();
 
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
@@ -70,6 +86,35 @@ public class CalcitePlanContext {
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
+
+  /**
+   * Foreach placeholder bindings active in this context, keyed by upper-cased placeholder name.
+   * Multifield mode activates bindings directly (placeholders resolve against the current row);
+   * collection modes stage bindings via {@link #stageForeachLambdaBindings} instead, so they only
+   * become active inside the lambda context cloned for the generated {@code reduce} call.
+   */
+  @Getter private Map<String, ForeachBinding> foreachBindings = new HashMap<>();
+
+  /** Bare identifiers enabled by explicit options such as {@code itemstr=ITEM}. */
+  @Getter private Map<String, ForeachBinding> foreachIdentifierBindings = new HashMap<>();
+
+  /** Bindings that become active in lambda contexts cloned from this one. */
+  private Map<String, ForeachBinding> stagedForeachLambdaBindings = new HashMap<>();
+
+  /** Bare identifier bindings staged for a generated foreach lambda. */
+  private Map<String, ForeachBinding> stagedForeachIdentifierBindings = new HashMap<>();
+
+  /** Expressions computed by earlier assignments in the same foreach eval iteration. */
+  @Getter private Map<String, RexNode> foreachComputedBindings = new HashMap<>();
+
+  /**
+   * Maps AggregateFunction AST nodes to their output field index for HAVING/post-aggregate
+   * resolution.
+   */
+  @Getter private final Map<AggregateFunction, Integer> aggregateOutputIndex = new HashMap<>();
+
+  /** Maps GROUP BY Function AST nodes to their output field index for post-aggregate resolution. */
+  @Getter private final Map<Function, Integer> groupKeyOutputIndex = new HashMap<>();
 
   /**
    * List of captured variables from outer scope for lambda functions. When a lambda body references
@@ -110,6 +155,12 @@ public class CalcitePlanContext {
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
+    // Active bindings carry over; staged bindings become active inside the lambda.
+    this.foreachBindings = new HashMap<>(parent.foreachBindings);
+    this.foreachBindings.putAll(parent.stagedForeachLambdaBindings);
+    this.foreachIdentifierBindings = new HashMap<>(parent.foreachIdentifierBindings);
+    this.foreachIdentifierBindings.putAll(parent.stagedForeachIdentifierBindings);
+    this.foreachComputedBindings = new HashMap<>(parent.foreachComputedBindings);
   }
 
   public RexNode resolveJoinCondition(
@@ -173,6 +224,7 @@ public class CalcitePlanContext {
       action.run();
     } finally {
       legacyPreferredFlag.remove();
+      clearTimewrapSignals();
     }
   }
 
@@ -181,6 +233,59 @@ public class CalcitePlanContext {
    */
   public static boolean isLegacyPreferred() {
     return legacyPreferredFlag.get();
+  }
+
+  /**
+   * Resets the timewrap thread-locals set by {@code CalciteRelNodeVisitor.visitTimewrap}. Called
+   * from the query lifecycle's {@code finally} on every path (execute, explain, and exceptions) so
+   * the signals never leak onto the next query that reuses this pooled worker thread.
+   */
+  public static void clearTimewrapSignals() {
+    stripNullColumns.set(false);
+    timewrapUnitName.set(null);
+    timewrapSeries.set(null);
+  }
+
+  public void pushForeachBindings(
+      Map<String, ForeachBinding> bindings, Map<String, ForeachBinding> identifierBindings) {
+    foreachBindings = new HashMap<>(bindings);
+    foreachIdentifierBindings = new HashMap<>(identifierBindings);
+  }
+
+  public void stageForeachLambdaBindings(
+      Map<String, ForeachBinding> bindings, Map<String, ForeachBinding> identifierBindings) {
+    stagedForeachLambdaBindings = new HashMap<>(bindings);
+    stagedForeachIdentifierBindings = new HashMap<>(identifierBindings);
+  }
+
+  public void putForeachComputedBinding(String name, RexNode expression) {
+    foreachComputedBindings.put(name.toUpperCase(java.util.Locale.ROOT), expression);
+  }
+
+  public void clearForeachBindings() {
+    foreachBindings.clear();
+    foreachIdentifierBindings.clear();
+    stagedForeachLambdaBindings.clear();
+    stagedForeachIdentifierBindings.clear();
+    foreachComputedBindings.clear();
+  }
+
+  /**
+   * A foreach placeholder binding. {@code FIELD} resolves to the named row field, {@code LITERAL}
+   * to a string literal, and {@code PAIR_SLOT} to slot {@code pairIndex} (typed {@code pairType})
+   * of the named lambda pair variable.
+   */
+  public record ForeachBinding(
+      String value, ForeachBindingType type, int pairIndex, @Nullable RelDataType pairType) {
+    public ForeachBinding(String value, ForeachBindingType type) {
+      this(value, type, -1, null);
+    }
+  }
+
+  public enum ForeachBindingType {
+    FIELD,
+    LITERAL,
+    PAIR_SLOT
   }
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {

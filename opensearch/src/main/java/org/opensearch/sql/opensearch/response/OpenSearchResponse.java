@@ -18,10 +18,13 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.TestOnly;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.common.text.Text;
@@ -41,6 +44,8 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 @EqualsAndHashCode
 @ToString
 public class OpenSearchResponse implements Iterable<ExprValue> {
+
+  private static final Logger LOG = LogManager.getLogger();
 
   public static final OpenSearchResponse EMPTY = empty();
 
@@ -155,12 +160,18 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
       return Arrays.stream(hits.getHits())
           .map(
               hit -> {
-                ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
-                addParsedHitsToBuilder(builder, hit);
-                addMetaDataFieldsToBuilder(builder, hit);
-                addHighlightsToBuilder(builder, hit);
-                return (ExprValue) ExprTupleValue.fromExprValueMap(builder.build());
+                try {
+                  ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
+                  addParsedHitsToBuilder(builder, hit);
+                  addMetaDataFieldsToBuilder(builder, hit);
+                  addHighlightsToBuilder(builder, hit);
+                  return (ExprValue) ExprTupleValue.fromExprValueMap(builder.build());
+                } catch (Exception e) {
+                  LOG.warn("Failed to parse document {}, skipping", hit.getId(), e);
+                  return null;
+                }
               })
+          .filter(Objects::nonNull)
           .iterator();
     }
   }

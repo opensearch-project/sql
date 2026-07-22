@@ -25,7 +25,7 @@ public class AstStatementBuilder extends OpenSearchSQLParserBaseVisitor<Statemen
 
   @Override
   public Statement visitSqlStatement(OpenSearchSQLParser.SqlStatementContext ctx) {
-    Query query = new Query(astBuilder.visit(ctx), context.fetchSize, SQL, false);
+    Query query = new Query(astBuilder.visit(ctx), context.fetchSize, SQL);
     return context.isExplain ? new Explain(query, SQL, context.format) : query;
   }
 

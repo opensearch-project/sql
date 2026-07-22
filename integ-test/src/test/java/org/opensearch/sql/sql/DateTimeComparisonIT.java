@@ -35,6 +35,7 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
+    loadIndex(Index.DATETIME_SIMPLE);
   }
 
   private final TimeZone testTz = TimeZone.getDefault();
@@ -237,7 +238,7 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
             $("TIMESTAMP('2020-09-16 10:20:30') < DATE('1961-04-12')", "ts_d_f", false),
             $("DATE('2020-09-16') < TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
             $("TIMESTAMP('2020-09-16 10:20:30') < TIME('09:07:00')", "ts_t_t", true),
-            $("TIME('09:07:00') < TIMESTAMP('3077-12-15 22:15:07')", "t_ts_t", true),
+            $("TIME('09:07:00') < TIMESTAMP('2242-12-15 22:15:07')", "t_ts_t", true),
             $("TIMESTAMP('" + today + " 10:20:30') < TIME('10:20:30')", "ts_t_f", false),
             $("TIME('20:50:40') < TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false)));
   }
@@ -246,13 +247,13 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
   public static Iterable<Object[]> compareLtDateWithOtherTypes() {
     return Arrays.asList(
         $$(
-            $("DATE('2020-09-16') < TIMESTAMP('3077-04-12 09:07:00')", "d_ts_t", true),
+            $("DATE('2020-09-16') < TIMESTAMP('2242-04-12 09:07:00')", "d_ts_t", true),
             $("TIMESTAMP('1961-04-12 09:07:00') < DATE('1984-12-15')", "ts_d_t", true),
             $("DATE('2020-09-16') < TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
             $("TIMESTAMP('2077-04-12 09:07:00') < DATE('2020-09-16')", "ts_d_f", false),
             $("DATE('2020-09-16') < TIME('09:07:00')", "d_t_t", true),
-            $("TIME('09:07:00') < DATE('3077-04-12')", "t_d_t", true),
-            $("DATE('3077-04-12') < TIME('00:00:00')", "d_t_f", false),
+            $("TIME('09:07:00') < DATE('2242-04-12')", "t_d_t", true),
+            $("DATE('2242-04-12') < TIME('00:00:00')", "d_t_f", false),
             $("TIME('00:00:00') < DATE('2020-09-16')", "t_d_f", false)));
   }
 
@@ -261,14 +262,14 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $("TIME('22:15:07') < TIMESTAMP('3077-12-15 22:15:07')", "t_ts_t", true),
+            $("TIME('22:15:07') < TIMESTAMP('2242-12-15 22:15:07')", "t_ts_t", true),
             $("TIMESTAMP('1984-12-15 10:20:30') < TIME('10:20:30')", "ts_t_t", true),
             $("TIME('10:20:30') < TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false),
             $("TIMESTAMP('" + today + " 20:50:42') < TIME('10:20:30')", "ts_t_f", false),
-            $("TIME('09:07:00') < DATE('3077-04-12')", "t_d_t", true),
+            $("TIME('09:07:00') < DATE('2242-04-12')", "t_d_t", true),
             $("DATE('2020-09-16') < TIME('09:07:00')", "d_t_t", true),
             $("TIME('00:00:00') < DATE('1961-04-12')", "t_d_f", false),
-            $("DATE('3077-04-12') < TIME('10:20:30')", "d_t_f", false)));
+            $("DATE('2242-04-12') < TIME('10:20:30')", "d_t_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
@@ -280,10 +281,10 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
             $("DATE('2020-09-16') > TIMESTAMP('2020-09-15 22:15:07')", "d_ts_t", true),
             $("TIMESTAMP('2020-09-16 10:20:30') > DATE('2077-04-12')", "ts_d_f", false),
             $("DATE('1961-04-12') > TIMESTAMP('1961-04-12 00:00:00')", "d_ts_f", false),
-            $("TIMESTAMP('3077-07-08 20:20:30') > TIME('10:20:30')", "ts_t_t", true),
+            $("TIMESTAMP('2242-07-08 20:20:30') > TIME('10:20:30')", "ts_t_t", true),
             $("TIME('20:50:40') > TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
             $("TIMESTAMP('" + today + " 10:20:30') > TIME('10:20:30')", "ts_t_f", false),
-            $("TIME('09:07:00') > TIMESTAMP('3077-12-15 22:15:07')", "t_ts_f", false)));
+            $("TIME('09:07:00') > TIMESTAMP('2242-12-15 22:15:07')", "t_ts_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
@@ -294,10 +295,10 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
             $("TIMESTAMP('2077-04-12 09:07:00') > DATE('2020-09-16')", "ts_d_t", true),
             $("DATE('2020-09-16') > TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
             $("TIMESTAMP('1961-04-12 09:07:00') > DATE('1984-12-15')", "ts_d_f", false),
-            $("DATE('3077-04-12') > TIME('00:00:00')", "d_t_t", true),
+            $("DATE('2242-04-12') > TIME('00:00:00')", "d_t_t", true),
             $("TIME('00:00:00') > DATE('2020-09-16')", "t_d_t", true),
             $("DATE('2020-09-16') > TIME('09:07:00')", "d_t_f", false),
-            $("TIME('09:07:00') > DATE('3077-04-12')", "t_d_f", false)));
+            $("TIME('09:07:00') > DATE('2242-04-12')", "t_d_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
@@ -310,8 +311,8 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
             $("TIME('10:20:30') > TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false),
             $("TIMESTAMP('1984-12-15 10:20:30') > TIME('10:20:30')", "ts_t_f", false),
             $("TIME('00:00:00') > DATE('1961-04-12')", "t_d_t", true),
-            $("DATE('3077-04-12') > TIME('10:20:30')", "d_t_t", true),
-            $("TIME('09:07:00') > DATE('3077-04-12')", "t_d_f", false),
+            $("DATE('2242-04-12') > TIME('10:20:30')", "d_t_t", true),
+            $("TIME('09:07:00') > DATE('2242-04-12')", "t_d_f", false),
             $("DATE('2020-09-16') > TIME('09:07:00')", "d_t_f", false)));
   }
 
@@ -325,8 +326,8 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
             $("TIMESTAMP('2020-09-16 10:20:30') <= DATE('1961-04-12')", "ts_d_f", false),
             $("DATE('2077-04-12') <= TIMESTAMP('1984-12-15 22:15:07')", "d_ts_f", false),
             $("TIMESTAMP('" + today + " 10:20:30') <= TIME('10:20:30')", "ts_t_t", true),
-            $("TIME('09:07:00') <= TIMESTAMP('3077-12-15 22:15:07')", "t_ts_t", true),
-            $("TIMESTAMP('3077-09-16 10:20:30') <= TIME('09:07:00')", "ts_t_f", false),
+            $("TIME('09:07:00') <= TIMESTAMP('2242-12-15 22:15:07')", "t_ts_t", true),
+            $("TIMESTAMP('2242-09-16 10:20:30') <= TIME('09:07:00')", "ts_t_f", false),
             $("TIME('20:50:40') <= TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false)));
   }
 
@@ -339,8 +340,8 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
             $("DATE('2020-09-16') <= TIMESTAMP('1961-04-12 09:07:00')", "d_ts_f", false),
             $("TIMESTAMP('2077-04-12 09:07:00') <= DATE('2020-09-16')", "ts_d_f", false),
             $("DATE('2020-09-16') <= TIME('09:07:00')", "d_t_t", true),
-            $("TIME('09:07:00') <= DATE('3077-04-12')", "t_d_t", true),
-            $("DATE('3077-04-12') <= TIME('00:00:00')", "d_t_f", false),
+            $("TIME('09:07:00') <= DATE('2242-04-12')", "t_d_t", true),
+            $("DATE('2242-04-12') <= TIME('00:00:00')", "d_t_f", false),
             $("TIME('00:00:00') <= DATE('2020-09-16')", "t_d_f", false)));
   }
 
@@ -353,10 +354,10 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
             $("TIMESTAMP('1984-12-15 10:20:30') <= TIME('10:20:30')", "ts_t_t", true),
             $("TIME('22:15:07') <= TIMESTAMP('1984-12-15 22:15:07')", "t_ts_f", false),
             $("TIMESTAMP('" + today + " 20:50:42') <= TIME('10:20:30')", "ts_t_f", false),
-            $("TIME('09:07:00') <= DATE('3077-04-12')", "t_d_t", true),
+            $("TIME('09:07:00') <= DATE('2242-04-12')", "t_d_t", true),
             $("DATE('2020-09-16') <= TIME('09:07:00')", "d_t_t", true),
             $("TIME('00:00:00') <= DATE('1961-04-12')", "t_d_f", false),
-            $("DATE('3077-04-12') <= TIME('10:20:30')", "d_t_f", false)));
+            $("DATE('2242-04-12') <= TIME('10:20:30')", "d_t_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
@@ -371,7 +372,7 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
             $("TIMESTAMP('" + today + " 10:20:30') >= TIME('10:20:30')", "ts_t_t", true),
             $("TIME('20:50:40') >= TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
             $("TIMESTAMP('1977-07-08 10:20:30') >= TIME('10:20:30')", "ts_t_f", false),
-            $("TIME('09:07:00') >= TIMESTAMP('3077-12-15 22:15:07')", "t_ts_f", false)));
+            $("TIME('09:07:00') >= TIMESTAMP('2242-12-15 22:15:07')", "t_ts_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
@@ -382,10 +383,10 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
             $("TIMESTAMP('2077-04-12 09:07:00') >= DATE('2020-09-16')", "ts_d_t", true),
             $("DATE('1961-04-12') >= TIMESTAMP('1961-04-12 09:07:00')", "d_ts_f", false),
             $("TIMESTAMP('1961-04-12 09:07:00') >= DATE('1984-12-15')", "ts_d_f", false),
-            $("DATE('3077-04-12') >= TIME('00:00:00')", "d_t_t", true),
+            $("DATE('2242-04-12') >= TIME('00:00:00')", "d_t_t", true),
             $("TIME('00:00:00') >= DATE('2020-09-16')", "t_d_t", true),
             $("DATE('2020-09-16') >= TIME('09:07:00')", "d_t_f", false),
-            $("TIME('09:07:00') >= DATE('3077-04-12')", "t_d_f", false)));
+            $("TIME('09:07:00') >= DATE('2242-04-12')", "t_d_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
@@ -395,11 +396,11 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
         $$(
             $("TIME('10:20:30') >= TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
             $("TIMESTAMP('" + today + " 20:50:42') >= TIME('10:20:30')", "ts_t_t", true),
-            $("TIME('22:15:07') >= TIMESTAMP('3077-12-15 22:15:07')", "t_ts_f", false),
+            $("TIME('22:15:07') >= TIMESTAMP('2242-12-15 22:15:07')", "t_ts_f", false),
             $("TIMESTAMP('1984-12-15 10:20:30') >= TIME('10:20:30')", "ts_t_f", false),
             $("TIME('00:00:00') >= DATE('1961-04-12')", "t_d_t", true),
-            $("DATE('3077-04-12') >= TIME('10:20:30')", "d_t_t", true),
-            $("TIME('09:07:00') >= DATE('3077-04-12')", "t_d_f", false),
+            $("DATE('2242-04-12') >= TIME('10:20:30')", "d_t_t", true),
+            $("TIME('09:07:00') >= DATE('2242-04-12')", "t_d_f", false),
             $("DATE('2020-09-16') >= TIME('09:07:00')", "d_t_f", false)));
   }
 
