@@ -113,6 +113,7 @@ import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -822,6 +823,26 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       anonymized.append(StringUtils.format(" %s=***", "column_name"));
     }
     return anonymized.toString();
+  }
+
+  @Override
+  public String visitXyseries(Xyseries node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder command = new StringBuilder();
+    command.append(" | xyseries");
+    if (node.getSeparator() != null && !": ".equals(node.getSeparator())) {
+      command.append(" sep=").append(MASK_LITERAL);
+    }
+    if (node.getFormat() != null) {
+      command.append(" format=").append(MASK_LITERAL);
+    }
+    command.append(" ").append(visitExpression(node.getXField()));
+    command.append(" ").append(visitExpression(node.getYNameField()));
+    command.append(" in (").append(MASK_LITERAL).append(")");
+    String dataFields =
+        node.getYDataFields().stream().map(this::visitExpression).collect(Collectors.joining(","));
+    command.append(" ").append(dataFields);
+    return StringUtils.format("%s%s", child, command.toString());
   }
 
   @Override
