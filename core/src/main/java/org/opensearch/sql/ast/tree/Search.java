@@ -36,7 +36,7 @@ public class Search extends UnresolvedPlan {
     this(child, queryString, null);
   }
 
-  /** Creates a search whose query string may need runtime subquery binding. */
+  /** Creates a search that may contain an implicit subquery. */
   public static Search fromExpression(UnresolvedPlan child, SearchExpression originalExpression) {
     return new Search(
         child,

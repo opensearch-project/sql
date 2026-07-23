@@ -24,7 +24,7 @@ public class SearchSubquery extends SearchExpression {
   @Override
   public String toQueryString() {
     throw new IllegalStateException(
-        "An implicit search subquery must be bound before it can be converted to query_string");
+        "An implicit search subquery must be planned as a correlated runtime input");
   }
 
   @Override

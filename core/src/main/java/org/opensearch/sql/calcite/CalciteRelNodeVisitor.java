@@ -232,15 +232,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final DataSourceService dataSourceService;
   private final MapPathPreMaterializer mapPathMaterializer;
   private final ForeachPlanner foreachPlanner;
+  private final @Nullable SearchPredicateCompiler searchPredicateCompiler;
 
   private static final int PERCENT_DECIMAL_PLACES = 6;
 
   public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
+    this(dataSourceService, null);
+  }
+
+  public CalciteRelNodeVisitor(
+      DataSourceService dataSourceService,
+      @Nullable SearchPredicateCompiler searchPredicateCompiler) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
     this.dataSourceService = dataSourceService;
     this.mapPathMaterializer = new MapPathPreMaterializer(rexVisitor);
     this.foreachPlanner = new ForeachPlanner(this, rexVisitor);
+    this.searchPredicateCompiler = searchPredicateCompiler;
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
@@ -326,8 +334,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.filter(queryStringRex);
     if (node.hasImplicitSubquery()) {
       context.relBuilder.push(
-          RuntimeSearchCorrelator.correlate(
-              context.relBuilder.build(), context.getSearchPredicateCompiler()));
+          RuntimeSearchCorrelator.correlate(context.relBuilder.build(), searchPredicateCompiler));
     }
     return context.relBuilder.peek();
   }

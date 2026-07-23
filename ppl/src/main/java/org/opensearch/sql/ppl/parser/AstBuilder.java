@@ -232,7 +232,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       }
 
       // Static search expressions are converted immediately. An implicit subsearch remains in the
-      // expression tree until its formatted result is bound at execution time.
+      // expression tree so the planner can lower it to a correlated runtime input.
       Relation relation = (Relation) visitFromClause(ctx.fromClause());
       return Search.fromExpression(relation, combined);
     }

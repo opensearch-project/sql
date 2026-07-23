@@ -30,6 +30,7 @@ import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.ppl.parser.PPLSearchPredicateCompiler;
 
 /**
  * {@code UnifiedQueryPlanner} provides a high-level API for parsing and analyzing queries using the
@@ -137,13 +138,15 @@ public class UnifiedQueryPlanner {
   private static class CustomVisitorStrategy implements PlanningStrategy {
     private final UnifiedQueryContext context;
     private final UnifiedQueryParser<UnresolvedPlan> parser;
-    private final CalciteRelNodeVisitor relNodeVisitor =
-        new CalciteRelNodeVisitor(new EmptyDataSourceService());
+    private final CalciteRelNodeVisitor relNodeVisitor;
 
     @SuppressWarnings("unchecked")
     CustomVisitorStrategy(UnifiedQueryContext context) {
       this.context = context;
       this.parser = (UnifiedQueryParser<UnresolvedPlan>) context.getParser();
+      this.relNodeVisitor =
+          new CalciteRelNodeVisitor(
+              new EmptyDataSourceService(), PPLSearchPredicateCompiler.INSTANCE);
     }
 
     @Override

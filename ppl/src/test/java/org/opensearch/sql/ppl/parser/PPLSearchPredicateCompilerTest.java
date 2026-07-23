@@ -12,7 +12,7 @@ import org.junit.Test;
 
 public class PPLSearchPredicateCompilerTest {
 
-  private final PPLSearchPredicateCompiler compiler = new PPLSearchPredicateCompiler();
+  private final PPLSearchPredicateCompiler compiler = PPLSearchPredicateCompiler.INSTANCE;
 
   @Test
   public void testCompileCanonicalFormatOutput() {

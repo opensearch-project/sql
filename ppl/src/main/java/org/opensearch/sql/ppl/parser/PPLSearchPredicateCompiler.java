@@ -11,9 +11,12 @@ import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchPredicateContext;
 
 /** Uses the PPL search-expression grammar to compile an implicit format result. */
-public class PPLSearchPredicateCompiler implements SearchPredicateCompiler {
+public final class PPLSearchPredicateCompiler implements SearchPredicateCompiler {
 
+  public static final PPLSearchPredicateCompiler INSTANCE = new PPLSearchPredicateCompiler();
   private final PPLSyntaxParser syntaxParser = new PPLSyntaxParser();
+
+  private PPLSearchPredicateCompiler() {}
 
   @Override
   public String compile(String predicate) {

@@ -41,13 +41,6 @@ public final class TimewrapSignals {
     return new TimewrapSignals(active, unitName, series);
   }
 
-  /** Installs this snapshot on the current thread for an execution engine to capture. */
-  public void install() {
-    CalcitePlanContext.stripNullColumns.set(active);
-    CalcitePlanContext.timewrapUnitName.set(unitName);
-    CalcitePlanContext.timewrapSeries.set(series);
-  }
-
   /**
    * Applies the timewrap pivot to {@code response} if this snapshot is from a timewrap query;
    * otherwise returns it unchanged. The returned response carries over the input's profile/error.

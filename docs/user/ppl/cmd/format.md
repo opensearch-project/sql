@@ -117,8 +117,9 @@ source=logs
 ## Limitations
 
 - Implicit format requires the Calcite query engine.
-- Runtime binding is supported for bracketed subsearches in a parent `search` expression. Dynamic
-  subsearch interpolation in `eval` or other command positions is not supported.
+- Correlated runtime execution is supported for bracketed subsearches in a parent `search`
+  expression. Dynamic subsearch interpolation in `eval` or other command positions is not
+  supported.
 - An implicit result is parsed only as a search predicate. Pipeline command syntax in a generated
   `search` or `query` value is rejected.
 - When upstream ordering metadata is available, row collection carries it into the aggregate order

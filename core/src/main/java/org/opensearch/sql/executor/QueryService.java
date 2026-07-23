@@ -135,7 +135,8 @@ public class QueryService {
   }
 
   @Getter(lazy = true)
-  private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor(dataSourceService);
+  private final CalciteRelNodeVisitor relNodeVisitor =
+      new CalciteRelNodeVisitor(dataSourceService, searchPredicateCompiler);
 
   /** Helper: depending on the type of error, either re-raise or propagate to the listener. */
   private void propagateCalciteError(Throwable t, ResponseListener<?> listener)
@@ -254,7 +255,6 @@ public class QueryService {
                             includeMetadata);
 
                     context.setHighlightConfig(highlightConfig);
-                    context.setSearchPredicateCompiler(searchPredicateCompiler);
 
                     // Wrap analyze with ANALYZING stage tracking
                     RelNode relNode =
@@ -340,7 +340,6 @@ public class QueryService {
                           queryType,
                           includeMetadata);
                   context.setHighlightConfig(highlightConfig);
-                  context.setSearchPredicateCompiler(searchPredicateCompiler);
                   context.run(
                       () -> {
                         RelNode calcitePlan;

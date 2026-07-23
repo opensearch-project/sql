@@ -53,7 +53,7 @@ public class AstSearchExpressionTest {
   }
 
   @Test
-  public void testImplicitFormatSubsearchRemainsRuntimeBound() {
+  public void testImplicitFormatSubsearchRemainsStructuredForPlanning() {
     Node plan = buildPlan("search source=logs [ search source=rules | fields status, host ]");
 
     assertTrue(plan instanceof Search);
