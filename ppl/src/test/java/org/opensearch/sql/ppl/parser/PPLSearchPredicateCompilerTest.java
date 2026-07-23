@@ -28,6 +28,11 @@ public class PPLSearchPredicateCompilerTest {
   }
 
   @Test
+  public void testCompileBacktickQuotedFieldName() {
+    assertEquals("display\\ name:value", compiler.compile("`display name`=\"value\""));
+  }
+
+  @Test
   public void testCompileEmptyFormatResultAsMatchNone() {
     assertEquals("*:* AND NOT *:*", compiler.compile("NOT ()"));
   }

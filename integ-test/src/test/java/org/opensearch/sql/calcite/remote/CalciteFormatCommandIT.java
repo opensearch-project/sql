@@ -38,6 +38,17 @@ public class CalciteFormatCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMetadataFieldIsIgnored() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source="
+                + TEST_INDEX_BANK
+                + " | where account_number=1 | fields firstname, `_id` | format");
+
+    verifyDataRows(result, rows("( ( firstname=\"Amber JOHnny\" ) )"));
+  }
+
+  @Test
   public void testMultivalueAndCustomDelimiters() throws IOException {
     JSONObject result =
         executeQuery(

@@ -145,25 +145,34 @@ public class CalcitePPLFormatTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testInternalFieldsAreIgnored() {
+  public void testUserFieldWithLeadingUnderscoreIsFormatted() {
     withPPLQuery(
             "source=EMP | head 1 | eval _private='hidden', visible='shown' "
                 + "| fields _private, visible | format")
-        .expectResult("search=( ( visible=\"shown\" ) )\n");
+        .expectResult("search=( ( _private=\"hidden\" AND visible=\"shown\" ) )\n");
   }
 
   @Test
-  public void testSearchAndQueryFieldsDropFieldName() {
+  public void testSearchAndQueryAreOrdinaryFieldsForExplicitFormat() {
     withPPLQuery(
             "source=EMP | head 1 | eval search='status=200', query='method=GET', a='x' "
                 + "| fields search, query, a | format")
-        .expectResult("search=( ( a=\"x\" AND \"method=GET\" AND \"status=200\" ) )\n");
+        .expectResult(
+            "search=( ( a=\"x\" AND query=\"method=GET\" AND search=\"status=200\" ) )\n");
   }
 
   @Test
-  public void testSpecialCharactersInFieldNameAreQuoted() {
+  public void testQualifiedFieldNameUsesPplSyntax() {
     withPPLQuery("source=EMP | head 1 | eval a.b='x' | fields a.b | format")
-        .expectResult("search=( ( \"a.b\"=\"x\" ) )\n");
+        .expectResult("search=( ( a.b=\"x\" ) )\n");
+  }
+
+  @Test
+  public void testFieldNameWithSpacesUsesPplIdentifierQuoting() {
+    withPPLQuery(
+            "source=EMP | head 1 | rename ENAME as `display name` "
+                + "| fields `display name` | format")
+        .expectResult("search=( ( `display name`=\"SMITH\" ) )\n");
   }
 
   @Test

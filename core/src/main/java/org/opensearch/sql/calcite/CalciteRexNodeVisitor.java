@@ -12,7 +12,6 @@ import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,7 +34,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -79,7 +77,6 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
-import org.opensearch.sql.ast.expression.subquery.RuntimeSearchScalarSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
@@ -868,19 +865,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitScalarSubquery(ScalarSubquery node, CalcitePlanContext context) {
-    if (node instanceof RuntimeSearchScalarSubquery) {
-      CalcitePlanContext initContext =
-          CalcitePlanContext.create(context.config, context.sysLimit, context.queryType);
-      try {
-        return RexSubQuery.scalar(resolveSubqueryPlan(node.getQuery(), node, initContext));
-      } finally {
-        try {
-          initContext.connection.close();
-        } catch (SQLException e) {
-          throw new RuntimeException("Failed to close runtime search planning context", e);
-        }
-      }
-    }
     return context.relBuilder.scalarQuery(
         b -> {
           UnresolvedPlan subquery = node.getQuery();

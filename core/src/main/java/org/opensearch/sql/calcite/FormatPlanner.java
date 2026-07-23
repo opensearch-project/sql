@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite;
 
+import static org.opensearch.sql.calcite.plan.OpenSearchConstants.METADATAFIELD_TYPE_MAP;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -36,7 +38,7 @@ public class FormatPlanner {
 
     List<RelDataTypeField> fields =
         builder.peek().getRowType().getFieldList().stream()
-            .filter(field -> !field.getName().startsWith("_"))
+            .filter(field -> !METADATAFIELD_TYPE_MAP.containsKey(field.getName()))
             .sorted(Comparator.comparing(RelDataTypeField::getName))
             .toList();
 
@@ -201,7 +203,6 @@ public class FormatPlanner {
     RexNode formattedValue;
     RexNode hasValue = builder.isNotNull(value);
     String fieldName = formatFieldName(field.getName());
-    boolean rawValue = field.getName().equals("search") || field.getName().equals("query");
 
     if (SqlTypeUtil.isArray(field.getType()) || SqlTypeUtil.isMultiset(field.getType())) {
       RelDataType varchar = context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
@@ -210,15 +211,12 @@ public class FormatPlanner {
           builder.call(
               SqlLibraryOperators.ARRAY_COMPACT, context.rexBuilder.makeCast(varcharArray, value));
       values = escapeArrayValues(values, varchar, context);
-      String repeatedValueSeparator =
-          rawValue
-              ? "\" " + node.getMvSeparator() + " \""
-              : "\" " + node.getMvSeparator() + " " + fieldName + "=\"";
+      String repeatedValueSeparator = "\" " + node.getMvSeparator() + " " + fieldName + "=\"";
       RexNode joinedValues = arrayJoin(context, values, repeatedValueSeparator);
       formattedValue =
           concat(
               context,
-              stringLiteral(rawValue ? "( \"" : "( " + fieldName + "=\"", context),
+              stringLiteral("( " + fieldName + "=\"", context),
               joinedValues,
               stringLiteral("\" )", context));
       hasValue = builder.call(SqlStdOperatorTable.AND, hasValue, isNotEmpty(joinedValues, context));
@@ -227,7 +225,7 @@ public class FormatPlanner {
       formattedValue =
           concat(
               context,
-              stringLiteral(rawValue ? "\"" : fieldName + "=\"", context),
+              stringLiteral(fieldName + "=\"", context),
               escapeValue(stringValue, context),
               stringLiteral("\"", context));
     }
@@ -262,10 +260,10 @@ public class FormatPlanner {
   }
 
   private String formatFieldName(String fieldName) {
-    if (fieldName.matches("[A-Za-z][A-Za-z0-9_]*")) {
+    if (fieldName.matches("[A-Za-z_@][A-Za-z0-9_@-]*(\\.[A-Za-z_@][A-Za-z0-9_@-]*)*")) {
       return fieldName;
     }
-    return "\"" + fieldName.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    return "`" + fieldName.replace("`", "``") + "`";
   }
 
   private RexNode compactArray(CalcitePlanContext context, List<RexNode> values) {

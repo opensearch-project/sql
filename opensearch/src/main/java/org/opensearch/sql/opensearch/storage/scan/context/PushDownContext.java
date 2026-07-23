@@ -29,6 +29,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   private boolean isAggregatePushed = false;
   @Setter private AggSpec aggSpec;
+  @Setter private DynamicQueryStringSpec dynamicQueryString;
 
   // Records the start pos of the query, which is updated by new added limit operations.
   private int startFrom = 0;
@@ -53,6 +54,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
       newContext.add(operation);
     }
     newContext.aggSpec = aggSpec;
+    newContext.dynamicQueryString = dynamicQueryString;
     return newContext;
   }
 
@@ -69,6 +71,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
       }
     }
     newContext.aggSpec = aggSpec == null ? null : aggSpec.withoutBucketSort();
+    newContext.dynamicQueryString = dynamicQueryString;
     return newContext;
   }
 
@@ -114,6 +117,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
       }
       newContext.add(operation);
     }
+    newContext.dynamicQueryString = dynamicQueryString;
     return newContext;
   }
 

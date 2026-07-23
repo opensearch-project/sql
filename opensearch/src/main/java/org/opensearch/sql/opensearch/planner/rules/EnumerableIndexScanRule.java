@@ -35,7 +35,8 @@ public class EnumerableIndexScanRule extends ConverterRule {
   @Override
   public boolean matches(RelOptRuleCall call) {
     CalciteLogicalIndexScan scan = call.rel(0);
-    return scan.getVariablesSet().isEmpty();
+    return scan.getVariablesSet().isEmpty()
+        || scan.getPushDownContext().getDynamicQueryString() != null;
   }
 
   @Override

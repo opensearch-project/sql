@@ -82,6 +82,7 @@ public class QueryService {
   private DataSourceService dataSourceService;
   private Settings settings;
   private ExecutionDispatcher executionDispatcher = new DirectExecutionDispatcher();
+  private SearchPredicateCompiler searchPredicateCompiler;
 
   public QueryService(
       Analyzer analyzer,
@@ -95,7 +96,8 @@ public class QueryService {
         planner,
         dataSourceService,
         settings,
-        new DirectExecutionDispatcher());
+        new DirectExecutionDispatcher(),
+        null);
   }
 
   public QueryService(
@@ -105,12 +107,31 @@ public class QueryService {
       DataSourceService dataSourceService,
       Settings settings,
       ExecutionDispatcher executionDispatcher) {
+    this(
+        analyzer,
+        executionEngine,
+        planner,
+        dataSourceService,
+        settings,
+        executionDispatcher,
+        null);
+  }
+
+  public QueryService(
+      Analyzer analyzer,
+      ExecutionEngine executionEngine,
+      Planner planner,
+      DataSourceService dataSourceService,
+      Settings settings,
+      ExecutionDispatcher executionDispatcher,
+      SearchPredicateCompiler searchPredicateCompiler) {
     this.analyzer = analyzer;
     this.executionEngine = executionEngine;
     this.planner = planner;
     this.dataSourceService = dataSourceService;
     this.settings = settings;
     this.executionDispatcher = executionDispatcher;
+    this.searchPredicateCompiler = searchPredicateCompiler;
   }
 
   @Getter(lazy = true)
@@ -233,6 +254,7 @@ public class QueryService {
                             includeMetadata);
 
                     context.setHighlightConfig(highlightConfig);
+                    context.setSearchPredicateCompiler(searchPredicateCompiler);
 
                     // Wrap analyze with ANALYZING stage tracking
                     RelNode relNode =
@@ -318,6 +340,7 @@ public class QueryService {
                           queryType,
                           includeMetadata);
                   context.setHighlightConfig(highlightConfig);
+                  context.setSearchPredicateCompiler(searchPredicateCompiler);
                   context.run(
                       () -> {
                         RelNode calcitePlan;

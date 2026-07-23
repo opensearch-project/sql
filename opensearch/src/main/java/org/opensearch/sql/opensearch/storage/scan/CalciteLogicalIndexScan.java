@@ -34,6 +34,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -42,6 +44,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.ast.tree.HighlightConfig;
+import org.opensearch.sql.calcite.SearchPredicateCompiler;
+import org.opensearch.sql.calcite.plan.DynamicQueryStringPushDown;
 import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
@@ -59,6 +63,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.context.AbstractAction;
 import org.opensearch.sql.opensearch.storage.scan.context.AggSpec;
+import org.opensearch.sql.opensearch.storage.scan.context.DynamicQueryStringSpec;
 import org.opensearch.sql.opensearch.storage.scan.context.FilterDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
@@ -70,7 +75,8 @@ import org.opensearch.sql.utils.Utils;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
-public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements HighlightPushDown {
+public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan
+    implements DynamicQueryStringPushDown, HighlightPushDown {
   private static final Logger LOG = LogManager.getLogger(CalciteLogicalIndexScan.class);
 
   public CalciteLogicalIndexScan(
@@ -190,6 +196,46 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the filter condition.", e);
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public RelNode pushDownDynamicQueryString(
+      RexNode condition, List<RexNode> runtimePredicates, SearchPredicateCompiler compiler) {
+    RexNode queryExpression = queryArgument(condition);
+    if (queryExpression == null) {
+      throw new IllegalArgumentException(
+          "Dynamic query_string condition is missing its query argument");
+    }
+
+    CalciteLogicalIndexScan newScan = copy();
+    newScan
+        .getPushDownContext()
+        .setDynamicQueryString(
+            DynamicQueryStringSpec.create(queryExpression, runtimePredicates, compiler));
+    newScan
+        .getPushDownContext()
+        .add(
+            PushDownType.FILTER,
+            new FilterDigest(0, condition),
+            (OSRequestBuilderAction) requestBuilder -> {});
+    return newScan;
+  }
+
+  private RexNode queryArgument(RexNode condition) {
+    if (!(condition instanceof RexCall queryString)
+        || !queryString.getOperator().getName().equalsIgnoreCase("query_string")) {
+      return null;
+    }
+    for (RexNode operand : queryString.getOperands()) {
+      if (operand instanceof RexCall map && map.getOperands().size() >= 2) {
+        RexNode key = map.getOperands().getFirst();
+        if (key instanceof RexLiteral literal
+            && "query".equalsIgnoreCase(literal.getValueAs(String.class))) {
+          return map.getOperands().get(1);
+        }
       }
     }
     return null;

@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lombok.Getter;
@@ -32,6 +33,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
@@ -105,9 +107,20 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
   }
 
   @Override
+  public Set<CorrelationId> getVariablesSet() {
+    return pushDownContext.getDynamicQueryString() == null
+        ? super.getVariablesSet()
+        : pushDownContext.getDynamicQueryString().correlationIds();
+  }
+
+  @Override
   public RelWriter explainTerms(RelWriter pw) {
     // Build explain string with context and request builder info
     String explainString = String.valueOf(pushDownContext);
+    if (pushDownContext.getDynamicQueryString() != null) {
+      explainString +=
+          ", dynamicQueryString=" + pushDownContext.getDynamicQueryString().queryExpression();
+    }
     if (pw instanceof RelJsonWriter) {
       // For JSON output, add structured items
       super.explainTerms(pw);

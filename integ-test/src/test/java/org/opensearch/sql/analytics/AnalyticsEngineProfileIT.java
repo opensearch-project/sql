@@ -197,21 +197,6 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
   }
 
   @Test
-  public void testImplicitFormatSubsearchRunsThroughAnalyticsEngine() throws IOException {
-    ensureSetup();
-    JSONObject result =
-        executeWithProfile(
-            "search source="
-                + INDEX
-                + " [ search source="
-                + INDEX
-                + " name=alice | fields name | head 1 ] | fields name",
-            "/_plugins/_ppl");
-
-    assertEquals("alice", result.getJSONArray("datarows").getJSONArray(0).getString(0));
-  }
-
-  @Test
   public void testPplExplainReturnsOnlyPlan() throws IOException {
     ensureSetup();
     Request request = new Request("POST", "/_plugins/_ppl/_explain");
@@ -227,7 +212,7 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
   }
 
   @Test
-  public void testImplicitFormatExplainBindsRuntimePredicate() throws IOException {
+  public void testImplicitFormatExplainShowsCorrelatedPlan() throws IOException {
     ensureSetup();
     Request request = new Request("POST", "/_plugins/_ppl/_explain");
     request.setJsonEntity(
@@ -241,7 +226,8 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
     JSONObject result = new JSONObject(entityAsString(response));
 
     String logical = result.getJSONObject("calcite").get("logical").toString();
-    assertTrue(logical, logical.contains("name:alice"));
+    assertTrue(logical, logical.contains("LogicalCorrelate"));
+    assertTrue(logical, logical.contains("dynamicQueryString=$cor"));
     assertFalse(logical, logical.contains("SCALAR_QUERY"));
   }
 

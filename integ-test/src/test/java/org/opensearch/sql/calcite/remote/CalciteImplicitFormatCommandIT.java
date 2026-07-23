@@ -54,6 +54,36 @@ public class CalciteImplicitFormatCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMultipleImplicitFormatSubsearchesFeedOneParentSearch() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "search source="
+                + TEST_INDEX_BANK
+                + " [ search source="
+                + TEST_INDEX_BANK
+                + " account_number=1 | fields account_number ] OR [ search source="
+                + TEST_INDEX_BANK
+                + " account_number=6 | fields account_number ]"
+                + " | fields account_number | sort account_number");
+
+    verifyDataRows(result, rows(1), rows(6));
+  }
+
+  @Test
+  public void testParentPipelineAggregatesDynamicSearchResults() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "search source="
+                + TEST_INDEX_BANK
+                + " [ search source="
+                + TEST_INDEX_BANK
+                + " account_number=1 OR account_number=6 | fields account_number ]"
+                + " | stats count() as matched");
+
+    verifyDataRows(result, rows(2));
+  }
+
+  @Test
   public void testImplicitFormatUnderNotExpression() throws IOException {
     JSONObject result =
         executeQuery(
@@ -68,7 +98,7 @@ public class CalciteImplicitFormatCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testImplicitFormatExplainUsesBoundPredicate() throws IOException {
+  public void testImplicitFormatExplainShowsCorrelatedDynamicScan() throws IOException {
     String result =
         explainQueryToString(
             "search source="
@@ -78,7 +108,8 @@ public class CalciteImplicitFormatCommandIT extends PPLIntegTestCase {
                 + " | head 1 | eval search='account_number=1' | fields search ]"
                 + " | fields account_number");
 
-    assertTrue(result, result.contains("account_number:1"));
+    assertTrue(result, result.contains("LogicalCorrelate"));
+    assertTrue(result, result.contains("dynamicQueryString=$cor"));
     assertFalse(result, result.contains("SCALAR_QUERY"));
   }
 
