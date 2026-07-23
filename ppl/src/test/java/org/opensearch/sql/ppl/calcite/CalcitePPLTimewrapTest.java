@@ -110,7 +110,7 @@ public class CalcitePPLTimewrapTest extends CalcitePPLAbstractTest {
             + " BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) -"
             + " CAST(UNIX_TIMESTAMP(`@timestamp`) AS BIGINT)) / 86400 + 1 `__period__`\n"
             + "FROM (SELECT SPAN(`@timestamp`, 6, 'h') `@timestamp`,"
-            + " `CHECKED_LONG_SUM`(`value`) `sum(value)`\n"
+            + " SUM(`value`) `sum(value)`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` >= TIMESTAMP('2024-07-01 00:00:00') AND `@timestamp` <="
             + " TIMESTAMP('2024-07-03 18:00:00') AND `value` IS NOT NULL\n"

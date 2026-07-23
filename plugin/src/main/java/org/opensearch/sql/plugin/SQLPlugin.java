@@ -52,7 +52,6 @@ import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ExtensiblePlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ScriptPlugin;
-import org.opensearch.plugins.SearchPlugin;
 import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.BytesRestResponse;
@@ -102,8 +101,6 @@ import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
-import org.opensearch.sql.opensearch.aggregation.CheckedLongSumAggregationBuilder;
-import org.opensearch.sql.opensearch.aggregation.InternalCheckedLongSum;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
@@ -150,7 +147,6 @@ import org.opensearch.watcher.ResourceWatcherService;
 public class SQLPlugin extends Plugin
     implements ActionPlugin,
         ScriptPlugin,
-        SearchPlugin,
         SystemIndexPlugin,
         JobSchedulerExtension,
         ExtensiblePlugin {
@@ -174,17 +170,6 @@ public class SQLPlugin extends Plugin
 
   public String description() {
     return "Use sql to query OpenSearch.";
-  }
-
-  @Override
-  public List<AggregationSpec> getAggregations() {
-    return List.of(
-        new AggregationSpec(
-                CheckedLongSumAggregationBuilder.NAME,
-                CheckedLongSumAggregationBuilder::new,
-                CheckedLongSumAggregationBuilder.PARSER)
-            .addResultReader(InternalCheckedLongSum::new)
-            .setAggregatorRegistrar(CheckedLongSumAggregationBuilder::registerAggregators));
   }
 
   @Override

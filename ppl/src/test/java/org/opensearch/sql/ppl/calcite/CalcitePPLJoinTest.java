@@ -496,7 +496,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         ""
-            + "SELECT `CHECKED_LONG_SUM`(`EMP`.`MGR`) `sum`, `EMP`.`JOB`\n"
+            + "SELECT SUM(`EMP`.`MGR`) `sum`, `EMP`.`JOB`\n"
             + "FROM `scott`.`EMP`\n"
             + "INNER JOIN (SELECT `DEPTNO`, `DNAME`\n"
             + "FROM `scott`.`DEPT`\n"

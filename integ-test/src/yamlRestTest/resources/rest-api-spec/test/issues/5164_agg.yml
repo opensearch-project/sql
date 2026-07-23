@@ -4,10 +4,10 @@
 # The enumerable SUM accumulator for a long argument is a plain long, so a running sum past 2^63
 # wraps to a negative result (e.g. SUM(long) returned -5594372458244005145). AVG reduces to
 # SUM(field)/COUNT(field), so its intermediate long SUM wraps the same way (AVG returned a negative
-# average). SUM(long) now uses exact checked BIGINT accumulation: a pushed-down native aggregation
-# checks shard-local and cross-shard additions, while the Calcite fallback calls Math.addExact.
-# Overflow becomes a 4xx client error and the output type remains bigint. AVG(long) is averaged in
-# DOUBLE, which holds the true average without wrapping.
+# average). SUM(long) now uses checked BIGINT accumulation with Math.addExact in the Calcite
+# fallback. The pushdown path uses OpenSearch's native double-based sum and checks its final value
+# before narrowing to BIGINT. AVG(long) is averaged in DOUBLE, which holds the true average without
+# wrapping.
 
 setup:
   - do:
@@ -112,7 +112,7 @@ setup:
         index: test_agg_reduce_right
         refresh: true
         body:
-          long_field: 1
+          long_field: 4096
 
 ---
 teardown:
@@ -154,11 +154,12 @@ teardown:
   - match: { "$body": "/[Oo]verflow/" }
 
 ---
-"SUM overflow across shard partials throws error":
+"Pushed SUM whose final value exceeds BIGINT throws error":
   - skip:
       features:
         - headers
-  # Each one-shard index has an in-range partial; only their final reduction overflows.
+  # Each one-shard index has an in-range partial. The final result is far enough beyond 2^63 to be
+  # distinguishable from Long.MAX_VALUE after native double accumulation.
   - do:
       catch: bad_request
       headers:
@@ -200,7 +201,7 @@ teardown:
   - match: { datarows: [[6000000000000]] }
 
 ---
-"SUM of large in-range longs retains low-order precision":
+"Pushed SUM of large in-range longs uses native double precision":
   - skip:
       features:
         - headers
@@ -211,5 +212,19 @@ teardown:
       ppl:
         body:
           query: source=test_agg_exact | stats sum(long_field)
+  - match: { total: 1 }
+  - match: { datarows: [[4611686018427387904]] }
+
+---
+"Fallback SUM of large in-range longs retains low-order precision":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_agg_exact | head 2 | stats sum(long_field)
   - match: { total: 1 }
   - match: { datarows: [[4611686018427387905]] }

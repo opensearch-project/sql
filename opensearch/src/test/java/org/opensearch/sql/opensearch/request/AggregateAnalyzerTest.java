@@ -41,9 +41,9 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.metrics.SumAggregationBuilder;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
-import org.opensearch.sql.opensearch.aggregation.CheckedLongSumAggregationBuilder;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer.ExpressionNotAnalyzableException;
@@ -201,8 +201,8 @@ class AggregateAnalyzerTest {
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(aggregate, project, List.of("checked_sum"), helper);
 
-    CheckedLongSumAggregationBuilder builder =
-        assertInstanceOf(CheckedLongSumAggregationBuilder.class, result.getLeft().getFirst());
+    SumAggregationBuilder builder =
+        assertInstanceOf(SumAggregationBuilder.class, result.getLeft().getFirst());
     assertEquals("a", builder.field());
     NoBucketAggregationParser parser =
         assertInstanceOf(NoBucketAggregationParser.class, result.getRight());

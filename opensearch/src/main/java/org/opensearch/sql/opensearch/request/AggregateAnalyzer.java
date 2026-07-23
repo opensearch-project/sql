@@ -90,7 +90,6 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
-import org.opensearch.sql.opensearch.aggregation.CheckedLongSumAggregationBuilder;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
@@ -665,10 +664,9 @@ public class AggregateAnalyzer {
           "CHECKED_LONG_SUM pushdown requires one direct field reference");
     }
 
-    String field = helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery();
-    CheckedLongSumAggregationBuilder builder =
-        new CheckedLongSumAggregationBuilder(aggName).field(field);
-    return Pair.of(builder, new CheckedLongSumParser(aggName));
+    return Pair.of(
+        helper.build(args.getFirst().getKey(), AggregationBuilders.sum(aggName)),
+        new CheckedLongSumParser(aggName));
   }
 
   private static boolean supportsMaxMinAggregation(ExprType fieldType) {

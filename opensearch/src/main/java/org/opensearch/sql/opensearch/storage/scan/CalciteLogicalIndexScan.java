@@ -335,8 +335,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         return null;
       }
       List<String> collationNames = getCollationNames(sort.getCollation().getFieldCollations());
-      if (!isAnyCollationNameInAggregators(collationNames)
-          || hasCheckedLongSumCollation(collationNames)) {
+      if (!isAnyCollationNameInAggregators(collationNames)) {
         return null;
       }
       CalciteLogicalIndexScan newScan = copyWithNewTraitSet(sort.getTraitSet());

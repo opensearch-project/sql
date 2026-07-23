@@ -56,7 +56,6 @@ import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
@@ -312,29 +311,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
     return aggregates
         .map(aggregate -> isAnyCollationNameInAggregators(aggregate, collations))
         .reduce(false, Boolean::logicalOr);
-  }
-
-  /**
-   * Checked BIGINT sums must be sorted after pushdown because OpenSearch's metric-order API exposes
-   * values as doubles and can collapse distinct long values above 2^53.
-   */
-  protected boolean hasCheckedLongSumCollation(List<String> collations) {
-    return pushDownContext.stream()
-        .filter(action -> action.type() == PushDownType.AGGREGATION)
-        .map(action -> (LogicalAggregate) action.digest())
-        .anyMatch(
-            aggregate -> {
-              int groupOffset = aggregate.getGroupSet().cardinality();
-              List<String> fieldNames = aggregate.getRowType().getFieldNames();
-              List<AggregateCall> aggregateCalls = aggregate.getAggCallList();
-              for (int i = 0; i < aggregateCalls.size(); i++) {
-                if (aggregateCalls.get(i).getAggregation() == PPLBuiltinOperators.CHECKED_LONG_SUM
-                    && collations.contains(fieldNames.get(groupOffset + i))) {
-                  return true;
-                }
-              }
-              return false;
-            });
   }
 
   private boolean isAnyCollationNameInAggregators(

@@ -182,24 +182,6 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
               + "{\"v\":1}\n");
       performRequest(client(), bulk);
     }
-    String exactSortIndex = "test_sum_long_exact_sort";
-    if (!isIndexExist(client(), exactSortIndex)) {
-      createIndexByRestClient(
-          client(),
-          exactSortIndex,
-          "{\"mappings\":{\"properties\":{\"v\":{\"type\":\"long\"},"
-              + "\"g\":{\"type\":\"keyword\"}}}}");
-      Request bulk = new Request("POST", "/" + exactSortIndex + "/_bulk?refresh=true");
-      bulk.setJsonEntity(
-          "{\"index\":{}}\n"
-              + "{\"v\":4611686018427387904,\"g\":\"z\"}\n"
-              + "{\"index\":{}}\n"
-              + "{\"v\":1,\"g\":\"z\"}\n"
-              + "{\"index\":{}}\n"
-              + "{\"v\":4611686018427387904,\"g\":\"a\"}\n");
-      performRequest(client(), bulk);
-    }
-
     // SUM overflows the BIGINT range (3 * (2^63 - 1)); surfaced as a client error rather than
     // silently wrapping to a negative value.
     Throwable error =
@@ -223,18 +205,21 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifySchema(boundary, schema("sum(v)", "bigint"));
     verifyDataRows(boundary, rows(9223372036854775807L));
 
-    // BIGINT accumulation retains low-order bits that a double accumulator would discard.
+    // Native sum pushdown uses double and loses the low-order bit; the fallback and analytics
+    // backends retain it.
     JSONObject exact = executeQuery(String.format("source=%s | stats sum(v)", exactIndex));
     verifySchema(exact, schema("sum(v)", "bigint"));
-    verifyDataRows(exact, rows(4611686018427387905L));
+    long expectedExact =
+        (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled())
+            ? 4611686018427387905L
+            : 4611686018427387904L;
+    verifyDataRows(exact, rows(expectedExact));
 
-    // Metric ordering remains in Calcite because OpenSearch exposes metric sort values as doubles,
-    // which cannot distinguish these sums. Lexical tie-breaking would otherwise put "a" first.
-    JSONObject exactSort =
-        executeQuery(
-            String.format("source=%s | stats sum(v) as s by g | sort - s", exactSortIndex));
-    verifySchema(exactSort, schema("s", "bigint"), schema("g", "string"));
-    verifyDataRows(exactSort, rows(4611686018427387905L, "z"), rows(4611686018427387904L, "a"));
+    // HEAD prevents pushdown, so the checked long accumulator retains the low-order bit.
+    JSONObject exactFallback =
+        executeQuery(String.format("source=%s | head 2 | stats sum(v)", exactIndex));
+    verifySchema(exactFallback, schema("sum(v)", "bigint"));
+    verifyDataRows(exactFallback, rows(4611686018427387905L));
   }
 
   @Test
@@ -1137,14 +1122,16 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats sum(balance) as a by age", TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(response, schema("a", null, "bigint"), schema("age", null, "int"));
+    // Native sum returns 0 for an all-null bucket; fallback and analytics backends return null.
+    Object emptySum = (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled()) ? null : 0;
     verifyDataRows(
         response,
-        rows(null, null),
+        rows(emptySum, null),
         rows(32838, 28),
         rows(39225, 32),
         rows(4180, 33),
         rows(48086, 34),
-        rows(null, 36));
+        rows(emptySum, 36));
   }
 
   @Test
@@ -1189,6 +1176,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         response.toString());
   }
 
+  // TODO https://github.com/opensearch-project/sql/issues/3408
+  // In most databases, below test returns null instead of 0.
   @Test
   public void testSumNull() throws IOException {
     JSONObject response =
@@ -1206,7 +1195,9 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             + "  ],\n"
             + "  \"datarows\": [\n"
             + "    [\n"
-            + "      null\n"
+            + ((isPushdownDisabled() || isAnalyticsParquetIndicesEnabled())
+                ? "      null\n"
+                : "      0\n")
             + "    ]\n"
             + "  ],\n"
             + "  \"total\": 1,\n"
