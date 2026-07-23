@@ -30,6 +30,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.udaf.BigintAvgAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.CheckedLongSumAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.DistinctCountApproxLogicalAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.FirstAggFunction;
@@ -493,7 +494,15 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       createReflectiveAggFunction(
           CheckedLongSumAggFunction.class,
           "CHECKED_LONG_SUM",
+          SqlKind.SUM,
           ReturnTypes.BIGINT_FORCE_NULLABLE,
+          PPLOperandTypes.NUMERIC);
+  public static final SqlAggFunction BIGINT_AVG =
+      createReflectiveAggFunction(
+          BigintAvgAggFunction.class,
+          "AVG",
+          SqlKind.AVG,
+          ReturnTypes.DOUBLE_NULLABLE,
           PPLOperandTypes.NUMERIC);
   public static final SqlAggFunction TAKE =
       createUserDefinedAggFunction(

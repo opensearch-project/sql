@@ -659,9 +659,8 @@ public class AggregateAnalyzer {
 
   private static Pair<AggregationBuilder, MetricParser> createCheckedLongSumAggregation(
       List<Pair<RexNode, String>> args, String aggName, AggregateBuilderHelper helper) {
-    if (args.size() != 1 || !(args.getFirst().getKey() instanceof RexInputRef)) {
-      throw new AggregateAnalyzerException(
-          "CHECKED_LONG_SUM pushdown requires one direct field reference");
+    if (args.size() != 1) {
+      throw new AggregateAnalyzerException("CHECKED_LONG_SUM requires exactly one argument");
     }
 
     return Pair.of(

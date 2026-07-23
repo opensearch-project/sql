@@ -1637,21 +1637,6 @@ public class PPLFuncImpTable {
       };
     }
 
-    /**
-     * If {@code field} is a bare BIGINT column reference, cast it to DOUBLE so that AVG's reduced
-     * intermediate SUM accumulates in double rather than a long that wraps near 2^63. Any other
-     * expression is returned unchanged.
-     */
-    private static RexNode widenBigintColumnToDouble(RexNode field, CalcitePlanContext ctx) {
-      if (field instanceof RexInputRef && field.getType().getSqlTypeName() == SqlTypeName.BIGINT) {
-        RelDataType doubleType =
-            TYPE_FACTORY.createTypeWithNullability(
-                TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE), field.getType().isNullable());
-        return ctx.rexBuilder.makeCast(doubleType, field);
-      }
-      return field;
-    }
-
     void populate() {
       registerOperator(MAX, SqlStdOperatorTable.MAX);
       registerOperator(MIN, SqlStdOperatorTable.MIN);
@@ -1674,11 +1659,15 @@ public class PPLFuncImpTable {
 
       register(
           AVG,
-          (distinct, field, argList, ctx) ->
-              // AVG reduces to SUM(field)/COUNT(field); over a bare BIGINT column the intermediate
-              // long SUM wraps near 2^63 (returning a wrong negative average). Averaging in DOUBLE
-              // avoids the wrap and keeps the DOUBLE output type unchanged.
-              ctx.relBuilder.avg(distinct, null, widenBigintColumnToDouble(field, ctx)),
+          (distinct, field, argList, ctx) -> {
+            if (field instanceof RexInputRef
+                && field.getType().getSqlTypeName() == SqlTypeName.BIGINT) {
+              return ctx.relBuilder
+                  .aggregateCall(PPLBuiltinOperators.BIGINT_AVG, field)
+                  .distinct(distinct);
+            }
+            return ctx.relBuilder.avg(distinct, null, field);
+          },
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.AVG.getOperandTypeChecker(), AVG.name(), false));
 

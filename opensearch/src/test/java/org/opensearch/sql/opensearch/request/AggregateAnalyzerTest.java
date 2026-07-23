@@ -212,6 +212,31 @@ class AggregateAnalyzerTest {
   }
 
   @Test
+  void analyze_checkedLongSumExpressionUsesNativeScriptedSum()
+      throws ExpressionNotAnalyzableException {
+    buildAggregation("checked_sum")
+        .withAggCall(
+            b ->
+                b.aggregateCall(
+                        PPLBuiltinOperators.CHECKED_LONG_SUM,
+                        b.call(SqlStdOperatorTable.PLUS, b.field("a"), b.literal(1)))
+                    .as("checked_sum"))
+        .expectDslTemplate("[{\"checked_sum\":{\"sum\":{\"script\":*}}}]")
+        .expectResponseParser(
+            new MetricParserHelper(List.of(new CheckedLongSumParser("checked_sum"))))
+        .verify();
+  }
+
+  @Test
+  void analyze_bigintAvgUsesNativeField() throws ExpressionNotAnalyzableException {
+    buildAggregation("avg")
+        .withAggCall(b -> b.aggregateCall(PPLBuiltinOperators.BIGINT_AVG, b.field("a")).as("avg"))
+        .expectDslQuery("[{\"avg\":{\"avg\":{\"field\":\"a\"}}}]")
+        .expectResponseParser(new MetricParserHelper(List.of(new SingleValueParser("avg"))))
+        .verify();
+  }
+
+  @Test
   void analyze_aggCall_extended() throws ExpressionNotAnalyzableException {
     AggregateCall varSampCall =
         AggregateCall.create(

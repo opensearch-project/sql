@@ -8,9 +8,16 @@ package org.opensearch.sql.calcite.udf.udaf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.apache.calcite.sql.SqlKind;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 class CheckedLongSumAggFunctionTest {
+
+  @Test
+  void retainsSumKindForPlannerRules() {
+    assertEquals(SqlKind.SUM, PPLBuiltinOperators.CHECKED_LONG_SUM.getKind());
+  }
 
   @Test
   void sumsExactly() {
