@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
@@ -53,6 +55,7 @@ import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
+import org.opensearch.sql.ast.expression.ForeachPlaceholder;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
@@ -79,6 +82,8 @@ import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.Sort.SortOrder;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.CalcitePlanContext.ForeachBinding;
+import org.opensearch.sql.calcite.CalcitePlanContext.ForeachBindingType;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -92,10 +97,13 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.CoercionUtils;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 @RequiredArgsConstructor
 public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalcitePlanContext> {
+  private static final Pattern FOREACH_TEMPLATE = Pattern.compile("<<([A-Za-z0-9_]+)>>");
+
   private final CalciteRelNodeVisitor planVisitor;
 
   public RexNode analyze(UnresolvedExpression unresolved, CalcitePlanContext context) {
@@ -134,6 +142,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       case NULL:
         return rexBuilder.makeNullLiteral(typeFactory.createSqlType(SqlTypeName.NULL));
       case STRING:
+        RexNode foreachTemplate = foreachTemplateLiteral(value.toString(), context);
+        if (foreachTemplate != null) {
+          return foreachTemplate;
+        }
         if (value.toString().length() == 1) {
           // To align Spark/PostgreSQL, Char(1) is useful, such as cast('1' to boolean) should
           // return true
@@ -399,7 +411,96 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   /** Resolve qualified name. Note, the name should be case-sensitive. */
   @Override
   public RexNode visitQualifiedName(QualifiedName node, CalcitePlanContext context) {
+    String name = node.toString();
+    RexNode computed = context.getForeachComputedBindings().get(name.toUpperCase(Locale.ROOT));
+    if (computed != null) {
+      return computed;
+    }
+    ForeachBinding binding =
+        context.getForeachIdentifierBindings().get(name.toUpperCase(Locale.ROOT));
+    if (binding != null) {
+      return foreachBindingToRexNode(node.toString(), binding, context);
+    }
     return QualifiedNameResolver.resolve(node, context);
+  }
+
+  @Override
+  public RexNode visitForeachPlaceholder(ForeachPlaceholder node, CalcitePlanContext context) {
+    ForeachBinding binding = foreachBinding(node.getName(), context);
+    if (binding == null) {
+      throw new SemanticCheckException("Unresolved foreach placeholder <<" + node.getName() + ">>");
+    }
+    return foreachBindingToRexNode(node.getName(), binding, context);
+  }
+
+  private ForeachBinding foreachBinding(String name, CalcitePlanContext context) {
+    return context.getForeachBindings().get(name.toUpperCase(Locale.ROOT));
+  }
+
+  private RexNode foreachTemplateLiteral(String value, CalcitePlanContext context) {
+    Matcher matcher = FOREACH_TEMPLATE.matcher(value);
+    List<RexNode> parts = new ArrayList<>();
+    int start = 0;
+    boolean replaced = false;
+    while (matcher.find()) {
+      ForeachBinding binding = foreachBinding(matcher.group(1), context);
+      if (binding == null) {
+        continue;
+      }
+      if (matcher.start() > start) {
+        parts.add(context.rexBuilder.makeLiteral(value.substring(start, matcher.start())));
+      }
+      if (binding.type() == ForeachBindingType.PAIR_SLOT) {
+        RelDataType varchar =
+            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+        parts.add(
+            context.rexBuilder.makeCast(
+                varchar, foreachBindingToRexNode(matcher.group(1), binding, context), true, true));
+      } else {
+        parts.add(context.rexBuilder.makeLiteral(binding.value()));
+      }
+      start = matcher.end();
+      replaced = true;
+    }
+    if (!replaced) {
+      return null;
+    }
+    if (start < value.length()) {
+      parts.add(context.rexBuilder.makeLiteral(value.substring(start)));
+    }
+    if (parts.isEmpty()) {
+      return context.rexBuilder.makeLiteral("");
+    }
+    RexNode result = parts.getFirst();
+    for (int i = 1; i < parts.size(); i++) {
+      result = context.rexBuilder.makeCall(SqlStdOperatorTable.CONCAT, result, parts.get(i));
+    }
+    return result;
+  }
+
+  private RexNode foreachBindingToRexNode(
+      String name, ForeachBinding binding, CalcitePlanContext context) {
+    switch (binding.type()) {
+      case FIELD:
+        return context.relBuilder.field(binding.value());
+      case PAIR_SLOT:
+        RexLambdaRef pair = context.getRexLambdaRefMap().get(binding.value());
+        if (pair == null) {
+          throw new SemanticCheckException("Unresolved foreach lambda placeholder " + name);
+        }
+        // The slot's type is known at plan time, so assign it directly to the opaque extraction
+        // call. LambdaUtils' re-inference preserves it (a CAST would not survive the enumerable
+        // backend for complex types like arrays).
+        return context.rexBuilder.makeCall(
+            binding.pairType(),
+            PPLBuiltinOperators.FOREACH_PAIR_ITEM,
+            List.of(
+                pair,
+                context.rexBuilder.makeExactLiteral(BigDecimal.valueOf(binding.pairIndex()))));
+      case LITERAL:
+      default:
+        return context.rexBuilder.makeLiteral(binding.value());
+    }
   }
 
   @Override

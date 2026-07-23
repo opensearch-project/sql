@@ -52,6 +52,7 @@ buildscript {
         // TODO: Migrate following to Gradle version catalog || Read from OpenSearch BOM in the future.
         // See: https://github.com/opensearch-project/sql/issues/3257
         aws_java_sdk_version = "1.12.651"
+        calcite_version = "1.42.0"
         guava_version = "33.3.0-jre"
         resilience4j_version = "1.5.0"
         hamcrest_version = "2.1"
@@ -162,6 +163,9 @@ allprojects {
         resolutionStrategy.force 'org.apache.commons:commons-text:1.11.0'
         resolutionStrategy.force 'commons-io:commons-io:2.15.0'
         resolutionStrategy.force 'org.yaml:snakeyaml:2.2'
+        // Align Calcite 1.42.0's bumped transitive deps under strict conflict resolution
+        resolutionStrategy.force 'com.jayway.jsonpath:json-path:2.10.0'
+        resolutionStrategy.force 'org.jooq:joou-java-6:0.9.5'
         resolutionStrategy.dependencySubstitution {
             substitute module('commons-lang:commons-lang') using module('org.apache.commons:commons-lang3:3.18.0') because 'CVE-2025-48924: commons-lang 2.x vulnerable to StackOverflowError'
         }

@@ -48,7 +48,6 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.junit.jupiter.api.Test;
-import org.opensearch.OpenSearchParseException;
 import org.opensearch.geometry.utils.Geohash;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -231,6 +230,25 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
+  public void constructIpFromInvalidString_ReturnsNull() {
+    assertEquals(nullValue(), tupleValue("{\"ipV\":\"not-an-ip\"}").get("ipV"));
+    assertEquals(nullValue(), constructFromObject("ipV", "garbage"));
+  }
+
+  @Test
+  public void constructNumericFromObjectNode_ReturnsNull() {
+    assertEquals(nullValue(), tupleValue("{\"intV\":{\"nested\":\"value\"}}").get("intV"));
+    assertEquals(nullValue(), tupleValue("{\"longV\":{\"nested\":\"value\"}}").get("longV"));
+    assertEquals(nullValue(), tupleValue("{\"floatV\":{\"nested\":\"value\"}}").get("floatV"));
+    assertEquals(nullValue(), tupleValue("{\"doubleV\":{\"nested\":\"value\"}}").get("doubleV"));
+  }
+
+  @Test
+  public void constructBooleanFromObjectNode_ReturnsNull() {
+    assertEquals(nullValue(), tupleValue("{\"boolV\":{\"nested\":\"value\"}}").get("boolV"));
+  }
+
+  @Test
   public void constructBoolean() {
     assertAll(
         () -> assertEquals(booleanValue(true), tupleValue("{\"boolV\":true}").get("boolV")),
@@ -374,13 +392,7 @@ class OpenSearchExprValueFactoryTest {
         new ExprTimestampValue("2015-01-01 12:10:30"),
         constructFromObject("customFormatV", "2015-01-01-12-10-30"));
 
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> constructFromObject("customFormatV", "2015-01-01 12-10-30"));
-    assertEquals(
-        "Construct TIMESTAMP from \"2015-01-01 12-10-30\" failed, unsupported format.",
-        exception.getMessage());
+    assertEquals(nullValue(), constructFromObject("customFormatV", "2015-01-01 12-10-30"));
 
     assertEquals(
         new ExprTimestampValue("2015-01-01 12:10:30"),
@@ -388,52 +400,21 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void constructDatetimeFromUnsupportedFormat_ThrowIllegalArgumentException() {
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> constructFromObject("timestampV", "2015-01-01 12:10"));
-    assertEquals(
-        "Construct TIMESTAMP from \"2015-01-01 12:10\" failed, unsupported format.",
-        exception.getMessage());
-
-    // fail with missing seconds
-    exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> constructFromObject("dateOrEpochMillisV", "2015-01-01 12:10"));
-    assertEquals(
-        "Construct TIMESTAMP from \"2015-01-01 12:10\" failed, unsupported format.",
-        exception.getMessage());
+  public void constructDatetimeFromUnsupportedFormat_ReturnsNull() {
+    assertEquals(nullValue(), constructFromObject("timestampV", "2015-01-01 12:10"));
+    assertEquals(nullValue(), constructFromObject("dateOrEpochMillisV", "2015-01-01 12:10"));
   }
 
   @Test
-  public void constructTimeFromUnsupportedFormat_ThrowIllegalArgumentException() {
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> constructFromObject("timeV", "2015-01-01"));
-    assertEquals(
-        "Construct TIME from \"2015-01-01\" failed, unsupported format.", exception.getMessage());
-
-    exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> constructFromObject("timeStringV", "10:10"));
-    assertEquals(
-        "Construct TIME from \"10:10\" failed, unsupported format.", exception.getMessage());
+  public void constructTimeFromUnsupportedFormat_ReturnsNull() {
+    assertEquals(nullValue(), constructFromObject("timeV", "2015-01-01"));
+    assertEquals(nullValue(), constructFromObject("timeStringV", "10:10"));
   }
 
   @Test
-  public void constructDateFromUnsupportedFormat_ThrowIllegalArgumentException() {
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> constructFromObject("dateV", "12:10:10"));
-    assertEquals(
-        "Construct DATE from \"12:10:10\" failed, unsupported format.", exception.getMessage());
-
-    exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> constructFromObject("dateStringV", "abc"));
-    assertEquals("Construct DATE from \"abc\" failed, unsupported format.", exception.getMessage());
+  public void constructDateFromUnsupportedFormat_ReturnsNull() {
+    assertEquals(nullValue(), constructFromObject("dateV", "12:10:10"));
+    assertEquals(nullValue(), constructFromObject("dateStringV", "abc"));
   }
 
   @Test
@@ -803,24 +784,12 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void constructGeoPointFromUnsupportedFormatShouldThrowException() {
-    OpenSearchParseException exception =
-        assertThrows(
-            OpenSearchParseException.class,
-            () -> tupleValue("{\"geoV\": [42.60355556, false]}").get("geoV"));
-    assertEquals("lat must be a number, got false", exception.getMessage());
-
-    exception =
-        assertThrows(
-            OpenSearchParseException.class,
-            () -> tupleValue("{\"geoV\":{\"lon\":-97.25263889}}").get("geoV"));
-    assertEquals("field [lat] missing", exception.getMessage());
-
-    exception =
-        assertThrows(
-            OpenSearchParseException.class,
-            () -> tupleValue("{\"geoV\":{\"lat\":true,\"lon\":-97.25263889}}").get("geoV"));
-    assertEquals("lat must be a number", exception.getMessage());
+  public void constructGeoPointFromUnsupportedFormat_ReturnsNull() {
+    assertEquals(nullValue(), tupleValue("{\"geoV\": [42.60355556, false]}").get("geoV"));
+    assertEquals(nullValue(), tupleValue("{\"geoV\":{\"lon\":-97.25263889}}").get("geoV"));
+    assertEquals(
+        nullValue(), tupleValue("{\"geoV\":{\"lat\":true,\"lon\":-97.25263889}}").get("geoV"));
+    assertEquals(nullValue(), tupleValue("{\"geoV\":\"not-a-geo-point\"}").get("geoV"));
   }
 
   @Test

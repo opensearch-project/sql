@@ -81,7 +81,9 @@ import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -1108,6 +1110,12 @@ public class AstBuilderTest extends AstPlanningTestBase {
   }
 
   @Test
+  public void testMakeResultsCommand() {
+    assertEqual("makeresults", new MakeResults(1));
+    assertEqual("makeresults count=5", new MakeResults(5));
+  }
+
+  @Test
   public void testDescribeMatchAllCrossClusterSearchCommand() {
     assertEqual("describe *:t", describe(mappingTable("*:t")));
   }
@@ -1818,6 +1826,78 @@ public class AstBuilderTest extends AstPlanningTestBase {
   @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
   public void testMalformedPipeProducesSyntaxError() {
     plan("source=t | invalidCmd |");
+  }
+
+  // Xyseries tests
+
+  @Test
+  public void testXyseriesCommandBasic() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"),
+            field("response"),
+            List.of("200", "404"),
+            List.of(field("host_cnt")),
+            ": ",
+            null);
+    expected.attach(relation("t"));
+    assertEqual("source=t | xyseries url response in (\"200\", \"404\") host_cnt", expected);
+  }
+
+  @Test
+  public void testXyseriesCommandMultipleDataFields() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"),
+            field("response"),
+            List.of("200", "404"),
+            List.of(field("host_cnt"), field("method_cnt")),
+            ": ",
+            null);
+    expected.attach(relation("t"));
+    assertEqual(
+        "source=t | xyseries url response in (\"200\", \"404\") host_cnt, method_cnt", expected);
+  }
+
+  @Test
+  public void testXyseriesCommandWithSep() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"), field("response"), List.of("200"), List.of(field("host_cnt")), "-", null);
+    expected.attach(relation("t"));
+    assertEqual("source=t | xyseries sep=\"-\" url response in (\"200\") host_cnt", expected);
+  }
+
+  @Test
+  public void testXyseriesCommandWithFormat() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"),
+            field("response"),
+            List.of("200"),
+            List.of(field("host_cnt")),
+            ": ",
+            "$VAL$+$AGG$");
+    expected.attach(relation("t"));
+    assertEqual(
+        "source=t | xyseries format=\"$VAL$+$AGG$\" url response in (\"200\") host_cnt", expected);
+  }
+
+  @Test
+  public void testXyseriesCommandWithSepAndFormat() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"),
+            field("response"),
+            List.of("200", "404"),
+            List.of(field("host_cnt")),
+            "-",
+            "$AGG$_$VAL$");
+    expected.attach(relation("t"));
+    assertEqual(
+        "source=t | xyseries sep=\"-\" format=\"$AGG$_$VAL$\" url response in (\"200\", \"404\")"
+            + " host_cnt",
+        expected);
   }
 
   @Test

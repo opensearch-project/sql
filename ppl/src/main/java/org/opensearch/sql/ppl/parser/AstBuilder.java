@@ -54,6 +54,7 @@ import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -87,6 +88,8 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Foreach;
+import org.opensearch.sql.ast.tree.Foreach.ForeachEvalClause;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
@@ -94,6 +97,7 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
@@ -125,6 +129,7 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -142,6 +147,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.ppl.utils.MakeResultsDataParser;
 import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
@@ -252,6 +258,46 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitShowDataSourcesCommand(
       OpenSearchPPLParser.ShowDataSourcesCommandContext ctx) {
     return new DescribeRelation(qualifiedName(DATASOURCES_TABLE_NAME));
+  }
+
+  /** makeresults command. */
+  @Override
+  public UnresolvedPlan visitMakeresultsCommand(OpenSearchPPLParser.MakeresultsCommandContext ctx) {
+    int count = 1;
+    String format = null;
+    String data = null;
+    for (OpenSearchPPLParser.MakeresultsArgContext arg : ctx.makeresultsArg()) {
+      if (arg.integerLiteral() != null) {
+        String raw = arg.integerLiteral().getText();
+        try {
+          count = Integer.parseInt(raw);
+        } catch (NumberFormatException e) {
+          throw new SyntaxCheckException(
+              "makeresults count \"" + raw + "\" is not a valid integer within the allowed range");
+        }
+      } else if (arg.stringLiteral() != null) {
+        data = StringUtils.unquoteText(arg.stringLiteral().getText());
+      } else if (arg.JSON() != null) {
+        format = "json";
+      } else if (arg.CSV() != null) {
+        format = "csv";
+      }
+    }
+    if (data != null || format != null) {
+      if (data == null || format == null) {
+        throw new SyntaxCheckException("makeresults format and data must be provided together");
+      }
+      return MakeResultsDataParser.parse(format, data);
+    }
+    if (count < 0) {
+      // Negative count yields zero rows.
+      count = 0;
+    }
+    if (count > 5000) {
+      // Inline literal rows hit the JVM 64 KB per-method bytecode limit.
+      throw new SyntaxCheckException("makeresults count must not exceed 5000");
+    }
+    return new MakeResults(count);
   }
 
   /** Where command. */
@@ -865,6 +911,66 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.evalClause().stream()
             .map(ct -> (Let) internalVisitExpression(ct))
             .collect(Collectors.toList()));
+  }
+
+  @Override
+  public UnresolvedPlan visitForeachCommand(OpenSearchPPLParser.ForeachCommandContext ctx) {
+    java.util.Map<String, String> options = new LinkedHashMap<>();
+    List<UnresolvedExpression> targets = new ArrayList<>();
+    List<String> patterns = new ArrayList<>();
+    for (OpenSearchPPLParser.ForeachArgumentContext argument : ctx.foreachArgument()) {
+      OpenSearchPPLParser.ForeachOptionContext option = argument.foreachOption();
+      if (option != null) {
+        options.put(
+            option.ident(0).getText().toLowerCase(Locale.ROOT),
+            stripForeachPlaceholderMarkers(option.getChild(2).getText()));
+      } else {
+        OpenSearchPPLParser.ForeachTargetContext target = argument.foreachTarget();
+        patterns.add(getTextInQuery(target));
+        if (target.functionCall() != null) {
+          targets.add(expressionBuilder.visit(target.functionCall()));
+        } else if (target.stringLiteral() != null) {
+          targets.add(expressionBuilder.visit(target.stringLiteral()));
+        } else {
+          targets.add(new Field(new QualifiedName(getTextInQuery(target))));
+        }
+      }
+    }
+    Foreach.Mode mode =
+        options.containsKey("mode")
+            ? Foreach.Mode.of(options.get("mode"))
+            : inferForeachMode(targets);
+    UnresolvedExpression collectionExpression = null;
+    if (mode != Foreach.Mode.MULTIFIELD) {
+      if (targets.size() > 1 || (targets.isEmpty() && mode != Foreach.Mode.AUTO_COLLECTIONS)) {
+        throw new IllegalArgumentException("foreach collection modes accept exactly one field");
+      }
+      collectionExpression = targets.isEmpty() ? null : targets.get(0);
+    }
+    List<ForeachEvalClause> evalClauses =
+        ctx.foreachEvalCommand().foreachEvalClause().stream()
+            .map(
+                clause ->
+                    new ForeachEvalClause(
+                        getTextInQuery(clause.target),
+                        expressionBuilder.visit(clause.logicalExpression())))
+            .collect(Collectors.toList());
+    return new Foreach(mode, options, patterns, collectionExpression, evalClauses);
+  }
+
+  private String stripForeachPlaceholderMarkers(String value) {
+    return value.startsWith("<<") && value.endsWith(">>")
+        ? value.substring(2, value.length() - 2)
+        : value;
+  }
+
+  /** A bare json_array(...) target implies json_array mode; anything else is multifield. */
+  private Foreach.Mode inferForeachMode(List<UnresolvedExpression> targets) {
+    return targets.size() == 1
+            && targets.get(0) instanceof Function function
+            && "json_array".equalsIgnoreCase(function.getFuncName())
+        ? Foreach.Mode.JSON_ARRAY
+        : Foreach.Mode.MULTIFIELD;
   }
 
   @Override
@@ -1775,5 +1881,38 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .usePIT(usePIT)
         .filter(filter)
         .build();
+  }
+
+  /** Xyseries command. */
+  @Override
+  public UnresolvedPlan visitXyseriesCommand(OpenSearchPPLParser.XyseriesCommandContext ctx) {
+    UnresolvedExpression xField = internalVisitExpression(ctx.xField);
+    UnresolvedExpression yNameField = internalVisitExpression(ctx.yNameField);
+
+    // Parse pivot values from IN (...) clause
+    List<String> pivotValues =
+        ctx.xyseriesPivotValues().stringLiteral().stream()
+            .map(s -> StringUtils.unquoteText(s.getText()))
+            .distinct()
+            .collect(Collectors.toList());
+
+    // Parse y-data fields
+    List<UnresolvedExpression> yDataFields =
+        ctx.yDataFields.fieldExpression().stream()
+            .map(this::internalVisitExpression)
+            .collect(Collectors.toList());
+
+    // Parse options
+    String separator = ": ";
+    String format = null;
+    for (OpenSearchPPLParser.XyseriesOptionContext optCtx : ctx.xyseriesOption()) {
+      if (optCtx.SEP() != null) {
+        separator = StringUtils.unquoteText(optCtx.sep.getText());
+      } else if (optCtx.FORMAT() != null) {
+        format = StringUtils.unquoteText(optCtx.format.getText());
+      }
+    }
+
+    return new Xyseries(xField, yNameField, pivotValues, yDataFields, separator, format);
   }
 }
