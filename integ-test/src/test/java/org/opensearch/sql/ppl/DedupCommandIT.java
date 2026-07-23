@@ -59,6 +59,24 @@ public class DedupCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testDedupOnTextField() throws IOException {
+    // `email` is mapped as text with no .keyword sub-field, so dedup runs via the text-field
+    // aggregation pushdown path (composite terms + top_hits with the field read from _source).
+    // The result set must match the set of distinct emails in the fixture.
+    JSONObject result =
+        executeQuery(String.format("source=%s | dedup email | fields email", TEST_INDEX_BANK));
+    verifyDataRows(
+        result,
+        rows("amberduke@pyrami.com"),
+        rows("hattiebond@netagy.com"),
+        rows("nanettebates@quility.com"),
+        rows("daleadams@boink.com"),
+        rows("elinorratliff@scentric.com"),
+        rows("virginiaayala@filodyne.com"),
+        rows("dillardmcpherson@quailcom.com"));
+  }
+
+  @Test
   public void testKeepEmptyDedup() throws IOException {
     JSONObject result =
         executeQuery(
