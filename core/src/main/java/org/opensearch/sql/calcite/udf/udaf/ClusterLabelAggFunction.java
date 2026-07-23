@@ -26,6 +26,8 @@ public class ClusterLabelAggFunction
   private static final int DEFAULT_BUFFER_LIMIT = 50000; // rows buffered before a partial merge
   // caps distinct clusters, which bounds the per-row comparison cost
   private static final int DEFAULT_MAX_CLUSTERS = 10000;
+  // caps input rows processed on the coordinator, bounding the O(n) label array (fail-loud)
+  private static final int DEFAULT_MAX_INPUT_ROWS = 1000000;
   private static final double DEFAULT_THRESHOLD = 0.8;
   private static final String DEFAULT_MATCH_MODE = "termlist";
   private static final String DEFAULT_DELIMS = " ";
@@ -64,11 +66,12 @@ public class ClusterLabelAggFunction
       String matchMode,
       String delims,
       int bufferLimit,
-      int maxClusters) {
+      int maxClusters,
+      int maxInputRows) {
     // Store config on the accumulator, not on this function instance, so a reused or shared
     // function object cannot race across concurrent aggregations. Null fields are filtered out
     // upstream in visitCluster; the guard here keeps the label array aligned to the row count.
-    acc.configure(threshold, matchMode, delims, maxClusters);
+    acc.configure(threshold, matchMode, delims, maxClusters, maxInputRows);
     acc.evaluate(field != null ? field : "");
 
     if (bufferLimit > 0 && acc.bufferSize() == bufferLimit) {
@@ -77,6 +80,18 @@ public class ClusterLabelAggFunction
     }
 
     return acc;
+  }
+
+  public Acc add(
+      Acc acc,
+      String field,
+      double threshold,
+      String matchMode,
+      String delims,
+      int bufferLimit,
+      int maxClusters) {
+    return add(
+        acc, field, threshold, matchMode, delims, bufferLimit, maxClusters, DEFAULT_MAX_INPUT_ROWS);
   }
 
   public Acc add(
@@ -134,12 +149,16 @@ public class ClusterLabelAggFunction
     private String matchMode = DEFAULT_MATCH_MODE;
     private String delims = DEFAULT_DELIMS;
     private int maxClusters = DEFAULT_MAX_CLUSTERS;
+    private int maxInputRows = DEFAULT_MAX_INPUT_ROWS;
+    private long inputRowCount = 0;
 
-    void configure(double threshold, String matchMode, String delims, int maxClusters) {
+    void configure(
+        double threshold, String matchMode, String delims, int maxClusters, int maxInputRows) {
       this.threshold = threshold;
       this.matchMode = matchMode;
       this.delims = delims;
       this.maxClusters = maxClusters;
+      this.maxInputRows = maxInputRows;
     }
 
     public int bufferSize() {
@@ -147,6 +166,16 @@ public class ClusterLabelAggFunction
     }
 
     public void evaluate(String value) {
+      // Fail loud before the O(n) label array can grow past the coordinator safety ceiling.
+      // Truncating would silently change cluster assignments, so reject instead.
+      if (++inputRowCount > maxInputRows) {
+        throw new IllegalArgumentException(
+            String.format(
+                "cluster command input exceeds the configured limit of %d rows. Scope the query"
+                    + " with a filter or time window, or raise the"
+                    + " plugins.ppl.cluster.max.input.rows setting.",
+                maxInputRows));
+      }
       buffer.add(value != null ? value : "");
     }
 
@@ -218,6 +247,7 @@ public class ClusterLabelAggFunction
       globalClusters.clear();
       allLabels.clear();
       nextClusterId = 1;
+      inputRowCount = 0;
     }
 
     @Override

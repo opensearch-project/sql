@@ -213,12 +213,13 @@ fetched rows / total rows = 5/5
 
 ## Cluster settings
 
-The `cluster` command exposes two cluster-level guardrails. Both are `NodeScope` and dynamic, so a cluster administrator can update them at runtime with the `_cluster/settings` API. They are administrative controls rather than per-query options, and they are shared by every `cluster` query on the node.
+The `cluster` command exposes three cluster-level guardrails. All three are `NodeScope` and dynamic, so a cluster administrator can update them at runtime with the `_cluster/settings` API. They are administrative controls rather than per-query options, and they are shared by every `cluster` query on the node.
 
 | Setting | Default | Minimum | Description |
 | --- | --- | --- | --- |
 | `plugins.ppl.cluster.buffer.limit` | `50000` | `1` | Number of rows buffered on the coordinating node before an incremental clustering pass runs. This bounds transient memory only and does not change the clustering result. Lower it on memory constrained nodes, raise it to reduce the number of incremental passes. |
 | `plugins.ppl.cluster.max.clusters` | `10000` | `1` | Maximum number of distinct clusters the command will create. Once this many clusters exist, every remaining row is folded into its closest existing cluster instead of forming a new one. This value changes the output because it caps how many distinct `cluster_label` values are possible. |
+| `plugins.ppl.cluster.max.input.rows` | `1000000` | `1` | Maximum number of input rows the command will process on the coordinating node. Clustering assigns one label per row, so the label array grows in proportion to the input (`O(rows)`). When the input exceeds this ceiling the query fails with a clear error instead of risking coordinator memory exhaustion. Scope the query with a filter or time window, or raise this setting on nodes with more heap. |
 
 ## Performance and limitations
 

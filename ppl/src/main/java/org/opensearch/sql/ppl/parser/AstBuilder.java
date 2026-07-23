@@ -1316,7 +1316,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         showCount,
         delims,
         settings.getSettingValue(Key.CLUSTER_BUFFER_LIMIT),
-        settings.getSettingValue(Key.CLUSTER_MAX_CLUSTERS));
+        settings.getSettingValue(Key.CLUSTER_MAX_CLUSTERS),
+        settings.getSettingValue(Key.CLUSTER_MAX_INPUT_ROWS));
   }
 
   /** AD command. */

@@ -3190,6 +3190,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     funcParams.add(AstDSL.stringLiteral(node.getDelims()));
     funcParams.add(AstDSL.intLiteral(node.getBufferLimit()));
     funcParams.add(AstDSL.intLiteral(node.getMaxClusters()));
+    funcParams.add(AstDSL.intLiteral(node.getMaxInputRows()));
 
     RexNode clusterWindow =
         rexVisitor.analyze(
