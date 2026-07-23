@@ -53,6 +53,16 @@ public class AstSearchExpressionTest {
   }
 
   @Test
+  public void testImplicitFormatSubsearchRemainsRuntimeBound() {
+    Node plan = buildPlan("search source=logs [ search source=rules | fields status, host ]");
+
+    assertTrue(plan instanceof Search);
+    Search search = (Search) plan;
+    assertTrue(search.hasImplicitSubquery());
+    assertEquals(null, search.getQueryString());
+  }
+
+  @Test
   public void testAndExpression() {
     String query = "search status=200 AND message=\"success\" source=logs";
     Node plan = buildPlan(query);

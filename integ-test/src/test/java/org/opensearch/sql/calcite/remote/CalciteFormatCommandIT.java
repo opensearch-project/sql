@@ -61,4 +61,31 @@ public class CalciteFormatCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(result, rows("no matching data"));
   }
+
+  @Test
+  public void testDefaultEmptyResult() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source="
+                + TEST_INDEX_BANK
+                + " | where account_number < 0 | fields firstname | format");
+
+    verifyDataRows(result, rows("NOT ()"));
+  }
+
+  @Test
+  public void testUpstreamSortControlsRowOrder() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source="
+                + TEST_INDEX_BANK
+                + " | where account_number in (1, 6, 13) | fields account_number "
+                + "| sort - account_number | format");
+
+    verifyDataRows(
+        result,
+        rows(
+            "( ( account_number=\"13\" ) OR ( account_number=\"6\" ) OR "
+                + "( account_number=\"1\" ) )"));
+  }
 }

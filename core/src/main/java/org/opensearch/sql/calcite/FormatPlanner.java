@@ -5,11 +5,16 @@
 
 package org.opensearch.sql.calcite;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -17,6 +22,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.tree.Format;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /** Lowers the PPL {@code format} command to Calcite projects and a global aggregation. */
 public class FormatPlanner {
@@ -39,8 +45,79 @@ public class FormatPlanner {
       return builder.peek();
     }
 
+    Optional<RelDataTypeField> scalarSearchField =
+        fields.stream()
+            .filter(field -> field.getName().equals("search"))
+            .filter(
+                field ->
+                    !SqlTypeUtil.isArray(field.getType())
+                        && !SqlTypeUtil.isMultiset(field.getType()))
+            .findFirst();
+    if (node.isImplicit() && scalarSearchField.isPresent()) {
+      return planImplicitSearchField(node, context, fields, scalarSearchField.get());
+    }
+
     List<RexNode> formattedFields =
         fields.stream().map(field -> formatField(field, node, context)).toList();
+    RexNode nonEmptyRow = formatRow(formattedFields, node, context);
+
+    aggregateRows(nonEmptyRow, context);
+    builder.project(List.of(formatAggregatedRows(node, context)), List.of("search"), true);
+    return builder.peek();
+  }
+
+  /**
+   * At an implicit subsearch boundary, a scalar {@code search} field has special behavior. Only the
+   * first row participates; a non-null {@code search} value is injected verbatim and suppresses the
+   * row's other fields. If that value is null, the first row is formatted normally without the
+   * {@code search} field.
+   */
+  private RelNode planImplicitSearchField(
+      Format node,
+      CalcitePlanContext context,
+      List<RelDataTypeField> fields,
+      RelDataTypeField searchField) {
+    RelBuilder builder = context.relBuilder;
+    builder.limit(0, 1);
+
+    RexNode rawSearch = builder.cast(builder.field(searchField.getIndex()), SqlTypeName.VARCHAR);
+    List<RexNode> fallbackFields =
+        fields.stream()
+            .filter(field -> field != searchField)
+            .map(field -> formatField(field, node, context))
+            .toList();
+    RexNode fallbackRow = formatRow(fallbackFields, node, context);
+
+    builder.project(List.of(rawSearch, fallbackRow), List.of("__raw_search", "__format_row"));
+    RexNode rawSearchRef = builder.field("__raw_search");
+    RexNode rowRef = builder.field("__format_row");
+    builder.aggregate(
+        builder.groupKey(),
+        builder.aggregateCall(SqlStdOperatorTable.COUNT, rawSearchRef).as("__raw_search_count"),
+        builder.aggregateCall(SqlStdOperatorTable.MAX, rawSearchRef).as("__raw_search_value"),
+        builder.aggregateCall(SqlLibraryOperators.ARRAY_AGG, rowRef).as("__format_rows"));
+
+    RexNode hasRawSearch =
+        builder.call(
+            SqlStdOperatorTable.GREATER_THAN,
+            builder.field("__raw_search_count"),
+            builder.literal(0));
+    RexNode result =
+        builder.call(
+            SqlStdOperatorTable.CASE,
+            hasRawSearch,
+            builder.field("__raw_search_value"),
+            formatAggregatedRows(node, context));
+    builder.project(List.of(result), List.of("search"), true);
+    return builder.peek();
+  }
+
+  private RexNode formatRow(
+      List<RexNode> formattedFields, Format node, CalcitePlanContext context) {
+    if (formattedFields.isEmpty()) {
+      RelDataType varchar = context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+      return context.rexBuilder.makeNullLiteral(varchar);
+    }
     RexNode joinedFields =
         arrayJoin(
             context, compactArray(context, formattedFields), " " + node.getColumnSeparator() + " ");
@@ -50,19 +127,59 @@ public class FormatPlanner {
             stringLiteral(node.getColumnPrefix() + " ", context),
             joinedFields,
             stringLiteral(" " + node.getColumnEnd(), context));
-    RexNode nonEmptyRow = ifNotEmpty(joinedFields, rowExpression, context);
+    return ifNotEmpty(joinedFields, rowExpression, context);
+  }
 
-    builder.project(List.of(nonEmptyRow), List.of("__format_row"));
+  private void aggregateRows(RexNode nonEmptyRow, CalcitePlanContext context) {
+    RelBuilder builder = context.relBuilder;
+    List<RelFieldCollation> ordering = inputOrdering(builder.peek());
+    if (ordering.isEmpty()) {
+      builder.project(List.of(nonEmptyRow), List.of("__format_row"));
+    } else {
+      List<RexNode> projections = new ArrayList<>();
+      projections.add(nonEmptyRow);
+      projections.addAll(builder.fields());
+      List<String> names = new ArrayList<>();
+      names.add("__format_row");
+      for (int i = 0; i < projections.size() - 1; i++) {
+        names.add("__format_order_" + i);
+      }
+      builder.project(projections, names, true);
+    }
     RexNode rowRef = builder.field("__format_row");
-    builder.aggregate(
-        builder.groupKey(),
-        builder
-            .aggregateCall(SqlLibraryOperators.ARRAY_AGG, rowRef)
-            .filter(builder.isNotNull(rowRef))
-            .as("__format_rows"));
+    RelBuilder.AggCall rows = builder.aggregateCall(SqlLibraryOperators.ARRAY_AGG, rowRef);
+    if (!ordering.isEmpty()) {
+      rows = rows.sort(ordering.stream().map(order -> orderExpression(order, builder)).toList());
+    }
+    builder.aggregate(builder.groupKey(), rows.as("__format_rows"));
+  }
 
-    RexNode joinedRows =
-        arrayJoin(context, builder.field("__format_rows"), " " + node.getRowSeparator() + " ");
+  private List<RelFieldCollation> inputOrdering(RelNode input) {
+    return input.getCluster().getMetadataQuery().collations(input).stream()
+        .map(RelCollation::getFieldCollations)
+        .filter(ordering -> !ordering.isEmpty())
+        .findFirst()
+        .orElse(List.of());
+  }
+
+  private RexNode orderExpression(RelFieldCollation order, RelBuilder builder) {
+    RexNode expression = builder.field(order.getFieldIndex() + 1);
+    if (order.getDirection().isDescending()) {
+      expression = builder.desc(expression);
+    }
+    if (order.nullDirection == RelFieldCollation.NullDirection.FIRST) {
+      expression = builder.nullsFirst(expression);
+    } else if (order.nullDirection == RelFieldCollation.NullDirection.LAST) {
+      expression = builder.nullsLast(expression);
+    }
+    return expression;
+  }
+
+  private RexNode formatAggregatedRows(Format node, CalcitePlanContext context) {
+    RelBuilder builder = context.relBuilder;
+    RexNode nonNullRows =
+        builder.call(SqlLibraryOperators.ARRAY_COMPACT, builder.field("__format_rows"));
+    RexNode joinedRows = arrayJoin(context, nonNullRows, " " + node.getRowSeparator() + " ");
     RexNode formatted =
         concat(
             context,
@@ -75,8 +192,7 @@ public class FormatPlanner {
             isNotEmpty(joinedRows, context),
             formatted,
             stringLiteral(node.getEmptyString(), context));
-    builder.project(List.of(result), List.of("search"), true);
-    return builder.peek();
+    return result;
   }
 
   private RexNode formatField(RelDataTypeField field, Format node, CalcitePlanContext context) {
@@ -93,6 +209,7 @@ public class FormatPlanner {
       RexNode values =
           builder.call(
               SqlLibraryOperators.ARRAY_COMPACT, context.rexBuilder.makeCast(varcharArray, value));
+      values = escapeArrayValues(values, varchar, context);
       String repeatedValueSeparator =
           rawValue
               ? "\" " + node.getMvSeparator() + " \""
@@ -106,12 +223,12 @@ public class FormatPlanner {
               stringLiteral("\" )", context));
       hasValue = builder.call(SqlStdOperatorTable.AND, hasValue, isNotEmpty(joinedValues, context));
     } else {
-      RexNode stringValue = escapeValue(builder.cast(value, SqlTypeName.VARCHAR), context);
+      RexNode stringValue = builder.cast(value, SqlTypeName.VARCHAR);
       formattedValue =
           concat(
               context,
               stringLiteral(rawValue ? "\"" : fieldName + "=\"", context),
-              stringValue,
+              escapeValue(stringValue, context),
               stringLiteral("\"", context));
     }
 
@@ -134,6 +251,14 @@ public class FormatPlanner {
         escapedBackslashes,
         stringLiteral("\"", context),
         stringLiteral("\\\"", context));
+  }
+
+  private RexNode escapeArrayValues(
+      RexNode values, RelDataType varchar, CalcitePlanContext context) {
+    RexLambdaRef element = new RexLambdaRef(0, "element", varchar);
+    RexNode escapeLambda =
+        context.rexBuilder.makeLambdaCall(escapeValue(element, context), List.of(element));
+    return context.rexBuilder.makeCall(PPLBuiltinOperators.TRANSFORM, values, escapeLambda);
   }
 
   private String formatFieldName(String fieldName) {

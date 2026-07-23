@@ -300,6 +300,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitSearch(Search node, AnalysisContext context) {
+    if (node.hasImplicitSubquery()) {
+      throw getOnlyForCalciteException("Implicit format subsearch");
+    }
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     Function queryStringFunc =
         AstDSL.function(

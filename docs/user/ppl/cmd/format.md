@@ -2,7 +2,9 @@
 
 The `format` command collapses tabular input into one row containing a `search` string. Within each input row, it renders non-null fields as `field="value"` expressions joined by a column separator. It then joins the rendered rows with a row separator.
 
-`format` produces the expression as data. It does not parse or execute the generated `search` string.
+As an explicit pipeline command, `format` produces the expression as data and does not execute the
+generated `search` string. A subsearch used directly in a parent `search` expression has an implicit
+final `format`; the generated string is parsed as a predicate and applied to the parent search.
 
 ## Syntax
 
@@ -24,7 +26,7 @@ If you specify positional delimiters, you must provide all six.
 | `column-end` | `)` | Suffix for each formatted input row. |
 | `row-separator` | `OR` | Separator between formatted rows. |
 | `row-end` | `)` | Suffix for the complete expression. |
-| `emptystr` | `NOT( )` | Result when the input has no formattable fields or values. |
+| `emptystr` | `NOT ()` | Result when the input has no formattable fields or values. |
 
 ## Behavior
 
@@ -32,10 +34,28 @@ If you specify positional delimiters, you must provide all six.
 - Fields are rendered in lexicographic field-name order.
 - Null and missing values are omitted. Empty strings are retained.
 - Fields whose names begin with `_` are treated as internal fields and omitted.
-- The field names `search` and `query` are omitted from their rendered predicates; their values are inserted directly into the expression.
+- The field names `search` and `query` are omitted from their rendered predicates. Their scalar
+  and multivalue elements are still quoted and escaped like other values.
 - Field names containing special characters are double quoted.
 - Scalar values are converted to strings. Double quotes and backslashes are escaped.
 - Multivalue fields produce a parenthesized expression containing one predicate per non-null element.
+- At an implicit subsearch boundary, a scalar `search` field has special behavior: only the first
+  result row participates, and a non-null `search` value is inserted as predicate text instead of
+  formatting that row's other fields. A null `search` value falls back to formatting the first row's
+  other fields. The `query` field and multivalue `search` fields retain normal `format` behavior.
+
+## Implicit format in a search subquery
+
+When a bracketed subsearch appears in the parent `search` expression, PPL executes the subsearch,
+implicitly formats its result, parses the resulting string as search predicate syntax, and then
+executes the parent search. For example:
+
+```ppl
+search source=logs [ search source=rules | where enabled=true | fields host, status ]
+```
+
+The subsearch is subject to `plugins.ppl.subsearch.maxout`. An explicit `format` command remains a
+regular pipeline command and returns its generated string without executing it.
 
 ## Examples
 
@@ -96,10 +116,13 @@ source=logs
 
 ## Limitations
 
-- PPL currently supports `format` only as an explicit pipeline command. It is not implicitly appended to subsearches.
-- The generated `search` value is not automatically injected into or executed by an outer query.
-- Multivalue element escaping is limited by the backend array-expression support. Avoid quote and backslash characters in multivalue elements when the output will be parsed as a search expression.
-- Row collection lowers to a global `ARRAY_AGG` without an aggregate order key. Distributed execution can change row order even when the input contains an upstream `sort`, so stable Splunk row-order parity is not guaranteed.
+- Implicit format requires the Calcite query engine.
+- Runtime binding is supported for bracketed subsearches in a parent `search` expression. Dynamic
+  subsearch interpolation in `eval` or other command positions is not supported.
+- An implicit result is parsed only as a search predicate. Pipeline command syntax in a generated
+  `search` or `query` value is rejected.
+- When upstream ordering metadata is available, row collection carries it into the aggregate order
+  key. Without an explicit upstream `sort`, distributed execution does not guarantee row order.
 
 ## Related commands
 

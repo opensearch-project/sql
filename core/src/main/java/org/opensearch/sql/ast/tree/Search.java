@@ -26,13 +26,35 @@ import org.opensearch.sql.ast.expression.SearchExpression;
 public class Search extends UnresolvedPlan {
 
   @EqualsAndHashCode.Include private final UnresolvedPlan child;
-  @EqualsAndHashCode.Include private final String queryString;
+  @EqualsAndHashCode.Include private final @Nullable String queryString;
 
   // Currently it's only for anonymizer
   private final @Nullable SearchExpression originalExpression;
 
   public Search(UnresolvedPlan child, String queryString) {
     this(child, queryString, null);
+  }
+
+  /** Creates a search whose query string may need runtime subquery binding. */
+  public static Search fromExpression(UnresolvedPlan child, SearchExpression originalExpression) {
+    return new Search(
+        child,
+        containsSubquery(originalExpression) ? null : originalExpression.toQueryString(),
+        originalExpression);
+  }
+
+  public boolean hasImplicitSubquery() {
+    return queryString == null;
+  }
+
+  private static boolean containsSubquery(SearchExpression expression) {
+    if (expression instanceof org.opensearch.sql.ast.expression.SearchSubquery) {
+      return true;
+    }
+    return expression.getChild().stream()
+        .filter(SearchExpression.class::isInstance)
+        .map(SearchExpression.class::cast)
+        .anyMatch(Search::containsSubquery);
   }
 
   @Override

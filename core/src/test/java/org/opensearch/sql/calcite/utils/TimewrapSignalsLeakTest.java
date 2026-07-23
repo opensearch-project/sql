@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
@@ -21,6 +22,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
+import org.opensearch.sql.executor.analytics.TimewrapSignals;
 
 /**
  * Leak guard for the timewrap pivot signals. {@code visitTimewrap} stashes its pivot state in the
@@ -78,5 +80,20 @@ public class TimewrapSignalsLeakTest {
         result.columns().stream().map(Column::getName).toList(),
         "non-timewrap result gained artifact columns after a prior timewrap query");
     assertEquals(rows, result.values());
+  }
+
+  @Test
+  public void timewrapSignalsCanMoveAcrossInitPlanExecution() {
+    CalcitePlanContext.stripNullColumns.set(true);
+    CalcitePlanContext.timewrapUnitName.set("1|day|days|_before");
+    CalcitePlanContext.timewrapSeries.set("relative");
+
+    TimewrapSignals snapshot = TimewrapSignals.captureAndClear();
+    assertFalse(TimewrapPivot.isTimewrap());
+
+    snapshot.install();
+    assertTrue(TimewrapPivot.isTimewrap());
+    assertEquals("1|day|days|_before", CalcitePlanContext.timewrapUnitName.get());
+    assertEquals("relative", CalcitePlanContext.timewrapSeries.get());
   }
 }

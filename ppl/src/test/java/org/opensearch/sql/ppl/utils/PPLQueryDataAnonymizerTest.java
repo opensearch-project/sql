@@ -42,6 +42,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testImplicitFormatSubsearch() {
+    assertEquals(
+        "source=table [ subsearch ]",
+        anonymize("search source=outer [ search source=inner | fields host ]"));
+  }
+
+  @Test
   public void testTableFunctionCommand() {
     assertEquals(
         "source=prometheus.query_range(***,***,***,***)",

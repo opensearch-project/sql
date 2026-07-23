@@ -30,7 +30,7 @@ public class Format extends UnresolvedPlan {
   public static final String DEFAULT_COLUMN_END = ")";
   public static final String DEFAULT_ROW_SEPARATOR = "OR";
   public static final String DEFAULT_ROW_END = ")";
-  public static final String DEFAULT_EMPTY_STRING = "NOT( )";
+  public static final String DEFAULT_EMPTY_STRING = "NOT ()";
 
   private final String mvSeparator;
   private final int maxResults;
@@ -41,6 +41,10 @@ public class Format extends UnresolvedPlan {
   private final String rowSeparator;
   private final String rowEnd;
   private final String emptyString;
+
+  /** Whether the result is consumed by an enclosing search rather than returned to the user. */
+  private boolean implicit;
+
   private UnresolvedPlan child;
 
   @Override

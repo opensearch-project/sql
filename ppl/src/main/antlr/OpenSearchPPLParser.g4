@@ -169,11 +169,16 @@ searchCommand
 
 searchExpression
  : timeModifier                                       # timeModifierExpression
+ | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                # implicitSubqueryExpression
  | LT_PRTHS searchExpression RT_PRTHS                 # groupedExpression
  | NOT searchExpression                               # notExpression
  | searchExpression OR searchExpression               # orExpression
  | searchExpression AND searchExpression              # andExpression
  | searchTerm                                         # termExpression
+ ;
+
+searchPredicate
+ : searchExpression EOF
  ;
 
 searchTerm

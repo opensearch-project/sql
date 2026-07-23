@@ -187,6 +187,31 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
   }
 
   @Test
+  public void testStaticSearchStillRunsThroughAnalyticsEngine() throws IOException {
+    ensureSetup();
+    JSONObject result =
+        executeWithProfile(
+            "search source=" + INDEX + " name=alice | fields name", "/_plugins/_ppl");
+
+    assertEquals("alice", result.getJSONArray("datarows").getJSONArray(0).getString(0));
+  }
+
+  @Test
+  public void testImplicitFormatSubsearchRunsThroughAnalyticsEngine() throws IOException {
+    ensureSetup();
+    JSONObject result =
+        executeWithProfile(
+            "search source="
+                + INDEX
+                + " [ search source="
+                + INDEX
+                + " name=alice | fields name | head 1 ] | fields name",
+            "/_plugins/_ppl");
+
+    assertEquals("alice", result.getJSONArray("datarows").getJSONArray(0).getString(0));
+  }
+
+  @Test
   public void testPplExplainReturnsOnlyPlan() throws IOException {
     ensureSetup();
     Request request = new Request("POST", "/_plugins/_ppl/_explain");
@@ -199,6 +224,25 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
     JSONObject calcite = result.getJSONObject("calcite");
     assertTrue("has logical", calcite.has("logical"));
     assertFalse("no profile in explain", calcite.has("profile"));
+  }
+
+  @Test
+  public void testImplicitFormatExplainBindsRuntimePredicate() throws IOException {
+    ensureSetup();
+    Request request = new Request("POST", "/_plugins/_ppl/_explain");
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT,
+            "{\"query\": \"search source=%s [ search source=%s name=alice | fields name | head"
+                + " 1 ] | fields name\"}",
+            INDEX,
+            INDEX));
+    Response response = client().performRequest(request);
+    JSONObject result = new JSONObject(entityAsString(response));
+
+    String logical = result.getJSONObject("calcite").get("logical").toString();
+    assertTrue(logical, logical.contains("name:alice"));
+    assertFalse(logical, logical.contains("SCALAR_QUERY"));
   }
 
   @Test
