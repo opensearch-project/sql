@@ -89,9 +89,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   public void testTimechartAvgByTextHost() throws IOException {
     // `host` is mapped as text with no .keyword sub-field, so this timechart pushes down via the
     // text-field aggregation path (composite terms(script over _source) + date_histogram, with
-    // avg(cpu_usage) as a numeric metric on the composite). Rows are asserted per bucket to
-    // guarantee the pushed plan produces the same result as the unpushed V2 path.
-    // Golden collected on upstream/main (unpushed) before applying the fix.
+    // avg(cpu_usage) as a numeric metric on the composite).
     JSONObject result = executeQuery("source=events | timechart span=1m avg(cpu_usage) by host");
     verifySchema(
         result,
