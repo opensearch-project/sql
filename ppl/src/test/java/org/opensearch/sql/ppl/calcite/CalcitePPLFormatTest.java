@@ -7,8 +7,10 @@ package org.opensearch.sql.ppl.calcite;
 
 import static org.junit.Assert.assertThrows;
 
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class CalcitePPLFormatTest extends CalcitePPLAbstractTest {
@@ -28,9 +30,9 @@ public class CalcitePPLFormatTest extends CalcitePPLAbstractTest {
   @Test
   public void testUpstreamSortBecomesAggregateOrderKey() {
     RelNode root = getRelNode("source=EMP | fields ENAME | sort ENAME | head 2 | format");
-    String logical = org.apache.calcite.plan.RelOptUtil.toString(root);
+    String logical = RelOptUtil.toString(root);
 
-    org.junit.Assert.assertTrue(
+    Assert.assertTrue(
         logical, logical.contains("ARRAY_AGG($0) WITHIN GROUP ([1 ASC-nulls-first])"));
     verifyResult(root, "search=( ( ENAME=\"ADAMS\" ) OR ( ENAME=\"ALLEN\" ) )\n");
   }

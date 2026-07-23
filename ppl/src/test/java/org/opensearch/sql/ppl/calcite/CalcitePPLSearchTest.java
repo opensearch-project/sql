@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.SchemaPlus;
@@ -19,6 +20,8 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RelRunners;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.calcite.DynamicSearchPlanBinder;
@@ -69,11 +72,11 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
   public void testSearchWithImplicitFormatSubsearchUsesScalarQuery() {
     RelNode root = getRelNode("search source=EMP [ search source=DEPT | fields DEPTNO | head 1 ]");
     RelNode subquery = DynamicSearchPlanBinder.find(root).orElseThrow().rel;
-    String logical = org.apache.calcite.plan.RelOptUtil.toString(root);
-    org.junit.Assert.assertTrue(logical, logical.contains("SCALAR_QUERY"));
-    org.junit.Assert.assertTrue(logical, logical.contains("ARRAY_AGG"));
-    org.junit.Assert.assertTrue(logical, logical.contains("query_string"));
-    org.junit.Assert.assertNotSame(root.getCluster(), subquery.getCluster());
+    String logical = RelOptUtil.toString(root);
+    Assert.assertTrue(logical, logical.contains("SCALAR_QUERY"));
+    Assert.assertTrue(logical, logical.contains("ARRAY_AGG"));
+    Assert.assertTrue(logical, logical.contains("query_string"));
+    Assert.assertNotSame(root.getCluster(), subquery.getCluster());
   }
 
   @Test
@@ -82,11 +85,10 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
     var subquery = DynamicSearchPlanBinder.find(root).orElseThrow();
 
     RelNode bound = DynamicSearchPlanBinder.bind(root, subquery, "DEPTNO:10");
-    String logical = org.apache.calcite.plan.RelOptUtil.toString(bound);
+    String logical = RelOptUtil.toString(bound);
 
-    org.junit.Assert.assertFalse(logical, logical.contains("SCALAR_QUERY"));
-    org.junit.Assert.assertTrue(
-        logical, logical.contains("query_string(MAP('query', 'DEPTNO:10':VARCHAR))"));
+    Assert.assertFalse(logical, logical.contains("SCALAR_QUERY"));
+    Assert.assertTrue(logical, logical.contains("query_string(MAP('query', 'DEPTNO:10':VARCHAR))"));
   }
 
   @Test
@@ -96,10 +98,10 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
     var subquery = DynamicSearchPlanBinder.find(root).orElseThrow();
 
     RelNode bound = DynamicSearchPlanBinder.bind(root, subquery, "DEPTNO:10");
-    String logical = org.apache.calcite.plan.RelOptUtil.toString(bound);
+    String logical = RelOptUtil.toString(bound);
 
-    org.junit.Assert.assertFalse(logical, logical.contains("SCALAR_QUERY"));
-    org.junit.Assert.assertTrue(
+    Assert.assertFalse(logical, logical.contains("SCALAR_QUERY"));
+    Assert.assertTrue(
         logical,
         logical.contains("query_string(MAP('query', '(JOB:CLERK) AND (DEPTNO:10)':VARCHAR))"));
   }
@@ -114,14 +116,14 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
     RelNode firstBound =
         DynamicSearchPlanBinder.bind(
             root, DynamicSearchPlanBinder.find(root).orElseThrow(), "DEPTNO:10");
-    org.junit.Assert.assertTrue(DynamicSearchPlanBinder.find(firstBound).isPresent());
+    Assert.assertTrue(DynamicSearchPlanBinder.find(firstBound).isPresent());
     RelNode fullyBound =
         DynamicSearchPlanBinder.bind(
             firstBound, DynamicSearchPlanBinder.find(firstBound).orElseThrow(), "JOB:CLERK");
-    String logical = org.apache.calcite.plan.RelOptUtil.toString(fullyBound);
+    String logical = RelOptUtil.toString(fullyBound);
 
-    org.junit.Assert.assertTrue(DynamicSearchPlanBinder.find(fullyBound).isEmpty());
-    org.junit.Assert.assertTrue(
+    Assert.assertTrue(DynamicSearchPlanBinder.find(fullyBound).isEmpty());
+    Assert.assertTrue(
         logical,
         logical.contains("query_string(MAP('query', '(DEPTNO:10 OR JOB:CLERK)':VARCHAR))"));
   }
@@ -193,18 +195,18 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
           }
         });
 
-    org.junit.Assert.assertNull(failure.get());
-    String logical = org.apache.calcite.plan.RelOptUtil.toString(executedParent.get());
-    org.junit.Assert.assertFalse(logical, logical.contains("SCALAR_QUERY"));
-    org.junit.Assert.assertTrue(
+    Assert.assertNull(failure.get());
+    String logical = RelOptUtil.toString(executedParent.get());
+    Assert.assertFalse(logical, logical.contains("SCALAR_QUERY"));
+    Assert.assertTrue(
         logical, logical.contains("query_string(MAP('query', '((DEPTNO:10))':VARCHAR))"));
   }
 
   private void executeScalarSubquery(
       RelNode subquery, ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    try (PreparedStatement statement = org.apache.calcite.tools.RelRunners.run(subquery);
+    try (PreparedStatement statement = RelRunners.run(subquery);
         var resultSet = statement.executeQuery()) {
-      org.junit.Assert.assertTrue(resultSet.next());
+      Assert.assertTrue(resultSet.next());
       listener.onResponse(
           new ExecutionEngine.QueryResponse(
               null,

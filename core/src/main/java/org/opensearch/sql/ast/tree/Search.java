@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.SearchExpression;
+import org.opensearch.sql.ast.expression.SearchSubquery;
 
 /**
  * Logical plan node for Search operation. Represents search expressions that get converted to
@@ -48,7 +49,7 @@ public class Search extends UnresolvedPlan {
   }
 
   private static boolean containsSubquery(SearchExpression expression) {
-    if (expression instanceof org.opensearch.sql.ast.expression.SearchSubquery) {
+    if (expression instanceof SearchSubquery) {
       return true;
     }
     return expression.getChild().stream()

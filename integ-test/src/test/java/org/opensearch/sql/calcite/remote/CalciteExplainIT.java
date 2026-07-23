@@ -2931,7 +2931,7 @@ public class CalciteExplainIT extends ExplainIT {
     String logical = logicalPlan(explainQueryYaml(query));
     Assert.assertTrue(
         "Expected logical plan to contain ARRAY_JOIN function",
-        logical.toLowerCase(java.util.Locale.ROOT).contains("array_join"));
+        logical.toLowerCase(Locale.ROOT).contains("array_join"));
   }
 
   @Test
@@ -2941,10 +2941,24 @@ public class CalciteExplainIT extends ExplainIT {
             "source=%s | eval full_name = concat(firstname, ' J.') | eval name_array ="
                 + " array(full_name) | nomv name_array | fields name_array",
             TEST_INDEX_BANK);
-    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase(java.util.Locale.ROOT);
+    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase(Locale.ROOT);
     Assert.assertTrue(
         "Expected logical plan to contain both CONCAT and ARRAY_JOIN",
         logical.contains("concat") && logical.contains("array_join"));
+  }
+
+  @Test
+  public void testFormatExplain() throws IOException {
+    String query =
+        StringUtils.format(
+            "source=%s | where account_number < 3 | fields firstname, account_number | format",
+            TEST_INDEX_BANK);
+    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase(Locale.ROOT);
+    Assert.assertTrue(
+        "Expected format to lower to a global ARRAY_AGG and a search projection",
+        logical.contains("array_agg")
+            && logical.contains("array_join")
+            && logical.contains("search="));
   }
 
   @Test
