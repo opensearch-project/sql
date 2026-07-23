@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
 import org.apache.logging.log4j.LogManager;
@@ -31,6 +32,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
+import org.opensearch.sql.common.utils.QuerySourceHeaders;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -172,6 +174,25 @@ public class TransportPPLQueryAction
 
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
+
+    // Tag the thread context so query-insights can identify this as a PPL-derived query.
+    org.opensearch.common.util.concurrent.ThreadContext threadContext =
+        clientRef.threadPool().getThreadContext();
+    if (threadContext.getHeader(QuerySourceHeaders.QUERY_SOURCE_HEADER) == null) {
+      threadContext.putHeader(QuerySourceHeaders.QUERY_SOURCE_HEADER, "ppl");
+    }
+    if (threadContext.getHeader(QuerySourceHeaders.QUERY_EXECUTION_ID_HEADER) == null) {
+      threadContext.putHeader(
+          QuerySourceHeaders.QUERY_EXECUTION_ID_HEADER, UUID.randomUUID().toString());
+    }
+    if (threadContext.getHeader(QuerySourceHeaders.ORIGINAL_QUERY_HEADER) == null
+        && transformedRequest.getRequest() != null) {
+      String pplQueryText = transformedRequest.getRequest();
+      if (pplQueryText.length() > QuerySourceHeaders.MAX_ORIGINAL_QUERY_LENGTH) {
+        pplQueryText = pplQueryText.substring(0, QuerySourceHeaders.MAX_ORIGINAL_QUERY_LENGTH);
+      }
+      threadContext.putHeader(QuerySourceHeaders.ORIGINAL_QUERY_HEADER, pplQueryText);
+    }
     QueryContext.setProfile(transformedRequest.profile());
     ActionListener<TransportPPLQueryResponse> clearingListener = wrapWithProfilingClear(listener);
 

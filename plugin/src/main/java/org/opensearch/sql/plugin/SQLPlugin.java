@@ -475,6 +475,15 @@ public class SQLPlugin extends Plugin
   }
 
   @Override
+  public Collection<String> getTaskHeaders() {
+    return List.of(
+        org.opensearch.sql.common.utils.QuerySourceHeaders.QUERY_SOURCE_HEADER,
+        org.opensearch.sql.common.utils.QuerySourceHeaders.ORIGINAL_QUERY_HEADER,
+        org.opensearch.sql.common.utils.QuerySourceHeaders.QUERY_EXECUTION_ID_HEADER,
+        org.opensearch.sql.common.utils.QuerySourceHeaders.QUERY_PHASES_HEADER);
+  }
+
+  @Override
   public ScriptEngine getScriptEngine(Settings settings, Collection<ScriptContext<?>> contexts) {
     return new CompoundedScriptEngine();
   }
