@@ -48,6 +48,7 @@ import org.opensearch.sql.calcite.utils.TimewrapPivot;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.ResourceLimitExceededException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -340,17 +341,16 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
           } catch (SQLException e) {
             if (isPitContextLimitReached(e)) {
               // reason (title) comes from the wrapped cause's message; keep it short and put the
-              // explanation and remedies in details.
-              PointInTimeLimitExceededException pitException =
-                  new PointInTimeLimitExceededException(
+              // explanation and remedy in details.
+              ResourceLimitExceededException pitException =
+                  new ResourceLimitExceededException(
                       "Too many open Point-In-Time (PIT) contexts on this node.", e);
               throw ErrorReport.wrap(pitException)
                   .code(ErrorCode.RESOURCE_LIMIT_EXCEEDED)
                   .details(
                       "This query opened a Point-In-Time (PIT) context on each shard and reached"
                           + " the limit set by [search.max_open_pit_context]. Increase that"
-                          + " setting, or optimize the query to reduce the number of contexts it"
-                          + " needs.")
+                          + " setting.")
                   .build();
             }
             throw new RuntimeException(e);
