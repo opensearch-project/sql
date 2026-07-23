@@ -51,6 +51,7 @@ import lombok.AllArgsConstructor;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
+import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
@@ -146,6 +147,7 @@ import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
 import org.opensearch.sql.ast.tree.NoMv;
+import org.opensearch.sql.ast.tree.OutputLookup;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -927,8 +929,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
-  public RelNode visitOutputLookup(
-      org.opensearch.sql.ast.tree.OutputLookup node, CalcitePlanContext context) {
+  public RelNode visitOutputLookup(OutputLookup node, CalcitePlanContext context) {
     visitChildren(node, context);
     String name = node.getIndexName();
     if (name.startsWith(".")) {
@@ -939,7 +940,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Validate key_field names against the result schema: a missing/misspelled key field would
     // otherwise encode identically for every row and collapse them into a single document.
     if (!node.getKeyFields().isEmpty()) {
-      java.util.List<String> resultFields = child.getRowType().getFieldNames();
+      List<String> resultFields = child.getRowType().getFieldNames();
       for (String keyField : node.getKeyFields()) {
         if (!resultFields.contains(keyField)) {
           throw new IllegalArgumentException(
@@ -951,7 +952,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
     }
     org.apache.calcite.plan.RelOptSchema relOptSchema = context.relBuilder.getRelOptSchema();
-    if (!(relOptSchema instanceof org.apache.calcite.prepare.Prepare.CatalogReader catalogReader)) {
+    if (!(relOptSchema instanceof Prepare.CatalogReader catalogReader)) {
       throw new IllegalStateException("outputlookup could not obtain a Calcite catalog reader");
     }
     // Resolve a table from the schema (not a scan) so sourceless pipelines reach the client; any
@@ -959,7 +960,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     OpenSearchSchema openSearchSchema =
         context.config.getDefaultSchema().unwrap(OpenSearchSchema.class);
     org.apache.calcite.schema.Table clientTable = openSearchSchema.getTable(name);
-    org.apache.calcite.plan.RelOptTable destTable =
+    RelOptTable destTable =
         org.apache.calcite.prepare.RelOptTableImpl.create(
             relOptSchema,
             child.getRowType(),

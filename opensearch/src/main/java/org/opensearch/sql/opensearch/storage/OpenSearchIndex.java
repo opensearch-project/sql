@@ -35,6 +35,7 @@ import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchEvalOperator;
+import org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
@@ -56,7 +57,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
 
   @Override
   public java.util.List<org.apache.calcite.plan.RelOptRule> getWriteConversionRules() {
-    return org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules.WRITE_CONVERSION_RULES;
+    return OpenSearchIndexRules.WRITE_CONVERSION_RULES;
   }
 
   public static final String METADATA_FIELD_ID = "_id";

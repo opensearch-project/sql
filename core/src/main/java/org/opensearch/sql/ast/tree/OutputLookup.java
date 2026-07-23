@@ -38,7 +38,7 @@ public class OutputLookup extends UnresolvedPlan {
   /**
    * Fields whose values form the document {@code _id} for upsert; empty means auto-generated id.
    */
-  private List<String> keyFields = java.util.List.of();
+  private List<String> keyFields = List.of();
 
   /** Cap on the number of rows written; null means unbounded. */
   private Integer max;

@@ -56,82 +56,91 @@ public final class OutputLookupWriteExec {
       boolean overrideIfEmpty,
       boolean append,
       Enumerator<@Nullable Object> input) {
+    try {
 
-    if (max != null && (max < 1 || max > maxRows)) {
-      throw new IllegalArgumentException(
-          "outputlookup max must be between 1 and the operator ceiling"
-              + " plugins.ppl.outputlookup.max_rows ("
-              + maxRows
-              + "), but was "
-              + max);
-    }
-
-    String backingIndex = name + LookupsIndex.BACKING_SUFFIX;
-
-    List<Object[]> rows = drain(input, max, maxRows);
-
-    if (!append && rows.isEmpty() && !overrideIfEmpty) {
-      return 0;
-    }
-
-    LookupsIndex.ensureExists(client, backingIndex);
-
-    Target target = resolveTarget(client, name);
-    switch (target.kind()) {
-      case ABSENT:
-        {
-          // append reuses a deterministic per-lookup discriminant so concurrent first-appends
-          // converge on one slice (no lost write); overwrite takes a fresh uuid (last-writer-wins).
-          String uuid = append ? stableUuid(name) : newUuid();
-          writeSlice(client, backingIndex, fields, mode, keyFields, rows, uuid);
-          addFilteredAlias(client, name, backingIndex, uuid);
-          break;
-        }
-      case ALIAS:
-        {
-          if (!target.filtered()) {
-            throw new IllegalArgumentException(
-                "outputlookup destination ["
-                    + name
-                    + "] is a non-filtered alias, not a lookup; refusing to write it");
-          }
-          if (append) {
-            if (target.lookupUuid() == null) {
-              throw new IllegalArgumentException(
-                  "outputlookup cannot append to ["
-                      + name
-                      + "]: its alias filter has no __lookup discriminant; overwrite it first");
-            }
-            writeSlice(
-                client, target.primaryIndex(), fields, mode, keyFields, rows, target.lookupUuid());
-          } else {
-            String uuid = newUuid();
-            writeSlice(client, backingIndex, fields, mode, keyFields, rows, uuid);
-            repointFilteredAlias(client, name, target.aliasIndices(), backingIndex, uuid);
-            // TODO(reaper, separate PR): the atomic repoint leaves the previous slice as an
-            // orphan (a __lookup uuid in the backing index referenced by no alias). Crash-before-
-            // repoint and concurrent same-name overwrite produce the same orphan shape. A reaper
-            // reclaims them per backing index: enumerate distinct __lookup uuids, subtract the set
-            // referenced by any filtered alias, delete_by_query the remainder. This info log is the
-            // reaper's observability seam until then.
-            LOGGER.info(
-                "outputlookup overwrite of [{}] wrote a new slice into [{}] and repointed the"
-                    + " alias; the previous slice(s) on {} are orphaned pending the reaper",
-                name,
-                backingIndex,
-                target.aliasIndices());
-          }
-          break;
-        }
-      case INDEX:
+      if (max != null && (max < 1 || max > maxRows)) {
         throw new IllegalArgumentException(
-            "outputlookup destination ["
-                + name
-                + "] is a concrete index, not a lookup; delete it first to reuse the name");
-      default:
-        throw new IllegalStateException("unreachable target kind: " + target.kind());
+            "outputlookup max must be between 1 and the operator ceiling"
+                + " plugins.ppl.outputlookup.max_rows ("
+                + maxRows
+                + "), but was "
+                + max);
+      }
+
+      String backingIndex = name + LookupsIndex.BACKING_SUFFIX;
+
+      List<Object[]> rows = drain(input, max, maxRows);
+
+      if (!append && rows.isEmpty() && !overrideIfEmpty) {
+        return 0;
+      }
+
+      LookupsIndex.ensureExists(client, backingIndex);
+
+      Target target = resolveTarget(client, name);
+      switch (target.kind()) {
+        case ABSENT:
+          {
+            // append reuses a deterministic per-lookup discriminant so concurrent first-appends
+            // converge on one slice (no lost write); overwrite takes a fresh uuid
+            // (last-writer-wins).
+            String uuid = append ? stableUuid(name) : newUuid();
+            writeSlice(client, backingIndex, fields, mode, keyFields, rows, uuid);
+            addFilteredAlias(client, name, backingIndex, uuid);
+            break;
+          }
+        case ALIAS:
+          {
+            if (!target.filtered()) {
+              throw new IllegalArgumentException(
+                  "outputlookup destination ["
+                      + name
+                      + "] is a non-filtered alias, not a lookup; refusing to write it");
+            }
+            if (append) {
+              if (target.lookupUuid() == null) {
+                throw new IllegalArgumentException(
+                    "outputlookup cannot append to ["
+                        + name
+                        + "]: its alias filter has no __lookup discriminant; overwrite it first");
+              }
+              writeSlice(
+                  client,
+                  target.primaryIndex(),
+                  fields,
+                  mode,
+                  keyFields,
+                  rows,
+                  target.lookupUuid());
+            } else {
+              String uuid = newUuid();
+              writeSlice(client, backingIndex, fields, mode, keyFields, rows, uuid);
+              repointFilteredAlias(client, name, target.aliasIndices(), backingIndex, uuid);
+              // TODO(reaper, separate PR): the atomic repoint leaves the previous slice as an
+              // orphan (a __lookup uuid referenced by no alias). A reaper reclaims them per backing
+              // index: enumerate distinct __lookup uuids, subtract those referenced by any alias,
+              // delete_by_query the remainder.
+              LOGGER.info(
+                  "outputlookup overwrite of [{}] wrote a new slice into [{}] and repointed the"
+                      + " alias; the previous slice(s) on {} are orphaned pending the reaper",
+                  name,
+                  backingIndex,
+                  target.aliasIndices());
+            }
+            break;
+          }
+        case INDEX:
+          throw new IllegalArgumentException(
+              "outputlookup destination ["
+                  + name
+                  + "] is a concrete index, not a lookup; delete it first to reuse the name");
+        default:
+          throw new IllegalStateException("unreachable target kind: " + target.kind());
+      }
+      return rows.size();
+    } finally {
+      input.close();
     }
-    return rows.size();
   }
 
   /**
@@ -180,26 +189,26 @@ public final class OutputLookupWriteExec {
       sliceKeys.add(LookupsIndex.LOOKUP_FIELD);
     }
 
-    // The slice is not yet published, so drop redundancy/durability/auto-visibility during the load
-    // and restore them after the single refresh below (before the alias op): no replica writes, no
-    // per-request translog fsync, no background refresh churn while filling the slice.
+    // Slice is unpublished, so redundancy/durability are restored after the refresh below, before
+    // the alias op.
     applyLoadSettings(client, index);
-
-    WriteConfig cfg =
-        new WriteConfig(index, sliceFields, mode, sliceKeys, BATCH_SIZE, RefreshPolicy.NONE);
-    try (OpenSearchBulkWriter writer = new OpenSearchBulkWriter(client, cfg)) {
-      for (Object[] row : rows) {
-        Object[] tagged = new Object[row.length + 1];
-        System.arraycopy(row, 0, tagged, 0, row.length);
-        tagged[row.length] = uuid;
-        writer.add(tagged);
+    try {
+      WriteConfig cfg =
+          new WriteConfig(index, sliceFields, mode, sliceKeys, BATCH_SIZE, RefreshPolicy.NONE);
+      try (OpenSearchBulkWriter writer = new OpenSearchBulkWriter(client, cfg)) {
+        for (Object[] row : rows) {
+          Object[] tagged = new Object[row.length + 1];
+          System.arraycopy(row, 0, tagged, 0, row.length);
+          tagged[row.length] = uuid;
+          writer.add(tagged);
+        }
       }
+      // One refresh after the whole slice, not per batch: publication is via the alias op, so
+      // per-batch refresh is redundant and dominates cost at scale.
+      client.admin().indices().refresh(new RefreshRequest(index)).actionGet();
+    } finally {
+      restoreServeSettings(client, index);
     }
-    // Refresh once after the whole slice is written rather than per bulk batch: overwrite publishes
-    // the slice through the atomic alias repoint that follows, and append through this refresh, so
-    // per-batch refresh is redundant and dominates write cost at scale.
-    client.admin().indices().refresh(new RefreshRequest(index)).actionGet();
-    restoreServeSettings(client, index);
   }
 
   private static void applyLoadSettings(NodeClient client, String index) {

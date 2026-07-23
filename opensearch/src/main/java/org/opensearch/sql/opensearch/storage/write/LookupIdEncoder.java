@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.storage.write;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -59,11 +61,11 @@ public final class LookupIdEncoder {
     if (value instanceof Float || value instanceof Double) {
       return Double.toString(((Number) value).doubleValue());
     }
-    if (value instanceof java.math.BigDecimal bigDecimal) {
+    if (value instanceof BigDecimal bigDecimal) {
       // longValue() would truncate the fraction and collide distinct decimals onto one id
       return bigDecimal.stripTrailingZeros().toPlainString();
     }
-    if (value instanceof java.math.BigInteger bigInteger) {
+    if (value instanceof BigInteger bigInteger) {
       // longValue() would overflow-truncate integers wider than 64 bits
       return bigInteger.toString();
     }

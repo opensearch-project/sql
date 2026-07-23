@@ -18,6 +18,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
 
 /**
  * Terminal write node for outputlookup, a Calcite {@link TableModify} INSERT so the optimizer
@@ -33,7 +34,7 @@ public class OutputLookupTableModify extends TableModify {
   private final String indexName;
   private final boolean append;
   private final boolean overrideIfEmpty;
-  private final java.util.List<String> keyFields;
+  private final List<String> keyFields;
   private final @Nullable Integer max;
 
   public OutputLookupTableModify(
@@ -91,8 +92,7 @@ public class OutputLookupTableModify extends TableModify {
   /** Registers the write-lowering rule when no OpenSearch scan in the pipeline does. */
   @Override
   public void register(org.apache.calcite.plan.RelOptPlanner planner) {
-    org.opensearch.sql.calcite.plan.AbstractOpenSearchTable osTable =
-        table.unwrap(org.opensearch.sql.calcite.plan.AbstractOpenSearchTable.class);
+    AbstractOpenSearchTable osTable = table.unwrap(AbstractOpenSearchTable.class);
     if (osTable != null) {
       osTable.getWriteConversionRules().forEach(planner::addRule);
     }
