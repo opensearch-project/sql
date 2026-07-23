@@ -62,18 +62,21 @@ public class DedupCommandIT extends PPLIntegTestCase {
   public void testDedupOnTextField() throws IOException {
     // `email` is mapped as text with no .keyword sub-field, so dedup runs via the text-field
     // aggregation pushdown path (composite terms + top_hits with the field read from _source).
-    // The result set must match the set of distinct emails in the fixture.
+    // Assert not just the dedup key set but also the associated projected columns per row, so
+    // the top_hits round-trip is exercised end-to-end.
     JSONObject result =
-        executeQuery(String.format("source=%s | dedup email | fields email", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                "source=%s | dedup email | fields email, firstname, balance", TEST_INDEX_BANK));
     verifyDataRows(
         result,
-        rows("amberduke@pyrami.com"),
-        rows("hattiebond@netagy.com"),
-        rows("nanettebates@quility.com"),
-        rows("daleadams@boink.com"),
-        rows("elinorratliff@scentric.com"),
-        rows("virginiaayala@filodyne.com"),
-        rows("dillardmcpherson@quailcom.com"));
+        rows("amberduke@pyrami.com", "Amber JOHnny", 39225),
+        rows("hattiebond@netagy.com", "Hattie", 5686),
+        rows("nanettebates@quility.com", "Nanette", 32838),
+        rows("daleadams@boink.com", "Dale", 4180),
+        rows("elinorratliff@scentric.com", "Elinor", 16418),
+        rows("virginiaayala@filodyne.com", "Virginia", 40540),
+        rows("dillardmcpherson@quailcom.com", "Dillard", 48086));
   }
 
   @Test
