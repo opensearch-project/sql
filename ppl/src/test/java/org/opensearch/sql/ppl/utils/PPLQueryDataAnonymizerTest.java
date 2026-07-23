@@ -1299,6 +1299,16 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testFormatCommand() {
+    assertEquals(
+        "source=table | format mvsep=\"***\" maxresults=*** \"***\" \"***\" \"***\" \"***\""
+            + " \"***\" \"***\" emptystr=\"***\"",
+        anonymize(
+            "source=sensitive | format mvsep=\"SECRET\" maxresults=5 \"[\" \"[\" \"AND\""
+                + " \"]\" \"OR\" \"]\" emptystr=\"PRIVATE\""));
+  }
+
+  @Test
   public void testUnion() {
     assertEquals(
         "| union [search source=table | where identifier < ***] [search source=table |"

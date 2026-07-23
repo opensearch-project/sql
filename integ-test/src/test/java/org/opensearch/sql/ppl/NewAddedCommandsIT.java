@@ -354,6 +354,21 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testFormatUnsupportedInV2() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "source=%s | where account_number=1 | fields firstname, account_number | format",
+                  TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
+
+  @Test
   public void testMvExpandCommandBasicExpansion() throws IOException {
     JSONObject result;
     try {

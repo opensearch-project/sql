@@ -34,6 +34,7 @@ SORT:                               'SORT';
 EVAL:                               'EVAL';
 FOREACH:                            'FOREACH';
 FIELDFORMAT:                        'FIELDFORMAT';
+FORMAT:                             'FORMAT';
 HEAD:                               'HEAD';
 BIN:                                'BIN';
 TOP:                                'TOP';
@@ -99,6 +100,9 @@ APPENDPIPE:                         'APPENDPIPE';
 COLUMN_NAME:                        'COLUMN_NAME';
 MVCOMBINE:                          'MVCOMBINE';
 NOMV:                               'NOMV';
+MVSEP:                              'MVSEP';
+MAXRESULTS:                         'MAXRESULTS';
+EMPTYSTR:                           'EMPTYSTR';
 
 // EDGE_CLAUSE matches the entire edge clause pattern in graphLookup command.
 // This allows EDGE to be used as a field name elsewhere (e.g., eval edge=1).
