@@ -10,9 +10,11 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.calcite.rel.RelNode;
@@ -337,20 +339,33 @@ public class RestUnifiedQueryAction {
   }
 
   /**
+   * Cluster settings whose live values are forwarded into every {@link UnifiedQueryContext} so the
+   * Analytics Engine plans against the same configuration as the default pipeline. This list is the
+   * single source of truth for cluster fidelity on the unified path: any planning setting the AE
+   * path must honor belongs here, otherwise {@link UnifiedQueryContext.Builder}'s hardcoded default
+   * silently wins and the configured cluster value is ignored.
+   *
+   * <p>{@link org.opensearch.sql.common.setting.Settings.Key#CALCITE_ENGINE_ENABLED} is
+   * deliberately excluded — the unified path is Calcite-based by definition and forces it {@code
+   * true} regardless of the cluster value.
+   */
+  private static final List<org.opensearch.sql.common.setting.Settings.Key>
+      FORWARDED_CLUSTER_SETTINGS =
+          List.of(
+              org.opensearch.sql.common.setting.Settings.Key.QUERY_SIZE_LIMIT,
+              org.opensearch.sql.common.setting.Settings.Key.PPL_REX_MAX_MATCH_LIMIT,
+              org.opensearch.sql.common.setting.Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+              org.opensearch.sql.common.setting.Settings.Key.MAX_EXPRESSION_DEPTH);
+
+  /**
    * Routes operator-configured cluster overrides into the builder via the existing {@code
    * setting(String, Object)} API, keeping {@link UnifiedQueryContext} decoupled from any specific
-   * {@link org.opensearch.sql.common.setting.Settings} implementation.
-   *
-   * <p>Add keys here if a future PR / IT depends on cluster-side fidelity for one of the other
-   * planning settings.
+   * {@link org.opensearch.sql.common.setting.Settings} implementation. The forwarded keys are
+   * {@link #FORWARDED_CLUSTER_SETTINGS}.
    */
-  private UnifiedQueryContext.Builder applyClusterOverrides(UnifiedQueryContext.Builder builder) {
-    forwardClusterSetting(
-        builder, org.opensearch.sql.common.setting.Settings.Key.PPL_REX_MAX_MATCH_LIMIT);
-    forwardClusterSetting(
-        builder, org.opensearch.sql.common.setting.Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED);
-    forwardClusterSetting(
-        builder, org.opensearch.sql.common.setting.Settings.Key.MAX_EXPRESSION_DEPTH);
+  @VisibleForTesting
+  UnifiedQueryContext.Builder applyClusterOverrides(UnifiedQueryContext.Builder builder) {
+    FORWARDED_CLUSTER_SETTINGS.forEach(key -> forwardClusterSetting(builder, key));
     return builder;
   }
 
