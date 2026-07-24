@@ -741,6 +741,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
@@ -757,6 +758,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
@@ -773,10 +775,45 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
+  }
+
+  @Test
+  public void testRareCommandWithShowPerc() {
+    assertEqual(
+        "source=t | rare showperc=true a",
+        rareTopN(
+            relation("t"),
+            CommandType.RARE,
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
+            emptyList(),
+            field("a")));
+  }
+
+  @Test
+  public void testRareCommandWithShowPercAndGroupBy() {
+    assertEqual(
+        "source=t | rare showperc=true a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.RARE,
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
+            exprList(field("b")),
+            field("a")));
   }
 
   @Test
@@ -790,6 +827,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
@@ -806,6 +844,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
@@ -822,6 +861,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
@@ -838,6 +878,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
@@ -855,7 +896,42 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(false))),
+            exprList(field("b")),
+            field("a")));
+  }
+
+  @Test
+  public void testTopCommandWithShowPerc() {
+    assertEqual(
+        "source=t | top showperc=true a",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
+            emptyList(),
+            field("a")));
+  }
+
+  @Test
+  public void testTopCommandWithShowPercAndGroupBy() {
+    assertEqual(
+        "source=t | top showperc=true a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -872,6 +948,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(false))),
             exprList(field("b")),
             field("a")));

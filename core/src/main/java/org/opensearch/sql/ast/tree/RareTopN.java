@@ -56,6 +56,7 @@ public class RareTopN extends UnresolvedPlan {
   public enum Option {
     countField,
     showCount,
+    showPerc,
     useNull,
   }
 }

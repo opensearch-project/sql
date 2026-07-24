@@ -3232,6 +3232,39 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     orderKeys.add(countField);
     orderKeys.addAll(tieBreakKeys);
 
+    // 3. compute percentage if showperc=true
+    Boolean showPerc = (Boolean) argumentMap.get(RareTopN.Option.showPerc.name()).getValue();
+    if (showPerc) {
+      if (context.relBuilder.peek().getRowType().getFieldNames().contains("percent")) {
+        throw new IllegalArgumentException(
+            "Field `percent` already exists in the output. Consider renaming the conflicting"
+                + " field.");
+      }
+      RexNode totalWindowOver =
+          PlanUtils.makeOver(
+              context,
+              BuiltinFunctionName.SUM,
+              context.relBuilder.field(countFieldName),
+              List.of(),
+              partitionKeys,
+              List.of(),
+              WindowFrame.rowsUnbounded());
+
+      RexNode hundred = context.relBuilder.literal(new BigDecimal("100.0"));
+      RexNode countCast =
+          context.relBuilder.cast(context.relBuilder.field(countFieldName), SqlTypeName.DOUBLE);
+      RexNode totalCast = context.relBuilder.cast(totalWindowOver, SqlTypeName.DOUBLE);
+      RexNode numerator = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, hundred, countCast);
+      RexNode percValue = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, numerator, totalCast);
+
+      // Round the percent value 2 decimal places
+      RexNode roundedPerc =
+          context.relBuilder.call(
+              SqlStdOperatorTable.ROUND, percValue, context.relBuilder.literal(2));
+
+      context.relBuilder.projectPlus(context.relBuilder.alias(roundedPerc, "percent"));
+    }
+
     RexNode rowNumberWindowOver =
         PlanUtils.makeOver(
             context,
@@ -3244,14 +3277,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.projectPlus(
         context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_FOR_RARE_TOP));
 
-    // 3. filter row_number() <= k in each partition
+    // 4. filter row_number() <= k in each partition
     int k = node.getNoOfResults();
     context.relBuilder.filter(
         context.relBuilder.lessThanOrEqual(
             context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_RARE_TOP),
             context.relBuilder.literal(k)));
 
-    // 4. project final output. the default output is group by list + field list
+    // 5. project final output: group by list + field list, optionally count and percent
     Boolean showCount = (Boolean) argumentMap.get(RareTopN.Option.showCount.name()).getValue();
     if (showCount) {
       context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_RARE_TOP));

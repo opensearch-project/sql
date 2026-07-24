@@ -188,6 +188,7 @@ UNION:                              'UNION';
 MAXOUT:                             'MAXOUT';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
+SHOWPERC:                           'SHOWPERC';
 LIMIT:                              'LIMIT';
 USEOTHER:                           'USEOTHER';
 OTHERSTR:                           'OTHERSTR';

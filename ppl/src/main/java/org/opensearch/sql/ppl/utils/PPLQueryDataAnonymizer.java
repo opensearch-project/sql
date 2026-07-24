@@ -460,13 +460,15 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     Integer noOfResults = node.getNoOfResults();
     String countField = (String) arguments.get(RareTopN.Option.countField.name()).getValue();
     Boolean showCount = (Boolean) arguments.get(RareTopN.Option.showCount.name()).getValue();
+    Boolean showPerc = (Boolean) arguments.get(RareTopN.Option.showPerc.name()).getValue();
     Boolean useNull = (Boolean) arguments.get(RareTopN.Option.useNull.name()).getValue();
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
     String options =
         UnresolvedPlanHelper.isCalciteEnabled(settings)
             ? StringUtils.format(
-                "countield='%s' showcount=%s usenull=%s ", countField, showCount, useNull)
+                "countfield='%s' showcount=%s showperc=%s usenull=%s ",
+                countField, showCount, showPerc, useNull)
             : "";
     return StringUtils.format(
         "%s | %s %d %s%s",

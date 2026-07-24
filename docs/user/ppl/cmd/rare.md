@@ -23,7 +23,7 @@ The `rare` command supports the following parameters.
 | --- | --- | --- |
 | `<field-list>` | Required | A comma-delimited list of field names. |
 | `<by-clause>` | Optional | One or more fields to group the results by. |
-| `rare-options` | Optional | Additional options for controlling output: <br> - `showcount`: Whether to create a field in the output containing the frequency count for each combination of values. Default is `true`. <br> - `countfield`: The name of the field that contains the count. Default is `count`. <br> - `usenull`: Whether to output null values. Default is the value of `plugins.ppl.syntax.legacy.preferred`. |
+| `rare-options` | Optional | Additional options for controlling output: <br> - `showcount`: Whether to create a field in the output containing the frequency count for each combination of values. Default is `true`. <br> - `countfield`: The name of the field that contains the count. Default is `count`. <br> - `showperc`: Whether to create a field in the output containing the percentage of each value's count relative to the total. Default is `false`. <br> - `usenull`: Whether to output null values. Default is the value of `plugins.ppl.syntax.legacy.preferred`. |
 
 ## Example 1: Finding the least common values without showing counts
 
@@ -125,7 +125,30 @@ fetched rows / total rows = 4/4
 +--------------+-----+
 ```
 
-## Example 5: Specifying null value handling
+## Example 5: Displaying percentages
+
+   The following query finds the least common severity levels and shows what percentage each represents:
+
+```ppl
+source=otellogs
+| rare showperc=true severityText
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 4/4
++--------------+-------+---------+
+| severityText | count | percent |
+|--------------+-------+---------|
+| DEBUG        | 3     | 15.0    |
+| WARN         | 4     | 20.0    |
+| INFO         | 6     | 30.0    |
+| ERROR        | 7     | 35.0    |
++--------------+-------+---------+
+```
+
+## Example 6: Specifying null value handling
 
 The following query uses `usenull=false` to exclude null values:
 

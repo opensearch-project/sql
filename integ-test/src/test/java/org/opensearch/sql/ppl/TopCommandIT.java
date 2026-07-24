@@ -58,4 +58,20 @@ public class TopCommandIT extends PPLIntegTestCase {
       verifyDataRows(result, rows("F", "TX"), rows("M", "MD"));
     }
   }
+
+  @Test
+  public void testTopWithShowPerc() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | top showperc=true gender", TEST_INDEX_ACCOUNT));
+    if (isCalciteEnabled()) {
+      verifySchemaInOrder(
+          result,
+          schema("gender", "string"),
+          schema("count", "bigint"),
+          schema("percent", "double"));
+      verifyDataRows(result, rows("M", 507, 50.7), rows("F", 493, 49.3));
+    } else {
+      verifyDataRows(result, rows("M"), rows("F"));
+    }
+  }
 }
