@@ -47,6 +47,9 @@ import org.opensearch.sql.expression.function.CollectionUDF.ArrayFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ExistsFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForeachPairCollectionFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForeachPairItemFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForeachStateFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVAppendFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVFindFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVZipFunctionImpl;
@@ -54,6 +57,7 @@ import org.opensearch.sql.expression.function.CollectionUDF.MapAppendFunctionImp
 import org.opensearch.sql.expression.function.CollectionUDF.MapRemoveFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ReduceFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.TransformFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.ForeachJsonArrayFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
@@ -242,11 +246,12 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator SECOND = new DatePartFunction(TimeUnit.SECOND).toUDF("SECOND");
   public static final SqlOperator MICROSECOND =
       new DatePartFunction(TimeUnit.MICROSECOND).toUDF("MICROSECOND");
-  public static final SqlOperator NOW = new CurrentFunction(ExprCoreType.TIMESTAMP).toUDF("NOW");
+  public static final SqlOperator NOW =
+      new CurrentFunction(CurrentFunction.Kind.TIMESTAMP).toUDF("NOW");
   public static final SqlOperator CURRENT_TIME =
-      new CurrentFunction(ExprCoreType.TIME).toUDF("CURRENT_TIME");
+      new CurrentFunction(CurrentFunction.Kind.TIME).toUDF("CURRENT_TIME");
   public static final SqlOperator CURRENT_DATE =
-      new CurrentFunction(ExprCoreType.DATE).toUDF("CURRENT_DATE");
+      new CurrentFunction(CurrentFunction.Kind.DATE).toUDF("CURRENT_DATE");
   public static final SqlOperator DATE_FORMAT =
       new FormatFunction(ExprCoreType.DATE).toUDF("DATE_FORMAT");
   public static final SqlOperator TIME_FORMAT =
@@ -405,6 +410,14 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator FORALL = new ForallFunctionImpl().toUDF("forall");
   public static final SqlOperator EXISTS = new ExistsFunctionImpl().toUDF("exists");
   public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF("array");
+  public static final SqlOperator FOREACH_JSON_ARRAY =
+      new ForeachJsonArrayFunctionImpl().toUDF("foreach_json_array");
+  public static final SqlOperator FOREACH_PAIR_COLLECTION =
+      new ForeachPairCollectionFunctionImpl().toUDF("foreach_pair_collection");
+  public static final SqlOperator FOREACH_PAIR_ITEM =
+      new ForeachPairItemFunctionImpl().toUDF("foreach_pair_item");
+  public static final SqlOperator FOREACH_STATE =
+      new ForeachStateFunctionImpl().toUDF("foreach_state");
   public static final SqlOperator MAP_APPEND = new MapAppendFunctionImpl().toUDF("map_append");
   public static final SqlOperator MAP_REMOVE = new MapRemoveFunctionImpl().toUDF("MAP_REMOVE");
   public static final SqlOperator MVAPPEND = new MVAppendFunctionImpl().toUDF("mvappend");

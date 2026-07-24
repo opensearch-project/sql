@@ -43,8 +43,14 @@ public class StringUtils {
     for (char currentChar : text.toCharArray()) {
       switch (currentChar) {
         case DEFAULT_ESCAPE:
-          escaped = true;
-          convertedString.append(currentChar);
+          if (escaped) {
+            convertedString.deleteCharAt(convertedString.length() - 1);
+            convertedString.append(currentChar);
+            escaped = false;
+          } else {
+            escaped = true;
+            convertedString.append(currentChar);
+          }
           break;
         case '%':
           if (escaped) {

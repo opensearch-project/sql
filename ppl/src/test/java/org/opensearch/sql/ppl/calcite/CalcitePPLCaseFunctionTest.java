@@ -102,7 +102,7 @@ public class CalcitePPLCaseFunctionTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IN (SELECT CASE WHEN `DEPTNO` IN (20, 21) THEN 20 WHEN `DEPTNO` IN"
             + " (30, 31) THEN 30 ELSE 100 END `new_deptno`\n"
-            + "FROM `scott`.`EMP`)";
+            + "FROM `scott`.`EMP` `EMP0`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

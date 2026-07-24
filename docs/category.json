@@ -20,6 +20,7 @@
     "user/ppl/cmd/fieldformat.md",
     "user/ppl/cmd/fields.md",
     "user/ppl/cmd/fillnull.md",
+    "user/ppl/cmd/foreach.md",
     "user/ppl/cmd/grok.md",
     "user/ppl/cmd/head.md",
     "user/ppl/cmd/join.md",

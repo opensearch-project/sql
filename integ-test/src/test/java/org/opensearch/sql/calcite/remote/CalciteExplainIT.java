@@ -2920,7 +2920,7 @@ public class CalciteExplainIT extends ExplainIT {
     String logical = logicalPlan(explainQueryYaml(query));
     Assert.assertTrue(
         "Expected logical plan to contain ARRAY_JOIN function",
-        logical.toLowerCase().contains("array_join"));
+        logical.toLowerCase(java.util.Locale.ROOT).contains("array_join"));
   }
 
   @Test
@@ -2930,10 +2930,26 @@ public class CalciteExplainIT extends ExplainIT {
             "source=%s | eval full_name = concat(firstname, ' J.') | eval name_array ="
                 + " array(full_name) | nomv name_array | fields name_array",
             TEST_INDEX_BANK);
-    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase();
+    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase(java.util.Locale.ROOT);
     Assert.assertTrue(
         "Expected logical plan to contain both CONCAT and ARRAY_JOIN",
         logical.contains("concat") && logical.contains("array_join"));
+  }
+
+  @Test
+  public void testForeachExplain() throws IOException {
+    String query =
+        StringUtils.format(
+            "source=%s | foreach age balance [ eval <<FIELD>>_double = <<FIELD>> * 2 ] | fields"
+                + " age_double, balance_double",
+            TEST_INDEX_BANK);
+    String logical = logicalPlan(explainQueryYaml(query));
+    Assert.assertTrue(
+        "Expected logical plan to contain foreach-expanded eval fields",
+        logical.contains("age_double")
+            && logical.contains("balance_double")
+            && logical.contains("*($")
+            && logical.contains(", 2)"));
   }
 
   /**
@@ -3009,6 +3025,48 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryYaml(query, highlightJson);
     // OSD format includes pre_tags/post_tags in the highlight builder output
     String expected = loadExpectedPlan("explain_highlight_osd_format.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testXyseriesExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance by gender, state"
+                    + " | xyseries state gender in (\"F\", \"M\") avg_balance",
+                TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_xyseries.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testXyseriesMultipleDataFieldsExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance, count() as cnt by gender, state"
+                    + " | xyseries state gender in (\"F\", \"M\") avg_balance, cnt",
+                TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_xyseries_multiple_data_fields.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testXyseriesWithFormatExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance by gender, state | xyseries"
+                    + " format=\"$VAL$_$AGG$\" state gender in (\"F\", \"M\") avg_balance",
+                TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_xyseries_with_format.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 
