@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -301,33 +300,81 @@ class AggregateAnalyzerTest {
   }
 
   @Test
-  void analyze_aggCall_TextWithoutKeyword() {
+  void analyze_aggCall_TextWithoutKeyword_countPushesDownAsScript()
+      throws ExpressionNotAnalyzableException {
+    // count(FIELD) on a text field with no .keyword sub-field must not fall back to an
+    // unbounded client-side scan. The metric aggregation is built with a script value source
+    // that reads the value from _source, matching the pattern used by TermQuery/LikeQuery.
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+
+    SchemaPlus root = Frameworks.createRootSchema(true);
+    root.add(
+        "test",
+        new AbstractTable() {
+          @Override
+          public RelDataType getRowType(RelDataTypeFactory tf) {
+            return rowType;
+          }
+        });
+    RelBuilder rb =
+        RelBuilder.create(Frameworks.newConfigBuilder().defaultSchema(root).build()).scan("test");
+
     AggregateCall aggCall =
         AggregateCall.create(
-            SqlStdOperatorTable.SUM,
+            SqlStdOperatorTable.COUNT,
             false,
             false,
             false,
             ImmutableList.of(),
-            ImmutableList.of(0),
+            // arg #2 in the row type is `c` — text without .keyword sub-field
+            ImmutableList.of(2),
             -1,
             null,
             RelCollations.EMPTY,
-            typeFactory.createSqlType(SqlTypeName.INTEGER),
-            "sum");
-    Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of());
-    Project project = createMockProject(List.of(2));
+            typeFactory.createSqlType(SqlTypeName.BIGINT),
+            "cnt");
+
+    RelNode rel = rb.aggregate(rb.groupKey(), List.of(aggCall)).build();
+    Aggregate aggregate = (Aggregate) rel;
+
     AggregateAnalyzer.AggregateBuilderHelper helper =
-        new AggregateAnalyzer.AggregateBuilderHelper(rowType, fieldTypes, null, true, BUCKET_SIZE);
-    ExpressionNotAnalyzableException exception =
-        assertThrows(
-            ExpressionNotAnalyzableException.class,
-            () -> AggregateAnalyzer.analyze(aggregate, project, List.of("sum"), helper));
-    assertEquals("[field] must not be null: [sum]", exception.getCause().getMessage());
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, aggregate.getCluster(), true, BUCKET_SIZE);
+    Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
+        AggregateAnalyzer.analyze(aggregate, null, List.of("cnt"), helper);
+
+    String dsl = result.getLeft().toString();
+    // The value_count metric must use a script value source (not a raw field) on `c`.
+    assertTrue(
+        dsl.contains("\"cnt\":{\"value_count\":{\"script\":{"),
+        "expected value_count metric on 'c' to use a script, but got: " + dsl);
+    assertTrue(
+        dsl.contains("\"lang\":\"opensearch_compounded_script\""),
+        "expected compounded script lang, but got: " + dsl);
+    assertTrue(
+        dsl.contains("\"DIGESTS\":[\"c\"]"),
+        "expected script to reference field 'c' via DIGESTS, but got: " + dsl);
   }
 
   @Test
-  void analyze_groupBy_TextWithoutKeyword() {
+  void analyze_groupBy_TextWithoutKeyword() throws ExpressionNotAnalyzableException {
+    // Grouping by a text field with no .keyword sub-field must not fall back to an unbounded
+    // client-side scan. Instead, the composite terms bucket is built with a script value source
+    // that reads the field from _source, matching the pattern used by TermQuery/LikeQuery.
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+
+    SchemaPlus root = Frameworks.createRootSchema(true);
+    root.add(
+        "test",
+        new AbstractTable() {
+          @Override
+          public RelDataType getRowType(RelDataTypeFactory tf) {
+            return rowType;
+          }
+        });
+    RelBuilder rb =
+        RelBuilder.create(Frameworks.newConfigBuilder().defaultSchema(root).build()).scan("test");
+
     AggregateCall aggCall =
         AggregateCall.create(
             SqlStdOperatorTable.COUNT,
@@ -341,16 +388,32 @@ class AggregateAnalyzerTest {
             RelCollations.EMPTY,
             typeFactory.createSqlType(SqlTypeName.INTEGER),
             "cnt");
-    List<String> outputFields = List.of("c", "cnt");
-    Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of(0));
-    Project project = createMockProject(List.of(2));
+
+    RelNode rel = rb.aggregate(rb.groupKey(ImmutableBitSet.of(2)), List.of(aggCall)).build();
+    Aggregate aggregate = (Aggregate) rel;
+    Project project = null;
+
     AggregateAnalyzer.AggregateBuilderHelper helper =
-        new AggregateAnalyzer.AggregateBuilderHelper(rowType, fieldTypes, null, true, BUCKET_SIZE);
-    ExpressionNotAnalyzableException exception =
-        assertThrows(
-            ExpressionNotAnalyzableException.class,
-            () -> AggregateAnalyzer.analyze(aggregate, project, outputFields, helper));
-    assertEquals("[field] must not be null", exception.getCause().getMessage());
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, aggregate.getCluster(), true, BUCKET_SIZE);
+    Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
+        AggregateAnalyzer.analyze(aggregate, project, List.of("c", "cnt"), helper);
+
+    String dsl = result.getLeft().toString();
+    // Composite bucket for `c` must use a script value source (not a raw field).
+    assertTrue(
+        dsl.contains(
+            "\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":["
+                + "{\"c\":{\"terms\":{\"script\":{"),
+        "expected composite terms bucket on 'c' to use a script, but got: " + dsl);
+    // The script must be tagged as a Calcite compounded script and reference the `c` field.
+    assertTrue(
+        dsl.contains("\"lang\":\"opensearch_compounded_script\""),
+        "expected compounded script lang, but got: " + dsl);
+    assertTrue(
+        dsl.contains("\"DIGESTS\":[\"c\"]"),
+        "expected script to reference field 'c' via DIGESTS, but got: " + dsl);
+    assertInstanceOf(BucketAggregationParser.class, result.getRight());
   }
 
   @Test
