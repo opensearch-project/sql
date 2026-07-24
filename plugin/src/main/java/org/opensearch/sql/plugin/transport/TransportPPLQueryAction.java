@@ -33,6 +33,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
+import org.opensearch.sql.executor.AnalyzeResponse;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -211,12 +212,42 @@ public class TransportPPLQueryAction
     if (transformedRequest.isExplainRequest()) {
       pplService.explain(
           transformedRequest, createExplainResponseListener(transformedRequest, clearingListener));
+      /**
+       * Removing `|| transformedRequest.profile()` from line 200 will separate the `profile` and
+       * `analyze` endpoints. See PR #5568.
+       */
+    } else if (transformedRequest.analyze() || transformedRequest.profile()) {
+      pplService.analyze(
+          transformedRequest, createAnalyzeResponseListener(transformedRequest, clearingListener));
     } else {
       pplService.execute(
           transformedRequest,
           createListener(transformedRequest, clearingListener),
           createExplainResponseListener(transformedRequest, clearingListener));
     }
+  }
+
+  private ResponseListener<AnalyzeResponse> createAnalyzeResponseListener(
+      PPLQueryRequest request, ActionListener<TransportPPLQueryResponse> listener) {
+    return new ResponseListener<AnalyzeResponse>() {
+      @Override
+      public void onResponse(AnalyzeResponse response) {
+        JsonResponseFormatter<AnalyzeResponse> formatter =
+            new JsonResponseFormatter<>(PRETTY) {
+              @Override
+              protected Object buildJsonObject(AnalyzeResponse response) {
+                return response;
+              }
+            };
+        listener.onResponse(
+            new TransportPPLQueryResponse(formatter.format(response), formatter.contentType()));
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        listener.onFailure(e);
+      }
+    };
   }
 
   /**
