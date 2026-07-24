@@ -135,7 +135,13 @@ public class TransportPPLQueryAction
     if (executor != null && contextProvider != null) {
       this.unifiedQueryHandler =
           new RestUnifiedQueryAction(
-              clientRef, clusterServiceRef, executor, contextProvider, pluginSettingsRef);
+              clientRef,
+              clusterServiceRef,
+              executor,
+              contextProvider,
+              pluginSettingsRef,
+              new org.opensearch.sql.opensearch.executor.ThreadPoolExecutionDispatcher(
+                  clientRef.threadPool(), pluginSettingsRef));
     }
   }
 

@@ -69,18 +69,21 @@ public class RestUnifiedQueryAction {
   private final ClusterService clusterService;
   private final org.opensearch.analytics.EngineContextProvider contextProvider;
   private final org.opensearch.sql.common.setting.Settings pluginSettings;
+  private final org.opensearch.sql.executor.ExecutionDispatcher executionDispatcher;
 
   public RestUnifiedQueryAction(
       NodeClient client,
       ClusterService clusterService,
       QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor,
       org.opensearch.analytics.EngineContextProvider contextProvider,
-      org.opensearch.sql.common.setting.Settings pluginSettings) {
+      org.opensearch.sql.common.setting.Settings pluginSettings,
+      org.opensearch.sql.executor.ExecutionDispatcher executionDispatcher) {
     this.client = client;
     this.clusterService = clusterService;
     this.analyticsEngine = new AnalyticsExecutionEngine(planExecutor);
     this.contextProvider = contextProvider;
     this.pluginSettings = pluginSettings;
+    this.executionDispatcher = executionDispatcher;
   }
 
   /**
@@ -229,19 +232,25 @@ public class RestUnifiedQueryAction {
                     // string, so apply the equivalent top-level limit here before the system cap.
                     plan = addFetchSizeLimit(plan, planContext, fetchSize);
                     plan = addQuerySizeLimit(plan, planContext);
-                    if (profiling) {
-                      analyticsEngine.executeWithProfile(
-                          plan,
-                          planContext,
-                          queryCtx,
-                          createQueryListener(queryType, profileCtx, closingListener));
-                    } else {
-                      analyticsEngine.execute(
-                          plan,
-                          planContext,
-                          queryCtx,
-                          createQueryListener(queryType, profileCtx, closingListener));
-                    }
+                    plan =
+                        org.opensearch.sql.calcite.utils.CalciteToolsHelper.optimize(
+                            plan, planContext);
+                    RelNode finalPlan = plan;
+                    Runnable executeTask =
+                        profiling
+                            ? () ->
+                                analyticsEngine.executeWithProfile(
+                                    finalPlan,
+                                    planContext,
+                                    queryCtx,
+                                    createQueryListener(queryType, profileCtx, closingListener))
+                            : () ->
+                                analyticsEngine.execute(
+                                    finalPlan,
+                                    planContext,
+                                    queryCtx,
+                                    createQueryListener(queryType, profileCtx, closingListener));
+                    executionDispatcher.dispatchTask(finalPlan, planContext, executeTask);
                   } catch (Exception e) {
                     closingListener.onFailure(e);
                   } finally {

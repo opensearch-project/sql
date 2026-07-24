@@ -42,6 +42,7 @@ import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Point;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.TimewrapPivot;
@@ -262,7 +263,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                           }
                         })) {
                   // triggers the hook
-                  OpenSearchRelRunners.run(context, rel);
+                  OpenSearchRelRunners.run(context, CalciteToolsHelper.optimize(rel, context));
                 }
 
                 if (physicalError.get() != null) {
@@ -309,7 +310,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                     CalcitePlanContext.skipEncoding.set(true);
                   }
                   // triggers the hook
-                  OpenSearchRelRunners.run(context, rel);
+                  OpenSearchRelRunners.run(context, CalciteToolsHelper.optimize(rel, context));
                 }
                 listener.onResponse(
                     new ExplainResponse(
@@ -329,7 +330,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       RelNode rel, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
     client.schedule(
         () -> {
-          try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
+          try (PreparedStatement statement =
+              OpenSearchRelRunners.run(context, CalciteToolsHelper.optimize(rel, context))) {
             ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
             long execTime = System.nanoTime();
             ResultSet result = statement.executeQuery();
