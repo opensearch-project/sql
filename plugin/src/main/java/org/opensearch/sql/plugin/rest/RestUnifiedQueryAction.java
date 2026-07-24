@@ -70,6 +70,15 @@ public class RestUnifiedQueryAction {
   private final org.opensearch.analytics.EngineContextProvider contextProvider;
   private final org.opensearch.sql.common.setting.Settings pluginSettings;
 
+  /**
+   * Cached value of {@link IndicesService#CLUSTER_PLUGGABLE_DATAFORMAT_ENABLED_SETTING}, kept
+   * current by a settings-update consumer. Reading {@code clusterService.getSettings()} would only
+   * ever return the node's startup settings and miss dynamic cluster-settings updates, so the live
+   * value is tracked here. Written from the cluster-state applier thread, read from the transport
+   * thread.
+   */
+  private volatile boolean clusterDataformatEnabled;
+
   public RestUnifiedQueryAction(
       NodeClient client,
       ClusterService clusterService,
@@ -81,6 +90,14 @@ public class RestUnifiedQueryAction {
     this.analyticsEngine = new AnalyticsExecutionEngine(planExecutor);
     this.contextProvider = contextProvider;
     this.pluginSettings = pluginSettings;
+    this.clusterDataformatEnabled =
+        IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_ENABLED_SETTING.get(
+            clusterService.getSettings());
+    clusterService
+        .getClusterSettings()
+        .addSettingsUpdateConsumer(
+            IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_ENABLED_SETTING,
+            newValue -> this.clusterDataformatEnabled = newValue);
   }
 
   /**
@@ -98,15 +115,12 @@ public class RestUnifiedQueryAction {
     if (query == null || query.isEmpty()) {
       return false;
     }
-    // Cluster-level opt-in: when `cluster.pluggable.dataformat="composite"`, new indices
-    // inherit `index.pluggable.dataformat="composite"` at creation (see
-    // MetadataCreateIndexService), so every queryable target is analytics-eligible. Skip
-    // the per-index lookup — it doesn't work for aliases, wildcards, comma-lists, or data
-    // streams (Metadata#index() only resolves concrete names).
-    if ("composite"
-        .equals(
-            IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(
-                clusterService.getSettings()))) {
+    // Cluster-level opt-in: when `cluster.pluggable.dataformat.enabled=true`, new indices
+    // inherit the composite dataformat at creation (see MetadataCreateIndexService), so every
+    // queryable target is analytics-eligible. Skip the per-index lookup — it doesn't work for
+    // aliases, wildcards, comma-lists, or data streams (Metadata#index() only resolves concrete
+    // names).
+    if (clusterDataformatEnabled) {
       // Analytics engine can't serve system catalog; SHOW/DESCRIBE fall back to default pipeline
       try (UnifiedQueryContext context = buildParsingContext(queryType)) {
         boolean systemCatalog =
