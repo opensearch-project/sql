@@ -106,6 +106,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       ExecutionContext context,
       ResponseListener<QueryResponse> listener) {
     PhysicalPlan plan = executionProtector.protect(physicalPlan);
+    writePhaseHeader();
     client.schedule(
         () -> {
           try {
@@ -157,6 +158,33 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             plan.close();
           }
         });
+  }
+
+  private void writePhaseHeader() {
+    org.opensearch.sql.common.utils.QueryPhaseTracker tracker =
+        org.opensearch.sql.common.utils.QueryPhaseTracker.current();
+    if (tracker != null) {
+      try {
+        client
+            .getNodeClient()
+            .ifPresent(
+                nc -> {
+                  org.opensearch.common.util.concurrent.ThreadContext tc =
+                      nc.threadPool().getThreadContext();
+                  String header =
+                      tc.getHeader(
+                          org.opensearch.sql.common.utils.QuerySourceHeaders.QUERY_PHASES_HEADER);
+                  if (header == null) {
+                    tc.putHeader(
+                        org.opensearch.sql.common.utils.QuerySourceHeaders.QUERY_PHASES_HEADER,
+                        tracker.serialize());
+                  }
+                });
+      } catch (Exception e) {
+        // Best-effort — don't fail the query if phase header can't be written
+      }
+      org.opensearch.sql.common.utils.QueryPhaseTracker.clear();
+    }
   }
 
   private Hook.Closeable getPhysicalPlanInHook(

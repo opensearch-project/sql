@@ -34,6 +34,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.utils.QueryContext;
+import org.opensearch.sql.common.utils.QuerySourceHeaders;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
@@ -152,6 +153,27 @@ public class RestSqlAction extends BaseRestHandler {
               request.path(),
               request.params(),
               sqlRequest.cursor());
+
+      // Tag the thread context so query-insights can identify this as a SQL-derived query.
+      client
+          .threadPool()
+          .getThreadContext()
+          .putHeader(QuerySourceHeaders.QUERY_SOURCE_HEADER, "sql");
+      client
+          .threadPool()
+          .getThreadContext()
+          .putHeader(
+              QuerySourceHeaders.QUERY_EXECUTION_ID_HEADER, java.util.UUID.randomUUID().toString());
+      String queryText = sqlRequest.getSql();
+      if (queryText != null) {
+        if (queryText.length() > QuerySourceHeaders.MAX_ORIGINAL_QUERY_LENGTH) {
+          queryText = queryText.substring(0, QuerySourceHeaders.MAX_ORIGINAL_QUERY_LENGTH);
+        }
+        client
+            .threadPool()
+            .getThreadContext()
+            .putHeader(QuerySourceHeaders.ORIGINAL_QUERY_HEADER, queryText);
+      }
 
       // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
       // The router returns true and sends the response directly if it handled the request.

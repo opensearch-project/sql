@@ -279,12 +279,15 @@ public class QueryService {
       ResponseListener<ExecutionEngine.QueryResponse> listener,
       Optional<Throwable> calciteFailure) {
     try {
-      executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);
+      org.opensearch.sql.common.utils.QueryPhaseTracker tracker =
+          org.opensearch.sql.common.utils.QueryPhaseTracker.startOrRestore();
+      tracker.beginPhase("analyze");
+      LogicalPlan analyzed = analyze(plan, queryType);
+      tracker.beginPhase("plan");
+      executePlan(analyzed, PlanContext.emptyPlanContext(), listener);
     } catch (Exception e) {
       if (calciteFailure.isPresent()) {
-        // This happens if Calcite fell back to V2 due to some issue, and then V2 also failed.
-        // Prefer the Calcite error.
-        // https://github.com/opensearch-project/sql/issues/5060
+        // Calcite fell back to V2 which also failed — prefer Calcite error (#5060)
         propagateCalciteError(calciteFailure.get(), listener);
       } else {
         listener.onFailure(e);
@@ -339,16 +342,21 @@ public class QueryService {
       PlanContext planContext,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
     try {
+      PhysicalPlan physicalPlan = plan(plan);
+      org.opensearch.sql.common.utils.QueryPhaseTracker tracker =
+          org.opensearch.sql.common.utils.QueryPhaseTracker.current();
+      if (tracker != null) {
+        tracker.endCurrentPhase();
+        tracker.endAll();
+      }
       planContext
           .getSplit()
           .ifPresentOrElse(
-              split -> executionEngine.execute(plan(plan), new ExecutionContext(split), listener),
+              split -> executionEngine.execute(physicalPlan, new ExecutionContext(split), listener),
               () ->
                   executionEngine.execute(
-                      plan(plan),
+                      physicalPlan,
                       ExecutionContext.querySizeLimit(
-                          // For pagination, querySizeLimit shouldn't take effect.
-                          // See {@link PaginationWindowIT::testQuerySizeLimitDoesNotEffectPageSize}
                           plan instanceof LogicalPaginate
                               ? null
                               : SysLimit.fromSettings(settings).querySizeLimit()),

@@ -90,6 +90,9 @@ public class PPLService {
       ResponseListener<QueryResponse> queryListener,
       ResponseListener<ExplainResponse> explainListener) {
     // 1.Parse query and convert parse tree (CST) to abstract syntax tree (AST)
+    org.opensearch.sql.common.utils.QueryPhaseTracker tracker =
+        org.opensearch.sql.common.utils.QueryPhaseTracker.start();
+    tracker.beginPhase("parse");
     ParseTree cst = parser.parse(request.getRequest());
     Statement statement =
         cst.accept(
@@ -107,6 +110,8 @@ public class PPLService {
                             : null)
                     .explainMode(request.getExplainMode())
                     .build()));
+    tracker.endCurrentPhase();
+    tracker.persist();
 
     log.info(
         "[{}] Incoming request {}",
