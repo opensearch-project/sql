@@ -89,11 +89,13 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.CheckedLongSumParser;
 import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -477,6 +479,10 @@ public class AggregateAnalyzer {
       AggregateBuilderHelper helper,
       List<PPLHintUtils.DedupSortKey> dedupSortKeys) {
 
+    if (aggCall.getAggregation() == PPLBuiltinOperators.CHECKED_LONG_SUM) {
+      return createCheckedLongSumAggregation(args, aggName, helper);
+    }
+
     return switch (aggCall.getAggregation().kind) {
       case AVG ->
           Pair.of(
@@ -649,6 +655,17 @@ public class AggregateAnalyzer {
           throw new AggregateAnalyzer.AggregateAnalyzerException(
               String.format("unsupported aggregator %s", aggCall.getAggregation()));
     };
+  }
+
+  private static Pair<AggregationBuilder, MetricParser> createCheckedLongSumAggregation(
+      List<Pair<RexNode, String>> args, String aggName, AggregateBuilderHelper helper) {
+    if (args.size() != 1) {
+      throw new AggregateAnalyzerException("CHECKED_LONG_SUM requires exactly one argument");
+    }
+
+    return Pair.of(
+        helper.build(args.getFirst().getKey(), AggregationBuilders.sum(aggName)),
+        new CheckedLongSumParser(aggName));
   }
 
   private static boolean supportsMaxMinAggregation(ExprType fieldType) {

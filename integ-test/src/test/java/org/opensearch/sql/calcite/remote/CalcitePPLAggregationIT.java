@@ -20,12 +20,16 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
+import static org.opensearch.sql.util.TestUtils.createIndexByRestClient;
+import static org.opensearch.sql.util.TestUtils.isIndexExist;
+import static org.opensearch.sql.util.TestUtils.performRequest;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -91,6 +95,173 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifySchema(actual, schema("sum(balance)", "bigint"));
 
     verifyDataRows(actual, rows(186973));
+  }
+
+  @Test
+  public void testSumAllIntegralTypes() throws IOException {
+    String stats =
+        "stats sum(byte_number), sum(short_number), sum(integer_number), sum(long_number)";
+    String query = String.format("source=%s | %s", TEST_INDEX_DATATYPE_NUMERIC, stats);
+
+    JSONObject actual = executeQuery(query);
+    verifySchema(
+        actual,
+        schema("sum(byte_number)", "bigint"),
+        schema("sum(short_number)", "bigint"),
+        schema("sum(integer_number)", "bigint"),
+        schema("sum(long_number)", "bigint"));
+    verifyDataRows(actual, rows(4L, 3L, 2L, 1L));
+
+    String explain = explainQueryToString(query);
+    assertAllIntegralSumsAreChecked(explain);
+
+    // HEAD prevents aggregation pushdown while preserving each field's integral input type.
+    String fallbackQuery =
+        String.format("source=%s | head 1 | %s", TEST_INDEX_DATATYPE_NUMERIC, stats);
+    verifyDataRows(executeQuery(fallbackQuery), rows(4L, 3L, 2L, 1L));
+
+    String fallbackExplain = explainQueryToString(fallbackQuery);
+    assertTrue(fallbackExplain.contains("EnumerableAggregate"));
+    assertAllIntegralSumsAreChecked(fallbackExplain);
+  }
+
+  private static void assertAllIntegralSumsAreChecked(String explain) {
+    assertTrue(explain.contains("sum(byte_number)=[CHECKED_LONG_SUM("));
+    assertTrue(explain.contains("sum(short_number)=[CHECKED_LONG_SUM("));
+    assertTrue(explain.contains("sum(integer_number)=[CHECKED_LONG_SUM("));
+    assertTrue(explain.contains("sum(long_number)=[CHECKED_LONG_SUM("));
+  }
+
+  @Test
+  public void testSumAvgLongOverflow() throws IOException {
+    String overflowIndex = "test_sum_long_overflow";
+    createLongIndex(overflowIndex, Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE);
+    String inRangeIndex = "test_sum_long_in_range";
+    createLongIndex(inRangeIndex, 1000000000000L, 2000000000000L, 3000000000000L);
+    String boundaryIndex = "test_sum_long_boundary";
+    createLongIndex(boundaryIndex, Long.MAX_VALUE);
+    String exactIndex = "test_sum_long_exact";
+    createLongIndex(exactIndex, 4611686018427387904L, 1L);
+
+    // SUM overflows the BIGINT range (3 * (2^63 - 1)); surfaced as a client error rather than
+    // silently wrapping to a negative value.
+    assertSumOverflow(String.format("source=%s | stats sum(v)", overflowIndex));
+
+    // HEAD forces enumerable execution even when global pushdown is enabled.
+    assertSumOverflow(String.format("source=%s | head 3 | stats sum(v)", overflowIndex));
+
+    // AVG is averaged in DOUBLE, so it holds the true average (the shared value) without wrapping.
+    JSONObject avg = executeQuery(String.format("source=%s | stats avg(v)", overflowIndex));
+    verifySchema(avg, schema("avg(v)", "double"));
+    verifyDataRows(avg, rows(9.223372036854776e18));
+
+    JSONObject fallbackAvg =
+        executeQuery(String.format("source=%s | head 3 | stats avg(v)", overflowIndex));
+    verifySchema(fallbackAvg, schema("avg(v)", "double"));
+    verifyDataRows(fallbackAvg, rows(9.223372036854776e18));
+
+    JSONObject expressionAvg =
+        executeQuery(String.format("source=%s | head 3 | stats avg(v + 0)", overflowIndex));
+    verifySchema(expressionAvg, schema("avg(v + 0)", "double"));
+    verifyDataRows(expressionAvg, rows(9.223372036854776e18));
+
+    String pushedExpressionQuery = String.format("source=%s | stats avg(v + 0)", overflowIndex);
+    JSONObject pushedExpressionAvg = executeQuery(pushedExpressionQuery);
+    verifySchema(pushedExpressionAvg, schema("avg(v + 0)", "double"));
+    verifyDataRows(pushedExpressionAvg, rows(9.223372036854776e18));
+    if (!isPushdownDisabled() && !isAnalyticsParquetIndicesEnabled()) {
+      assertTrue(explainQueryToString(pushedExpressionQuery).contains("AGGREGATION->"));
+    }
+
+    // A sum well within the BIGINT range returns the exact value with no error.
+    JSONObject inRange = executeQuery(String.format("source=%s | stats sum(v)", inRangeIndex));
+    verifySchema(inRange, schema("sum(v)", "bigint"));
+    verifyDataRows(inRange, rows(6000000000000L));
+
+    // A single Long.MAX_VALUE is a valid (non-overflowing) sum and must not error.
+    JSONObject boundary = executeQuery(String.format("source=%s | stats sum(v)", boundaryIndex));
+    verifySchema(boundary, schema("sum(v)", "bigint"));
+    verifyDataRows(boundary, rows(9223372036854775807L));
+
+    // Native sum pushdown uses double and loses the low-order bit; the fallback and analytics
+    // backends retain it.
+    JSONObject exact = executeQuery(String.format("source=%s | stats sum(v)", exactIndex));
+    verifySchema(exact, schema("sum(v)", "bigint"));
+    long expectedExact =
+        (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled())
+            ? 4611686018427387905L
+            : 4611686018427387904L;
+    verifyDataRows(exact, rows(expectedExact));
+
+    // HEAD prevents pushdown, so the checked long accumulator retains the low-order bit.
+    JSONObject exactFallback =
+        executeQuery(String.format("source=%s | head 2 | stats sum(v)", exactIndex));
+    verifySchema(exactFallback, schema("sum(v)", "bigint"));
+    verifyDataRows(exactFallback, rows(4611686018427387905L));
+  }
+
+  @Test
+  public void testNegativeLongSumOverflowAndBoundary() throws IOException {
+    String overflowIndex = "test_sum_long_negative_overflow";
+    createLongIndex(overflowIndex, Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE);
+    String boundaryIndex = "test_sum_long_negative_boundary";
+    createLongIndex(boundaryIndex, Long.MIN_VALUE);
+
+    assertSumOverflow(String.format("source=%s | stats sum(v)", overflowIndex));
+    assertSumOverflow(String.format("source=%s | head 3 | stats sum(v)", overflowIndex));
+
+    JSONObject boundary = executeQuery(String.format("source=%s | stats sum(v)", boundaryIndex));
+    verifySchema(boundary, schema("sum(v)", "bigint"));
+    verifyDataRows(boundary, rows(Long.MIN_VALUE));
+
+    JSONObject avg = executeQuery(String.format("source=%s | stats avg(v)", overflowIndex));
+    verifySchema(avg, schema("avg(v)", "double"));
+    verifyDataRows(avg, rows((double) Long.MIN_VALUE));
+  }
+
+  @Test
+  public void testFallbackLongSumRejectsIntermediateOverflow() throws IOException {
+    String index = "test_sum_long_intermediate_overflow";
+    createLongIndex(index, Long.MAX_VALUE, 1L, -1L);
+
+    // The final mathematical result fits, but Math.addExact rejects the intermediate MAX + 1.
+    assertSumOverflow(String.format("source=%s | sort - v | head 3 | stats sum(v)", index));
+  }
+
+  @Test
+  public void testFloatingSumsDoNotUseCheckedLongAccumulator() throws IOException {
+    String stats =
+        "stats sum(double_number), sum(float_number),"
+            + " sum(half_float_number), sum(scaled_float_number)";
+    String query = String.format("source=%s | %s", TEST_INDEX_DATATYPE_NUMERIC, stats);
+    String fallbackQuery =
+        String.format("source=%s | head 1 | %s", TEST_INDEX_DATATYPE_NUMERIC, stats);
+
+    assertEquals(1, executeQuery(query).getInt("total"));
+    assertFalse(explainQueryToString(query).contains("CHECKED_LONG_SUM"));
+    assertEquals(1, executeQuery(fallbackQuery).getInt("total"));
+    assertFalse(explainQueryToString(fallbackQuery).contains("CHECKED_LONG_SUM"));
+  }
+
+  private void createLongIndex(String index, long... values) throws IOException {
+    if (isIndexExist(client(), index)) {
+      return;
+    }
+
+    createIndexByRestClient(
+        client(), index, "{\"mappings\":{\"properties\":{\"v\":{\"type\":\"long\"}}}}");
+    StringBuilder body = new StringBuilder();
+    for (long value : values) {
+      body.append("{\"index\":{}}\n").append("{\"v\":").append(value).append("}\n");
+    }
+    Request bulk = new Request("POST", "/" + index + "/_bulk?refresh=true");
+    bulk.setJsonEntity(body.toString());
+    performRequest(client(), bulk);
+  }
+
+  private void assertSumOverflow(String query) throws IOException {
+    Throwable error = assertThrowsWithReplace(RuntimeException.class, () -> executeQuery(query));
+    verifyErrorMessageContains(error, "verflow");
   }
 
   @Test
@@ -993,9 +1164,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats sum(balance) as a by age", TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(response, schema("a", null, "bigint"), schema("age", null, "int"));
-    // SUM of an all-null bucket is null per the SQL spec. The DSL-pushdown path returns 0 instead
-    // (a known pushdown quirk); the analytics-engine backend (DataFusion) follows the spec like
-    // Calcite-no-pushdown and returns null. See testSumNull and #3408.
+    // Native sum returns 0 for an all-null bucket; fallback and analytics backends return null.
     Object emptySum = (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled()) ? null : 0;
     verifyDataRows(
         response,
