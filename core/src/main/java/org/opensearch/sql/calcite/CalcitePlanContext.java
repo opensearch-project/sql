@@ -75,6 +75,13 @@ public class CalcitePlanContext {
    */
   @Getter @Setter private boolean isProjectVisited = false;
 
+  /**
+   * Whether to include metadata fields like _id, _index, _score in the result. When true, metadata
+   * fields are included in wildcard field selections. When false (default), metadata fields are
+   * excluded.
+   */
+  @Getter @Setter private boolean includeMetadata = false;
+
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
@@ -144,6 +151,7 @@ public class CalcitePlanContext {
     this.rexBuilder = parent.rexBuilder; // Share the same rexBuilder
     this.functionProperties = parent.functionProperties;
     this.highlightConfig = parent.highlightConfig;
+    this.includeMetadata = parent.includeMetadata; // Preserve parent's metadata setting
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
@@ -196,6 +204,13 @@ public class CalcitePlanContext {
   public static CalcitePlanContext create(
       FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     return new CalcitePlanContext(config, sysLimit, queryType);
+  }
+
+  public static CalcitePlanContext create(
+      FrameworkConfig config, SysLimit sysLimit, QueryType queryType, boolean includeMetadata) {
+    CalcitePlanContext context = new CalcitePlanContext(config, sysLimit, queryType);
+    context.setIncludeMetadata(includeMetadata);
+    return context;
   }
 
   /**

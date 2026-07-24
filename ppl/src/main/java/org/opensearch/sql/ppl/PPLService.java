@@ -91,6 +91,9 @@ public class PPLService {
       ResponseListener<ExplainResponse> explainListener) {
     // 1.Parse query and convert parse tree (CST) to abstract syntax tree (AST)
     ParseTree cst = parser.parse(request.getRequest());
+
+    boolean includeMetadata = request.getIncludeMetadata();
+
     Statement statement =
         cst.accept(
             new AstStatementBuilder(
@@ -106,6 +109,7 @@ public class PPLService {
                                 .orElse(null)
                             : null)
                     .explainMode(request.getExplainMode())
+                    .includeMetadata(includeMetadata)
                     .build()));
 
     log.info(

@@ -529,12 +529,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Invalid field exclusion: operation would exclude all fields from the result set");
     }
     AllFields allFields = (AllFields) node.getProjectList().getFirst();
-    if (!(allFields instanceof AllFieldsExcludeMeta) && !context.isProjectVisited()) {
-      // Should not remove nested fields for AllFieldsExcludeMeta
-      // and when no explicit project has already curated the schema
-      tryToRemoveNestedFields(context);
+
+    if (allFields instanceof AllFieldsExcludeMeta) {
+      // For AllFieldsExcludeMeta (include_metadata=false), should not remove nested fields
+      tryToRemoveMetaFields(context, true); // Force exclude metadata fields
+    } else {
+      // For AllFields (include_metadata=true), include metadata fields
+      if (!context.isProjectVisited()) {
+        tryToRemoveNestedFields(context);
+      }
+      // Mark as project visited to prevent automatic metadata field removal
+      context.setProjectVisited(true);
+      // Don't force exclude metadata fields - let them remain
+      tryToRemoveMetaFields(context, false);
     }
-    tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
     return context.relBuilder.peek();
   }
 
@@ -696,6 +704,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    * @param excludeByForce whether exclude metadata fields by force
    */
   private static void tryToRemoveMetaFields(CalcitePlanContext context, boolean excludeByForce) {
+    // If include_metadata=true, never remove metadata fields
+    if (context.isIncludeMetadata() && !excludeByForce) {
+      return;
+    }
+
     if (excludeByForce || !context.isProjectVisited()) {
       List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
       List<RexNode> metaFieldsRef =

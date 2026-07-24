@@ -15,7 +15,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.opensearch.sql.ast.Node;
-import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
@@ -36,12 +36,15 @@ public class AstStatementBuilderTest {
     assertEqual(
         "search source=t | where a=1",
         new Query(
-            project(filter(relation("t"), compare("=", field("a"), intLiteral(1))), AllFields.of()),
+            project(
+                filter(relation("t"), compare("=", field("a"), intLiteral(1))),
+                AllFieldsExcludeMeta.of()),
             0,
-            PPL));
+            PPL,
+            false));
     assertEqual(
         "search source=t a=1",
-        new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL));
+        new Query(project(search(relation("t"), "a:1"), AllFieldsExcludeMeta.of()), 0, PPL, false));
   }
 
   @Test
@@ -51,13 +54,18 @@ public class AstStatementBuilderTest {
         new Explain(
             new Query(
                 project(
-                    filter(relation("t"), compare("=", field("a"), intLiteral(1))), AllFields.of()),
+                    filter(relation("t"), compare("=", field("a"), intLiteral(1))),
+                    AllFieldsExcludeMeta.of()),
                 0,
-                PPL),
+                PPL,
+                false),
             PPL));
     assertExplainEqual(
         "search source=t a=1",
-        new Explain(new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL), PPL));
+        new Explain(
+            new Query(
+                project(search(relation("t"), "a:1"), AllFieldsExcludeMeta.of()), 0, PPL, false),
+            PPL));
   }
 
   @Test
@@ -66,7 +74,11 @@ public class AstStatementBuilderTest {
     assertEqualWithFetchSize(
         "search source=t a=1",
         100,
-        new Query(project(head(search(relation("t"), "a:1"), 100, 0), AllFields.of()), 0, PPL));
+        new Query(
+            project(head(search(relation("t"), "a:1"), 100, 0), AllFieldsExcludeMeta.of()),
+            0,
+            PPL,
+            false));
   }
 
   @Test
@@ -75,7 +87,7 @@ public class AstStatementBuilderTest {
     assertEqualWithFetchSize(
         "search source=t a=1",
         0,
-        new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL));
+        new Query(project(search(relation("t"), "a:1"), AllFieldsExcludeMeta.of()), 0, PPL, false));
   }
 
   @Test
@@ -83,7 +95,11 @@ public class AstStatementBuilderTest {
     assertEqualWithFetchSize(
         "search source=t a=1",
         10000,
-        new Query(project(head(search(relation("t"), "a:1"), 10000, 0), AllFields.of()), 0, PPL));
+        new Query(
+            project(head(search(relation("t"), "a:1"), 10000, 0), AllFieldsExcludeMeta.of()),
+            0,
+            PPL,
+            false));
   }
 
   @Test
@@ -94,7 +110,11 @@ public class AstStatementBuilderTest {
     assertEqualWithFetchSize(
         "source=t | head 3",
         10,
-        new Query(project(head(head(relation("t"), 3, 0), 10, 0), AllFields.of()), 0, PPL));
+        new Query(
+            project(head(head(relation("t"), 3, 0), 10, 0), AllFieldsExcludeMeta.of()),
+            0,
+            PPL,
+            false));
   }
 
   @Test
@@ -105,7 +125,11 @@ public class AstStatementBuilderTest {
     assertEqualWithFetchSize(
         "source=t | head 100",
         5,
-        new Query(project(head(head(relation("t"), 100, 0), 5, 0), AllFields.of()), 0, PPL));
+        new Query(
+            project(head(head(relation("t"), 100, 0), 5, 0), AllFieldsExcludeMeta.of()),
+            0,
+            PPL,
+            false));
   }
 
   @Test
@@ -115,14 +139,19 @@ public class AstStatementBuilderTest {
     assertEqualWithFetchSize(
         "source=t | head 3 from 1",
         10,
-        new Query(project(head(head(relation("t"), 3, 1), 10, 0), AllFields.of()), 0, PPL));
+        new Query(
+            project(head(head(relation("t"), 3, 1), 10, 0), AllFieldsExcludeMeta.of()),
+            0,
+            PPL,
+            false));
   }
 
   @Test
   public void buildQueryStatementWithHighlight() {
     // Highlight config is set on the Query statement, not as an AST wrapper
     HighlightConfig config = new HighlightConfig(List.of("*"));
-    Query expected = new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL);
+    Query expected =
+        new Query(project(search(relation("t"), "a:1"), AllFieldsExcludeMeta.of()), 0, PPL, false);
     expected.setHighlightConfig(config);
     assertEqualWithHighlight("search source=t a=1", config, expected);
   }
@@ -130,7 +159,8 @@ public class AstStatementBuilderTest {
   @Test
   public void buildQueryStatementWithHighlightMultipleTerms() {
     HighlightConfig config = new HighlightConfig(List.of("error", "login"));
-    Query expected = new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL);
+    Query expected =
+        new Query(project(search(relation("t"), "a:1"), AllFieldsExcludeMeta.of()), 0, PPL, false);
     expected.setHighlightConfig(config);
     assertEqualWithHighlight("search source=t a=1", config, expected);
   }
@@ -141,7 +171,7 @@ public class AstStatementBuilderTest {
     assertEqualWithHighlight(
         "search source=t a=1",
         null,
-        new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL));
+        new Query(project(search(relation("t"), "a:1"), AllFieldsExcludeMeta.of()), 0, PPL, false));
   }
 
   @Test
@@ -149,7 +179,11 @@ public class AstStatementBuilderTest {
     // Both fetch_size and highlight: Head wraps the plan, config is on the Query
     HighlightConfig config = new HighlightConfig(List.of("*"));
     Query expected =
-        new Query(project(head(search(relation("t"), "a:1"), 100, 0), AllFields.of()), 0, PPL);
+        new Query(
+            project(head(search(relation("t"), "a:1"), 100, 0), AllFieldsExcludeMeta.of()),
+            0,
+            PPL,
+            false);
     expected.setHighlightConfig(config);
     assertEqualWithHighlightAndFetchSize("search source=t a=1", config, 100, expected);
   }

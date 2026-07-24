@@ -11,7 +11,6 @@ import static org.junit.Assert.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
-import static org.opensearch.sql.ast.dsl.AstDSL.allFields;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
@@ -28,6 +27,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import org.junit.Test;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.UnifiedQueryTestBase;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
@@ -39,7 +39,7 @@ public class UnifiedQueryParserTest extends UnifiedQueryTestBase {
   public void testParseSource() {
     assertEqual(
         "source = catalog.employees",
-        project(relation(qualifiedName("catalog", "employees")), allFields()));
+        project(relation(qualifiedName("catalog", "employees")), AllFieldsExcludeMeta.of()));
   }
 
   @Test
@@ -50,7 +50,7 @@ public class UnifiedQueryParserTest extends UnifiedQueryTestBase {
             filter(
                 relation(qualifiedName("catalog", "employees")),
                 compare(">", field("age"), intLiteral(30))),
-            allFields()));
+            AllFieldsExcludeMeta.of()));
   }
 
   @Test
@@ -61,7 +61,7 @@ public class UnifiedQueryParserTest extends UnifiedQueryTestBase {
             eval(
                 relation(qualifiedName("catalog", "employees")),
                 let(field("f"), function("abs", field("id")))),
-            allFields()));
+            AllFieldsExcludeMeta.of()));
   }
 
   @Test
@@ -75,7 +75,7 @@ public class UnifiedQueryParserTest extends UnifiedQueryTestBase {
                 emptyList(),
                 exprList(alias("department", field("department"))),
                 defaultStatsArgs()),
-            allFields()));
+            AllFieldsExcludeMeta.of()));
   }
 
   @Test

@@ -108,9 +108,22 @@ public class QueryService {
       QueryType queryType,
       HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    execute(plan, queryType, highlightConfig, false, listener);
+  }
+
+  /** Execute with optional highlight config and include metadata flag. */
+  public void execute(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      boolean includeMetadata,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
     if (shouldUseCalcite(queryType)) {
-      executeWithCalcite(plan, queryType, highlightConfig, listener);
+      executeWithCalcite(plan, queryType, highlightConfig, includeMetadata, listener);
     } else {
+      // Legacy engine always includes basic metadata (schema information)
+      // The includeMetadata flag doesn't affect legacy engine behavior since
+      // it already provides column names, types, and aliases in the schema
       executeWithLegacy(plan, queryType, listener, Optional.empty());
     }
   }
@@ -131,20 +144,23 @@ public class QueryService {
       HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode) {
-    explain(plan, queryType, highlightConfig, listener, mode, null);
+    explain(plan, queryType, highlightConfig, false, listener, mode, null);
   }
 
-  /** Explain with optional highlight config and format. */
+  /** Explain with optional highlight config, include metadata flag, and format. */
   public void explain(
       UnresolvedPlan plan,
       QueryType queryType,
       HighlightConfig highlightConfig,
+      boolean includeMetadata,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode,
       Format format) {
     if (shouldUseCalcite(queryType)) {
-      explainWithCalcite(plan, queryType, highlightConfig, listener, mode, format);
+      explainWithCalcite(plan, queryType, highlightConfig, includeMetadata, listener, mode, format);
     } else {
+      // Legacy engine provides basic explain information
+      // The includeMetadata flag doesn't significantly affect legacy explain behavior
       explainWithLegacy(plan, queryType, listener, mode, Optional.empty());
     }
   }
@@ -153,6 +169,15 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       HighlightConfig highlightConfig,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    executeWithCalcite(plan, queryType, highlightConfig, false, listener);
+  }
+
+  public void executeWithCalcite(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      boolean includeMetadata,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
     CalcitePlanContext.run(
         () -> {
@@ -165,7 +190,10 @@ public class QueryService {
                 () -> {
                   CalcitePlanContext context =
                       CalcitePlanContext.create(
-                          buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+                          buildFrameworkConfig(),
+                          SysLimit.fromSettings(settings),
+                          queryType,
+                          includeMetadata);
 
                   context.setHighlightConfig(highlightConfig);
 
@@ -193,6 +221,7 @@ public class QueryService {
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
+              // Legacy engine provides basic metadata support, so fallback is acceptable
               executeWithLegacy(plan, queryType, listener, Optional.of(t));
             } else {
               propagateCalciteError(t, listener);
@@ -227,13 +256,14 @@ public class QueryService {
       HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode) {
-    explainWithCalcite(plan, queryType, highlightConfig, listener, mode, null);
+    explainWithCalcite(plan, queryType, highlightConfig, false, listener, mode, null);
   }
 
   public void explainWithCalcite(
       UnresolvedPlan plan,
       QueryType queryType,
       HighlightConfig highlightConfig,
+      boolean includeMetadata,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode,
       Format format) {
@@ -245,7 +275,10 @@ public class QueryService {
                 () -> {
                   CalcitePlanContext context =
                       CalcitePlanContext.create(
-                          buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+                          buildFrameworkConfig(),
+                          SysLimit.fromSettings(settings),
+                          queryType,
+                          includeMetadata);
                   context.setHighlightConfig(highlightConfig);
                   context.run(
                       () -> {
