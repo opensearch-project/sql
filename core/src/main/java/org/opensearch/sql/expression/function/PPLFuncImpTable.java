@@ -283,6 +283,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -291,7 +292,6 @@ import javax.annotation.Nullable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -1596,7 +1596,14 @@ public class PPLFuncImpTable {
     }
 
     void registerOperator(BuiltinFunctionName functionName, SqlAggFunction aggFunction) {
-      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(aggFunction);
+      registerOperator(functionName, aggFunction, field -> aggFunction);
+    }
+
+    void registerOperator(
+        BuiltinFunctionName functionName,
+        SqlAggFunction typeCheckerSource,
+        Function<RexNode, SqlAggFunction> aggFunctionSelector) {
+      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(typeCheckerSource);
       PPLTypeChecker typeChecker =
           wrapSqlOperandTypeChecker(innerTypeChecker, functionName.name(), true);
       AggHandler handler =
@@ -1604,37 +1611,24 @@ public class PPLFuncImpTable {
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             return UserDefinedFunctionUtils.makeAggregateCall(
-                aggFunction, List.of(field), newArgList, ctx.relBuilder);
+                aggFunctionSelector.apply(field), List.of(field), newArgList, ctx.relBuilder);
           };
       register(functionName, handler, typeChecker);
     }
 
-    /**
-     * Registers an integral sum accumulator that checks every addition for BIGINT overflow. Direct
-     * fields can use native checked aggregation pushdown; other plans execute this aggregate with
-     * Math.addExact.
-     */
+    /** Registers checked integral sums while retaining standard SUM behavior for other types. */
     void registerSumOperator() {
-      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(SqlStdOperatorTable.SUM);
-      PPLTypeChecker typeChecker = wrapSqlOperandTypeChecker(innerTypeChecker, SUM.name(), true);
-      AggHandler handler =
-          (distinct, field, argList, ctx) -> {
-            List<RexNode> newArgList =
-                argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
-            boolean checkedLongSum = isIntegral(field.getType().getSqlTypeName());
-            SqlAggFunction sumOperator =
-                checkedLongSum ? PPLBuiltinOperators.CHECKED_LONG_SUM : SqlStdOperatorTable.SUM;
-            return UserDefinedFunctionUtils.makeAggregateCall(
-                sumOperator, List.of(field), newArgList, ctx.relBuilder);
-          };
-      register(SUM, handler, typeChecker);
+      registerOperator(
+          SUM,
+          SqlStdOperatorTable.SUM,
+          field ->
+              isIntegral(field.getType().getSqlTypeName())
+                  ? PPLBuiltinOperators.CHECKED_LONG_SUM
+                  : SqlStdOperatorTable.SUM);
     }
 
     private static boolean isIntegral(SqlTypeName typeName) {
-      return switch (typeName) {
-        case TINYINT, SMALLINT, INTEGER, BIGINT -> true;
-        default -> false;
-      };
+      return SqlTypeName.INT_TYPES.contains(typeName);
     }
 
     void populate() {
@@ -1660,8 +1654,7 @@ public class PPLFuncImpTable {
       register(
           AVG,
           (distinct, field, argList, ctx) -> {
-            if (field instanceof RexInputRef
-                && field.getType().getSqlTypeName() == SqlTypeName.BIGINT) {
+            if (field.getType().getSqlTypeName() == SqlTypeName.BIGINT) {
               return ctx.relBuilder
                   .aggregateCall(PPLBuiltinOperators.BIGINT_AVG, field)
                   .distinct(distinct);

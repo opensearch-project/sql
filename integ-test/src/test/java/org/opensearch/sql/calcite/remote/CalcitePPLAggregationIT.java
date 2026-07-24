@@ -135,65 +135,43 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testSumAvgLongOverflow() throws IOException {
     String overflowIndex = "test_sum_long_overflow";
-    if (!isIndexExist(client(), overflowIndex)) {
-      createIndexByRestClient(
-          client(), overflowIndex, "{\"mappings\":{\"properties\":{\"v\":{\"type\":\"long\"}}}}");
-      Request bulk = new Request("POST", "/" + overflowIndex + "/_bulk?refresh=true");
-      bulk.setJsonEntity(
-          "{\"index\":{}}\n"
-              + "{\"v\":9223372036854775807}\n"
-              + "{\"index\":{}}\n"
-              + "{\"v\":9223372036854775807}\n"
-              + "{\"index\":{}}\n"
-              + "{\"v\":9223372036854775807}\n");
-      performRequest(client(), bulk);
-    }
+    createLongIndex(overflowIndex, Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE);
     String inRangeIndex = "test_sum_long_in_range";
-    if (!isIndexExist(client(), inRangeIndex)) {
-      createIndexByRestClient(
-          client(), inRangeIndex, "{\"mappings\":{\"properties\":{\"v\":{\"type\":\"long\"}}}}");
-      Request bulk = new Request("POST", "/" + inRangeIndex + "/_bulk?refresh=true");
-      bulk.setJsonEntity(
-          "{\"index\":{}}\n"
-              + "{\"v\":1000000000000}\n"
-              + "{\"index\":{}}\n"
-              + "{\"v\":2000000000000}\n"
-              + "{\"index\":{}}\n"
-              + "{\"v\":3000000000000}\n");
-      performRequest(client(), bulk);
-    }
+    createLongIndex(inRangeIndex, 1000000000000L, 2000000000000L, 3000000000000L);
     String boundaryIndex = "test_sum_long_boundary";
-    if (!isIndexExist(client(), boundaryIndex)) {
-      createIndexByRestClient(
-          client(), boundaryIndex, "{\"mappings\":{\"properties\":{\"v\":{\"type\":\"long\"}}}}");
-      Request bulk = new Request("POST", "/" + boundaryIndex + "/_bulk?refresh=true");
-      bulk.setJsonEntity("{\"index\":{}}\n" + "{\"v\":9223372036854775807}\n");
-      performRequest(client(), bulk);
-    }
+    createLongIndex(boundaryIndex, Long.MAX_VALUE);
     String exactIndex = "test_sum_long_exact";
-    if (!isIndexExist(client(), exactIndex)) {
-      createIndexByRestClient(
-          client(), exactIndex, "{\"mappings\":{\"properties\":{\"v\":{\"type\":\"long\"}}}}");
-      Request bulk = new Request("POST", "/" + exactIndex + "/_bulk?refresh=true");
-      bulk.setJsonEntity(
-          "{\"index\":{}}\n"
-              + "{\"v\":4611686018427387904}\n"
-              + "{\"index\":{}}\n"
-              + "{\"v\":1}\n");
-      performRequest(client(), bulk);
-    }
+    createLongIndex(exactIndex, 4611686018427387904L, 1L);
+
     // SUM overflows the BIGINT range (3 * (2^63 - 1)); surfaced as a client error rather than
     // silently wrapping to a negative value.
-    Throwable error =
-        assertThrowsWithReplace(
-            RuntimeException.class,
-            () -> executeQuery(String.format("source=%s | stats sum(v)", overflowIndex)));
-    verifyErrorMessageContains(error, "verflow");
+    assertSumOverflow(String.format("source=%s | stats sum(v)", overflowIndex));
+
+    // HEAD forces enumerable execution even when global pushdown is enabled.
+    assertSumOverflow(String.format("source=%s | head 3 | stats sum(v)", overflowIndex));
 
     // AVG is averaged in DOUBLE, so it holds the true average (the shared value) without wrapping.
     JSONObject avg = executeQuery(String.format("source=%s | stats avg(v)", overflowIndex));
     verifySchema(avg, schema("avg(v)", "double"));
     verifyDataRows(avg, rows(9.223372036854776e18));
+
+    JSONObject fallbackAvg =
+        executeQuery(String.format("source=%s | head 3 | stats avg(v)", overflowIndex));
+    verifySchema(fallbackAvg, schema("avg(v)", "double"));
+    verifyDataRows(fallbackAvg, rows(9.223372036854776e18));
+
+    JSONObject expressionAvg =
+        executeQuery(String.format("source=%s | head 3 | stats avg(v + 0)", overflowIndex));
+    verifySchema(expressionAvg, schema("avg(v + 0)", "double"));
+    verifyDataRows(expressionAvg, rows(9.223372036854776e18));
+
+    String pushedExpressionQuery = String.format("source=%s | stats avg(v + 0)", overflowIndex);
+    JSONObject pushedExpressionAvg = executeQuery(pushedExpressionQuery);
+    verifySchema(pushedExpressionAvg, schema("avg(v + 0)", "double"));
+    verifyDataRows(pushedExpressionAvg, rows(9.223372036854776e18));
+    if (!isPushdownDisabled() && !isAnalyticsParquetIndicesEnabled()) {
+      assertTrue(explainQueryToString(pushedExpressionQuery).contains("AGGREGATION->"));
+    }
 
     // A sum well within the BIGINT range returns the exact value with no error.
     JSONObject inRange = executeQuery(String.format("source=%s | stats sum(v)", inRangeIndex));
@@ -220,6 +198,70 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s | head 2 | stats sum(v)", exactIndex));
     verifySchema(exactFallback, schema("sum(v)", "bigint"));
     verifyDataRows(exactFallback, rows(4611686018427387905L));
+  }
+
+  @Test
+  public void testNegativeLongSumOverflowAndBoundary() throws IOException {
+    String overflowIndex = "test_sum_long_negative_overflow";
+    createLongIndex(overflowIndex, Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE);
+    String boundaryIndex = "test_sum_long_negative_boundary";
+    createLongIndex(boundaryIndex, Long.MIN_VALUE);
+
+    assertSumOverflow(String.format("source=%s | stats sum(v)", overflowIndex));
+    assertSumOverflow(String.format("source=%s | head 3 | stats sum(v)", overflowIndex));
+
+    JSONObject boundary = executeQuery(String.format("source=%s | stats sum(v)", boundaryIndex));
+    verifySchema(boundary, schema("sum(v)", "bigint"));
+    verifyDataRows(boundary, rows(Long.MIN_VALUE));
+
+    JSONObject avg = executeQuery(String.format("source=%s | stats avg(v)", overflowIndex));
+    verifySchema(avg, schema("avg(v)", "double"));
+    verifyDataRows(avg, rows((double) Long.MIN_VALUE));
+  }
+
+  @Test
+  public void testFallbackLongSumRejectsIntermediateOverflow() throws IOException {
+    String index = "test_sum_long_intermediate_overflow";
+    createLongIndex(index, Long.MAX_VALUE, 1L, -1L);
+
+    // The final mathematical result fits, but Math.addExact rejects the intermediate MAX + 1.
+    assertSumOverflow(String.format("source=%s | sort - v | head 3 | stats sum(v)", index));
+  }
+
+  @Test
+  public void testFloatingSumsDoNotUseCheckedLongAccumulator() throws IOException {
+    String stats =
+        "stats sum(double_number), sum(float_number),"
+            + " sum(half_float_number), sum(scaled_float_number)";
+    String query = String.format("source=%s | %s", TEST_INDEX_DATATYPE_NUMERIC, stats);
+    String fallbackQuery =
+        String.format("source=%s | head 1 | %s", TEST_INDEX_DATATYPE_NUMERIC, stats);
+
+    assertEquals(1, executeQuery(query).getInt("total"));
+    assertFalse(explainQueryToString(query).contains("CHECKED_LONG_SUM"));
+    assertEquals(1, executeQuery(fallbackQuery).getInt("total"));
+    assertFalse(explainQueryToString(fallbackQuery).contains("CHECKED_LONG_SUM"));
+  }
+
+  private void createLongIndex(String index, long... values) throws IOException {
+    if (isIndexExist(client(), index)) {
+      return;
+    }
+
+    createIndexByRestClient(
+        client(), index, "{\"mappings\":{\"properties\":{\"v\":{\"type\":\"long\"}}}}");
+    StringBuilder body = new StringBuilder();
+    for (long value : values) {
+      body.append("{\"index\":{}}\n").append("{\"v\":").append(value).append("}\n");
+    }
+    Request bulk = new Request("POST", "/" + index + "/_bulk?refresh=true");
+    bulk.setJsonEntity(body.toString());
+    performRequest(client(), bulk);
+  }
+
+  private void assertSumOverflow(String query) throws IOException {
+    Throwable error = assertThrowsWithReplace(RuntimeException.class, () -> executeQuery(query));
+    verifyErrorMessageContains(error, "verflow");
   }
 
   @Test

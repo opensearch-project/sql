@@ -44,6 +44,14 @@ class CheckedLongSumParserTest {
   }
 
   @Test
+  void rejectsInfiniteValue() {
+    assertThrows(
+        ArithmeticException.class, () -> parser.parse(aggregation(Double.POSITIVE_INFINITY)));
+    assertThrows(
+        ArithmeticException.class, () -> parser.parse(aggregation(Double.NEGATIVE_INFINITY)));
+  }
+
+  @Test
   void convertsNanToNull() {
     assertNull(value(parser.parse(aggregation(Double.NaN))));
   }
