@@ -103,6 +103,7 @@ import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
 import org.opensearch.sql.ast.tree.NoMv;
+import org.opensearch.sql.ast.tree.OutputLookup;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -800,6 +801,36 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitReverseCommand(OpenSearchPPLParser.ReverseCommandContext ctx) {
     return new Reverse();
+  }
+
+  /** Outputlookup command. Materializes rows into a lookup index. */
+  @Override
+  public UnresolvedPlan visitOutputlookupCommand(
+      OpenSearchPPLParser.OutputlookupCommandContext ctx) {
+    String indexName = StringUtils.unquoteIdentifier(ctx.tableSourceClause().getText());
+    OutputLookup node = new OutputLookup(indexName);
+    boolean appendExplicit = false;
+    for (OpenSearchPPLParser.OutputlookupOptionContext opt : ctx.outputlookupOption()) {
+      if (opt.append != null) {
+        node.setAppend(Boolean.parseBoolean(opt.append.getText()));
+        appendExplicit = true;
+      } else if (opt.overrideIfEmpty != null) {
+        node.setOverrideIfEmpty(Boolean.parseBoolean(opt.overrideIfEmpty.getText()));
+      } else if (opt.keyFields != null && !opt.keyFields.isEmpty()) {
+        java.util.List<String> keyFields = new java.util.ArrayList<>();
+        for (OpenSearchPPLParser.QualifiedNameContext q : opt.keyFields) {
+          keyFields.add(StringUtils.unquoteIdentifier(q.getText()));
+        }
+        node.setKeyFields(keyFields);
+      } else if (opt.max != null) {
+        node.setMax(Integer.parseInt(opt.max.getText()));
+      }
+    }
+    // key_field implies append=true unless append was set explicitly.
+    if (!node.getKeyFields().isEmpty() && !appendExplicit) {
+      node.setAppend(true);
+    }
+    return node;
   }
 
   /** Transpose command. */

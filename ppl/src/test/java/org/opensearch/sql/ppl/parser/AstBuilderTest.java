@@ -82,6 +82,7 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MakeResults;
+import org.opensearch.sql.ast.tree.OutputLookup;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -2018,5 +2019,53 @@ public class AstBuilderTest extends AstPlanningTestBase {
   @Test
   public void testJoinPrefixWithoutCriteriaKeywordIsSyntaxError() {
     assertThrows(SyntaxCheckException.class, () -> plan("source=t1 | inner join a t2"));
+  }
+
+  @Test
+  public void testOutputLookupCommandDefault() {
+    assertEqual("source=t | outputlookup hosts", new OutputLookup("hosts").attach(relation("t")));
+  }
+
+  @Test
+  public void testOutputLookupCommandWithOptions() {
+    OutputLookup expected = new OutputLookup("hosts");
+    expected.setAppend(true);
+    expected.setOverrideIfEmpty(false);
+    expected.setKeyFields(java.util.List.of("id"));
+    expected.setMax(1000);
+    assertEqual(
+        "source=t | outputlookup append=true override_if_empty=false key_field=id max=1000 hosts",
+        expected.attach(relation("t")));
+  }
+
+  @Test
+  public void testOutputLookupUsableAsIdentifier() {
+    plan("source=t | fields outputlookup");
+  }
+
+  @Test
+  public void testOutputLookupKeyFieldDefaultsAppendTrue() {
+    OutputLookup expected = new OutputLookup("hosts");
+    expected.setKeyFields(java.util.List.of("id"));
+    expected.setAppend(true);
+    assertEqual("source=t | outputlookup key_field=id hosts", expected.attach(relation("t")));
+  }
+
+  @Test
+  public void testOutputLookupExplicitAppendOverridesKeyFieldDefault() {
+    OutputLookup expected = new OutputLookup("hosts");
+    expected.setKeyFields(java.util.List.of("id"));
+    expected.setAppend(false);
+    assertEqual(
+        "source=t | outputlookup append=false key_field=id hosts", expected.attach(relation("t")));
+  }
+
+  @Test
+  public void testOutputLookupMultipleKeyFields() {
+    OutputLookup expected = new OutputLookup("hosts");
+    expected.setKeyFields(java.util.List.of("region", "host"));
+    expected.setAppend(true); // key_field implies append=true
+    assertEqual(
+        "source=t | outputlookup key_field=region,host hosts", expected.attach(relation("t")));
   }
 }

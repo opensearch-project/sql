@@ -36,6 +36,7 @@ public abstract class Settings {
     PPL_SYNTAX_LEGACY_PREFERRED("plugins.ppl.syntax.legacy.preferred"),
     PPL_SUBSEARCH_MAXOUT("plugins.ppl.subsearch.maxout"),
     PPL_JOIN_SUBSEARCH_MAXOUT("plugins.ppl.join.subsearch_maxout"),
+    OUTPUTLOOKUP_MAX_ROWS("plugins.ppl.outputlookup.max_rows"),
 
     /** Enable Calcite as execution engine */
     CALCITE_ENGINE_ENABLED("plugins.calcite.enabled"),

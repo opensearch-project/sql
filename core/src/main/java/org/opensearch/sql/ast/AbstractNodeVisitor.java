@@ -76,6 +76,7 @@ import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
 import org.opensearch.sql.ast.tree.NoMv;
+import org.opensearch.sql.ast.tree.OutputLookup;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -303,6 +304,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitReverse(Reverse node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitOutputLookup(OutputLookup node, C context) {
     return visitChildren(node, context);
   }
 

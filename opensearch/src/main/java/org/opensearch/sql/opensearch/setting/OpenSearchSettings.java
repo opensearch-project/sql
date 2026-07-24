@@ -152,6 +152,14 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> OUTPUTLOOKUP_MAX_ROWS_SETTING =
+      Setting.intSetting(
+          Key.OUTPUTLOOKUP_MAX_ROWS.getKeyValue(),
+          1_000_000,
+          1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> CALCITE_ENGINE_ENABLED_SETTING =
       Setting.boolSetting(
           Key.CALCITE_ENGINE_ENABLED.getKeyValue(),
@@ -449,6 +457,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.OUTPUTLOOKUP_MAX_ROWS,
+        OUTPUTLOOKUP_MAX_ROWS_SETTING,
+        new Updater(Key.OUTPUTLOOKUP_MAX_ROWS));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.CALCITE_ENGINE_ENABLED,
         CALCITE_ENGINE_ENABLED_SETTING,
         new Updater(Key.CALCITE_ENGINE_ENABLED));
@@ -683,6 +697,7 @@ public class OpenSearchSettings extends Settings {
         .add(PPL_VALUES_MAX_LIMIT_SETTING)
         .add(PPL_SUBSEARCH_MAXOUT_SETTING)
         .add(PPL_JOIN_SUBSEARCH_MAXOUT_SETTING)
+        .add(OUTPUTLOOKUP_MAX_ROWS_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(QUERY_BUCKET_SIZE_SETTING)
