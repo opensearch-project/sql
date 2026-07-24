@@ -46,6 +46,9 @@ import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.TimewrapPivot;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.ResourceLimitExceededException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -336,9 +339,45 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             listener.onResponse(response);
 
           } catch (SQLException e) {
+            if (isPitContextLimitReached(e)) {
+              // reason (title) comes from the wrapped cause's message; keep it short and put the
+              // explanation and remedy in details.
+              ResourceLimitExceededException pitException =
+                  new ResourceLimitExceededException(
+                      "Too many open Point-In-Time (PIT) contexts on this node.", e);
+              throw ErrorReport.wrap(pitException)
+                  .code(ErrorCode.RESOURCE_LIMIT_EXCEEDED)
+                  .details(
+                      "This query opened a Point-In-Time (PIT) context on each shard and reached"
+                          + " the limit set by [search.max_open_pit_context]. Increase that"
+                          + " setting.")
+                  .build();
+            }
             throw new RuntimeException(e);
           }
         });
+  }
+
+  /**
+   * Substring of the error OpenSearch's {@code SearchService} raises when a node has no free PIT
+   * contexts. The engine opens a PIT (one reader context per shard) to page over a query it cannot
+   * push down -- e.g. a {@code stats} that groups by a text field with no {@code keyword} sub-field
+   * -- and a busy node exhausts its per-node budget. The raw failure is an opaque internal message,
+   * so it is replaced with an actionable one when this marker appears anywhere in the cause chain.
+   */
+  private static final String PIT_CONTEXT_LIMIT_MARKER = "too many Point In Time contexts";
+
+  /** Package-private for testing. Walks the cause chain guarding against self-referential loops. */
+  static boolean isPitContextLimitReached(Throwable t) {
+    for (Throwable cause = t;
+        cause != null && cause != cause.getCause();
+        cause = cause.getCause()) {
+      String message = cause.getMessage();
+      if (message != null && message.contains(PIT_CONTEXT_LIMIT_MARKER)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
