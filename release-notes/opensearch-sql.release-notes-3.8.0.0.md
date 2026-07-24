@@ -49,7 +49,6 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.8.0
 * Honor PPL `fetch_size` on the analytics-engine route ([#5567](https://github.com/opensearch-project/sql/pull/5567))
 * Strip analytics-engine-unsupported fields from test data and exclude affected ITs ([#5541](https://github.com/opensearch-project/sql/pull/5541))
 * Repair two pre-existing IT failures on main (error type assertion and explain flake) ([#5545](https://github.com/opensearch-project/sql/pull/5545))
-* Revert PPL `rest` command ([#5635](https://github.com/opensearch-project/sql/pull/5635))
 
 ### Infrastructure
 
