@@ -72,6 +72,7 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MakeResults;
+import org.opensearch.sql.ast.tree.Multikv;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -515,6 +516,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitMvExpand(MvExpand node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitMultikv(Multikv node, C context) {
     return visitChildren(node, context);
   }
 

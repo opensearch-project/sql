@@ -19,6 +19,7 @@ import org.apache.commons.text.StringEscapeUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.util.TestUtils;
 
@@ -337,6 +338,34 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
           containsString(
               "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
       assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
+    }
+  }
+
+  @Test
+  public void testMultikv() throws IOException {
+    // v3-marker (registered on Calcite, rejected on V2). The table text (with newlines) lives in
+    // indexed data, not the query string, so the request payload stays valid JSON: a header line
+    // plus two data rows yields two extracted rows.
+    String index = "test_new_added_multikv";
+    if (!TestUtils.isIndexExist(client(), index)) {
+      TestUtils.createIndexByRestClient(client(), index, null);
+      Request doc = new Request("PUT", "/" + index + "/_doc/1?refresh=true");
+      doc.setJsonEntity("{\"raw\": \"CPU pctIdle\\nall 90\\n0 92\"}");
+      client().performRequest(doc);
+    }
+    JSONObject result;
+    try {
+      result =
+          executeQuery("source=" + index + " | multikv field=raw fields pctIdle | fields pctIdle");
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+
+    if (isCalciteEnabled()) {
+      assertThat(result.getJSONArray("datarows").length(), equalTo(2));
+    } else {
+      // multikv is Calcite-only, so V2 returns an error.
+      assertThat(result.has("error"), equalTo(true));
     }
   }
 
