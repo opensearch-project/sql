@@ -42,19 +42,23 @@ public class RestUnifiedQueryActionTest {
     metadata = mock(Metadata.class);
     when(clusterService.state()).thenReturn(clusterState);
     when(clusterState.metadata()).thenReturn(metadata);
-    // isAnalyticsIndex short-circuits on the cluster.pluggable.dataformat setting; the per-index
-    // path is only exercised when this returns something other than "composite".
+    // isAnalyticsIndex short-circuits on cluster.pluggable.dataformat.enabled; the per-index path
+    // is only exercised when the cluster-level flag is false. The flag is read once at construction
+    // from clusterService.getSettings(), so enabling it requires rebuilding the action (see
+    // enableClusterDataformat).
     when(clusterService.getSettings()).thenReturn(Settings.EMPTY);
+    action = buildAction();
+  }
 
+  private RestUnifiedQueryAction buildAction() {
     @SuppressWarnings("unchecked")
     QueryPlanExecutor<RelNode, Iterable<Object[]>> executor = mock(QueryPlanExecutor.class);
-    action =
-        new RestUnifiedQueryAction(
-            mock(NodeClient.class),
-            clusterService,
-            executor,
-            mock(EngineContextProvider.class),
-            mock(org.opensearch.sql.common.setting.Settings.class));
+    return new RestUnifiedQueryAction(
+        mock(NodeClient.class),
+        clusterService,
+        executor,
+        mock(EngineContextProvider.class),
+        mock(org.opensearch.sql.common.setting.Settings.class));
   }
 
   @Test
@@ -230,13 +234,17 @@ public class RestUnifiedQueryActionTest {
     assertTrue(action.isAnalyticsIndex("source = parquet_logs | | fields ts", QueryType.PPL));
   }
 
+  /**
+   * Turns on the cluster-level opt-in by putting {@code cluster.pluggable.dataformat.enabled=true}
+   * into the node settings and rebuilding the action, since the flag is cached at construction.
+   */
   private void enableClusterComposite() {
     when(clusterService.getSettings())
         .thenReturn(
             Settings.builder()
-                .put(
-                    IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+                .put(IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
                 .build());
+    action = buildAction();
   }
 
   private void registerIndex(String name, Settings settings) {
