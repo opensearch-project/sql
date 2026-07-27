@@ -194,6 +194,9 @@ public class TransportPPLQueryAction
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
     QueryContext.setProfile(transformedRequest.profile());
+    // Only the JSON response shape carries a warnings channel. Features that return a
+    // knowingly-partial result gate on this so they never silently drop data into CSV/RAW/VIZ.
+    QueryContext.setWarningsSupported(warningsSupported(transformedRequest));
 
     // Start root span with OTel DB semantic convention attributes
     Span rootSpan =
@@ -397,6 +400,17 @@ public class TransportPPLQueryAction
       throw new IllegalArgumentException(
           String.format(Locale.ROOT, "response in %s format is not supported.", format));
     }
+  }
+
+  /**
+   * Whether the requested response format carries a warnings channel. Only the JSON shape (built by
+   * {@code SimpleJsonResponseFormatter} -- the fallback for anything that is not CSV/RAW/VIZ) emits
+   * warnings; the others have no slot for them. Mirrors the format branching in {@link
+   * #createListener}.
+   */
+  private boolean warningsSupported(PPLQueryRequest pplRequest) {
+    Format format = format(pplRequest);
+    return !(format.equals(Format.CSV) || format.equals(Format.RAW) || format.equals(Format.VIZ));
   }
 
   private ActionListener<TransportPPLQueryResponse> wrapWithProfilingClear(

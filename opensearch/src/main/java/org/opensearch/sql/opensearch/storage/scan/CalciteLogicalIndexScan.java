@@ -47,6 +47,7 @@ import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.HighlightExpression;
@@ -451,6 +452,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         osIndex
             .getSettings()
             .getSettingValue(Settings.Key.CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT)) {
+      return null;
+    }
+    // A partial result is only safe if the response can surface the warning that says so. Refuse
+    // (fall through to the normal path) for formats without a warnings channel, e.g. CSV/RAW/VIZ.
+    if (!QueryContext.isWarningsSupported()) {
       return null;
     }
     try {

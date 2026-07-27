@@ -126,6 +126,20 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
     assertTrue("no warning expected on a clean aggregation", !result.has("warnings"));
   }
 
+  @Test
+  public void partialResultRefusedForCsvFormat() throws IOException {
+    setPartialResult(true);
+    setPitContextLimit("1");
+    // CSV has no warnings channel, so partial mode must NOT silently drop the text index. It falls
+    // through to the normal path, which still exhausts PIT contexts and errors.
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeCsvQuery(String.format("source=%s | stats count() by env", PATTERN), false));
+    assertTrue(e.getResponse().getStatusLine().getStatusCode() >= 400);
+  }
+
   private void setPartialResult(boolean enabled) throws IOException {
     updateClusterSettings(
         new ClusterSetting(
