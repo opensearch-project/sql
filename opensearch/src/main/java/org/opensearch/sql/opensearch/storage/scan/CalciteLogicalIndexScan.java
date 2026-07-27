@@ -481,7 +481,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       List<String> textKeywordIndices = new ArrayList<>();
       List<String> excludedIndices = new ArrayList<>();
       for (Map.Entry<String, IndexMapping> entry : mappings.entrySet()) {
-        MappingResolution resolution = resolveBucketMappings(entry.getValue(), bucketNames);
+        // Flatten the per-index mapping so nested object fields (e.g. a raw mapping tree
+        // resource -> attributes -> applicationid) are keyed by their dotted path, matching the
+        // bucket field name Calcite resolved.
+        Map<String, OpenSearchDataType> flatMapping =
+            OpenSearchDataType.traverseAndFlatten(entry.getValue().getFieldMappings());
+        MappingResolution resolution = resolveBucketMappings(flatMapping, bucketNames);
         switch (resolution) {
           case KEYWORD -> keywordIndices.add(entry.getKey());
           case TEXT_WITH_KEYWORD -> textKeywordIndices.add(entry.getKey());
@@ -554,12 +559,15 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
    * Resolve how one index maps all grouped fields. Returns the weakest resolution across the
    * fields: KEYWORD only if every field is bare keyword, TEXT_WITH_KEYWORD if every field is
    * aggregatable but at least one relies on a .keyword sub-field, otherwise NOT_AGGREGATABLE.
+   *
+   * @param flatMapping the index's field types flattened to dotted paths (see {@link
+   *     OpenSearchDataType#traverseAndFlatten})
    */
   private static MappingResolution resolveBucketMappings(
-      IndexMapping mapping, List<String> bucketNames) {
+      Map<String, OpenSearchDataType> flatMapping, List<String> bucketNames) {
     MappingResolution combined = MappingResolution.KEYWORD;
     for (String field : bucketNames) {
-      OpenSearchDataType type = mapping.getFieldMappings().get(field);
+      OpenSearchDataType type = flatMapping.get(field);
       if (type == null) {
         return MappingResolution.NOT_AGGREGATABLE; // field absent here -> can't aggregate cleanly
       }

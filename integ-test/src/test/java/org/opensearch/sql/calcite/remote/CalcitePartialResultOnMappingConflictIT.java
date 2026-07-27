@@ -40,6 +40,10 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   private static final String TEXT_INDEX = "partial_conflict_text";
   private static final String PATTERN = "partial_conflict_*";
 
+  private static final String NESTED_KEYWORD_INDEX = "partial_nested_keyword";
+  private static final String NESTED_TEXT_INDEX = "partial_nested_text";
+  private static final String NESTED_PATTERN = "partial_nested_*";
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -76,6 +80,35 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
       Request bulk = new Request("POST", "/" + TEXT_INDEX + "/_bulk?refresh=true");
       bulk.setJsonEntity(
           "{\"index\":{}}\n{\"env\":\"prod\"}\n" + "{\"index\":{}}\n{\"env\":\"qa\"}\n");
+      performRequest(client(), bulk);
+    }
+
+    // A nested/dotted field (resource.attributes.env) is stored as an object tree in the mapping,
+    // so the partitioning must flatten it to match the bucket field's dotted path. Mirrors the
+    // real observability shape (e.g. resource.attributes.applicationid).
+    if (!isIndexExist(client(), NESTED_KEYWORD_INDEX)) {
+      String mapping =
+          "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
+              + "\"mappings\":{\"properties\":{\"resource\":{\"properties\":{\"attributes\":"
+              + "{\"properties\":{\"env\":{\"type\":\"keyword\"}}}}}}}}";
+      createIndexByRestClient(client(), NESTED_KEYWORD_INDEX, mapping);
+      Request bulk = new Request("POST", "/" + NESTED_KEYWORD_INDEX + "/_bulk?refresh=true");
+      bulk.setJsonEntity(
+          "{\"index\":{}}\n{\"resource\":{\"attributes\":{\"env\":\"prod\"}}}\n"
+              + "{\"index\":{}}\n{\"resource\":{\"attributes\":{\"env\":\"prod\"}}}\n"
+              + "{\"index\":{}}\n{\"resource\":{\"attributes\":{\"env\":\"dev\"}}}\n");
+      performRequest(client(), bulk);
+    }
+    if (!isIndexExist(client(), NESTED_TEXT_INDEX)) {
+      String mapping =
+          "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
+              + "\"mappings\":{\"properties\":{\"resource\":{\"properties\":{\"attributes\":"
+              + "{\"properties\":{\"env\":{\"type\":\"text\"}}}}}}}}";
+      createIndexByRestClient(client(), NESTED_TEXT_INDEX, mapping);
+      Request bulk = new Request("POST", "/" + NESTED_TEXT_INDEX + "/_bulk?refresh=true");
+      bulk.setJsonEntity(
+          "{\"index\":{}}\n{\"resource\":{\"attributes\":{\"env\":\"prod\"}}}\n"
+              + "{\"index\":{}}\n{\"resource\":{\"attributes\":{\"env\":\"qa\"}}}\n");
       performRequest(client(), bulk);
     }
   }
@@ -124,6 +157,31 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s | stats count() by env | sort env", KEYWORD_INDEX));
     verifyDataRows(result, rows(1, "dev"), rows(2, "prod"));
     assertTrue("no warning expected on a clean aggregation", !result.has("warnings"));
+  }
+
+  @Test
+  public void partialResultOnHandlesNestedDottedField() throws IOException {
+    setPartialResult(true);
+    setPitContextLimit("1");
+    // The grouped field is a nested/dotted path; the partitioning must flatten the mapping to find
+    // it. Only the keyword index contributes: prod=2, dev=1.
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by resource.attributes.env | sort"
+                    + " `resource.attributes.env`",
+                NESTED_PATTERN));
+    verifyDataRows(result, rows(1, "dev"), rows(2, "prod"));
+
+    assertTrue("response should carry a warnings array", result.has("warnings"));
+    JSONObject warning = result.getJSONArray("warnings").getJSONObject(0);
+    assertEquals("PARTIAL_RESULT", warning.getString("type"));
+    assertTrue(
+        "warning should name the dotted field",
+        warning.getString("detail").contains("resource.attributes.env"));
+    assertTrue(
+        "warning should name the excluded nested-text index",
+        warning.getString("detail").contains(NESTED_TEXT_INDEX));
   }
 
   @Test
