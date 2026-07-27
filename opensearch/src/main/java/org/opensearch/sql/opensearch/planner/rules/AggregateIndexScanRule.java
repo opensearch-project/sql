@@ -98,6 +98,12 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
       @Nullable LogicalProject project,
       CalciteLogicalIndexScan scan) {
     AbstractRelNode newRelNode = scan.pushDownAggregate(aggregate, project);
+    if (newRelNode == null) {
+      // Normal pushdown failed (e.g. a text/keyword mapping conflict across a wildcard pattern that
+      // would otherwise fall back to a per-shard scan and exhaust PIT contexts). If partial results
+      // are enabled, push the aggregation over the aggregatable index subset instead and warn.
+      newRelNode = scan.tryPartialResultAggregate(aggregate, project);
+    }
     if (newRelNode != null) {
       call.transformTo(newRelNode);
       PlanUtils.tryPruneRelNodes(call);

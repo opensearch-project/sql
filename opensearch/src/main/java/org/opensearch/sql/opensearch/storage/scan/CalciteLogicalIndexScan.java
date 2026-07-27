@@ -42,6 +42,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.ast.tree.HighlightConfig;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
@@ -51,6 +52,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
@@ -429,6 +431,150 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       }
     }
     return null;
+  }
+
+  /**
+   * Partial-result fallback for a text/keyword mapping conflict. When a normal aggregate pushdown
+   * fails because the grouped field collapsed to text-without-keyword across a wildcard pattern (so
+   * it would otherwise fall back to a per-shard document scan that opens a PIT on every shard), and
+   * the partial-result setting is enabled, narrow the scan to the largest homogeneous subset of
+   * indices whose mapping of the grouped field is aggregatable, push the aggregation down over just
+   * that subset, and record a warning naming the excluded indices.
+   *
+   * <p>The result is <b>partial</b> — the excluded indices' documents are missing from the counts —
+   * so this only runs behind an explicit opt-in and always emits a warning through {@link
+   * CalcitePlanContext#addWarning}. Returns {@code null} (leaving the caller to fall back) when the
+   * setting is off, there is no conflict, only one index matches, or no clean subset exists.
+   */
+  public AbstractRelNode tryPartialResultAggregate(Aggregate aggregate, @Nullable Project project) {
+    if (!(Boolean)
+        osIndex
+            .getSettings()
+            .getSettingValue(Settings.Key.CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT)) {
+      return null;
+    }
+    try {
+      List<String> outputFields = aggregate.getRowType().getFieldNames();
+      List<String> bucketNames = outputFields.subList(0, aggregate.getGroupSet().cardinality());
+      if (bucketNames.isEmpty()) {
+        return null;
+      }
+      // getIndexNames() returns the raw pattern (e.g. ["logs-*"]) for a wildcard, not the resolved
+      // concrete indices; getIndexMappings expands it server-side to a map keyed by concrete index
+      // name. So the "multiple indices" check must be on the resolved map, not the pattern array.
+      String[] indexExpression = osIndex.getIndexName().getIndexNames();
+      Map<String, IndexMapping> mappings = osIndex.getClient().getIndexMappings(indexExpression);
+      if (mappings.size() < 2) {
+        return null;
+      }
+
+      // Keep the largest homogeneous index group so the narrowed merge resolves to a single clean
+      // type: prefer bare keyword (merges to keyword), else text-with-keyword-subfield (merges to
+      // text-with-.keyword). A mix of the two is still a conflict, so we never keep both.
+      List<String> keywordIndices = new ArrayList<>();
+      List<String> textKeywordIndices = new ArrayList<>();
+      List<String> excludedIndices = new ArrayList<>();
+      for (Map.Entry<String, IndexMapping> entry : mappings.entrySet()) {
+        MappingResolution resolution = resolveBucketMappings(entry.getValue(), bucketNames);
+        switch (resolution) {
+          case KEYWORD -> keywordIndices.add(entry.getKey());
+          case TEXT_WITH_KEYWORD -> textKeywordIndices.add(entry.getKey());
+          default -> excludedIndices.add(entry.getKey());
+        }
+      }
+
+      List<String> keptIndices;
+      if (keywordIndices.size() >= textKeywordIndices.size() && !keywordIndices.isEmpty()) {
+        keptIndices = keywordIndices;
+        excludedIndices.addAll(textKeywordIndices);
+      } else if (!textKeywordIndices.isEmpty()) {
+        keptIndices = textKeywordIndices;
+        excludedIndices.addAll(keywordIndices);
+      } else {
+        return null; // no aggregatable subset -> partial mode can't help
+      }
+      if (excludedIndices.isEmpty()) {
+        return null; // homogeneous already; not our case (and pushdown wouldn't have failed)
+      }
+
+      OpenSearchIndex narrowedIndex =
+          new OpenSearchIndex(
+              osIndex.getClient(), osIndex.getSettings(), String.join(",", keptIndices));
+      CalciteLogicalIndexScan narrowedScan =
+          new CalciteLogicalIndexScan(
+              getCluster(),
+              traitSet,
+              hints,
+              table,
+              narrowedIndex,
+              getRowType(),
+              pushDownContext.cloneWithOsIndex(narrowedIndex));
+      AbstractRelNode pushed = narrowedScan.pushDownAggregate(aggregate, project);
+      if (pushed == null) {
+        return null; // narrowed subset still can't push down -> fall back
+      }
+
+      excludedIndices.sort(null);
+      CalcitePlanContext.addWarning(
+          new org.opensearch.sql.executor.Warning(
+              "PARTIAL_RESULT",
+              String.format(
+                  "Results exclude %d of %d indices due to a text/keyword mapping conflict on"
+                      + " %s.",
+                  excludedIndices.size(), mappings.size(), bucketNames),
+              String.format(
+                  "Field %s is mapped inconsistently across the queried indices, which prevents"
+                      + " aggregation pushdown for the whole pattern. Excluded indices: %s. Align"
+                      + " the mapping (reindex to keyword, or add a .keyword sub-field) to include"
+                      + " them.",
+                  bucketNames, excludedIndices)));
+      return pushed;
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot apply partial-result aggregate pushdown for {}", aggregate, e);
+      }
+      return null;
+    }
+  }
+
+  /** How a single index maps the grouped field(s), for partial-result partitioning. */
+  private enum MappingResolution {
+    KEYWORD,
+    TEXT_WITH_KEYWORD,
+    NOT_AGGREGATABLE
+  }
+
+  /**
+   * Resolve how one index maps all grouped fields. Returns the weakest resolution across the
+   * fields: KEYWORD only if every field is bare keyword, TEXT_WITH_KEYWORD if every field is
+   * aggregatable but at least one relies on a .keyword sub-field, otherwise NOT_AGGREGATABLE.
+   */
+  private static MappingResolution resolveBucketMappings(
+      IndexMapping mapping, List<String> bucketNames) {
+    MappingResolution combined = MappingResolution.KEYWORD;
+    for (String field : bucketNames) {
+      OpenSearchDataType type = mapping.getFieldMappings().get(field);
+      if (type == null) {
+        return MappingResolution.NOT_AGGREGATABLE; // field absent here -> can't aggregate cleanly
+      }
+      OpenSearchDataType.MappingType mappingType = type.getMappingType();
+      if (mappingType == OpenSearchDataType.MappingType.Keyword) {
+        continue;
+      } else if (isTextWithKeywordSubField(type)) {
+        combined = MappingResolution.TEXT_WITH_KEYWORD;
+      } else {
+        return MappingResolution.NOT_AGGREGATABLE;
+      }
+    }
+    return combined;
+  }
+
+  private static boolean isTextWithKeywordSubField(OpenSearchDataType type) {
+    if (type instanceof OpenSearchTextType textType) {
+      return textType.getFields().values().stream()
+          .anyMatch(f -> f.getMappingType() == OpenSearchDataType.MappingType.Keyword);
+    }
+    return false;
   }
 
   public AbstractRelNode pushDownLimit(LogicalSort sort, Integer limit, Integer offset) {

@@ -45,6 +45,8 @@ public abstract class Settings {
     CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR(
         "plugins.calcite.pushdown.rowcount.estimation.factor"),
     CALCITE_SUPPORT_ALL_JOIN_TYPES("plugins.calcite.all_join_types.allowed"),
+    CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT(
+        "plugins.calcite.partial_result.on_mapping_conflict.enabled"),
 
     /** Query Settings. */
     FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),

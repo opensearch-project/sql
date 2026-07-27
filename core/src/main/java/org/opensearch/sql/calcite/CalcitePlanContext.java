@@ -268,13 +268,17 @@ public class CalcitePlanContext {
     pendingWarnings.get().add(warning);
   }
 
-  /** Returns and clears the warnings collected for the current query. */
+  /**
+   * Returns and clears the warnings collected for the current query, de-duplicated by value. The
+   * planner may fire a rule that raises a warning more than once for equivalent plan alternatives,
+   * so identical warnings are collapsed to one.
+   */
   public static List<Warning> drainWarnings() {
     List<Warning> warnings = pendingWarnings.get();
     if (warnings.isEmpty()) {
       return List.of();
     }
-    List<Warning> drained = List.copyOf(warnings);
+    List<Warning> drained = warnings.stream().distinct().toList();
     pendingWarnings.remove();
     return drained;
   }
