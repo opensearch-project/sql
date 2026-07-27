@@ -330,8 +330,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       RelNode rel, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
     client.schedule(
         () -> {
-          try (PreparedStatement statement =
-              OpenSearchRelRunners.run(context, CalciteToolsHelper.optimize(rel, context))) {
+          try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
             ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
             long execTime = System.nanoTime();
             ResultSet result = statement.executeQuery();
