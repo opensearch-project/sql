@@ -133,6 +133,17 @@ public class OpenSearchNodeClient implements OpenSearchClient {
    * @return map from index name to its max result window
    */
   @Override
+  public long getIndexDocCount(String indexExpression) {
+    try {
+      org.opensearch.action.admin.indices.stats.IndicesStatsResponse response =
+          client.admin().indices().prepareStats(indexExpression).clear().setDocs(true).get();
+      return response.getTotal().getDocs().getCount();
+    } catch (Exception e) {
+      return -1;
+    }
+  }
+
+  @Override
   public Map<String, Integer> getIndexMaxResultWindows(String... indexExpression) {
     try {
       GetSettingsResponse settingsResponse =

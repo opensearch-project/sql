@@ -86,6 +86,14 @@ public interface ExecutionEngine {
     explain(plan, mode, context, listener);
   }
 
+  /**
+   * Get the cumulative request cache hit count for the given indices. Returns -1 if not supported
+   * by this engine.
+   */
+  default long getRequestCacheHitCount(String... indexNames) {
+    return -1;
+  }
+
   /** Data class that encapsulates ExprValue. */
   @Data
   class QueryResponse {

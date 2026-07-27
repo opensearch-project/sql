@@ -21,11 +21,12 @@ public class AnalyzeResponse {
   private final List<String> physicalPlan;
   private final QueryProfile profile;
   private final List<OperatorNode> operator_tree;
-  private final List<String> recommendations;
+  private final List<Recommendation> recommendations;
   private final List<SchemaColumn> schema;
   private final Object[][] datarows;
   private final long total;
   private final long size;
+  private final boolean possibleCacheHit;
 
   @Data
   @Builder
@@ -46,11 +47,28 @@ public class AnalyzeResponse {
   public static class OperatorNode {
     private final String source;
     private final List<String> node_type;
+    private final List<Float> node_cost;
     private final List<String> description;
     private final String estimated_cost;
     private final Long estimated_rows;
     private final String actual_time_ms;
     private final Long actual_rows;
     private final Boolean is_pushed_down;
+  }
+
+  public enum RecommendationSeverityLevel {
+    INFO,
+    WARNING,
+    CRITICAL
+  }
+
+  @Data
+  @Builder
+  public static class Recommendation {
+    private final RecommendationSeverityLevel serverity;
+    private final String rule;
+    private final String message;
+    private final String affected_node;
+    private final String suggestion;
   }
 }

@@ -41,6 +41,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.ShardDocSortBuilder;
 import org.opensearch.search.sort.SortBuilders;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
@@ -85,6 +86,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   private SearchResponse searchResponse = null;
 
   @ToString.Exclude private Map<String, Object> afterKey;
+
+  @EqualsAndHashCode.Exclude @ToString.Exclude private final boolean disableRequestCache;
 
   @TestOnly
   static OpenSearchQueryRequest of(
@@ -140,6 +143,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.includes = includes;
     this.cursorKeepAlive = cursorKeepAlive;
     this.pitId = pitId;
+    this.disableRequestCache = CalcitePlanContext.disableRequestCache.get();
   }
 
   /** true if the request is a count aggregation request. */
@@ -185,6 +189,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     exprValueFactory =
         new OpenSearchExprValueFactory(
             index.getFieldOpenSearchTypes(), index.isFieldTypeTolerance());
+    this.disableRequestCache = false;
   }
 
   @Override
@@ -218,6 +223,11 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
       SearchRequest searchRequest =
           new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);
+      if (disableRequestCache) {
+        searchRequest.requestCache(false);
+      }
+      // LOG.info("[CACHE_DEBUG] disableRequestCache={}, searchRequest.requestCache()={}",
+      // disableRequestCache, searchRequest.requestCache());
       this.searchResponse = searchAction.apply(searchRequest);
 
       openSearchResponse =
@@ -275,6 +285,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       }
       SearchRequest searchRequest =
           new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);
+      if (disableRequestCache) {
+        searchRequest.requestCache(false);
+      }
       this.searchResponse = searchAction.apply(searchRequest);
 
       openSearchResponse =

@@ -56,6 +56,14 @@ public interface OpenSearchClient {
   Map<String, Integer> getIndexMaxResultWindows(String... indexExpression);
 
   /**
+   * Get the total document count for the given index expression.
+   *
+   * @param indexExpression index expression
+   * @return total document count
+   */
+  long getIndexDocCount(String indexExpression);
+
+  /**
    * Perform search query in the search request.
    *
    * @param request search request

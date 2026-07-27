@@ -24,27 +24,23 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
-import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.HighlightConfig;
+import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
@@ -224,9 +220,7 @@ public class QueryService {
                   RelNode calcitePlan =
                       StageErrorHandler.executeStage(
                           QueryProcessingStage.PLAN_CONVERSION,
-                          () ->
-                              withCheckedArithmetic(
-                                  convertToCalcitePlan(relNode, context), context),
+                          () -> convertToCalcitePlan(relNode, context),
                           "while converting the query to an executable plan");
 
                   executeCalcitePlan(calcitePlan, context, listener, analyzeMetric, analyzeStart);
@@ -301,8 +295,7 @@ public class QueryService {
                   context.run(
                       () -> {
                         RelNode relNode = analyze(plan, context);
-                        RelNode calcitePlan =
-                            withCheckedArithmetic(convertToCalcitePlan(relNode, context), context);
+                        RelNode calcitePlan = convertToCalcitePlan(relNode, context);
                         if (format != null) {
                           executionEngine.explain(calcitePlan, mode, format, context, listener);
                         } else {
@@ -328,7 +321,7 @@ public class QueryService {
       String query,
       List<AnalyzeResponse.QuerySegment> querySegments,
       UnresolvedPlan plan,
-      QueryType queryType,
+      QueryType queryType, // boolean disableCache,
       ResponseListener<AnalyzeResponse> listener) {
     if (!shouldUseCalcite(queryType)) {
       listener.onFailure(
@@ -337,10 +330,19 @@ public class QueryService {
                   + " (plugins.calcite.enabled=true) and a PPL query type"));
       return;
     }
+    boolean disableCache = true;
     // Phase 1: Execute via the exact same path as executeWithCalcite + executionEngine.execute
     // to get identical profile timings. Use a latch to synchronize the async callback.
     // Force profiling on so executeWithCalcite activates QueryProfiling.
     QueryContext.setProfile(true);
+
+    String[] indexNames = extractIndexNames(plan);
+    long cacheHitsBefore = disableCache ? -1 : executionEngine.getRequestCacheHitCount(indexNames);
+
+    if (disableCache) {
+      CalcitePlanContext.disableRequestCache.set(true);
+    }
+
     AtomicReference<ExecutionEngine.QueryResponse> queryResponseRef = new AtomicReference<>();
     AtomicReference<QueryProfile> profileRef = new AtomicReference<>();
     AtomicReference<Exception> errorRef = new AtomicReference<>();
@@ -379,14 +381,24 @@ public class QueryService {
       latch.await();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
+      CalcitePlanContext.disableRequestCache.remove();
       listener.onFailure(new RuntimeException("Interrupted while waiting for query execution", e));
       return;
+    } finally {
+      CalcitePlanContext.disableRequestCache.remove();
     }
 
     if (errorRef.get() != null) {
       listener.onFailure(errorRef.get());
       return;
     }
+
+    long cacheHitsAfter = disableCache ? -1 : executionEngine.getRequestCacheHitCount(indexNames);
+    boolean possibleCacheHit =
+        !disableCache
+            && cacheHitsBefore >= 0
+            && cacheHitsAfter >= 0
+            && cacheHitsAfter > cacheHitsBefore;
 
     ExecutionEngine.QueryResponse queryResponse = queryResponseRef.get();
     QueryProfile profile = profileRef.get();
@@ -415,8 +427,9 @@ public class QueryService {
       }
       listener.onResponse(
           AnalyzeResponse.builder()
-              // .query(query)
+              .query(query)
               .profile(profile)
+              .possibleCacheHit(possibleCacheHit)
               .schema(schema)
               .datarows(datarows)
               .total(datarows.length)
@@ -502,6 +515,43 @@ public class QueryService {
                             .toArray(Object[]::new);
                   }
 
+                  // Extract scan metadata for recommendations #2 and #3.
+                  org.apache.calcite.rel.metadata.RelMetadataQuery mq =
+                      calcitePlan.getCluster().getMetadataQuery();
+                  long totalIndexDocs = getIndexDocCount(plan, context);
+                  if (totalIndexDocs <= 0) {
+                    totalIndexDocs = getScanBaseRowCount(calcitePlan, mq);
+                  }
+                  Set<String> dateFieldNames = getDateFieldNames(plan, context);
+                  boolean isTimeSeriesIndex =
+                      !dateFieldNames.isEmpty()
+                          || hasDateField(calcitePlan)
+                          || hasDateFieldByName(logicalPlanNodes);
+                  boolean hasDateRangeFilter =
+                      logicalPlanNodes.stream()
+                              .anyMatch(
+                                  n ->
+                                      n.contains("LogicalFilter")
+                                          && dateFieldNames.stream()
+                                              .anyMatch(
+                                                  f ->
+                                                      n.contains(f)
+                                                          || n.contains("TIMESTAMP")
+                                                          || n.contains("date(")))
+                          || physicalPlanNodes.stream()
+                              .anyMatch(
+                                  n ->
+                                      n.contains("FILTER")
+                                          && dateFieldNames.stream().anyMatch(n::contains));
+
+                  List<AnalyzeResponse.Recommendation> recommendations =
+                      buildRecommendations(
+                          operatorTree,
+                          profile,
+                          totalIndexDocs,
+                          isTimeSeriesIndex,
+                          hasDateRangeFilter);
+
                   AnalyzeResponse response =
                       AnalyzeResponse.builder()
                           .query(query)
@@ -509,8 +559,9 @@ public class QueryService {
                           .logicalPlan(logicalPlanNodes)
                           .physicalPlan(physicalPlanNodes)
                           .operator_tree(operatorTree)
-                          .recommendations(List.of())
+                          .recommendations(recommendations)
                           .profile(profile)
+                          .possibleCacheHit(possibleCacheHit)
                           .schema(schema)
                           .datarows(datarows)
                           .total(datarows.length)
@@ -606,6 +657,10 @@ public class QueryService {
     Map<Integer, Double> idToRowCount = new HashMap<>();
     collectRowCounts(logicalPlan, mq, idToRowCount);
 
+    // Collect non-cumulative costs per logical node for cost attribution.
+    Map<Integer, Double> idToCost = new HashMap<>();
+    collectNonCumulativeCosts(logicalPlan, mq, idToCost);
+
     // Compute exclusive time and rows per physical node from the profile plan tree.
     // The plan tree is top-down; we flatten it bottom-up to match operator tree order.
     List<double[]> physicalTimings = new ArrayList<>();
@@ -630,6 +685,17 @@ public class QueryService {
       }
     }
 
+    // Collect per-segment plan IDs for cost attribution across all segments.
+    List<Set<Integer>> allSegmentPlanIds = new ArrayList<>();
+    for (int i = 0; i < querySegments.size(); i++) {
+      Set<Integer> ids = i < exclusiveIds.size() ? exclusiveIds.get(i) : Set.of();
+      allSegmentPlanIds.add(
+          ids.stream()
+              .filter(idToDescription::containsKey)
+              .collect(java.util.stream.Collectors.toSet()));
+    }
+    List<Float> allSegmentCosts = computeSegmentCosts(allSegmentPlanIds, idToCost);
+
     List<AnalyzeResponse.OperatorNode> operators = new ArrayList<>();
     int physicalIdx = 0;
 
@@ -652,6 +718,7 @@ public class QueryService {
               .orElse("");
       List<String> nodeTypes =
           mergedSegments.stream().map(AnalyzeResponse.QuerySegment::getNodeType).toList();
+      List<Float> nodeCosts = allSegmentCosts.subList(0, pushedSegments);
       // Collect all plan node ids in the pushed group for estimated_rows
       Set<Integer> allPushedPlanIds = new HashSet<>();
       for (int i = 0; i < pushedSegments; i++) {
@@ -665,6 +732,7 @@ public class QueryService {
           AnalyzeResponse.OperatorNode.builder()
               .source(combinedSource)
               .node_type(nodeTypes)
+              .node_cost(nodeCosts)
               .description(descriptions.isEmpty() ? null : descriptions)
               .is_pushed_down(true)
               .estimated_rows(getEstimatedRows(allPushedPlanIds, idToRowCount))
@@ -687,6 +755,7 @@ public class QueryService {
           AnalyzeResponse.OperatorNode.builder()
               .source(seg.getSource())
               .node_type(List.of(seg.getNodeType()))
+              .node_cost(List.of(allSegmentCosts.get(0)))
               .description(descriptions.isEmpty() ? null : descriptions)
               .estimated_rows(getEstimatedRows(planIds, idToRowCount))
               .actual_time_ms(timing != null ? String.format("%.2f ms", timing[0]) : null)
@@ -703,9 +772,11 @@ public class QueryService {
       List<AnalyzeResponse.QuerySegment> group = new ArrayList<>();
       List<String> descriptions = new ArrayList<>();
       Set<Integer> groupPlanIds = new HashSet<>();
+      List<Float> groupCosts = new ArrayList<>();
       long logicalNodesInGroup = 0;
       while (idx < querySegments.size() && logicalNodesInGroup < 1) {
         group.add(querySegments.get(idx));
+        groupCosts.add(allSegmentCosts.get(idx));
         Set<Integer> ids = idx < exclusiveIds.size() ? exclusiveIds.get(idx) : Set.of();
         ids.stream()
             .sorted()
@@ -730,6 +801,7 @@ public class QueryService {
           AnalyzeResponse.OperatorNode.builder()
               .source(combinedSource)
               .node_type(nodeTypes)
+              .node_cost(groupCosts)
               .description(descriptions.isEmpty() ? null : descriptions)
               .estimated_rows(getEstimatedRows(groupPlanIds, idToRowCount))
               .actual_time_ms(timing != null ? String.format("%.2f ms", timing[0]) : null)
@@ -765,6 +837,178 @@ public class QueryService {
     return depth;
   }
 
+  private static RelNode getLeafScanNode(RelNode node) {
+    RelNode current = node;
+    while (current != null) {
+      List<RelNode> inputs = current.getInputs();
+      if (inputs.isEmpty()) {
+        return current;
+      }
+      current = inputs.get(0);
+    }
+    return node;
+  }
+
+  private static long getIndexDocCount(UnresolvedPlan plan, CalcitePlanContext context) {
+    try {
+      String[] indexNames = extractIndexNames(plan);
+      if (indexNames.length == 0) {
+        return -1;
+      }
+      org.apache.calcite.schema.SchemaPlus schema = context.config.getDefaultSchema();
+      org.apache.calcite.schema.Table calciteTable = schema.getTable(indexNames[0]);
+      if (calciteTable instanceof org.opensearch.sql.storage.Table storageTable) {
+        return storageTable.getDocCount();
+      }
+    } catch (Exception ignored) {
+    }
+    return -1;
+  }
+
+  private static long getScanBaseRowCount(
+      RelNode plan, org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
+    RelNode leaf = getLeafScanNode(plan);
+    try {
+      Double rowCount = mq.getRowCount(leaf);
+      if (rowCount != null) {
+        return Math.round(rowCount);
+      }
+    } catch (Exception ignored) {
+    }
+    return -1;
+  }
+
+  private static boolean hasDateField(RelNode plan) {
+    RelNode leaf = getLeafScanNode(plan);
+    try {
+      org.apache.calcite.rel.type.RelDataType rowType;
+      if (leaf instanceof org.apache.calcite.rel.core.TableScan tableScan) {
+        rowType = tableScan.getTable().getRowType();
+      } else {
+        rowType = leaf.getRowType();
+      }
+      for (org.apache.calcite.rel.type.RelDataTypeField field : rowType.getFieldList()) {
+        org.apache.calcite.rel.type.RelDataType fieldType = field.getType();
+        org.apache.calcite.sql.type.SqlTypeName typeName = fieldType.getSqlTypeName();
+        if (typeName == org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP
+            || typeName == org.apache.calcite.sql.type.SqlTypeName.DATE
+            || typeName == org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+          return true;
+        }
+        if (fieldType
+            instanceof org.opensearch.sql.calcite.type.AbstractExprRelDataType<?> exprType) {
+          org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT udt = exprType.getUdt();
+          if (udt == org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP
+              || udt == org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE) {
+            return true;
+          }
+        }
+      }
+    } catch (Exception ignored) {
+    }
+    return false;
+  }
+
+  /**
+   * Checks whether the index backing the query has a date/timestamp field by looking up the full
+   * table schema from the Calcite schema registry. Unlike {@link #hasDateField(RelNode)}, this
+   * approach is not affected by project pushdown which narrows the scan's row type to only the
+   * fields referenced in the query.
+   */
+  private static boolean hasDateFieldFromSchema(UnresolvedPlan plan, CalcitePlanContext context) {
+    try {
+      String[] indexNames = extractIndexNames(plan);
+      if (indexNames.length == 0) {
+        return false;
+      }
+      org.apache.calcite.schema.SchemaPlus schema = context.config.getDefaultSchema();
+      for (String indexName : indexNames) {
+        org.apache.calcite.schema.Table table = schema.getTable(indexName);
+        if (table == null) {
+          continue;
+        }
+        org.apache.calcite.rel.type.RelDataType fullRowType =
+            table.getRowType(org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY);
+        for (org.apache.calcite.rel.type.RelDataTypeField field : fullRowType.getFieldList()) {
+          org.apache.calcite.rel.type.RelDataType fieldType = field.getType();
+          org.apache.calcite.sql.type.SqlTypeName typeName = fieldType.getSqlTypeName();
+          if (typeName == org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP
+              || typeName == org.apache.calcite.sql.type.SqlTypeName.DATE
+              || typeName
+                  == org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+            return true;
+          }
+          if (fieldType
+              instanceof org.opensearch.sql.calcite.type.AbstractExprRelDataType<?> exprType) {
+            org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT udt = exprType.getUdt();
+            if (udt == org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP
+                || udt
+                    == org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE) {
+              return true;
+            }
+          }
+        }
+      }
+    } catch (Exception ignored) {
+    }
+    return false;
+  }
+
+  private static Set<String> getDateFieldNames(UnresolvedPlan plan, CalcitePlanContext context) {
+    Set<String> dateFields = new HashSet<>();
+    try {
+      String[] indexNames = extractIndexNames(plan);
+      if (indexNames.length == 0) {
+        return dateFields;
+      }
+      org.apache.calcite.schema.SchemaPlus schema = context.config.getDefaultSchema();
+      for (String indexName : indexNames) {
+        org.apache.calcite.schema.Table table = schema.getTable(indexName);
+        if (table == null) {
+          continue;
+        }
+        org.apache.calcite.rel.type.RelDataType fullRowType =
+            table.getRowType(org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY);
+        for (org.apache.calcite.rel.type.RelDataTypeField field : fullRowType.getFieldList()) {
+          org.apache.calcite.rel.type.RelDataType fieldType = field.getType();
+          org.apache.calcite.sql.type.SqlTypeName typeName = fieldType.getSqlTypeName();
+          if (typeName == org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP
+              || typeName == org.apache.calcite.sql.type.SqlTypeName.DATE
+              || typeName
+                  == org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+            dateFields.add(field.getName());
+          } else if (fieldType
+              instanceof org.opensearch.sql.calcite.type.AbstractExprRelDataType<?> exprType) {
+            org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT udt = exprType.getUdt();
+            if (udt == org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP
+                || udt
+                    == org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE) {
+              dateFields.add(field.getName());
+            }
+          }
+        }
+      }
+    } catch (Exception ignored) {
+    }
+    return dateFields;
+  }
+
+  private static boolean hasDateFieldByName(List<String> logicalPlanNodes) {
+    for (String node : logicalPlanNodes) {
+      if (node.contains("timestamp")
+          || node.contains("@timestamp")
+          || node.contains("event_time")
+          || node.contains("created_at")
+          || node.contains("updated_at")
+          || node.contains("date_field")
+          || node.contains("EXPR_TIMESTAMP")
+          || node.contains("EXPR_DATE")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private void collectRowCounts(
       RelNode node,
       org.apache.calcite.rel.metadata.RelMetadataQuery mq,
@@ -781,12 +1025,230 @@ public class QueryService {
     }
   }
 
+  private void collectNonCumulativeCosts(
+      RelNode node,
+      org.apache.calcite.rel.metadata.RelMetadataQuery mq,
+      Map<Integer, Double> idToCost) {
+    try {
+      org.apache.calcite.plan.RelOptCost cost = mq.getNonCumulativeCost(node);
+      if (cost != null && !cost.isInfinite()) {
+        double weight = cost.getCpu() + cost.getIo() * 10.0 + cost.getRows();
+        idToCost.put(node.getId(), weight);
+      }
+    } catch (Exception ignored) {
+    }
+    for (RelNode input : node.getInputs()) {
+      collectNonCumulativeCosts(input, mq, idToCost);
+    }
+  }
+
   private Long getEstimatedRows(Set<Integer> ids, Map<Integer, Double> idToRowCount) {
     return ids.stream()
         .filter(idToRowCount::containsKey)
         .max(Integer::compareTo)
         .map(id -> Math.round(idToRowCount.get(id)))
         .orElse(null);
+  }
+
+  /**
+   * Compute per-segment cost fractions from Calcite's non-cumulative cost. Each segment's cost is
+   * the sum of its exclusive RelNode costs, normalized to a percentage of the total across all
+   * segments in the operator tree.
+   */
+  private List<Float> computeSegmentCosts(
+      List<Set<Integer>> segmentPlanIds, Map<Integer, Double> idToCost) {
+    List<Double> rawCosts = new ArrayList<>();
+    for (Set<Integer> ids : segmentPlanIds) {
+      double segCost = ids.stream().filter(idToCost::containsKey).mapToDouble(idToCost::get).sum();
+      rawCosts.add(segCost);
+    }
+    double total = rawCosts.stream().mapToDouble(Double::doubleValue).sum();
+    if (total <= 0) {
+      return rawCosts.stream().map(c -> 0f).toList();
+    }
+    return rawCosts.stream().map(c -> (float) (c / total * 100.0)).toList();
+  }
+
+  private List<AnalyzeResponse.Recommendation> buildRecommendations(
+      List<AnalyzeResponse.OperatorNode> operatorTree,
+      QueryProfile profile,
+      long totalIndexDocs,
+      boolean isTimeSeriesIndex,
+      boolean hasDateRangeFilter) {
+    List<AnalyzeResponse.Recommendation> recommendations = new ArrayList<>();
+    if (operatorTree == null || operatorTree.isEmpty() || profile == null) {
+      return recommendations;
+    }
+
+    QueryProfile.Phase executePhase = profile.getPhases().get("execute");
+    if (executePhase == null || executePhase.getTimeMillis() <= 0) {
+      return recommendations;
+    }
+    double executeTime = executePhase.getTimeMillis();
+
+    double maxTime = 0;
+    AnalyzeResponse.OperatorNode bottleneck = null;
+
+    for (AnalyzeResponse.OperatorNode node : operatorTree) {
+      if (node.getActual_time_ms() == null) {
+        continue;
+      }
+      double time = parseTimeMs(node.getActual_time_ms());
+      if (time > maxTime) {
+        maxTime = time;
+        bottleneck = node;
+      }
+    }
+
+    int totalNodes = operatorTree.size();
+    int pushedDown = 0;
+    for (AnalyzeResponse.OperatorNode node : operatorTree) {
+      if (Boolean.TRUE.equals(node.getIs_pushed_down())) {
+        pushedDown++;
+      }
+    }
+    int inMemory = totalNodes - pushedDown;
+    if (totalNodes > 0) {
+      recommendations.add(
+          AnalyzeResponse.Recommendation.builder()
+              .serverity(AnalyzeResponse.RecommendationSeverityLevel.INFO)
+              .rule("Pushdown visibility")
+              .message(
+                  pushedDown
+                      + " of "
+                      + totalNodes
+                      + " stages pushed down; "
+                      + inMemory
+                      + " ran in-memory")
+              .build());
+    }
+
+    if (bottleneck != null && maxTime > 0) {
+      long pct = Math.round((maxTime / executeTime) * 100);
+      String stage =
+          (bottleneck.getNode_type() != null && !bottleneck.getNode_type().isEmpty())
+              ? String.join(", ", bottleneck.getNode_type())
+              : "unknown";
+      recommendations.add(
+          AnalyzeResponse.Recommendation.builder()
+              .serverity(AnalyzeResponse.RecommendationSeverityLevel.INFO)
+              .rule("Bottleneck stage")
+              .message(pct + "% of time is in the *" + stage + "* stage")
+              .affected_node(bottleneck.getSource())
+              .suggestion("Consider optimizing the " + stage + " operation")
+              .build());
+    }
+
+    // In-memory bottleneck: find the non-pushed-down node with the highest self-time
+    double maxInMemoryTime = 0;
+    AnalyzeResponse.OperatorNode inMemoryBottleneck = null;
+    for (AnalyzeResponse.OperatorNode node : operatorTree) {
+      if (Boolean.TRUE.equals(node.getIs_pushed_down())) {
+        continue;
+      }
+      if (node.getActual_time_ms() == null) {
+        continue;
+      }
+      double time = parseTimeMs(node.getActual_time_ms());
+      if (time > maxInMemoryTime) {
+        maxInMemoryTime = time;
+        inMemoryBottleneck = node;
+      }
+    }
+    if (inMemoryBottleneck != null
+        && maxInMemoryTime > 0
+        && inMemoryBottleneck.getActual_rows() != null) {
+      long pct = Math.round((maxInMemoryTime / executeTime) * 100);
+      String stage =
+          (inMemoryBottleneck.getNode_type() != null
+                  && !inMemoryBottleneck.getNode_type().isEmpty())
+              ? String.join(", ", inMemoryBottleneck.getNode_type())
+              : "unknown";
+      recommendations.add(
+          AnalyzeResponse.Recommendation.builder()
+              .serverity(AnalyzeResponse.RecommendationSeverityLevel.WARNING)
+              .rule("In-memory bottleneck")
+              .message(
+                  "Your *"
+                      + stage
+                      + "* ran in-memory over "
+                      + inMemoryBottleneck.getActual_rows()
+                      + " rows ("
+                      + pct
+                      + "% of time)")
+              .affected_node(inMemoryBottleneck.getSource())
+              .suggestion(
+                  "Consider pushing this operation down or reducing input rows with filters")
+              .build());
+    }
+
+    // Low scan selectivity: scan rows / total index docs > 80%
+    log.info(
+        "Low scan selectivity check: totalIndexDocs={}, operatorTree.size={}",
+        totalIndexDocs,
+        operatorTree.size());
+    if (totalIndexDocs > 0) {
+      AnalyzeResponse.OperatorNode scanNode = operatorTree.get(0);
+      log.info(
+          "Low scan selectivity: scanNode.actual_rows={}, scanNode.estimated_rows={}",
+          scanNode.getActual_rows(),
+          scanNode.getEstimated_rows());
+      if (scanNode.getActual_rows() != null && scanNode.getActual_rows() > 0) {
+        long scannedRows = scanNode.getActual_rows();
+        long pct = Math.round((double) scannedRows / totalIndexDocs * 100);
+        long resultRows =
+            operatorTree.get(operatorTree.size() - 1).getActual_rows() != null
+                ? operatorTree.get(operatorTree.size() - 1).getActual_rows()
+                : 0;
+        log.info(
+            "Low scan selectivity: scannedRows={}, pct={}, resultRows={}",
+            scannedRows,
+            pct,
+            resultRows);
+        if (pct > 80) {
+          recommendations.add(
+              AnalyzeResponse.Recommendation.builder()
+                  .serverity(AnalyzeResponse.RecommendationSeverityLevel.WARNING)
+                  .rule("Low scan selectivity")
+                  .message(
+                      "Scanned "
+                          + scannedRows
+                          + " docs ("
+                          + pct
+                          + "% of index) to return "
+                          + resultRows
+                          + " rows")
+                  .affected_node(scanNode.getSource())
+                  .suggestion("Add filters to reduce the number of documents scanned")
+                  .build());
+        }
+      }
+    }
+
+    // Missing time filter: time-series index with no date range predicate pushed down
+    if (isTimeSeriesIndex && !hasDateRangeFilter) {
+      AnalyzeResponse.OperatorNode scanNode = operatorTree.get(0);
+      recommendations.add(
+          AnalyzeResponse.Recommendation.builder()
+              .serverity(AnalyzeResponse.RecommendationSeverityLevel.CRITICAL)
+              .rule("Missing time filter")
+              .message("No time filter on a time-series index: add one")
+              .affected_node(scanNode.getSource())
+              .suggestion(
+                  "Add a time range filter (e.g. where @timestamp > now() - interval 1 hour)")
+              .build());
+    }
+
+    return recommendations;
+  }
+
+  private static double parseTimeMs(String timeMsStr) {
+    String stripped = timeMsStr.replaceAll("[^0-9.]", "");
+    try {
+      return Double.parseDouble(stripped);
+    } catch (NumberFormatException e) {
+      return 0;
+    }
   }
 
   public void executeWithLegacy(
@@ -924,66 +1386,6 @@ public class QueryService {
   }
 
   /**
-   * Rewrite {@code +}/{@code -}/{@code *} to their overflow-checked variants ({@code CHECKED_PLUS}
-   * / {@code CHECKED_MINUS} / {@code CHECKED_MULTIPLY}) so integer and long arithmetic overflow
-   * throws {@link ArithmeticException} (via {@code Math.addExact} etc.) instead of silently
-   * wrapping. Applied before pushdown so both coordinator-executed and pushed-down (script)
-   * arithmetic are checked. Floating-point arithmetic is unchanged (IEEE 754).
-   *
-   * <p>This does the same rewrite as Calcite's {@code ConvertToChecked} but preserves each call's
-   * originally inferred type (via {@code makeCall(type, op, operands)}) and touches only the three
-   * arithmetic operators, so it does not re-derive the types of unrelated calls (e.g. {@code
-   * CEIL}/{@code DIVIDE}) the way {@code ConvertToChecked} does.
-   */
-  private static RelNode withCheckedArithmetic(RelNode calcitePlan, CalcitePlanContext context) {
-    RexShuttle checkedShuttle =
-        new RexShuttle() {
-          @Override
-          public RexNode visitCall(RexCall call) {
-            RexNode visited = super.visitCall(call);
-            if (!(visited instanceof RexCall rexCall)) {
-              return visited;
-            }
-            SqlOperator checked =
-                switch (rexCall.getOperator().getKind()) {
-                  case PLUS -> SqlStdOperatorTable.CHECKED_PLUS;
-                  case MINUS -> SqlStdOperatorTable.CHECKED_MINUS;
-                  case TIMES -> SqlStdOperatorTable.CHECKED_MULTIPLY;
-                  default -> null;
-                };
-            // Only integer/long arithmetic can overflow silently and has a checked
-            // implementation (Math.addExact etc.). Float/double/decimal have no checked variant
-            // (SqlFunctions.checkedMultiply(double,double) does not exist) and follow IEEE 754, so
-            // leave them untouched.
-            if (checked == null || !isCheckableIntegerArithmetic(rexCall)) {
-              return visited;
-            }
-            return context.rexBuilder.makeCall(rexCall.getType(), checked, rexCall.getOperands());
-          }
-        };
-    return calcitePlan.accept(
-        new RelHomogeneousShuttle() {
-          @Override
-          public RelNode visit(RelNode other) {
-            RelNode visited = super.visitChildren(other);
-            return visited.accept(checkedShuttle);
-          }
-        });
-  }
-
-  /** Returns whether the result and every operand are BIGINT. */
-  private static boolean isCheckableIntegerArithmetic(RexCall call) {
-    if (!isCheckableLongType(call.getType())) {
-      return false;
-    }
-    return call.getOperands().stream().allMatch(op -> isCheckableLongType(op.getType()));
-  }
-
-  private static boolean isCheckableLongType(org.apache.calcite.rel.type.RelDataType type) {
-    return type.getSqlTypeName() == org.apache.calcite.sql.type.SqlTypeName.BIGINT;
-  }
-
-  /**
    * Walk the cause chain to find an {@link ArithmeticException} raised by checked arithmetic. Row-
    * level overflow surfaces wrapped (SQLException -&gt; RuntimeException -&gt; ErrorReport), so a
    * top-level {@code catch (ArithmeticException)} is insufficient.
@@ -1019,6 +1421,23 @@ public class QueryService {
             .programs(Programs.standard())
             .typeSystem(OpenSearchTypeSystem.INSTANCE);
     return configBuilder.build();
+  }
+
+  private static String[] extractIndexNames(UnresolvedPlan plan) {
+    Set<String> names = new HashSet<>();
+    collectRelationNames(plan, names);
+    return names.toArray(String[]::new);
+  }
+
+  private static void collectRelationNames(Node node, Set<String> names) {
+    if (node instanceof Relation relation) {
+      names.add(relation.getTableQualifiedName().toString());
+    }
+    if (node.getChild() != null) {
+      for (Node child : node.getChild()) {
+        collectRelationNames(child, names);
+      }
+    }
   }
 
   /**
