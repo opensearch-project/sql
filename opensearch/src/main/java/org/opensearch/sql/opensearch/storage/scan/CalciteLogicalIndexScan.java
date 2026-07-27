@@ -435,17 +435,19 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
   }
 
   /**
-   * Partial-result fallback for a text/keyword mapping conflict. When a normal aggregate pushdown
-   * fails because the grouped field collapsed to text-without-keyword across a wildcard pattern (so
-   * it would otherwise fall back to a per-shard document scan that opens a PIT on every shard), and
-   * the partial-result setting is enabled, narrow the scan to the largest homogeneous subset of
-   * indices whose mapping of the grouped field is aggregatable, push the aggregation down over just
-   * that subset, and record a warning naming the excluded indices.
+   * Partial-result fallback for a text/keyword mapping conflict on the aggregation's group key.
+   * When normal aggregate pushdown fails because the field collapsed to text-without-keyword across
+   * a wildcard pattern (so it would otherwise fall back to a per-shard document scan that opens a
+   * PIT on every shard), and the partial-result setting is enabled, narrow the scan to the subset
+   * of indices where the field is aggregatable, push the aggregation down over just that subset,
+   * and record a warning naming the excluded indices.
    *
    * <p>The result is <b>partial</b> — the excluded indices' documents are missing from the counts —
-   * so this only runs behind an explicit opt-in and always emits a warning through {@link
-   * CalcitePlanContext#addWarning}. Returns {@code null} (leaving the caller to fall back) when the
-   * setting is off, there is no conflict, only one index matches, or no clean subset exists.
+   * so this only runs behind an explicit opt-in and only when the response format can surface the
+   * warning ({@link QueryContext#isWarningsSupported}). The partitioning decision lives in {@link
+   * PartialResultAggregatePushdown}; this method owns the plan-time wiring (settings gate, mapping
+   * lookup, narrowed-scan construction, warning emission). Returns {@code null} — leaving the
+   * caller to fall back — whenever partial mode does not apply.
    */
   public AbstractRelNode tryPartialResultAggregate(Aggregate aggregate, @Nullable Project project) {
     if (!(Boolean)
@@ -462,60 +464,20 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
     try {
       List<String> outputFields = aggregate.getRowType().getFieldNames();
       List<String> bucketNames = outputFields.subList(0, aggregate.getGroupSet().cardinality());
-      if (bucketNames.isEmpty()) {
-        return null;
-      }
       // getIndexNames() returns the raw pattern (e.g. ["logs-*"]) for a wildcard, not the resolved
       // concrete indices; getIndexMappings expands it server-side to a map keyed by concrete index
-      // name. So the "multiple indices" check must be on the resolved map, not the pattern array.
-      String[] indexExpression = osIndex.getIndexName().getIndexNames();
-      Map<String, IndexMapping> mappings = osIndex.getClient().getIndexMappings(indexExpression);
-      if (mappings.size() < 2) {
+      // name, which is what the partitioning classifies.
+      Map<String, IndexMapping> mappings =
+          osIndex.getClient().getIndexMappings(osIndex.getIndexName().getIndexNames());
+      PartialResultAggregatePushdown.Plan plan =
+          PartialResultAggregatePushdown.plan(bucketNames, mappings);
+      if (plan == null) {
         return null;
-      }
-
-      // Classify each index by how it maps the grouped field. The kept group must be a single
-      // homogeneous representation: a mix of keyword and text-with-.keyword is still a text/keyword
-      // conflict that would re-collapse and fail pushdown, so we never keep both.
-      List<String> keywordIndices = new ArrayList<>();
-      List<String> textKeywordIndices = new ArrayList<>();
-      List<String> excludedIndices = new ArrayList<>();
-      for (Map.Entry<String, IndexMapping> entry : mappings.entrySet()) {
-        // Flatten the per-index mapping so nested object fields (e.g. a raw mapping tree
-        // resource -> attributes -> applicationid) are keyed by their dotted path, matching the
-        // bucket field name Calcite resolved.
-        Map<String, OpenSearchDataType> flatMapping =
-            OpenSearchDataType.traverseAndFlatten(entry.getValue().getFieldMappings());
-        MappingResolution resolution = resolveBucketMappings(flatMapping, bucketNames);
-        switch (resolution) {
-          case KEYWORD -> keywordIndices.add(entry.getKey());
-          case TEXT_WITH_KEYWORD -> textKeywordIndices.add(entry.getKey());
-          default -> excludedIndices.add(entry.getKey());
-        }
-      }
-
-      // Deterministic priority (not a count-based majority): always keep the keyword group when one
-      // exists, since keyword is the canonical aggregatable representation and the result must not
-      // depend on how many stray indices of another type happen to match. Fall back to the
-      // text-with-.keyword group only when there is no keyword index at all. Bare-text indices are
-      // never aggregatable and are always excluded. Recovering an excluded but aggregatable group
-      // (text-with-.keyword alongside keyword) is the job of the split (2a), not partial mode.
-      List<String> keptIndices;
-      if (!keywordIndices.isEmpty()) {
-        keptIndices = keywordIndices;
-        excludedIndices.addAll(textKeywordIndices);
-      } else if (!textKeywordIndices.isEmpty()) {
-        keptIndices = textKeywordIndices;
-      } else {
-        return null; // no aggregatable subset -> partial mode can't help
-      }
-      if (excludedIndices.isEmpty()) {
-        return null; // homogeneous already; not our case (and pushdown wouldn't have failed)
       }
 
       OpenSearchIndex narrowedIndex =
           new OpenSearchIndex(
-              osIndex.getClient(), osIndex.getSettings(), String.join(",", keptIndices));
+              osIndex.getClient(), osIndex.getSettings(), String.join(",", plan.keptIndices()));
       CalciteLogicalIndexScan narrowedScan =
           new CalciteLogicalIndexScan(
               getCluster(),
@@ -530,21 +492,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         return null; // narrowed subset still can't push down -> fall back
       }
 
-      excludedIndices.sort(null);
-      CalcitePlanContext.addWarning(
-          new org.opensearch.sql.executor.Warning(
-              "PARTIAL_RESULT",
-              String.format(
-                  "Results exclude %d of %d indices due to a text/keyword mapping conflict on"
-                      + " %s.",
-                  excludedIndices.size(), mappings.size(), bucketNames),
-              String.format(
-                  "Field %s is mapped inconsistently across the queried indices, which prevents"
-                      + " aggregation pushdown for the whole pattern. The aggregation ran only over"
-                      + " the indices where the field is aggregatable; excluded indices: %s. Align"
-                      + " the field's mapping across all indices (e.g. map it as keyword"
-                      + " everywhere) to include them.",
-                  bucketNames, formatIndexList(excludedIndices, MAX_EXCLUDED_INDICES_IN_WARNING))));
+      CalcitePlanContext.addWarning(plan.warning());
       return pushed;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -552,69 +500,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       }
       return null;
     }
-  }
-
-  /** How a single index maps the grouped field(s), for partial-result partitioning. */
-  private enum MappingResolution {
-    KEYWORD,
-    TEXT_WITH_KEYWORD,
-    NOT_AGGREGATABLE
-  }
-
-  /**
-   * Cap on how many excluded index names to spell out in the partial-result warning. A wide
-   * observability pattern can exclude hundreds of indices; the exact count is already in the
-   * warning's message, so the detail lists only a few examples and summarizes the rest.
-   */
-  private static final int MAX_EXCLUDED_INDICES_IN_WARNING = 5;
-
-  /**
-   * Format a (sorted) index-name list for a warning: spell out up to {@code limit} names, then
-   * summarize any remainder as "and N more" so the message stays readable when the excluded set is
-   * large.
-   */
-  private static String formatIndexList(List<String> indices, int limit) {
-    if (indices.size() <= limit) {
-      return indices.toString();
-    }
-    List<String> shown = indices.subList(0, limit);
-    return String.format("[%s, ... and %d more]", String.join(", ", shown), indices.size() - limit);
-  }
-
-  /**
-   * Resolve how one index maps all grouped fields. Returns the weakest resolution across the
-   * fields: KEYWORD only if every field is bare keyword, TEXT_WITH_KEYWORD if every field is
-   * aggregatable but at least one relies on a .keyword sub-field, otherwise NOT_AGGREGATABLE.
-   *
-   * @param flatMapping the index's field types flattened to dotted paths (see {@link
-   *     OpenSearchDataType#traverseAndFlatten})
-   */
-  private static MappingResolution resolveBucketMappings(
-      Map<String, OpenSearchDataType> flatMapping, List<String> bucketNames) {
-    MappingResolution combined = MappingResolution.KEYWORD;
-    for (String field : bucketNames) {
-      OpenSearchDataType type = flatMapping.get(field);
-      if (type == null) {
-        return MappingResolution.NOT_AGGREGATABLE; // field absent here -> can't aggregate cleanly
-      }
-      OpenSearchDataType.MappingType mappingType = type.getMappingType();
-      if (mappingType == OpenSearchDataType.MappingType.Keyword) {
-        continue;
-      } else if (isTextWithKeywordSubField(type)) {
-        combined = MappingResolution.TEXT_WITH_KEYWORD;
-      } else {
-        return MappingResolution.NOT_AGGREGATABLE;
-      }
-    }
-    return combined;
-  }
-
-  private static boolean isTextWithKeywordSubField(OpenSearchDataType type) {
-    if (type instanceof OpenSearchTextType textType) {
-      return textType.getFields().values().stream()
-          .anyMatch(f -> f.getMappingType() == OpenSearchDataType.MappingType.Keyword);
-    }
-    return false;
   }
 
   public AbstractRelNode pushDownLimit(LogicalSort sort, Integer limit, Integer offset) {

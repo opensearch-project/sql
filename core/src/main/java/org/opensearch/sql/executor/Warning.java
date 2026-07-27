@@ -14,7 +14,16 @@ import lombok.Data;
  */
 @Data
 public class Warning {
-  /** Machine-readable category, e.g. {@code PARTIAL_RESULT}. */
+
+  /**
+   * The result is complete for the indices it covers but omits one or more indices that could not
+   * be served (e.g. a mapping conflict that prevents aggregation pushdown). This is a cross-surface
+   * contract: consumers such as OpenSearch Dashboards branch on this {@code type} value, so it must
+   * not change without coordinating those consumers.
+   */
+  public static final String TYPE_PARTIAL_RESULT = "PARTIAL_RESULT";
+
+  /** Machine-readable category, e.g. {@link #TYPE_PARTIAL_RESULT}. */
   private final String type;
 
   /** Short human-readable summary. */
