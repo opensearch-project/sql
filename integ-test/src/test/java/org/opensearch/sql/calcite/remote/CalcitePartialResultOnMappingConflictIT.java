@@ -44,6 +44,14 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   private static final String NESTED_TEXT_INDEX = "partial_nested_text";
   private static final String NESTED_PATTERN = "partial_nested_*";
 
+  // Priority-ladder fixture: one keyword index vs two text-with-.keyword indices. Keyword is
+  // outnumbered, so a count-based majority would keep the text-with-.keyword group; the
+  // deterministic keyword-first rule must keep the single keyword index instead.
+  private static final String PRIORITY_KEYWORD_INDEX = "partial_priority_keyword";
+  private static final String PRIORITY_TEXTKW_INDEX_1 = "partial_priority_textkw1";
+  private static final String PRIORITY_TEXTKW_INDEX_2 = "partial_priority_textkw2";
+  private static final String PRIORITY_PATTERN = "partial_priority_*";
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -110,6 +118,31 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
           "{\"index\":{}}\n{\"resource\":{\"attributes\":{\"env\":\"prod\"}}}\n"
               + "{\"index\":{}}\n{\"resource\":{\"attributes\":{\"env\":\"qa\"}}}\n");
       performRequest(client(), bulk);
+    }
+
+    // Priority ladder: 1 keyword index vs 2 text-with-.keyword indices (keyword outnumbered 2:1).
+    if (!isIndexExist(client(), PRIORITY_KEYWORD_INDEX)) {
+      String mapping =
+          "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
+              + "\"mappings\":{\"properties\":{\"env\":{\"type\":\"keyword\"}}}}";
+      createIndexByRestClient(client(), PRIORITY_KEYWORD_INDEX, mapping);
+      Request bulk = new Request("POST", "/" + PRIORITY_KEYWORD_INDEX + "/_bulk?refresh=true");
+      bulk.setJsonEntity(
+          "{\"index\":{}}\n{\"env\":\"prod\"}\n" + "{\"index\":{}}\n{\"env\":\"dev\"}\n");
+      performRequest(client(), bulk);
+    }
+    String textKwMapping =
+        "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
+            + "\"mappings\":{\"properties\":{\"env\":{\"type\":\"text\",\"fields\":"
+            + "{\"keyword\":{\"type\":\"keyword\",\"ignore_above\":256}}}}}}";
+    for (String idx : new String[] {PRIORITY_TEXTKW_INDEX_1, PRIORITY_TEXTKW_INDEX_2}) {
+      if (!isIndexExist(client(), idx)) {
+        createIndexByRestClient(client(), idx, textKwMapping);
+        Request bulk = new Request("POST", "/" + idx + "/_bulk?refresh=true");
+        bulk.setJsonEntity(
+            "{\"index\":{}}\n{\"env\":\"prod\"}\n" + "{\"index\":{}}\n{\"env\":\"stage\"}\n");
+        performRequest(client(), bulk);
+      }
     }
   }
 
@@ -182,6 +215,26 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
     assertTrue(
         "warning should name the excluded nested-text index",
         warning.getString("detail").contains(NESTED_TEXT_INDEX));
+  }
+
+  @Test
+  public void partialResultKeepsKeywordGroupEvenWhenOutnumbered() throws IOException {
+    setPartialResult(true);
+    setPitContextLimit("1");
+    // Keyword is outnumbered 2:1 by text-with-.keyword indices. The deterministic keyword-first
+    // rule keeps the single keyword index (prod:1, dev:1) and excludes both text-with-.keyword
+    // indices -- a count-based majority would have kept the text group instead.
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | stats count() by env | sort env", PRIORITY_PATTERN));
+    verifyDataRows(result, rows(1, "dev"), rows(1, "prod"));
+
+    JSONObject warning = result.getJSONArray("warnings").getJSONObject(0);
+    assertEquals("PARTIAL_RESULT", warning.getString("type"));
+    assertTrue(
+        "both text-with-keyword indices should be excluded",
+        warning.getString("detail").contains(PRIORITY_TEXTKW_INDEX_1)
+            && warning.getString("detail").contains(PRIORITY_TEXTKW_INDEX_2));
   }
 
   @Test

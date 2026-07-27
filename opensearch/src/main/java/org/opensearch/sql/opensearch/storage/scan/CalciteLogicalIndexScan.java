@@ -474,9 +474,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         return null;
       }
 
-      // Keep the largest homogeneous index group so the narrowed merge resolves to a single clean
-      // type: prefer bare keyword (merges to keyword), else text-with-keyword-subfield (merges to
-      // text-with-.keyword). A mix of the two is still a conflict, so we never keep both.
+      // Classify each index by how it maps the grouped field. The kept group must be a single
+      // homogeneous representation: a mix of keyword and text-with-.keyword is still a text/keyword
+      // conflict that would re-collapse and fail pushdown, so we never keep both.
       List<String> keywordIndices = new ArrayList<>();
       List<String> textKeywordIndices = new ArrayList<>();
       List<String> excludedIndices = new ArrayList<>();
@@ -494,13 +494,18 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         }
       }
 
+      // Deterministic priority (not a count-based majority): always keep the keyword group when one
+      // exists, since keyword is the canonical aggregatable representation and the result must not
+      // depend on how many stray indices of another type happen to match. Fall back to the
+      // text-with-.keyword group only when there is no keyword index at all. Bare-text indices are
+      // never aggregatable and are always excluded. Recovering an excluded but aggregatable group
+      // (text-with-.keyword alongside keyword) is the job of the split (2a), not partial mode.
       List<String> keptIndices;
-      if (keywordIndices.size() >= textKeywordIndices.size() && !keywordIndices.isEmpty()) {
+      if (!keywordIndices.isEmpty()) {
         keptIndices = keywordIndices;
         excludedIndices.addAll(textKeywordIndices);
       } else if (!textKeywordIndices.isEmpty()) {
         keptIndices = textKeywordIndices;
-        excludedIndices.addAll(keywordIndices);
       } else {
         return null; // no aggregatable subset -> partial mode can't help
       }
@@ -535,9 +540,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
                   excludedIndices.size(), mappings.size(), bucketNames),
               String.format(
                   "Field %s is mapped inconsistently across the queried indices, which prevents"
-                      + " aggregation pushdown for the whole pattern. Excluded indices: %s. Align"
-                      + " the mapping (reindex to keyword, or add a .keyword sub-field) to include"
-                      + " them.",
+                      + " aggregation pushdown for the whole pattern. The aggregation ran over the"
+                      + " largest consistently-mapped subset; excluded indices: %s. Align the"
+                      + " field's mapping across all indices (e.g. map it as keyword everywhere) to"
+                      + " include them.",
                   bucketNames, excludedIndices)));
       return pushed;
     } catch (Exception e) {
