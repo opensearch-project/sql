@@ -30,6 +30,7 @@ public class PPLQueryRequestFactory {
   private static final String DEFAULT_EXPLAIN_MODE = "standard";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
   private static final String QUERY_PARAMS_PROFILE = "profile";
+  private static final String QUERY_PARAMS_ANALYZE = "analyze";
   private static final String QUERY_PARAMS_FETCH_SIZE = "fetch_size";
 
   /**
@@ -82,9 +83,12 @@ public class PPLQueryRequestFactory {
     try {
       jsonContent = new JSONObject(content);
       boolean profileRequested = jsonContent.optBoolean(QUERY_PARAMS_PROFILE, false);
+      boolean analyzeRequested = jsonContent.optBoolean(QUERY_PARAMS_ANALYZE, false);
       String queryString = jsonContent.optString(PPL_FIELD_NAME, "");
-      boolean enableProfile =
-          profileRequested && isProfileSupported(restRequest.path(), format, queryString);
+      // if both profile and analyze are requested, profile overrides analyze
+      boolean profileSupported = isProfileSupported(restRequest.path(), format, queryString);
+      boolean enableProfile = profileRequested && profileSupported;
+      boolean enableAnalyze = analyzeRequested && !profileRequested && profileSupported;
       // Support fetch_size as a URL parameter if not already in the JSON body
       if (!jsonContent.has(QUERY_PARAMS_FETCH_SIZE)
           && restRequest.params().containsKey(QUERY_PARAMS_FETCH_SIZE)) {
@@ -104,7 +108,8 @@ public class PPLQueryRequestFactory {
               restRequest.path(),
               format.getFormatName(),
               explainMode,
-              enableProfile);
+              enableProfile,
+              enableAnalyze);
       // set sanitize option if csv format
       if (format.equals(Format.CSV)) {
         pplRequest.sanitize(getSanitizeOption(restRequest.params()));

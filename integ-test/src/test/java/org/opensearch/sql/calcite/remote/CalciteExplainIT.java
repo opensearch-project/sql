@@ -66,15 +66,6 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.GRAPH_EMPLOYEES);
   }
 
-  // Only for Calcite: the rest row source explains as a CalciteScannableCatalogScan.
-  @Test
-  public void explainRestCommand() throws IOException {
-    String result = explainQueryToString("| rest '/_cluster/health' | fields status");
-    Assert.assertTrue(
-        "Expected a rest scan node in the explain output, got: " + result,
-        result.contains("CatalogScan"));
-  }
-
   @Override
   @Ignore("test only in v2")
   public void testExplainModeUnsupportedInV2() throws IOException {}
@@ -3034,6 +3025,48 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryYaml(query, highlightJson);
     // OSD format includes pre_tags/post_tags in the highlight builder output
     String expected = loadExpectedPlan("explain_highlight_osd_format.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testXyseriesExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance by gender, state"
+                    + " | xyseries state gender in (\"F\", \"M\") avg_balance",
+                TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_xyseries.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testXyseriesMultipleDataFieldsExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance, count() as cnt by gender, state"
+                    + " | xyseries state gender in (\"F\", \"M\") avg_balance, cnt",
+                TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_xyseries_multiple_data_fields.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testXyseriesWithFormatExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        StringEscapeUtils.escapeJson(
+            StringUtils.format(
+                "source=%s | stats avg(balance) as avg_balance by gender, state | xyseries"
+                    + " format=\"$VAL$_$AGG$\" state gender in (\"F\", \"M\") avg_balance",
+                TEST_INDEX_BANK));
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_xyseries_with_format.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 

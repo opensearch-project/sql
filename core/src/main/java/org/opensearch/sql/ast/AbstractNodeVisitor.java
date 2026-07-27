@@ -71,6 +71,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -99,6 +100,7 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 
 /** AST nodes visitor Defines the traverse path. */
 public abstract class AbstractNodeVisitor<T, C> {
@@ -344,6 +346,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitMakeResults(MakeResults node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitAlias(Alias node, C context) {
     return visitChildren(node, context);
   }
@@ -513,6 +519,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitGraphLookup(GraphLookup node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitXyseries(Xyseries node, C context) {
     return visitChildren(node, context);
   }
 }

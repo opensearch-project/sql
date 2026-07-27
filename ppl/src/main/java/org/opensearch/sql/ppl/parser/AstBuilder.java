@@ -97,6 +97,7 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
@@ -113,7 +114,6 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.ReplacePair;
-import org.opensearch.sql.ast.tree.RestRelation;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -129,6 +129,7 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -146,8 +147,8 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.ppl.utils.MakeResultsDataParser;
 import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
-import org.opensearch.sql.utils.SystemIndexUtils;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
@@ -259,35 +260,44 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new DescribeRelation(qualifiedName(DATASOURCES_TABLE_NAME));
   }
 
-  /**
-   * <b>Rest command.</b><br>
-   * Leading command that reads an allow-listed, read-only in-cluster management endpoint
-   * (cluster/cat/nodes) as rows. The validated endpoint spec is encoded into a single reserved
-   * table name via {@link org.opensearch.sql.utils.SystemIndexUtils#restTable}; that name resolves
-   * through the storage engine to a REST source table on the Calcite path, mirroring how DESCRIBE
-   * resolves to a system index. Allow-list/authorization enforcement happens at source-table
-   * construction in the storage engine (it owns the transport actions and per-endpoint schemas).
-   */
+  /** makeresults command. */
   @Override
-  public UnresolvedPlan visitRestCommand(OpenSearchPPLParser.RestCommandContext ctx) {
-    String endpoint = StringUtils.unquoteText(ctx.stringLiteral().getText());
-    LinkedHashMap<String, String> args = new LinkedHashMap<>();
-    Integer count = null;
-    String timeout = null;
-    for (OpenSearchPPLParser.RestArgumentContext arg : ctx.restArgument()) {
-      if (arg.COUNT() != null) {
-        count = Integer.parseInt(arg.integerLiteral().getText());
-      } else if (arg.TIMEOUT() != null) {
-        timeout = StringUtils.unquoteText(arg.stringLiteral().getText());
-      } else {
-        args.put(
-            StringUtils.unquoteIdentifier(arg.ident().getText()),
-            StringUtils.unquoteText(arg.literalValue().getText()));
+  public UnresolvedPlan visitMakeresultsCommand(OpenSearchPPLParser.MakeresultsCommandContext ctx) {
+    int count = 1;
+    String format = null;
+    String data = null;
+    for (OpenSearchPPLParser.MakeresultsArgContext arg : ctx.makeresultsArg()) {
+      if (arg.integerLiteral() != null) {
+        String raw = arg.integerLiteral().getText();
+        try {
+          count = Integer.parseInt(raw);
+        } catch (NumberFormatException e) {
+          throw new SyntaxCheckException(
+              "makeresults count \"" + raw + "\" is not a valid integer within the allowed range");
+        }
+      } else if (arg.stringLiteral() != null) {
+        data = StringUtils.unquoteText(arg.stringLiteral().getText());
+      } else if (arg.JSON() != null) {
+        format = "json";
+      } else if (arg.CSV() != null) {
+        format = "csv";
       }
     }
-    String token =
-        SystemIndexUtils.restTable(new SystemIndexUtils.RestSpec(endpoint, args, count, timeout));
-    return new RestRelation(new QualifiedName(token));
+    if (data != null || format != null) {
+      if (data == null || format == null) {
+        throw new SyntaxCheckException("makeresults format and data must be provided together");
+      }
+      return MakeResultsDataParser.parse(format, data);
+    }
+    if (count < 0) {
+      // Negative count yields zero rows.
+      count = 0;
+    }
+    if (count > 5000) {
+      // Inline literal rows hit the JVM 64 KB per-method bytecode limit.
+      throw new SyntaxCheckException("makeresults count must not exceed 5000");
+    }
+    return new MakeResults(count);
   }
 
   /** Where command. */
@@ -1827,5 +1837,38 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .usePIT(usePIT)
         .filter(filter)
         .build();
+  }
+
+  /** Xyseries command. */
+  @Override
+  public UnresolvedPlan visitXyseriesCommand(OpenSearchPPLParser.XyseriesCommandContext ctx) {
+    UnresolvedExpression xField = internalVisitExpression(ctx.xField);
+    UnresolvedExpression yNameField = internalVisitExpression(ctx.yNameField);
+
+    // Parse pivot values from IN (...) clause
+    List<String> pivotValues =
+        ctx.xyseriesPivotValues().stringLiteral().stream()
+            .map(s -> StringUtils.unquoteText(s.getText()))
+            .distinct()
+            .collect(Collectors.toList());
+
+    // Parse y-data fields
+    List<UnresolvedExpression> yDataFields =
+        ctx.yDataFields.fieldExpression().stream()
+            .map(this::internalVisitExpression)
+            .collect(Collectors.toList());
+
+    // Parse options
+    String separator = ": ";
+    String format = null;
+    for (OpenSearchPPLParser.XyseriesOptionContext optCtx : ctx.xyseriesOption()) {
+      if (optCtx.SEP() != null) {
+        separator = StringUtils.unquoteText(optCtx.sep.getText());
+      } else if (optCtx.FORMAT() != null) {
+        format = StringUtils.unquoteText(optCtx.format.getText());
+      }
+    }
+
+    return new Xyseries(xField, yNameField, pivotValues, yDataFields, separator, format);
   }
 }

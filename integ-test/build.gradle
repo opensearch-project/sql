@@ -387,11 +387,6 @@ testClusters {
         plugin(getGeoSpatialPlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
-        // The rest command is disabled by default (empty allow-list). Opt this cluster into the
-        // registered endpoints so the rest integration tests exercise the enabled path. A literal
-        // "*" cannot be used because a bare * is a YAML alias indicator in opensearch.yml.
-        setting 'plugins.ppl.rest.allowed_endpoints',
-                '/_cluster/health,/_cluster/state,/_cluster/settings,/_cat/indices,/_cat/nodes,/_cat/cluster_manager,/_cat/plugins,/_cat/shards,/_resolve/index'
     }
     yamlRestTest {
         testDistribution = 'archive'
@@ -410,9 +405,6 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
-        // Opt into the rest endpoints (disabled by default) so RestCommandSecurityIT runs.
-        setting 'plugins.ppl.rest.allowed_endpoints',
-                '/_cluster/health,/_cluster/state,/_cluster/settings,/_cat/indices,/_cat/nodes,/_cat/cluster_manager,/_cat/plugins,/_cat/shards,/_resolve/index'
     }
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
@@ -427,8 +419,6 @@ testClusters {
         plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
-        // Composite-default cluster: PPL queries route to the analytics engine unless excluded.
-        setting 'cluster.pluggable.dataformat', 'composite'
     }
 }
 

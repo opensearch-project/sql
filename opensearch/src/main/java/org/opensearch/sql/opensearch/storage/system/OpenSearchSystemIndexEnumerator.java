@@ -16,11 +16,8 @@ import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
 
-/**
- * Resource-monitored iteration over the rows produced by a read-only catalog {@link
- * OpenSearchSystemRequest}.
- */
-public class OpenSearchCatalogEnumerator implements Enumerator<Object> {
+/** Supports a simple iteration over a collection for OpenSearch system index */
+public class OpenSearchSystemIndexEnumerator implements Enumerator<Object> {
   /** How many moveNext() calls to perform resource check once. */
   private static final long NUMBER_OF_NEXT_CALL_TO_CHECK = 1000;
 
@@ -38,7 +35,7 @@ public class OpenSearchCatalogEnumerator implements Enumerator<Object> {
   /** ResourceMonitor. */
   private final ResourceMonitor monitor;
 
-  public OpenSearchCatalogEnumerator(
+  public OpenSearchSystemIndexEnumerator(
       List<String> fields, OpenSearchSystemRequest request, ResourceMonitor monitor) {
     this.fields = fields;
     this.request = request;

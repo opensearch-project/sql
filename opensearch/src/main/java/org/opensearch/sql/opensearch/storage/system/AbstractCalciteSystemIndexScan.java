@@ -16,21 +16,21 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 
-/** An abstract relational operator representing a scan of an {@link OpenSearchCatalogTable}. */
+/** An abstract relational operator representing a scan of an OpenSearchSystemIndex type. */
 @Getter
-public abstract class AbstractCalciteCatalogScan extends TableScan {
-  public final OpenSearchCatalogTable catalogTable;
+public abstract class AbstractCalciteSystemIndexScan extends TableScan {
+  public final OpenSearchSystemIndex sysIndex;
   protected final RelDataType schema;
 
-  protected AbstractCalciteCatalogScan(
+  protected AbstractCalciteSystemIndexScan(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       List<RelHint> hints,
       RelOptTable table,
-      OpenSearchCatalogTable catalogTable,
+      OpenSearchSystemIndex sysIndex,
       RelDataType schema) {
     super(cluster, traitSet, hints, table);
-    this.catalogTable = requireNonNull(catalogTable, "OpenSearch catalog table");
+    this.sysIndex = requireNonNull(sysIndex, "OpenSearch system index");
     this.schema = schema;
   }
 

@@ -246,11 +246,12 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator SECOND = new DatePartFunction(TimeUnit.SECOND).toUDF("SECOND");
   public static final SqlOperator MICROSECOND =
       new DatePartFunction(TimeUnit.MICROSECOND).toUDF("MICROSECOND");
-  public static final SqlOperator NOW = new CurrentFunction(ExprCoreType.TIMESTAMP).toUDF("NOW");
+  public static final SqlOperator NOW =
+      new CurrentFunction(CurrentFunction.Kind.TIMESTAMP).toUDF("NOW");
   public static final SqlOperator CURRENT_TIME =
-      new CurrentFunction(ExprCoreType.TIME).toUDF("CURRENT_TIME");
+      new CurrentFunction(CurrentFunction.Kind.TIME).toUDF("CURRENT_TIME");
   public static final SqlOperator CURRENT_DATE =
-      new CurrentFunction(ExprCoreType.DATE).toUDF("CURRENT_DATE");
+      new CurrentFunction(CurrentFunction.Kind.DATE).toUDF("CURRENT_DATE");
   public static final SqlOperator DATE_FORMAT =
       new FormatFunction(ExprCoreType.DATE).toUDF("DATE_FORMAT");
   public static final SqlOperator TIME_FORMAT =

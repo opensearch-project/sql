@@ -37,6 +37,11 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMakeResultsCommand() {
+    assertEquals("makeresults", anonymize("makeresults count=5"));
+  }
+
+  @Test
   public void testTableFunctionCommand() {
     assertEquals(
         "source=prometheus.query_range(***,***,***,***)",
@@ -46,18 +51,6 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testPrometheusPPLCommand() {
     assertEquals("source=table", anonymize("source=prometheus.http_requests_process"));
-  }
-
-  @Test
-  public void testRestCommand() {
-    assertEquals("rest /_cluster/health", anonymize("| rest \"/_cluster/health\""));
-  }
-
-  @Test
-  public void testRestCommandMasksArgValues() {
-    assertEquals(
-        "rest /_cluster/health count=*** timeout=*** level=***",
-        anonymize("| rest \"/_cluster/health\" count=5 timeout=\"30s\" level=\"indices\""));
   }
 
   @Test
@@ -332,6 +325,29 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | chart sum(identifier) by identifier identifier",
         anonymize("source=t | chart sum(amount) over gender by age"));
+  }
+
+  @Test
+  public void testXyseriesCommand() {
+    assertEquals(
+        "source=table | stats avg(identifier) by identifier,identifier"
+            + " | xyseries identifier identifier in (***) identifier",
+        anonymize(
+            "source=t | stats avg(balance) by gender, state"
+                + " | xyseries state gender in (\"F\",\"M\") avg_balance"));
+  }
+
+  @Test
+  public void testXyseriesCommandWithOptions() {
+    assertEquals(
+        "source=table | stats avg(identifier),max(identifier) by identifier,identifier"
+            + " | xyseries sep=*** format=*** identifier identifier in (***)"
+            + " identifier,identifier",
+        anonymize(
+            "source=t | stats avg(balance) as avg_balance, max(balance) as max_balance"
+                + " by gender, state"
+                + " | xyseries sep=\"_\" format=\"$AGG$_$VAL$\" state gender"
+                + " in (\"F\",\"M\") avg_balance, max_balance"));
   }
 
   // todo, sort order is ignored, it doesn't impact the log analysis.
