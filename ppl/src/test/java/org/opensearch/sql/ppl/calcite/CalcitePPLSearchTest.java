@@ -14,7 +14,6 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
-import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
@@ -64,36 +63,42 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
   public void testSearchWithImplicitFormatSubsearchUsesCorrelate() {
     RelNode root = getRelNode("search source=EMP [ search source=DEPT | fields DEPTNO | head 1 ]");
     LogicalCorrelate correlate = findCorrelate(root);
-    String logical = RelOptUtil.toString(root);
-
-    Assert.assertTrue(logical, logical.contains("LogicalCorrelate"));
-    Assert.assertFalse(logical, logical.contains("SCALAR_QUERY"));
-    Assert.assertTrue(logical, logical.contains("ARRAY_AGG"));
-    Assert.assertTrue(logical, logical.contains("query_string"));
+    String expectedLogical =
+        """
+        LogicalProject(EMPNO=[$1], ENAME=[$2], JOB=[$3], MGR=[$4], HIREDATE=[$5], SAL=[$6], COMM=[$7], DEPTNO=[$8])
+          LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+            LogicalProject(search=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), ' )':VARCHAR), 'NOT ()':VARCHAR)])
+              LogicalAggregate(group=[{}], __format_rows=[ARRAY_AGG($0)])
+                LogicalProject(__format_row=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(||(||('DEPTNO="':VARCHAR, REPLACE(REPLACE(CAST($0):VARCHAR NOT NULL, '\\':VARCHAR, '\\\\':VARCHAR), '"':VARCHAR, '\\"':VARCHAR)), '"':VARCHAR))), ' AND ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT(ARRAY(||(||('DEPTNO="':VARCHAR, REPLACE(REPLACE(CAST($0):VARCHAR NOT NULL, '\\':VARCHAR, '\\\\':VARCHAR), '"':VARCHAR, '\\"':VARCHAR)), '"':VARCHAR))), ' AND ':VARCHAR)), ' )':VARCHAR), null:VARCHAR)])
+                  LogicalSort(fetch=[1])
+                    LogicalProject(DEPTNO=[$0])
+                      LogicalTableScan(table=[[scott, DEPT]])
+            LogicalFilter(condition=[query_string(MAP('query', $cor0.search))], variablesSet=[[$cor0]])
+              LogicalTableScan(table=[[scott, EMP]])
+        """;
+    verifyLogical(root, expectedLogical);
     Assert.assertSame(root.getCluster(), correlate.getLeft().getCluster());
     Assert.assertSame(root.getCluster(), correlate.getRight().getCluster());
-  }
-
-  @Test
-  public void testImplicitFormatQueryStringReferencesCorrelatedValue() {
-    RelNode root = getRelNode("search source=EMP [ search source=DEPT | fields DEPTNO | head 1 ]");
-    String logical = RelOptUtil.toString(root);
-
-    Assert.assertFalse(logical, logical.contains("SCALAR_QUERY"));
-    Assert.assertTrue(logical, logical.contains("query_string"));
-    Assert.assertTrue(logical, logical.contains("$cor"));
   }
 
   @Test
   public void testImplicitFormatCombinesWithStaticSearchPredicate() {
     RelNode root =
         getRelNode("search source=EMP JOB=CLERK [ search source=DEPT | fields DEPTNO | head 1 ]");
-    String logical = RelOptUtil.toString(root);
-
-    Assert.assertFalse(logical, logical.contains("SCALAR_QUERY"));
-    Assert.assertTrue(logical, logical.contains("JOB:CLERK"));
-    Assert.assertTrue(logical, logical.contains("$cor"));
-    Assert.assertTrue(logical, logical.contains("AND"));
+    String expectedLogical =
+        """
+        LogicalProject(EMPNO=[$1], ENAME=[$2], JOB=[$3], MGR=[$4], HIREDATE=[$5], SAL=[$6], COMM=[$7], DEPTNO=[$8])
+          LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+            LogicalProject(search=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), ' )':VARCHAR), 'NOT ()':VARCHAR)])
+              LogicalAggregate(group=[{}], __format_rows=[ARRAY_AGG($0)])
+                LogicalProject(__format_row=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(||(||('DEPTNO="':VARCHAR, REPLACE(REPLACE(CAST($0):VARCHAR NOT NULL, '\\':VARCHAR, '\\\\':VARCHAR), '"':VARCHAR, '\\"':VARCHAR)), '"':VARCHAR))), ' AND ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT(ARRAY(||(||('DEPTNO="':VARCHAR, REPLACE(REPLACE(CAST($0):VARCHAR NOT NULL, '\\':VARCHAR, '\\\\':VARCHAR), '"':VARCHAR, '\\"':VARCHAR)), '"':VARCHAR))), ' AND ':VARCHAR)), ' )':VARCHAR), null:VARCHAR)])
+                  LogicalSort(fetch=[1])
+                    LogicalProject(DEPTNO=[$0])
+                      LogicalTableScan(table=[[scott, DEPT]])
+            LogicalFilter(condition=[query_string(MAP('query', CONCAT(CONCAT(CONCAT(CONCAT('(', 'JOB:CLERK':VARCHAR), ')'), ' AND ':VARCHAR), CONCAT(CONCAT('(', $cor0.search), ')'))))], variablesSet=[[$cor0]])
+              LogicalTableScan(table=[[scott, EMP]])
+        """;
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
@@ -102,13 +107,27 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
         getRelNode(
             "search source=EMP [ search source=DEPT | fields DEPTNO | head 1 ] OR "
                 + "[ search source=EMP | fields JOB | head 1 ]");
-    LogicalCorrelate correlate = findCorrelate(root);
-    String logical = RelOptUtil.toString(root);
-
-    Assert.assertTrue(correlate.getLeft() instanceof LogicalJoin);
-    Assert.assertEquals(1, countCorrelates(root));
-    Assert.assertFalse(logical, logical.contains("SCALAR_QUERY"));
-    Assert.assertTrue(logical, logical.contains("OR"));
+    String expectedLogical =
+        """
+        LogicalProject(EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO=[$9])
+          LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 1}])
+            LogicalJoin(condition=[true], joinType=[inner])
+              LogicalProject(search=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), ' )':VARCHAR), 'NOT ()':VARCHAR)])
+                LogicalAggregate(group=[{}], __format_rows=[ARRAY_AGG($0)])
+                  LogicalProject(__format_row=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(||(||('DEPTNO="':VARCHAR, REPLACE(REPLACE(CAST($0):VARCHAR NOT NULL, '\\':VARCHAR, '\\\\':VARCHAR), '"':VARCHAR, '\\"':VARCHAR)), '"':VARCHAR))), ' AND ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT(ARRAY(||(||('DEPTNO="':VARCHAR, REPLACE(REPLACE(CAST($0):VARCHAR NOT NULL, '\\':VARCHAR, '\\\\':VARCHAR), '"':VARCHAR, '\\"':VARCHAR)), '"':VARCHAR))), ' AND ':VARCHAR)), ' )':VARCHAR), null:VARCHAR)])
+                    LogicalSort(fetch=[1])
+                      LogicalProject(DEPTNO=[$0])
+                        LogicalTableScan(table=[[scott, DEPT]])
+              LogicalProject(search=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), ' )':VARCHAR), 'NOT ()':VARCHAR)])
+                LogicalAggregate(group=[{}], __format_rows=[ARRAY_AGG($0)])
+                  LogicalProject(__format_row=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(CASE(IS NOT NULL($0), ||(||('JOB="':VARCHAR, REPLACE(REPLACE(CAST($0):VARCHAR NOT NULL, '\\':VARCHAR, '\\\\':VARCHAR), '"':VARCHAR, '\\"':VARCHAR)), '"':VARCHAR), null:VARCHAR))), ' AND ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT(ARRAY(CASE(IS NOT NULL($0), ||(||('JOB="':VARCHAR, REPLACE(REPLACE(CAST($0):VARCHAR NOT NULL, '\\':VARCHAR, '\\\\':VARCHAR), '"':VARCHAR, '\\"':VARCHAR)), '"':VARCHAR), null:VARCHAR))), ' AND ':VARCHAR)), ' )':VARCHAR), null:VARCHAR)])
+                    LogicalSort(fetch=[1])
+                      LogicalProject(JOB=[$2])
+                        LogicalTableScan(table=[[scott, EMP]])
+            LogicalFilter(condition=[query_string(MAP('query', CONCAT(CONCAT('(', CONCAT(CONCAT($cor0.search, ' OR ':VARCHAR), $cor0.search0)), ')')))], variablesSet=[[$cor0]])
+              LogicalTableScan(table=[[scott, EMP]])
+        """;
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
@@ -167,20 +186,6 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
     }.go(root);
     Assert.assertNotNull(RelOptUtil.toString(root), result.get());
     return result.get();
-  }
-
-  private int countCorrelates(RelNode root) {
-    int[] count = {0};
-    new RelVisitor() {
-      @Override
-      public void visit(RelNode node, int ordinal, RelNode parent) {
-        if (node instanceof LogicalCorrelate) {
-          count[0]++;
-        }
-        super.visit(node, ordinal, parent);
-      }
-    }.go(root);
-    return count[0];
   }
 
   @Ignore("Fields used in search commands are not validated. Enable after fixing it.")
