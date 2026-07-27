@@ -373,7 +373,11 @@ public class TransportPPLQueryAction
         String responseContent =
             formatter.format(
                 new QueryResult(
-                    response.getSchema(), response.getResults(), response.getCursor(), PPL_SPEC));
+                    response.getSchema(),
+                    response.getResults(),
+                    response.getCursor(),
+                    PPL_SPEC,
+                    response.getWarnings()));
         listener.onResponse(new TransportPPLQueryResponse(responseContent));
       }
 

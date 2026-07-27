@@ -31,6 +31,7 @@ import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class CalcitePlanContext {
@@ -62,6 +63,15 @@ public class CalcitePlanContext {
    * Thread-local tracking which pool executed this query ("sql-worker" or "sql-complex-worker").
    */
   public static final ThreadLocal<String> executionPool = new ThreadLocal<>();
+
+  /**
+   * Non-fatal warnings raised during planning (e.g. a partial result over a subset of indices) to
+   * be attached to the query response by the execution engine. Drained in {@code
+   * OpenSearchExecutionEngine.buildResultSet} and cleared with the other lifecycle signals so it
+   * never leaks onto the next query on a pooled worker thread.
+   */
+  private static final ThreadLocal<List<Warning>> pendingWarnings =
+      ThreadLocal.withInitial(ArrayList::new);
 
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
@@ -250,6 +260,23 @@ public class CalcitePlanContext {
     timewrapUnitName.set(null);
     timewrapSeries.set(null);
     executionPool.set(null);
+    pendingWarnings.remove();
+  }
+
+  /** Records a non-fatal warning to be attached to the response for the current query. */
+  public static void addWarning(Warning warning) {
+    pendingWarnings.get().add(warning);
+  }
+
+  /** Returns and clears the warnings collected for the current query. */
+  public static List<Warning> drainWarnings() {
+    List<Warning> warnings = pendingWarnings.get();
+    if (warnings.isEmpty()) {
+      return List.of();
+    }
+    List<Warning> drained = List.copyOf(warnings);
+    pendingWarnings.remove();
+    return drained;
   }
 
   /**

@@ -490,6 +490,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
+    response.setWarnings(CalcitePlanContext.drainWarnings());
     return response;
   }
 
