@@ -104,6 +104,11 @@ import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
+import org.opensearch.sql.opensearch.storage.rest.CoreEndpointsProvider;
+import org.opensearch.sql.opensearch.storage.rest.RedactionRegistry;
+import org.opensearch.sql.opensearch.storage.rest.RedactionRegistryHolder;
+import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistry;
+import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistryHolder;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine;
 import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
@@ -134,6 +139,7 @@ import org.opensearch.sql.spark.transport.config.AsyncExecutorServiceModule;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
+import org.opensearch.sql.spi.rest.RestEndpointProvider;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.threadpool.ExecutorBuilder;
@@ -153,6 +159,7 @@ public class SQLPlugin extends Plugin
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
   private List<ExecutionEngine> executionEngineExtensions = List.of();
+  private List<RestEndpointProvider> restEndpointProviders = List.of();
   private ClusterService clusterService;
 
   /** Settings should be inited when bootstrap the plugin. */
@@ -181,6 +188,17 @@ public class SQLPlugin extends Plugin
           executionEngineExtensions.size(),
           executionEngineExtensions.stream().map(e -> e.getClass().getSimpleName()).toList());
     }
+
+    List<RestEndpointProvider> restProviders = loader.loadExtensions(RestEndpointProvider.class);
+    this.restEndpointProviders = restProviders != null ? List.copyOf(restProviders) : List.of();
+  }
+
+  private void publishRestCommandRegistries() {
+    List<RestEndpointProvider> providers = new ArrayList<>();
+    providers.add(new CoreEndpointsProvider());
+    providers.addAll(this.restEndpointProviders);
+    RestEndpointRegistryHolder.set(new RestEndpointRegistry(providers));
+    RedactionRegistryHolder.set(new RedactionRegistry());
   }
 
   @Override
@@ -196,10 +214,6 @@ public class SQLPlugin extends Plugin
     Objects.requireNonNull(pluginSettings, "Cluster settings is required");
 
     Metrics.getInstance().registerDefaultMetrics();
-
-    // Publish the node SettingsFilter so the in-cluster `rest '/_cluster/settings'` fetcher can
-    // redact filtered settings exactly as the native GET /_cluster/settings endpoint does.
-    org.opensearch.sql.opensearch.storage.rest.RestSettingsFilterHolder.set(settingsFilter);
 
     return Arrays.asList(
         new RestPPLQueryAction(),
@@ -368,6 +382,9 @@ public class SQLPlugin extends Plugin
     this.clusterService = clusterService;
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
     this.client = (NodeClient) client;
+
+    publishRestCommandRegistries();
+
     this.dataSourceService = createDataSourceService();
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     LocalClusterState.state().setClusterService(clusterService);

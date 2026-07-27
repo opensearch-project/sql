@@ -17,8 +17,8 @@ import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
 
 /**
  * {@link CatalogSource} for the {@code rest} command: an allow-listed, read-only management
- * endpoint resolved against {@link RestEndpointRegistry}, exposing the fixed endpoint schema.
- * Calcite only (no V2 path) and {@code Scannable} for the {@code collect} short-circuit.
+ * endpoint resolved against a {@link RestEndpointRegistry} instance, exposing the fixed endpoint
+ * schema. Calcite only (no V2 path) and {@code Scannable} for the {@code collect} short-circuit.
  */
 @Getter
 public class RestCatalogSource implements CatalogSource {
@@ -26,19 +26,23 @@ public class RestCatalogSource implements CatalogSource {
   private final OpenSearchClient client;
   private final RestSpec spec;
   private final RestEndpointRegistry.Endpoint endpoint;
-  private final boolean redact;
+  private final RedactionRegistry redaction;
 
-  public RestCatalogSource(OpenSearchClient client, RestSpec spec) {
-    this(client, spec, false);
+  public RestCatalogSource(RestEndpointRegistry registry, RestSpec spec, OpenSearchClient client) {
+    this(registry, spec, client, new RedactionRegistry());
   }
 
-  public RestCatalogSource(OpenSearchClient client, RestSpec spec, boolean redact) {
+  public RestCatalogSource(
+      RestEndpointRegistry registry,
+      RestSpec spec,
+      OpenSearchClient client,
+      RedactionRegistry redaction) {
     this.client = client;
     this.spec = spec;
-    this.redact = redact;
+    this.redaction = redaction;
     // Allow-list enforced here: unknown or mutating endpoints and disallowed args are rejected.
-    this.endpoint = RestEndpointRegistry.resolve(spec.getEndpoint());
-    RestEndpointRegistry.validate(spec);
+    this.endpoint = registry.resolve(spec.getEndpoint());
+    registry.validate(spec);
   }
 
   @Override
@@ -48,7 +52,7 @@ public class RestCatalogSource implements CatalogSource {
 
   @Override
   public OpenSearchSystemRequest createRequest() {
-    return new RestRequest(client, endpoint, spec, redact);
+    return new RestRequest(client, endpoint, spec, redaction);
   }
 
   @Override

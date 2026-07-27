@@ -17,8 +17,11 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.storage.rest.RedactionRegistry;
+import org.opensearch.sql.opensearch.storage.rest.RedactionRegistryHolder;
 import org.opensearch.sql.opensearch.storage.rest.RestCatalogSource;
 import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistry;
+import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistryHolder;
 import org.opensearch.sql.opensearch.storage.system.OpenSearchCatalogTable;
 import org.opensearch.sql.opensearch.storage.system.SystemIndexCatalogSource;
 import org.opensearch.sql.storage.StorageEngine;
@@ -52,7 +55,12 @@ public class OpenSearchStorageEngine implements StorageEngine {
 
   private Table restTable(String name) {
     RestSpec spec = decodeRestSpec(name);
-    RestEndpointRegistry.resolve(spec.getEndpoint());
+    RestEndpointRegistry registry = RestEndpointRegistryHolder.get();
+    if (registry == null) {
+      throw new IllegalStateException(
+          "the rest command endpoint registry is not initialized on this node");
+    }
+    registry.resolve(spec.getEndpoint());
     List<String> allowed = settings.getSettingValue(Settings.Key.PPL_REST_ALLOWED_ENDPOINTS);
     if (allowed == null || !(allowed.contains("*") || allowed.contains(spec.getEndpoint()))) {
       throw new IllegalArgumentException(
@@ -63,7 +71,10 @@ public class OpenSearchStorageEngine implements StorageEngine {
                   + "] is not enabled on this cluster. Enabled endpoints: "
                   + allowed);
     }
-    boolean redact = settings.getSettingValue(Settings.Key.PPL_REST_REDACTION_ENABLED);
-    return new OpenSearchCatalogTable(new RestCatalogSource(client, spec, redact), settings);
+    // Redaction is a platform-owned control applied by RedactionClass at the row-shaping choke
+    // point. OSS publishes an empty registry (no-op); a managed distribution fills it via patch.
+    RedactionRegistry redaction = RedactionRegistryHolder.get();
+    return new OpenSearchCatalogTable(
+        new RestCatalogSource(registry, spec, client, redaction), settings);
   }
 }

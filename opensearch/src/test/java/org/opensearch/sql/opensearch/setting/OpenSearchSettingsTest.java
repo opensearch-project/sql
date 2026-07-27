@@ -17,7 +17,6 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.PPL_REST_ALLOWED_ENDPOINTS_SETTING;
-import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.PPL_REST_REDACTION_ENABLED_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_ENGINE_CONFIG;
 
@@ -79,10 +78,8 @@ class OpenSearchSettingsTest {
 
   @Test
   void restSettingsAreNonDynamic() {
-    assertFalse(PPL_REST_REDACTION_ENABLED_SETTING.isDynamic());
     assertFalse(PPL_REST_ALLOWED_ENDPOINTS_SETTING.isDynamic());
     List<Setting<?>> nonDynamic = OpenSearchSettings.pluginNonDynamicSettings();
-    assertTrue(nonDynamic.contains(PPL_REST_REDACTION_ENABLED_SETTING));
     assertTrue(nonDynamic.contains(PPL_REST_ALLOWED_ENDPOINTS_SETTING));
   }
 

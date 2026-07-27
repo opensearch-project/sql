@@ -16,6 +16,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.TABLE_INFO;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -24,6 +25,9 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.storage.rest.CoreEndpointsProvider;
+import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistry;
+import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistryHolder;
 import org.opensearch.sql.opensearch.storage.system.OpenSearchCatalogTable;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.SystemIndexUtils;
@@ -34,6 +38,13 @@ class OpenSearchStorageEngineTest {
   @Mock private OpenSearchClient client;
 
   @Mock private Settings settings;
+
+  @BeforeEach
+  void publishRestRegistry() {
+    // restTable() reads the merged registry from the holder (published by SQLPlugin in production);
+    // publish a built-in-only registry here so the rest endpoints resolve in this unit test.
+    RestEndpointRegistryHolder.set(new RestEndpointRegistry(List.of(new CoreEndpointsProvider())));
+  }
 
   @Test
   public void getTable() {
@@ -65,11 +76,10 @@ class OpenSearchStorageEngineTest {
   public void getRestTableAllowedByWildcard() {
     when(settings.getSettingValue(Settings.Key.PPL_REST_ALLOWED_ENDPOINTS))
         .thenReturn(List.of("*"));
-    when(settings.getSettingValue(Settings.Key.PPL_REST_REDACTION_ENABLED)).thenReturn(false);
     OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
     String name =
         SystemIndexUtils.restTable(
-            new SystemIndexUtils.RestSpec("/_cat/nodes", Map.of(), null, null));
+            new SystemIndexUtils.RestSpec("/_cluster/health", Map.of(), null, null));
     Table table =
         engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), name);
     assertTrue(table instanceof OpenSearchCatalogTable);
@@ -78,12 +88,11 @@ class OpenSearchStorageEngineTest {
   @Test
   public void getRestTableAllowedBySubset() {
     when(settings.getSettingValue(Settings.Key.PPL_REST_ALLOWED_ENDPOINTS))
-        .thenReturn(List.of("/_cat/nodes"));
-    when(settings.getSettingValue(Settings.Key.PPL_REST_REDACTION_ENABLED)).thenReturn(false);
+        .thenReturn(List.of("/_cluster/health"));
     OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
     String name =
         SystemIndexUtils.restTable(
-            new SystemIndexUtils.RestSpec("/_cat/nodes", Map.of(), null, null));
+            new SystemIndexUtils.RestSpec("/_cluster/health", Map.of(), null, null));
     assertTrue(
         engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), name)
             instanceof OpenSearchCatalogTable);
@@ -91,12 +100,13 @@ class OpenSearchStorageEngineTest {
 
   @Test
   public void getRestTableRejectedWhenEndpointNotInSubset() {
+    // The endpoint resolves in the registry but is absent from the (non-empty) enabled subset.
     when(settings.getSettingValue(Settings.Key.PPL_REST_ALLOWED_ENDPOINTS))
-        .thenReturn(List.of("/_cat/nodes"));
+        .thenReturn(List.of("/_some/other"));
     OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
     String name =
         SystemIndexUtils.restTable(
-            new SystemIndexUtils.RestSpec("/_cluster/settings", Map.of(), null, null));
+            new SystemIndexUtils.RestSpec("/_cluster/health", Map.of(), null, null));
     IllegalArgumentException e =
         assertThrows(
             IllegalArgumentException.class,
@@ -112,7 +122,7 @@ class OpenSearchStorageEngineTest {
     OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
     String name =
         SystemIndexUtils.restTable(
-            new SystemIndexUtils.RestSpec("/_cat/nodes", Map.of(), null, null));
+            new SystemIndexUtils.RestSpec("/_cluster/health", Map.of(), null, null));
     IllegalArgumentException e =
         assertThrows(
             IllegalArgumentException.class,

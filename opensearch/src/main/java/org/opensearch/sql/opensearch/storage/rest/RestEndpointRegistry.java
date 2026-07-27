@@ -20,262 +20,130 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import lombok.Getter;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.spi.rest.ArgSpec;
+import org.opensearch.sql.spi.rest.Column;
+import org.opensearch.sql.spi.rest.ColumnType;
+import org.opensearch.sql.spi.rest.RedactionClass;
+import org.opensearch.sql.spi.rest.RestEndpointContext;
+import org.opensearch.sql.spi.rest.RestEndpointDefinition;
+import org.opensearch.sql.spi.rest.RestEndpointHandler;
+import org.opensearch.sql.spi.rest.RestEndpointProvider;
 import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
 
 /**
- * The read-only endpoint allow-list expressed as data: each allow-listed, read-only endpoint maps
- * to its transport action (a read-only call on {@link OpenSearchClient}), a fixed output schema (so
- * the Calcite plan can fix its row type at plan time), and the query args it accepts.
+ * The read-only endpoint allow-list, built by merging every {@link RestEndpointProvider} (the
+ * built-in {@link CoreEndpointsProvider} plus any externally contributed providers) into one map of
+ * endpoint name to an internal {@link Endpoint}. A built-in and an externally contributed endpoint
+ * are uniform entries here; the built-in provider holds no privileged position.
  *
- * <p>This is the single place the read-only allow-list is enforced. Endpoints outside the registry,
- * including every mutating endpoint, are rejected by {@link #resolve} with a clear exception.
- * Adding an endpoint is a reviewed change here, never arbitrary pass-through.
+ * <p>This is the single place the read-only allow-list is enforced. An endpoint that no provider
+ * registered, including every mutating endpoint, is rejected by {@link #resolve} with a clear
+ * exception, and an arg the endpoint's {@link ArgSpec} does not accept is rejected by {@link
+ * #validate}. Adding an endpoint is a reviewed change to a provider, never arbitrary pass-through.
  */
 public final class RestEndpointRegistry {
 
-  private RestEndpointRegistry() {}
+  private final Map<String, Endpoint> registry;
 
-  /** Produces the raw rows for an endpoint via a read-only client call. */
-  @FunctionalInterface
-  public interface RowFetcher {
-    List<Map<String, Object>> fetch(OpenSearchClient client, RestSpec spec);
+  public RestEndpointRegistry(List<RestEndpointProvider> providers) {
+    Map<String, Endpoint> m = new LinkedHashMap<>();
+    for (RestEndpointProvider provider : providers) {
+      for (RestEndpointDefinition definition : provider.getEndpoints()) {
+        if (m.containsKey(definition.name())) {
+          throw new IllegalStateException(
+              "rest endpoint ["
+                  + definition.name()
+                  + "] is registered by more than one provider; endpoint names must be unique");
+        }
+        m.put(definition.name(), new Endpoint(definition));
+      }
+    }
+    this.registry = m;
   }
 
-  /** A single allow-listed endpoint description. */
+  public java.util.Set<String> endpointNames() {
+    return registry.keySet();
+  }
+
+  /** A single allow-listed endpoint, adapted from a provider's {@link RestEndpointDefinition}. */
   @Getter
   public static final class Endpoint {
     private final String path;
     private final LinkedHashMap<String, ExprType> schema;
-    private final Set<String> allowedArgs;
-    private final RowFetcher fetcher;
+    // Column name -> sensitivity class, the join key the choke point uses to pick a Redactor.
+    private final Map<String, RedactionClass> redactionClasses;
+    private final ArgSpec argSpec;
+    private final RestEndpointHandler handler;
 
-    Endpoint(
-        String path,
-        LinkedHashMap<String, ExprType> schema,
-        Set<String> allowedArgs,
-        RowFetcher fetcher) {
-      this.path = path;
-      this.schema = schema;
-      this.allowedArgs = allowedArgs;
-      this.fetcher = fetcher;
-    }
-
-    /** Dispatch the read-only call and shape the response into fixed-schema rows. */
-    public List<ExprValue> toRows(OpenSearchClient client, RestSpec spec) {
-      return toRows(client, spec, false);
+    Endpoint(RestEndpointDefinition definition) {
+      this.path = definition.name();
+      this.schema = toExprSchema(definition.schema());
+      this.redactionClasses = toRedactionClasses(definition.schema());
+      this.argSpec = definition.argSpec();
+      this.handler = definition.handler();
     }
 
     /**
-     * Shape the response into fixed-schema rows, masking network identifiers when redaction is
-     * enabled. {@code /_cat/*} cells are fully masked and the {@code /_cluster/settings} value
-     * column is zone-masked. Off by default.
+     * Invoke the provider's handler and shape the response into fixed-schema rows, masking each
+     * cell by its column's {@link RedactionClass} through the platform {@link RedactionRegistry}.
+     * Runs at execution time (scan open). An empty registry (the OSS default) masks nothing.
      */
-    public List<ExprValue> toRows(OpenSearchClient client, RestSpec spec, boolean redact) {
-      boolean redactCat = redact && path.startsWith("/_cat");
-      boolean redactSettingsValue = redact && "/_cluster/settings".equals(path);
+    public List<ExprValue> toRows(RestEndpointContext ctx, RedactionRegistry redaction) {
       List<ExprValue> out = new ArrayList<>();
-      for (Map<String, Object> raw : fetcher.fetch(client, spec)) {
+      for (Map<String, Object> raw : handler.fetch(ctx)) {
         LinkedHashMap<String, ExprValue> tuple = new LinkedHashMap<>();
         for (Map.Entry<String, ExprType> col : schema.entrySet()) {
           ExprValue value = coerce(col.getKey(), col.getValue(), raw.get(col.getKey()));
-          tuple.put(
-              col.getKey(),
-              maskCell(col.getKey(), col.getValue(), value, redactCat, redactSettingsValue));
+          tuple.put(col.getKey(), maskCell(col.getKey(), col.getValue(), value, redaction));
         }
         out.add(new ExprTupleValue(tuple));
       }
       return out;
     }
 
-    private static ExprValue maskCell(
-        String column,
-        ExprType type,
-        ExprValue value,
-        boolean redactCat,
-        boolean redactSettingsValue) {
+    private ExprValue maskCell(
+        String column, ExprType type, ExprValue value, RedactionRegistry redaction) {
+      // Redaction applies only to non-null string cells; a class declared on a non-string column
+      // (unusual) is ignored so a number is never fed to a text masker.
       if (type != STRING || value.isNull()) {
         return value;
       }
-      if (redactCat) {
-        return stringValue(RestResponseRedactor.redact(value.stringValue()));
+      RedactionClass redactionClass = redactionClasses.getOrDefault(column, RedactionClass.NONE);
+      if (redactionClass == RedactionClass.NONE) {
+        return value;
       }
-      if (redactSettingsValue && "value".equals(column)) {
-        return stringValue(RestResponseRedactor.maskAvailabilityZone(value.stringValue()));
-      }
-      return value;
+      return stringValue(redaction.mask(redactionClass, value.stringValue()));
     }
-  }
-
-  private static final Map<String, Endpoint> REGISTRY = buildRegistry();
-
-  private static Map<String, Endpoint> buildRegistry() {
-    Map<String, Endpoint> m = new LinkedHashMap<>();
-
-    // /_cluster/health — single-row cluster health snapshot (read-only monitor action).
-    LinkedHashMap<String, ExprType> healthSchema = new LinkedHashMap<>();
-    healthSchema.put("cluster_name", STRING);
-    healthSchema.put("status", STRING);
-    healthSchema.put("number_of_nodes", INTEGER);
-    healthSchema.put("number_of_data_nodes", INTEGER);
-    healthSchema.put("active_primary_shards", INTEGER);
-    healthSchema.put("active_shards", INTEGER);
-    healthSchema.put("relocating_shards", INTEGER);
-    healthSchema.put("initializing_shards", INTEGER);
-    healthSchema.put("unassigned_shards", INTEGER);
-    healthSchema.put("timed_out", BOOLEAN);
-    m.put(
-        "/_cluster/health",
-        new Endpoint(
-            "/_cluster/health",
-            healthSchema,
-            Set.of("local"),
-            (client, spec) -> List.of(client.clusterHealth(spec.getArgs()))));
-
-    // /_cat/indices — one row per index (read-only monitor action).
-    LinkedHashMap<String, ExprType> catSchema = new LinkedHashMap<>();
-    catSchema.put("index", STRING);
-    catSchema.put("health", STRING);
-    catSchema.put("pri", INTEGER);
-    catSchema.put("rep", INTEGER);
-    catSchema.put("active_shards", INTEGER);
-    m.put(
-        "/_cat/indices",
-        new Endpoint(
-            "/_cat/indices",
-            catSchema,
-            Set.of("health"),
-            (client, spec) -> client.catIndices(spec.getArgs())));
-
-    // /_cat/nodes — one row per node with resource state (read-only monitor action).
-    LinkedHashMap<String, ExprType> nodesSchema = new LinkedHashMap<>();
-    nodesSchema.put("name", STRING);
-    nodesSchema.put("ip", STRING);
-    nodesSchema.put("node_role", STRING);
-    nodesSchema.put("heap_percent", INTEGER);
-    nodesSchema.put("ram_percent", INTEGER);
-    nodesSchema.put("cpu", INTEGER);
-    m.put(
-        "/_cat/nodes",
-        new Endpoint(
-            "/_cat/nodes",
-            nodesSchema,
-            Set.of(),
-            (client, spec) -> client.catNodes(spec.getArgs())));
-
-    // /_cat/cluster_manager — single row identifying the elected cluster manager node.
-    LinkedHashMap<String, ExprType> clusterManagerSchema = new LinkedHashMap<>();
-    clusterManagerSchema.put("id", STRING);
-    clusterManagerSchema.put("host", STRING);
-    clusterManagerSchema.put("ip", STRING);
-    clusterManagerSchema.put("node", STRING);
-    m.put(
-        "/_cat/cluster_manager",
-        new Endpoint(
-            "/_cat/cluster_manager",
-            clusterManagerSchema,
-            Set.of(),
-            (client, spec) -> client.catClusterManager(spec.getArgs())));
-
-    // /_cat/plugins — one row per installed plugin per node (read-only monitor action).
-    LinkedHashMap<String, ExprType> pluginsSchema = new LinkedHashMap<>();
-    pluginsSchema.put("name", STRING);
-    pluginsSchema.put("component", STRING);
-    pluginsSchema.put("version", STRING);
-    m.put(
-        "/_cat/plugins",
-        new Endpoint(
-            "/_cat/plugins",
-            pluginsSchema,
-            Set.of(),
-            (client, spec) -> client.catPlugins(spec.getArgs())));
-
-    // /_cat/shards — one row per shard (read-only monitor action).
-    LinkedHashMap<String, ExprType> shardsSchema = new LinkedHashMap<>();
-    shardsSchema.put("index", STRING);
-    shardsSchema.put("shard", INTEGER);
-    shardsSchema.put("prirep", STRING);
-    shardsSchema.put("state", STRING);
-    shardsSchema.put("node", STRING);
-    m.put(
-        "/_cat/shards",
-        new Endpoint(
-            "/_cat/shards",
-            shardsSchema,
-            Set.of(),
-            (client, spec) -> client.catShards(spec.getArgs())));
-
-    // /_cluster/state — single-row cluster-state epoch (version, uuid, manager node).
-    LinkedHashMap<String, ExprType> stateSchema = new LinkedHashMap<>();
-    stateSchema.put("cluster_name", STRING);
-    stateSchema.put("state_uuid", STRING);
-    stateSchema.put("version", LONG);
-    stateSchema.put("cluster_manager_node", STRING);
-    m.put(
-        "/_cluster/state",
-        new Endpoint(
-            "/_cluster/state",
-            stateSchema,
-            Set.of(),
-            (client, spec) -> List.of(client.clusterState(spec.getArgs()))));
-
-    // /_cluster/settings — one row per configured setting (persistent/transient tier).
-    LinkedHashMap<String, ExprType> settingsSchema = new LinkedHashMap<>();
-    settingsSchema.put("setting", STRING);
-    settingsSchema.put("value", STRING);
-    settingsSchema.put("tier", STRING);
-    m.put(
-        "/_cluster/settings",
-        new Endpoint(
-            "/_cluster/settings",
-            settingsSchema,
-            Set.of(),
-            (client, spec) -> client.clusterSettings(spec.getArgs())));
-
-    // /_resolve/index — one row per resolved index/alias/data_stream name.
-    LinkedHashMap<String, ExprType> resolveSchema = new LinkedHashMap<>();
-    resolveSchema.put("name", STRING);
-    resolveSchema.put("type", STRING);
-    m.put(
-        "/_resolve/index",
-        new Endpoint(
-            "/_resolve/index",
-            resolveSchema,
-            Set.of("expand_wildcards"),
-            (client, spec) -> client.resolveIndex(spec.getArgs())));
-
-    return m;
   }
 
   /**
-   * Resolve an allow-listed endpoint. Anything outside the registry (unknown path, mutating verb,
+   * Resolve an allow-listed endpoint. Anything no provider registered (unknown path, mutating verb,
    * {@code /services/*}, plugin admin endpoints) is refused here.
    */
-  public static Endpoint resolve(String path) {
+  public Endpoint resolve(String path) {
     if (path == null || path.isBlank()) {
       throw new IllegalArgumentException(
           "rest endpoint must be a non-empty path. Supported read-only endpoints: "
-              + REGISTRY.keySet());
+              + registry.keySet());
     }
-    Endpoint endpoint = REGISTRY.get(path);
+    Endpoint endpoint = registry.get(path);
     if (endpoint == null) {
       throw new IllegalArgumentException(
           "rest endpoint ["
               + path
               + "] is not allow-listed. Only read-only in-cluster endpoints are supported: "
-              + REGISTRY.keySet());
+              + registry.keySet());
     }
     return endpoint;
   }
 
-  /** Validate that every supplied query arg is accepted by the endpoint. */
-  public static void validate(RestSpec spec) {
+  /** Validate the count, the reserved timeout token, and every supplied query arg. */
+  public void validate(RestSpec spec) {
     Endpoint endpoint = resolve(spec.getEndpoint());
     if (spec.getCount() != null && spec.getCount() < 0) {
       throw new IllegalArgumentException(
@@ -294,69 +162,46 @@ public final class RestEndpointRegistry {
           "rest endpoint [" + spec.getEndpoint() + "] does not support the timeout argument yet");
     }
     if (spec.getArgs() != null) {
+      ArgSpec argSpec = endpoint.getArgSpec();
       for (String arg : spec.getArgs().keySet()) {
-        if (!endpoint.getAllowedArgs().contains(arg)) {
+        if (!argSpec.allows(arg)) {
           throw new IllegalArgumentException(
               "rest endpoint ["
                   + spec.getEndpoint()
                   + "] does not accept arg ["
                   + arg
                   + "]. Allowed args: "
-                  + endpoint.getAllowedArgs());
+                  + argSpec.allowedArgs());
         }
-        validateArgValue(spec.getEndpoint(), arg, spec.getArgs().get(arg));
+        argSpec.validateValue(spec.getEndpoint(), arg, spec.getArgs().get(arg));
       }
     }
   }
 
-  // Allowed value domains for the get-args that are applied server-side. Keys are validated against
-  // the per-endpoint allow-list above; values are validated here so a user-supplied value is never
-  // passed unchecked into an admin transport request.
-  private static final Map<String, Set<String>> ARG_VALUE_DOMAINS =
-      Map.of(
-          "local", Set.of("true", "false"),
-          "health", Set.of("green", "yellow", "red"));
-
-  private static final Set<String> EXPAND_WILDCARDS_VALUES =
-      Set.of("open", "closed", "hidden", "none", "all");
-
-  /** Reject any get-arg value outside its allow-listed domain with a clear client error. */
-  private static void validateArgValue(String endpoint, String arg, String value) {
-    Set<String> domain = ARG_VALUE_DOMAINS.get(arg);
-    if (domain != null) {
-      if (value == null || !domain.contains(value.toLowerCase(java.util.Locale.ROOT))) {
-        throw new IllegalArgumentException(
-            "rest endpoint ["
-                + endpoint
-                + "] arg ["
-                + arg
-                + "] has an unsupported value ["
-                + value
-                + "]. Allowed values: "
-                + domain);
-      }
-    } else if ("expand_wildcards".equals(arg)) {
-      if (value == null || value.isBlank()) {
-        throw new IllegalArgumentException(
-            "rest endpoint ["
-                + endpoint
-                + "] arg [expand_wildcards] has an unsupported value ["
-                + value
-                + "]. Allowed values: "
-                + EXPAND_WILDCARDS_VALUES);
-      }
-      for (String token : value.toLowerCase(java.util.Locale.ROOT).split(",")) {
-        if (!EXPAND_WILDCARDS_VALUES.contains(token.trim())) {
-          throw new IllegalArgumentException(
-              "rest endpoint ["
-                  + endpoint
-                  + "] arg [expand_wildcards] has an unsupported value ["
-                  + value
-                  + "]. Allowed values: "
-                  + EXPAND_WILDCARDS_VALUES);
-        }
-      }
+  private static LinkedHashMap<String, ExprType> toExprSchema(List<Column> columns) {
+    LinkedHashMap<String, ExprType> schema = new LinkedHashMap<>();
+    for (Column column : columns) {
+      schema.put(column.name(), toExprType(column.type()));
     }
+    return schema;
+  }
+
+  private static Map<String, RedactionClass> toRedactionClasses(List<Column> columns) {
+    LinkedHashMap<String, RedactionClass> classes = new LinkedHashMap<>();
+    for (Column column : columns) {
+      classes.put(column.name(), column.redaction());
+    }
+    return classes;
+  }
+
+  private static ExprType toExprType(ColumnType type) {
+    return switch (type) {
+      case STRING -> STRING;
+      case INTEGER -> INTEGER;
+      case LONG -> LONG;
+      case DOUBLE -> DOUBLE;
+      case BOOLEAN -> BOOLEAN;
+    };
   }
 
   private static ExprValue coerce(String column, ExprType type, Object value) {
@@ -393,7 +238,6 @@ public final class RestEndpointRegistry {
     return stringValue(String.valueOf(value));
   }
 
-  /** Coerce a transport/JSON value to a Number, parsing numeric strings (e.g. the cat JSON API). */
   private static Number toNumber(Object value) {
     if (value instanceof Number n) {
       return n;
@@ -408,7 +252,6 @@ public final class RestEndpointRegistry {
     return Long.parseLong(s);
   }
 
-  /** Coerce a transport/JSON value to a boolean, accepting Boolean or the strings true/false. */
   private static boolean toBoolean(Object value) {
     if (value instanceof Boolean b) {
       return b;

@@ -1,39 +1,34 @@
 # rest
 
-The `rest` command is a leading command that reads an allow-listed, read-only in-cluster management endpoint (cluster/cat/nodes) and emits the response as PPL rows. Its rows come from the endpoint dispatch, not from an index, so `rest` appears at the start of a query.
+The `rest` command is a leading command that reads an allow-listed, read-only in-cluster management endpoint and emits the response as PPL rows. Its rows come from the endpoint dispatch, not from an index, so `rest` appears at the start of a query.
 
-> **Note**: The `rest` command is supported only on the Calcite query engine (`plugins.calcite.enabled=true`). Each endpoint has a fixed output schema, and the dispatch runs under the caller's security context, so a user who cannot call an endpoint directly cannot call it through `rest`. The command is read-only; mutating and non-allow-listed endpoints are rejected. Each endpoint requires the same cluster-monitor privilege as calling it natively, so `rest` grants no extra access. Some allow-listed endpoints surface operational metadata (for example `/_cat/nodes` exposes node addresses and resource utilization, `/_cat/plugins` the installed plugin inventory, and `/_cluster/state` cluster-state identifiers); this is a deliberate, read-only, monitor-privileged trade-off. `/_cluster/settings` is redacted with the node's setting filter so `Property.Filtered` keys are not surfaced.
+> **Note**: The `rest` command is supported only on the Calcite query engine (`plugins.calcite.enabled=true`). Each endpoint has a fixed output schema, and the dispatch runs under the caller's security context, so a user who cannot call an endpoint directly cannot call it through `rest`. The command is read-only; mutating and non-allow-listed endpoints are rejected. Each endpoint requires the same cluster-monitor privilege as calling it natively, so `rest` grants no extra access.
+
+The `rest` command is a generic, extensible framework: a plugin contributes additional read-only endpoints through the `RestEndpointProvider` extension point without changing the grammar. This first version ships a single built-in endpoint, `/_cluster/health`. Endpoints that surface network topology or other sensitive metadata (for example `/_cat/nodes`, `/_cat/shards`, `/_cluster/state`, `/_cluster/settings`) are gated behind a security review and are added subsequently, together with schema-declared response redaction (a `RedactionClass` per column, masked by a platform-owned redactor).
 
 ## Enabling the command
 
-The `rest` command is **disabled by default**: `plugins.ppl.rest.allowed_endpoints` defaults to an empty list, so every endpoint is rejected until a deployment explicitly opts in. Enable specific endpoints by setting the allow-list (a node-level setting, so it is applied at node startup and cannot be changed at runtime):
+`/_cluster/health` is **enabled by default**: `plugins.ppl.rest.allowed_endpoints` defaults to `["/_cluster/health"]`. Any other endpoint is rejected until a deployment adds it to the allow-list (a node-level setting, applied at node startup and not changeable at runtime):
 
 ```yaml
-plugins.ppl.rest.allowed_endpoints: ["/_cluster/health", "/_cat/nodes"]
+plugins.ppl.rest.allowed_endpoints: ["/_cluster/health"]
 ```
 
-Use `["*"]` to allow every endpoint in the curated list below. An empty list (the default) disables the command entirely.
-
-The `rest` command also supports optional response redaction of network identifiers (IPv4/IPv6 addresses, `inet[...]` forms, EC2-style host names, and availability-zone names) in `/_cat/*` and `/_cluster/settings` cell values, controlled by `plugins.ppl.rest.redaction.enabled` (a node-level setting, default `false`). Managed deployments that must not expose host topology should set it to `true`.
+Use `["*"]` to allow every endpoint in the curated list below. Set an empty list to disable the command entirely.
 
 ## Syntax
 
-The `rest` command has the following syntax:
-
 ```syntax
-rest <endpoint-path> [count=<int>] [timeout=<duration>] [<get-arg>=<value> ...]
+rest <endpoint-path> [count=<int>] [<get-arg>=<value> ...]
 ```
 
 ## Parameters
-
-The `rest` command supports the following parameters.
 
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `<endpoint-path>` | Required | An allow-listed, read-only endpoint path (see the allow-list below), for example `/_cluster/health`. |
 | `count=<int>` | Optional | Caps the number of emitted rows. |
-| `timeout=<duration>` | Optional | Reserved for forward compatibility. It is currently rejected with a clear error, because a single uniform timeout does not map cleanly across the different endpoints. |
-| `<get-arg>=<value>` | Optional | Endpoint query arguments, validated per endpoint by both key and value (for example `local=true` for `/_cluster/health`, `health=green` for `/_cat/indices`, `expand_wildcards=open` for `/_resolve/index`). |
+| `<get-arg>=<value>` | Optional | Endpoint query arguments, validated per endpoint by both key and value (for example `local=true` for `/_cluster/health`). |
 
 ## Allow-list
 
@@ -42,16 +37,8 @@ The `rest` command supports the following parameters.
 | Endpoint | Output columns | Accepted args |
 | --- | --- | --- |
 | `/_cluster/health` | `cluster_name` (string), `status` (string), `number_of_nodes` (integer), `number_of_data_nodes` (integer), `active_primary_shards` (integer), `active_shards` (integer), `relocating_shards` (integer), `initializing_shards` (integer), `unassigned_shards` (integer), `timed_out` (boolean) | `local` |
-| `/_cluster/state` | `cluster_name` (string), `state_uuid` (string), `version` (long), `cluster_manager_node` (string) | (none) |
-| `/_cluster/settings` | `setting` (string), `value` (string), `tier` (string) | (none) |
-| `/_cat/indices` | `index` (string), `health` (string), `pri` (integer), `rep` (integer), `active_shards` (integer) | `health` |
-| `/_cat/nodes` | `name` (string), `ip` (string), `node_role` (string), `heap_percent` (integer), `ram_percent` (integer), `cpu` (integer) | (none) |
-| `/_cat/cluster_manager` | `id` (string), `host` (string), `ip` (string), `node` (string) | (none) |
-| `/_cat/plugins` | `name` (string), `component` (string), `version` (string) | (none) |
-| `/_cat/shards` | `index` (string), `shard` (integer), `prirep` (string), `state` (string), `node` (string) | (none) |
-| `/_resolve/index` | `name` (string), `type` (string) | `expand_wildcards` |
 
-## Example 1: Counting the nodes in the cluster
+## Example: Counting the nodes in the cluster
 
 The following query reads cluster health and projects a column that is deterministic on a single-node cluster:
 
@@ -70,25 +57,4 @@ fetched rows / total rows = 1/1
 +-----------------+
 ```
 
-`/_cluster/health` also exposes `status`, `active_shards`, and the other columns listed in the allow-list, which you can project and filter the same way.
-
-## Example 2: Composing downstream commands over a cat endpoint
-
-The `rest` row source composes with downstream `where`, `sort`, `stats`, and `fields` exactly like an index scan. The following query reads `/_cat/cluster_manager` and counts the rows:
-
-```ppl
-| rest '/_cat/cluster_manager' | stats count() as managers
-```
-
-The query returns the following results:
-
-```text
-fetched rows / total rows = 1/1
-+----------+
-| managers |
-|----------|
-| 1        |
-+----------+
-```
-
-For example, `| rest '/_cat/indices' | where health = 'green' | sort index | fields index, health, pri` lists green indexes; the projected columns come from the endpoint's fixed schema.
+`/_cluster/health` also exposes `status`, `active_shards`, and the other columns listed in the allow-list. The `rest` row source composes with downstream `where`, `sort`, `stats`, and `fields` exactly like an index scan, for example `| rest '/_cluster/health' | where status = 'green' | fields status, active_shards`.

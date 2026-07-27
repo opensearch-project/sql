@@ -55,11 +55,12 @@ public class CalcitePPLRestTest {
   @Test
   public void restReservedNameRoundTrips() {
     RestRelation rest =
-        (RestRelation) parse("| rest \"/_cat/indices\" count=10 timeout=\"5s\" health=\"green\"");
+        (RestRelation)
+            parse("| rest \"/_cluster/health\" count=10 timeout=\"5s\" health=\"green\"");
     String reserved = rest.getTableQualifiedName().toString();
     assertTrue(SystemIndexUtils.isRestSource(reserved));
     SystemIndexUtils.RestSpec spec = SystemIndexUtils.decodeRestSpec(reserved);
-    assertEquals("/_cat/indices", spec.getEndpoint());
+    assertEquals("/_cluster/health", spec.getEndpoint());
     assertEquals(Integer.valueOf(10), spec.getCount());
     assertEquals("5s", spec.getTimeout());
     assertEquals("green", spec.getArgs().get("health"));
