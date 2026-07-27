@@ -544,7 +544,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
                       + " largest consistently-mapped subset; excluded indices: %s. Align the"
                       + " field's mapping across all indices (e.g. map it as keyword everywhere) to"
                       + " include them.",
-                  bucketNames, excludedIndices)));
+                  bucketNames, formatIndexList(excludedIndices, MAX_EXCLUDED_INDICES_IN_WARNING))));
       return pushed;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -559,6 +559,26 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
     KEYWORD,
     TEXT_WITH_KEYWORD,
     NOT_AGGREGATABLE
+  }
+
+  /**
+   * Cap on how many excluded index names to spell out in the partial-result warning. A wide
+   * observability pattern can exclude hundreds of indices; the exact count is already in the
+   * warning's message, so the detail lists only a few examples and summarizes the rest.
+   */
+  private static final int MAX_EXCLUDED_INDICES_IN_WARNING = 5;
+
+  /**
+   * Format a (sorted) index-name list for a warning: spell out up to {@code limit} names, then
+   * summarize any remainder as "and N more" so the message stays readable when the excluded set is
+   * large.
+   */
+  private static String formatIndexList(List<String> indices, int limit) {
+    if (indices.size() <= limit) {
+      return indices.toString();
+    }
+    List<String> shown = indices.subList(0, limit);
+    return String.format("[%s, ... and %d more]", String.join(", ", shown), indices.size() - limit);
   }
 
   /**

@@ -44,6 +44,13 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   private static final String NESTED_TEXT_INDEX = "partial_nested_text";
   private static final String NESTED_PATTERN = "partial_nested_*";
 
+  // Truncation fixture: 1 keyword index + 8 bare-text indices, so the excluded list exceeds the
+  // warning's spell-out cap and must be summarized as "... and N more".
+  private static final String MANY_KEYWORD_INDEX = "partial_many_keyword";
+  private static final String MANY_TEXT_PREFIX = "partial_many_text";
+  private static final String MANY_PATTERN = "partial_many_*";
+  private static final int MANY_TEXT_COUNT = 8;
+
   // Priority-ladder fixture: one keyword index vs two text-with-.keyword indices. Keyword is
   // outnumbered, so a count-based majority would keep the text-with-.keyword group; the
   // deterministic keyword-first rule must keep the single keyword index instead.
@@ -144,6 +151,29 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
         performRequest(client(), bulk);
       }
     }
+
+    // Truncation: 1 keyword + many bare-text indices, so the excluded list exceeds the warning cap.
+    if (!isIndexExist(client(), MANY_KEYWORD_INDEX)) {
+      String mapping =
+          "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
+              + "\"mappings\":{\"properties\":{\"env\":{\"type\":\"keyword\"}}}}";
+      createIndexByRestClient(client(), MANY_KEYWORD_INDEX, mapping);
+      Request bulk = new Request("POST", "/" + MANY_KEYWORD_INDEX + "/_bulk?refresh=true");
+      bulk.setJsonEntity("{\"index\":{}}\n{\"env\":\"prod\"}\n");
+      performRequest(client(), bulk);
+    }
+    String bareTextMapping =
+        "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
+            + "\"mappings\":{\"properties\":{\"env\":{\"type\":\"text\"}}}}";
+    for (int i = 1; i <= MANY_TEXT_COUNT; i++) {
+      String idx = MANY_TEXT_PREFIX + i;
+      if (!isIndexExist(client(), idx)) {
+        createIndexByRestClient(client(), idx, bareTextMapping);
+        Request bulk = new Request("POST", "/" + idx + "/_bulk?refresh=true");
+        bulk.setJsonEntity("{\"index\":{}}\n{\"env\":\"prod\"}\n");
+        performRequest(client(), bulk);
+      }
+    }
   }
 
   @Test
@@ -235,6 +265,25 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
         "both text-with-keyword indices should be excluded",
         warning.getString("detail").contains(PRIORITY_TEXTKW_INDEX_1)
             && warning.getString("detail").contains(PRIORITY_TEXTKW_INDEX_2));
+  }
+
+  @Test
+  public void partialResultWarningTruncatesLargeExcludedList() throws IOException {
+    setPartialResult(true);
+    setPitContextLimit("1");
+    JSONObject result =
+        executeQuery(String.format("source=%s | stats count() by env", MANY_PATTERN));
+
+    JSONObject warning = result.getJSONArray("warnings").getJSONObject(0);
+    // 8 bare-text indices excluded; the message reports the exact count...
+    assertTrue(
+        "message should report the full excluded count",
+        warning.getString("message").contains("8 of 9"));
+    // ...but the detail spells out only a few and summarizes the rest.
+    String detail = warning.getString("detail");
+    assertTrue("detail should summarize the remainder", detail.contains("and 3 more"));
+    assertTrue(
+        "detail should not list every excluded index", !detail.contains(MANY_TEXT_PREFIX + "8"));
   }
 
   @Test
