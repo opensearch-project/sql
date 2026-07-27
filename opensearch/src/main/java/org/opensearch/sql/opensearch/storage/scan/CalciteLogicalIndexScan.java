@@ -540,10 +540,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
                   excludedIndices.size(), mappings.size(), bucketNames),
               String.format(
                   "Field %s is mapped inconsistently across the queried indices, which prevents"
-                      + " aggregation pushdown for the whole pattern. The aggregation ran over the"
-                      + " largest consistently-mapped subset; excluded indices: %s. Align the"
-                      + " field's mapping across all indices (e.g. map it as keyword everywhere) to"
-                      + " include them.",
+                      + " aggregation pushdown for the whole pattern. The aggregation ran only over"
+                      + " the indices where the field is aggregatable; excluded indices: %s. Align"
+                      + " the field's mapping across all indices (e.g. map it as keyword"
+                      + " everywhere) to include them.",
                   bucketNames, formatIndexList(excludedIndices, MAX_EXCLUDED_INDICES_IN_WARNING))));
       return pushed;
     } catch (Exception e) {
