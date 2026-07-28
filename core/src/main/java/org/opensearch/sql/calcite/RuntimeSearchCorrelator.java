@@ -12,6 +12,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -37,18 +38,22 @@ public final class RuntimeSearchCorrelator {
   private RuntimeSearchCorrelator() {}
 
   /**
-   * Moves scalar subqueries out of a {@code query_string} filter and makes them the left input of a
-   * correlate. The right scan consumes their single-row output through a correlation variable, so
-   * its OpenSearch request is not built until every subquery result is available.
+   * Moves the implicit-format scalar subqueries out of a {@code query_string} filter and makes them
+   * the left input of a correlate. The right scan consumes their single-row output through a
+   * correlation variable, so its OpenSearch request is not built until every runtime search
+   * subquery result is available. Other Calcite subquery kinds remain in their original expression.
    */
   public static RelNode correlate(
-      RelNode filterNode, SearchPredicateCompiler searchPredicateCompiler) {
+      RelNode filterNode,
+      SearchPredicateCompiler searchPredicateCompiler,
+      Predicate<RexSubQuery> isImplicitFormatSubquery) {
     if (!(filterNode instanceof Filter filter)) {
       throw new IllegalStateException(
           "Runtime search query must produce a filter, but got "
               + filterNode.getClass().getSimpleName());
     }
-    List<RexSubQuery> subqueries = findSubqueries(filter.getCondition());
+    List<RexSubQuery> subqueries =
+        findImplicitFormatSubqueries(filter.getCondition(), isImplicitFormatSubquery);
     if (subqueries.isEmpty()) {
       return filter;
     }
@@ -104,14 +109,15 @@ public final class RuntimeSearchCorrelator {
         correlate, List.of(), parentFields, filter.getRowType().getFieldNames());
   }
 
-  private static List<RexSubQuery> findSubqueries(RexNode condition) {
+  static List<RexSubQuery> findImplicitFormatSubqueries(
+      RexNode condition, Predicate<RexSubQuery> isImplicitFormatSubquery) {
     List<RexSubQuery> subqueries = new ArrayList<>();
     Set<RexSubQuery> seen = Collections.newSetFromMap(new IdentityHashMap<>());
     condition.accept(
         new RexVisitorImpl<Void>(true) {
           @Override
           public Void visitSubQuery(RexSubQuery subquery) {
-            if (seen.add(subquery)) {
+            if (isImplicitFormatSubquery.test(subquery) && seen.add(subquery)) {
               if (subquery.rel.getRowType().getFieldCount() != 1) {
                 throw new SemanticCheckException(
                     "Implicit format subsearch must return exactly one column");

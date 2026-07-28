@@ -2949,16 +2949,49 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testFormatExplain() throws IOException {
-    String query =
-        StringUtils.format(
-            "source=%s | where account_number < 3 | fields firstname, account_number | format",
-            TEST_INDEX_BANK);
-    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase(Locale.ROOT);
-    Assert.assertTrue(
-        "Expected format to lower to a global ARRAY_AGG and a search projection",
-        logical.contains("array_agg")
-            && logical.contains("array_join")
-            && logical.contains("search="));
+    enabledOnlyWhenPushdownIsEnabled();
+    String actual =
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where account_number < 3 | fields firstname, account_number | format",
+                TEST_INDEX_BANK));
+    assertYamlEqualsIgnoreId(loadExpectedPlan("explain_format_default.yaml"), actual);
+  }
+
+  @Test
+  public void testFormatCustomDelimitersAndMultivalueExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String actual =
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where account_number=1 | eval names=array(firstname, lastname) |"
+                    + " fields names | format mvsep='OR' '{' '[' 'AND' ']' 'OR' '}'",
+                TEST_INDEX_BANK));
+    assertYamlEqualsIgnoreId(loadExpectedPlan("explain_format_custom_multivalue.yaml"), actual);
+  }
+
+  @Test
+  public void testFormatEmptyResultExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String actual =
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where account_number < 0 | fields firstname | format"
+                    + " emptystr='no matching data'",
+                TEST_INDEX_BANK));
+    assertYamlEqualsIgnoreId(loadExpectedPlan("explain_format_empty_result.yaml"), actual);
+  }
+
+  @Test
+  public void testImplicitFormatSubsearchExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String actual =
+        explainQueryYaml(
+            StringUtils.format(
+                "search source=%s age=36 [ search source=%s account_number=6 OR"
+                    + " account_number=13 | fields account_number ] | fields account_number",
+                TEST_INDEX_BANK, TEST_INDEX_BANK));
+    assertYamlEqualsIgnoreId(loadExpectedPlan("explain_format_implicit_subsearch.yaml"), actual);
   }
 
   @Test

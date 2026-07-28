@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -22,6 +23,7 @@ public class CalciteImplicitFormatCommandIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
     enabledOnlyWhenPushdownIsEnabled();
+    loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
   }
 
@@ -67,6 +69,37 @@ public class CalciteImplicitFormatCommandIT extends PPLIntegTestCase {
                 + " | fields account_number | sort account_number");
 
     verifyDataRows(result, rows(1), rows(6));
+  }
+
+  @Test
+  public void testNestedImplicitFormatSubsearchesFeedParentSearch() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "search source="
+                + TEST_INDEX_ACCOUNT
+                + " [ search source="
+                + TEST_INDEX_BANK
+                + " [ search source="
+                + TEST_INDEX_ACCOUNT
+                + " firstname=Hattie | fields city, state ]"
+                + " | fields account_number ]"
+                + " | fields account_number, firstname, lastname, city, state");
+
+    verifyDataRows(result, rows(6, "Hattie", "Bond", "Dante", "TN"));
+  }
+
+  @Test
+  public void testStaticSearchPredicateCombinesWithImplicitFormatSubsearch() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "search source="
+                + TEST_INDEX_BANK
+                + " age=36 [ search source="
+                + TEST_INDEX_BANK
+                + " account_number=6 OR account_number=13 | fields account_number ]"
+                + " | fields account_number, firstname, age | sort account_number");
+
+    verifyDataRows(result, rows(6, "Hattie", 36));
   }
 
   @Test

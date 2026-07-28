@@ -334,7 +334,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.filter(queryStringRex);
     if (node.hasImplicitSubquery()) {
       context.relBuilder.push(
-          RuntimeSearchCorrelator.correlate(context.relBuilder.build(), searchPredicateCompiler));
+          RuntimeSearchCorrelator.correlate(
+              context.relBuilder.build(),
+              searchPredicateCompiler,
+              context::isImplicitFormatSubquery));
     }
     return context.relBuilder.peek();
   }

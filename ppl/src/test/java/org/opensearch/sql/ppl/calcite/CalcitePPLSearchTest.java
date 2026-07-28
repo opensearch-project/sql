@@ -79,6 +79,7 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     Assert.assertSame(root.getCluster(), correlate.getLeft().getCluster());
     Assert.assertSame(root.getCluster(), correlate.getRight().getCluster());
+    verifyResult(correlate.getLeft(), "search=( ( DEPTNO=\"10\" ) )\n");
   }
 
   @Test
@@ -99,6 +100,7 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
               LogicalTableScan(table=[[scott, EMP]])
         """;
     verifyLogical(root, expectedLogical);
+    verifyResult(findCorrelate(root).getLeft(), "search=( ( DEPTNO=\"10\" ) )\n");
   }
 
   @Test
@@ -125,6 +127,36 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
                       LogicalProject(JOB=[$2])
                         LogicalTableScan(table=[[scott, EMP]])
             LogicalFilter(condition=[query_string(MAP('query', CONCAT(CONCAT('(', CONCAT(CONCAT($cor0.search, ' OR ':VARCHAR), $cor0.search0)), ')')))], variablesSet=[[$cor0]])
+              LogicalTableScan(table=[[scott, EMP]])
+        """;
+    verifyLogical(root, expectedLogical);
+    verifyResult(
+        findCorrelate(root).getLeft(),
+        "search=( ( DEPTNO=\"10\" ) ); search0=( ( JOB=\"CLERK\" ) )\n");
+  }
+
+  @Test
+  public void testNestedImplicitFormatSubsearchesUseNestedCorrelates() {
+    RelNode root =
+        getRelNode(
+            "search source=EMP [ search source=EMP [ search source=EMP EMPNO=7369 | fields EMPNO ]"
+                + " | eval EMPNO=7499 | fields EMPNO ]");
+    String expectedLogical =
+        """
+        LogicalProject(EMPNO=[$1], ENAME=[$2], JOB=[$3], MGR=[$4], HIREDATE=[$5], SAL=[$6], COMM=[$7], DEPTNO=[$8])
+          LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])
+            LogicalProject(search=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), ' )':VARCHAR), 'NOT ()':VARCHAR)])
+              LogicalAggregate(group=[{}], __format_rows=[ARRAY_AGG($0)])
+                LogicalProject(__format_row=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(||(||('EMPNO="':VARCHAR, REPLACE(REPLACE('7499':VARCHAR, '\\':VARCHAR, '\\\\':VARCHAR), '"':VARCHAR, '\\"':VARCHAR)), '"':VARCHAR))), ' AND ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT(ARRAY(||(||('EMPNO="':VARCHAR, REPLACE(REPLACE('7499':VARCHAR, '\\':VARCHAR, '\\\\':VARCHAR), '"':VARCHAR, '\\"':VARCHAR)), '"':VARCHAR))), ' AND ':VARCHAR)), ' )':VARCHAR), null:VARCHAR)])
+                  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+                    LogicalProject(search=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), ' )':VARCHAR), 'NOT ()':VARCHAR)])
+                      LogicalAggregate(group=[{}], __format_rows=[ARRAY_AGG($0) WITHIN GROUP ([1])])
+                        LogicalProject(__format_row=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(||(||('EMPNO="':VARCHAR, REPLACE(REPLACE(CAST($0):VARCHAR NOT NULL, '\\':VARCHAR, '\\\\':VARCHAR), '"':VARCHAR, '\\"':VARCHAR)), '"':VARCHAR))), ' AND ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT(ARRAY(||(||('EMPNO="':VARCHAR, REPLACE(REPLACE(CAST($0):VARCHAR NOT NULL, '\\':VARCHAR, '\\\\':VARCHAR), '"':VARCHAR, '\\"':VARCHAR)), '"':VARCHAR))), ' AND ':VARCHAR)), ' )':VARCHAR), null:VARCHAR)], __format_order_0=[$0])
+                          LogicalFilter(condition=[query_string(MAP('query', 'EMPNO:7369':VARCHAR))])
+                            LogicalTableScan(table=[[scott, EMP]])
+                    LogicalFilter(condition=[query_string(MAP('query', $cor0.search))], variablesSet=[[$cor0]])
+                      LogicalTableScan(table=[[scott, EMP]])
+            LogicalFilter(condition=[query_string(MAP('query', $cor1.search))], variablesSet=[[$cor1]])
               LogicalTableScan(table=[[scott, EMP]])
         """;
     verifyLogical(root, expectedLogical);
