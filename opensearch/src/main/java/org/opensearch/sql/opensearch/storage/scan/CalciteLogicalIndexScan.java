@@ -450,10 +450,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
    * caller to fall back — whenever partial mode does not apply.
    */
   public AbstractRelNode tryPartialResultAggregate(Aggregate aggregate, @Nullable Project project) {
-    if (!(Boolean)
-        osIndex
-            .getSettings()
-            .getSettingValue(Settings.Key.CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT)) {
+    if (!isPartialResultEnabled()) {
       return null;
     }
     // A partial result is only safe if the response can surface the warning that says so. Refuse
@@ -500,6 +497,22 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       }
       return null;
     }
+  }
+
+  /**
+   * Whether partial-result mode is enabled for this query. A per-request override (from the client,
+   * e.g. an OpenSearch Dashboards toggle) takes precedence when present; otherwise the cluster
+   * setting decides.
+   */
+  private boolean isPartialResultEnabled() {
+    Boolean override = QueryContext.getPartialResultOverride();
+    if (override != null) {
+      return override;
+    }
+    return (Boolean)
+        osIndex
+            .getSettings()
+            .getSettingValue(Settings.Key.CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT);
   }
 
   public AbstractRelNode pushDownLimit(LogicalSort sort, Integer limit, Integer offset) {

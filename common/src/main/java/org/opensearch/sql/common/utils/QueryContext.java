@@ -24,6 +24,8 @@ public class QueryContext {
 
   private static final String WARNINGS_SUPPORTED_KEY = "warnings_supported";
 
+  private static final String PARTIAL_RESULT_OVERRIDE_KEY = "partial_result_override";
+
   /**
    * Generates a random UUID and adds to the {@link ThreadContext} as the request id.
    *
@@ -105,5 +107,29 @@ public class QueryContext {
    */
   public static boolean isWarningsSupported() {
     return Boolean.parseBoolean(ThreadContext.get(WARNINGS_SUPPORTED_KEY));
+  }
+
+  /**
+   * Record a per-request override for partial-result mode. When set, it takes precedence over the
+   * cluster setting: {@code true} forces partial mode on for this request, {@code false} forces it
+   * off. A {@code null} value (the default) leaves the decision to the cluster setting.
+   *
+   * @param override the per-request preference, or null to defer to the cluster setting
+   */
+  public static void setPartialResultOverride(Boolean override) {
+    if (override == null) {
+      ThreadContext.remove(PARTIAL_RESULT_OVERRIDE_KEY);
+    } else {
+      ThreadContext.put(PARTIAL_RESULT_OVERRIDE_KEY, Boolean.toString(override));
+    }
+  }
+
+  /**
+   * @return the per-request partial-result override, or {@code null} when the request expressed no
+   *     preference (in which case the cluster setting decides).
+   */
+  public static Boolean getPartialResultOverride() {
+    String value = ThreadContext.get(PARTIAL_RESULT_OVERRIDE_KEY);
+    return value == null ? null : Boolean.parseBoolean(value);
   }
 }

@@ -33,6 +33,7 @@ public class PPLQueryRequestFactory {
   private static final String QUERY_PARAMS_ANALYZE = "analyze";
   private static final String QUERY_PARAMS_FETCH_SIZE = "fetch_size";
   private static final String QUERY_PARAMS_INCLUDE_METADATA = "include_metadata";
+  private static final String QUERY_PARAMS_PARTIAL_RESULT = "partial_result";
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
@@ -130,6 +131,11 @@ public class PPLQueryRequestFactory {
       String queryId = jsonContent.optString("queryId", null);
       if (queryId != null) {
         pplRequest.queryId(queryId);
+      }
+      // set per-request partial-result override only when explicitly present, so a request that
+      // says nothing defers to the cluster setting rather than forcing the flag off.
+      if (jsonContent.has(QUERY_PARAMS_PARTIAL_RESULT)) {
+        pplRequest.partialResult(jsonContent.optBoolean(QUERY_PARAMS_PARTIAL_RESULT));
       }
       return pplRequest;
     } catch (JSONException e) {

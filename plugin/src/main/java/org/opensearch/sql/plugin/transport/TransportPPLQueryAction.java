@@ -197,6 +197,9 @@ public class TransportPPLQueryAction
     // Only the JSON response shape carries a warnings channel. Features that return a
     // knowingly-partial result gate on this so they never silently drop data into CSV/RAW/VIZ.
     QueryContext.setWarningsSupported(warningsSupported(transformedRequest));
+    // Per-request partial-result override (e.g. from a Dashboards toggle); null defers to the
+    // cluster setting.
+    QueryContext.setPartialResultOverride(transformedRequest.partialResult());
 
     // Start root span with OTel DB semantic convention attributes
     Span rootSpan =
