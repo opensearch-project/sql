@@ -409,9 +409,14 @@ public class TransportPPLQueryAction
    * Whether the requested response format carries a warnings channel. Only the JSON shape (built by
    * {@code SimpleJsonResponseFormatter} -- the fallback for anything that is not CSV/RAW/VIZ) emits
    * warnings; the others have no slot for them. Mirrors the format branching in {@link
-   * #createListener}.
+   * #createListener}. Explain requests are excluded up front: their {@code format} is an
+   * explain-only value (e.g. {@code json}/{@code yaml}) that {@link #format} cannot resolve, and an
+   * explain response never carries query warnings.
    */
   private boolean warningsSupported(PPLQueryRequest pplRequest) {
+    if (pplRequest.isExplainRequest()) {
+      return false;
+    }
     Format format = format(pplRequest);
     return !(format.equals(Format.CSV) || format.equals(Format.RAW) || format.equals(Format.VIZ));
   }
