@@ -116,7 +116,7 @@ public final class RestEndpointRegistry {
   public Endpoint resolve(String path) {
     if (path == null || path.isBlank()) {
       throw new IllegalArgumentException(
-          "rest endpoint must be a non-empty path. Supported read-only endpoints: "
+          "rest endpoint must be a non-empty path. Only the following endpoints are supported: "
               + registry.keySet());
     }
     Endpoint endpoint = registry.get(path);
@@ -124,7 +124,7 @@ public final class RestEndpointRegistry {
       throw new IllegalArgumentException(
           "rest endpoint ["
               + path
-              + "] is not allow-listed. Only read-only in-cluster endpoints are supported: "
+              + "] is not allow-listed. Only the following endpoints are supported: "
               + registry.keySet());
     }
     return endpoint;
