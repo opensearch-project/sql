@@ -29,11 +29,6 @@ public class RestRequest implements OpenSearchSystemRequest {
   private final RedactionRegistry redaction;
 
   public RestRequest(
-      OpenSearchClient client, RestEndpointRegistry.Endpoint endpoint, RestSpec spec) {
-    this(client, endpoint, spec, new RedactionRegistry());
-  }
-
-  public RestRequest(
       OpenSearchClient client,
       RestEndpointRegistry.Endpoint endpoint,
       RestSpec spec,
@@ -46,9 +41,9 @@ public class RestRequest implements OpenSearchSystemRequest {
 
   @Override
   public List<ExprValue> search() {
-    // The context's transport client is only used by externally contributed providers; the
-    // built-in provider's handlers hold their own client. Sourced from the same OpenSearchClient
-    // the storage engine uses, so it runs under the caller's security thread-context.
+    // The node transport client every provider handler fetches through, sourced from the same
+    // OpenSearchClient the storage engine uses so it runs under the caller's security
+    // thread-context.
     NodeClient nodeClient = client == null ? null : client.getNodeClient().orElse(null);
     RestEndpointContext ctx = RestEndpointContext.of(spec.getArgs(), nodeClient);
     List<ExprValue> rows = endpoint.toRows(ctx, redaction);

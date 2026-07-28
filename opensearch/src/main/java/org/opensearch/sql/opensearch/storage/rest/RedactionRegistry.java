@@ -54,11 +54,6 @@ public final class RedactionRegistry {
     redactors.put(redactionClass, redactor);
   }
 
-  /** True when no masker is registered (the OSS default): every cell passes through unchanged. */
-  public boolean isEmpty() {
-    return redactors.isEmpty();
-  }
-
   /**
    * Mask one cell value for its column's class. A {@code null}/{@code NONE} class, a null value, or
    * a class with no registered masker all pass the value through unchanged.

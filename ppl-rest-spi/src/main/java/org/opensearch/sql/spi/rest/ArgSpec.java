@@ -6,7 +6,6 @@
 package org.opensearch.sql.spi.rest;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -17,8 +16,7 @@ import java.util.Set;
  * declared arg whose value falls outside its domain is rejected. Both checks are enforced uniformly
  * by the sql registry, so a provider expresses its policy as data rather than as code.
  *
- * <p>An arg declared with an empty domain accepts any value. An arg declared as a {@code csvArg}
- * validates each comma-separated token against the domain (e.g. {@code expand_wildcards}).
+ * <p>An arg declared with an empty domain accepts any value.
  */
 public final class ArgSpec {
 
@@ -26,12 +24,9 @@ public final class ArgSpec {
 
   // arg name -> allowed values (empty set means "any value allowed").
   private final Map<String, Set<String>> valueDomains;
-  // subset of arg names whose value is a comma-separated list validated token-by-token.
-  private final Set<String> csvArgs;
 
-  private ArgSpec(Map<String, Set<String>> valueDomains, Set<String> csvArgs) {
+  private ArgSpec(Map<String, Set<String>> valueDomains) {
     this.valueDomains = valueDomains;
-    this.csvArgs = csvArgs;
   }
 
   public Set<String> allowedArgs() {
@@ -51,16 +46,7 @@ public final class ArgSpec {
     if (domain == null || domain.isEmpty()) {
       return;
     }
-    if (csvArgs.contains(arg)) {
-      if (value == null || value.isBlank()) {
-        throw unsupported(endpoint, arg, value, domain);
-      }
-      for (String token : value.toLowerCase(Locale.ROOT).split(",")) {
-        if (!domain.contains(token.trim())) {
-          throw unsupported(endpoint, arg, value, domain);
-        }
-      }
-    } else if (value == null || !domain.contains(value.toLowerCase(Locale.ROOT))) {
+    if (value == null || !domain.contains(value.toLowerCase(Locale.ROOT))) {
       throw unsupported(endpoint, arg, value, domain);
     }
   }
@@ -85,7 +71,6 @@ public final class ArgSpec {
   /** Builder for {@link ArgSpec}. Declaration order is preserved for stable error messages. */
   public static final class Builder {
     private final LinkedHashMap<String, Set<String>> valueDomains = new LinkedHashMap<>();
-    private final Set<String> csvArgs = new LinkedHashSet<>();
 
     public Builder arg(String name) {
       valueDomains.put(name, Set.of());
@@ -97,15 +82,8 @@ public final class ArgSpec {
       return this;
     }
 
-    /** Accept {@code name} as a comma-separated list; every token must be in {@code domain}. */
-    public Builder csvArg(String name, Set<String> domain) {
-      valueDomains.put(name, Set.copyOf(domain));
-      csvArgs.add(name);
-      return this;
-    }
-
     public ArgSpec build() {
-      return new ArgSpec(new LinkedHashMap<>(valueDomains), Set.copyOf(csvArgs));
+      return new ArgSpec(new LinkedHashMap<>(valueDomains));
     }
   }
 }
