@@ -9,12 +9,10 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * One read-only {@code rest} endpoint contributed by a {@link RestEndpointProvider}: a unique name
- * (the token after {@code rest}, e.g. {@code /_cluster/health}), a fixed output {@link Column}
- * schema (so the query planner can pin the row type before execution), the {@link ArgSpec} it
- * accepts, and the {@link RestEndpointHandler} that produces its rows at execution time.
- *
- * <p>Build one with {@link #builder()}. Instances are immutable.
+ * One read-only {@code rest} endpoint from a {@link RestEndpointProvider}: a unique name (the token
+ * after {@code rest}, e.g. {@code /_cluster/health}), a fixed {@link Column} schema, the {@link
+ * ArgSpec} it accepts, and the {@link RestEndpointHandler} that produces its rows. Immutable; build
+ * with {@link #builder()}.
  */
 public interface RestEndpointDefinition {
 

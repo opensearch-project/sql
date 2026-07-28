@@ -10,15 +10,10 @@ import java.util.Map;
 
 /**
  * Produces the raw rows of a {@code rest} endpoint. Invoked at execution time (scan open), never at
- * planning time, so the scan stays lazy and EXPLAIN is side-effect free. A transport backed
- * provider may block on {@code ctx.client().execute(action, request).actionGet()} inside {@link
- * #fetch}; because {@code fetch} runs at execution rather than planning, blocking here is expected
- * and safe.
- *
- * <p>Each row is a map of output-column name to a plain {@code java.lang} value (String, Number,
- * Boolean, or a nested Map of the same). The sql side coerces each value to the declared {@link
- * Column} type and rejects an uncoercible value with a clear client error, so a handler does not
- * need to pre-shape its values to the schema.
+ * planning, so the scan stays lazy and EXPLAIN is side-effect free; a transport-backed provider may
+ * block on {@code ctx.client().execute(...).actionGet()} here. Each row is a map of output-column
+ * name to a plain {@code java.lang} value; the sql side coerces each to the declared {@link Column}
+ * type.
  */
 @FunctionalInterface
 public interface RestEndpointHandler {

@@ -11,12 +11,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The query args a {@code rest} endpoint accepts, and the allowed value domain of each. This is the
- * per-endpoint half of the allow-list: an arg the endpoint does not declare is rejected, and a
- * declared arg whose value falls outside its domain is rejected. Both checks are enforced uniformly
- * by the sql registry, so a provider expresses its policy as data rather than as code.
- *
- * <p>An arg declared with an empty domain accepts any value.
+ * The query args a {@code rest} endpoint accepts, with the allowed value domain of each. An
+ * undeclared arg is rejected; a declared arg whose value is outside its domain is rejected; an
+ * empty domain accepts any value.
  */
 public final class ArgSpec {
 
@@ -37,10 +34,7 @@ public final class ArgSpec {
     return valueDomains.containsKey(arg);
   }
 
-  /**
-   * Validate the value of an accepted arg against its domain. No-op if the arg has no domain (any
-   * value allowed). Throws {@link IllegalArgumentException} with a clear client error otherwise.
-   */
+  /** Validate an accepted arg's value against its domain (no-op if the domain is empty). */
   public void validateValue(String endpoint, String arg, String value) {
     Set<String> domain = valueDomains.get(arg);
     if (domain == null || domain.isEmpty()) {

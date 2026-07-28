@@ -4,7 +4,7 @@ The `rest` command is a leading command that reads an allow-listed, read-only in
 
 > **Note**: The `rest` command is supported only on the Calcite query engine (`plugins.calcite.enabled=true`). Each endpoint has a fixed output schema, and the dispatch runs under the caller's security context, so a user who cannot call an endpoint directly cannot call it through `rest`. The command is read-only; mutating and non-allow-listed endpoints are rejected. Each endpoint requires the same cluster-monitor privilege as calling it natively, so `rest` grants no extra access.
 
-The `rest` command is a generic, extensible framework: a plugin contributes additional read-only endpoints through the `RestEndpointProvider` extension point without changing the grammar. This first version ships a single built-in endpoint, `/_cluster/health`. Endpoints that surface network topology or other sensitive metadata (for example `/_cat/nodes`, `/_cat/shards`, `/_cluster/state`, `/_cluster/settings`) are gated behind a security review and are added subsequently, together with schema-declared response redaction (a `RedactionClass` per column, masked by a platform-owned redactor).
+The `rest` command is a generic, extensible framework: a plugin contributes additional read-only endpoints through the `RestEndpointProvider` extension point without changing the grammar. This first version ships a single built-in endpoint, `/_cluster/health`. Additional endpoints (for example `/_cat/nodes`, `/_cat/shards`, `/_cluster/state`, `/_cluster/settings`) can be added in follow-ups, together with optional response redaction applied centrally at the endpoint choke point.
 
 ## Enabling the command
 

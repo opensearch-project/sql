@@ -8,15 +8,11 @@ package org.opensearch.sql.spi.rest;
 import java.util.List;
 
 /**
- * The extension point a plugin implements to contribute read-only {@code rest} endpoints. A plugin
- * registers a provider through {@code ExtensiblePlugin.loadExtensions(RestEndpointProvider.class)}
- * (a {@code META-INF/services} entry plus {@code extended.plugins=opensearch-sql}); the sql plugin
- * merges every discovered provider with its own built-in provider into one registry, so a built-in
- * endpoint and an externally contributed endpoint are uniform clients of the same contract.
- *
- * <p>A provider declares data (endpoint name, fixed schema, accepted args) and a handler; it never
- * touches the PPL grammar. The single {@code rest <name>} command routes to whichever provider
- * registered {@code <name>}.
+ * The extension point a plugin implements to contribute read-only {@code rest} endpoints, via
+ * {@code ExtensiblePlugin.loadExtensions(RestEndpointProvider.class)}. The sql plugin merges every
+ * discovered provider with its own built-in one into a single registry, so built-in and external
+ * endpoints are uniform clients of the same contract. A provider declares data (name, schema, args)
+ * and a handler; it never touches the PPL grammar.
  */
 public interface RestEndpointProvider {
 

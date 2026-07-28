@@ -264,12 +264,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /**
    * <b>Rest command.</b><br>
-   * Leading command that reads an allow-listed, read-only in-cluster management endpoint
-   * (cluster/cat/nodes) as rows. The validated endpoint spec is encoded into a single reserved
-   * table name via {@link org.opensearch.sql.utils.SystemIndexUtils#restTable}; that name resolves
-   * through the storage engine to a REST source table on the Calcite path, mirroring how DESCRIBE
-   * resolves to a system index. Allow-list/authorization enforcement happens at source-table
-   * construction in the storage engine (it owns the transport actions and per-endpoint schemas).
+   * Encodes the validated endpoint spec into a reserved table name (via {@link
+   * org.opensearch.sql.utils.SystemIndexUtils#restTable}) that resolves through the storage engine
+   * to a REST source table on the Calcite path, mirroring how DESCRIBE resolves to a system index.
    */
   @Override
   public UnresolvedPlan visitRestCommand(OpenSearchPPLParser.RestCommandContext ctx) {
