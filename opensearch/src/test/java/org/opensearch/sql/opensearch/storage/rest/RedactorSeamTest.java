@@ -20,9 +20,9 @@ import org.opensearch.sql.spi.rest.RestEndpointDefinition;
 import org.opensearch.sql.spi.rest.RestEndpointProvider;
 
 /**
- * Proves the {@code rest} choke point applies the single {@link Redactor} to each raw response
- * row (with the endpoint name as scope) before coercion, and that {@link Redactor#NONE} passes
- * rows through unchanged.
+ * Proves the {@code rest} choke point applies the single {@link Redactor} to each raw response row
+ * (with the endpoint name as scope) before coercion, and that {@link Redactor#NONE} passes rows
+ * through unchanged.
  */
 class RedactorSeamTest {
 

@@ -13,10 +13,10 @@ import org.opensearch.sql.spi.rest.Redactor;
  * Mirrors {@link RestEndpointRegistryHolder}.
  *
  * <p>Defaults to {@link Redactor#NONE} so the OSS choke point is a pure no-op even before bootstrap
- * runs and so {@code getTable} never has to null-check; a provider calls {@link #set} during
- * {@code createComponents} to install its own implementation. This is intentionally a single
- * central hook, not a {@code loadExtensions} SPI, so redaction has one owner rather than an open
- * registration surface.
+ * runs and so {@code getTable} never has to null-check; a provider calls {@link #set} during {@code
+ * createComponents} to install its own implementation. This is intentionally a single central hook,
+ * not a {@code loadExtensions} SPI, so redaction has one owner rather than an open registration
+ * surface.
  */
 public final class RedactorHolder {
 
