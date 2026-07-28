@@ -24,6 +24,9 @@ public final class QueryProfile {
   /** Execution-engine-specific plan profile: a {@link PlanNode} tree, or a pre-rendered object. */
   private final Object plan;
 
+  @SerializedName("thread_pool")
+  private final String threadPool;
+
   /**
    * Create a new query profile snapshot.
    *
@@ -31,7 +34,7 @@ public final class QueryProfile {
    * @param phases metric values keyed by {@link MetricName}
    */
   public QueryProfile(double totalTimeMillis, Map<MetricName, Double> phases) {
-    this(totalTimeMillis, phases, null);
+    this(totalTimeMillis, phases, null, null);
   }
 
   /**
@@ -42,9 +45,23 @@ public final class QueryProfile {
    * @param plan plan tree profiling output
    */
   public QueryProfile(double totalTimeMillis, Map<MetricName, Double> phases, Object plan) {
+    this(totalTimeMillis, phases, plan, null);
+  }
+
+  /**
+   * Create a new query profile snapshot.
+   *
+   * @param totalTimeMillis total elapsed milliseconds for the query (rounded to two decimals)
+   * @param phases metric values keyed by {@link MetricName}
+   * @param plan plan tree profiling output
+   * @param threadPool thread pool name that executed the query
+   */
+  public QueryProfile(
+      double totalTimeMillis, Map<MetricName, Double> phases, Object plan, String threadPool) {
     this.summary = new Summary(totalTimeMillis);
     this.phases = buildPhases(phases);
     this.plan = plan;
+    this.threadPool = threadPool;
   }
 
   private Map<String, Phase> buildPhases(Map<MetricName, Double> phases) {

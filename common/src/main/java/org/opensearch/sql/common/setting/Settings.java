@@ -79,7 +79,10 @@ public abstract class Settings {
     ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL(
         "plugins.query.executionengine.async_query.external_scheduler.interval"),
     STREAMING_JOB_HOUSEKEEPER_INTERVAL(
-        "plugins.query.executionengine.spark.streamingjobs.housekeeper.interval");
+        "plugins.query.executionengine.spark.streamingjobs.housekeeper.interval"),
+
+    /** Thread Pool Settings. */
+    SQL_COMPLEX_WORKER_POOL_ENABLED("plugins.sql.complex_worker_pool.enabled");
 
     @Getter private final String keyValue;
 
