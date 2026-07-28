@@ -6,6 +6,8 @@
 package org.opensearch.sql.api;
 
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
+import static org.opensearch.sql.common.setting.Settings.Key.CLUSTER_BUFFER_LIMIT;
+import static org.opensearch.sql.common.setting.Settings.Key.CLUSTER_MAX_CLUSTERS;
 import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_BUFFER_LIMIT;
 import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_MAX_SAMPLE_COUNT;
 import static org.opensearch.sql.common.setting.Settings.Key.PATTERN_METHOD;
@@ -161,6 +163,8 @@ public class UnifiedQueryContext implements AutoCloseable {
                 Map.entry(PATTERN_MODE, "LABEL"),
                 Map.entry(PATTERN_MAX_SAMPLE_COUNT, 10),
                 Map.entry(PATTERN_BUFFER_LIMIT, 100000),
+                Map.entry(CLUSTER_BUFFER_LIMIT, 50000),
+                Map.entry(CLUSTER_MAX_CLUSTERS, 10000),
                 Map.entry(PATTERN_SHOW_NUMBERED_TOKEN, false)));
 
     /**

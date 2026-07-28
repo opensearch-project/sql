@@ -360,6 +360,7 @@ public enum BuiltinFunctionName {
   INTERNAL_ITEM(FunctionName.of("item"), true),
   INTERNAL_PATTERN_PARSER(FunctionName.of("pattern_parser")),
   INTERNAL_PATTERN(FunctionName.of("pattern")),
+  INTERNAL_CLUSTER_LABEL(FunctionName.of("cluster_label")),
   INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
   INTERNAL_GROK(FunctionName.of("grok"), true),
   INTERNAL_PARSE(FunctionName.of("parse"), true),
@@ -428,6 +429,7 @@ public enum BuiltinFunctionName {
           .put("dc", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("distinct_count", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
+          .put("cluster_label", BuiltinFunctionName.INTERNAL_CLUSTER_LABEL)
           .put("row_number", BuiltinFunctionName.ROW_NUMBER)
           .build();
 
