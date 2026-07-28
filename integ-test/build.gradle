@@ -387,11 +387,8 @@ testClusters {
         plugin(getGeoSpatialPlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
-        // The rest command is disabled by default (empty allow-list). Opt this cluster into the
-        // registered endpoints so the rest integration tests exercise the enabled path. A literal
-        // "*" cannot be used because a bare * is a YAML alias indicator in opensearch.yml.
-        setting 'plugins.ppl.rest.allowed_endpoints',
-                '/_cluster/health,/_cluster/state,/_cluster/settings,/_cat/indices,/_cat/nodes,/_cat/cluster_manager,/_cat/plugins,/_cat/shards,/_resolve/index'
+        // Only /_cluster/health is registered; pin the allow-list to it for the rest ITs.
+        setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
     }
     yamlRestTest {
         testDistribution = 'archive'
@@ -410,9 +407,8 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
-        // Opt into the rest endpoints (disabled by default) so RestCommandSecurityIT runs.
-        setting 'plugins.ppl.rest.allowed_endpoints',
-                '/_cluster/health,/_cluster/state,/_cluster/settings,/_cat/indices,/_cat/nodes,/_cat/cluster_manager,/_cat/plugins,/_cat/shards,/_resolve/index'
+        // Only /_cluster/health is registered; pin the allow-list to it for RestCommandSecurityIT.
+        setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
     }
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
