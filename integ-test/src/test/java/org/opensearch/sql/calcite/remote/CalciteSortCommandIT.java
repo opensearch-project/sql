@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.util.Capability.LUCENE_PUSHDOWN_EXPLAIN;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
@@ -16,6 +17,7 @@ import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.SortCommandIT;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteSortCommandIT extends SortCommandIT {
   @Override
@@ -80,6 +82,11 @@ public class CalciteSortCommandIT extends SortCommandIT {
   }
 
   @Test
+  @RequiresCapability(
+      value = LUCENE_PUSHDOWN_EXPLAIN,
+      note =
+          "asserts a Lucene SORT-> pushdown fragment in the explain plan, absent on the AE route"
+              + " (LUCENE_PUSHDOWN_EXPLAIN).")
   public void testPushdownSortCastToDoubleExpression() throws IOException {
     // Similar to query: 'source=%s | sort num(age)'. But left query doesn't output casted column.
     String ppl =

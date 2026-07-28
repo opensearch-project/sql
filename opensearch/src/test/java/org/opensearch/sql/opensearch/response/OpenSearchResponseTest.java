@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.response;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -17,8 +18,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -339,5 +342,37 @@ class OpenSearchResponseTest {
       var result = resultHit.tupleValue().get("_highlight").tupleValue().get("highlights");
       assertTrue(expected.equals(result));
     }
+  }
+
+  @Test
+  void iterator_skipsDocumentWhenConstructThrows() {
+    when(searchResponse.getHits())
+        .thenReturn(
+            new SearchHits(
+                new SearchHit[] {searchHit1, searchHit2},
+                new TotalHits(2L, TotalHits.Relation.EQUAL_TO),
+                1.0F));
+
+    when(searchHit1.getSourceAsString()).thenReturn("{\"id1\": 1}");
+    when(searchHit1.getInnerHits()).thenReturn(null);
+    when(searchHit1.getId()).thenReturn("doc1");
+    when(searchHit2.getSourceAsString()).thenReturn("{\"id1\": 2}");
+    when(searchHit2.getInnerHits()).thenReturn(null);
+
+    when(factory.construct(any(), anyBoolean()))
+        .thenThrow(new RuntimeException("simulated parse failure"))
+        .thenReturn(exprTupleValue2);
+
+    List<ExprValue> results = new ArrayList<>();
+    assertDoesNotThrow(
+        () -> {
+          Iterator<ExprValue> it =
+              OpenSearchResponse.of(searchResponse, factory, List.of("id1")).iterator();
+          while (it.hasNext()) {
+            results.add(it.next());
+          }
+        });
+    assertEquals(1, results.size());
+    assertEquals(exprTupleValue2, results.get(0));
   }
 }

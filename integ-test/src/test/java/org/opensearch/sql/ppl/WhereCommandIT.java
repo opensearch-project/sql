@@ -31,7 +31,12 @@ public class WhereCommandIT extends PPLIntegTestCase {
     super.init();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
-    loadIndex(Index.GAME_OF_THRONES);
+    // game_of_thrones has a multi-value array for the scalar-mapped `titles` field, which the
+    // parquet store rejects at bulk load; skip it on the AE route so it doesn't abort init() for
+    // the rest of the suite. No test in this class hierarchy queries game_of_thrones.
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.GAME_OF_THRONES);
+    }
     loadIndex(Index.DATETIME);
   }
 

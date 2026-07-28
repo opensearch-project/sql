@@ -77,7 +77,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "SELECT `MGR`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `MGR` IN (SELECT `MGR`\n"
-            + "FROM `scott`.`EMP`\n"
+            + "FROM `scott`.`EMP` `EMP0`\n"
             + "WHERE `DEPTNO` = 10)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

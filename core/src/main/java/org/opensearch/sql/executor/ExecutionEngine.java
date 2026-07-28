@@ -21,6 +21,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.protocol.response.format.Format;
 
 /** Execution engine that encapsulates execution details. */
 public interface ExecutionEngine {
@@ -73,6 +74,16 @@ public interface ExecutionEngine {
     listener.onFailure(
         new UnsupportedOperationException(
             getClass().getSimpleName() + " does not support RelNode explain"));
+  }
+
+  default void explain(
+      RelNode plan,
+      ExplainMode mode,
+      Format format,
+      CalcitePlanContext context,
+      ResponseListener<ExplainResponse> listener) {
+    // Default: ignore format parameter, delegate to old signature for BWC
+    explain(plan, mode, context, listener);
   }
 
   /** Data class that encapsulates ExprValue. */
@@ -163,5 +174,8 @@ public interface ExecutionEngine {
     private final String logical;
     private final String physical;
     private final String extended;
+    // For json_tree format: parsed JSON objects instead of strings
+    private Object logicalTree;
+    private Object physicalTree;
   }
 }

@@ -393,6 +393,94 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
   }
 
+  // --- Multi-index comma-separated source tests (FGAC bypass regression) ---
+
+  @Test
+  public void testPPLMultiIndexDeniedWhenSecondIndexUnauthorized() throws IOException {
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executePPLAsUser(
+                    "source = " + TEST_INDEX + ", " + FORBIDDEN_INDEX + " | fields name, age",
+                    ALLOWED_USER));
+    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void testPPLMultiIndexDeniedWithBackticksAuthorizedFirst() throws IOException {
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executePPLAsUser(
+                    "source = `" + TEST_INDEX + "`, `" + FORBIDDEN_INDEX + "` | fields name, age",
+                    ALLOWED_USER));
+    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void testPPLMultiIndexDeniedWithUnauthorizedFirst() throws IOException {
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executePPLAsUser(
+                    "source = " + FORBIDDEN_INDEX + ", " + TEST_INDEX + " | fields name, age",
+                    ALLOWED_USER));
+    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void testPPLMultiIndexAllowedWhenAllAuthorized() throws IOException {
+    try {
+      JSONObject result =
+          executePPLAsUser(
+              "source = " + TEST_INDEX + ", " + TEST_INDEX_2 + " | fields name, age",
+              WILDCARD_USER);
+      assertTrue("Expected datarows in response", result.has("datarows"));
+    } catch (ResponseException e) {
+      assertNotEquals(
+          "Expected auth to pass (not 403) when all indices are authorized",
+          403,
+          e.getResponse().getStatusLine().getStatusCode());
+    }
+  }
+
+  // --- Edge cases: malformed comma-separated source patterns ---
+
+  @Test
+  public void testPPLDoubleCommaRejected() throws IOException {
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executePPLAsUser(
+                    "source = " + TEST_INDEX + ",," + FORBIDDEN_INDEX + " | fields name, age",
+                    ALLOWED_USER));
+    assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void testPPLLeadingCommaRejected() throws IOException {
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executePPLAsUser("source = ," + TEST_INDEX + " | fields name, age", ALLOWED_USER));
+    assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void testPPLTrailingCommaRejected() throws IOException {
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executePPLAsUser("source = " + TEST_INDEX + ", | fields name, age", ALLOWED_USER));
+    assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
+  }
+
   @Test
   public void testSQLQueryAllowedForAuthorizedUser() throws IOException {
     try {
@@ -439,6 +527,51 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
                 executeSQLAsUser(
                     "SELECT name, age FROM " + TEST_INDEX + " LIMIT 3", SEARCH_ONLY_USER));
     assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+  }
+
+  // --- SQL multi-index syntax validation ---
+
+  @Test
+  public void testSQLMultiIndexCommaInFromRejected() throws IOException {
+    // SQL FROM "idx1,idx2" — comma inside identifier, should be rejected as syntax error
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeSQLAsUser(
+                    "SELECT name, age FROM " + TEST_INDEX + "," + FORBIDDEN_INDEX + " LIMIT 3",
+                    ALLOWED_USER));
+    assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void testSQLMultiIndexCrossJoinRejected() throws IOException {
+    // SQL cross join syntax — should not bypass FGAC
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeSQLAsUser(
+                    "SELECT a.name FROM " + TEST_INDEX + " a, " + FORBIDDEN_INDEX + " b LIMIT 3",
+                    ALLOWED_USER));
+    assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void testSQLMultiIndexJoinRejected() throws IOException {
+    // Explicit JOIN — should not bypass FGAC
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeSQLAsUser(
+                    "SELECT a.name FROM "
+                        + TEST_INDEX
+                        + " a JOIN "
+                        + FORBIDDEN_INDEX
+                        + " b ON a.name = b.name LIMIT 3",
+                    ALLOWED_USER));
+    assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
   }
 
   /** Executes a PPL query via the production SQL plugin endpoint (/_plugins/_ppl). */

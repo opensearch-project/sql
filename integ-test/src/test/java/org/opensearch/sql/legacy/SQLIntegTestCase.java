@@ -139,6 +139,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {
+    // No client when every test in the class was skipped (e.g. @RequiresCapability on the AE
+    // route).
+    if (client() == null) {
+      return;
+    }
     if (System.getProperty("tests.rest.bwcsuite") == null) {
       wipeAllOpenSearchIndices();
       wipeAllClusterSettings();
@@ -984,7 +989,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "events_traffic",
         "events_traffic",
         getMappingFile("events_traffic_index_mapping.json"),
-        "src/test/resources/events_traffic.json");
+        "src/test/resources/events_traffic.json"),
+    TIMEWRAP_TEST(
+        "timewrap_test",
+        "timewrap_test",
+        "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"keyword\"},\"requests\":{\"type\":\"integer\"},\"errors\":{\"type\":\"integer\"}}}}",
+        "src/test/resources/timewrap_test.json");
 
     private final String name;
     private final String type;

@@ -39,7 +39,9 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -54,16 +56,23 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   private final AstExpressionBuilder expressionBuilder;
 
   /** Parsing context stack that contains context for current query parsing. */
-  private final ParsingContext context = new ParsingContext();
+  protected final ParsingContext context = new ParsingContext();
 
   /**
    * SQL query to get original token text. This is necessary because token.getText() returns text
    * without whitespaces or other characters discarded by lexer.
    */
-  private final String query;
+  protected final String query;
+
+  protected final AstBuildGuard guard;
 
   public AstBuilder(String query) {
+    this(query, null);
+  }
+
+  public AstBuilder(String query, Settings settings) {
     this.query = query;
+    this.guard = AstBuildGuard.fromSettings(settings);
     this.expressionBuilder = createExpressionBuilder();
   }
 
@@ -290,7 +299,7 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
   /** Override to provide a custom expression builder (e.g., with subquery support). */
   protected AstExpressionBuilder createExpressionBuilder() {
-    return new AstExpressionBuilder();
+    return new AstExpressionBuilder(guard);
   }
 
   private UnresolvedExpression visitSelectItem(SelectElementContext ctx) {

@@ -162,7 +162,7 @@ public class BuiltinFunctionRepository {
           || sourceTypes.equals(targetTypes)) {
         return Optional.of(funcBuilder);
       }
-      return Optional.of(castArguments(sourceTypes, targetTypes, funcBuilder));
+      return Optional.of(castArguments(functionName, sourceTypes, targetTypes, funcBuilder));
     } else {
       return Optional.empty();
     }
@@ -175,8 +175,24 @@ public class BuiltinFunctionRepository {
    * this case, wrap F and return equal(BOOL, cast_to_bool(STRING)).
    */
   private FunctionBuilder castArguments(
-      List<ExprType> sourceTypes, List<ExprType> targetTypes, FunctionBuilder funcBuilder) {
+      FunctionName funcName,
+      List<ExprType> sourceTypes,
+      List<ExprType> targetTypes,
+      FunctionBuilder funcBuilder) {
     return (fp, arguments) -> {
+      // A resolver may return a fixed-arity resolved signature regardless of how many arguments it
+      // was called with (e.g. a table function called with a duplicate named argument). When more
+      // arguments are supplied than the resolved signature declares, the cast loop would index past
+      // the end of the resolved type list and throw an unchecked IndexOutOfBoundsException that
+      // surfaces as HTTP 500. Reject that overflow with a clean ExpressionEvaluationException.
+      // Under-arity is left to the resolver's own validation, which produces a more specific
+      // message; it cannot overflow the resolved type list.
+      if (arguments.size() > targetTypes.size()) {
+        throw new ExpressionEvaluationException(
+            String.format(
+                "Expected %d arguments for function %s but received %d",
+                targetTypes.size(), funcName.getFunctionName(), arguments.size()));
+      }
       List<Expression> argsCasted = new ArrayList<>();
       for (int i = 0; i < arguments.size(); i++) {
         Expression arg = arguments.get(i);

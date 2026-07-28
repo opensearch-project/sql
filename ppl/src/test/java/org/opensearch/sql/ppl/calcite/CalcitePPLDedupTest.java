@@ -198,7 +198,7 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $4)])\n"
             + "      LogicalFilter(condition=[IS NOT NULL($4)])\n"
             + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], DEPTNO=[$7],"
-            + " NEW_DEPTNO=[+($7, 1)])\n"
+            + " NEW_DEPTNO=[+(CAST($7):BIGINT, 1)])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     ppl =
@@ -216,7 +216,8 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "    LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
             + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $3)])\n"
             + "      LogicalFilter(condition=[IS NOT NULL($3)])\n"
-            + "        LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "        LogicalProject(NEW_DEPTNO=[+(CAST($7):BIGINT, 1)], EMPNO=[$0], ENAME=[$1],"
+            + " JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     ppl =
@@ -229,10 +230,10 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
             + "    LogicalFilter(condition=[<=($4, 1)])\n"
             + "      LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
-            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0 NULLS"
-            + " FIRST)])\n"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0 NULLS FIRST)])\n"
             + "        LogicalFilter(condition=[IS NOT NULL($0)])\n"
-            + "          LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "          LogicalProject(NEW_DEPTNO=[+(CAST($7):BIGINT, 1)], EMPNO=[$0], ENAME=[$1],"
+            + " JOB=[$2])\n"
             + "            LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -277,10 +278,10 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
             + "    LogicalFilter(condition=[<=($4, 1)])\n"
             + "      LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
-            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0 NULLS"
-            + " FIRST)])\n"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0 NULLS FIRST)])\n"
             + "        LogicalFilter(condition=[IS NOT NULL($0)])\n"
-            + "          LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "          LogicalProject(NEW_DEPTNO=[+(CAST($7):BIGINT, 1)], EMPNO=[$0], ENAME=[$1],"
+            + " JOB=[$2])\n"
             + "            LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     // After fix, the sort order (NEW_DEPTNO ASC) must be preserved through dedup.
@@ -304,7 +305,8 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "    LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
             + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0)])\n"
             + "      LogicalFilter(condition=[IS NOT NULL($0)])\n"
-            + "        LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "        LogicalProject(NEW_DEPTNO=[+(CAST($7):BIGINT, 1)], EMPNO=[$0], ENAME=[$1],"
+            + " JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     ppl =
@@ -317,7 +319,8 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "    LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
             + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $3)])\n"
             + "      LogicalFilter(condition=[IS NOT NULL($3)])\n"
-            + "        LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "        LogicalProject(NEW_DEPTNO=[+(CAST($7):BIGINT, 1)], EMPNO=[$0], ENAME=[$1],"
+            + " JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     ppl =
@@ -330,10 +333,10 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
             + "    LogicalFilter(condition=[<=($4, 1)])\n"
             + "      LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
-            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0 NULLS"
-            + " FIRST)])\n"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0 NULLS FIRST)])\n"
             + "        LogicalFilter(condition=[IS NOT NULL($0)])\n"
-            + "          LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+            + "          LogicalProject(NEW_DEPTNO=[+(CAST($7):BIGINT, 1)], EMPNO=[$0], ENAME=[$1],"
+            + " JOB=[$2])\n"
             + "            LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }

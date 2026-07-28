@@ -30,7 +30,7 @@ calcite:
                     EnumerableCalc(expr#0..15=[{inputs}], expr#16=[1], expr#17=['m'], expr#18=[SPAN($t1, $t16, $t17)], expr#19=[IS NOT NULL($t1)], host=[$t4], @timestamp0=[$t18], $condition=[$t19])
                       CalciteEnumerableIndexScan(table=[[OpenSearch, events]])
               EnumerableSort(sort0=[$0], dir0=[ASC])
-                EnumerableCalc(expr#0..2=[{inputs}], host=[$t0], $1=[$t2])
+                EnumerableCalc(expr#0..2=[{inputs}], host=[$t0], _row_number_chart_=[$t2])
                   EnumerableWindow(window#0=[window(order by [1 DESC-nulls-last] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
                     EnumerableAggregate(group=[{4}], __grand_total__=[COUNT()])
                       EnumerableCalc(expr#0..15=[{inputs}], expr#16=[IS NOT NULL($t1)], expr#17=[IS NOT NULL($t4)], expr#18=[AND($t16, $t17)], proj#0..15=[{exprs}], $condition=[$t18])

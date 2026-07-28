@@ -89,5 +89,5 @@ If you're interested in the new query engine, please find more details in [V3 Ar
 The following items are on our roadmap with high priority:
 - Resolve the [V3 limitation](#33-limitations).
 - Advancing pushdown optimization and benchmarking
-- Unified the PPL syntax between [PPL-on-OpenSearch](https://github.com/opensearch-project/sql/blob/main/ppl/src/main/antlr/OpenSearchPPLParser.g4) and [PPL-on-Spark](https://github.com/opensearch-project/opensearch-spark/blob/main/ppl-spark-integration/src/main/antlr4/OpenSearchPPLParser.g4)
+- Unified the PPL syntax between [PPL-on-OpenSearch](https://github.com/opensearch-project/sql/blob/main/ppl/src/main/antlr/OpenSearchPPLParser.g4) and [PPL-on-Spark](https://github.com/opensearch-project/sql/blob/main/language-grammar/src/main/antlr4/OpenSearchPPLParser.g4)
 - Support more DSL aggregation

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.FULLTEXT_RELEVANCE_FUNC;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -17,7 +18,9 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(FULLTEXT_RELEVANCE_FUNC)
 public class HighlightFunctionIT extends SQLIntegTestCase {
 
   @Override

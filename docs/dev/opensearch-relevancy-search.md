@@ -119,7 +119,7 @@ Besides, one of the query engine architecture tenets is to keep the job of every
 
 #### Option B: Create a new query plan node dedicated for the search features.
 
-The diagram below is simplified with only the logical plan and physical plan sections and leaves out others. Please check out [OpenSearch SQL Engine Architecture](https://github.com/opensearch-project/sql/blob/main/docs/dev/Architecture.md) for the complete architecture of the query engine.
+The diagram below is simplified with only the logical plan and physical plan sections and leaves out others. Please check out [OpenSearch SQL Engine Architecture](https://github.com/opensearch-project/sql/blob/main/docs/dev/intro-architecture.md) for the complete architecture of the query engine.
 
 ![relevance-Page-2 (4)](https://user-images.githubusercontent.com/33583073/129938534-28fa4845-4246-4707-9519-e68c9e86d174.png)
 

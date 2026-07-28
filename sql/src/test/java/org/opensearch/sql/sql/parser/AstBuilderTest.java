@@ -37,6 +37,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -51,6 +52,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
@@ -776,5 +778,29 @@ class AstBuilderTest extends AstBuilderTestBase {
     assertThrows(
         SyntaxCheckException.class,
         () -> buildAST("SELECT * FROM t WHERE EXISTS (SELECT 1 FROM t2)"));
+  }
+
+  @Test
+  public void configured_max_expression_depth_from_settings_is_applied() {
+    Settings settings =
+        new Settings() {
+          @Override
+          public <T> T getSettingValue(Key key) {
+            return (T) Integer.valueOf(5);
+          }
+
+          @Override
+          public List<?> getSettings() {
+            return List.of();
+          }
+        };
+    StringBuilder where = new StringBuilder("a = 1");
+    for (int i = 2; i <= 20; i++) {
+      where.append(" OR a = ").append(i);
+    }
+    String query = "SELECT * FROM t WHERE " + where;
+    AstBuilder builder = new AstBuilder(query, settings);
+    assertThrows(
+        IllegalArgumentException.class, () -> new SQLSyntaxParser().parse(query).accept(builder));
   }
 }

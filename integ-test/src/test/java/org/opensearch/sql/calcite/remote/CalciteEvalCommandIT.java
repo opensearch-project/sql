@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TELEMETRY;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -29,6 +30,7 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
 
     loadIndex(Index.BANK);
     loadIndex(Index.TELEMETRY);
+    loadIndex(Index.DEEP_NESTED);
 
     // Pre-create test_eval through the helper so the analytics-engine compatibility run
     // (tests.analytics.parquet_indices=true) provisions it as a parquet-backed composite
@@ -160,7 +162,7 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
     // longer dropped by `shouldOverrideField`'s prefix branch.
     JSONObject result =
         executeQuery("source=test_eval_agent | fields agent | eval `agent.name` = 'test'");
-    verifySchema(result, schema("agent", "struct"));
+    verifySchema(result, schema("agent", "struct"), schema("agent.name", "string"));
   }
 
   @Test
@@ -232,5 +234,13 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
         rows("Amber JOHnny", "Duke Willmington", "Amber JOHnny Duke Willmington"),
         rows("Hattie", "Bond", "Hattie Bond"),
         rows("Nanette", "Bates", "Nanette Bates"));
+  }
+
+  @Test
+  public void testStruckFieldAndSubFieldWithHead() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | fields city.name, city | head", TEST_INDEX_DEEP_NESTED));
+    verifySchema(result, schema("city.name", "string"), schema("city", "struct"));
   }
 }

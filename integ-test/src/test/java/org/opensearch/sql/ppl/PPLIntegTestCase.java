@@ -108,7 +108,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return explainQuery(query, Format.JSON, mode).replace("\\r\\n", "\\n");
   }
 
-  private String explainQuery(String query, Format format, ExplainMode mode) throws IOException {
+  protected String explainQuery(String query, Format format, ExplainMode mode) throws IOException {
     Response response =
         client()
             .performRequest(buildRequest(query, String.format(EXPLAIN_API_ENDPOINT, format, mode)));

@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.common.document.DocumentField;
@@ -27,10 +28,29 @@ public class TopHitsParser implements MetricParser {
   private final boolean returnSingleValue;
   private final boolean returnMergeValue;
 
+  /**
+   * Maps each original OpenSearch field name to one or more output (renamed) field names. Used by
+   * the dedup aggregation pushdown path when {@code rename} creates aliases that differ from the
+   * index field name: top_hits returns {@code _source} / {@code fields} entries keyed by the
+   * original name, while the Calcite row-type expects the renamed name. A single original field may
+   * map to multiple output names when both {@code rename} and an {@code eval} column reference
+   * resolve to the same source field (issue #5197).
+   */
+  @Nullable private final Map<String, List<String>> fieldNameMapping;
+
   public TopHitsParser(String name, boolean returnSingleValue, boolean returnMergeValue) {
+    this(name, returnSingleValue, returnMergeValue, null);
+  }
+
+  public TopHitsParser(
+      String name,
+      boolean returnSingleValue,
+      boolean returnMergeValue,
+      @Nullable Map<String, List<String>> fieldNameMapping) {
     this.name = name;
     this.returnSingleValue = returnSingleValue;
     this.returnMergeValue = returnMergeValue;
+    this.fieldNameMapping = fieldNameMapping;
   }
 
   @Override
@@ -129,9 +149,40 @@ public class TopHitsParser implements MetricParser {
                         ? new LinkedHashMap<>()
                         : new LinkedHashMap<>(hit.getSourceAsMap());
                 hit.getFields().values().forEach(f -> map.put(f.getName(), f.getValue()));
+                applyFieldNameMapping(map);
                 return map;
               })
           .toList();
+    }
+  }
+
+  /**
+   * Applies {@link #fieldNameMapping} to a parsed hit map in-place.
+   *
+   * <p>For each {@code (originalName → [outputName1, outputName2, ...])} entry: the value stored
+   * under {@code originalName} is copied to every output name, and {@code originalName} is removed
+   * unless it is itself one of the expected output names. This handles both the single-rename case
+   * (issue #5150) and the many-to-one collision case where two aliases resolve to the same source
+   * field (issue #5197).
+   */
+  private void applyFieldNameMapping(Map<String, Object> map) {
+    if (fieldNameMapping == null || fieldNameMapping.isEmpty()) {
+      return;
+    }
+    for (Map.Entry<String, List<String>> entry : fieldNameMapping.entrySet()) {
+      String originalName = entry.getKey();
+      Object value = map.get(originalName);
+      if (value == null && !map.containsKey(originalName)) {
+        continue;
+      }
+      List<String> outputNames = entry.getValue();
+      for (String outputName : outputNames) {
+        map.put(outputName, value);
+      }
+      // Remove the original key only when it is not itself one of the expected output names.
+      if (!outputNames.contains(originalName)) {
+        map.remove(originalName);
+      }
     }
   }
 

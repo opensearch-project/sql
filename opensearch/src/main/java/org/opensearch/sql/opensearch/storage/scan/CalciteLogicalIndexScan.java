@@ -321,7 +321,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
                   collation ->
                       collation.withFieldIndex(selectedColumns.indexOf(collation.getFieldIndex())))
               .collect(Collectors.toList());
-      newTraitSet = getTraitSet().plus(RelCollations.of(newCollations));
+      newTraitSet = getTraitSet().replace(RelCollations.of(newCollations));
     } else {
       newTraitSet = getTraitSet();
     }

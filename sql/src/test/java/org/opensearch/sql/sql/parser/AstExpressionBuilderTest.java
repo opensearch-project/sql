@@ -6,6 +6,7 @@
 package org.opensearch.sql.sql.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.between;
@@ -35,6 +36,8 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
+import java.util.List;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -47,6 +50,7 @@ import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer;
@@ -827,10 +831,43 @@ class AstExpressionBuilderTest {
         buildExprAst("age in (abs(20), abs(30))"));
   }
 
+  @Test
+  public void deeplyNestedExpressionShouldBeRejected() {
+    AstExpressionBuilder guarded = new AstExpressionBuilder(new AstBuildGuard(20));
+    for (String expr :
+        List.of(
+            nest(30, "a = 0", e -> "(" + e + " or a = 1)"),
+            nest(30, "a = 0", e -> "(" + e + " and a = 1)"),
+            nest(30, "a", e -> "abs(" + e + ")"),
+            nest(30, "a", e -> "case when " + e + " > 0 then 1 else 0 end"))) {
+      assertThrows(IllegalArgumentException.class, () -> buildExprAst(expr, guarded));
+    }
+  }
+
+  @Test
+  public void shallowExpressionWithinLimitIsAccepted() {
+    AstExpressionBuilder guarded = new AstExpressionBuilder(new AstBuildGuard(20));
+    assertEquals(
+        buildExprAst("a = 0 or a = 1 or a = 2", guarded),
+        buildExprAst("a = 0 or a = 1 or a = 2", guarded));
+  }
+
+  private static String nest(int depth, String base, UnaryOperator<String> wrap) {
+    String expr = base;
+    for (int i = 0; i < depth; i++) {
+      expr = wrap.apply(expr);
+    }
+    return expr;
+  }
+
   private Node buildExprAst(String expr) {
+    return buildExprAst(expr, astExprBuilder);
+  }
+
+  private Node buildExprAst(String expr, AstExpressionBuilder builder) {
     OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(expr));
     OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));
     parser.addErrorListener(new SyntaxAnalysisErrorListener());
-    return parser.expression().accept(astExprBuilder);
+    return parser.expression().accept(builder);
   }
 }

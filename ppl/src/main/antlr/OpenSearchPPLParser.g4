@@ -47,6 +47,7 @@ pplCommands
    : describeCommand
    | restCommand
    | showDataSourcesCommand
+   | makeresultsCommand
    | searchCommand
    | multisearchCommand
    | graphLookupCommand
@@ -65,6 +66,7 @@ commands
    | dedupCommand
    | sortCommand
    | evalCommand
+   | foreachCommand
    | headCommand
    | binCommand
    | rareTopCommand
@@ -98,7 +100,9 @@ commands
    | fieldformatCommand
    | nomvCommand
    | graphLookupCommand
+   | xyseriesCommand
    | unionCommand
+   | timewrapCommand
    ;
 
 commandName
@@ -117,6 +121,7 @@ commandName
    | DEDUP
    | SORT
    | EVAL
+   | FOREACH
    | FIELDFORMAT
    | HEAD
    | BIN
@@ -151,6 +156,9 @@ commandName
    | NOMV
    | TRANSPOSE
    | GRAPHLOOKUP
+   | XYSERIES
+   | TIMEWRAP
+   | MAKERESULTS
    ;
 
 searchCommand
@@ -220,6 +228,16 @@ restArgument
    ;
 showDataSourcesCommand
    : SHOW DATASOURCES
+   ;
+
+makeresultsCommand
+   : MAKERESULTS makeresultsArg*
+   ;
+
+makeresultsArg
+   : COUNT EQUAL integerLiteral
+   | FORMAT EQUAL (CSV | JSON)
+   | DATA EQUAL stringLiteral
    ;
 
 whereCommand
@@ -367,6 +385,27 @@ transposeParameter
    | (COLUMN_NAME EQUAL stringLiteral)
    ;
 
+timewrapCommand
+   : TIMEWRAP spanLiteral timewrapParameter*
+   ;
+
+timewrapParameter
+   : ALIGN EQUAL timewrapAlign
+   | SERIES EQUAL timewrapSeries
+   | TIME_FORMAT EQUAL stringLiteral
+   ;
+
+timewrapAlign
+   : NOW
+   | END
+   ;
+
+timewrapSeries
+   : RELATIVE
+   | SHORT
+   | EXACT
+   ;
+
 
 timechartParameter
    : LIMIT EQUAL integerLiteral
@@ -385,6 +424,38 @@ spanLiteral
 
 evalCommand
    : EVAL evalClause (COMMA evalClause)*
+   ;
+
+foreachCommand
+   : FOREACH foreachArgument* LT_SQR_PRTHS foreachEvalCommand RT_SQR_PRTHS
+   ;
+
+foreachArgument
+   : foreachOption
+   | foreachTarget
+   ;
+
+foreachTarget
+   : functionCall
+   | stringLiteral
+   | wcFieldExpression
+   | STAR
+   ;
+
+foreachOption
+   : ident EQUAL (ident | foreachPlaceholder)
+   ;
+
+foreachEvalCommand
+   : EVAL foreachEvalClause (COMMA foreachEvalClause)*
+   ;
+
+foreachEvalClause
+   : target = foreachEvalTarget EQUAL logicalExpression
+   ;
+
+foreachEvalTarget
+   : (foreachPlaceholder | ident | DOT | MODULE)+
    ;
 
 fieldformatCommand
@@ -707,6 +778,19 @@ graphLookupArgs
    | (FILTER EQUAL LT_PRTHS logicalExpression RT_PRTHS)
    ;
 
+xyseriesCommand
+   : XYSERIES xyseriesOption* xField = fieldExpression yNameField = fieldExpression IN LT_PRTHS xyseriesPivotValues RT_PRTHS yDataFields = fieldList
+   ;
+
+xyseriesOption
+   : SEP EQUAL sep = stringLiteral
+   | FORMAT EQUAL format = stringLiteral
+   ;
+
+xyseriesPivotValues
+   : stringLiteral (COMMA stringLiteral)*
+   ;
+
 // clauses
 fromClause
    : SOURCE EQUAL tableOrSubqueryClause
@@ -954,6 +1038,7 @@ valueExpression
    | literalValue                                                                                               # literalValueExpr
    | functionCall                                                                                               # functionCallExpr
    | lambda                                                                                                     # lambdaExpr
+   | foreachPlaceholder                                                                                         # foreachPlaceholderExpr
    | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                                        # scalarSubqueryExpr
    | valueExpression NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                # inSubqueryExpr
    | LT_PRTHS valueExpression (COMMA valueExpression)* RT_PRTHS NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS     # inSubqueryExpr
@@ -1054,6 +1139,16 @@ fieldExpression
 
 wcFieldExpression
    : wcQualifiedName
+   ;
+
+foreachPlaceholder
+   : LESS LESS foreachPlaceholderName GREATER GREATER
+   ;
+
+foreachPlaceholderName
+   : FIELD
+   | ID
+   | NUMERIC_ID
    ;
 
 selectFieldExpression
@@ -1693,6 +1788,9 @@ searchableKeyWord
    // ARGUMENT KEYWORDS
    | KEEPEMPTY
    | CONSECUTIVE
+   | FORMAT
+   | CSV
+   | DATA
    | DEDUP_SPLITVALUES
    | PARTITIONS
    | ALLNUM
@@ -1787,4 +1885,5 @@ searchableKeyWord
    | EDGE
    // rest command token, also usable as a free-text search term / identifier
    | TIMEOUT
+   | SEP
    ;

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.PAGINATION_CURSOR;
+
 import com.carrotsearch.randomizedtesting.annotations.Name;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import java.io.IOException;
@@ -17,10 +19,12 @@ import org.junit.Test;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 import org.opensearch.sql.util.TestUtils;
 
 // This class has only one test case, because it is parametrized and takes significant time
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
+@RequiresCapability(PAGINATION_CURSOR)
 public class PaginationBlackboxIT extends SQLIntegTestCase {
 
   private final Index index;

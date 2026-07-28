@@ -1,6 +1,6 @@
 # OpenSearch SQL/PPL Microbenchmark Suite
 
-This directory contains the microbenchmark suite of OpenSearch SQL/PPL. It relies on [JMH](http://openjdk.java.net/projects/code-tools/jmh/).
+This directory contains the microbenchmark suite of OpenSearch SQL/PPL. It relies on [JMH](https://openjdk.java.net/projects/code-tools/jmh/).
 
 ## Purpose
 
@@ -25,6 +25,6 @@ Run specific benchmarks using the `-Pjmh.includes` parameter:
 
 ## Adding Microbenchmarks
 
-Before adding a new microbenchmark, make yourself familiar with the JMH API. You can check our existing microbenchmarks and also the [JMH samples](http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/).
+Before adding a new microbenchmark, make yourself familiar with the JMH API. You can check our existing microbenchmarks and also the [JMH samples](https://hg.openjdk.org/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/).
 
 In contrast to tests, the actual name of the benchmark class is not relevant to JMH. However, stick to the naming convention and end the class name of a benchmark with `Benchmark`. To have JMH execute a benchmark, annotate the respective methods with `@Benchmark`.

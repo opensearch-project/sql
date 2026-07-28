@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.gson;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.JSON_DOLLAR_PATH;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
@@ -15,6 +16,7 @@ import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLJsonBuiltinFunctionIT extends PPLIntegTestCase {
   @Override
@@ -30,7 +32,12 @@ public class CalcitePPLJsonBuiltinFunctionIT extends PPLIntegTestCase {
     loadIndex(Index.PEOPLE2);
     loadIndex(Index.BANK);
     loadIndex(Index.JSON_TEST);
-    loadIndex(Index.GAME_OF_THRONES);
+    // game_of_thrones has a multi-value array for the scalar-mapped `titles` field, which the
+    // parquet store rejects at bulk load; skip it on the AE route so it doesn't abort init() for
+    // the rest of the suite. No test in this class queries game_of_thrones.
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.GAME_OF_THRONES);
+    }
   }
 
   @Test
@@ -297,6 +304,9 @@ public class CalcitePPLJsonBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = JSON_DOLLAR_PATH,
+      note = "json_set with a $-prefixed path is a no-op on the AE route (JSON_DOLLAR_PATH).")
   public void testJsonSetWithDollarPrefixedPath() throws IOException {
     // Issue #5167: json_set with $.key path should not double-prefix
     JSONObject actual =
@@ -313,6 +323,9 @@ public class CalcitePPLJsonBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = JSON_DOLLAR_PATH,
+      note = "json_delete with a $-prefixed path is a no-op on the AE route (JSON_DOLLAR_PATH).")
   public void testJsonDeleteWithDollarPrefixedPath() throws IOException {
     // Issue #5167: json_delete with $.key path should remove the key
     JSONObject actual =

@@ -5,6 +5,6 @@ calcite:
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..17=[{inputs}], proj#0..10=[{exprs}], $11=[$t17])
+      EnumerableCalc(expr#0..17=[{inputs}], proj#0..10=[{exprs}], distinct_states=[$t17])
         EnumerableWindow(window#0=[window(rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [DISTINCT_COUNT_APPROX($7)])])
           CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

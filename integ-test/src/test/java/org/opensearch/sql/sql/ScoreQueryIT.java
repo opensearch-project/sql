@@ -6,6 +6,7 @@
 package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sql.util.Capability.FULLTEXT_RELEVANCE_FUNC;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataAddressRows;
@@ -18,7 +19,9 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(FULLTEXT_RELEVANCE_FUNC)
 public class ScoreQueryIT extends SQLIntegTestCase {
   @Override
   protected void init() throws Exception {

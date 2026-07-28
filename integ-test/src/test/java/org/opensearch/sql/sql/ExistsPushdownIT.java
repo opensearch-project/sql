@@ -5,12 +5,15 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.LUCENE_PUSHDOWN_EXPLAIN;
+
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Explain-plan integration tests asserting that {@code IS NOT NULL} / {@code IS NULL} predicates
@@ -22,6 +25,7 @@ import org.opensearch.sql.legacy.TestsConstants;
  * with a single {@code must_not[exists]} child for {@code IS NULL}. This matches what downstream
  * tooling, serverless / AOSS, and the Calcite path already produce.
  */
+@RequiresCapability(LUCENE_PUSHDOWN_EXPLAIN)
 public class ExistsPushdownIT extends SQLIntegTestCase {
 
   // Anchored on the surrounding `sourceBuilder=...`, `pitId=` tokens in OpenSearchRequest's

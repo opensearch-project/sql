@@ -7,6 +7,7 @@ package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BEER;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.CONTENT_TYPE;
+import static org.opensearch.sql.util.Capability.FULLTEXT_RELEVANCE_FUNC;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -14,6 +15,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class SimpleQueryStringIT extends SQLIntegTestCase {
   @Override
@@ -63,6 +65,7 @@ public class SimpleQueryStringIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FULLTEXT_RELEVANCE_FUNC)
   public void verify_wildcard_test() throws IOException {
     String query1 =
         "SELECT Id FROM " + TEST_INDEX_BEER + " WHERE simple_query_string(['Tags'], 'taste')";

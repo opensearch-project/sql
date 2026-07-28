@@ -43,6 +43,7 @@ source=accounts
 | [fields command](cmd/fields.md) | 1.0 | stable (since 1.0) | Keep or remove fields from the search result. |
 | [rename command](cmd/rename.md) | 1.0 | stable (since 1.0) | Rename one or more fields in the search result. |
 | [eval command](cmd/eval.md) | 1.0 | stable (since 1.0) | Evaluate an expression and append the result to the search result. |
+| [foreach command](cmd/foreach.md) | 3.8 | experimental (since 3.8) | Run a templated evaluation for each selected field or collection element. |
 | [convert command](cmd/convert.md) | 3.5 | experimental (since 3.5) | Transform field values to numeric values using specialized conversion functions. |
 | [replace command](cmd/replace.md) | 3.4 | experimental (since 3.4) | Replace text in one or more fields in the search result |
 | [fillnull command](cmd/fillnull.md) | 3.0 | experimental (since 3.0) | Fill null with provided value in one or more fields in the search result. |
@@ -81,6 +82,7 @@ source=accounts
 | [describe command](cmd/describe.md) | 2.1 | stable (since 2.1) | Query the metadata of an index. |
 | [explain command](cmd/explain.md) | 3.1 | stable (since 3.1) | Explain the plan of query. |
 | [show datasources command](cmd/showdatasources.md) | 2.4 | stable (since 2.4) | Query datasources configured in the PPL engine. |
+| [makeresults command](cmd/makeresults.md) | 3.8 | experimental (since 3.8) | Generate in-memory rows for testing and seeding, optionally from inline CSV/JSON data. |
 | [addtotals command](cmd/addtotals.md) | 3.5 | stable (since 3.5) | Adds row and column values and appends a totals column and row. |
 | [addcoltotals command](cmd/addcoltotals.md) | 3.5 | stable (since 3.5) | Adds column values and appends a totals row. |
 | [transpose command](cmd/transpose.md) | 3.5 | stable (since 3.5) | Transpose rows to columns. |
@@ -88,7 +90,8 @@ source=accounts
 | [nomv command](cmd/nomv.md) | 3.6 | stable (since 3.6) | Converts a multivalue field to a single-value string by joining elements with newlines. |
 | [mvexpand command](cmd/mvexpand.md) | 3.6                | stable (since 3.6)       | Expand a multi-valued field into separate documents (one per value). |
 | [graphlookup command](cmd/graphlookup.md) | 3.6 | experimental (since 3.6) | Performs recursive graph traversal on a collection using a BFS algorithm.|
-  
+| [xyseries command](cmd/xyseries.md) | 3.8 | experimental (since 3.8) | Converts row-oriented grouped results into a wide table format suitable for chart visualizations. One field serves as the X axis (row key), one field provides pivot values for generating output column names, and one or more data fields fill the pivoted cells. Only rows matching the explicitly provided pivot values in the `in` clause are included. |
+
   - [Syntax](cmd/syntax.md) - PPL query structure and command syntax formatting  
 * **Functions**  
   - [Aggregation Functions](functions/aggregations.md)  

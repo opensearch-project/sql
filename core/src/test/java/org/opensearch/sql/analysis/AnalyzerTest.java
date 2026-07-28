@@ -1944,6 +1944,24 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void foreach_command_throws_unsupported_exception_with_legacy_engine() {
+    UnsupportedOperationException exception =
+        assertThrows(
+            UnsupportedOperationException.class,
+            () ->
+                analyze(
+                    new org.opensearch.sql.ast.tree.Foreach(
+                            org.opensearch.sql.ast.tree.Foreach.Mode.MULTIFIELD,
+                            ImmutableMap.of(),
+                            ImmutableList.of("integer_value"),
+                            null,
+                            ImmutableList.of())
+                        .attach(relation("schema"))));
+    assertEquals(
+        "foreach is supported only when plugins.calcite.enabled=true", exception.getMessage());
+  }
+
+  @Test
   public void rex_command_throws_unsupported_operation_exception_in_legacy_engine() {
     UnsupportedOperationException exception =
         assertThrows(

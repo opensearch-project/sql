@@ -177,7 +177,7 @@ public class CalcitePPLFieldFormatTest extends CalcitePPLAbstractTest {
         "source=EMP |sort EMPNO | head 3| fieldformat total = sum(1, 2, 3) | fields EMPNO, total";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], total=[+(1, +(2, 3))])\n"
+        "LogicalProject(EMPNO=[$0], total=[+(1, +(2:BIGINT, 3:BIGINT))])\n"
             + "  LogicalSort(sort0=[$0], dir0=[ASC-nulls-first], fetch=[3])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
 

@@ -10,7 +10,9 @@ import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse.normal
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
@@ -31,6 +33,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
+import org.opensearch.sql.executor.AnalyzeResponse;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -40,6 +43,7 @@ import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
+import org.opensearch.sql.plugin.rest.AnalyticsEngineFormatSupport;
 import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
 import org.opensearch.sql.ppl.PPLService;
@@ -185,10 +189,18 @@ public class TransportPPLQueryAction
             task,
             createExplainResponseListener(transformedRequest, clearingListener));
       } else {
+        // Analytics route only emits JSON; reject unsupported formats (e.g. csv) with a 4xx.
+        try {
+          AnalyticsEngineFormatSupport.validateFormat(format(transformedRequest));
+        } catch (Exception e) {
+          clearingListener.onFailure(e);
+          return;
+        }
         unifiedQueryHandler.execute(
             transformedRequest.getRequest(),
             QueryType.PPL,
             transformedRequest.profile(),
+            transformedRequest.getFetchSize(),
             task,
             clearingListener);
       }
@@ -200,12 +212,42 @@ public class TransportPPLQueryAction
     if (transformedRequest.isExplainRequest()) {
       pplService.explain(
           transformedRequest, createExplainResponseListener(transformedRequest, clearingListener));
+      /**
+       * Removing `|| transformedRequest.profile()` from line 200 will separate the `profile` and
+       * `analyze` endpoints. See PR #5568.
+       */
+    } else if (transformedRequest.analyze() || transformedRequest.profile()) {
+      pplService.analyze(
+          transformedRequest, createAnalyzeResponseListener(transformedRequest, clearingListener));
     } else {
       pplService.execute(
           transformedRequest,
           createListener(transformedRequest, clearingListener),
           createExplainResponseListener(transformedRequest, clearingListener));
     }
+  }
+
+  private ResponseListener<AnalyzeResponse> createAnalyzeResponseListener(
+      PPLQueryRequest request, ActionListener<TransportPPLQueryResponse> listener) {
+    return new ResponseListener<AnalyzeResponse>() {
+      @Override
+      public void onResponse(AnalyzeResponse response) {
+        JsonResponseFormatter<AnalyzeResponse> formatter =
+            new JsonResponseFormatter<>(PRETTY) {
+              @Override
+              protected Object buildJsonObject(AnalyzeResponse response) {
+                return response;
+              }
+            };
+        listener.onResponse(
+            new TransportPPLQueryResponse(formatter.format(response), formatter.contentType()));
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        listener.onFailure(e);
+      }
+    };
   }
 
   /**
@@ -234,6 +276,18 @@ public class TransportPPLQueryAction
               new JsonResponseFormatter<>(PRETTY) {
                 @Override
                 protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
+                  // For json_tree format, use parsed tree objects instead of strings
+                  if (response.getCalcite() != null
+                      && response.getCalcite().getLogicalTree() != null) {
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    Map<String, Object> calcite = new LinkedHashMap<>();
+                    calcite.put("logical", response.getCalcite().getLogicalTree());
+                    if (response.getCalcite().getPhysicalTree() != null) {
+                      calcite.put("physical", response.getCalcite().getPhysicalTree());
+                    }
+                    result.put("calcite", calcite);
+                    return result;
+                  }
                   return response;
                 }
               };

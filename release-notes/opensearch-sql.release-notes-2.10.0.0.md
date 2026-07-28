@@ -40,4 +40,4 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.10.0
 * [Backport 2.x] [spotless] Removes Checkstyle in favor of spotless by @MitchellGale in https://github.com/opensearch-project/sql/pull/2018
 * [Backport 2.x] [Spotless] Entire project running spotless by @MitchellGale in https://github.com/opensearch-project/sql/pull/2016
 ---
-**Full Changelog**: https://github.com/opensearch-project/sql/compare/2.3.0.0...v.2.10.0.0
+**Full Changelog**: https://github.com/opensearch-project/sql/compare/2.3.0.0...2.10.0.0

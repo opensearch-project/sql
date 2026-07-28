@@ -12,6 +12,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMER
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TELEMETRY;
+import static org.opensearch.sql.util.Capability.PERCENTILE_APPROXIMATE;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
@@ -967,6 +969,9 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = PERCENTILE_APPROXIMATE,
+      note = "percentile is approximate on the AE route but exact on v2/Calcite.")
   public void testPercentile() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -1184,6 +1189,9 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = PERCENTILE_APPROXIMATE,
+      note = "percentile is approximate on the AE route but exact on v2/Calcite.")
   public void testPercentileShortcutsFloatingPoint() throws IOException {
     JSONObject actual =
         executeQuery(

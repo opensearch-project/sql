@@ -70,6 +70,32 @@ public class AnalyticsUnsupportedFieldStripVerifyIT extends PPLIntegTestCase {
    */
   private static final Set<String> OUT_OF_SCOPE_TYPES = Set.of("join");
 
+  /**
+   * Datasets that carry a multi-value JSON array for a scalar-mapped field (e.g. a {@code text} or
+   * {@code long} field given several values in a doc). The parquet/composite store rejects these at
+   * bulk load with {@code Cannot accept multiple values for field} — a cardinality limitation, not
+   * an unsupported field *type*, so it is out of scope for the type strip ({@link
+   * org.opensearch.sql.legacy.TestUtils.AnalyticsIndexConfig}) the same way {@link
+   * #OUT_OF_SCOPE_TYPES} is. Tracked by the {@code MULTI_VALUE_FIELD_LOAD} capability. An index
+   * here is skipped only when its failure is the exact multi-value signature AND it is on this
+   * curated list (see {@link #safeToSkipForMultiValueLoad}); any other failure surfaces loudly.
+   * Legs 2-3 still type-check the live mapping of every index that loads, so a missed type-strip
+   * can't hide.
+   */
+  private static final Set<String> MULTI_VALUE_DATASETS =
+      Set.of(
+          "GAME_OF_THRONES",
+          "NESTED",
+          "NESTED_WITH_QUOTES",
+          "DEEP_NESTED",
+          "NESTED_WITH_NULLS",
+          "GRAPH_AIRPORTS",
+          "ARRAY",
+          "OTELLOGS");
+
+  /** Cluster's per-item bulk error when a doc supplies an array to a scalar-mapped field. */
+  private static final String MULTI_VALUE_SIGNATURE = "Cannot accept multiple values for field";
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -107,6 +133,12 @@ public class AnalyticsUnsupportedFieldStripVerifyIT extends PPLIntegTestCase {
         if (safeToSkipForOutOfScopeType(e, mapping)) {
           // Creation failed solely on an out-of-scope type (e.g. join) AND the mapping carries no
           // unsupported type we're responsible for — not our concern. Skip.
+          continue;
+        }
+        if (safeToSkipForMultiValueLoad(e, index)) {
+          // Load failed with the multi-value signature on a known multi-value-array-into-scalar
+          // dataset (a cardinality limitation, not an unsupported type) — out of scope for the type
+          // strip, tracked by MULTI_VALUE_FIELD_LOAD. Skip.
           continue;
         }
         failures.add(
@@ -378,6 +410,23 @@ public class AnalyticsUnsupportedFieldStripVerifyIT extends PPLIntegTestCase {
       return false;
     }
     return !mappingContainsUnsupportedType(mapping);
+  }
+
+  /**
+   * Safe to skip an index whose load failed, only when BOTH hold: (a) the error is exactly the
+   * multi-value bulk signature ({@code Cannot accept multiple values for field}), AND (b) the index
+   * is on the curated {@link #MULTI_VALUE_DATASETS} allowlist. Unlike {@link
+   * #safeToSkipForOutOfScopeType} this does NOT also require the raw mapping to be free of
+   * unsupported types: several of these datasets legitimately declare {@code nested} fields that
+   * the type strip removes at load, while the multi-value failure is on a separate scalar leaf. The
+   * curated allowlist plus the exact failure signature is the masking guard — an unanticipated
+   * failure (different message, or a dataset not on the list) is never skipped and surfaces loudly.
+   */
+  private static boolean safeToSkipForMultiValueLoad(Throwable t, Index index) {
+    String msg = rootMessage(t);
+    return msg != null
+        && msg.contains(MULTI_VALUE_SIGNATURE)
+        && MULTI_VALUE_DATASETS.contains(index.name());
   }
 
   /** True if the raw mapping JSON declares any {@link #UNSUPPORTED} field type at any depth. */

@@ -7,12 +7,15 @@ package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
+import static org.opensearch.sql.util.Capability.FUNCTION_TYPE_COMPAT;
+import static org.opensearch.sql.util.Capability.UNTYPED_NULL_LITERAL;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class SystemFunctionIT extends SQLIntegTestCase {
 
@@ -23,6 +26,7 @@ public class SystemFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(UNTYPED_NULL_LITERAL)
   public void typeof_sql_types() {
     JSONObject response =
         executeJdbcRequest(
@@ -40,6 +44,7 @@ public class SystemFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void typeof_opensearch_types() {
     JSONObject response =
         executeJdbcRequest(
