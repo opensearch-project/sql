@@ -9,6 +9,7 @@ import java.util.List;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
+import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.spi.rest.RestEndpointContext;
 import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
 import org.opensearch.transport.client.node.NodeClient;
@@ -26,17 +27,17 @@ public class RestRequest implements OpenSearchSystemRequest {
   private final OpenSearchClient client;
   private final RestEndpointRegistry.Endpoint endpoint;
   private final RestSpec spec;
-  private final RedactionRegistry redaction;
+  private final Redactor redactor;
 
   public RestRequest(
       OpenSearchClient client,
       RestEndpointRegistry.Endpoint endpoint,
       RestSpec spec,
-      RedactionRegistry redaction) {
+      Redactor redactor) {
     this.client = client;
     this.endpoint = endpoint;
     this.spec = spec;
-    this.redaction = redaction;
+    this.redactor = redactor;
   }
 
   @Override
@@ -46,7 +47,7 @@ public class RestRequest implements OpenSearchSystemRequest {
     // thread-context.
     NodeClient nodeClient = client == null ? null : client.getNodeClient().orElse(null);
     RestEndpointContext ctx = RestEndpointContext.of(spec.getArgs(), nodeClient);
-    List<ExprValue> rows = endpoint.toRows(ctx, redaction);
+    List<ExprValue> rows = endpoint.toRows(ctx, redactor);
     if (spec.getCount() != null && spec.getCount() >= 0 && rows.size() > spec.getCount()) {
       return rows.subList(0, spec.getCount());
     }

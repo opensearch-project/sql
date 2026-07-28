@@ -24,12 +24,10 @@ import org.opensearch.sql.spi.rest.RestEndpointProvider;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
- * The built-in {@link RestEndpointProvider}. PR1 ships a single read-only, in-cluster endpoint,
+ * The built-in {@link RestEndpointProvider}. It ships a single read-only, in-cluster endpoint,
  * {@code /_cluster/health}, expressed as a {@link RestEndpointDefinition}. It is a uniform client
  * of the same SPI an external plugin uses; it holds no privileged position in {@link
- * RestEndpointRegistry}. The network-bearing endpoints ({@code /_cat/*}, {@code /_cluster/state},
- * {@code /_cluster/settings}, {@code /_resolve/index}, proposed {@code /_nodes/info}) are deferred
- * to the AppSec follow-up.
+ * RestEndpointRegistry}. Additional endpoints are left to follow-up changes.
  *
  * <p>Like any external provider, it fetches at execution time through the transport node client the
  * context carries ({@link RestEndpointContext#client()}), so it holds no reference to the sql
@@ -40,7 +38,6 @@ public final class CoreEndpointsProvider implements RestEndpointProvider {
   @Override
   public List<RestEndpointDefinition> getEndpoints() {
     return List.of(
-        // /_cluster/health carries no network identifiers, so every column is RedactionClass.NONE.
         RestEndpointDefinition.builder()
             .name("/_cluster/health")
             .schema(

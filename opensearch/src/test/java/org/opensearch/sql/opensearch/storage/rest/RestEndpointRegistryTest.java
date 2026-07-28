@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.spi.rest.Column;
 import org.opensearch.sql.spi.rest.ColumnType;
+import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.spi.rest.RestEndpointContext;
 import org.opensearch.sql.spi.rest.RestEndpointDefinition;
 import org.opensearch.sql.spi.rest.RestEndpointProvider;
@@ -28,9 +29,9 @@ import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
  * Covers the {@code rest} {@link RestEndpointRegistry} against the PR1 endpoint set (only {@code
  * /_cluster/health}): allow-list resolution, arg validation, count/timeout gating, value coercion,
  * and fixed-schema row shaping. Coercion and shaping are exercised through a fake provider that
- * returns canned rows, so they stay independent of how any one endpoint fetches. Redaction-by-class
- * is covered separately in {@link RedactionByClassTest}; here rows are shaped with an empty {@link
- * RedactionRegistry} (no-op).
+ * returns canned rows, so they stay independent of how any one endpoint fetches; rows are shaped
+ * with {@link Redactor#NONE} (the no-op redactor). The centralized redactor seam is covered
+ * separately in {@link RedactorSeamTest}.
  */
 class RestEndpointRegistryTest {
 
@@ -146,7 +147,7 @@ class RestEndpointRegistryTest {
                 Column.of("status", ColumnType.STRING),
                 Column.of("number_of_nodes", ColumnType.INTEGER)),
             Map.<String, Object>of("status", "green", "number_of_nodes", "3"));
-    List<ExprValue> rows = endpoint.toRows(ctx(Map.of()), new RedactionRegistry());
+    List<ExprValue> rows = endpoint.toRows(ctx(Map.of()), Redactor.NONE);
     assertEquals(3, rows.get(0).tupleValue().get("number_of_nodes").integerValue());
   }
 
@@ -162,8 +163,7 @@ class RestEndpointRegistryTest {
             Map.<String, Object>of("status", "green", "number_of_nodes", "not-a-number"));
     IllegalArgumentException ex =
         assertThrows(
-            IllegalArgumentException.class,
-            () -> endpoint.toRows(ctx(Map.of()), new RedactionRegistry()));
+            IllegalArgumentException.class, () -> endpoint.toRows(ctx(Map.of()), Redactor.NONE));
     assertTrue(ex.getMessage().contains("number_of_nodes"));
     assertTrue(ex.getMessage().contains("not-a-number"));
   }
@@ -182,7 +182,7 @@ class RestEndpointRegistryTest {
                 Column.of("number_of_nodes", ColumnType.INTEGER),
                 Column.of("relocating_shards", ColumnType.INTEGER)),
             raw);
-    List<ExprValue> rows = endpoint.toRows(ctx(Map.of()), new RedactionRegistry());
+    List<ExprValue> rows = endpoint.toRows(ctx(Map.of()), Redactor.NONE);
     assertEquals(1, rows.size());
     assertEquals("green", rows.get(0).tupleValue().get("status").stringValue());
     assertEquals(1, rows.get(0).tupleValue().get("number_of_nodes").integerValue());

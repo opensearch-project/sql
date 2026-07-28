@@ -17,13 +17,13 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
-import org.opensearch.sql.opensearch.storage.rest.RedactionRegistry;
-import org.opensearch.sql.opensearch.storage.rest.RedactionRegistryHolder;
+import org.opensearch.sql.opensearch.storage.rest.RedactorHolder;
 import org.opensearch.sql.opensearch.storage.rest.RestCatalogSource;
 import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistry;
 import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistryHolder;
 import org.opensearch.sql.opensearch.storage.system.OpenSearchCatalogTable;
 import org.opensearch.sql.opensearch.storage.system.SystemIndexCatalogSource;
+import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
@@ -71,10 +71,10 @@ public class OpenSearchStorageEngine implements StorageEngine {
                   + "] is not enabled on this cluster. Enabled endpoints: "
                   + allowed);
     }
-    // Redaction is a platform-owned control applied by RedactionClass at the row-shaping choke
-    // point. OSS publishes an empty registry (no-op); a managed distribution fills it via patch.
-    RedactionRegistry redaction = RedactionRegistryHolder.get();
+    // Redaction is applied by the single Redactor at the row-shaping choke point; the default is
+    // Redactor.NONE (no-op).
+    Redactor redactor = RedactorHolder.get();
     return new OpenSearchCatalogTable(
-        new RestCatalogSource(registry, spec, client, redaction), settings);
+        new RestCatalogSource(registry, spec, client, redactor), settings);
   }
 }

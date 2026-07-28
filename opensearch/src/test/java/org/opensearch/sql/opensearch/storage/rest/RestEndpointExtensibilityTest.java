@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.spi.rest.ArgSpec;
 import org.opensearch.sql.spi.rest.Column;
+import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.spi.rest.RestEndpointContext;
 import org.opensearch.sql.spi.rest.RestEndpointDefinition;
 import org.opensearch.sql.spi.rest.RestEndpointProvider;
@@ -63,7 +64,7 @@ class RestEndpointExtensibilityTest {
   void externalEndpointFetchesThroughTheSamePath() {
     RestEndpointRegistry.Endpoint echo = mergedRegistry().resolve("/_plugin/echo");
     List<ExprValue> rows =
-        echo.toRows(RestEndpointContext.of(Map.of("text", "hi"), null), new RedactionRegistry());
+        echo.toRows(RestEndpointContext.of(Map.of("text", "hi"), null), Redactor.NONE);
     assertEquals(1, rows.size());
     assertEquals("hi", rows.get(0).tupleValue().get("message").stringValue());
   }

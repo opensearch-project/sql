@@ -28,7 +28,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.spi.rest.ArgSpec;
 import org.opensearch.sql.spi.rest.Column;
 import org.opensearch.sql.spi.rest.ColumnType;
-import org.opensearch.sql.spi.rest.RedactionClass;
+import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.spi.rest.RestEndpointContext;
 import org.opensearch.sql.spi.rest.RestEndpointDefinition;
 import org.opensearch.sql.spi.rest.RestEndpointHandler;
@@ -75,49 +75,32 @@ public final class RestEndpointRegistry {
   public static final class Endpoint {
     private final String path;
     private final LinkedHashMap<String, ExprType> schema;
-    // Column name -> sensitivity class, the join key the choke point uses to pick a Redactor.
-    private final Map<String, RedactionClass> redactionClasses;
     private final ArgSpec argSpec;
     private final RestEndpointHandler handler;
 
     Endpoint(RestEndpointDefinition definition) {
       this.path = definition.name();
       this.schema = toExprSchema(definition.schema());
-      this.redactionClasses = toRedactionClasses(definition.schema());
       this.argSpec = definition.argSpec();
       this.handler = definition.handler();
     }
 
     /**
-     * Invoke the provider's handler and shape the response into fixed-schema rows, masking each
-     * cell by its column's {@link RedactionClass} through the platform {@link RedactionRegistry}.
-     * Runs at execution time (scan open). An empty registry (the OSS default) masks nothing.
+     * Invoke the provider's handler, apply the platform {@link Redactor} to each raw row (with the
+     * endpoint name as scope), then shape it into fixed-schema rows. Runs at execution time (scan
+     * open). {@link Redactor#NONE} (the OSS default) passes rows through unchanged.
      */
-    public List<ExprValue> toRows(RestEndpointContext ctx, RedactionRegistry redaction) {
+    public List<ExprValue> toRows(RestEndpointContext ctx, Redactor redactor) {
       List<ExprValue> out = new ArrayList<>();
       for (Map<String, Object> raw : handler.fetch(ctx)) {
+        Map<String, Object> redacted = redactor.redact(path, raw);
         LinkedHashMap<String, ExprValue> tuple = new LinkedHashMap<>();
         for (Map.Entry<String, ExprType> col : schema.entrySet()) {
-          ExprValue value = coerce(col.getKey(), col.getValue(), raw.get(col.getKey()));
-          tuple.put(col.getKey(), maskCell(col.getKey(), col.getValue(), value, redaction));
+          tuple.put(col.getKey(), coerce(col.getKey(), col.getValue(), redacted.get(col.getKey())));
         }
         out.add(new ExprTupleValue(tuple));
       }
       return out;
-    }
-
-    private ExprValue maskCell(
-        String column, ExprType type, ExprValue value, RedactionRegistry redaction) {
-      // Redaction applies only to non-null string cells; a class declared on a non-string column
-      // (unusual) is ignored so a number is never fed to a text masker.
-      if (type != STRING || value.isNull()) {
-        return value;
-      }
-      RedactionClass redactionClass = redactionClasses.getOrDefault(column, RedactionClass.NONE);
-      if (redactionClass == RedactionClass.NONE) {
-        return value;
-      }
-      return stringValue(redaction.mask(redactionClass, value.stringValue()));
     }
   }
 
@@ -184,14 +167,6 @@ public final class RestEndpointRegistry {
       schema.put(column.name(), toExprType(column.type()));
     }
     return schema;
-  }
-
-  private static Map<String, RedactionClass> toRedactionClasses(List<Column> columns) {
-    LinkedHashMap<String, RedactionClass> classes = new LinkedHashMap<>();
-    for (Column column : columns) {
-      classes.put(column.name(), column.redaction());
-    }
-    return classes;
   }
 
   private static ExprType toExprType(ColumnType type) {
