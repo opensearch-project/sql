@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.rest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.spi.rest.ColumnType.STRING;
@@ -85,19 +86,21 @@ class RestEndpointExtensibilityTest {
   }
 
   @Test
-  void duplicateEndpointNameAcrossProvidersIsRejected() {
+  void duplicateEndpointNameAcrossProvidersIsSkippedFirstWins() {
+    // A second provider that re-declares /_cluster/health is ignored rather than failing the
+    // build; the first (built-in) registration wins.
     RestEndpointProvider shadowsCore =
         () ->
             List.of(
                 RestEndpointDefinition.builder()
                     .name("/_cluster/health")
-                    .schema(List.of(Column.of("x", STRING)))
+                    .schema(List.of(Column.of("shadow", STRING)))
                     .handler(ctx -> List.of())
                     .build());
-    IllegalStateException ex =
-        assertThrows(
-            IllegalStateException.class,
-            () -> new RestEndpointRegistry(List.of(new CoreEndpointsProvider(), shadowsCore)));
-    assertTrue(ex.getMessage().contains("more than one provider"));
+    RestEndpointRegistry registry =
+        new RestEndpointRegistry(List.of(new CoreEndpointsProvider(), shadowsCore));
+
+    assertEquals("/_cluster/health", registry.resolve("/_cluster/health").getPath());
+    assertFalse(registry.resolve("/_cluster/health").getSchema().containsKey("shadow"));
   }
 }

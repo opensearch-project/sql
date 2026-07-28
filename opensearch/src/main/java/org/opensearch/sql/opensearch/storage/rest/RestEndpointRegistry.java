@@ -21,6 +21,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -48,6 +50,8 @@ import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
  */
 public final class RestEndpointRegistry {
 
+  private static final Logger LOG = LogManager.getLogger(RestEndpointRegistry.class);
+
   private final Map<String, Endpoint> registry;
 
   public RestEndpointRegistry(List<RestEndpointProvider> providers) {
@@ -55,10 +59,11 @@ public final class RestEndpointRegistry {
     for (RestEndpointProvider provider : providers) {
       for (RestEndpointDefinition definition : provider.getEndpoints()) {
         if (m.containsKey(definition.name())) {
-          throw new IllegalStateException(
-              "rest endpoint ["
-                  + definition.name()
-                  + "] is registered by more than one provider; endpoint names must be unique");
+          LOG.warn(
+              "rest endpoint [{}] is already registered; ignoring the duplicate from provider [{}]",
+              definition.name(),
+              provider.getClass().getName());
+          continue;
         }
         m.put(definition.name(), new Endpoint(definition));
       }
