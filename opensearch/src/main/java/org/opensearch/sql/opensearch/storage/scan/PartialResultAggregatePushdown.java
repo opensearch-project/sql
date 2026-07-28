@@ -151,12 +151,12 @@ final class PartialResultAggregatePushdown {
             excludedIndices.size(), totalIndices, bucketNames);
     String detail =
         String.format(
-            "Field %s is mapped inconsistently across the queried indices, which prevents"
-                + " aggregation pushdown for the whole pattern. The aggregation ran only over the"
-                + " indices where the field is aggregatable; excluded indices: %s. Align the"
-                + " field's mapping across all indices (e.g. map it as keyword everywhere) to"
-                + " include them.",
-            bucketNames, formatIndexList(excludedIndices, MAX_EXCLUDED_INDICES_IN_WARNING));
+            "%s is not mapped as keyword in every queried index, so these indices were excluded"
+                + " from the aggregation: %s. Map %s as keyword across all indices to include"
+                + " them.",
+            bucketNames,
+            formatIndexList(excludedIndices, MAX_EXCLUDED_INDICES_IN_WARNING),
+            bucketNames);
     return new Warning(Warning.TYPE_PARTIAL_RESULT, message, detail);
   }
 
