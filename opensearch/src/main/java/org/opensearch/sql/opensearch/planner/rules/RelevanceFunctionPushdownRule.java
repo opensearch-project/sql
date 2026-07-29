@@ -5,18 +5,13 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.containsRelevanceFunction;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.rules.SubstitutionRule;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.sql.SqlOperator;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
@@ -58,47 +53,6 @@ public class RelevanceFunctionPushdownRule
     if (newRel != null) {
       call.transformTo(newRel);
       PlanUtils.tryPruneRelNodes(call);
-    }
-  }
-
-  /**
-   * Checks if a RexNode contains any relevance functions.
-   *
-   * @param node The RexNode to check
-   * @return true if the node contains relevance functions, false otherwise
-   */
-  private boolean containsRelevanceFunction(RexNode node) {
-    RelevanceFunctionVisitor visitor = new RelevanceFunctionVisitor();
-    node.accept(visitor);
-    return visitor.hasRelevanceFunction();
-  }
-
-  /** Visitor to detect relevance functions in a RexNode tree. */
-  private static class RelevanceFunctionVisitor extends RexVisitorImpl<Void> {
-    private boolean foundRelevanceFunction = false;
-
-    RelevanceFunctionVisitor() {
-      super(true);
-    }
-
-    @Override
-    public Void visitCall(RexCall call) {
-      SqlOperator operator = call.getOperator();
-      String operatorName = operator.getName().toLowerCase();
-
-      // Check if this is a relevance function
-      if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(operatorName)
-          || MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(operatorName)) {
-        foundRelevanceFunction = true;
-        return null; // Stop traversing once we find a relevance function
-      }
-
-      // Continue traversing the tree
-      return super.visitCall(call);
-    }
-
-    boolean hasRelevanceFunction() {
-      return foundRelevanceFunction;
     }
   }
 

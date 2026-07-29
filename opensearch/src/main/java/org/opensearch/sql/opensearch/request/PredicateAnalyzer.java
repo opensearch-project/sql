@@ -43,6 +43,8 @@ import static org.opensearch.index.query.QueryBuilders.wildcardQuery;
 import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.containsRelevanceFunction;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.findRelevanceFunctionName;
 import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
 
 import com.google.common.base.Strings;
@@ -240,6 +242,12 @@ public class PredicateAnalyzer {
       if (e instanceof UnsupportedScriptException) {
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
       }
+      // A relevance function has no executable implementation, so it must never be serialized into
+      // a script: the failure would only surface on the shards as "Failed to compile inline
+      // script".
+      if (containsRelevanceFunction(expression)) {
+        throw new ExpressionNotAnalyzableException(relevanceNotPushableMessage(expression), e);
+      }
       try {
         return new ScriptQueryExpression(
             expression, rowType, fieldTypes, cluster, Collections.emptyMap());
@@ -247,6 +255,22 @@ public class PredicateAnalyzer {
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e2);
       }
     }
+  }
+
+  /**
+   * Builds an actionable message for a relevance function that cannot be pushed down. Reported at
+   * planning time on the coordinator rather than as a shard failure.
+   */
+  static String relevanceNotPushableMessage(RexNode expression) {
+    String funcName = findRelevanceFunctionName(expression);
+    return String.format(
+        Locale.ROOT,
+        "Relevance search function [%s] cannot be pushed down to OpenSearch in this query, so it"
+            + " cannot be executed. It must be applied directly to an indexed field, before any"
+            + " command that transforms rows (eval, parse, rex, stats, top, rare, sort, head,"
+            + " lookup). Condition: %s",
+        funcName == null ? "relevance" : funcName,
+        expression);
   }
 
   /** Traverses {@link RexNode} tree and builds OpenSearch query. */
@@ -424,6 +448,26 @@ public class PredicateAnalyzer {
                 List.of(
                     AliasPair.from(ops.get(0), funcName).value,
                     AliasPair.from(ops.get(1), funcName).value));
+        // The field operand must resolve to a real indexed field. A computed column (eval, parse,
+        // rex, ...) resolves to something else -- reject it as a PredicateAnalyzerException so the
+        // caller reports it at planning time instead of failing later on the shards.
+        if (!(fieldQueryOperands.get(0) instanceof NamedFieldExpression)) {
+          throw new PredicateAnalyzerException(
+              format(
+                  Locale.ROOT,
+                  "Relevance search function [%s] requires an indexed field as its first argument,"
+                      + " but got [%s]. Computed columns cannot be searched.",
+                  funcName,
+                  ops.get(0)));
+        }
+        if (!(fieldQueryOperands.get(1) instanceof LiteralExpression)) {
+          throw new PredicateAnalyzerException(
+              format(
+                  Locale.ROOT,
+                  "Relevance search function [%s] requires a literal query string, but got [%s].",
+                  funcName,
+                  ops.get(1)));
+        }
         NamedFieldExpression namedFieldExpression =
             (NamedFieldExpression) fieldQueryOperands.get(0);
         String queryLiteralOperand = ((LiteralExpression) fieldQueryOperands.get(1)).stringValue();
@@ -913,6 +957,11 @@ public class PredicateAnalyzer {
         }
         return qe;
       } catch (PredicateAnalyzerException firstFailed) {
+        // Never fall back to a script for a relevance function: it has no executable
+        // implementation, so the script would only fail when compiled on the shards.
+        if (containsRelevanceFunction(node)) {
+          throw firstFailed;
+        }
         try {
           QueryExpression qe =
               new ScriptQueryExpression(node, rowType, fieldTypes, cluster, Collections.emptyMap());

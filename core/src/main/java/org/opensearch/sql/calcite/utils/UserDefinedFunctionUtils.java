@@ -17,6 +17,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
@@ -29,6 +30,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -80,6 +82,76 @@ public class UserDefinedFunctionUtils {
   public static Set<String> MULTI_FIELDS_RELEVANCE_FUNCTION_SET =
       ImmutableSet.of("simple_query_string", "query_string", "multi_match");
   public static String IP_FUNCTION_NAME = "IP";
+
+  /** Returns true if the given operator name is a relevance search query function. */
+  public static boolean isRelevanceFunction(String operatorName) {
+    String lowerCased = operatorName.toLowerCase(Locale.ROOT);
+    return SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(lowerCased)
+        || MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(lowerCased);
+  }
+
+  /**
+   * Checks whether a {@link RexNode} tree contains a relevance search query function such as {@code
+   * match} or {@code query_string}.
+   *
+   * <p>Relevance functions have no executable implementation: they exist only as markers to be
+   * rewritten into an OpenSearch query during push down (see {@code RelevanceQueryFunction}).
+   * Callers must use this to avoid handing such a node to any execution path that would try to
+   * generate code for it -- notably script push down, where the failure would surface as a shard
+   * side "Failed to compile inline script" error instead of a local planning error.
+   *
+   * @param node the node to inspect
+   * @return true if the tree contains a relevance function
+   */
+  public static boolean containsRelevanceFunction(RexNode node) {
+    RelevanceFunctionFinder finder = new RelevanceFunctionFinder();
+    node.accept(finder);
+    return finder.found;
+  }
+
+  /** Visitor that detects relevance functions anywhere in a {@link RexNode} tree. */
+  private static class RelevanceFunctionFinder extends RexVisitorImpl<Void> {
+    private boolean found = false;
+
+    RelevanceFunctionFinder() {
+      super(true);
+    }
+
+    @Override
+    public Void visitCall(RexCall call) {
+      if (isRelevanceFunction(call.getOperator().getName())) {
+        found = true;
+        return null; // stop descending once found
+      }
+      return super.visitCall(call);
+    }
+  }
+
+  /**
+   * Returns the name of the first relevance function found in the tree, or null if there is none.
+   */
+  public static String findRelevanceFunctionName(RexNode node) {
+    RelevanceFunctionNameFinder finder = new RelevanceFunctionNameFinder();
+    node.accept(finder);
+    return finder.name;
+  }
+
+  private static class RelevanceFunctionNameFinder extends RexVisitorImpl<Void> {
+    private String name = null;
+
+    RelevanceFunctionNameFinder() {
+      super(true);
+    }
+
+    @Override
+    public Void visitCall(RexCall call) {
+      if (name == null && isRelevanceFunction(call.getOperator().getName())) {
+        name = call.getOperator().getName().toLowerCase(Locale.ROOT);
+        return null;
+      }
+      return super.visitCall(call);
+    }
+  }
 
   /**
    * Creates a SqlUserDefinedAggFunction that wraps a Java class implementing an aggregate function.

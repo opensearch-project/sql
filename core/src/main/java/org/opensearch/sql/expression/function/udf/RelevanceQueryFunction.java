@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function.udf;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Locale;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -94,8 +95,17 @@ public class RelevanceQueryFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
+      // Reaching code generation means the call was not rewritten into an OpenSearch query. There
+      // is no row-by-row implementation to fall back to, so report why rather than just that.
       throw new UnsupportedOperationException(
-          "Relevance search query functions are only supported when they are pushed down");
+          String.format(
+              Locale.ROOT,
+              "Relevance search function [%s] could not be pushed down to OpenSearch, and it has no"
+                  + " other execution path. Apply it directly to an indexed field before any"
+                  + " command that transforms rows (eval, parse, rex, stats, top, rare, sort, head,"
+                  + " lookup), and not to a column computed by the query itself. Expression: %s",
+              call.getOperator().getName().toLowerCase(Locale.ROOT),
+              call));
     }
   }
 }
