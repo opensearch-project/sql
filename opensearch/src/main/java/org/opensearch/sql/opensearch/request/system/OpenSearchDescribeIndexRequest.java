@@ -15,7 +15,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -94,14 +93,6 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
   }
 
   /**
-   * The per-index mappings behind the last {@link #getFieldTypes()} call, keyed by concrete index
-   * name. Retained because merging discards which index mapped a field which way, and callers that
-   * need that detail (e.g. partitioning a wildcard by whether a field is aggregatable) would
-   * otherwise have to fetch the mappings a second time.
-   */
-  @Getter private Map<String, IndexMapping> lastIndexMappings = Map.of();
-
-  /**
    * Get the mapping of field and type.
    *
    * @return mapping of field and type.
@@ -111,7 +102,6 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     Map<String, OpenSearchDataType> fieldTypes = new HashMap<>();
     Map<String, IndexMapping> indexMappings =
         client.getIndexMappings(getLocalIndexNames(indexName.getIndexNames()));
-    this.lastIndexMappings = indexMappings;
     if (indexMappings.size() <= 1) {
       for (IndexMapping indexMapping : indexMappings.values()) {
         fieldTypes.putAll(indexMapping.getFieldMappings());
