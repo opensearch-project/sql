@@ -108,13 +108,7 @@ public class QueryService {
       Settings settings,
       ExecutionDispatcher executionDispatcher) {
     this(
-        analyzer,
-        executionEngine,
-        planner,
-        dataSourceService,
-        settings,
-        executionDispatcher,
-        null);
+        analyzer, executionEngine, planner, dataSourceService, settings, executionDispatcher, null);
   }
 
   public QueryService(

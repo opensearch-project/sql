@@ -3010,20 +3010,6 @@ public class CalciteExplainIT extends ExplainIT {
             && logical.contains(", 2)"));
   }
 
-  @Test
-  public void testFormatExplain() throws IOException {
-    String query =
-        StringUtils.format(
-            "source=%s | where account_number < 3 | fields firstname, account_number | format",
-            TEST_INDEX_BANK);
-    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase(java.util.Locale.ROOT);
-    Assert.assertTrue(
-        "Expected format to lower to a global ARRAY_AGG and a search projection",
-        logical.contains("array_agg")
-            && logical.contains("array_join")
-            && logical.contains("search="));
-  }
-
   /**
    * Return just the {@code logical:} section of a YAML explain result (everything before the {@code
    * physical:} key). The logical plan is deterministic across pushdown on/off, whereas the physical

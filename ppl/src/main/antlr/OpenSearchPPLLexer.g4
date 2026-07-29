@@ -34,7 +34,6 @@ SORT:                               'SORT';
 EVAL:                               'EVAL';
 FOREACH:                            'FOREACH';
 FIELDFORMAT:                        'FIELDFORMAT';
-FORMAT:                             'FORMAT';
 HEAD:                               'HEAD';
 BIN:                                'BIN';
 TOP:                                'TOP';
