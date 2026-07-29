@@ -45,6 +45,36 @@ source=logs | eval b = upper(body) | where like(b, '%ERROR%')
 
 Note that `like` performs substring matching rather than analyzed text matching, so it does not apply tokenization, stemming, or relevance scoring.
 
+## Matching behavior by field type
+
+A relevance function matches against the terms OpenSearch produced when the document was indexed, so the field's mapping type determines what it matches. The same query can behave very differently on `text` and `keyword` fields.
+
+Given a document whose `body` value is `ERROR something bad happened`:
+
+| `body` mapping | `match(body, 'ERROR')` | Why |
+|---|---|---|
+| `text` | matches | The value is analyzed into terms (`error`, `something`, `bad`, `happened`), and `ERROR` matches one of them. |
+| `text` with a `keyword` subfield | matches | `match` uses the analyzed `text` form. |
+| `keyword` | **does not match** | A `keyword` field is indexed as one whole term. The single term is the full string `ERROR something bad happened`, which is not equal to `ERROR`. |
+
+This applies to `match_phrase` as well, and is the most common reason a relevance query returns zero results without an error. It is correct Lucene behavior, not a failure.
+
+On a `keyword` field, a relevance function only matches when the query value equals the entire field value:
+
+```
+source=logs | where match(body, 'ERROR something bad happened')
+```
+
+To search within a `keyword` field, use a predicate that does not depend on analysis:
+
+| Goal | Use |
+|---|---|
+| Exact whole-value match | `where body = 'ERROR something bad happened'` |
+| Substring match | `where like(body, '%ERROR%')` |
+| Word or phrase matching | Map the field as `text`, or add a `text` subfield, then use `match` |
+
+Note that a `keyword` subfield cannot be referenced directly in PPL — `match(body.keyword, 'ERROR')` fails with `Field [body.keyword] not found`. For a `text` field with a `keyword` subfield, the engine selects the appropriate form automatically: `match` uses the analyzed `text` form, and `like` uses the `keyword` subfield.
+
 ### Known issue: relevance filters after `head`
 
 Avoid placing a relevance filter directly after `head`:
