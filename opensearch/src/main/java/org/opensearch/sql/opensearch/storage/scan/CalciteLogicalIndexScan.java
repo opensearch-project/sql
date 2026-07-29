@@ -471,11 +471,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
     try {
       List<String> outputFields = aggregate.getRowType().getFieldNames();
       List<String> bucketNames = outputFields.subList(0, aggregate.getGroupSet().cardinality());
-      // getIndexNames() returns the raw pattern (e.g. ["logs-*"]) for a wildcard, not the resolved
-      // concrete indices; getIndexMappings expands it server-side to a map keyed by concrete index
-      // name, which is what the partitioning classifies.
-      Map<String, IndexMapping> mappings =
-          osIndex.getClient().getIndexMappings(osIndex.getIndexName().getIndexNames());
+      // Per-index mappings keyed by concrete index name (the wildcard is already resolved), reused
+      // from the fetch that resolved this index's field types rather than re-requesting them.
+      Map<String, IndexMapping> mappings = osIndex.getIndexMappings();
       PartialResultAggregatePushdown.Plan plan =
           PartialResultAggregatePushdown.plan(bucketNames, mappings);
       if (plan == null) {
