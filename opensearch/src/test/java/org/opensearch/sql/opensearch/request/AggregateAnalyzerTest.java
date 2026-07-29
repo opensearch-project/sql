@@ -41,12 +41,14 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.metrics.SumAggregationBuilder;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer.ExpressionNotAnalyzableException;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.CheckedLongSumParser;
 import org.opensearch.sql.opensearch.response.agg.FilterParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParserHelper;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -174,6 +176,64 @@ class AggregateAnalyzerTest {
               assertTrue(outputFields.contains(k));
               assertInstanceOf(SingleValueParser.class, v);
             });
+  }
+
+  @Test
+  void analyze_checkedLongSum() throws ExpressionNotAnalyzableException {
+    AggregateCall checkedLongSumCall =
+        AggregateCall.create(
+            PPLBuiltinOperators.CHECKED_LONG_SUM,
+            false,
+            false,
+            false,
+            ImmutableList.of(),
+            ImmutableList.of(0),
+            -1,
+            null,
+            RelCollations.EMPTY,
+            typeFactory.createSqlType(SqlTypeName.BIGINT),
+            "checked_sum");
+    Aggregate aggregate = createMockAggregate(List.of(checkedLongSumCall), ImmutableBitSet.of());
+    Project project = createMockProject(List.of(0));
+    AggregateAnalyzer.AggregateBuilderHelper helper =
+        new AggregateAnalyzer.AggregateBuilderHelper(rowType, fieldTypes, null, true, BUCKET_SIZE);
+
+    Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
+        AggregateAnalyzer.analyze(aggregate, project, List.of("checked_sum"), helper);
+
+    SumAggregationBuilder builder =
+        assertInstanceOf(SumAggregationBuilder.class, result.getLeft().getFirst());
+    assertEquals("a", builder.field());
+    NoBucketAggregationParser parser =
+        assertInstanceOf(NoBucketAggregationParser.class, result.getRight());
+    assertInstanceOf(
+        CheckedLongSumParser.class,
+        parser.getMetricsParser().getMetricParserMap().get("checked_sum"));
+  }
+
+  @Test
+  void analyze_checkedLongSumExpressionUsesNativeScriptedSum()
+      throws ExpressionNotAnalyzableException {
+    buildAggregation("checked_sum")
+        .withAggCall(
+            b ->
+                b.aggregateCall(
+                        PPLBuiltinOperators.CHECKED_LONG_SUM,
+                        b.call(SqlStdOperatorTable.PLUS, b.field("a"), b.literal(1)))
+                    .as("checked_sum"))
+        .expectDslTemplate("[{\"checked_sum\":{\"sum\":{\"script\":*}}}]")
+        .expectResponseParser(
+            new MetricParserHelper(List.of(new CheckedLongSumParser("checked_sum"))))
+        .verify();
+  }
+
+  @Test
+  void analyze_bigintAvgUsesNativeField() throws ExpressionNotAnalyzableException {
+    buildAggregation("avg")
+        .withAggCall(b -> b.aggregateCall(PPLBuiltinOperators.BIGINT_AVG, b.field("a")).as("avg"))
+        .expectDslQuery("[{\"avg\":{\"avg\":{\"field\":\"a\"}}}]")
+        .expectResponseParser(new MetricParserHelper(List.of(new SingleValueParser("avg"))))
+        .verify();
   }
 
   @Test

@@ -25,7 +25,8 @@ public class OpenSearchSparkSqlDialect extends SparkSqlDialect {
       ImmutableMap.of(
           "ARG_MIN", "MIN_BY",
           "ARG_MAX", "MAX_BY",
-          "SAFE_CAST", "TRY_CAST");
+          "SAFE_CAST", "TRY_CAST",
+          "CHECKED_LONG_SUM", "SUM");
 
   private static final Map<String, String> CALL_SEPARATOR = ImmutableMap.of("SAFE_CAST", "AS");
 

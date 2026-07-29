@@ -283,6 +283,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -1595,7 +1596,14 @@ public class PPLFuncImpTable {
     }
 
     void registerOperator(BuiltinFunctionName functionName, SqlAggFunction aggFunction) {
-      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(aggFunction);
+      registerOperator(functionName, aggFunction, field -> aggFunction);
+    }
+
+    void registerOperator(
+        BuiltinFunctionName functionName,
+        SqlAggFunction typeCheckerSource,
+        Function<RexNode, SqlAggFunction> aggFunctionSelector) {
+      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(typeCheckerSource);
       PPLTypeChecker typeChecker =
           wrapSqlOperandTypeChecker(innerTypeChecker, functionName.name(), true);
       AggHandler handler =
@@ -1603,15 +1611,30 @@ public class PPLFuncImpTable {
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             return UserDefinedFunctionUtils.makeAggregateCall(
-                aggFunction, List.of(field), newArgList, ctx.relBuilder);
+                aggFunctionSelector.apply(field), List.of(field), newArgList, ctx.relBuilder);
           };
       register(functionName, handler, typeChecker);
+    }
+
+    /** Registers checked integral sums while retaining standard SUM behavior for other types. */
+    void registerSumOperator() {
+      registerOperator(
+          SUM,
+          SqlStdOperatorTable.SUM,
+          field ->
+              isIntegral(field.getType().getSqlTypeName())
+                  ? PPLBuiltinOperators.CHECKED_LONG_SUM
+                  : SqlStdOperatorTable.SUM);
+    }
+
+    private static boolean isIntegral(SqlTypeName typeName) {
+      return SqlTypeName.INT_TYPES.contains(typeName);
     }
 
     void populate() {
       registerOperator(MAX, SqlStdOperatorTable.MAX);
       registerOperator(MIN, SqlStdOperatorTable.MIN);
-      registerOperator(SUM, SqlStdOperatorTable.SUM);
+      registerSumOperator();
       registerOperator(VARSAMP, PPLBuiltinOperators.VAR_SAMP_NULLABLE);
       registerOperator(VARPOP, PPLBuiltinOperators.VAR_POP_NULLABLE);
       registerOperator(STDDEV_SAMP, PPLBuiltinOperators.STDDEV_SAMP_NULLABLE);
@@ -1630,7 +1653,14 @@ public class PPLFuncImpTable {
 
       register(
           AVG,
-          (distinct, field, argList, ctx) -> ctx.relBuilder.avg(distinct, null, field),
+          (distinct, field, argList, ctx) -> {
+            if (field.getType().getSqlTypeName() == SqlTypeName.BIGINT) {
+              return ctx.relBuilder
+                  .aggregateCall(PPLBuiltinOperators.BIGINT_AVG, field)
+                  .distinct(distinct);
+            }
+            return ctx.relBuilder.avg(distinct, null, field);
+          },
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.AVG.getOperandTypeChecker(), AVG.name(), false));
 

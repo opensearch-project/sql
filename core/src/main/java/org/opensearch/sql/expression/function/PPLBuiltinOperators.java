@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodToUDF;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodWithPropertiesToUDF;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptMathFunctionToUDF;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createReflectiveAggFunction;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createUserDefinedAggFunction;
 
 import com.google.common.base.Suppliers;
@@ -29,6 +30,8 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.udaf.BigintAvgAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.CheckedLongSumAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.DistinctCountApproxLogicalAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.FirstAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LastAggFunction;
@@ -449,7 +452,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
   public static final SqlOperator TONUMBER = new ToNumberFunction().toUDF("TONUMBER");
   public static final SqlOperator TOSTRING = new ToStringFunction().toUDF("TOSTRING");
-
   // PPL Convert command functions
   public static final SqlOperator AUTO = new AutoConvertFunction().toUDF("AUTO");
   public static final SqlOperator NUM = new NumConvertFunction().toUDF("NUM");
@@ -488,6 +490,20 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new NullableSqlAvgAggFunction(SqlKind.VAR_POP);
   public static final SqlAggFunction VAR_SAMP_NULLABLE =
       new NullableSqlAvgAggFunction(SqlKind.VAR_SAMP);
+  public static final SqlAggFunction CHECKED_LONG_SUM =
+      createReflectiveAggFunction(
+          CheckedLongSumAggFunction.class,
+          "CHECKED_LONG_SUM",
+          SqlKind.SUM,
+          ReturnTypes.BIGINT_FORCE_NULLABLE,
+          PPLOperandTypes.NUMERIC);
+  public static final SqlAggFunction BIGINT_AVG =
+      createReflectiveAggFunction(
+          BigintAvgAggFunction.class,
+          "AVG",
+          SqlKind.AVG,
+          ReturnTypes.DOUBLE_NULLABLE,
+          PPLOperandTypes.NUMERIC);
   public static final SqlAggFunction TAKE =
       createUserDefinedAggFunction(
           TakeAggFunction.class,
