@@ -27,9 +27,12 @@ import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -124,6 +127,92 @@ public class UserDefinedFunctionUtils {
         return null; // stop descending once found
       }
       return super.visitCall(call);
+    }
+  }
+
+  /**
+   * A relevance function found in a plan, together with the column it targets as the user wrote it.
+   */
+  public record RelevanceUsage(String functionName, String columnName) {}
+
+  /**
+   * Finds the first relevance function left in a plan and resolves the column it targets back to
+   * its user-facing name.
+   *
+   * <p>Used to report a relevance function that survived push down. By the time code generation
+   * fails, the expression only carries positional references such as {@code $t4}; resolving them
+   * against the owning operator's input row type recovers the name the user actually wrote (for
+   * example {@code b2} for {@code eval b2 = upper(body)}).
+   *
+   * @param root the plan to inspect
+   * @return the first usage found, or null if the plan contains no relevance function
+   */
+  public static RelevanceUsage findRelevanceUsage(RelNode root) {
+    if (root == null) {
+      return null;
+    }
+    for (RelNode input : root.getInputs()) {
+      RelevanceUsage fromInput = findRelevanceUsage(input);
+      if (fromInput != null) {
+        return fromInput;
+      }
+    }
+    List<String> inputFieldNames = new ArrayList<>();
+    for (RelNode input : root.getInputs()) {
+      inputFieldNames.addAll(input.getRowType().getFieldNames());
+    }
+    RelevanceUsageFinder finder = new RelevanceUsageFinder(inputFieldNames);
+    root.accept(finder);
+    return finder.usage;
+  }
+
+  /**
+   * Locates a relevance call and resolves the field operand against the supplied input field names.
+   * Relevance calls are shaped as {@code match(MAP('field', <expr>), MAP('query', <literal>),
+   * ...)}, so the column lives inside the first map argument.
+   */
+  private static class RelevanceUsageFinder extends RexShuttle {
+    private final List<String> inputFieldNames;
+    private RelevanceUsage usage;
+
+    RelevanceUsageFinder(List<String> inputFieldNames) {
+      this.inputFieldNames = inputFieldNames;
+    }
+
+    @Override
+    public RexNode visitCall(RexCall call) {
+      if (usage == null && isRelevanceFunction(call.getOperator().getName())) {
+        usage =
+            new RelevanceUsage(
+                call.getOperator().getName().toLowerCase(Locale.ROOT), resolveColumnName(call));
+        return call;
+      }
+      return super.visitCall(call);
+    }
+
+    private String resolveColumnName(RexCall relevanceCall) {
+      if (relevanceCall.getOperands().isEmpty()) {
+        return null;
+      }
+      ColumnRefCollector collector = new ColumnRefCollector();
+      relevanceCall.getOperands().get(0).accept(collector);
+      if (collector.index == null) {
+        return null;
+      }
+      return collector.index < inputFieldNames.size() ? inputFieldNames.get(collector.index) : null;
+    }
+  }
+
+  /** Grabs the first input reference index inside an expression. */
+  private static class ColumnRefCollector extends RexShuttle {
+    private Integer index;
+
+    @Override
+    public RexNode visitInputRef(RexInputRef inputRef) {
+      if (index == null) {
+        index = inputRef.getIndex();
+      }
+      return inputRef;
     }
   }
 

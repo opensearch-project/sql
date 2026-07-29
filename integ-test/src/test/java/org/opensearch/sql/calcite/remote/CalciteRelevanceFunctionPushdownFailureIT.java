@@ -60,12 +60,11 @@ public class CalciteRelevanceFunctionPushdownFailureIT extends PPLIntegTestCase 
   }
 
   private String errorOf(String query) throws IOException {
-    ResponseException e =
-        assertThrows(ResponseException.class, () -> executeQuery(query));
+    ResponseException e = assertThrows(ResponseException.class, () -> executeQuery(query));
     return getResponseBody(e.getResponse());
   }
 
-  private void assertFailsCleanly(String query, String expectedFunctionName)
+  private void assertFailsCleanly(String query, String expectedFunctionName, String expectedColumn)
       throws IOException {
     String message = errorOf(query);
     assertFalse(
@@ -78,8 +77,18 @@ public class CalciteRelevanceFunctionPushdownFailureIT extends PPLIntegTestCase 
         message.contains("all shards failed"));
     assertTrue(
         String.format(
-            Locale.ROOT, "Error should name the function [%s]. Error was: %s", "match", message),
+            Locale.ROOT,
+            "Error should name the function [%s]. Error was: %s",
+            expectedFunctionName,
+            message),
         message.toLowerCase(Locale.ROOT).contains(expectedFunctionName));
+    assertTrue(
+        String.format(
+            Locale.ROOT,
+            "Error should name the column [%s]. Error was: %s",
+            expectedColumn,
+            message),
+        message.contains(String.format(Locale.ROOT, "column [%s]", expectedColumn)));
   }
 
   /** A relevance function over a column computed by the query cannot be pushed down. */
@@ -90,7 +99,8 @@ public class CalciteRelevanceFunctionPushdownFailureIT extends PPLIntegTestCase 
             Locale.ROOT,
             "source=%s | eval b2 = upper(body) | where match(b2, 'ERROR') | fields idx",
             TEST_INDEX),
-        "match");
+        "match",
+        "b2");
   }
 
   /** Same for a column produced by parse. */
@@ -101,15 +111,18 @@ public class CalciteRelevanceFunctionPushdownFailureIT extends PPLIntegTestCase 
             Locale.ROOT,
             "source=%s | parse body '(?<lvl>\\\\w+)' | where match(lvl, 'ERROR') | fields idx",
             TEST_INDEX),
-        "match");
+        "match",
+        "lvl");
   }
 
   /** A relevance filter above an aggregation has no scan to be pushed onto. */
   @Test
   public void relevanceAboveAggregationFailsCleanly() throws IOException {
     assertFailsCleanly(
-        String.format(Locale.ROOT, "source=%s | top 1 body | where match(body, 'ERROR')", TEST_INDEX),
-        "match");
+        String.format(
+            Locale.ROOT, "source=%s | top 1 body | where match(body, 'ERROR')", TEST_INDEX),
+        "match",
+        "body");
   }
 
   /** A relevance function in a projection is never rewritten into a query. */
@@ -118,7 +131,8 @@ public class CalciteRelevanceFunctionPushdownFailureIT extends PPLIntegTestCase 
     assertFailsCleanly(
         String.format(
             Locale.ROOT, "source=%s | eval m = match(body, 'ERROR') | fields idx, m", TEST_INDEX),
-        "match");
+        "match",
+        "body");
   }
 
   /**

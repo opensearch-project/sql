@@ -28,6 +28,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.util.Objects.requireNonNull;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.findRelevanceUsage;
 import static org.opensearch.sql.monitor.profile.MetricName.OPTIMIZE;
 
 import com.google.common.collect.ImmutableList;
@@ -37,6 +38,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.function.Consumer;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
@@ -106,6 +108,7 @@ import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
 import org.opensearch.sql.calcite.profile.PlanProfileBuilder;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.RelevanceUsage;
 import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
@@ -487,6 +490,51 @@ public class CalciteToolsHelper {
       return rc != null ? rc : e.getMessage();
     }
 
+    /**
+     * Reports a relevance function that survived push down in terms the user can act on.
+     *
+     * <p>Relevance functions have no executable implementation; reaching code generation means the
+     * planner could not rewrite the call into an OpenSearch query. The generated expression only
+     * carries positional references by then, so the column is resolved from the pre-compilation
+     * plan to name it as the user wrote it.
+     */
+    private static void enrichRelevanceNotPushedDown(
+        ErrorReport.Builder report, SQLException e, RelNode rel) {
+      String rootCause = rootCauseMessage(e);
+      if (rootCause == null || !rootCause.contains("Relevance search function")) {
+        return;
+      }
+      RelevanceUsage usage = findRelevanceUsage(rel);
+      if (usage == null) {
+        return;
+      }
+      String target =
+          usage.columnName() == null
+              ? "the column it is applied to"
+              : String.format(Locale.ROOT, "column [%s]", usage.columnName());
+      report
+          .details(
+              String.format(
+                  Locale.ROOT,
+                  "Relevance search function [%s] cannot be applied to %s. It must run against a"
+                      + " field indexed by OpenSearch, and cannot be evaluated on a value the query"
+                      + " computes (eval, parse, rex), on aggregated output (stats, top, rare), or"
+                      + " after a row limit (head). Move the %s filter so it directly follows"
+                      + " `source=` and targets an indexed field, or use a non-relevance predicate"
+                      + " such as `like` which can be evaluated per row.",
+                  usage.functionName(),
+                  target,
+                  usage.functionName()))
+          .code(ErrorCode.UNSUPPORTED_OPERATION)
+          .context("relevance_function", usage.functionName())
+          .context("relevance_column", String.valueOf(usage.columnName()))
+          .suggestion(
+              String.format(
+                  Locale.ROOT,
+                  "apply %s directly to an indexed field before any command that transforms rows",
+                  usage.functionName()));
+    }
+
     private static void enrichErrorsForSpecialCases(ErrorReport.Builder report, SQLException e) {
       if (e.getMessage().contains("Error while preparing plan [") && e.getCause() != null) {
         // Generic 'something went wrong' planning error, try to get the cause
@@ -546,6 +594,7 @@ public class CalciteToolsHelper {
                 .location("while compiling the optimized query plan for physical execution")
                 .code(ErrorCode.PLANNING_ERROR);
         enrichErrorsForSpecialCases(report, e);
+        enrichRelevanceNotPushedDown(report, e, rel);
         throw report.build();
       }
     }
