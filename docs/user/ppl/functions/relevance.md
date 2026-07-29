@@ -4,6 +4,61 @@ Relevance-based functions enable users to search an index for documents based on
 
 You can use these functions for global query filtering, such as in condition expressions within `WHERE` or `HAVING` clauses. For more details about relevance-based search, see [Relevance Based Search With SQL/PPL Query Engine](https://github.com/opensearch-project/sql/issues/182).
 
+## Usage constraints
+
+Relevance functions are executed by the OpenSearch search engine, not by the plugin. A relevance function matches against the inverted index that OpenSearch builds when a document is written, so it can only be applied to a field that exists in the index mapping, and only at a point in the pipeline where the query can still be handed to the search engine.
+
+In practice this means a relevance function must be applied **directly to an indexed field, before any command that transforms rows**. Place it immediately after `source=`:
+
+```
+source=logs | where match(body, 'ERROR') | eval level = upper(body) | fields level
+```
+
+The following are not supported, because there is no indexed field left to search against:
+
+| Pattern | Why it cannot work |
+|---|---|
+| `... \| eval b = upper(body) \| where match(b, 'ERROR')` | `b` is computed while the query runs; it was never indexed. The same applies to columns produced by `parse` and `rex`. |
+| `... \| top 1 body \| where match(body, 'ERROR')`<br>`... \| rare 1 body \| where match(body, 'ERROR')` | These commands produce summary rows after the search phase completes; there are no documents left to search. |
+| `... \| sort body \| head 1 \| where match(body, 'ERROR')` | Once a sort and a row limit have been applied, the filter can no longer be handed to the search engine. |
+| `... \| eval m = match(body, 'ERROR')` | A relevance function is a search condition, not a per-row value, so it cannot be assigned to a column. |
+
+A query in this category fails at planning time, before any data is read, with an error naming the function and the column:
+
+```
+Relevance search function [match] cannot be applied to column [b]. It must run against a
+field indexed by OpenSearch, and cannot be evaluated on a value the query computes (eval,
+parse, rex), on aggregated output (stats, top, rare), or after a row limit (head).
+```
+
+A relevance filter placed after a `stats` aggregation on the grouping key is supported, because the filter can be applied to the underlying documents before grouping:
+
+```
+source=logs | stats count() by body | where match(body, 'ERROR')
+```
+
+If you need to filter on a computed column, use a predicate that can be evaluated per row, such as `like`:
+
+```
+source=logs | eval b = upper(body) | where like(b, '%ERROR%')
+```
+
+Note that `like` performs substring matching rather than analyzed text matching, so it does not apply tokenization, stemming, or relevance scoring.
+
+### Known issue: relevance filters after `head`
+
+Avoid placing a relevance filter directly after `head`:
+
+```
+source=logs | head 100 | where match(body, 'ERROR')
+```
+
+A search request applies its query before limiting results, so this is evaluated as "search the whole index, then take 100 matches" rather than "take 100 rows, then search them". The query returns results without an error, but they are drawn from the entire index rather than from the intended sample. Apply the relevance filter before `head` instead:
+
+```
+source=logs | where match(body, 'ERROR') | head 100
+```
+
 ## MATCH
 
 **Usage**: `MATCH(<field_expression>, <query_expression>[, <option>=<option_value>]*)`
