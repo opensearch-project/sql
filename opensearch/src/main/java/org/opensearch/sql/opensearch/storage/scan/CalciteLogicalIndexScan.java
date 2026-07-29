@@ -375,6 +375,15 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
   }
 
   public AbstractRelNode pushDownAggregate(Aggregate aggregate, @Nullable Project project) {
+    return pushDownAggregate(aggregate, project, true);
+  }
+
+  /**
+   * @param allowPartialFallback whether a failure may fall back to the partial-result path. False
+   *     when re-entering from that path, so the fallback is attempted at most once.
+   */
+  private AbstractRelNode pushDownAggregate(
+      Aggregate aggregate, @Nullable Project project, boolean allowPartialFallback) {
     try {
       CalciteLogicalIndexScan newScan =
           new CalciteLogicalIndexScan(
@@ -400,7 +409,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         if (LOG.isDebugEnabled()) {
           LOG.debug("Cannot pushdown the aggregate due to bucket contains array (nested) type");
         }
-        return null;
+        return allowPartialFallback ? tryPartialResultAggregate(aggregate, project) : null;
       }
       int queryBucketSize = osIndex.getQueryBucketSize();
       boolean bucketNullable = !PPLHintUtils.ignoreNullBucket(aggregate);
@@ -431,7 +440,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         LOG.debug("Cannot pushdown the aggregate {}", aggregate, e);
       }
     }
-    return null;
+    return allowPartialFallback ? tryPartialResultAggregate(aggregate, project) : null;
   }
 
   /**
@@ -447,9 +456,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
    * warning ({@link QueryContext#isWarningsSupported}). The partitioning decision lives in {@link
    * PartialResultAggregatePushdown}; this method owns the plan-time wiring (settings gate, mapping
    * lookup, narrowed-scan construction, warning emission). Returns {@code null} — leaving the
-   * caller to fall back — whenever partial mode does not apply.
+   * aggregate un-pushed, as before — whenever partial mode does not apply.
    */
-  public AbstractRelNode tryPartialResultAggregate(Aggregate aggregate, @Nullable Project project) {
+  private AbstractRelNode tryPartialResultAggregate(
+      Aggregate aggregate, @Nullable Project project) {
     if (!isPartialResultEnabled()) {
       return null;
     }
@@ -484,9 +494,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
               narrowedIndex,
               getRowType(),
               pushDownContext.cloneWithOsIndex(narrowedIndex));
-      AbstractRelNode pushed = narrowedScan.pushDownAggregate(aggregate, project);
+      // allowPartialFallback = false: the subset is already narrowed, so a second attempt would be
+      // redundant. Keeps the fallback strictly one-shot.
+      AbstractRelNode pushed = narrowedScan.pushDownAggregate(aggregate, project, false);
       if (pushed == null) {
-        return null; // narrowed subset still can't push down -> fall back
+        return null; // narrowed subset still can't push down -> leave un-pushed
       }
 
       CalcitePlanContext.addWarning(plan.warning());
@@ -510,9 +522,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       return override;
     }
     return (Boolean)
-        osIndex
-            .getSettings()
-            .getSettingValue(Settings.Key.CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT);
+        osIndex.getSettings().getSettingValue(Settings.Key.PARTIAL_RESULT_ON_MAPPING_CONFLICT);
   }
 
   public AbstractRelNode pushDownLimit(LogicalSort sort, Integer limit, Integer offset) {

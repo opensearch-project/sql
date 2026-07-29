@@ -30,7 +30,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  * another collapses to text-without-keyword across the wildcard pattern, which defeats aggregation
  * pushdown and forces a per-shard document scan that opens a Point-In-Time context on every shard.
  *
- * <p>When {@code plugins.calcite.partial_result.on_mapping_conflict.enabled} is on, the aggregation
+ * <p>When {@code plugins.query.partial_result.on_mapping_conflict.enabled} is on, the aggregation
  * is instead pushed down over just the aggregatable (keyword) index subset — no PIT — and the
  * response carries a {@code PARTIAL_RESULT} warning naming the excluded index.
  */
@@ -304,7 +304,7 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
     updateClusterSettings(
         new ClusterSetting(
             "persistent",
-            Settings.Key.CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT.getKeyValue(),
+            Settings.Key.PARTIAL_RESULT_ON_MAPPING_CONFLICT.getKeyValue(),
             Boolean.toString(enabled)));
   }
 

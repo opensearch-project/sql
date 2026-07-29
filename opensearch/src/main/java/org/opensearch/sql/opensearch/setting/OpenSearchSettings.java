@@ -195,9 +195,9 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
-  public static final Setting<?> CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT_SETTING =
+  public static final Setting<?> PARTIAL_RESULT_ON_MAPPING_CONFLICT_SETTING =
       Setting.boolSetting(
-          Key.CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT.getKeyValue(),
+          Key.PARTIAL_RESULT_ON_MAPPING_CONFLICT.getKeyValue(),
           false,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
@@ -537,9 +537,9 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
-        Key.CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT,
-        CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT_SETTING,
-        new Updater(Key.CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT));
+        Key.PARTIAL_RESULT_ON_MAPPING_CONFLICT,
+        PARTIAL_RESULT_ON_MAPPING_CONFLICT_SETTING,
+        new Updater(Key.PARTIAL_RESULT_ON_MAPPING_CONFLICT));
     register(
         settingBuilder,
         clusterSettings,
@@ -773,7 +773,7 @@ public class OpenSearchSettings extends Settings {
         .add(CALCITE_PUSHDOWN_ENABLED_SETTING)
         .add(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING)
         .add(CALCITE_SUPPORT_ALL_JOIN_TYPES_SETTING)
-        .add(CALCITE_PARTIAL_RESULT_ON_MAPPING_CONFLICT_SETTING)
+        .add(PARTIAL_RESULT_ON_MAPPING_CONFLICT_SETTING)
         .add(DEFAULT_PATTERN_METHOD_SETTING)
         .add(DEFAULT_PATTERN_MODE_SETTING)
         .add(DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING)
