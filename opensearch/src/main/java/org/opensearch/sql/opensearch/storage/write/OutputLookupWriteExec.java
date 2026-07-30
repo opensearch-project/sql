@@ -75,8 +75,6 @@ public final class OutputLookupWriteExec {
         return 0;
       }
 
-      LookupsIndex.ensureExists(client, backingIndex);
-
       Target target = resolveTarget(client, name);
       switch (target.kind()) {
         case ABSENT:
@@ -85,6 +83,8 @@ public final class OutputLookupWriteExec {
             // converge on one slice (no lost write); overwrite takes a fresh uuid
             // (last-writer-wins).
             String uuid = append ? stableUuid(name) : newUuid();
+            // Create the per-lookup backing index only on paths that actually write to it.
+            LookupsIndex.ensureExists(client, backingIndex);
             writeSlice(client, backingIndex, fields, mode, keyFields, rows, uuid);
             addFilteredAlias(client, name, backingIndex, uuid);
             break;
@@ -104,6 +104,9 @@ public final class OutputLookupWriteExec {
                         + name
                         + "]: its alias filter has no __lookup discriminant; overwrite it first");
               }
+              // Append writes into the alias's existing primary index; no backing index is
+              // created here, so appending to an externally-created lookup (whose primary index
+              // is not <name>__lookup) never leaves an empty, unreferenced <name>__lookup shell.
               writeSlice(
                   client,
                   target.primaryIndex(),
@@ -114,6 +117,8 @@ public final class OutputLookupWriteExec {
                   target.lookupUuid());
             } else {
               String uuid = newUuid();
+              // Overwrite writes a fresh slice into the backing index, so create it here.
+              LookupsIndex.ensureExists(client, backingIndex);
               writeSlice(client, backingIndex, fields, mode, keyFields, rows, uuid);
               repointFilteredAlias(client, name, target.aliasIndices(), backingIndex, uuid);
               // TODO(reaper, separate PR): the atomic repoint leaves the previous slice as an
