@@ -286,7 +286,7 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
         .assertPlan(
             """
             LogicalProject(department=[$0], total=[$1])
-              LogicalAggregate(group=[{0}], SUM(age)=[SUM($1)])
+              LogicalAggregate(group=[{0}], SUM(age)=[CHECKED_LONG_SUM($1)])
                 LogicalProject(department=[$3], age=[$2])
                   LogicalTableScan(table=[[catalog, employees]])
             """);
@@ -366,7 +366,7 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
             """)
         .assertPlan(
             """
-            LogicalAggregate(group=[{0}], SUM(age) FILTER(WHERE age > 30)=[SUM($1) FILTER $2])
+            LogicalAggregate(group=[{0}], SUM(age) FILTER(WHERE age > 30)=[CHECKED_LONG_SUM($1) FILTER $2])
               LogicalProject(department=[$3], age=[$2], $f3=[>($2, 30)])
                 LogicalTableScan(table=[[catalog, employees]])
             """);
@@ -487,7 +487,7 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
             """)
         .assertPlan(
             """
-            LogicalProject(name=[$1], SUM(age) OVER(PARTITION BY department ORDER BY age)=[SUM($2) OVER (PARTITION BY $3 ORDER BY $2 NULLS FIRST)])
+            LogicalProject(name=[$1], SUM(age) OVER(PARTITION BY department ORDER BY age)=[CHECKED_LONG_SUM($2) OVER (PARTITION BY $3 ORDER BY $2 NULLS FIRST)])
               LogicalTableScan(table=[[catalog, employees]])
             """);
   }
