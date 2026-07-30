@@ -429,7 +429,7 @@ public class TransportPPLQueryAction
         try {
           delegate.onResponse(transportPPLQueryResponse);
         } finally {
-          QueryProfiling.clear();
+          clearRequestScopedState();
         }
       }
 
@@ -438,9 +438,21 @@ public class TransportPPLQueryAction
         try {
           delegate.onFailure(e);
         } finally {
-          QueryProfiling.clear();
+          clearRequestScopedState();
         }
       }
     };
+  }
+
+  /**
+   * Clear the per-request state carried in {@link QueryContext}'s thread-locals. Transport threads
+   * are pooled, so anything left behind is inherited by the next query to run on this thread -- a
+   * request that expressed no partial-result preference would otherwise pick up the previous
+   * request's override.
+   */
+  private static void clearRequestScopedState() {
+    QueryProfiling.clear();
+    QueryContext.setPartialResultOverride(null);
+    QueryContext.setWarningsSupported(false);
   }
 }
