@@ -265,6 +265,23 @@ public class OpenSearchDataType implements ExprType, Serializable {
   }
 
   /**
+   * Clone this type including its nested {@link #properties} subtree, so the copy shares no mutable
+   * state with the original. Needed by callers that must keep a mapping intact across an in-place
+   * merge (see {@code MergeRuleHelper}), which rewrites the target's {@code properties}.
+   *
+   * @return A deep copy of this type.
+   */
+  public OpenSearchDataType cloneDeep() {
+    OpenSearchDataType copy = cloneEmpty();
+    if (!properties.isEmpty()) {
+      Map<String, OpenSearchDataType> copiedProperties = new LinkedHashMap<>();
+      properties.forEach((field, type) -> copiedProperties.put(field, type.cloneDeep()));
+      copy.properties = copiedProperties;
+    }
+    return copy;
+  }
+
+  /**
    * Flattens mapping tree into a single layer list of objects (pairs of name-types actually), which
    * don't have nested types. See {@link OpenSearchDataTypeTest#traverseAndFlatten() test} for
    * example.
