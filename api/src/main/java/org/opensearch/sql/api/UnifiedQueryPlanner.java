@@ -158,11 +158,6 @@ public class UnifiedQueryPlanner {
       if (logical instanceof Sort) {
         return logical;
       }
-      // Only a genuine single-sort collation is materialized. A literal-row plan (makeresults
-      // data=) carries several incidental derived collations kept as a RelCompositeTrait; those
-      // are not a user sort, so getTraits returns more than one and we leave the plan unwrapped.
-      // RelTraitSet.getCollation() would instead cast the composite to a single RelCollation and
-      // throw.
       List<RelCollation> collations =
           logical.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE);
       if (collations != null
